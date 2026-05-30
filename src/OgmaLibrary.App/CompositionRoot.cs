@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.Application;
 using OgmaLibrary.Infrastructure;
+using OgmaLibrary.Infrastructure.Localization;
 
 namespace OgmaLibrary.App;
 
@@ -25,6 +27,12 @@ public static class CompositionRoot
 
         // Cross-cutting: performance-budget instrumentation (Phase 02).
         services.AddSingleton<IBenchmarkContext, StopwatchBenchmarkContext>();
+
+        // Localization: MVP English + French (Phase 02).
+        services.AddSingleton<ILocalizationService, InMemoryLocalizationService>();
+
+        // View models.
+        services.AddTransient<MainWindowViewModel>();
 
         // Bounded-context registrations (Catalogue, Ingestion, Reader, Search, AI,
         // Bookshelf, Settings & Security, Packaging) are added here in Phases 04+.

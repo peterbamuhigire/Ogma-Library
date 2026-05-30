@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels"
+        x:Class="OgmaLibrary.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding Title}"
+        Width="1000" Height="680"
+        MinWidth="720" MinHeight="480"
+        Background="{StaticResource OgmaParchmentBrush}">
+
+  <Design.DataContext>
+    <vm:MainWindowViewModel />
+  </Design.DataContext>
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="0">
+
+    <!-- Header band -->
+    <Border Grid.Row="0" Padding="32,28,32,24">
+      <StackPanel Spacing="4">
+        <!-- Phase 03 places the colorful Ogma wordmark icon to the left of the title. -->
+        <TextBlock Text="{Binding Title}"
+                   FontSize="30" FontWeight="SemiBold"
+                   Foreground="{StaticResource OgmaInkBrush}" />
+        <TextBlock Text="{Binding Tagline}"
+                   FontSize="15"
+                   Foreground="{StaticResource OgmaWalnutBrush}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Empty-state body -->
+    <Border Grid.Row="1" Margin="32,8,32,8"
+            CornerRadius="14" BorderThickness="1"
+            BorderBrush="#1A7A5C3E" Background="#66FFFFFF">
+      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                  MaxWidth="520" Spacing="14">
+        <!-- Phase 03: a colorful flat 'empty shelf' illustration sits here. -->
+        <Border Width="84" Height="84" CornerRadius="42"
+                HorizontalAlignment="Center"
+                Background="{StaticResource OgmaOakBrush}">
+          <TextBlock Text="📚" FontSize="40"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock Text="{Binding EmptyStateHeading}"
+                   FontSize="20" FontWeight="SemiBold"
+                   TextAlignment="Center"
+                   Foreground="{StaticResource OgmaInkBrush}" />
+        <TextBlock Text="{Binding EmptyStateBody}"
+                   FontSize="14" TextWrapping="Wrap" TextAlignment="Center"
+                   Foreground="{StaticResource OgmaWalnutBrush}" />
+        <Button Content="{Binding ChooseFolderText}"
+                HorizontalAlignment="Center" Margin="0,6,0,0"
+                Padding="20,10"
+                Foreground="White"
+                Background="{StaticResource OgmaOakBrush}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Status bar -->
+    <Border Grid.Row="2" Padding="32,12" Background="#11000000">
+      <TextBlock Text="{Binding StatusText}"
+                 FontSize="12"
+                 Foreground="{StaticResource OgmaWalnutBrush}" />
+    </Border>
+
+  </Grid>
+</Window>

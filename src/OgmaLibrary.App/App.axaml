@@ -1,0 +1,23 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="OgmaLibrary.App.App"
+             RequestedThemeVariant="Light">
+
+  <Application.Styles>
+    <FluentTheme />
+  </Application.Styles>
+
+  <Application.Resources>
+    <!-- Phase 02 placeholder palette (the flat full-color design tokens land in
+         Phase 03). Warm, library-like, "calm premium". -->
+    <Color x:Key="OgmaParchment">#FBF6EC</Color>
+    <Color x:Key="OgmaOak">#B5651D</Color>
+    <Color x:Key="OgmaInk">#2B2622</Color>
+    <Color x:Key="OgmaWalnut">#7A5C3E</Color>
+    <SolidColorBrush x:Key="OgmaParchmentBrush" Color="{StaticResource OgmaParchment}" />
+    <SolidColorBrush x:Key="OgmaOakBrush" Color="{StaticResource OgmaOak}" />
+    <SolidColorBrush x:Key="OgmaInkBrush" Color="{StaticResource OgmaInk}" />
+    <SolidColorBrush x:Key="OgmaWalnutBrush" Color="{StaticResource OgmaWalnut}" />
+  </Application.Resources>
+
+</Application>
