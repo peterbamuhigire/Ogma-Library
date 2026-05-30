@@ -6,6 +6,50 @@ docs or phase folders. Phase folders are reconciled to these decisions.
 
 ---
 
+## D‑008 — Key management, identity & data location model (2026‑05‑30)
+
+Confirms how API keys, login, and the database are handled across the two
+deployment modes of the one app. Refines ADR‑0007 (AI gateway), ADR‑0010/0011/
+0012 (LAN Host / identity / managed AI), and Phases 12, 16–18.
+
+**Two deployment modes, one codebase:**
+
+| | Standalone (home, MVP default) | Classroom / LAN Host (school) |
+| --- | --- | --- |
+| AI key set by | the user | **the admin** (Host installer) only |
+| Key stored in | local OS credential store | **the Host's** OS credential store |
+| Key visible to | that user | **no one else** — masked after entry, never shown |
+| AI call made by | the local app | **the Host proxies** every call (single egress chokepoint) |
+| Database (catalogue + PDFs + state) | **local**, per computer | **central on the Host**; clients cache for offline, source of truth is central |
+| Login | **none** (OS user is the boundary) | **yes** — admin creates student/teacher accounts with roles |
+
+Owner decisions (D‑008):
+
+1. **Model = two modes** (confirmed). Standalone is the zero‑friction MVP;
+   classroom is the central‑Host model with admin‑set keys + logins.
+2. **Classroom access = LAN‑only** (confirmed). Students connect only on the
+   school's local network. The Host opens **no inbound internet listener** — only
+   the LAN surface (ADR‑0010). This keeps the product local‑first, minimizes the
+   attack surface, and keeps minors'‑data compliance lightest. Internet/remote
+   access is explicitly **out of scope** (revisit post‑V2 only, behind a fresh
+   DPIA).
+3. **Standalone = no login** (confirmed). The OS user account is the boundary;
+   one library per OS user. Login/roles are a **classroom‑only** concept. (No
+   optional local profiles for now.)
+
+**Key handling specifics (binding):** the AI key never leaves the Host; clients
+never receive it. The Host runs the `IAiProvider` gateway and proxies student
+requests under the four privacy tiers, the class default being metadata‑only.
+The key is held only in the Host OS credential store (CTRL‑OGMA‑001), never in
+the DB/config/logs (CTRL‑OGMA‑002), and is not re‑displayed after entry (admin
+sees "configured ✓", can rotate/remove, not read). Per‑student reading state,
+annotations, and AI history are private to the student; the admin sees usage,
+cost, and quotas (entitlements) but not students' private reading content. These
+refinements are folded into Phases 16–18 and the relevant ADRs when that track
+is scheduled.
+
+---
+
 ## D‑001 — Icon visual direction: **Flat full‑color** (2026‑05‑30)
 
 The colorful premium icon system uses a **flat full‑color** style (fully colored,
