@@ -1,0 +1,34 @@
+<Project>
+
+  <!--
+    Ogma Library — solution-wide build properties (Phase 02).
+    Applies to every production and test project under src/ and tests/.
+    The throwaway spikes under spikes/ are shielded by spikes/Directory.Build.props.
+    Authoritative source: docs/references Development Standards §1, ADR-0001.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <!-- The repo root namespace per Development Standards §3. -->
+    <RootNamespace>OgmaLibrary.$(MSBuildProjectName.Replace('OgmaLibrary.', ''))</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Test and the Avalonia shell are not part of the documented public library
+    surface, so missing-XML-doc (CS1591) is not an error there. The Domain,
+    Application, Infrastructure, Reader, Bookshelf3D, and Workers libraries DO
+    require XML docs on every public member (open-source readiness, SOURCE §L.7).
+  -->
+  <PropertyGroup Condition="$(MSBuildProjectName.Contains('Tests')) or '$(MSBuildProjectName)' == 'OgmaLibrary.App'">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

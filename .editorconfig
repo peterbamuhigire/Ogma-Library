@@ -1,0 +1,71 @@
+# Ogma Library — authoritative formatting and style configuration.
+# Editor and `dotnet format` / `dotnet build` (EnforceCodeStyleInBuild) read this
+# same file. Source: Development Standards §9.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{md,yml,yaml}]
+indent_size = 2
+trim_trailing_whitespace = false
+
+[*.{csproj,props,targets,xml}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+max_line_length = 120
+
+# Usings: System first, outside the namespace, sorted.
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# Modern C# style.
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:warning
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_prefer_primary_constructors = false:suggestion
+
+# Naming (Development Standards §3). Constants are PascalCase; this rule is listed
+# first so it takes precedence over the private-field rule for private const fields.
+dotnet_naming_rule.constants_pascal.severity = warning
+dotnet_naming_rule.constants_pascal.symbols = constant_fields
+dotnet_naming_rule.constants_pascal.style = pascal_case
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# Private instance fields use _camelCase.
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# ConfigureAwait(false) in library code is required (Development Standards §6);
+# CA2007 stays a warning so the App (UI) layer is not forced to use it.
+dotnet_diagnostic.CA2007.severity = warning
+
+# Keep a few noisy IDE style rules advisory so the build stays green without
+# bikeshedding; the important correctness analyzers remain at warning/error.
+dotnet_diagnostic.IDE0058.severity = none   # expression value never used
+dotnet_diagnostic.IDE0008.severity = none   # use explicit type ('var' policy is suggestion)
+
+# Test projects deliberately use Method_Scenario_ExpectedOutcome naming
+# (Development Standards §10), which requires underscores — so disable CA1707 there.
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none

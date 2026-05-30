@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Shield: the Phase 01 spikes are THROWAWAY. They must not inherit the strict
+    production rules (warnings-as-errors, XML docs) from the repo-root
+    Directory.Build.props. MSBuild uses the nearest Directory.Build.props, so this
+    file fully replaces the root one for everything under spikes/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>
