@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- Spike 3 — the JS side of the WebView<->C# bridge (THROWAWAY).
+     Hosted in WebView2 (Windows) / WKWebView (macOS). Demonstrates the typed
+     envelope used in both directions. Pair with Bridge.cs / scene.html. -->
+<html lang="en">
+<head><meta charset="utf-8" /><title>Ogma bridge spike</title></head>
+<body style="font:14px ui-monospace,monospace;background:#2b211a;color:#f4e9d8">
+  <div id="log"></div>
+  <script>
+    const log = (m) => document.getElementById('log').insertAdjacentHTML('beforeend', `<div>${m}</div>`);
+
+    // C# -> JS : the host calls window.ogmaReceive(json) with a BridgeCommand.
+    window.ogmaReceive = function (json) {
+      const cmd = JSON.parse(json);
+      log(`◀ command: ${cmd.type} (books=${cmd.payload?.books?.length ?? 0})`);
+      // ... render/select/setTheme based on cmd.type ...
+    };
+
+    // JS -> C# : raise a typed BridgeEvent. The transport differs per platform:
+    //   WebView2  -> window.chrome.webview.postMessage(json)
+    //   WKWebView -> window.webkit.messageHandlers.ogma.postMessage(json)
+    function raise(type, data) {
+      const json = JSON.stringify({ type, data });
+      if (window.chrome?.webview) window.chrome.webview.postMessage(json);
+      else if (window.webkit?.messageHandlers?.ogma) window.webkit.messageHandlers.ogma.postMessage(json);
+      log(`▶ event: ${type} ${JSON.stringify(data)}`);
+    }
+
+    // Demo: raise the four allowed inbound events.
+    raise('bookClicked', { bookId: 'b_01' });
+    raise('bookHovered', { bookId: 'b_02' });
+    raise('cameraChanged', { position: [0, 0, 5], target: [0, 0, 0], zoom: 1.5 });
+    raise('evalArbitraryJs', { x: 1 }); // host MUST reject this (SI-3)
+  </script>
+</body>
+</html>
