@@ -1,0 +1,61 @@
+name: CI
+
+# Ogma Library continuous integration.
+# Every PR to develop/main must be green on BOTH Windows and macOS before merge
+# (Phase 02 DoD; cross-platform parity is a hard gate).
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore OgmaLibrary.sln
+
+      - name: Format check
+        run: dotnet format OgmaLibrary.sln --verify-no-changes --no-restore
+
+      - name: Build (warnings as errors)
+        run: dotnet build OgmaLibrary.sln --configuration Release --no-restore
+
+      - name: Test (unit + architecture + UI render)
+        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal
+
+      - name: Upload skeleton screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skeleton-screenshots-${{ matrix.os }}
+          path: artifacts/screenshots/*.png
+          if-no-files-found: ignore
+
+  # The hybrid validation gate (python -m engine validate Ogma-Library) runs where
+  # the SDLC engine is available. It is tracked as TRACK-P00-GATE until wired here;
+  # this placeholder documents the intended step without faking a pass.
+  hybrid-gate:
+    name: hybrid validation gate (informational)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Note
+        run: echo "Hybrid gate engine is external (TRACK-P00-GATE); see docs/governance/HYBRID-GATE.md"
