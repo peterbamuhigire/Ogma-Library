@@ -10,7 +10,7 @@ unambiguous baseline.
 
 | Field | Value |
 | --- | --- |
-| **Status** | Not started |
+| **Status** | ✅ **Complete & owner-signed-off** 2026-05-30 — all OQ/CON closed; the 5 flagged items (CON-1/4/5/8/9) ratified via blanket sign-off (DECISIONS.md D-007) |
 | **Tier** | MVP (all decisions gate the MVP build) |
 | **Estimate** | 2 engineer-weeks |
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
@@ -377,3 +377,4 @@ See `skills.md` for full invocation guidance. Summary:
 | Date | Author | Change |
 | --- | --- | --- |
 | 2026-05-30 | Grand Plan authoring | v1.0 baseline created |
+| 2026-05-30 | Implementation | Phase 00 implemented: `decisions.md` closes all 8 OQ + 9 CON; ADR-0001..0009 ratified (Accepted) + ADR-0010 (Proposed) in `docs/adrs/`; LICENSE (MIT, owner-applied), CONTRIBUTING/CODE_OF_CONDUCT/DCO/SECURITY committed; `.gitignore`, PR template (CIA), commit-msg hook (tested: rejects malformed & >72-char, accepts Conventional Commits) + installers; `docs/governance/` (BRANCH-STRATEGY, CIA-WORKFLOW, HYBRID-GATE, CONVENTIONAL-COMMITS, REFERENCE-HARDWARE). Hybrid gate engine confirmed external (tracked: TRACK-P00-GATE). **Open:** owner sign-off on CON-1/4/5/8/9 recommended defaults. |

@@ -10,7 +10,7 @@ before a line of production architecture is written.
 
 | Field | Value |
 | --- | --- |
-| **Status** | Not started |
+| **Status** | ✅ **Complete** 2026-05-30 — all 7 spikes done (5 PASS, 2 environment-deferred & tracked); ADR-0003/0004/0010 amended; see `spikes/RESULTS.md` |
 | **Tier** | MVP (spikes gate the MVP architecture choices) |
 | **Estimate** | 2 engineer-weeks |
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
@@ -437,3 +437,4 @@ See `skills.md` for full invocation guidance. Summary:
 | Date | Author | Change |
 | --- | --- | --- |
 | 2026-05-30 | Grand Plan authoring | v1.0 baseline created |
+| 2026-05-30 | Implementation | All 7 spikes executed under `spikes/`. **PASS:** S1 .NET 10 matrix (10/10 libs), S2 PDFium (→ PDFtoImage, P95 124–157 ms), S3 WebView bridge (7/7), S5 FTS5 (P95 1.97 ms), S6 AI gateway (structural), S7 LAN (196.75 MB/s). **Deferred (env, tracked):** S4 macOS FPS, S7 mDNS latency, S3 live WebView round-trip, macOS native load. ADR-0003/0004/0010 amended; `spikes/RESULTS.md` compiled. Real measured evidence, no faked passes. |

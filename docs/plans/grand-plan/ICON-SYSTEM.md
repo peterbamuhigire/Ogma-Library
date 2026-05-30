@@ -25,9 +25,12 @@ accessibly, and across Windows + macOS at every density — and the standing
 
 ## 2. Asset format & pipeline
 
-- **Source format:** premium **PNG** sets purchased by the owner, plus an SVG
-  fallback where the vendor supplies it (SVG preferred for crisp scaling; PNG is
-  the agreed deliverable the owner buys).
+- **Source format (D‑004/D‑005):** **SVG masters from Flaticon** (the owner's
+  account, flat full‑color), with **PNG @1x/2x/3x exported** as the wired runtime
+  assets. SVG is preferred for crisp scaling at any DPI; PNG is used where a
+  rasterized colorful asset is simpler. Licence: **Flaticon Premium**
+  (no‑attribution, store‑redistribution permitted) for this commercial product —
+  see `DECISIONS.md` D‑005.
 - **Densities:** ship **@1x, @2x, @3x** so both standard and HiDPI/Retina
   displays are crisp on Windows and macOS. Base sizes: **16, 24, 32, 48 px**
   (toolbar/menu = 24; large actions/empty‑states = 48).

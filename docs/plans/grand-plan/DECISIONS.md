@@ -51,6 +51,64 @@ Launch targets span **Uganda (DPPA 2019)**, **EU/UK (GDPR + UK DPA)**, and the
   processing location, cross‑border transfer, retention, erasure, and residual
   risk — with extra rigor for the school‑managed‑AI track (minors).
 
+## D‑004 — Icon master format: **SVG‑first** (2026‑05‑30)
+
+The icon source can provide **SVG**. We therefore standardize on **SVG as the
+master format**, with **PNG @1x/2x/3x exported** for the agreed sizes
+(16/24/32/48 px) as the wired runtime assets on Windows + macOS. SVG masters give
+crisp scaling at any DPI and a clean path to future densities; Avalonia bundles
+them via `avares://` (`AvaloniaResource`) — SVG through the Avalonia SVG control
+where vector is preferred, PNG where a rasterized colorful asset is simpler. This
+updates `ICON-SYSTEM.md` §2: SVG master in `Assets/icons/<category>/<key>.svg`
+plus exported `@Nx.png`. The IconCatalog still requires a localized accessible
+label per icon or the build fails.
+
+## D‑005 — Icon vendor: **Flaticon** (flat full‑color, SVG) (2026‑05‑30)
+
+The owner has a **Flaticon** account (`flaticon.com`), which is the selected
+vendor for the flat full‑color icon family. Flaticon supplies both SVG and PNG
+and supports **collections**, which we use to keep one cohesive pack
+(consistent grid/stroke/corner radius) across all phases. **Licence
+requirement:** Ogma ships commercially on the Mac App Store and Windows Store, so
+the icons must be used under **Flaticon Premium** (royalty‑free, **no attribution
+required**, redistribution inside a signed/store‑distributed app permitted) — or,
+if free‑tier assets are used, the required Flaticon attribution must appear in an
+in‑app credits screen. Premium (no‑attribution) is the recommended path for a
+premium store product. The per‑phase `icons.md` "to procure" lists are filled
+from one or a few coherent Flaticon collections; each `icon_key` → chosen
+Flaticon asset URL/ID is recorded in `_icons/MASTER-MANIFEST.md`.
+
+## D‑006 — Avalonia licence: **Community licence registered** (2026‑05‑30)
+
+The owner has signed up for the **Avalonia community licence** under
+`peter@techguypeter.com`. Avalonia core is open‑source (MIT); the community
+registration covers the team's use and any Avalonia Accelerate/community
+entitlements. Phase 02 records the exact licence terms and obligations (if any)
+in an ADR/notice and ensures the `THIRD-PARTY-NOTICES` file lists Avalonia and
+its licence for the open‑source release. No blocker; recorded for compliance.
+
+## D‑007 — Phase 00 blanket sign‑off + best‑choice defaults (2026‑05‑30)
+
+The owner approved all Phase 00 decisions ("I agree with your decisions, take the
+best choices and go ahead"). This **closes the 5 items** previously marked
+"Needs owner confirm" in `phase-00/decisions.md` — CON‑1 (reference hardware),
+CON‑4 (command‑palette set), CON‑5 (Work/Edition rules), CON‑8 (provider trust
+weights), CON‑9 (corpus licensing) — by adopting the recommended defaults as
+owner‑ratified. Runtime reconfirmed: **.NET 10 LTS** (OQ‑01/ADR‑0001).
+
+Two best‑choice picks made under this authority:
+
+- **OQ‑02 PDFium wrapper candidates (for the Phase 01 Spike 2 benchmark):**
+  Candidate A = **PDFtoImage** (sungaila; wraps bblanchon PDFium, SkiaSharp
+  render, cross‑platform, MIT + PDFium BSD). Candidate B = **Docnet.Core**
+  (PDFium wrapper, cross‑platform, MIT + PDFium BSD). Both permit Mac App
+  Store + Windows Store redistribution. The winner is fixed by the measured
+  benchmark and recorded as an ADR‑0004 amendment.
+- **CON‑9 golden corpus:** use a **fully synthetic corpus** generated
+  programmatically (no third‑party copyrighted PDFs), which is unambiguously
+  clear for redistribution in the open‑source test suite. Real‑world edge‑case
+  fixtures may be added later only if their licence is recorded.
+
 ---
 
 ### Pending owner asks (tracked, not yet answered)

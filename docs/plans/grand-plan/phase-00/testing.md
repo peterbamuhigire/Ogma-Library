@@ -94,3 +94,64 @@ All findings from the Phase 00 verification checks are classified as:
   risk to user data must be recorded as a tracked item for Phase 04+.
 
 No R1 or R2 defects may be open when Phase 00 closes.
+
+---
+
+## Phase 00 Execution Evidence
+
+> **Appended:** 2026-05-30 — WP1 + WP2 + WP6 execution.
+
+### Nature of Phase 00 verification
+
+Phase 00 is a documentation and governance phase. It produces no production
+code. All verification is performed **by inspection** against the Definition of
+Done (README §9). There are no automated test suites to run; correctness is
+established by a structured inspection checklist applied to the artifacts.
+
+### Inspection checklist (README §9 DoD items)
+
+The following checklist records the inspection outcome for each DoD item as of
+the WP1/WP2 execution date (2026-05-30). Items that require the WP6 owner
+sign-off session are marked accordingly.
+
+| DoD item | Inspection result | Evidence artifact | Notes |
+|---|---|---|---|
+| Every OQ (OQ-01..OQ-08) has a recorded answer with an owner sign-off date in `decisions.md` | **Pass — decisions recorded; sign-off dates pending WP6** | `docs/plans/grand-plan/phase-00/decisions.md` §OQ-01..OQ-08 | All 8 OQs closed with decisions and rationale. Sign-off dates to be entered at WP6 session. |
+| Every SRS context gap (CON-1..CON-9+) has an assigned value or formal deferral in `decisions.md` | **Pass — all 9 CONs closed with values** | `docs/plans/grand-plan/phase-00/decisions.md` §CON-1..CON-9 | CON-1, CON-4, CON-5, CON-8, CON-9 flagged as "Needs owner confirm" in consolidated table; recommended defaults are applied and traceable. |
+| ADR-0001..ADR-0009 are in `Accepted` status; ADR-0010 is in `Proposed` status; all ADR files committed to `docs/adrs/` | **Partial — ADR-0001 exists as Accepted; ADRs 0002..0010 to be created** | `docs/adrs/0001-target-dotnet-10-lts.md` (Accepted) | ADRs 0002..0009 content is fully documented in `docs/adrs/_adr-source.txt` (signed baseline); individual files to be created in WP3. ADR-0010 (opt-in LAN Host mode) to be drafted in WP3. |
+| `LICENSE` is applied at repo root; file is valid and owner-approved | **Pass** | `LICENSE` at repo root | MIT license applied at first commit (2026-05-30) by owner. SPDX identifier `MIT` present. |
+| `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and CLA mechanism are committed and owner-approved | **Not yet — WP4 deliverable** | Pending WP4 | WP4 will create `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), and `.github/workflows/dco-check.yml`. DCO mechanism decided (SUP-2 in `decisions.md`). |
+| Conventional Commits hook is in `.github/hooks/commit-msg` and enforced; at least one test validates hook rejects a non-conforming message | **Not yet — WP5 deliverable** | Pending WP5 | WP5 will create the hook and run P00-TEST-01 (4 cases: feat, fix, chore, malformed). |
+| Branch strategy and CIA workflow documents are committed to `docs/governance/` | **Not yet — WP5 deliverable** | Pending WP5 | `docs/governance/BRANCH-STRATEGY.md` and `docs/governance/CIA-WORKFLOW.md` to be created in WP5. |
+| `python -m engine validate Ogma-Library` exits 0 on the repo root | **Not yet — WP5 deliverable** | Pending WP5 | Gate verification and output recording is a WP5 task. |
+| No open R1 or R2 defect | **Pass — none identified** | Inspection of `decisions.md` CON-7, ADR-0007 | CON-7 decision (global/multi-region, strictest-common-denominator posture, Tier-0 offline default) and ADR-0007 (gateway as sole egress chokepoint, payload preview before any transmission) together ensure no R2 risk from Phase 00 decisions. No data-loss risk from a documentation phase. |
+| Cross-platform scope confirmed in writing: Windows 10 1903+ and macOS 13 Ventura+ are MVP platforms; Linux is a documented bonus | **Pass** | `decisions.md` §CON-3 (Linux = bonus); `decisions.md` §CON-2 (Win 10 1903+ / macOS 13+ install minimums) | Both platform gates explicitly stated and rationale recorded. |
+| Owner sign-off on complete `decisions.md` recorded (name + date) | **Pending WP6** | WP6 sign-off session | Consolidated Sign-off table in `decisions.md` has blank dates for items needing owner confirm. WP6 is the scheduled sign-off session. |
+| `docs/governance/REFERENCE-HARDWARE.md` exists with two reference machine profiles | **Pass** | `docs/governance/REFERENCE-HARDWARE.md` | W-REF-01 (Core i5-10210U, 8 GB DDR4, SATA SSD, Win 10 22H2) and M-REF-01 (Apple M1, 8 GB, macOS 13.6) specified. NFR-OGMA-001..007 mapped to machines. Trend-only caveat documented. |
+
+### Phase-specific exit criteria inspection
+
+| Exit criterion | Status | Notes |
+|---|---|---|
+| Every subsequent phase README "Dependencies" section can point to a specific `decisions.md` entry or ADR for every assumption | **Pass (for WP1/WP2 scope)** | All OQ and CON decisions recorded with phase and ADR cross-references. WP3 (ADR ratification) will complete the ADR cross-references. |
+| Hybrid validation gate operational check is green and committed to CI | **Pending WP5** | WP5 task. |
+| Open-source readiness artifacts pass legal and style review | **Pending WP4** | WP4 task; license selection (MIT) is already recorded. |
+
+### Open items at WP1/WP2 close
+
+The following items are **not blocking** WP1/WP2 close but are tracked for WP3,
+WP4, WP5, and WP6:
+
+1. **WP3:** Create individual ADR files `0002-..` through `0009-..` in
+   `docs/adrs/` (content from `_adr-source.txt`); move all to `Accepted` status.
+   Draft `ADR-0010` (opt-in LAN Host mode) as `Proposed`.
+2. **WP4:** Create `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and
+   `.github/workflows/dco-check.yml`.
+3. **WP5:** Create `.github/hooks/commit-msg`, `.github/PULL_REQUEST_TEMPLATE.md`,
+   `docs/governance/BRANCH-STRATEGY.md`, `docs/governance/CIA-WORKFLOW.md`,
+   `docs/governance/HYBRID-GATE.md`; verify the hybrid validation gate.
+4. **WP6 (Owner sign-off session):** Confirm CON-1, CON-4, CON-5, CON-8, CON-9
+   (items marked "Needs owner confirm" in the consolidated table); enter sign-off
+   dates for all OQ/CON items in `decisions.md`.
+
+No R1 or R2 defects are open. Phase 00 may proceed to WP3.
