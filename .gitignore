@@ -1,0 +1,77 @@
+# ── .NET / build output ───────────────────────────────────────────────────────
+bin/
+obj/
+out/
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.dll
+*.exe
+*.pdb
+*.cache
+project.lock.json
+*.nupkg
+*.snupkg
+
+# ── Test / coverage ───────────────────────────────────────────────────────────
+[Tt]est[Rr]esult*/
+[Cc]overage*/
+*.trx
+*.coverage
+*.coveragexml
+BenchmarkDotNet.Artifacts/
+
+# ── IDE: Visual Studio / Rider / VS Code ──────────────────────────────────────
+.vs/
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+_ReSharper*/
+
+# ── Avalonia / native interop staging ─────────────────────────────────────────
+*.xaml.g.cs
+runtimes/
+
+# ── Node (3D bookshelf bridge / Three.js assets) ──────────────────────────────
+node_modules/
+dist/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Packaging output (Velopack / MSIX / DMG) ──────────────────────────────────
+Releases/
+*.msix
+*.msixbundle
+*.appinstaller
+*.dmg
+*.pkg
+
+# ── Secrets / local config (NEVER commit secrets) ─────────────────────────────
+*.local.json
+appsettings.*.local.json
+.env
+.env.*
+secrets.json
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── Ogma local runtime data (never commit a user's library) ───────────────────
+**/Ogma Library Data/
+*.ogma.db
+*.ogma.db-shm
+*.ogma.db-wal
