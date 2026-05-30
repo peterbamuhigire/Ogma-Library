@@ -2,7 +2,7 @@
 
 Phase 03 establishes the icon system. This is the first phase that procures
 and wires colorful premium icons. All icons below are initially status
-`⬜ to procure`; the import script moves them to `🟨 placeholder in use`
+`🟨 placeholder in use`; the import script moves them to `🟨 placeholder in use`
 once placeholder PNGs are generated, and to `✅ premium PNG wired` once
 the owner-purchased premium PNGs are imported via `scripts/Import-Icons.ps1`.
 
@@ -14,75 +14,75 @@ the owner-purchased premium PNGs are imported via `scripts/Import-Icons.ps1`.
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_app_logo` | Window title bar, About screen, Taskbar | Ogma Library application identity mark | Warm oak amber; stylized open book or owl motif; colorful | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_settings` | Menu → Settings; toolbar settings button | Open the application settings | Slate gear; duotone slate/light-slate | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_keyboard_shortcut` | Command palette item → shortcut chip | Indicates a keyboard shortcut is available | Neutral slate; minimal keycap style | 12/16 @1x-3x | ⬜ to procure |
-| `ic_close` | Command palette dismiss button; dialog close | Dismiss or close a panel | Slate × glyph; clean, no background | 16/24 @1x-3x | ⬜ to procure |
-| `ic_search` | Command palette text box leading icon; search bar | Initiate a search | Ink-blue magnifying glass; duotone | 16/24/32 @1x-3x | ⬜ to procure |
+| `ic_app_logo` | Window title bar, About screen, Taskbar | Ogma Library application identity mark | Warm oak amber; stylized open book or owl motif; colorful | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_settings` | Menu → Settings; toolbar settings button | Open the application settings | Slate gear; duotone slate/light-slate | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_keyboard_shortcut` | Command palette item → shortcut chip | Indicates a keyboard shortcut is available | Neutral slate; minimal keycap style | 12/16 @1x-3x | 🟨 placeholder in use |
+| `ic_close` | Command palette dismiss button; dialog close | Dismiss or close a panel | Slate × glyph; clean, no background | 16/24 @1x-3x | 🟨 placeholder in use |
+| `ic_search` | Command palette text box leading icon; search bar | Initiate a search | Ink-blue magnifying glass; duotone | 16/24/32 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `library` — Library setup and management
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_lib_scan` | Command: Scan Library; toolbar Scan button | Scan/rescan the library root folder | Oak-amber radar/scan wave; colorful | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_lib_folder_open` | Command: Open Library Folder; file picker | Open or change the library root folder | Oak-amber open folder; colorful | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_lib_health` | Command: Library Health; health dashboard link | View the library health report | Sage-green heart-rate or pulse; colorful | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_lib_preferences` | Command: Library Preferences | Open per-library preferences | Slate gear with a small book overlay | 16/24/32/48 @1x-3x | ⬜ to procure |
+| `ic_lib_scan` | Command: Scan Library; toolbar Scan button | Scan/rescan the library root folder | Oak-amber radar/scan wave; colorful | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_lib_folder_open` | Command: Open Library Folder; file picker | Open or change the library root folder | Oak-amber open folder; colorful | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_lib_health` | Command: Library Health; health dashboard link | View the library health report | Sage-green heart-rate or pulse; colorful | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_lib_preferences` | Command: Library Preferences | Open per-library preferences | Slate gear with a small book overlay | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `catalogue` — Catalogue browsing views and navigation
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_cat_view_grid` | View toggle: Grid view | Switch to grid (cover) view | Ink-blue grid of 4 squares; duotone | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_cat_view_list` | View toggle: List view | Switch to list view | Ink-blue horizontal lines; clean | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_cat_view_shelf3d` | View toggle: 3D Shelf view | Switch to 3D bookshelf view | Oak-amber tilted book stack; colorful | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_cat_view_directory` | View toggle: Directory view | Switch to directory/folder tree view | Ink-blue folder tree | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_cat_shelf` | Shelf items in navigation tree; shelf management | A virtual shelf holding books | Oak-amber bookshelf side-view; warm | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_cat_shelf_new` | Command: New Shelf | Create a new virtual shelf | Oak-amber shelf with a `+` badge | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_cat_filter` | Filter panel toggle; sort & filter control | Open the filter/sort panel | Ink-blue funnel; clean | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_cat_sort` | Sort menu | Change the sort order | Ink-blue up/down sort arrows | 16/24 @1x-3x | ⬜ to procure |
+| `ic_cat_view_grid` | View toggle: Grid view | Switch to grid (cover) view | Ink-blue grid of 4 squares; duotone | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_view_list` | View toggle: List view | Switch to list view | Ink-blue horizontal lines; clean | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_view_shelf3d` | View toggle: 3D Shelf view | Switch to 3D bookshelf view | Oak-amber tilted book stack; colorful | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_view_directory` | View toggle: Directory view | Switch to directory/folder tree view | Ink-blue folder tree | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_shelf` | Shelf items in navigation tree; shelf management | A virtual shelf holding books | Oak-amber bookshelf side-view; warm | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_shelf_new` | Command: New Shelf | Create a new virtual shelf | Oak-amber shelf with a `+` badge | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_filter` | Filter panel toggle; sort & filter control | Open the filter/sort panel | Ink-blue funnel; clean | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_cat_sort` | Sort menu | Change the sort order | Ink-blue up/down sort arrows | 16/24 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `reader` — PDF reader controls
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_read_open` | Command: Open Book; book-detail Open button | Open a book in the reader | Ink-blue open book with page-turn curl; colorful | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_read_bookmark` | Command: Add Bookmark; bookmark button in reader toolbar | Add a bookmark at the current page | Oak-amber ribbon bookmark; colorful | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_read_zoom_in` | Zoom in button | Increase zoom level | Ink-blue magnifying glass with `+` | 16/24 @1x-3x | ⬜ to procure |
-| `ic_read_zoom_out` | Zoom out button | Decrease zoom level | Ink-blue magnifying glass with `−` | 16/24 @1x-3x | ⬜ to procure |
-| `ic_read_fullscreen` | Full-screen toggle | Enter/exit full-screen reader mode | Ink-blue expand arrows | 16/24 @1x-3x | ⬜ to procure |
+| `ic_read_open` | Command: Open Book; book-detail Open button | Open a book in the reader | Ink-blue open book with page-turn curl; colorful | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_read_bookmark` | Command: Add Bookmark; bookmark button in reader toolbar | Add a bookmark at the current page | Oak-amber ribbon bookmark; colorful | 16/24/32 @1x-3x | 🟨 placeholder in use |
+| `ic_read_zoom_in` | Zoom in button | Increase zoom level | Ink-blue magnifying glass with `+` | 16/24 @1x-3x | 🟨 placeholder in use |
+| `ic_read_zoom_out` | Zoom out button | Decrease zoom level | Ink-blue magnifying glass with `−` | 16/24 @1x-3x | 🟨 placeholder in use |
+| `ic_read_fullscreen` | Full-screen toggle | Enter/exit full-screen reader mode | Ink-blue expand arrows | 16/24 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `search` — Search and discovery
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_search_metadata` | Command: Search Books (metadata search) | Run a metadata search | Ink-blue magnifying glass over a card/record | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_search_fulltext` | Command: Full-Text Search (V1) | Run a full-text search (grayed in MVP without FTS) | Ink-blue magnifying glass over text lines | 16/24/32/48 @1x-3x | ⬜ to procure |
+| `ic_search_metadata` | Command: Search Books (metadata search) | Run a metadata search | Ink-blue magnifying glass over a card/record | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_search_fulltext` | Command: Full-Text Search (V1) | Run a full-text search (grayed in MVP without FTS) | Ink-blue magnifying glass over text lines | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `ai` — AI advisor
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_ai_advisor` | Command: Ask AI Advisor; AI sidebar toggle | Open the AI reading advisor | Plum spark/wand; colorful, warm | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_ai_privacy` | Command: AI Privacy Settings; Privacy Center toggle | Open AI privacy settings and the Privacy Center | Plum shield with an eye | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_ai_disable` | Command: Disable AI; AI status indicator | Indicates AI is disabled / toggle AI off | Plum spark with a slash; desaturated | 16/24 @1x-3x | ⬜ to procure |
+| `ic_ai_advisor` | Command: Ask AI Advisor; AI sidebar toggle | Open the AI reading advisor | Plum spark/wand; colorful, warm | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_ai_privacy` | Command: AI Privacy Settings; Privacy Center toggle | Open AI privacy settings and the Privacy Center | Plum shield with an eye | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_ai_disable` | Command: Disable AI; AI status indicator | Indicates AI is disabled / toggle AI off | Plum spark with a slash; desaturated | 16/24 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `settings` — Application settings
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_set_appearance` | Settings: Appearance section | Appearance settings (theme, font, density) | Slate paintbrush or palette | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_set_language` | Settings: Language / Localization section | Language and localization settings | Slate globe with text lines | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_set_updates` | Settings: Updates; Command: Check for Updates | Software update settings and status | Slate cloud with download arrow | 16/24/32/48 @1x-3x | ⬜ to procure |
-| `ic_set_about` | Menu: About Ogma Library; Settings: About | About screen and version info | App logo variant; small | 16/24 @1x-3x | ⬜ to procure |
+| `ic_set_appearance` | Settings: Appearance section | Appearance settings (theme, font, density) | Slate paintbrush or palette | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_set_language` | Settings: Language / Localization section | Language and localization settings | Slate globe with text lines | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_set_updates` | Settings: Updates; Command: Check for Updates | Software update settings and status | Slate cloud with download arrow | 16/24/32/48 @1x-3x | 🟨 placeholder in use |
+| `ic_set_about` | Menu: About Ogma Library; Settings: About | About screen and version info | App logo variant; small | 16/24 @1x-3x | 🟨 placeholder in use |
 
 ### Category: `status` — Status and feedback icons
 
 | Icon key | Used on | Meaning | Style/color note | Sizes (px base) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_status_available` | Book availability chip: Available | The PDF file is available at its path | Sage green circle checkmark | 12/16/24 @1x-3x | ⬜ to procure |
-| `ic_status_unavailable` | Book availability chip: Unavailable | The PDF file is missing or unavailable | Clay terracotta circle X | 12/16/24 @1x-3x | ⬜ to procure |
-| `ic_status_loading` | Spinner / progress indicator | An operation is in progress | Ink-blue animated arc (spinner); use the animated variant if the vendor supplies it | 16/24 @1x-3x | ⬜ to procure |
+| `ic_status_available` | Book availability chip: Available | The PDF file is available at its path | Sage green circle checkmark | 12/16/24 @1x-3x | 🟨 placeholder in use |
+| `ic_status_unavailable` | Book availability chip: Unavailable | The PDF file is missing or unavailable | Clay terracotta circle X | 12/16/24 @1x-3x | 🟨 placeholder in use |
+| `ic_status_loading` | Spinner / progress indicator | An operation is in progress | Ink-blue animated arc (spinner); use the animated variant if the vendor supplies it | 16/24 @1x-3x | 🟨 placeholder in use |
 
 ---
 
@@ -90,15 +90,15 @@ the owner-purchased premium PNGs are imported via `scripts/Import-Icons.ps1`.
 
 | Category | Icon count | Status |
 | --- | --- | --- |
-| `app` | 5 | All ⬜ to procure |
-| `library` | 4 | All ⬜ to procure |
-| `catalogue` | 8 | All ⬜ to procure |
-| `reader` | 5 | All ⬜ to procure |
-| `search` | 2 | All ⬜ to procure |
-| `ai` | 3 | All ⬜ to procure |
-| `settings` | 4 | All ⬜ to procure |
-| `status` | 3 | All ⬜ to procure |
-| **Total Phase 03** | **34** | **34 ⬜ to procure** |
+| `app` | 5 | All 🟨 placeholder in use |
+| `library` | 4 | All 🟨 placeholder in use |
+| `catalogue` | 8 | All 🟨 placeholder in use |
+| `reader` | 5 | All 🟨 placeholder in use |
+| `search` | 2 | All 🟨 placeholder in use |
+| `ai` | 3 | All 🟨 placeholder in use |
+| `settings` | 4 | All 🟨 placeholder in use |
+| `status` | 3 | All 🟨 placeholder in use |
+| **Total Phase 03** | **34** | **34 🟨 placeholder in use** |
 
 ---
 

@@ -23,6 +23,16 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)" Condition="'$(Configuration)' == 'Debug'" />
+    <!-- Avalonia.Svg.Skia latest available is 11.3.0 (11.3.17 not published); compatible with Avalonia 11.3.17 -->
+    <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Phase 03 design-system SVG placeholder icons (and eventual premium Flaticon SVGs).
+         Bundled as AvaloniaResource so avares://OgmaLibrary.App/Assets/icons/... resolves. -->
+    <AvaloniaResource Include="Assets\icons\**\*.svg" />
+    <!-- Design tokens resource dictionary. -->
+    <AvaloniaResource Include="Themes\Tokens.axaml" />
   </ItemGroup>
 
 </Project>

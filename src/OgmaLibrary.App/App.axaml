@@ -8,16 +8,17 @@
   </Application.Styles>
 
   <Application.Resources>
-    <!-- Phase 02 placeholder palette (the flat full-color design tokens land in
-         Phase 03). Warm, library-like, "calm premium". -->
-    <Color x:Key="OgmaParchment">#FBF6EC</Color>
-    <Color x:Key="OgmaOak">#B5651D</Color>
-    <Color x:Key="OgmaInk">#2B2622</Color>
-    <Color x:Key="OgmaWalnut">#7A5C3E</Color>
-    <SolidColorBrush x:Key="OgmaParchmentBrush" Color="{StaticResource OgmaParchment}" />
-    <SolidColorBrush x:Key="OgmaOakBrush" Color="{StaticResource OgmaOak}" />
-    <SolidColorBrush x:Key="OgmaInkBrush" Color="{StaticResource OgmaInk}" />
-    <SolidColorBrush x:Key="OgmaWalnutBrush" Color="{StaticResource OgmaWalnut}" />
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <!--
+          Phase 03 design tokens (color, typography, spacing, motion).
+          All UI code references these keys via DynamicResource.
+          ThemeDictionaries inside Tokens.axaml swap automatically with
+          RequestedThemeVariant (Light / Dark).
+        -->
+        <ResourceInclude Source="avares://OgmaLibrary.App/Themes/Tokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
   </Application.Resources>
 
 </Application>

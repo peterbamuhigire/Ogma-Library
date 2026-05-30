@@ -1,0 +1,147 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Ogma Library Design Tokens — Phase 03
+    Flat full-color palette (D-001), style locked for the calm-control aesthetic.
+    All UI code references these keys via DynamicResource; never use raw hex values.
+    ThemeDictionaries swaps Light/Dark automatically via RequestedThemeVariant.
+  -->
+
+  <ResourceDictionary.ThemeDictionaries>
+
+    <!-- ═══════════════════════════════ LIGHT ═══════════════════════════════ -->
+    <ResourceDictionary x:Key="Light">
+
+      <!-- Accent families (functional color areas) -->
+      <!-- Oak — primary actions, library identity -->
+      <Color x:Key="Color.Accent.Oak">#D4922A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
+
+      <!-- Ink — reading, navigation -->
+      <Color x:Key="Color.Accent.Ink">#2B4A7A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
+
+      <!-- Sage — success, available, health-OK -->
+      <Color x:Key="Color.Accent.Sage">#4A7A5A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Sage" Color="{DynamicResource Color.Accent.Sage}" />
+
+      <!-- Clay — warnings, needs attention -->
+      <Color x:Key="Color.Accent.Clay">#C05A3A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Clay" Color="{DynamicResource Color.Accent.Clay}" />
+
+      <!-- Plum — AI / intelligence surfaces -->
+      <Color x:Key="Color.Accent.Plum">#6A3A7A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Plum" Color="{DynamicResource Color.Accent.Plum}" />
+
+      <!-- Slate — settings, secondary actions -->
+      <Color x:Key="Color.Accent.Slate">#5A6A7A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Slate" Color="{DynamicResource Color.Accent.Slate}" />
+
+      <!-- Surface tokens -->
+      <!-- Parchment — light theme base, warm off-white -->
+      <Color x:Key="Color.Surface.Parchment">#FAF7F2</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Parchment" Color="{DynamicResource Color.Surface.Parchment}" />
+
+      <!-- Foreground on parchment — deep warm near-black -->
+      <Color x:Key="Color.Surface.OnParchment">#1E1A17</Color>
+      <SolidColorBrush x:Key="Brush.Surface.OnParchment" Color="{DynamicResource Color.Surface.OnParchment}" />
+
+      <!-- Secondary text on parchment — warm mid-brown -->
+      <Color x:Key="Color.Surface.OnParchmentMuted">#6B5744</Color>
+      <SolidColorBrush x:Key="Brush.Surface.OnParchmentMuted" Color="{DynamicResource Color.Surface.OnParchmentMuted}" />
+
+      <!-- Card/panel surface — slightly warmer white -->
+      <Color x:Key="Color.Surface.Card">#FFFFFF</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Card" Color="{DynamicResource Color.Surface.Card}" />
+
+      <!-- Card border — very subtle warm gray -->
+      <Color x:Key="Color.Surface.CardBorder">#E8E0D6</Color>
+      <SolidColorBrush x:Key="Brush.Surface.CardBorder" Color="{DynamicResource Color.Surface.CardBorder}" />
+
+      <!-- Status bar / footer — very light warm overlay -->
+      <Color x:Key="Color.Surface.Footer">#F0EBE3</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Footer" Color="{DynamicResource Color.Surface.Footer}" />
+
+    </ResourceDictionary>
+
+    <!-- ═══════════════════════════════ DARK ════════════════════════════════ -->
+    <ResourceDictionary x:Key="Dark">
+
+      <!-- Accent families — shifted warmer/lighter for dark backgrounds -->
+      <Color x:Key="Color.Accent.Oak">#E8B05A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
+
+      <Color x:Key="Color.Accent.Ink">#6B9BE8</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
+
+      <Color x:Key="Color.Accent.Sage">#7EC89A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Sage" Color="{DynamicResource Color.Accent.Sage}" />
+
+      <Color x:Key="Color.Accent.Clay">#E88A6A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Clay" Color="{DynamicResource Color.Accent.Clay}" />
+
+      <Color x:Key="Color.Accent.Plum">#B87ACC</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Plum" Color="{DynamicResource Color.Accent.Plum}" />
+
+      <Color x:Key="Color.Accent.Slate">#9AAABB</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Slate" Color="{DynamicResource Color.Accent.Slate}" />
+
+      <!-- Surface tokens for dark theme -->
+      <!-- Walnut — dark warm brown base -->
+      <Color x:Key="Color.Surface.Parchment">#1E1A17</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Parchment" Color="{DynamicResource Color.Surface.Parchment}" />
+
+      <Color x:Key="Color.Surface.OnParchment">#F5EFE6</Color>
+      <SolidColorBrush x:Key="Brush.Surface.OnParchment" Color="{DynamicResource Color.Surface.OnParchment}" />
+
+      <Color x:Key="Color.Surface.OnParchmentMuted">#B8A898</Color>
+      <SolidColorBrush x:Key="Brush.Surface.OnParchmentMuted" Color="{DynamicResource Color.Surface.OnParchmentMuted}" />
+
+      <Color x:Key="Color.Surface.Card">#2A2420</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Card" Color="{DynamicResource Color.Surface.Card}" />
+
+      <Color x:Key="Color.Surface.CardBorder">#3A3028</Color>
+      <SolidColorBrush x:Key="Brush.Surface.CardBorder" Color="{DynamicResource Color.Surface.CardBorder}" />
+
+      <Color x:Key="Color.Surface.Footer">#161210</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Footer" Color="{DynamicResource Color.Surface.Footer}" />
+
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- ═══════════════════ THEME-INDEPENDENT TOKENS ════════════════════════ -->
+  <!-- These values do not vary between Light and Dark. -->
+
+  <!-- Typography scale — font sizes in device-independent pixels -->
+  <x:Double x:Key="Type.Size.Caption">11</x:Double>
+  <x:Double x:Key="Type.Size.Small">12</x:Double>
+  <x:Double x:Key="Type.Size.Body">14</x:Double>
+  <x:Double x:Key="Type.Size.BodyMedium">15</x:Double>
+  <x:Double x:Key="Type.Size.Subtitle">16</x:Double>
+  <x:Double x:Key="Type.Size.Title">20</x:Double>
+  <x:Double x:Key="Type.Size.Display">30</x:Double>
+
+  <!-- Spacing scale — in device-independent pixels (4-pt grid) -->
+  <x:Double x:Key="Spacing.XXS">4</x:Double>
+  <x:Double x:Key="Spacing.XS">8</x:Double>
+  <x:Double x:Key="Spacing.S">12</x:Double>
+  <x:Double x:Key="Spacing.M">16</x:Double>
+  <x:Double x:Key="Spacing.L">24</x:Double>
+  <x:Double x:Key="Spacing.XL">32</x:Double>
+
+  <!-- Corner radii -->
+  <CornerRadius x:Key="Radius.S">8</CornerRadius>
+  <CornerRadius x:Key="Radius.M">12</CornerRadius>
+  <CornerRadius x:Key="Radius.L">14</CornerRadius>
+
+  <!-- Motion durations — in milliseconds (used in Avalonia Transition Duration) -->
+  <!-- Fast: button hover, icon swap -->
+  <x:Double x:Key="Motion.Duration.Fast">120</x:Double>
+  <!-- Base: panel open/close, state changes -->
+  <x:Double x:Key="Motion.Duration.Base">200</x:Double>
+  <!-- Slow: page transitions, empty-state reveals -->
+  <x:Double x:Key="Motion.Duration.Slow">320</x:Double>
+
+</ResourceDictionary>

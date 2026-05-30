@@ -49,6 +49,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     /// <summary>The status-bar text identifying this skeleton build.</summary>
     public string StatusText => _localization["MainWindow.Status.Skeleton"];
 
+    /// <summary>Accessible label for the application logo icon.</summary>
+    public string AppLogoLabel => _localization["Icon.ic_app_logo.Label"];
+
+    /// <summary>Accessible label for the settings icon/button.</summary>
+    public string SettingsLabel => _localization["Icon.ic_settings.Label"];
+
+    /// <summary>Accessible label for the open-folder icon.</summary>
+    public string LibFolderLabel => _localization["Icon.ic_lib_folder_open.Label"];
+
     private void RaiseAllChanged()
     {
         OnPropertyChanged(nameof(Title));
@@ -57,6 +66,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(EmptyStateBody));
         OnPropertyChanged(nameof(ChooseFolderText));
         OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(AppLogoLabel));
+        OnPropertyChanged(nameof(SettingsLabel));
+        OnPropertyChanged(nameof(LibFolderLabel));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
@@ -78,6 +90,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             "MainWindow.EmptyState.Body" => "Choose a folder of PDFs to begin.",
             "MainWindow.Action.ChooseFolder" => "Choose library folder",
             "MainWindow.Status.Skeleton" => "Skeleton build — Phase 02",
+            "Icon.ic_app_logo.Label" => "Ogma Library logo",
+            "Icon.ic_settings.Label" => "Settings",
+            "Icon.ic_lib_folder_open.Label" => "Open library folder",
             _ => key,
         };
 
