@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -13,16 +14,32 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// </summary>
 public sealed class MetadataExtractionService : IMetadataExtractionService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataExtractionService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public MetadataExtractionService(CatalogueDbContext context)
+    internal MetadataExtractionService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="MetadataExtractionService"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="serviceProvider">The application service provider, used only to make DI constructor selection unambiguous.</param>
+    [ActivatorUtilitiesConstructor]
+    public MetadataExtractionService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -36,6 +53,10 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
 
         try
         {
+            using ContextLease lease = await CreateLeaseAsync(cancellationToken)
+                .ConfigureAwait(false);
+            CatalogueDbContext context = lease.Context;
+
             var fields = await Task.Run(() => ExtractFields(absoluteFilePath), cancellationToken)
                 .ConfigureAwait(false);
 
@@ -43,7 +64,7 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                BookMetadataFieldRow? existing = await _context.BookMetadataFields
+                BookMetadataFieldRow? existing = await context.BookMetadataFields
                     .FirstOrDefaultAsync(
                         f => f.BookId == bookId && f.FieldName == fieldName && f.Source == "PDF",
                         cancellationToken)
@@ -51,7 +72,7 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
 
                 if (existing is null)
                 {
-                    _context.BookMetadataFields.Add(new BookMetadataFieldRow
+                    context.BookMetadataFields.Add(new BookMetadataFieldRow
                     {
                         BookId = bookId,
                         FieldName = fieldName,
@@ -68,7 +89,7 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return (true, null);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -112,5 +133,38 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
         }
 
         return result;
+    }
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
     }
 }

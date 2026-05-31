@@ -17,7 +17,7 @@ namespace OgmaLibrary.Workers;
 /// </summary>
 public sealed class BookIngestionWorker : BackgroundService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
     private readonly IMetadataExtractionService _metadataExtraction;
     private readonly IThumbnailService _thumbnailService;
     private readonly ISpineService _spineService;
@@ -27,28 +27,28 @@ public sealed class BookIngestionWorker : BackgroundService
     /// <summary>
     /// Initializes a new instance of <see cref="BookIngestionWorker"/>.
     /// </summary>
-    /// <param name="context">The catalogue DB context.</param>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
     /// <param name="metadataExtraction">The metadata extraction service.</param>
     /// <param name="thumbnailService">The thumbnail generation service.</param>
     /// <param name="spineService">The spine generation service.</param>
     /// <param name="progress">The scan progress service.</param>
     /// <param name="metadataEnrichment">The deterministic online metadata enrichment service.</param>
     public BookIngestionWorker(
-        CatalogueDbContext context,
+        IDbContextFactory<CatalogueDbContext> contextFactory,
         IMetadataExtractionService metadataExtraction,
         IThumbnailService thumbnailService,
         ISpineService spineService,
         IScanProgressService progress,
         IBookMetadataEnrichmentService metadataEnrichment)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(metadataExtraction);
         ArgumentNullException.ThrowIfNull(thumbnailService);
         ArgumentNullException.ThrowIfNull(spineService);
         ArgumentNullException.ThrowIfNull(progress);
         ArgumentNullException.ThrowIfNull(metadataEnrichment);
 
-        _context = context;
+        _contextFactory = contextFactory;
         _metadataExtraction = metadataExtraction;
         _thumbnailService = thumbnailService;
         _spineService = spineService;
@@ -62,7 +62,11 @@ public sealed class BookIngestionWorker : BackgroundService
         // Poll the Jobs table for pending work.
         while (!stoppingToken.IsCancellationRequested)
         {
-            List<JobRow> pending = await _context.Jobs
+            using CatalogueDbContext context = await _contextFactory
+                .CreateDbContextAsync(stoppingToken)
+                .ConfigureAwait(false);
+
+            List<JobRow> pending = await context.Jobs
                 .Where(j => j.Status == 0 && // Pending
                     (j.JobType == "MetadataExtraction" ||
                      j.JobType == "Enrich" ||
@@ -89,21 +93,24 @@ public sealed class BookIngestionWorker : BackgroundService
                     break;
                 }
 
-                await ExecuteJobAsync(job, stoppingToken).ConfigureAwait(false);
+                await ExecuteJobAsync(context, job, stoppingToken).ConfigureAwait(false);
             }
         }
     }
 
-    private async Task ExecuteJobAsync(JobRow job, CancellationToken stoppingToken)
+    private async Task ExecuteJobAsync(
+        CatalogueDbContext context,
+        JobRow job,
+        CancellationToken stoppingToken)
     {
         // Mark as Running.
         job.Status = 1;
         job.StartedUtc = DateTimeOffset.UtcNow;
-        await _context.SaveChangesAsync(stoppingToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(stoppingToken).ConfigureAwait(false);
 
         try
         {
-            string? contentHash = await _context.Books
+            string? contentHash = await context.Books
                 .AsNoTracking()
                 .Where(b => b.BookId == job.BookId)
                 .Select(b => b.Sha256Hash)
@@ -121,7 +128,7 @@ public sealed class BookIngestionWorker : BackgroundService
 
                 if (success && !string.IsNullOrWhiteSpace(job.BookId))
                 {
-                    TryAddEnrichJob(job.BookId, filePath);
+                    TryAddEnrichJob(context, job.BookId, filePath);
                 }
             }
             else if (job.JobType == "Enrich")
@@ -179,7 +186,7 @@ public sealed class BookIngestionWorker : BackgroundService
         {
             try
             {
-                await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+                await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -188,16 +195,16 @@ public sealed class BookIngestionWorker : BackgroundService
         }
     }
 
-    private void TryAddEnrichJob(string bookId, string filePath)
+    private static void TryAddEnrichJob(CatalogueDbContext context, string bookId, string filePath)
     {
         string idempotencyKey = ComputeIdempotencyKey(bookId, "Enrich");
-        bool exists = _context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
+        bool exists = context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
         if (exists)
         {
             return;
         }
 
-        _context.Jobs.Add(new JobRow
+        context.Jobs.Add(new JobRow
         {
             JobType = "Enrich",
             IdempotencyKey = idempotencyKey,

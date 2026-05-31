@@ -38,6 +38,34 @@ public sealed class ApplicationStartupTests
     }
 
     [Fact]
+    public void CatalogueContext_ResolvesDistinctInstances_ForForegroundAndWorkerSafety()
+    {
+        string dataDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"ogma-context-lifetime-{Guid.NewGuid():N}");
+
+        try
+        {
+            using ServiceProvider services = new ServiceCollection()
+                .AddCatalogueContext(dataDirectory, dataDirectory)
+                .BuildServiceProvider();
+
+            var first = services.GetRequiredService<CatalogueDbContext>();
+            var second = services.GetRequiredService<CatalogueDbContext>();
+
+            Assert.NotSame(first, second);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(dataDirectory))
+            {
+                Directory.Delete(dataDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task InitializeAsync_StartsHostedServices_AndStopAsyncStopsThem()
     {
         string dataDirectory = Path.Combine(

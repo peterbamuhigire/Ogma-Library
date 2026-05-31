@@ -42,7 +42,7 @@ public static class CatalogueServiceExtensions
 
         string dbPath = Path.Combine(dataDirectory, "catalogue.db");
 
-        services.AddDbContext<CatalogueDbContext>(options =>
+        services.AddDbContextFactory<CatalogueDbContext>(options =>
         {
             options.UseSqlite(
                 $"Data Source={dbPath}",
@@ -50,7 +50,10 @@ public static class CatalogueServiceExtensions
                 {
                     sqlite.MigrationsAssembly(typeof(CatalogueDbContext).Assembly.GetName().Name);
                 });
-        }, ServiceLifetime.Singleton);
+        });
+
+        services.AddTransient(sp =>
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>().CreateDbContext());
 
         // Migrator — runs once at startup via explicit call.
         services.AddSingleton<CatalogueMigrator>();

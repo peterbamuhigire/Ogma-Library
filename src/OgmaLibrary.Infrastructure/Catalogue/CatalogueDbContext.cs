@@ -17,8 +17,9 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// architecture tests).
 /// </para>
 /// <para>
-/// The context is registered as a singleton and opened once per process. WAL mode
-/// and <c>PRAGMA foreign_keys=ON</c> are enabled at connection open.
+/// The context is registered as a transient service so foreground UI services
+/// and background workers do not share one EF Core instance. WAL mode and
+/// <c>PRAGMA foreign_keys=ON</c> are enabled at connection open.
 /// </para>
 /// </remarks>
 public sealed class CatalogueDbContext : DbContext

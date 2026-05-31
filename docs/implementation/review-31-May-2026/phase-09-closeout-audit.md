@@ -41,7 +41,8 @@ Latest recorded local verification:
 | `dotnet test OgmaLibrary.sln --no-build` | Passed: Architecture 14, UI 65, Core 210 |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 4 startup/direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests"` | Passed: 7 startup/direct-PDF/job recovery regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 218 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests\|FullyQualifiedName~Ingestion\|FullyQualifiedName~BookIdentityServiceTests"` | Passed: 31 startup/direct-PDF/ingestion identity regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 219 |
 
 Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 
@@ -58,6 +59,7 @@ Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 | Architecture | Covered by annotations/Search isolation, annotations/AI isolation, catalogue contract boundary, and no PDF write-back tests. |
 | Direct PDF open and startup migration | Covered by startup migration regression and direct external-PDF registration regression; selected PDFs outside the library are added without replacing the library root. |
 | Desktop hosted-service lifecycle | Covered by startup lifecycle regression; `BookIngestionWorker` now starts in the Avalonia app instead of only being registered for a generic host that the app does not create. |
+| Foreground/background context isolation | Covered by distinct-context registration regression and ingestion identity/direct-open regression set; direct PDF registration and background job polling no longer share one singleton EF Core unit-of-work. |
 
 ## Closeout Position
 

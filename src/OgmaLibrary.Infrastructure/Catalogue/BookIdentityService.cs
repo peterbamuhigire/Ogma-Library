@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -18,16 +19,32 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// </summary>
 public sealed class BookIdentityService : IBookIdentityService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookIdentityService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public BookIdentityService(CatalogueDbContext context)
+    internal BookIdentityService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="BookIdentityService"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="serviceProvider">The application service provider, used only to make DI constructor selection unambiguous.</param>
+    [ActivatorUtilitiesConstructor]
+    public BookIdentityService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -44,9 +61,13 @@ public sealed class BookIdentityService : IBookIdentityService
             return new BookMatchResult.Unresolvable($"File not found: {absoluteFilePath}");
         }
 
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // ── Tier 1: Relative path ────────────────────────────────────────────────
         string relativePath = ComputeRelativePath(absoluteFilePath, libraryRootPath);
-        BookFileRow? byPath = await _context.BookFiles
+        BookFileRow? byPath = await context.BookFiles
             .AsNoTracking()
             .FirstOrDefaultAsync(f => f.RelativePath == relativePath && f.FileStatus == 0, cancellationToken)
             .ConfigureAwait(false);
@@ -61,7 +82,7 @@ public sealed class BookIdentityService : IBookIdentityService
         string sha256Hex = await ComputeSha256Async(absoluteFilePath, cancellationToken)
             .ConfigureAwait(false);
 
-        BookRow? byHash = await _context.Books
+        BookRow? byHash = await context.Books
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.Sha256Hash == sha256Hex, cancellationToken)
             .ConfigureAwait(false);
@@ -74,7 +95,7 @@ public sealed class BookIdentityService : IBookIdentityService
         // ── Tier 3: check if size+mtime match a known file (fast-path hint) ──────
         long sizeTicks = fileInfo.Length;
         long mtimeTicks = fileInfo.LastWriteTimeUtc.Ticks;
-        BookRow? byMtime = await _context.Books
+        BookRow? byMtime = await context.Books
             .AsNoTracking()
             .FirstOrDefaultAsync(
                 b => b.SizeBytes == sizeTicks && b.MtimeTicks == mtimeTicks,
@@ -91,7 +112,7 @@ public sealed class BookIdentityService : IBookIdentityService
         string? fingerprint = TryExtractPdfFingerprint(absoluteFilePath);
         if (fingerprint is not null)
         {
-            BookRow? byFingerprint = await _context.Books
+            BookRow? byFingerprint = await context.Books
                 .AsNoTracking()
                 .FirstOrDefaultAsync(b => b.PdfFingerprint == fingerprint, cancellationToken)
                 .ConfigureAwait(false);
@@ -219,5 +240,38 @@ public sealed class BookIdentityService : IBookIdentityService
 
         // File is outside the library root — use the full path as relative key.
         return absoluteFilePath.Replace(Path.DirectorySeparatorChar, '/');
+    }
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
     }
 }

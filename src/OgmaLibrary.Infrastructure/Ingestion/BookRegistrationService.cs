@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -17,16 +18,32 @@ public sealed class BookRegistrationService : IBookRegistrationService
     private static readonly char[] CrockfordAlphabet =
         "0123456789ABCDEFGHJKMNPQRSTVWXYZ".ToCharArray();
 
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookRegistrationService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public BookRegistrationService(CatalogueDbContext context)
+    internal BookRegistrationService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="BookRegistrationService"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="serviceProvider">The application service provider, used only to make DI constructor selection unambiguous.</param>
+    [ActivatorUtilitiesConstructor]
+    public BookRegistrationService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -38,9 +55,13 @@ public sealed class BookRegistrationService : IBookRegistrationService
         ArgumentNullException.ThrowIfNull(discovered);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
 
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         string bookId = GenerateBookId();
 
-        _context.Books.Add(new BookRow
+        context.Books.Add(new BookRow
         {
             BookId = bookId,
             Sha256Hash = contentHash,
@@ -49,7 +70,7 @@ public sealed class BookRegistrationService : IBookRegistrationService
             Status = 0, // Active
         });
 
-        _context.BookFiles.Add(new BookFileRow
+        context.BookFiles.Add(new BookFileRow
         {
             BookId = bookId,
             RelativePath = discovered.RelativePath,
@@ -58,14 +79,14 @@ public sealed class BookRegistrationService : IBookRegistrationService
         });
 
         // Enqueue metadata extraction job (idempotent).
-        TryAddJob(bookId, "MetadataExtraction",
+        TryAddJob(context, bookId, "MetadataExtraction",
             ComputeIdempotencyKey(bookId, "MetadataExtraction"), discovered.AbsolutePath);
 
         // Enqueue thumbnail generation job (idempotent).
-        TryAddJob(bookId, "ThumbnailGeneration",
+        TryAddJob(context, bookId, "ThumbnailGeneration",
             ComputeIdempotencyKey(bookId, "ThumbnailGeneration"), discovered.AbsolutePath);
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return bookId;
     }
 
@@ -80,7 +101,11 @@ public sealed class BookRegistrationService : IBookRegistrationService
         ArgumentNullException.ThrowIfNull(discovered);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
 
-        BookFileRow? fileRow = await _context.BookFiles
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookFileRow? fileRow = await context.BookFiles
             .FirstOrDefaultAsync(f => f.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -92,7 +117,7 @@ public sealed class BookRegistrationService : IBookRegistrationService
         }
         else
         {
-            _context.BookFiles.Add(new BookFileRow
+            context.BookFiles.Add(new BookFileRow
             {
                 BookId = bookId,
                 RelativePath = discovered.RelativePath,
@@ -102,7 +127,7 @@ public sealed class BookRegistrationService : IBookRegistrationService
         }
 
         // Re-activate the book if it was flagged as Unavailable.
-        BookRow? book = await _context.Books
+        BookRow? book = await context.Books
             .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -119,16 +144,21 @@ public sealed class BookRegistrationService : IBookRegistrationService
             book.MtimeTicks = discovered.MtimeTicks;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void TryAddJob(string bookId, string jobType, string idempotencyKey, string filePath)
+    private static void TryAddJob(
+        CatalogueDbContext context,
+        string bookId,
+        string jobType,
+        string idempotencyKey,
+        string filePath)
     {
         // Only add if no job with this idempotency key exists.
-        bool exists = _context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
+        bool exists = context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
         if (!exists)
         {
-            _context.Jobs.Add(new JobRow
+            context.Jobs.Add(new JobRow
             {
                 JobType = jobType,
                 IdempotencyKey = idempotencyKey,
@@ -182,5 +212,38 @@ public sealed class BookRegistrationService : IBookRegistrationService
         }
 
         return new string(buf);
+    }
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
     }
 }
