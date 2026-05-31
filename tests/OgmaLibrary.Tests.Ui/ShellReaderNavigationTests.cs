@@ -95,6 +95,55 @@ public sealed class ShellReaderNavigationTests
         Assert.Equal("PDF opened in reader. Metadata extraction and enrichment are queued.", shell.StatusText);
     }
 
+    [AvaloniaFact]
+    public async Task MainShell_BackgroundCompletion_RefreshesCatalogueAndLoadedDetail()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new MutableCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var progress = new FakeScanProgressService();
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            scanProgress: progress);
+
+        await catalogue.LoadAsync();
+        await bookDetail.LoadBookAsync("book-direct");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Null(catalogue.FilteredItems[0].Title);
+        Assert.Null(bookDetail.Title);
+
+        readModel.Summary = readModel.Summary with
+        {
+            Title = "Extracted Runtime Title",
+            Authors = ["Runtime Author"],
+        };
+        readModel.Detail = readModel.Detail with
+        {
+            Title = "Extracted Runtime Title",
+            Authors = ["Runtime Author"],
+        };
+
+        progress.SetPhase(ScanPhase.Complete);
+
+        await WaitForAsync(() =>
+            catalogue.FilteredItems[0].Title == "Extracted Runtime Title" &&
+            bookDetail.Title == "Extracted Runtime Title");
+
+        Assert.Equal(["Runtime Author"], catalogue.FilteredItems[0].Authors);
+        Assert.Equal("Runtime Author", bookDetail.AuthorsDisplay);
+
+        shell.Dispose();
+    }
+
     private sealed class EmptyCatalogueReadModel : ICatalogueReadModel
     {
         public async IAsyncEnumerable<BookSummaryProjection> GetBookSummariesAsync(
@@ -109,6 +158,63 @@ public sealed class ShellReaderNavigationTests
             string bookId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<BookDetailProjection?>(null);
+
+        public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public Task<ReadingProgressProjection?> GetProgressAsync(
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<ReadingProgressProjection?>(null);
+    }
+
+    private sealed class MutableCatalogueReadModel : ICatalogueReadModel
+    {
+        public BookSummaryProjection Summary { get; set; } = new(
+            BookId: "book-direct",
+            Title: null,
+            Authors: [],
+            CoverRelativePath: null,
+            Status: 0,
+            Rating: null,
+            ShelfIds: [],
+            ReadingProgressPct: null,
+            IsAvailable: true,
+            Year: null);
+
+        public BookDetailProjection Detail { get; set; } = new(
+            BookId: "book-direct",
+            Title: null,
+            Authors: [],
+            Year: null,
+            Isbn: null,
+            Doi: null,
+            Rating: null,
+            Status: 0,
+            CoverRelativePath: null,
+            RelativePath: "direct.pdf",
+            Sha256Hash: null,
+            SizeBytes: null,
+            ReadingProgress: null,
+            Annotations: 0,
+            MetadataFields: []);
+
+        public async IAsyncEnumerable<BookSummaryProjection> GetBookSummariesAsync(
+            CatalogueFilter filter,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield return Summary;
+        }
+
+        public Task<BookDetailProjection?> GetBookDetailAsync(
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BookDetailProjection?>(bookId == Detail.BookId ? Detail : null);
 
         public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -232,6 +338,48 @@ public sealed class ShellReaderNavigationTests
 
         public void UpdateScrollOffset(double scrollOffset)
         {
+        }
+    }
+
+    private sealed class FakeScanProgressService : IScanProgressService
+    {
+        public ScanProgressSnapshot CurrentSnapshot { get; private set; } =
+            new(ScanPhase.Idle, 0, 0, 0, IsCancellable: false);
+
+        public event EventHandler<ScanProgressSnapshot>? ProgressChanged;
+
+        public void SetPhase(ScanPhase phase)
+        {
+            CurrentSnapshot = CurrentSnapshot with
+            {
+                Phase = phase,
+                IsCancellable = phase is ScanPhase.Discovering or ScanPhase.Processing or ScanPhase.GeneratingAssets,
+            };
+            ProgressChanged?.Invoke(this, CurrentSnapshot);
+        }
+
+        public void IncrementDiscovered()
+        {
+            CurrentSnapshot = CurrentSnapshot with { FilesDiscovered = CurrentSnapshot.FilesDiscovered + 1 };
+            ProgressChanged?.Invoke(this, CurrentSnapshot);
+        }
+
+        public void IncrementCompleted()
+        {
+            CurrentSnapshot = CurrentSnapshot with { FilesCompleted = CurrentSnapshot.FilesCompleted + 1 };
+            ProgressChanged?.Invoke(this, CurrentSnapshot);
+        }
+
+        public void IncrementFailed()
+        {
+            CurrentSnapshot = CurrentSnapshot with { FilesFailed = CurrentSnapshot.FilesFailed + 1 };
+            ProgressChanged?.Invoke(this, CurrentSnapshot);
+        }
+
+        public void Reset()
+        {
+            CurrentSnapshot = new ScanProgressSnapshot(ScanPhase.Idle, 0, 0, 0, IsCancellable: false);
+            ProgressChanged?.Invoke(this, CurrentSnapshot);
         }
     }
 
@@ -387,5 +535,17 @@ public sealed class ShellReaderNavigationTests
 
         public Task SaveAsync(ReadingMemory memory, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+
+        while (!condition())
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(25, timeout.Token);
+        }
     }
 }

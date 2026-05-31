@@ -408,6 +408,25 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Refreshes the currently loaded book without changing panel visibility.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task RefreshLoadedBookAsync(CancellationToken cancellationToken = default)
+    {
+        string? bookId = _book?.BookId;
+        if (string.IsNullOrWhiteSpace(bookId))
+        {
+            return;
+        }
+
+        BookDetailProjection? detail = await _readModel
+            .GetBookDetailAsync(bookId, cancellationToken)
+            .ConfigureAwait(false);
+
+        UpdateOnUiThread(() => Book = detail);
+    }
+
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 

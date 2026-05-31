@@ -79,6 +79,11 @@ public sealed class BookIngestionWorker : BackgroundService
 
             if (pending.Count == 0)
             {
+                if (_progress.CurrentSnapshot.Phase == ScanPhase.GeneratingAssets)
+                {
+                    _progress.SetPhase(ScanPhase.Complete);
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken)
                     .ConfigureAwait(false);
                 continue;

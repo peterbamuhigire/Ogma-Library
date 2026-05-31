@@ -38,7 +38,7 @@ Latest full UI release command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
 ```
 
-Result: passed, 65 tests.
+Result: passed, 67 tests.
 
 ## Manual Checklist
 

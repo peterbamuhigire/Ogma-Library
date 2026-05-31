@@ -28,7 +28,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 308 total tests: Core 227, UI 66, Architecture 15.
+Release tests pass 309 total tests: Core 227, UI 67, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -87,8 +87,8 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~PdfWriteBackTests\|FullyQualifiedName~Metadata\|FullyQualifiedName~JobManagementTests"` | Passed: 69 direct-PDF, metadata, write-back, and job regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~BookDetailViewModelTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 74 selected-book enrichment, metadata, and direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 72 direct-PDF and metadata regression tests |
-| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 2 shell reader/direct-PDF navigation tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 227, UI 66, Architecture 15 |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 227, UI 67, Architecture 15 |
 
 ## Closure Rule
 

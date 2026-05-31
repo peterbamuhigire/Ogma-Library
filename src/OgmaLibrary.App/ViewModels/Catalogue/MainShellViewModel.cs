@@ -55,6 +55,7 @@ public sealed class MainShellViewModel :
     private int _filesCompleted;
     private int _filesFailed;
     private CancellationTokenSource _scanCts = new();
+    private CancellationTokenSource? _catalogueRefreshCts;
     private bool _isSidebarOpen = true;
     private bool _isFilterPanelOpen;
     private string? _statusOverride;
@@ -176,7 +177,7 @@ public sealed class MainShellViewModel :
         }
     }
 
-    /// <summary>A placeholder message shown when the reader is opened (until Phase 08).</summary>
+    /// <summary>An optional reader status message shown in the shell.</summary>
     public string? ReaderPlaceholderMessage
     {
         get => _readerPlaceholderMessage;
@@ -188,7 +189,7 @@ public sealed class MainShellViewModel :
         }
     }
 
-    /// <summary>True when the reader placeholder message is shown.</summary>
+    /// <summary>True when a reader status message is shown.</summary>
     public bool IsReaderPlaceholderVisible => _readerPlaceholderMessage is not null;
 
     // ── Localized labels ──────────────────────────────────────────────────────
@@ -514,6 +515,8 @@ public sealed class MainShellViewModel :
     /// <inheritdoc />
     public void Dispose()
     {
+        _catalogueRefreshCts?.Cancel();
+        _catalogueRefreshCts?.Dispose();
         _scanCts.Dispose();
     }
 
@@ -527,7 +530,35 @@ public sealed class MainShellViewModel :
             _filesCompleted = snapshot.FilesCompleted;
             _filesFailed = snapshot.FilesFailed;
             RaiseAllChanged();
+
+            if (snapshot.Phase == ScanPhase.Complete)
+            {
+                ScheduleCatalogueRefresh();
+            }
         });
+    }
+
+    private void ScheduleCatalogueRefresh()
+    {
+        _catalogueRefreshCts?.Cancel();
+        _catalogueRefreshCts?.Dispose();
+        _catalogueRefreshCts = new CancellationTokenSource();
+        CancellationToken token = _catalogueRefreshCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(150), token).ConfigureAwait(false);
+                await Catalogue.LoadAsync(token).ConfigureAwait(false);
+                await ShelfSidebar.LoadAsync(token).ConfigureAwait(false);
+                await BookDetail.RefreshLoadedBookAsync(token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // A newer refresh superseded this one.
+            }
+        }, token);
     }
 
     private void SetStatusOverride(string? value)

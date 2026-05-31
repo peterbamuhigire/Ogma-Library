@@ -8,8 +8,9 @@ tests, accessibility evidence, icon manifest, and current verification records.
 ## Audit Result
 
 Phase 09 is locally implementation-complete for code, automated tests, and
-repository documentation. No remaining locally actionable Phase 09 gaps were
-found after direct audit and independent sub-agent review.
+repository documentation. Follow-up independent sub-agent findings for
+direct-PDF runtime refresh and stale evidence have been addressed. No remaining
+locally actionable Phase 09 gaps are known.
 
 The phase is not final-release complete because the remaining gates require
 owner or manual evidence. Premium SVG icon assets have been delivered.
@@ -50,10 +51,13 @@ Recorded local verification. Newer rows supersede earlier aggregate test totals:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~BookDetailViewModelTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 74 selected-book enrichment, metadata, and direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 72 direct-PDF and metadata regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 2 shell reader/direct-PDF navigation tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 15 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 65 UI tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 65, Core 226 |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 66, Core 227 |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 67, Core 227 |
+| `.github/workflows/ci.yml` | Configured: `windows-latest` + `macos-latest` matrix runs restore, format, Release build, and Release tests on push/PR |
 
 Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 
@@ -69,12 +73,13 @@ Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 | Premium icons | Delivered SVG assets copied into all 22 Phase 09 key-named runtime paths and recorded in `docs/plans/grand-plan/phase-09/icons.md`. |
 | Architecture | Covered by annotations/Search isolation, annotations/AI isolation, catalogue contract boundary, and no PDF write-back tests. |
 | Selected-book deterministic metadata enrichment UI | Covered by book-detail view-model tests for Enrich invocation, projection refresh, provider provenance display, provider failure reporting, and refresh failure reporting; architecture guard verifies metadata enrichment stays independent from AI/OpenAI/token-consuming model namespaces. |
-| Direct PDF open, startup migration, and metadata write-back | Covered by startup migration regression, external-PDF registration regression, rematched direct-open job queueing, selected-file-version job queueing, shell queued-status coverage, PDF extraction-to-catalogue projection coverage, and registered-external-PDF write-back regression; selected PDFs outside the library are added without replacing the library root, metadata/thumbnail jobs are keyed by selected file content hash, extracted title/author fields become visible in catalogue summary/detail projections, and writable registered external PDFs can receive DocInfo metadata updates. |
+| Direct PDF open, startup migration, and metadata write-back | Covered by startup migration regression, external-PDF registration regression, rematched direct-open job queueing, selected-file-version job queueing, shell queued-status coverage, PDF extraction-to-catalogue projection coverage, running-shell background refresh coverage, and registered-external-PDF write-back regression; selected PDFs outside the library are added without replacing the library root, metadata/thumbnail jobs are keyed by selected file content hash, extracted title/author fields become visible in catalogue summary/detail projections and refresh into the live shell after background completion, and writable registered external PDFs can receive DocInfo metadata updates. |
 | Desktop hosted-service lifecycle | Covered by startup lifecycle regression; `BookIngestionWorker` now starts in the Avalonia app instead of only being registered for a generic host that the app does not create. |
 | Foreground/background context isolation | Covered by distinct-context registration regression and ingestion identity/direct-open regression set; direct PDF registration and background job polling no longer share one singleton EF Core unit-of-work. |
 | Phase 09 reader repository context isolation | Annotation, bookmark, layer, reading-memory, and reading-progress repositories use factory-created contexts per method; verified by reader persistence/session and full UI regression suites. |
 | Reader-facing read-path context isolation | Catalogue read model and book-file locator use factory-created contexts per operation; verified by catalogue/read-model, citation, reader-session, direct-open, and full UI suites. |
 | App-lived catalogue and metadata context isolation | Background job recovery, scan health, unavailable-file flagging, ingestion orchestration, metadata enrichment/apply/merge/quality/write-back, batch enrichment, catalogue writes, audit, book, shelf, and legacy annotation repositories use factory-created contexts per operation at runtime; `CatalogueMigrator` remains the only startup-owned direct context. |
+| Windows/macOS CI matrix | `.github/workflows/ci.yml` wires the Phase 09 WP9-T6 cross-platform gate: restore, format, Release build, and Release tests on `windows-latest` and `macos-latest` for pushes and PRs to `main`/`develop`. |
 
 ## Closeout Position
 
