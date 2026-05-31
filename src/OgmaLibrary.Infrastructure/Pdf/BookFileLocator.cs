@@ -51,7 +51,11 @@ public sealed class BookFileLocator : IBookFileLocator
             return null;
         }
 
-        string fullPath = Path.Combine(libraryRoot, relativePath);
+        string storedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        string fullPath = Path.IsPathRooted(storedPath)
+            ? storedPath
+            : Path.Combine(libraryRoot, storedPath);
+
         return File.Exists(fullPath) ? fullPath : null;
     }
 }

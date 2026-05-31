@@ -26,7 +26,8 @@ Latest local commands:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --no-build --filter "FullyQualifiedName~Phase09AnnotationTests\|FullyQualifiedName~InDocumentSearchTests"` | Passed: 38 backend reader/search tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --no-build --filter "FullyQualifiedName~ArchitectureTests"` | Passed: 14 architecture tests |
 | `dotnet test OgmaLibrary.sln --no-build` | Passed: Architecture 14, UI 65, Core 210 |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 210 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 4 startup/direct-PDF regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 217 |
 
 ## Evidence by area
 
@@ -54,6 +55,7 @@ Latest local commands:
 | Overlay contrast | `ReaderViewModel_AnnotationOverlayColors_MeetContrastGate` | Automated contrast gate present |
 | Pseudolocale render | `ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds`; screenshot `artifacts/screenshots/reader-qps-ploc.png` | Automated render evidence present |
 | No PDF write-back | `Architecture_Phase09Annotations_DoNotDependOnPdfWriteBack`; source audit of Phase 09 annotation path | Automated guard present |
+| Direct PDF open startup regression | `ApplicationStartupTests.InitializeAsync_AppliesCatalogueMigrations_BeforeShellQueries`; `DirectPdfOpenServiceTests.DirectPdfOpen_ExternalPdf_AddsBookWithoutChangingExistingLibraryRoot`; app startup now applies `CatalogueMigrator` before shell resolution and direct-open registers external PDFs without changing the current library root | Resolved locally |
 
 ## Manual and owner-gated evidence
 

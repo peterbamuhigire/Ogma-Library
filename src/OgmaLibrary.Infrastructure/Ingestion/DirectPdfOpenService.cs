@@ -47,13 +47,33 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             throw new InvalidOperationException("The selected file is not a PDF document.");
         }
 
-        string root = Path.GetDirectoryName(fullPath)
+        string containingFolder = Path.GetDirectoryName(fullPath)
             ?? throw new InvalidOperationException("The selected PDF has no containing folder.");
 
-        await _settings.SetLibraryRootAsync(root, cancellationToken).ConfigureAwait(false);
+        string? existingRoot = await _settings.GetLibraryRootAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        string identityRoot;
+        string relativePath;
+        if (string.IsNullOrWhiteSpace(existingRoot))
+        {
+            identityRoot = containingFolder;
+            relativePath = Path.GetFileName(fullPath);
+            await _settings.SetLibraryRootAsync(identityRoot, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else if (IsUnderRoot(fullPath, existingRoot))
+        {
+            identityRoot = Path.GetFullPath(existingRoot);
+            relativePath = NormalizeStoredPath(Path.GetRelativePath(identityRoot, fullPath));
+        }
+        else
+        {
+            identityRoot = Path.GetFullPath(existingRoot);
+            relativePath = NormalizeStoredPath(fullPath);
+        }
 
         var info = new FileInfo(fullPath);
-        string relativePath = Path.GetFileName(fullPath);
         var discovered = new DiscoveredFile(
             AbsolutePath: fullPath,
             RelativePath: relativePath,
@@ -64,7 +84,7 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             .ConfigureAwait(false);
 
         BookMatchResult match = await _identity
-            .ResolveAsync(fullPath, root, cancellationToken)
+            .ResolveAsync(fullPath, identityRoot, cancellationToken)
             .ConfigureAwait(false);
 
         return match switch
@@ -118,4 +138,21 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             return Convert.ToHexStringLower(hash);
         }
     }
+
+    private static bool IsUnderRoot(string absoluteFilePath, string rootPath)
+    {
+        string normalizedFile = Path.GetFullPath(absoluteFilePath);
+        string normalizedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(rootPath))
+            + Path.DirectorySeparatorChar;
+
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        return normalizedFile.StartsWith(normalizedRoot, comparison);
+    }
+
+    private static string NormalizeStoredPath(string path) =>
+        path.Replace(Path.DirectorySeparatorChar, '/')
+            .Replace(Path.AltDirectorySeparatorChar, '/');
 }

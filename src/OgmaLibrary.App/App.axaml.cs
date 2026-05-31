@@ -23,6 +23,7 @@ public sealed class App : Avalonia.Application
     public override void OnFrameworkInitializationCompleted()
     {
         _services = new ServiceCollection().AddOgmaLibrary().BuildServiceProvider();
+        ApplicationStartup.InitializeAsync(_services).GetAwaiter().GetResult();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {

@@ -1,5 +1,6 @@
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Ingestion;
+using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Tests.Catalogue;
 using Xunit;
 
@@ -40,6 +41,39 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var file = context.BookFiles.Single(f => f.BookId == bookId);
         Assert.Equal("single.pdf", file.RelativePath);
         Assert.Equal(0, file.FileStatus);
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_ExternalPdf_AddsBookWithoutChangingExistingLibraryRoot()
+    {
+        string libraryRoot = Path.Combine(_tempRoot, "library");
+        string externalRoot = Path.Combine(_tempRoot, "external");
+        Directory.CreateDirectory(libraryRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        string pdfPath = Path.Combine(externalRoot, "outside.pdf");
+        await File.WriteAllBytesAsync(pdfPath, "%PDF-1.4\n% external direct open test\n"u8.ToArray());
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        var settings = new LibrarySettingsService(_tempRoot);
+        await settings.SetLibraryRootAsync(libraryRoot);
+
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context));
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        Assert.Equal(libraryRoot, await settings.GetLibraryRootAsync());
+
+        var file = context.BookFiles.Single(f => f.BookId == bookId);
+        Assert.Equal(
+            pdfPath.Replace(Path.DirectorySeparatorChar, '/'),
+            file.RelativePath);
+
+        var locator = new BookFileLocator(context, settings);
+        Assert.Equal(pdfPath, await locator.LocateAsync(bookId, CancellationToken.None));
     }
 
     [Fact]
