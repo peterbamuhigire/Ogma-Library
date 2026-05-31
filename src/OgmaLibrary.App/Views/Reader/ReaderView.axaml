@@ -170,7 +170,7 @@
                           BorderThickness="2"
                           CornerRadius="6"
                           IsVisible="{Binding IsNote}"
-                          AutomationProperties.Name="{Binding AccessibleLabel}" />
+                          AutomationProperties.Name="{Binding NoteAnchorAccessibleLabel}" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

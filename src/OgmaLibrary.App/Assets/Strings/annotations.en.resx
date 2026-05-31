@@ -9,6 +9,7 @@
   <data name="Annotation.Highlight.LayerColor" xml:space="preserve"><value>Layer color</value></data>
   <data name="Annotation.Note.Create" xml:space="preserve"><value>Add note</value></data>
   <data name="Annotation.Note.Anchor" xml:space="preserve"><value>Note</value></data>
+  <data name="Annotation.Note.AnchorMarker" xml:space="preserve"><value>Note anchor</value></data>
   <data name="Annotation.Note.Edit" xml:space="preserve"><value>Edit note</value></data>
   <data name="Annotation.Note.Editor" xml:space="preserve"><value>Note</value></data>
   <data name="Annotation.Note.Saved" xml:space="preserve"><value>Note saved</value></data>

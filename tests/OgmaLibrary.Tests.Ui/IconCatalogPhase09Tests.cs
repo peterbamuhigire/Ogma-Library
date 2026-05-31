@@ -41,6 +41,7 @@ public sealed class IconCatalogPhase09Tests
         "Annotation.Highlight.LayerColor",
         "Annotation.Note.Create",
         "Annotation.Note.Anchor",
+        "Annotation.Note.AnchorMarker",
         "Annotation.Note.Edit",
         "Annotation.Note.Editor",
         "Annotation.Note.Saved",

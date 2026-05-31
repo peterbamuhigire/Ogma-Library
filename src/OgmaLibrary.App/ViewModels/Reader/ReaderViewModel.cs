@@ -1345,20 +1345,33 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 ? annotation.NoteText ?? string.Empty
                 : annotation.QuoteText ?? string.Empty;
             string accessibleLabel;
+            string noteAnchorAccessibleLabel;
             if (annotation.LayerId is not null &&
                 layerNames.TryGetValue(annotation.LayerId, out string? layerName))
             {
                 accessibleLabel = AnnotationAccessibleLabel(label, layerName, PageStatusText);
+                noteAnchorAccessibleLabel = AnnotationAccessibleLabel(
+                    _localization["Annotation.Note.AnchorMarker"],
+                    layerName,
+                    PageStatusText);
             }
             else if (annotation.LayerId is null &&
                 defaultLayerId is not null &&
                 layerNames.TryGetValue(defaultLayerId, out string? defaultLayerName))
             {
                 accessibleLabel = AnnotationAccessibleLabel(label, defaultLayerName, PageStatusText);
+                noteAnchorAccessibleLabel = AnnotationAccessibleLabel(
+                    _localization["Annotation.Note.AnchorMarker"],
+                    defaultLayerName,
+                    PageStatusText);
             }
             else
             {
                 accessibleLabel = AnnotationAccessibleLabel(label, null, PageStatusText);
+                noteAnchorAccessibleLabel = AnnotationAccessibleLabel(
+                    _localization["Annotation.Note.AnchorMarker"],
+                    null,
+                    PageStatusText);
             }
 
             Annotations.Add(new AnnotationListItem(
@@ -1387,6 +1400,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                     rect.Height,
                     annotation.HighlightColor ?? "#FFCC66",
                     accessibleLabel,
+                    noteAnchorAccessibleLabel,
                     isNote));
             }
         }
@@ -1911,6 +1925,7 @@ public sealed record AnnotationOverlayItem(
     double Height,
     string Color,
     string AccessibleLabel,
+    string NoteAnchorAccessibleLabel,
     bool IsNote)
 {
     /// <summary>Absolute position inside the page host.</summary>

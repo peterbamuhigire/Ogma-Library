@@ -555,6 +555,7 @@ public sealed class ReaderViewRenderTests
                 24,
                 color,
                 "Highlight - Key arguments - Page 1 of 10",
+                "Note anchor - Key arguments - Page 1 of 10",
                 IsNote: false);
 
             string composited = CompositeOverWhite(overlay.OverlayColor, alpha: 0.8);
@@ -1001,8 +1002,23 @@ public sealed class ReaderViewRenderTests
 
         Assert.True(overlay.IsNote);
         Assert.Contains("Note", overlay.AccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains("Note anchor", overlay.NoteAnchorAccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains("Key arguments", overlay.NoteAnchorAccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains("Page 1 of 10", overlay.NoteAnchorAccessibleLabel, StringComparison.Ordinal);
         Assert.True(overlay.NoteAnchorMargin.Left >= overlay.Margin.Left);
         Assert.True(overlay.NoteAnchorMargin.Top >= 0);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Border>(),
+                border => GetAutomationName(border) == overlay.NoteAnchorAccessibleLabel);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
