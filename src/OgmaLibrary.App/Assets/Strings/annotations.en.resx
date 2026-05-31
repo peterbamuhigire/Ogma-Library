@@ -48,6 +48,10 @@
   <data name="Layer.Hidden" xml:space="preserve"><value>Layer hidden</value></data>
   <data name="Layer.Merge" xml:space="preserve"><value>Merge layer</value></data>
   <data name="Layer.Delete" xml:space="preserve"><value>Delete layer</value></data>
+  <data name="Layer.Visible.AccessibleFormat" xml:space="preserve"><value>Layer visible: {0}</value></data>
+  <data name="Layer.Hidden.AccessibleFormat" xml:space="preserve"><value>Layer hidden: {0}</value></data>
+  <data name="Layer.Merge.AccessibleFormat" xml:space="preserve"><value>Merge layer {0}</value></data>
+  <data name="Layer.Delete.AccessibleFormat" xml:space="preserve"><value>Delete layer {0}</value></data>
   <data name="Layer.Renamed" xml:space="preserve"><value>Layer renamed</value></data>
   <data name="Layer.Deleted" xml:space="preserve"><value>Layer deleted</value></data>
   <data name="Layer.Merged" xml:space="preserve"><value>Layer merged</value></data>

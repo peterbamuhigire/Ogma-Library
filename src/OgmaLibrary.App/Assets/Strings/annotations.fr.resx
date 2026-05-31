@@ -48,6 +48,10 @@
   <data name="Layer.Hidden" xml:space="preserve"><value>Couche masquée</value></data>
   <data name="Layer.Merge" xml:space="preserve"><value>Fusionner la couche</value></data>
   <data name="Layer.Delete" xml:space="preserve"><value>Supprimer la couche</value></data>
+  <data name="Layer.Visible.AccessibleFormat" xml:space="preserve"><value>Couche visible : {0}</value></data>
+  <data name="Layer.Hidden.AccessibleFormat" xml:space="preserve"><value>Couche masquée : {0}</value></data>
+  <data name="Layer.Merge.AccessibleFormat" xml:space="preserve"><value>Fusionner la couche {0}</value></data>
+  <data name="Layer.Delete.AccessibleFormat" xml:space="preserve"><value>Supprimer la couche {0}</value></data>
   <data name="Layer.Renamed" xml:space="preserve"><value>Couche renommée</value></data>
   <data name="Layer.Deleted" xml:space="preserve"><value>Couche supprimée</value></data>
   <data name="Layer.Merged" xml:space="preserve"><value>Couches fusionnées</value></data>

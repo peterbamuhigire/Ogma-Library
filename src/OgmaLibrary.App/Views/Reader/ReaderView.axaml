@@ -518,14 +518,14 @@
                                 Click="LayerVisibility_Click" />
                       <Button Grid.Column="3"
                               Padding="8,4"
-                              AutomationProperties.Name="{Binding #Root.DataContext.MergeLayerLabel}"
-                              ToolTip.Tip="{Binding #Root.DataContext.MergeLayerLabel}"
+                              AutomationProperties.Name="{Binding MergeAutomationLabel}"
+                              ToolTip.Tip="{Binding MergeAutomationLabel}"
                               Click="MergeLayerButton_Click">
                         <TextBlock Text=">" />
                       </Button>
                       <Button Grid.Column="4"
                               Padding="8,4"
-                              AutomationProperties.Name="{Binding #Root.DataContext.DeleteLayerLabel}"
+                              AutomationProperties.Name="{Binding DeleteAutomationLabel}"
                               Click="DeleteLayerButton_Click">
                         <TextBlock Text="x" />
                       </Button>

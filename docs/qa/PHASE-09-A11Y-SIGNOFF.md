@@ -27,7 +27,7 @@ owner-controlled release folder named in the row.
 | Bookmark panel supports arrow selection and Enter navigation | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` |
 | Bookmark context flyout exposes rename/delete actions | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` |
 | Note editor supports Escape dismissal without navigation | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` |
-| Bookmark, layer, citation, and memory actions expose automation names | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` |
+| Bookmark, layer, citation, and memory actions expose target-specific automation names | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; layer visibility, merge, and delete names include the layer name |
 | Note overlays expose an anchor marker state | `ReaderViewModel_NoteOverlay_ExposesAnchorMarker` |
 | Phase 09 icon labels exist in English and French | `IconCatalog_Phase09ManifestKeys_HaveAccessibleLabels` |
 | Phase 09 resource artifacts contain required keys | `Phase09AnnotationResources_ContainRequiredKeys` |

@@ -1445,8 +1445,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 layer.Name,
                 layer.Color,
                 layer.IsVisible,
-                _localization["Layer.Visible"],
-                _localization["Layer.Hidden"]));
+                _localization["Layer.Visible.AccessibleFormat"],
+                _localization["Layer.Hidden.AccessibleFormat"],
+                _localization["Layer.Merge.AccessibleFormat"],
+                _localization["Layer.Delete.AccessibleFormat"]));
         }
 
         RefreshLayerFilterOptions();
@@ -1820,6 +1822,10 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
 public sealed class LayerListItem : INotifyPropertyChanged
 {
     private string _name;
+    private readonly string _visibleFormat;
+    private readonly string _hiddenFormat;
+    private readonly string _mergeFormat;
+    private readonly string _deleteFormat;
 
     /// <summary>Creates a new layer list item.</summary>
     public LayerListItem(
@@ -1827,15 +1833,19 @@ public sealed class LayerListItem : INotifyPropertyChanged
         string name,
         string color,
         bool isVisible,
-        string visibleLabel,
-        string hiddenLabel)
+        string visibleFormat,
+        string hiddenFormat,
+        string mergeFormat,
+        string deleteFormat)
     {
         Id = id;
         _name = name;
         Color = color;
         IsVisible = isVisible;
-        VisibleLabel = visibleLabel;
-        HiddenLabel = hiddenLabel;
+        _visibleFormat = visibleFormat;
+        _hiddenFormat = hiddenFormat;
+        _mergeFormat = mergeFormat;
+        _deleteFormat = deleteFormat;
     }
 
     /// <inheritdoc />
@@ -1854,6 +1864,9 @@ public sealed class LayerListItem : INotifyPropertyChanged
             {
                 _name = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibilityAutomationLabel)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MergeAutomationLabel)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeleteAutomationLabel)));
             }
         }
     }
@@ -1864,14 +1877,17 @@ public sealed class LayerListItem : INotifyPropertyChanged
     /// <summary>Whether the layer is currently visible.</summary>
     public bool IsVisible { get; }
 
-    /// <summary>Localized automation label for a visible layer toggle.</summary>
-    public string VisibleLabel { get; }
-
-    /// <summary>Localized automation label for a hidden layer toggle.</summary>
-    public string HiddenLabel { get; }
-
     /// <summary>Automation label that includes the current visibility state.</summary>
-    public string VisibilityAutomationLabel => IsVisible ? VisibleLabel : HiddenLabel;
+    public string VisibilityAutomationLabel => FormatLayerLabel(IsVisible ? _visibleFormat : _hiddenFormat);
+
+    /// <summary>Automation label for merging this layer.</summary>
+    public string MergeAutomationLabel => FormatLayerLabel(_mergeFormat);
+
+    /// <summary>Automation label for deleting this layer.</summary>
+    public string DeleteAutomationLabel => FormatLayerLabel(_deleteFormat);
+
+    private string FormatLayerLabel(string format) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, format, Name);
 }
 
 /// <summary>A display option for filtering annotations by layer.</summary>

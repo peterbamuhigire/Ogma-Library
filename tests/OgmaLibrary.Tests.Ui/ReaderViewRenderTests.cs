@@ -713,10 +713,13 @@ public sealed class ReaderViewRenderTests
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(
                 window.GetVisualDescendants().OfType<CheckBox>(),
-                box => GetAutomationName(box) == "Layer visible");
+                box => GetAutomationName(box) == "Layer visible: Key arguments");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == "Delete layer");
+                button => GetAutomationName(button) == "Merge layer Key arguments");
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == "Delete layer Key arguments");
             viewModel
                 .SetLayerVisibilityAsync(viewModel.Layers[0], isVisible: false, CancellationToken.None)
                 .GetAwaiter()
@@ -724,7 +727,7 @@ public sealed class ReaderViewRenderTests
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(
                 window.GetVisualDescendants().OfType<CheckBox>(),
-                box => GetAutomationName(box) == "Layer hidden");
+                box => GetAutomationName(box) == "Layer hidden: Key arguments");
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();
@@ -797,9 +800,9 @@ public sealed class ReaderViewRenderTests
             AssertFocusableControl<Button>(window, "New layer");
             AssertFocusableControl<ComboBox>(window, "Show annotations from");
             AssertFocusableControl<TextBox>(window, "Key arguments");
-            AssertFocusableControl<CheckBox>(window, "Layer visible");
-            AssertFocusableControl<Button>(window, "Merge layer");
-            AssertFocusableControl<Button>(window, "Delete layer");
+            AssertFocusableControl<CheckBox>(window, "Layer visible: Key arguments");
+            AssertFocusableControl<Button>(window, "Merge layer Key arguments");
+            AssertFocusableControl<Button>(window, "Delete layer Key arguments");
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();

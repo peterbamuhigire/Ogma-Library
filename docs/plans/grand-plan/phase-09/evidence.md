@@ -43,6 +43,7 @@ Recorded local commands. The latest full-suite aggregate is authoritative:
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 67 UI tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 67, Core 228 |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --filter "FullyQualifiedName~DirectPdfOpen\|FullyQualifiedName~Migration_RepairsMissingModelTable_WhenHistorySaysCurrent\|FullyQualifiedName~IngestionPipeline_RegistersNewBooks"` | Passed: 9 direct-PDF, catalogue migration repair, and ingestion registration regression tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --filter "FullyQualifiedName~ReaderView_Phase09ControlsExposeActionSpecificAutomationNames\|FullyQualifiedName~ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames\|FullyQualifiedName~IconCatalogPhase09Tests"` | Passed: 7 focused Phase 09 accessibility/resource tests |
 | `.github/workflows/ci.yml` | Configured: `windows-latest` + `macos-latest` matrix runs `dotnet restore`, `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore`, `dotnet build OgmaLibrary.sln --configuration Release --no-restore`, and `dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal` on push/PR |
 
 ## Evidence by area
@@ -65,6 +66,7 @@ Recorded local commands. The latest full-suite aggregate is authoritative:
 | Phase 09 strings | `src/OgmaLibrary.App/Assets/Strings/annotations.en.resx`, `annotations.fr.resx`; `Phase09AnnotationResources_ContainRequiredKeys` | Automated coverage present |
 | Selection action menu | `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions`; `SelectionActionMenu` opens from a headless pointer drag and exposes focusable named actions | Automated coverage present |
 | Keyboard-focusable Phase 09 controls | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames`; toolbar, note editor, bookmark, layer, and reading-memory controls expose purpose-specific names and accept focus | Automated focus coverage present |
+| Target-specific layer actions | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; layer visibility, merge, and delete controls now include the target layer name in automation names, e.g. `Layer visible: Key arguments`, `Merge layer Key arguments`, and `Delete layer Key arguments` | Automated accessibility coverage present |
 | Bookmark keyboard navigation | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates`; `ReaderView.axaml` wires `Bookmarks_KeyDown` | Automated coverage present |
 | Bookmark context menu | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark`; bookmark rows expose right-click rename/delete actions | Automated coverage present |
 | Note editor keyboard dismissal | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating`; `ReaderView.axaml.cs` handles Escape on `NoteEditorTextBox` | Automated coverage present |
