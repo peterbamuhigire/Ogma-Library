@@ -1149,8 +1149,11 @@ public sealed class ReaderViewRenderTests
         try
         {
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Border>(),
-                border => GetAutomationName(border) == overlay.NoteAnchorAccessibleLabel);
+                window.GetVisualDescendants().OfType<Control>(),
+                control =>
+                    control.GetType().Name == "Svg" &&
+                    GetAutomationName(control) == overlay.NoteAnchorAccessibleLabel);
+            AssertSvgIconPath(window, "ic_annotation_note_anchor.svg");
         }
         finally
         {

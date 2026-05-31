@@ -181,17 +181,14 @@
                           Opacity="0.8"
                           CornerRadius="3"
                           AutomationProperties.Name="{Binding AccessibleLabel}" />
-                  <Border Width="12"
-                          Height="12"
-                          Margin="{Binding NoteAnchorMargin}"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Top"
-                          Background="{DynamicResource Brush.Accent.Ink}"
-                          BorderBrush="White"
-                          BorderThickness="2"
-                          CornerRadius="6"
-                          IsVisible="{Binding IsNote}"
-                          AutomationProperties.Name="{Binding NoteAnchorAccessibleLabel}" />
+                  <svg:Svg Width="16"
+                           Height="16"
+                           Margin="{Binding NoteAnchorMargin}"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Top"
+                           IsVisible="{Binding IsNote}"
+                           AutomationProperties.Name="{Binding NoteAnchorAccessibleLabel}"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note_anchor.svg" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
