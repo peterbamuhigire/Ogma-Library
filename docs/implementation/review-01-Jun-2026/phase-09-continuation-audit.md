@@ -38,9 +38,9 @@ Remote CI result evidence is not available from this local environment:
 
 | Check | Result |
 | --- | --- |
-| GitHub connector combined status for prior Phase 09 audit commit | GitHub API returned `404 Not Found` |
+| GitHub Actions REST API for latest pushed `main` commit `b58b12a` | `GET /repos/peterbamuhigire/Ogma-Library/actions/runs?branch=main&per_page=5` returned `404 Not Found` |
 | GitHub CLI | `gh` is not installed in this environment |
-| Public Actions URL | No usable Actions status page was available from this environment |
+| Public Actions URL / unauthenticated status | No usable Actions run result was available from this environment |
 
 The workflow configuration itself is present and documented, but this audit does
 not claim a remote CI pass.
