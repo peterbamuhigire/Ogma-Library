@@ -99,6 +99,33 @@ public sealed class ArchitectureTests
         Assert.True(result.IsSuccessful, Describe(result));
     }
 
+    /// <summary>
+    /// Provider HTTP calls must live only in Infrastructure (the egress chokepoint, SI-1,
+    /// Phase 07 FR-META-002). The Application and Domain layers must not reference
+    /// System.Net.Http (enforced by the existing test, this test adds explicit naming).
+    /// </summary>
+    [Fact]
+    public void Architecture_MetadataProviderHttpClients_OnlyInInfrastructure()
+    {
+        // Application must not directly use HttpClient.
+        var appResult = Types.InAssembly(typeof(IBenchmarkContext).Assembly)
+            .ShouldNot().HaveDependencyOn(Http).GetResult();
+
+        // Domain must not directly use HttpClient.
+        var domainResult = Types.InAssembly(typeof(Book).Assembly)
+            .ShouldNot().HaveDependencyOn(Http).GetResult();
+
+        // Providers live in Infrastructure — verify by asserting Infrastructure
+        // has types in the Metadata.Providers namespace.
+        var infraAssembly = typeof(CatalogueDbContext).Assembly;
+        bool hasProviders = infraAssembly.GetTypes()
+            .Any(t => t.Namespace?.Contains("Metadata.Providers") == true);
+
+        Assert.True(appResult.IsSuccessful, "Application must not use HttpClient: " + Describe(appResult));
+        Assert.True(domainResult.IsSuccessful, "Domain must not use HttpClient: " + Describe(domainResult));
+        Assert.True(hasProviders, "Expected metadata provider types in Infrastructure.Metadata.Providers namespace");
+    }
+
     private static string Describe(TestResult result) =>
         result.IsSuccessful
             ? "ok"

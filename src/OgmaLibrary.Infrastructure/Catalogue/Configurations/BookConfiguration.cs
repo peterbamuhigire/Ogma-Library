@@ -31,6 +31,7 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.Property(b => b.SizeBytes);
         builder.Property(b => b.MtimeTicks);
         builder.Property(b => b.EditionId);
+        builder.Property(b => b.QualityScore).HasColumnType("REAL").HasDefaultValue(0.0);
 
         // Availability index: query books by relative path quickly.
         builder.HasIndex(b => b.RelativePath).HasDatabaseName("IX_Books_RelativePath");

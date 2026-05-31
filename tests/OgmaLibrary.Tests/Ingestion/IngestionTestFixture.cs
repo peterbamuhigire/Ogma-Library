@@ -123,7 +123,7 @@ internal sealed class IngestionTestFixture : IDisposable
         // Set up the database.
         string dbPath = Path.Combine(rootDir, "catalogue.db");
         var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-            .UseSqlite($"Data Source={dbPath}")
+            .UseSqlite($"Data Source={dbPath};Pooling=False")
             .Options;
         var context = new CatalogueDbContext(options);
         context.Database.EnsureCreated();

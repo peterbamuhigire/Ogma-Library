@@ -17,8 +17,12 @@ internal static class CatalogueTestHelper
     public static (CatalogueDbContext Context, string DbPath) CreateTempFileContext()
     {
         string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-test-{Guid.NewGuid():N}.db");
+        // Pooling=False: each test gets an independent connection with no shared pool, so
+        // the global SqliteConnection.ClearAllPools() called by one test's cleanup cannot
+        // disrupt a concurrently-open connection in another parallel test (which caused a
+        // flaky OpenAsync failure under heavy parallel load).
         var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-            .UseSqlite($"Data Source={dbPath}")
+            .UseSqlite($"Data Source={dbPath};Pooling=False")
             .Options;
         var context = new CatalogueDbContext(options);
         return (context, dbPath);

@@ -19,7 +19,7 @@ public sealed class MigrationTests
         try
         {
             var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-                .UseSqlite($"Data Source={dbPath}")
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
                 .Options;
 
             // Apply migrations and insert a sentinel row.
@@ -77,7 +77,7 @@ public sealed class MigrationTests
         try
         {
             // Create a real SQLite file so there IS a pre-existing DB to back up.
-            using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            using (var conn = new SqliteConnection($"Data Source={dbPath};Pooling=False"))
             {
                 await conn.OpenAsync();
                 // No tables yet — __EFMigrationsHistory doesn't exist.
@@ -87,7 +87,7 @@ public sealed class MigrationTests
             Assert.True(File.Exists(dbPath), "Setup: DB file should exist before migrator runs.");
 
             var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-                .UseSqlite($"Data Source={dbPath}")
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
                 .Options;
 
             // Act — apply migrations on the empty (but real) SQLite DB.
@@ -125,7 +125,7 @@ public sealed class MigrationTests
         try
         {
             var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-                .UseSqlite($"Data Source={dbPath}")
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
                 .Options;
 
             // First apply.

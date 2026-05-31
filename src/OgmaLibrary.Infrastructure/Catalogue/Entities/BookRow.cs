@@ -70,4 +70,11 @@ public sealed class BookRow
 
     /// <summary>Navigation: optional edition.</summary>
     public EditionRow? Edition { get; set; }
+
+    /// <summary>
+    /// Metadata quality score in [0.0, 1.0] computed from field completeness and
+    /// average confidence (FR-META-007). Updated by the quality service after any
+    /// metadata write. Defaults to 0.0 until the first enrichment pass.
+    /// </summary>
+    public double QualityScore { get; set; }
 }
