@@ -237,17 +237,30 @@ public sealed class ReaderViewRenderTests
         Assert.Equal("#88AA77", viewModel.AnnotationOverlays[0].Color);
         Assert.Equal("#88AA77", viewModel.HighlightColorOptions[0].Color);
         Assert.True(viewModel.HighlightColorOptions[0].IsSelected);
+        Assert.Equal("Layer color (#88AA77), selected", viewModel.HighlightColorOptions[0].AccessibleLabel);
 
         HighlightColorOption clayOverride = Assert.Single(
             viewModel.HighlightColorOptions,
             option => option.Color == "#C7795A" && !option.IsLayerDefault);
+        Assert.Equal("Choose highlight color (#C7795A)", clayOverride.AccessibleLabel);
         viewModel.SelectHighlightColor(clayOverride);
         viewModel.CreateHighlightAsync(CancellationToken.None).GetAwaiter().GetResult();
 
         Assert.Equal("#C7795A", annotationService.CreatedAnnotations[1].HighlightColor);
         Assert.Equal("#88AA77", viewModel.Layers.Single(layer => layer.IsVisible).Color);
-        Assert.Contains(viewModel.HighlightColorOptions, option =>
+        HighlightColorOption selectedOverride = Assert.Single(viewModel.HighlightColorOptions, option =>
             option.Color == "#C7795A" && option.IsSelected);
+        Assert.Equal("Choose highlight color (#C7795A), selected", selectedOverride.AccessibleLabel);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            AssertFocusableControl<Button>(window, selectedOverride.AccessibleLabel);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]

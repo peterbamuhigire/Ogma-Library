@@ -1611,6 +1611,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             LayerDefaultColorOptionId,
             layerColor,
             _localization["Annotation.Highlight.LayerColor"],
+            HighlightColorAccessibleLabel(
+                _localization["Annotation.Highlight.LayerColor"],
+                layerColor,
+                isSelected: _selectedHighlightColorOverride is null),
             IsLayerDefault: true,
             IsSelected: _selectedHighlightColorOverride is null));
 
@@ -1621,6 +1625,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 color,
                 color,
                 color,
+                HighlightColorAccessibleLabel(
+                    _localization["Annotation.Highlight.Color"],
+                    color,
+                    isSelected: string.Equals(
+                        _selectedHighlightColorOverride,
+                        color,
+                        StringComparison.OrdinalIgnoreCase)),
                 IsLayerDefault: false,
                 IsSelected: string.Equals(
                     _selectedHighlightColorOverride,
@@ -1631,6 +1642,14 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HighlightColorOptions));
         OnPropertyChanged(nameof(SelectedHighlightColor));
     }
+
+    private string HighlightColorAccessibleLabel(string label, string color, bool isSelected) =>
+        string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["Annotation.Highlight.ColorOptionFormat"],
+            label,
+            color,
+            isSelected ? _localization["Annotation.Highlight.ColorSelectedSuffix"] : string.Empty);
 
     private void RefreshLayerFilterOptions()
     {
@@ -1877,6 +1896,7 @@ public sealed record HighlightColorOption(
     string Id,
     string Color,
     string Label,
+    string AccessibleLabel,
     bool IsLayerDefault,
     bool IsSelected)
 {

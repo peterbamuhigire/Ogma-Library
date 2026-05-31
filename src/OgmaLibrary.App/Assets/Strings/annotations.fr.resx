@@ -7,6 +7,8 @@
   <data name="Annotation.Highlight.Create" xml:space="preserve"><value>Surligner</value></data>
   <data name="Annotation.Highlight.Color" xml:space="preserve"><value>Choisir la couleur de surlignage</value></data>
   <data name="Annotation.Highlight.LayerColor" xml:space="preserve"><value>Couleur de la couche</value></data>
+  <data name="Annotation.Highlight.ColorOptionFormat" xml:space="preserve"><value>{0} ({1}){2}</value></data>
+  <data name="Annotation.Highlight.ColorSelectedSuffix" xml:space="preserve"><value>, sélectionnée</value></data>
   <data name="Annotation.Note.Create" xml:space="preserve"><value>Ajouter une note</value></data>
   <data name="Annotation.Note.Anchor" xml:space="preserve"><value>Note</value></data>
   <data name="Annotation.Note.AnchorMarker" xml:space="preserve"><value>Ancre de note</value></data>

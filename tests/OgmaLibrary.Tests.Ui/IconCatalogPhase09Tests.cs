@@ -39,6 +39,8 @@ public sealed class IconCatalogPhase09Tests
         "Annotation.Highlight.Create",
         "Annotation.Highlight.Color",
         "Annotation.Highlight.LayerColor",
+        "Annotation.Highlight.ColorOptionFormat",
+        "Annotation.Highlight.ColorSelectedSuffix",
         "Annotation.Note.Create",
         "Annotation.Note.Anchor",
         "Annotation.Note.AnchorMarker",

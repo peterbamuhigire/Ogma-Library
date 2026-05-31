@@ -63,7 +63,7 @@
                 <Button Padding="4"
                         MinWidth="28"
                         MinHeight="28"
-                        AutomationProperties.Name="{Binding Label}"
+                        AutomationProperties.Name="{Binding AccessibleLabel}"
                         ToolTip.Tip="{Binding Label}"
                         Click="HighlightColorButton_Click">
                   <Grid Width="16" Height="16">
