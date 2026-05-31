@@ -31,6 +31,7 @@ public sealed class SidecarService : ISidecarService
             [SidecarClass.Embeddings] = ("embeddings", "bin"),
             [SidecarClass.Backups] = ("backups", "pdf"),
             [SidecarClass.Export] = ("export", "zip"),
+            [SidecarClass.CitationExports] = ("citations", "txt"),
         };
 
     private readonly string _libraryRoot;

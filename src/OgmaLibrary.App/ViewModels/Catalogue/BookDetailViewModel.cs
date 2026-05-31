@@ -98,6 +98,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ReadingProgressPct));
             OnPropertyChanged(nameof(LastReadDisplay));
             OnPropertyChanged(nameof(AnnotationCount));
+            OnPropertyChanged(nameof(ReadingMemorySummaryLabel));
+            OnPropertyChanged(nameof(ReadingMemoryKeyInsightLabel));
+            OnPropertyChanged(nameof(ReadingMemoryDispositionLabel));
+            OnPropertyChanged(nameof(ReadingMemoryKeyInsightExcerpt));
+            OnPropertyChanged(nameof(ReadingMemoryDispositionDisplay));
+            OnPropertyChanged(nameof(HasReadingMemorySummary));
             OnPropertyChanged(nameof(FileFields));
             OnPropertyChanged(nameof(BiblioFields));
             OnPropertyChanged(nameof(ReadingFields));
@@ -157,6 +163,34 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Number of annotations.</summary>
     public int? AnnotationCount => _book?.Annotations;
+
+    /// <summary>Localized reading-memory summary label.</summary>
+    public string ReadingMemorySummaryLabel => _localization["Catalogue.BookDetail.ReadingMemory"];
+
+    /// <summary>Localized reading-memory key-insight label.</summary>
+    public string ReadingMemoryKeyInsightLabel => _localization["Catalogue.BookDetail.ReadingMemoryKeyInsight"];
+
+    /// <summary>Localized reading-memory disposition label.</summary>
+    public string ReadingMemoryDispositionLabel => _localization["Catalogue.BookDetail.ReadingMemoryDisposition"];
+
+    /// <summary>True when the loaded book has memory content worth summarizing.</summary>
+    public bool HasReadingMemorySummary =>
+        _book?.ReadingMemory is { } memory &&
+        (memory.Disposition is not null || !string.IsNullOrWhiteSpace(memory.KeyInsight));
+
+    /// <summary>Key insight truncated for the compact book-detail reading card.</summary>
+    public string ReadingMemoryKeyInsightExcerpt =>
+        Truncate(_book?.ReadingMemory?.KeyInsight, 80) ??
+        _localization["Catalogue.BookDetail.ReadingMemoryEmpty"];
+
+    /// <summary>Disposition score formatted for the compact reading-memory summary.</summary>
+    public string ReadingMemoryDispositionDisplay =>
+        _book?.ReadingMemory?.Disposition is int disposition
+            ? string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Catalogue.BookDetail.ReadingMemoryDispositionFormat"],
+                disposition)
+            : _localization["Catalogue.BookDetail.ReadingMemoryEmpty"];
 
     // ── Five field groups for the detail panel tabs ───────────────────────────
 
@@ -262,6 +296,19 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     }
 
     // ── Field group membership sets ───────────────────────────────────────────
+
+    private static string? Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        string trimmed = value.Trim();
+        return trimmed.Length <= maxLength
+            ? trimmed
+            : string.Concat(trimmed.AsSpan(0, maxLength - 3), "...");
+    }
 
     private static readonly HashSet<string> FileFieldNames =
         new(StringComparer.OrdinalIgnoreCase)

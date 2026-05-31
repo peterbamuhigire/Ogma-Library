@@ -48,6 +48,7 @@ public sealed record BookSummaryProjection(
 /// <param name="ReadingProgress">Current reading progress, or null.</param>
 /// <param name="Annotations">Count of annotations.</param>
 /// <param name="MetadataFields">All provenance-tracked metadata fields.</param>
+/// <param name="ReadingMemory">Reading-memory summary, or null.</param>
 public sealed record BookDetailProjection(
     string BookId,
     string? Title,
@@ -63,7 +64,19 @@ public sealed record BookDetailProjection(
     long? SizeBytes,
     ReadingProgressProjection? ReadingProgress,
     int Annotations,
-    IReadOnlyList<MetadataFieldProjection> MetadataFields);
+    IReadOnlyList<MetadataFieldProjection> MetadataFields,
+    ReadingMemorySummaryProjection? ReadingMemory = null);
+
+/// <summary>
+/// Compact reading-memory data surfaced in the book-detail panel.
+/// </summary>
+/// <param name="Disposition">Reader disposition score 1-5, or null.</param>
+/// <param name="KeyInsight">The latest key insight text, or null.</param>
+/// <param name="UpdatedAtUtc">UTC timestamp of the latest reading-memory update.</param>
+public sealed record ReadingMemorySummaryProjection(
+    int? Disposition,
+    string? KeyInsight,
+    DateTimeOffset? UpdatedAtUtc);
 
 /// <summary>
 /// Reading progress for a single book (FR-READ-001).

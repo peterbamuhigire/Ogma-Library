@@ -17,12 +17,11 @@ public sealed class InDocumentSearchTests
         var factory = new MockPdfRendererFactory(_ => renderer);
         var cache = new PageRenderCache(factory, new StopwatchBenchmarkContext());
 
-        var textLayerService = new TextLayerService(factory);
-
         var progressService = new StubReadingProgressService();
         var fileLocator = new StubFileLocator();
 
         var sessionService = new ReaderSessionService(factory, progressService, fileLocator, cache);
+        var textLayerService = new TextLayerService(factory, sessionService);
 
         var searchService = new InDocumentSearchService(textLayerService, sessionService);
 
@@ -56,6 +55,26 @@ public sealed class InDocumentSearchTests
         Assert.Single(matches);
         Assert.Equal(1, matches[0].PageIndex);
         Assert.NotEmpty(matches[0].Highlights);
+    }
+
+    [Fact]
+    public async Task TextLayerService_ExtractAsync_UsesOpenSessionRenderer()
+    {
+        var renderer = new MockPdfRenderer(2)
+        {
+            PageWords = new Dictionary<int, string[]>
+            {
+                [1] = ["actual", "reader", "text"],
+            },
+        };
+
+        var (session, textLayer, _) = CreateServices(renderer);
+        await session.OpenAsync("book1", null, CancellationToken.None);
+
+        TextLayer layer = await textLayer.ExtractAsync("book1", 1, CancellationToken.None);
+
+        Assert.Equal(ExtractionQuality.Full, layer.Quality);
+        Assert.Equal(["actual", "reader", "text"], layer.Words.Select(word => word.Text).ToArray());
     }
 
     [Fact]

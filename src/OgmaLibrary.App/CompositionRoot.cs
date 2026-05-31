@@ -2,18 +2,21 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Cache;
 using OgmaLibrary.Reader.Progress;
 using OgmaLibrary.Reader.Session;
@@ -94,12 +97,22 @@ public static class CompositionRoot
 
             var catalogueVm = new CatalogueViewModel(readModel, navProxy, localization);
             var bookDetailVm = new BookDetailViewModel(readModel, navProxy, localization);
+            var readerVm = new ReaderViewModel(
+                sp.GetRequiredService<IReaderSessionService>(),
+                sp.GetRequiredService<IAnnotationService>(),
+                sp.GetRequiredService<IBookmarkService>(),
+                sp.GetRequiredService<IAnnotationLayerService>(),
+                sp.GetRequiredService<ICitationService>(),
+                sp.GetRequiredService<IReadingMemoryService>(),
+                localization,
+                sp.GetRequiredService<ITextLayerService>());
 
             shell = new MainShellViewModel(
                 localization,
                 catalogueVm,
                 bookDetailVm,
                 shelfSidebar,
+                readerVm,
                 sp.GetRequiredService<ILibrarySettingsService>(),
                 sp.GetRequiredService<IIngestionOrchestrator>(),
                 sp.GetRequiredService<IScanProgressService>());
@@ -134,12 +147,40 @@ public static class CompositionRoot
         services.AddSingleton<IReaderSessionReadModel>(sp =>
             sp.GetRequiredService<ReaderSessionService>());
 
-        services.AddSingleton<TextLayerService>();
+        services.AddSingleton<TextLayerService>(sp => new TextLayerService(
+            sp.GetRequiredService<IPdfRendererFactory>(),
+            sp.GetRequiredService<IReaderSessionService>()));
         services.AddSingleton<ITextLayerService>(sp => sp.GetRequiredService<TextLayerService>());
         services.AddSingleton<IInDocumentSearchService, InDocumentSearchService>();
 
+        // Phase 09 — Annotations, Bookmarks & Reading Memory.
+        services.AddSingleton<AnnotationReadModel>();
+        services.AddSingleton<IAnnotationReadModel>(sp => sp.GetRequiredService<AnnotationReadModel>());
+        services.AddSingleton<IAnnotationEventPublisher>(sp => sp.GetRequiredService<AnnotationReadModel>());
+
+        services.AddSingleton<AnnotationService>(sp => new AnnotationService(
+            sp.GetRequiredService<IAnnotationV2Repository>(),
+            sp.GetRequiredService<IAnnotationEventPublisher>()));
+        services.AddSingleton<IAnnotationService>(sp => sp.GetRequiredService<AnnotationService>());
+
+        services.AddSingleton<BookmarkService>(sp => new BookmarkService(
+            sp.GetRequiredService<IBookmarkRepository>(),
+            sp.GetRequiredService<IAnnotationEventPublisher>()));
+        services.AddSingleton<IBookmarkService>(sp => sp.GetRequiredService<BookmarkService>());
+
+        services.AddSingleton<IAnnotationLayerService>(sp => new AnnotationLayerService(
+            sp.GetRequiredService<IAnnotationLayerRepository>(),
+            sp.GetRequiredService<IAnnotationEventPublisher>()));
+
+        services.AddSingleton<ICitationService>(sp => new CitationService(
+            sp.GetRequiredService<ICatalogueReadModel>(),
+            sp.GetRequiredService<ISidecarService>(),
+            sp.GetRequiredService<ILocalizationService>()));
+
+        services.AddSingleton<IReadingMemoryService, ReadingMemoryService>();
+
         // Bounded-context registrations (Search, AI,
-        // Bookshelf, Settings & Security, Packaging) are added here in Phases 09+.
+        // Bookshelf, Settings & Security, Packaging) are added here in Phases 10+.
         return services;
     }
 }

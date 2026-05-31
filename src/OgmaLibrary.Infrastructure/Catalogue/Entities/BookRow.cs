@@ -62,6 +62,9 @@ public sealed class BookRow
     /// <summary>Navigation: reading progress for this book.</summary>
     public ReadingProgressRow? ReadingProgress { get; set; }
 
+    /// <summary>Navigation: structured reading-memory journal for this book.</summary>
+    public ReadingMemoryRow? ReadingMemory { get; set; }
+
     /// <summary>Navigation: bookmarks for this book.</summary>
     public List<BookmarkRow> Bookmarks { get; set; } = [];
 

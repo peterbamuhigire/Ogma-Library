@@ -10,6 +10,9 @@ public interface IReaderSessionService
     /// <summary>The currently active session, or <see langword="null"/> when no book is open.</summary>
     ReaderSession? CurrentSession { get; }
 
+    /// <summary>The renderer for the currently open session, or <see langword="null"/> when no book is open.</summary>
+    IPdfRenderer? CurrentRenderer { get; }
+
     /// <summary>
     /// Opens a PDF document for the specified book, restoring the last saved page and
     /// scroll offset (FR-READ-001). If no progress record exists the document opens
@@ -56,6 +59,7 @@ public interface IReaderSessionService
 /// <param name="ZoomMode">The active zoom mode.</param>
 /// <param name="ZoomPercent">The effective zoom percentage (used when mode is Fixed).</param>
 /// <param name="DisplayMode">The active page display mode.</param>
+/// <param name="PageRotationDegrees">The current page rotation in PDF-standard degrees (0, 90, 180, 270).</param>
 public sealed record ReaderSession(
     string BookId,
     string FilePath,
@@ -64,16 +68,26 @@ public sealed record ReaderSession(
     double ScrollOffset,
     ZoomMode ZoomMode,
     double ZoomPercent,
-    DisplayMode DisplayMode)
+    DisplayMode DisplayMode,
+    int PageRotationDegrees = 0)
 {
     /// <summary>
     /// Returns a copy with the page index updated.
     /// </summary>
     /// <param name="pageIndex">The new page index.</param>
     /// <param name="scrollOffset">The new scroll offset.</param>
+    /// <param name="pageRotationDegrees">The new page rotation, or <see langword="null"/> to keep the current value.</param>
     /// <returns>Updated session record.</returns>
-    public ReaderSession WithPage(int pageIndex, double scrollOffset = 0.0) =>
-        this with { CurrentPageIndex = pageIndex, ScrollOffset = scrollOffset };
+    public ReaderSession WithPage(
+        int pageIndex,
+        double scrollOffset = 0.0,
+        int? pageRotationDegrees = null) =>
+        this with
+        {
+            CurrentPageIndex = pageIndex,
+            ScrollOffset = scrollOffset,
+            PageRotationDegrees = pageRotationDegrees ?? PageRotationDegrees,
+        };
 
     /// <summary>Returns a copy with the zoom mode and percent updated.</summary>
     /// <param name="mode">The new zoom mode.</param>

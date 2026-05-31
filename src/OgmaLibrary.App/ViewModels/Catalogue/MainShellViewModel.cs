@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Platform.Storage;
+using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
@@ -65,6 +66,7 @@ public sealed class MainShellViewModel :
     /// <param name="catalogue">The catalogue view model.</param>
     /// <param name="bookDetail">The book-detail view model.</param>
     /// <param name="shelfSidebar">The shelf sidebar view model.</param>
+    /// <param name="reader">The reader view model.</param>
     /// <param name="settingsService">The library settings service.</param>
     /// <param name="orchestrator">The ingestion orchestrator.</param>
     /// <param name="scanProgress">The scan progress service.</param>
@@ -73,6 +75,7 @@ public sealed class MainShellViewModel :
         CatalogueViewModel catalogue,
         BookDetailViewModel bookDetail,
         ShelfSidebarViewModel shelfSidebar,
+        ReaderViewModel? reader = null,
         ILibrarySettingsService? settingsService = null,
         IIngestionOrchestrator? orchestrator = null,
         IScanProgressService? scanProgress = null)
@@ -86,6 +89,7 @@ public sealed class MainShellViewModel :
         Catalogue = catalogue;
         BookDetail = bookDetail;
         ShelfSidebar = shelfSidebar;
+        Reader = reader;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
@@ -111,6 +115,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>The shelf sidebar view model.</summary>
     public ShelfSidebarViewModel ShelfSidebar { get; }
+
+    /// <summary>The reader surface view model.</summary>
+    public ReaderViewModel? Reader { get; }
 
     // ── Layout state ──────────────────────────────────────────────────────────
 
@@ -277,19 +284,22 @@ public sealed class MainShellViewModel :
     }
 
     /// <inheritdoc />
-    public Task OpenReaderAsync(string bookId, int? pageHint = null, CancellationToken cancellationToken = default)
+    public async Task OpenReaderAsync(string bookId, int? pageHint = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        // Phase 08: navigate to the reader view.
+        if (Reader is not null)
+        {
+            await Reader.OpenAsync(bookId, pageHint, cancellationToken).ConfigureAwait(false);
+        }
+
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             ActiveView = ShellView.Reader;
             ReaderPlaceholderMessage = null;
+            BookDetail.IsVisible = false;
             OnPropertyChanged(nameof(IsReaderActive));
         });
-
-        return Task.CompletedTask;
     }
 
     // ── Scan / folder actions ─────────────────────────────────────────────────

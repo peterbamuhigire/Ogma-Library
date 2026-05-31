@@ -29,6 +29,9 @@ public enum SidecarClass
 
     /// <summary>Export bundle archives.</summary>
     Export = 7,
+
+    /// <summary>Plain-text citation exports.</summary>
+    CitationExports = 8,
 }
 
 /// <summary>

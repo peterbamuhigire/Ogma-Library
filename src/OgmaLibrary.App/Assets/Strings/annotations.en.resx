@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Annotation.Highlight.Create" xml:space="preserve"><value>Highlight</value></data>
+  <data name="Annotation.Highlight.Color" xml:space="preserve"><value>Choose highlight color</value></data>
+  <data name="Annotation.Highlight.LayerColor" xml:space="preserve"><value>Layer color</value></data>
+  <data name="Annotation.Note.Create" xml:space="preserve"><value>Add note</value></data>
+  <data name="Annotation.Note.Anchor" xml:space="preserve"><value>Note</value></data>
+  <data name="Annotation.Note.Edit" xml:space="preserve"><value>Edit note</value></data>
+  <data name="Annotation.Note.Editor" xml:space="preserve"><value>Note</value></data>
+  <data name="Annotation.Note.Saved" xml:space="preserve"><value>Note saved</value></data>
+  <data name="Annotation.Delete" xml:space="preserve"><value>Delete annotation</value></data>
+  <data name="Annotation.Panel" xml:space="preserve"><value>Annotations</value></data>
+  <data name="Annotation.Saved" xml:space="preserve"><value>Annotation saved</value></data>
+  <data name="Annotation.Deleted" xml:space="preserve"><value>Annotation deleted</value></data>
+  <data name="Annotation.SelectionQuoteFormat" xml:space="preserve"><value>Selection on page {0}</value></data>
+  <data name="Annotation.SampleQuoteFormat" xml:space="preserve"><value>Highlight on page {0}</value></data>
+  <data name="Annotation.SampleNoteFormat" xml:space="preserve"><value>Note on page {0}</value></data>
+  <data name="Annotation.AccessibleLabelWithLayerFormat" xml:space="preserve"><value>{0} - {1} - {2}</value></data>
+  <data name="Annotation.AccessibleLabelWithoutLayerFormat" xml:space="preserve"><value>{0} - {1}</value></data>
+  <data name="Annotation.Delete.Confirm" xml:space="preserve"><value>Delete</value></data>
+  <data name="Annotation.Delete.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Annotation.Delete.Confirmation" xml:space="preserve"><value>Delete this {0}?</value></data>
+  <data name="Bookmark.Add" xml:space="preserve"><value>Add bookmark</value></data>
+  <data name="Bookmark.Remove" xml:space="preserve"><value>Remove bookmark</value></data>
+  <data name="Bookmark.Panel" xml:space="preserve"><value>Bookmarks</value></data>
+  <data name="Bookmark.Item" xml:space="preserve"><value>Bookmark</value></data>
+  <data name="Bookmark.Rename" xml:space="preserve"><value>Rename bookmark</value></data>
+  <data name="Bookmark.Renamed" xml:space="preserve"><value>Bookmark renamed</value></data>
+  <data name="Bookmark.Saved" xml:space="preserve"><value>Bookmark saved</value></data>
+  <data name="Bookmark.Removed" xml:space="preserve"><value>Bookmark removed</value></data>
+  <data name="Bookmark.DefaultLabelFormat" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Bookmark.Panel.AccessibleFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="Layer.Panel" xml:space="preserve"><value>Annotation layers</value></data>
+  <data name="Layer.Filter" xml:space="preserve"><value>Show annotations from</value></data>
+  <data name="Layer.Filter.AllVisible" xml:space="preserve"><value>All visible layers</value></data>
+  <data name="Layer.Add" xml:space="preserve"><value>New layer</value></data>
+  <data name="Layer.DefaultName" xml:space="preserve"><value>Key arguments</value></data>
+  <data name="Layer.DefaultNameFormat" xml:space="preserve"><value>Layer {0}</value></data>
+  <data name="Layer.Visible" xml:space="preserve"><value>Layer visible</value></data>
+  <data name="Layer.Hidden" xml:space="preserve"><value>Layer hidden</value></data>
+  <data name="Layer.Merge" xml:space="preserve"><value>Merge layer</value></data>
+  <data name="Layer.Delete" xml:space="preserve"><value>Delete layer</value></data>
+  <data name="Layer.Renamed" xml:space="preserve"><value>Layer renamed</value></data>
+  <data name="Layer.Deleted" xml:space="preserve"><value>Layer deleted</value></data>
+  <data name="Layer.Merged" xml:space="preserve"><value>Layer merged</value></data>
+  <data name="Layer.AtLeastOne" xml:space="preserve"><value>At least one layer is required</value></data>
+  <data name="Citation.Capture" xml:space="preserve"><value>Capture citation</value></data>
+  <data name="Citation.Copy" xml:space="preserve"><value>Copy citation</value></data>
+  <data name="Citation.Export" xml:space="preserve"><value>Export citation</value></data>
+  <data name="Citation.Copied" xml:space="preserve"><value>Citation copied to clipboard</value></data>
+  <data name="Citation.Exported" xml:space="preserve"><value>Citation exported</value></data>
+  <data name="Citation.NoSelection" xml:space="preserve"><value>Select text before capturing a citation</value></data>
+  <data name="Citation.PageFormat" xml:space="preserve"><value>p.{0}</value></data>
+  <data name="Citation.UnknownTitle" xml:space="preserve"><value>Unknown title</value></data>
+  <data name="Citation.UnknownAuthor" xml:space="preserve"><value>Unknown author</value></data>
+  <data name="ReadingMemory.Open" xml:space="preserve"><value>Reading memory</value></data>
+  <data name="ReadingMemory.Disposition" xml:space="preserve"><value>Disposition</value></data>
+  <data name="ReadingMemory.OpenedBecause" xml:space="preserve"><value>Why I opened this</value></data>
+  <data name="ReadingMemory.KeyInsight" xml:space="preserve"><value>Key insight</value></data>
+  <data name="ReadingMemory.OpenQuestions" xml:space="preserve"><value>Open questions</value></data>
+  <data name="ReadingMemory.Saved" xml:space="preserve"><value>Reading memory saved</value></data>
+  <data name="ReadingMemory.Save" xml:space="preserve"><value>Save memory</value></data>
+  <data name="ReadingMemory.InvalidDisposition" xml:space="preserve"><value>Disposition must be a number from 1 to 5</value></data>
+  <data name="Icon.ic_annotation_highlight.Label" xml:space="preserve"><value>Highlight</value></data>
+  <data name="Icon.ic_annotation_highlight_color.Label" xml:space="preserve"><value>Choose highlight color</value></data>
+  <data name="Icon.ic_annotation_note.Label" xml:space="preserve"><value>Add note</value></data>
+  <data name="Icon.ic_annotation_note_anchor.Label" xml:space="preserve"><value>Note</value></data>
+  <data name="Icon.ic_annotation_delete.Label" xml:space="preserve"><value>Delete annotation</value></data>
+  <data name="Icon.ic_annotation_panel.Label" xml:space="preserve"><value>Annotations</value></data>
+  <data name="Icon.ic_bookmark_add.Label" xml:space="preserve"><value>Add bookmark</value></data>
+  <data name="Icon.ic_bookmark_remove.Label" xml:space="preserve"><value>Remove bookmark</value></data>
+  <data name="Icon.ic_bookmark_panel.Label" xml:space="preserve"><value>Bookmarks</value></data>
+  <data name="Icon.ic_bookmark_item.Label" xml:space="preserve"><value>Bookmark</value></data>
+  <data name="Icon.ic_bookmark_rename.Label" xml:space="preserve"><value>Rename bookmark</value></data>
+  <data name="Icon.ic_layer_panel.Label" xml:space="preserve"><value>Annotation layers</value></data>
+  <data name="Icon.ic_layer_add.Label" xml:space="preserve"><value>New layer</value></data>
+  <data name="Icon.ic_layer_visible.Label" xml:space="preserve"><value>Layer visible</value></data>
+  <data name="Icon.ic_layer_hidden.Label" xml:space="preserve"><value>Layer hidden</value></data>
+  <data name="Icon.ic_layer_merge.Label" xml:space="preserve"><value>Merge layer</value></data>
+  <data name="Icon.ic_layer_delete.Label" xml:space="preserve"><value>Delete layer</value></data>
+  <data name="Icon.ic_citation_capture.Label" xml:space="preserve"><value>Capture citation</value></data>
+  <data name="Icon.ic_citation_copy.Label" xml:space="preserve"><value>Copy citation</value></data>
+  <data name="Icon.ic_citation_export.Label" xml:space="preserve"><value>Export citation</value></data>
+  <data name="Icon.ic_reading_memory.Label" xml:space="preserve"><value>Reading memory</value></data>
+  <data name="Icon.ic_reading_memory_disposition.Label" xml:space="preserve"><value>Disposition</value></data>
+</root>

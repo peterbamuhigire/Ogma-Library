@@ -156,6 +156,31 @@
                     </MultiBinding>
                   </TextBlock.Text>
                 </TextBlock>
+                <StackPanel Spacing="4" Margin="0,8,0,0">
+                  <TextBlock Text="{Binding ReadingMemorySummaryLabel}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                    <TextBlock.Text>
+                      <MultiBinding StringFormat="{}{0}: {1}">
+                        <Binding Path="ReadingMemoryDispositionLabel" />
+                        <Binding Path="ReadingMemoryDispositionDisplay" />
+                      </MultiBinding>
+                    </TextBlock.Text>
+                  </TextBlock>
+                  <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                    <TextBlock.Text>
+                      <MultiBinding StringFormat="{}{0}: {1}">
+                        <Binding Path="ReadingMemoryKeyInsightLabel" />
+                        <Binding Path="ReadingMemoryKeyInsightExcerpt" />
+                      </MultiBinding>
+                    </TextBlock.Text>
+                  </TextBlock>
+                </StackPanel>
               </StackPanel>
             </TabItem>
 

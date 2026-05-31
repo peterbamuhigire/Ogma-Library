@@ -15,7 +15,7 @@ All nine test layers applied to Annotations, Bookmarks & Reading Memory.
 | 5 — AI unit | No | N/A |
 | 6 — UI / component | Yes — overlay panel, layer sidebar, bookmark panel, citation card, memory journal | Avalonia headless |
 | 7 — 3D | No | N/A |
-| 8 — Performance | Yes — overlay overhead ≤ 10 ms; page-turn regression with 100 annotations | BenchmarkDotNet |
+| 8 — Performance | Yes — overlay overhead <= 10 ms; page-turn regression with 100 annotations | xUnit stopwatch gates |
 | 9 — Packaging | No | N/A |
 | Manual | Yes — screen-reader pass; highlight color accessibility | Documented below |
 
@@ -50,7 +50,8 @@ All nine test layers applied to Annotations, Bookmarks & Reading Memory.
 | `AnnotationRepository_TransactionAbort_LeavesNoRow` | Simulate exception in `SaveChangesAsync`; row absent |
 | `BookmarkRepository_Create_PersistsBeforeReturn` | Row present |
 | `BookmarkRepository_Delete_RemovesRow` | Row absent after `DeleteAsync` |
-| `AnnotationLayerRepository_DeleteLayer_OrphansMovedToDefault` | Annotations in deleted layer now have `LayerId = defaultLayerId` |
+| `AnnotationLayerService_Delete_MovesAnnotationsToDefaultLayer` | Annotations in deleted layer now have `LayerId = defaultLayerId` |
+| `AnnotationLayerService_Delete_IgnoresLayerFromDifferentBook` | Cross-book layer delete request leaves the other book's layer intact and emits no wrong-book event |
 | `ReadingMemoryRepository_Upsert_UpdatesExistingRow` | Second save updates, does not insert duplicate |
 
 ---
@@ -64,12 +65,14 @@ never a corrupt JSON region.
 
 | Test | Injected fault | Oracle |
 | --- | --- | --- |
-| `FaultInjection_AbnormalTermination_AnnotationSurvives` | Dispose `DbContext` after `SaveChangesAsync` but before observer notification; reopen | Annotation present in DB |
-| `FaultInjection_AbnormalTermination_BeforeSave_Absent` | Dispose `DbContext` before `SaveChangesAsync`; reopen | Annotation absent |
-| `FaultInjection_DiskFull_TransactionRolledBack` | Mock `IFileSystem` throws on WAL write; exception propagates to caller | No row inserted; catalogue consistent |
-| `FaultInjection_PartialRegionJSON_IsAbsent` | Mock serializer throws mid-serialization of `Regions`; transaction rolls back | `AnnotationBodies` row absent |
-| `FaultInjection_ConcurrentWrite_OneWins` | Two threads call `CreateAsync` simultaneously for the same page; both use `BeginTransactionAsync` | Both succeed (no unique constraint on position) or one retries; no deadlock |
-| `FaultInjection_BookmarkAbortBeforeSave` | Kill scope before `SaveChangesAsync` for bookmark | Bookmark absent on reload |
+| `FaultInjection_RepositoryFailure_DoesNotEmitAnnotationEvents` | Repository throws before persisted annotation is returned | Exception propagates; no read-model event is emitted |
+| `AnnotationRepository_InvalidBook_RollsBackAnnotationAndBody` | Invalid book FK makes the annotation transaction fail | `AnnotationsV2` row is absent; legacy `AnnotationBodies` row for the same ID is absent; the context recovers |
+| `FaultInjection_DiskFull_TransactionRolledBack` | Save interceptor throws an `IOException` while flushing the annotation transaction | No annotation row is committed; the same database accepts a later valid annotation |
+| `FaultInjection_PartialRegionJson_LoadsEmptyRegionsAndCanBeRepaired` | Corrupt persisted region JSON is encountered on reload | Regions load empty instead of crashing; subsequent update repairs JSON |
+| `FaultInjection_ConcurrentWrite_CompletesWithoutPartialRows` | Multiple concurrent annotation writes target the same book/page | All completed writes are full rows with bodies; no partial rows |
+| `FaultInjection_BookmarkAbortBeforeSave_LeavesNoRowAndRecovers` | Invalid bookmark write fails before save; next valid write follows | Failed bookmark absent; later bookmark persists |
+| `FaultInjection_BookmarkAfterSave_Reopen_Present` | Bookmark write completes and the database context is disposed before reopening | Bookmark is present after reopening the catalogue |
+| `FaultInjection_LastLayerDeleteFailure_DoesNotEmitProjectionEvent` | Layer delete fails at repository boundary | No layer-change event is emitted |
 
 ---
 
@@ -84,11 +87,16 @@ never a corrupt JSON region.
 | `Layer_Create_Rename_Delete_Merge` | World-class | Full lifecycle; row counts match expected after each step |
 | `Layer_AtLeastOneConstraint` | World-class | Delete attempt on sole remaining layer returns error |
 | `CitationCard_CaptureAndExport` | FR-READ-011 | Card title/author/page/selection match `simple-text` fixture metadata |
+| `CitationService_Export_UsesLocalizedFallbackStrings` | FR-READ-011, i18n | Citation sidecar export uses localized unknown title/author/page fallbacks |
 | `ReadingMemory_AutoSave_OnFocusOut` | World-class | Field edited; focus moved; wait 1.5 s; row updated in DB |
+| `Phase09_EndToEndRestartSmoke_PersistsReaderArtifacts` | Global DoD | Bookmark, layer rename, highlight, note, memory, and citation export survive a real SQLite reopen |
 
 ---
 
-## 6. Performance benchmarks
+## 6. Performance gates
+
+Current implementation uses deterministic xUnit stopwatch gates rather than
+BenchmarkDotNet, so the checks run in the normal local/CI test path.
 
 | Benchmark | Gate | Method |
 | --- | --- | --- |
@@ -102,12 +110,16 @@ never a corrupt JSON region.
 
 | Test | Tooling | Oracle |
 | --- | --- | --- |
-| `AnnotationOverlay_Selection_OpensContextMenu` | Avalonia headless | Mouse drag selects; context menu appears with "Highlight", "Add note", "Cite" |
-| `NotePopover_Escape_Dismisses` | Avalonia headless | Escape closes pop-over; no navigation |
-| `BookmarkPanel_KeyboardNavigable` | Avalonia headless | Tab enters panel; arrow keys move between items; Enter navigates |
-| `LayerSidebar_VisibilityToggle_HidesHighlights` | Avalonia headless | Toggle off → overlay redraws without that layer's highlights |
+| `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions` | Avalonia headless pointer + keyboard focus harness | Mouse drag selects; action controls expose "Highlight", "Add note", "Capture citation" and accept keyboard focus |
+| `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` | Avalonia headless | Escape closes note editor and does not change the active page |
+| `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` | Avalonia headless focus harness | Phase 09 toolbar, note editor, bookmark, layer, and reading-memory controls expose purpose-specific names and accept focus |
+| `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` | Avalonia headless | Bookmark list takes focus; ArrowDown selects a bookmark without navigating; Enter navigates |
+| `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` | Avalonia headless | Bookmark row context flyout exposes rename/delete; rename focuses inline editor; delete removes bookmark |
+| `ReaderViewModel_HidingLayer_FiltersAnnotationsAndOverlays` | Avalonia headless | Toggle off -> overlay redraws without that layer's highlights |
 | Screen-reader pass (manual) | VoiceOver / Narrator | "Highlight, layer Key arguments, page 3" announced on focus; bookmark list item labels announced |
-| Color accessibility (manual / automated) | axe-style | Highlight overlay ≥ 3:1 contrast against page background for each layer color; never color-only meaning |
+| `ReaderViewModel_AnnotationOverlayColors_MeetContrastGate` | Avalonia headless + WCAG contrast math | Rendered overlay display colors composite to ≥ 3:1 contrast against the white page surface |
+| `ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds` | Avalonia headless | Pseudolocale reader panels render and capture `reader-qps-ploc.png`; text bounds stay within parent controls |
+| Color accessibility (manual) | Reviewer checklist | Confirm contrast gate matches actual platform rendering; verify highlight meaning is not color-only |
 
 ---
 

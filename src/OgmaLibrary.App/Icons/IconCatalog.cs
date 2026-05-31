@@ -58,6 +58,30 @@ public static class IconCatalog
             ["ic_read_zoom_out"] = "reader/ic_read_zoom_out.svg",
             ["ic_read_fullscreen"] = "reader/ic_read_fullscreen.svg",
 
+            // Phase 09 — Annotations (reuse reader category)
+            ["ic_annotation_highlight"] = "reader/annotations/ic_annotation_highlight.svg",
+            ["ic_annotation_highlight_color"] = "reader/annotations/ic_annotation_highlight_color.svg",
+            ["ic_annotation_note"] = "reader/annotations/ic_annotation_note.svg",
+            ["ic_annotation_note_anchor"] = "reader/annotations/ic_annotation_note_anchor.svg",
+            ["ic_annotation_delete"] = "reader/annotations/ic_annotation_delete.svg",
+            ["ic_annotation_panel"] = "reader/annotations/ic_annotation_panel.svg",
+            ["ic_bookmark_add"] = "reader/annotations/ic_bookmark_add.svg",
+            ["ic_bookmark_remove"] = "reader/annotations/ic_bookmark_remove.svg",
+            ["ic_bookmark_panel"] = "reader/annotations/ic_bookmark_panel.svg",
+            ["ic_bookmark_item"] = "reader/annotations/ic_bookmark_item.svg",
+            ["ic_bookmark_rename"] = "reader/annotations/ic_bookmark_rename.svg",
+            ["ic_layer_panel"] = "reader/annotations/ic_layer_panel.svg",
+            ["ic_layer_add"] = "reader/annotations/ic_layer_add.svg",
+            ["ic_layer_visible"] = "reader/annotations/ic_layer_visible.svg",
+            ["ic_layer_hidden"] = "reader/annotations/ic_layer_hidden.svg",
+            ["ic_layer_merge"] = "reader/annotations/ic_layer_merge.svg",
+            ["ic_layer_delete"] = "reader/annotations/ic_layer_delete.svg",
+            ["ic_citation_capture"] = "reader/annotations/ic_citation_capture.svg",
+            ["ic_citation_copy"] = "reader/annotations/ic_citation_copy.svg",
+            ["ic_citation_export"] = "reader/annotations/ic_citation_export.svg",
+            ["ic_reading_memory"] = "reader/memory/ic_reading_memory.svg",
+            ["ic_reading_memory_disposition"] = "reader/memory/ic_reading_memory_disposition.svg",
+
             // Category: search
             ["ic_search_metadata"] = "search/ic_search_metadata.svg",
             ["ic_search_fulltext"] = "search/ic_search_fulltext.svg",
@@ -117,7 +141,7 @@ public static class IconCatalog
     }
 
     /// <summary>
-    /// Returns all 34 registered icon keys.
+    /// Returns all registered icon keys.
     /// </summary>
     public static IEnumerable<string> AllKeys => AssetPaths.Keys;
 }

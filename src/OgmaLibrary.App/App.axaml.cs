@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
-using OgmaLibrary.App.ViewModels;
+using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.Views;
 
 namespace OgmaLibrary.App;
@@ -28,7 +28,7 @@ public sealed class App : Avalonia.Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = _services.GetRequiredService<MainWindowViewModel>(),
+                DataContext = _services.GetRequiredService<MainShellViewModel>(),
             };
         }
 

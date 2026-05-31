@@ -1,0 +1,598 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Reader"
+             x:Class="OgmaLibrary.App.Views.Reader.ReaderView"
+             x:Name="Root"
+             x:DataType="vm:ReaderViewModel"
+             Focusable="True"
+             KeyDown="ReaderView_KeyDown">
+
+  <Grid RowDefinitions="Auto,*"
+        Background="{DynamicResource Brush.Surface.Parchment}">
+
+    <Border Grid.Row="0"
+            Padding="14,10"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding ReaderTitle}"
+                   FontSize="{DynamicResource Type.Size.Subtitle}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                   VerticalAlignment="Center" />
+
+        <TextBlock Grid.Column="1"
+                   Text="{Binding PageStatusText}"
+                   FontSize="{DynamicResource Type.Size.Body}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center" />
+
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+          <Button Padding="10,6"
+                  IsEnabled="{Binding CanGoPrevious}"
+                  AutomationProperties.Name="{Binding PageStatusText}"
+                  Click="PreviousButton_Click">
+            <TextBlock Text="&lt;" />
+          </Button>
+          <Button Padding="10,6"
+                  IsEnabled="{Binding CanGoNext}"
+                  AutomationProperties.Name="{Binding PageStatusText}"
+                  Click="NextButton_Click">
+            <TextBlock Text="&gt;" />
+          </Button>
+        </StackPanel>
+
+        <StackPanel Grid.Column="3"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+          <ItemsControl ItemsSource="{Binding HighlightColorOptions}"
+                        VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="4" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:HighlightColorOption">
+                <Button Padding="4"
+                        MinWidth="28"
+                        MinHeight="28"
+                        AutomationProperties.Name="{Binding Label}"
+                        ToolTip.Tip="{Binding Label}"
+                        Click="HighlightColorButton_Click">
+                  <Grid Width="16" Height="16">
+                    <Border CornerRadius="8"
+                            BorderBrush="{DynamicResource Brush.Surface.OnParchment}"
+                            BorderThickness="1"
+                            Background="{Binding Color}" />
+                    <TextBlock Text="{Binding SelectedMarker}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontWeight="Bold"
+                               FontSize="10"
+                               Foreground="White" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Padding="12,6"
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding CreateHighlightLabel}"
+                  Click="CreateHighlightButton_Click">
+            <TextBlock Text="{Binding CreateHighlightLabel}" />
+          </Button>
+          <Button Padding="12,6"
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding CreateNoteLabel}"
+                  Click="CreateNoteButton_Click">
+            <TextBlock Text="{Binding CreateNoteLabel}" />
+          </Button>
+          <Button Padding="12,6"
+                  Background="{DynamicResource Brush.Accent.Ink}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding AddBookmarkLabel}"
+                  Click="AddBookmarkButton_Click">
+            <TextBlock Text="{Binding AddBookmarkLabel}" />
+          </Button>
+          <Button Padding="12,6"
+                  AutomationProperties.Name="{Binding CaptureCitationLabel}"
+                  Click="CaptureCitationButton_Click">
+            <TextBlock Text="{Binding CaptureCitationLabel}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,320">
+      <Border x:Name="PageSurface"
+              Grid.Column="0"
+              Margin="20"
+              Width="{Binding PageSurfaceWidth}"
+              Height="{Binding PageSurfaceHeight}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}"
+              Background="White"
+              PointerPressed="PageSurface_PointerPressed"
+              PointerMoved="PageSurface_PointerMoved"
+              PointerReleased="PageSurface_PointerReleased">
+        <Grid RowDefinitions="*,Auto" ClipToBounds="True">
+          <TextBlock Grid.Row="0"
+                     Text="{Binding PageStatusText}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     FontSize="{DynamicResource Type.Size.Display}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+
+          <ItemsControl Grid.Row="0"
+                        ItemsSource="{Binding AnnotationOverlays}"
+                        Width="{Binding PageSurfaceWidth}"
+                        Height="{Binding PageSurfaceHeight}"
+                        IsHitTestVisible="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <Grid />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AnnotationOverlayItem">
+                <Grid>
+                  <Border Width="{Binding Width}"
+                          Height="{Binding Height}"
+                          Margin="{Binding Margin}"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top"
+                          Background="{Binding OverlayColor}"
+                          Opacity="0.8"
+                          CornerRadius="3"
+                          AutomationProperties.Name="{Binding AccessibleLabel}" />
+                  <Border Width="12"
+                          Height="12"
+                          Margin="{Binding NoteAnchorMargin}"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top"
+                          Background="{DynamicResource Brush.Accent.Ink}"
+                          BorderBrush="White"
+                          BorderThickness="2"
+                          CornerRadius="6"
+                          IsVisible="{Binding IsNote}"
+                          AutomationProperties.Name="{Binding AccessibleLabel}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <Border Grid.Row="0"
+                  Width="{Binding SelectionOverlay.Width}"
+                  Height="{Binding SelectionOverlay.Height}"
+                  Margin="{Binding SelectionOverlay.Margin}"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Top"
+                  BorderBrush="{DynamicResource Brush.Accent.Ink}"
+                  BorderThickness="1"
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Opacity="0.28"
+                  IsVisible="{Binding HasSelection}" />
+
+          <Border x:Name="SelectionActionMenu"
+                  Grid.Row="0"
+                  Margin="{Binding SelectionOverlay.ActionMargin}"
+                  Padding="6"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Top"
+                  Background="{DynamicResource Brush.Surface.Card}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsVisible="{Binding HasSelection}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Padding="8,4"
+                      AutomationProperties.Name="{Binding CreateHighlightLabel}"
+                      Click="SelectionHighlightButton_Click">
+                <TextBlock Text="{Binding CreateHighlightLabel}" />
+              </Button>
+              <Button Padding="8,4"
+                      AutomationProperties.Name="{Binding CreateNoteLabel}"
+                      Click="SelectionNoteButton_Click">
+                <TextBlock Text="{Binding CreateNoteLabel}" />
+              </Button>
+              <Button Padding="8,4"
+                      AutomationProperties.Name="{Binding CaptureCitationLabel}"
+                      Click="SelectionCitationButton_Click">
+                <TextBlock Text="{Binding CaptureCitationLabel}" />
+              </Button>
+            </StackPanel>
+          </Border>
+
+          <TextBlock Grid.Row="1"
+                     Text="{Binding StatusMessage}"
+                     IsVisible="{Binding HasStatusMessage}"
+                     Margin="16"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Accent.Plum}" />
+
+          <Border Grid.RowSpan="2"
+                  Width="420"
+                  MaxWidth="520"
+                  Padding="18"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource Brush.Surface.Card}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsVisible="{Binding HasCitationCard}">
+            <StackPanel Spacing="10">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="{Binding CaptureCitationLabel}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <TextBlock Text="{Binding CitationCard.PageText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Padding="8,4"
+                        AutomationProperties.Name="{Binding CloseCitationLabel}"
+                        Click="CloseCitationButton_Click">
+                  <TextBlock Text="x" />
+                </Button>
+              </Grid>
+
+              <TextBlock Text="{Binding CitationCard.Title}"
+                         TextWrapping="Wrap"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock Text="{Binding CitationCard.Author}"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <Border Padding="10"
+                      Background="{DynamicResource Brush.Surface.Parchment}"
+                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.S}">
+                <TextBlock Text="{Binding CitationCard.SelectedText}"
+                           TextWrapping="Wrap"
+                           MaxHeight="120"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              </Border>
+
+              <StackPanel Orientation="Horizontal"
+                          Spacing="8"
+                          HorizontalAlignment="Right">
+                <Button Padding="10,6"
+                        AutomationProperties.Name="{Binding CopyCitationLabel}"
+                        Click="CopyCitationButton_Click">
+                  <TextBlock Text="{Binding CopyCitationLabel}" />
+                </Button>
+                <Button Padding="10,6"
+                        Background="{DynamicResource Brush.Accent.Ink}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.Name="{Binding ExportCitationLabel}"
+                        Click="ExportCitationButton_Click">
+                  <TextBlock Text="{Binding ExportCitationLabel}" />
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1,0,0,0"
+              Background="{DynamicResource Brush.Surface.Card}">
+        <TabControl SelectedIndex="{Binding SelectedSidebarTabIndex, Mode=TwoWay}">
+          <TabItem Header="{Binding AnnotationPanelLabel}">
+            <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+              <TextBlock Grid.Row="0"
+                         Text="{Binding AnnotationPanelLabel}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <ListBox Grid.Row="1"
+                       Margin="0,10,0,0"
+                       ItemsSource="{Binding Annotations}"
+                       SelectedItem="{Binding SelectedAnnotation, Mode=TwoWay}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:AnnotationListItem">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,5">
+                      <Grid.ContextFlyout>
+                        <MenuFlyout>
+                          <MenuItem Header="{Binding #Root.DataContext.DeleteAnnotationLabel}"
+                                    CommandParameter="{Binding}"
+                                    Click="DeleteAnnotationMenuItem_Click" />
+                        </MenuFlyout>
+                      </Grid.ContextFlyout>
+                      <Border Grid.Column="0"
+                              Width="14"
+                              Height="14"
+                              CornerRadius="3"
+                              Background="{Binding Color}" />
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding Kind}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                        <TextBlock Text="{Binding Preview}"
+                                   TextTrimming="CharacterEllipsis"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                      </StackPanel>
+                      <Button Grid.Column="2"
+                              Padding="8,4"
+                              IsVisible="{Binding IsNote}"
+                              AutomationProperties.Name="{Binding #Root.DataContext.EditNoteLabel}"
+                              ToolTip.Tip="{Binding #Root.DataContext.EditNoteLabel}"
+                              Click="EditNoteButton_Click">
+                        <TextBlock Text="..." />
+                      </Button>
+                      <Button Grid.Column="3"
+                              Padding="8,4"
+                              AutomationProperties.Name="{Binding #Root.DataContext.DeleteAnnotationLabel}"
+                              ToolTip.Tip="{Binding #Root.DataContext.DeleteAnnotationLabel}"
+                              Click="DeleteAnnotationButton_Click">
+                        <TextBlock Text="x" />
+                      </Button>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Border Grid.Row="2"
+                      Margin="0,10,0,0"
+                      Padding="10"
+                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      IsVisible="{Binding IsNoteEditorOpen}">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{Binding NoteEditorLabel}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <TextBox x:Name="NoteEditorTextBox"
+                           Text="{Binding EditingNoteText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           AcceptsReturn="True"
+                           MinHeight="82"
+                           TextWrapping="Wrap"
+                           AutomationProperties.Name="{Binding NoteEditorLabel}"
+                           LostFocus="NoteEditor_LostFocus"
+                           KeyDown="NoteEditor_KeyDown" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Row="2"
+                      Margin="0,10,0,0"
+                      Padding="10"
+                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      IsVisible="{Binding HasPendingDeleteAnnotation}">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="{Binding DeleteAnnotationConfirmationText}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button Padding="8,4"
+                            AutomationProperties.Name="{Binding CancelDeleteAnnotationLabel}"
+                            Click="CancelDeleteAnnotationButton_Click">
+                      <TextBlock Text="{Binding CancelDeleteAnnotationLabel}" />
+                    </Button>
+                    <Button Padding="8,4"
+                            Background="{DynamicResource Brush.Accent.Clay}"
+                            Foreground="White"
+                            CornerRadius="{DynamicResource Radius.S}"
+                            AutomationProperties.Name="{Binding ConfirmDeleteAnnotationLabel}"
+                            Click="ConfirmDeleteAnnotationButton_Click">
+                      <TextBlock Text="{Binding ConfirmDeleteAnnotationLabel}" />
+                    </Button>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </TabItem>
+
+          <TabItem Header="{Binding BookmarkPanelLabel}">
+            <Grid RowDefinitions="Auto,*" Margin="12">
+              <TextBlock Grid.Row="0"
+                         Text="{Binding BookmarkPanelLabel}"
+                         AutomationProperties.Name="{Binding BookmarkPanelAccessibleLabel}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+               <ListBox Grid.Row="1"
+                        Margin="0,10,0,0"
+                        Focusable="True"
+                        ItemsSource="{Binding Bookmarks}"
+                        AutomationProperties.Name="{Binding BookmarkPanelAccessibleLabel}"
+                        KeyDown="Bookmarks_KeyDown">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:BookmarkListItem">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,4">
+                      <Grid.ContextFlyout>
+                        <MenuFlyout>
+                          <MenuItem Header="{Binding #Root.DataContext.RenameBookmarkLabel}"
+                                    CommandParameter="{Binding}"
+                                    Tag="{Binding}"
+                                    Click="RenameBookmarkMenuItem_Click" />
+                          <MenuItem Header="{Binding #Root.DataContext.RemoveBookmarkLabel}"
+                                    CommandParameter="{Binding}"
+                                    Tag="{Binding}"
+                                    Click="DeleteBookmarkMenuItem_Click" />
+                        </MenuFlyout>
+                      </Grid.ContextFlyout>
+                      <Button Grid.Column="0"
+                              Padding="8,4"
+                              AutomationProperties.Name="{Binding Label}"
+                              Click="BookmarkNavigateButton_Click">
+                        <TextBlock Text="{Binding PageNumber}" />
+                      </Button>
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Label, Mode=TwoWay}"
+                               MinHeight="30"
+                               VerticalContentAlignment="Center"
+                               AutomationProperties.Name="{Binding #Root.DataContext.RenameBookmarkLabel}"
+                               LostFocus="BookmarkLabel_LostFocus" />
+                      <Button Grid.Column="2"
+                              Padding="8,4"
+                              AutomationProperties.Name="{Binding #Root.DataContext.RemoveBookmarkLabel}"
+                              Click="DeleteBookmarkButton_Click">
+                        <TextBlock Text="x" />
+                      </Button>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+
+          <TabItem Header="{Binding LayerPanelLabel}">
+            <Grid RowDefinitions="Auto,Auto,*" Margin="12">
+              <Button Grid.Row="0"
+                      HorizontalAlignment="Left"
+                      Padding="10,6"
+                      AutomationProperties.Name="{Binding AddLayerLabel}"
+                      Click="AddLayerButton_Click">
+                <TextBlock Text="{Binding AddLayerLabel}" />
+              </Button>
+              <StackPanel Grid.Row="1"
+                          Margin="0,10,0,0"
+                          Spacing="4">
+                <TextBlock Text="{Binding LayerFilterLabel}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <ComboBox ItemsSource="{Binding LayerFilterOptions}"
+                          SelectedItem="{Binding SelectedLayerFilter, Mode=OneWay}"
+                          MinHeight="32"
+                          HorizontalAlignment="Stretch"
+                          SelectionChanged="LayerFilter_SelectionChanged"
+                          AutomationProperties.Name="{Binding LayerFilterLabel}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LayerFilterOption">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                        <Border Grid.Column="0"
+                                Width="12"
+                                Height="12"
+                                CornerRadius="6"
+                                Background="{Binding Color}"
+                                IsVisible="{Binding !IsAllVisible}" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Name}"
+                                   TextTrimming="CharacterEllipsis" />
+                      </Grid>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+              <ItemsControl Grid.Row="2"
+                            Margin="0,10,0,0"
+                            ItemsSource="{Binding Layers}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:LayerListItem">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,5">
+                      <Border Grid.Column="0"
+                              Width="14"
+                              Height="14"
+                              CornerRadius="7"
+                              Background="{Binding Color}" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Name, Mode=TwoWay}"
+                               MinHeight="30"
+                               VerticalContentAlignment="Center"
+                               AutomationProperties.Name="{Binding Name}"
+                               LostFocus="LayerName_LostFocus" />
+                      <CheckBox Grid.Column="2"
+                                IsChecked="{Binding IsVisible, Mode=OneWay}"
+                                AutomationProperties.Name="{Binding #Root.DataContext.LayerVisibilityLabel}"
+                                Click="LayerVisibility_Click" />
+                      <Button Grid.Column="3"
+                              Padding="8,4"
+                              AutomationProperties.Name="{Binding #Root.DataContext.MergeLayerLabel}"
+                              ToolTip.Tip="{Binding #Root.DataContext.MergeLayerLabel}"
+                              Click="MergeLayerButton_Click">
+                        <TextBlock Text=">" />
+                      </Button>
+                      <Button Grid.Column="4"
+                              Padding="8,4"
+                              AutomationProperties.Name="{Binding #Root.DataContext.DeleteLayerLabel}"
+                              Click="DeleteLayerButton_Click">
+                        <TextBlock Text="x" />
+                      </Button>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+          </TabItem>
+
+          <TabItem Header="{Binding ReadingMemoryLabel}">
+            <ScrollViewer Margin="12">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding OpenedBecauseLabel}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding OpenedBecause, Mode=TwoWay}"
+                         AcceptsReturn="True"
+                         MinHeight="58"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{Binding OpenedBecauseLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+
+                <TextBlock Text="{Binding KeyInsightLabel}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding KeyInsight, Mode=TwoWay}"
+                         AcceptsReturn="True"
+                         MinHeight="58"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{Binding KeyInsightLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+
+                <TextBlock Text="{Binding OpenQuestionsLabel}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding OpenQuestions, Mode=TwoWay}"
+                         AcceptsReturn="True"
+                         MinHeight="58"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{Binding OpenQuestionsLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+
+                <TextBlock Text="{Binding DispositionLabel}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding DispositionText, Mode=TwoWay}"
+                         MaxLength="1"
+                         Width="56"
+                         HorizontalAlignment="Left"
+                         AutomationProperties.Name="{Binding DispositionLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+
+                <Button Padding="12,8"
+                        HorizontalAlignment="Left"
+                        Background="{DynamicResource Brush.Accent.Ink}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.Name="{Binding SaveReadingMemoryLabel}"
+                        Click="SaveMemoryButton_Click">
+                  <TextBlock Text="{Binding SaveReadingMemoryLabel}" />
+                </Button>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

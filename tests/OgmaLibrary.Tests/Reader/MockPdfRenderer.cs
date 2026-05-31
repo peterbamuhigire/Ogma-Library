@@ -26,6 +26,10 @@ public sealed class MockPdfRenderer : IPdfRenderer
     public IReadOnlyDictionary<int, string[]> PageWords { get; set; } =
         new Dictionary<int, string[]>();
 
+    /// <summary>PDF-standard page rotations by zero-based page index.</summary>
+    public IReadOnlyDictionary<int, int> PageRotations { get; set; } =
+        new Dictionary<int, int>();
+
     /// <summary>
     /// Creates a mock renderer with the given page count.
     /// </summary>
@@ -53,6 +57,15 @@ public sealed class MockPdfRenderer : IPdfRenderer
         }
 
         return new RenderResult(OnePxPng, 595.0, 842.0, pageIndex);
+    }
+
+    /// <inheritdoc />
+    public int GetPageRotationDegrees(int pageIndex)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        return PageRotations.TryGetValue(pageIndex, out int rotation)
+            ? ((rotation % 360) + 360) % 360
+            : 0;
     }
 
     /// <inheritdoc />

@@ -11,6 +11,7 @@ namespace OgmaLibrary.Reader.TextLayer;
 public sealed class TextLayerService : ITextLayerService
 {
     private readonly IPdfRendererFactory _rendererFactory;
+    private readonly IReaderSessionService? _session;
 
     // In-memory cache: bookId → pageIndex → TextLayer
     private readonly Dictionary<string, Dictionary<int, AppTextLayer>> _cache = new();
@@ -20,10 +21,12 @@ public sealed class TextLayerService : ITextLayerService
     /// Initializes a new instance of <see cref="TextLayerService"/>.
     /// </summary>
     /// <param name="rendererFactory">The renderer factory for opening PDFs.</param>
-    public TextLayerService(IPdfRendererFactory rendererFactory)
+    /// <param name="session">Optional active reader session for direct extraction from the open renderer.</param>
+    public TextLayerService(IPdfRendererFactory rendererFactory, IReaderSessionService? session = null)
     {
         ArgumentNullException.ThrowIfNull(rendererFactory);
         _rendererFactory = rendererFactory;
+        _session = session;
     }
 
     /// <inheritdoc />
@@ -57,8 +60,12 @@ public sealed class TextLayerService : ITextLayerService
                 }
             }
 
-            // Without a direct renderer reference we return an empty layer.
-            // The ExtractWithRendererAsync overload is used when the session is active.
+            if (_session?.CurrentSession?.BookId == bookId &&
+                _session.CurrentRenderer is { } renderer)
+            {
+                return renderer.ExtractTextLayer(pageIndex);
+            }
+
             return new AppTextLayer(pageIndex, [], ExtractionQuality.Empty);
         }, ct).ConfigureAwait(false);
 

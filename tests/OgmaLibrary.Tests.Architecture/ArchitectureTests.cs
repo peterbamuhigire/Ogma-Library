@@ -3,6 +3,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Navigation;
 using OgmaLibrary.Workers;
 using Xunit;
@@ -74,6 +75,8 @@ public sealed class ArchitectureTests
             .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
         var application = Types.InAssembly(typeof(IBenchmarkContext).Assembly)
             .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
+        var reader = Types.InAssembly(typeof(NavigationHistory).Assembly)
+            .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
 
         // Verify that Infrastructure DOES contain types that use EF Core (sanity check).
         // CatalogueDbContext itself must depend on EF Core.
@@ -83,6 +86,7 @@ public sealed class ArchitectureTests
 
         Assert.True(domain.IsSuccessful, Describe(domain));
         Assert.True(application.IsSuccessful, Describe(application));
+        Assert.True(reader.IsSuccessful, Describe(reader));
         Assert.True(dbContextDependsOnEf.IsSuccessful, "CatalogueDbContext should depend on EF Core: " + Describe(dbContextDependsOnEf));
     }
 
@@ -186,6 +190,93 @@ public sealed class ArchitectureTests
             .GetResult();
 
         Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// Phase 09 annotation services are part of Reader and must remain independent
+    /// from future Search infrastructure.
+    /// </summary>
+    [Fact]
+    public void Architecture_Annotations_DoesNotDependOnSearch()
+    {
+        var result = Types.InAssembly(typeof(AnnotationService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Reader.Annotations")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Search")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// Phase 09 annotation services must not depend on AI; the AI advisor reads
+    /// annotations later through contracts.
+    /// </summary>
+    [Fact]
+    public void Architecture_Annotations_DoesNotDependOnAI()
+    {
+        var result = Types.InAssembly(typeof(AnnotationService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Reader.Annotations")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.AI")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// Phase 09 annotation services access catalogue state only through
+    /// Application/Domain contracts, never directly through EF or Infrastructure.
+    /// </summary>
+    [Fact]
+    public void Architecture_Annotations_AccessesCatalogueOnlyViaContracts()
+    {
+        var annotations = Types.InAssembly(typeof(AnnotationService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Reader.Annotations");
+
+        var infrastructure = annotations
+            .ShouldNot()
+            .HaveDependencyOn(Infrastructure)
+            .GetResult();
+        var efCore = annotations
+            .ShouldNot()
+            .HaveDependencyOn(EntityFrameworkCore)
+            .GetResult();
+
+        Assert.True(infrastructure.IsSuccessful, Describe(infrastructure));
+        Assert.True(efCore.IsSuccessful, Describe(efCore));
+    }
+
+    /// <summary>
+    /// Phase 09 annotations are DB-first and must never use the Phase 07 PDF
+    /// metadata write-back service or PDF mutation libraries.
+    /// </summary>
+    [Fact]
+    public void Architecture_Phase09Annotations_DoNotDependOnPdfWriteBack()
+    {
+        var annotations = Types.InAssembly(typeof(AnnotationService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Reader.Annotations");
+
+        var applicationMetadata = annotations
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Application.Metadata")
+            .GetResult();
+        var infrastructureMetadata = annotations
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.Metadata")
+            .GetResult();
+        var pdfSharp = annotations
+            .ShouldNot()
+            .HaveDependencyOn("PdfSharp")
+            .GetResult();
+
+        Assert.True(applicationMetadata.IsSuccessful, Describe(applicationMetadata));
+        Assert.True(infrastructureMetadata.IsSuccessful, Describe(infrastructureMetadata));
+        Assert.True(pdfSharp.IsSuccessful, Describe(pdfSharp));
     }
 
     private static string Describe(TestResult result) =>

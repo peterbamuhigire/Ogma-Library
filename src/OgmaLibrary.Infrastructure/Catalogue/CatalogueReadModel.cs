@@ -114,6 +114,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .Select(ba => ba.Author!.NormalizedName)
                     .ToList(),
                 Progress = b.ReadingProgress,
+                Memory = b.ReadingMemory,
                 AnnotationCount = b.Annotations.Count,
                 MetadataFields = b.MetadataFields
                     .Select(f => new { f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden })
@@ -140,6 +141,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             .Select(f => new MetadataFieldProjection(f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden))
             .ToList();
 
+        ReadingMemorySummaryProjection? memory = result.Memory is not null
+            ? new ReadingMemorySummaryProjection(
+                Disposition: result.Memory.Disposition,
+                KeyInsight: result.Memory.KeyInsight,
+                UpdatedAtUtc: result.Memory.UpdatedAtUtc)
+            : null;
+
         return new BookDetailProjection(
             BookId: result.BookId,
             Title: result.Title,
@@ -155,7 +163,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             SizeBytes: result.SizeBytes,
             ReadingProgress: progress,
             Annotations: result.AnnotationCount,
-            MetadataFields: fields);
+            MetadataFields: fields,
+            ReadingMemory: memory);
     }
 
     /// <inheritdoc />

@@ -27,6 +27,13 @@ public interface IPdfRenderer : IDisposable
     Task<RenderResult> RenderPageAsync(int pageIndex, RenderRequest request, CancellationToken ct);
 
     /// <summary>
+    /// Returns the PDF-standard clockwise rotation for a page: 0, 90, 180, or 270 degrees.
+    /// </summary>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <returns>The page rotation in degrees.</returns>
+    int GetPageRotationDegrees(int pageIndex);
+
+    /// <summary>
     /// Synchronously extracts the text layer for a single page using PdfPig.
     /// Returns an empty layer (with <see cref="ExtractionQuality.Scanned"/>) for
     /// pages that contain no extractable text.

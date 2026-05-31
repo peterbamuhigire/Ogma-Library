@@ -11,12 +11,12 @@ write pattern (transaction + WAL + confirm-after-save); R1 fault-injection basel
 
 | Task ID | Description | Est. | Deps | Satisfies |
 | --- | --- | --- | --- | --- |
-| P09-WP1-T1 | Review Phase 04 schema; add missing columns/tables: `AnnotationLayers` (`Id, BookId, Name, Color, IsVisible, SortOrder`); `Annotations` (`Id, BookId, LayerId, CreatedAtUtc`); `AnnotationBodies` (`Id, AnnotationId, Type [Highlight/Note], TextContent, Regions JSON`); `Bookmarks` (`Id, BookId, PageIndex, Label, CreatedAtUtc`); `ReadingMemory` (`Id, BookId, OpenedBecause, KeyInsight, OpenQuestions, Disposition, CreatedAtUtc, UpdatedAtUtc`) | 3 h | Phase 04 | FR-READ-007, FR-READ-008, FR-READ-011 |
-| P09-WP1-T2 | EF Core idempotent migration for Phase 09 tables; cascade-delete FK for `AnnotationBodies → Annotations`; cascade-delete for `Annotations → AnnotationLayers` (set-null on layer delete, not cascade) | 2 h | P09-WP1-T1 | Phase 04 migration standard |
+| P09-WP1-T1 | Review Phase 04 schema; add missing Phase 09 tables/columns: `AnnotationLayers` (`LayerId, BookId, Name, Color, IsVisible, SortOrder`); `AnnotationsV2` (`AnnotationId, BookId, LayerId, Type, RegionsJson, ColorKey, QuoteText, NoteText, CreatedUtc, ModifiedUtc`); `ReadingMemory` (`BookId, OpenedBecause, KeyInsight, OpenQuestions, Disposition, CreatedAtUtc, UpdatedAtUtc`). Phase 04 `Bookmarks` remains the durable bookmark table. | 3 h | Phase 04 | FR-READ-007, FR-READ-008, FR-READ-011 |
+| P09-WP1-T2 | EF Core idempotent migration for Phase 09 tables; cascade-delete FK for `AnnotationsV2 -> Books`; set-null FK for `AnnotationsV2 -> AnnotationLayers`; cascade-delete FK for `ReadingMemory -> Books`. | 2 h | P09-WP1-T1 | Phase 04 migration standard |
 | P09-WP1-T3 | `IAnnotationRepository`, `IBookmarkRepository`, `IAnnotationLayerRepository`, `IReadingMemoryRepository` interfaces with `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `GetForBookAsync` | 2 h | P09-WP1-T1 | ADR-0008 |
 | P09-WP1-T4 | EF Core implementations; all writes inside `BeginTransactionAsync` → `SaveChangesAsync` → `CommitAsync`; never return partial state | 3 h | P09-WP1-T3 | NFR-OGMA-008 |
 | P09-WP1-T5 | Confirm SQLite WAL mode is set at catalogue open (`PRAGMA journal_mode=WAL`; verify in Phase 04 migration or add here) | 1 h | Phase 04 | NFR-OGMA-008 |
-| P09-WP1-T6 | Write fault-injection test stubs (contracts): `FaultInjection_AbnormalTermination_AnnotationSurvives`, `FaultInjection_DiskFull_TransactionRolledBack`, `FaultInjection_PartialRegionWrite_IsAbsent` — red first | 2 h | P09-WP1-T4 | NFR-OGMA-008, R1 |
+| P09-WP1-T6 | Write R1 fault-injection tests: repository failure does not emit events; invalid-book annotation rollback; `FaultInjection_DiskFull_TransactionRolledBack`; partial region JSON repair; concurrent writes; bookmark abort recovery; failed layer-delete projection suppression. | 2 h | P09-WP1-T4 | NFR-OGMA-008, R1 |
 
 **WP1 exit:** migrations pass; transaction tests red (TDD contract established).
 
@@ -50,7 +50,7 @@ correct positions for all zoom levels and page rotations.
 | Task ID | Description | Est. | Deps | Satisfies |
 | --- | --- | --- | --- | --- |
 | P09-WP3-T1 | `AnnotationOverlayPanel`: Avalonia custom control that draws highlight rectangles and note-anchor icons over the page render panel; subscribes to `GetForPageAsync` on page change | 4 h | P09-WP2-T6, Phase 08 render panel | FR-READ-008 |
-| P09-WP3-T2 | Text-selection gesture: mouse drag / touch drag creates selection rect; on release shows context menu "Highlight" / "Add note" / "Cite" | 3 h | P09-WP3-T1 | FR-READ-008, FR-READ-011 |
+| P09-WP3-T2 | Text-selection gesture: mouse drag / touch drag creates selection rect; on release shows context menu "Highlight" / "Add note" / "Capture citation" | 3 h | P09-WP3-T1 | FR-READ-008, FR-READ-011 |
 | P09-WP3-T3 | Note pop-over: click note icon → inline popover with `TextArea` for note body; auto-save on focus-out; dismiss on Escape | 2 h | P09-WP3-T2 | FR-READ-008 |
 | P09-WP3-T4 | Highlight color picker: choose from active layer's color or override; color visually distinct in both light and dark theme | 1 h | P09-WP3-T2 | FR-READ-008 |
 | P09-WP3-T5 | Delete annotation: right-click → "Delete"; confirm dialog; delete from DB; overlay redraws | 2 h | P09-WP3-T3 | FR-READ-008 |

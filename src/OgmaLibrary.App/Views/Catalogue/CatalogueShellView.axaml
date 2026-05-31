@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+             xmlns:reader="using:OgmaLibrary.App.Views.Reader"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
              x:DataType="vm:MainShellViewModel">
 
@@ -175,50 +176,57 @@
       <Grid Grid.Row="2">
 
         <!-- Grid view wrapper controls visibility from MainShellViewModel; inner view has CatalogueViewModel DC -->
-        <Panel IsVisible="{Binding Catalogue.IsGridView}">
-          <cat:CatalogueGridView DataContext="{Binding Catalogue}" />
-        </Panel>
+        <Grid IsVisible="{Binding IsCatalogueActive}">
+          <Panel IsVisible="{Binding Catalogue.IsGridView}">
+            <cat:CatalogueGridView DataContext="{Binding Catalogue}" />
+          </Panel>
 
-        <!-- List view -->
-        <Panel IsVisible="{Binding Catalogue.IsListView}">
-          <cat:CatalogueListView DataContext="{Binding Catalogue}" />
-        </Panel>
+          <!-- List view -->
+          <Panel IsVisible="{Binding Catalogue.IsListView}">
+            <cat:CatalogueListView DataContext="{Binding Catalogue}" />
+          </Panel>
 
-        <!-- Directory view placeholder -->
-        <Border IsVisible="{Binding Catalogue.IsDirectoryView}"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center">
-          <TextBlock Text="Directory view (coming soon)"
-                     FontSize="{DynamicResource Type.Size.Body}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        </Border>
-
-        <!-- Empty state -->
-        <Border IsVisible="{Binding Catalogue.IsEmpty}"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center">
-          <StackPanel Spacing="8" MaxWidth="400">
-            <TextBlock Text="{Binding EmptyStateHeading}"
-                       FontSize="{DynamicResource Type.Size.Title}"
-                       FontWeight="SemiBold"
-                       TextAlignment="Center"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            <TextBlock Text="{Binding EmptyStateBody}"
+          <!-- Directory view placeholder -->
+          <Border IsVisible="{Binding Catalogue.IsDirectoryView}"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center">
+            <TextBlock Text="Directory view (coming soon)"
                        FontSize="{DynamicResource Type.Size.Body}"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
                        Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          </StackPanel>
-        </Border>
+          </Border>
 
-        <!-- Reader placeholder message -->
-        <Border IsVisible="{Binding IsReaderPlaceholderVisible}"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center">
-          <TextBlock Text="{Binding ReaderPlaceholderMessage}"
-                     FontSize="{DynamicResource Type.Size.Body}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        </Border>
+          <!-- Empty state -->
+          <Border IsVisible="{Binding Catalogue.IsEmpty}"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center">
+            <StackPanel Spacing="8" MaxWidth="400">
+              <TextBlock Text="{Binding EmptyStateHeading}"
+                         FontSize="{DynamicResource Type.Size.Title}"
+                         FontWeight="SemiBold"
+                         TextAlignment="Center"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock Text="{Binding EmptyStateBody}"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         TextWrapping="Wrap"
+                         TextAlignment="Center"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <Button HorizontalAlignment="Center"
+                      Margin="0,8,0,0"
+                      Padding="16,8"
+                      Background="{DynamicResource Brush.Accent.Oak}"
+                      Foreground="White"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.Name="{Binding ChooseFolderText}"
+                      Click="ChooseFolderButton_Click">
+                <TextBlock Text="{Binding ChooseFolderText}" />
+              </Button>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Panel IsVisible="{Binding IsReaderActive}">
+          <reader:ReaderView DataContext="{Binding Reader}" />
+        </Panel>
 
       </Grid>
     </Grid>

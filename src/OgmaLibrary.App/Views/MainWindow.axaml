@@ -1,132 +1,14 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:OgmaLibrary.App.ViewModels"
-        xmlns:svg="using:Avalonia.Svg.Skia"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+        xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
         x:Class="OgmaLibrary.App.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
+        x:DataType="vm:MainShellViewModel"
         Title="{Binding Title}"
         Icon="/Assets/app.png"
-        Width="1000" Height="680"
-        MinWidth="720" MinHeight="480"
+        Width="1180" Height="760"
+        MinWidth="860" MinHeight="560"
         Background="{DynamicResource Brush.Surface.Parchment}">
 
-  <Design.DataContext>
-    <vm:MainWindowViewModel />
-  </Design.DataContext>
-
-  <Grid RowDefinitions="Auto,*,Auto" Margin="0">
-
-    <!-- ─── Header band ─────────────────────────────────────────────────── -->
-    <Border Grid.Row="0" Padding="32,22,32,18">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-
-        <!-- Logo + title block -->
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12"
-                    VerticalAlignment="Center">
-          <!-- App logo icon — decorative; the Title TextBlock is the accessible name for the window -->
-          <Image Width="36" Height="36"
-                 Source="{svg:SvgImageExtension 'avares://OgmaLibrary.App/Assets/icons/app/ic_app_logo.svg'}"
-                 AutomationProperties.Name="{Binding AppLogoLabel}" />
-          <StackPanel Spacing="2" VerticalAlignment="Center">
-            <TextBlock Text="{Binding Title}"
-                       FontSize="{DynamicResource Type.Size.Display}"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            <TextBlock Text="{Binding Tagline}"
-                       FontSize="{DynamicResource Type.Size.BodyMedium}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          </StackPanel>
-        </StackPanel>
-
-        <!-- Settings button — top-right of header; fully keyboard-accessible -->
-        <Button Grid.Column="2"
-                VerticalAlignment="Center"
-                Background="Transparent"
-                BorderThickness="0"
-                Padding="8"
-                AutomationProperties.Name="{Binding SettingsLabel}">
-          <Image Width="24" Height="24"
-                 Source="{svg:SvgImageExtension 'avares://OgmaLibrary.App/Assets/icons/app/ic_settings.svg'}" />
-        </Button>
-
-      </Grid>
-    </Border>
-
-    <!-- ─── Empty-state / scan-progress body ───────────────────────────── -->
-    <Border Grid.Row="1" Margin="32,8,32,8"
-            CornerRadius="{DynamicResource Radius.L}"
-            BorderThickness="1"
-            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-            Background="{DynamicResource Brush.Surface.Card}">
-      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                  MaxWidth="520" Spacing="14">
-
-        <!-- Empty-shelf icon — large, centered, in oak circle -->
-        <Border Width="84" Height="84" CornerRadius="42"
-                HorizontalAlignment="Center"
-                Background="{DynamicResource Brush.Accent.Oak}">
-          <Image Width="48" Height="48"
-                 Source="{svg:SvgImageExtension 'avares://OgmaLibrary.App/Assets/icons/library/ic_lib_folder_open.svg'}"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center"
-                 AutomationProperties.Name="{Binding LibFolderLabel}" />
-        </Border>
-
-        <TextBlock Text="{Binding EmptyStateHeading}"
-                   FontSize="{DynamicResource Type.Size.Title}"
-                   FontWeight="SemiBold"
-                   TextAlignment="Center"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-        <TextBlock Text="{Binding EmptyStateBody}"
-                   FontSize="{DynamicResource Type.Size.Body}"
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-
-        <!-- Primary action button: icon + label (icon is reinforcing, text is the accessible name) -->
-        <Button HorizontalAlignment="Center"
-                Margin="0,6,0,0"
-                Padding="20,10"
-                Foreground="White"
-                Background="{DynamicResource Brush.Accent.Oak}"
-                CornerRadius="{DynamicResource Radius.S}"
-                AutomationProperties.Name="{Binding ChooseFolderText}"
-                Click="ChooseFolderButton_Click">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Image Width="20" Height="20"
-                   Source="{svg:SvgImageExtension 'avares://OgmaLibrary.App/Assets/icons/library/ic_lib_folder_open.svg'}" />
-            <TextBlock Text="{Binding ChooseFolderText}" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-
-        <!-- Scan progress area (visible when scanning) -->
-        <StackPanel IsVisible="{Binding IsScanning}" Spacing="8" Margin="0,8,0,0">
-          <TextBlock Text="{Binding ScanPhaseText}"
-                     FontSize="{DynamicResource Type.Size.Body}"
-                     TextAlignment="Center"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          <ProgressBar Value="{Binding ScanProgress}"
-                       Minimum="0" Maximum="1"
-                       HorizontalAlignment="Stretch"
-                       AutomationProperties.Name="Scan progress"
-                       AutomationProperties.HelpText="{Binding StatusText}" />
-          <TextBlock Text="{Binding StatusText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     TextAlignment="Center"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        </StackPanel>
-
-      </StackPanel>
-    </Border>
-
-    <!-- ─── Status bar ───────────────────────────────────────────────────── -->
-    <Border Grid.Row="2"
-            Padding="32,10"
-            Background="{DynamicResource Brush.Surface.Footer}">
-      <TextBlock Text="{Binding StatusText}"
-                 FontSize="{DynamicResource Type.Size.Caption}"
-                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-    </Border>
-
-  </Grid>
+  <cat:CatalogueShellView DataContext="{Binding}" />
 </Window>

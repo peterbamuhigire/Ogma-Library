@@ -60,4 +60,16 @@ public partial class CatalogueShellView : UserControl
             vm.Catalogue.CurrentView = CatalogueView.Directory;
         }
     }
+
+    private async void ChooseFolderButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel is not null)
+            {
+                await vm.ChooseFolderAsync(topLevel).ConfigureAwait(true);
+            }
+        }
+    }
 }

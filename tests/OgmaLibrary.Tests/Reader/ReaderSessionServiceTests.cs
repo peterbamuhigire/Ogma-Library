@@ -89,6 +89,33 @@ public sealed class ReaderSessionServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task OpenAndNavigate_UsesRendererPageRotation()
+    {
+        _rendererFactory.CreatedRenderers.Clear();
+        var renderer = new MockPdfRenderer(10)
+        {
+            PageRotations = new Dictionary<int, int>
+            {
+                [0] = 90,
+                [5] = 270,
+            },
+        };
+        var rendererFactory = new MockPdfRendererFactory(_ => renderer);
+        using var cache = new PageRenderCache(rendererFactory, new StopwatchBenchmarkContext());
+        using var sessionService = new ReaderSessionService(
+            rendererFactory,
+            _progressService,
+            new StubBookFileLocator(TestBookId, TestFilePath),
+            cache);
+
+        ReaderSession session = await sessionService.OpenAsync(TestBookId, null, CancellationToken.None);
+        await sessionService.NavigateToAsync(5);
+
+        Assert.Equal(90, session.PageRotationDegrees);
+        Assert.Equal(270, sessionService.CurrentSession!.PageRotationDegrees);
+    }
+
+    [Fact]
     public async Task NavigateToAsync_PageOutOfRange_ClampsToBounds()
     {
         await _sessionService.OpenAsync(TestBookId, null, CancellationToken.None);

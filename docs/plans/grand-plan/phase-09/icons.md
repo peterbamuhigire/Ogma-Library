@@ -3,6 +3,10 @@
 New icons for Annotations, Bookmarks, Annotation Layers, Citation Cards,
 and Reading Memory surfaces.
 
+Procurement status: owner is buying the premium PNG set as of 2026-05-31.
+Runtime currently uses the committed SVG placeholders until licensed PNG assets
+are delivered.
+
 Color family mapping:
 - Annotation/highlight icons — `accent/oak` (warm oak amber): library identity,
   primary annotation action.
@@ -19,28 +23,28 @@ Color family mapping:
 
 | Icon key | Used on | Meaning | Style / color note | Sizes (px) | Status |
 | --- | --- | --- | --- | --- | --- |
-| `ic_annotation_highlight` | Context menu / toolbar | Create a highlight | Marker / highlighter pen; `accent/oak` amber | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_annotation_highlight_color` | Highlight color picker | Choose highlight color | Color swatch circle with checkmark; multi-color | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_annotation_note` | Context menu / toolbar | Add an inline note | Speech bubble with pencil; `accent/ink` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_annotation_note_anchor` | Overlay — note icon on page | Indicates a note is anchored here | Small speech bubble; `accent/ink` | 16/24 @1x–3x | ⬜ to procure |
-| `ic_annotation_delete` | Context menu / annotation options | Delete annotation | Trash with annotation background; `accent/clay` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_bookmark_add` | Toolbar / bookmark button | Add bookmark to current page | Ribbon bookmark with `+`; `accent/oak` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_bookmark_remove` | Toolbar / bookmark button (active state) | Remove bookmark from current page | Ribbon bookmark with `−`; `accent/clay` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_bookmark_panel` | Toolbar / sidebar toggle | Open bookmark panel | Stack of ribbons; `accent/oak` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_bookmark_item` | Bookmark panel list item | Represents a single bookmark | Single ribbon; `accent/oak` light | 16/24 @1x–3x | ⬜ to procure |
-| `ic_bookmark_rename` | Bookmark context menu | Rename a bookmark | Pencil over ribbon; `accent/ink` | 16/24 @1x–3x | ⬜ to procure |
-| `ic_layer_panel` | Toolbar / sidebar toggle | Open annotation layer panel | Stacked layers icon; `accent/plum` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_layer_add` | Layer panel "+" button | Create a new annotation layer | Layer stack with `+`; `accent/plum` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_layer_visible` | Layer panel visibility toggle | Layer is visible | Open eye; `accent/plum` | 16/24 @1x–3x | ⬜ to procure |
-| `ic_layer_hidden` | Layer panel visibility toggle (off state) | Layer is hidden | Closed / crossed eye; `accent/slate` | 16/24 @1x–3x | ⬜ to procure |
-| `ic_layer_merge` | Layer context menu | Merge this layer into another | Two arrows joining; `accent/plum` | 16/24 @1x–3x | ⬜ to procure |
-| `ic_layer_delete` | Layer context menu | Delete layer | Trash with layer; `accent/clay` | 16/24 @1x–3x | ⬜ to procure |
-| `ic_citation_capture` | Context menu / keyboard shortcut indicator | Capture citation card | Quote marks over document; `accent/sage` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_citation_copy` | Citation card — copy button | Copy citation to clipboard | Clipboard + quotation mark; `accent/sage` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_citation_export` | Citation card — export button | Export citation to file | Arrow-up-from-document; `accent/sage` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_reading_memory` | Sidebar toggle / book-detail card | Open reading memory journal | Open book with lightbulb; `accent/plum` | 16/24/32/48 @1x–3x | ⬜ to procure |
-| `ic_reading_memory_disposition` | Reading memory — disposition field | Disposition/rating widget | Five stars or five dots; `accent/oak` amber | 16/24 @1x–3x | ⬜ to procure |
-| `ic_annotation_panel` | Toolbar / sidebar toggle | Open full annotation list panel | Text lines with highlight bar; `accent/oak` | 16/24/32/48 @1x–3x | ⬜ to procure |
+| `ic_annotation_highlight` | Context menu / toolbar | Create a highlight | Marker / highlighter pen; `accent/oak` amber | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_annotation_highlight_color` | Highlight color picker | Choose highlight color | Color swatch circle with checkmark; multi-color | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_annotation_note` | Context menu / toolbar | Add an inline note | Speech bubble with pencil; `accent/ink` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_annotation_note_anchor` | Overlay — note icon on page | Indicates a note is anchored here | Small speech bubble; `accent/ink` | 16/24 @1x–3x | Owner buying |
+| `ic_annotation_delete` | Context menu / annotation options | Delete annotation | Trash with annotation background; `accent/clay` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_bookmark_add` | Toolbar / bookmark button | Add bookmark to current page | Ribbon bookmark with `+`; `accent/oak` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_bookmark_remove` | Toolbar / bookmark button (active state) | Remove bookmark from current page | Ribbon bookmark with `−`; `accent/clay` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_bookmark_panel` | Toolbar / sidebar toggle | Open bookmark panel | Stack of ribbons; `accent/oak` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_bookmark_item` | Bookmark panel list item | Represents a single bookmark | Single ribbon; `accent/oak` light | 16/24 @1x–3x | Owner buying |
+| `ic_bookmark_rename` | Bookmark context menu | Rename a bookmark | Pencil over ribbon; `accent/ink` | 16/24 @1x–3x | Owner buying |
+| `ic_layer_panel` | Toolbar / sidebar toggle | Open annotation layer panel | Stacked layers icon; `accent/plum` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_layer_add` | Layer panel "+" button | Create a new annotation layer | Layer stack with `+`; `accent/plum` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_layer_visible` | Layer panel visibility toggle | Layer is visible | Open eye; `accent/plum` | 16/24 @1x–3x | Owner buying |
+| `ic_layer_hidden` | Layer panel visibility toggle (off state) | Layer is hidden | Closed / crossed eye; `accent/slate` | 16/24 @1x–3x | Owner buying |
+| `ic_layer_merge` | Layer context menu | Merge this layer into another | Two arrows joining; `accent/plum` | 16/24 @1x–3x | Owner buying |
+| `ic_layer_delete` | Layer context menu | Delete layer | Trash with layer; `accent/clay` | 16/24 @1x–3x | Owner buying |
+| `ic_citation_capture` | Context menu / keyboard shortcut indicator | Capture citation card | Quote marks over document; `accent/sage` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_citation_copy` | Citation card — copy button | Copy citation to clipboard | Clipboard + quotation mark; `accent/sage` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_citation_export` | Citation card — export button | Export citation to file | Arrow-up-from-document; `accent/sage` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_reading_memory` | Sidebar toggle / book-detail card | Open reading memory journal | Open book with lightbulb; `accent/plum` | 16/24/32/48 @1x–3x | Owner buying |
+| `ic_reading_memory_disposition` | Reading memory — disposition field | Disposition/rating widget | Five stars or five dots; `accent/oak` amber | 16/24 @1x–3x | Owner buying |
+| `ic_annotation_panel` | Toolbar / sidebar toggle | Open full annotation list panel | Text lines with highlight bar; `accent/oak` | 16/24/32/48 @1x–3x | Owner buying |
 
 ---
 
@@ -79,8 +83,9 @@ Color family mapping:
 **Re: Phase 09 Annotations & Reading Memory — Premium PNG Icon Procurement**
 
 Phase 09 introduces **22 new icons** for the annotation, bookmark, layer,
-citation, and reading-memory surfaces. Please purchase (or supply) these icons
-from the same premium vendor/set as Phase 08 icons to maintain visual coherence.
+citation, and reading-memory surfaces. Owner procurement is in progress. Please
+purchase (or supply) these icons from the same premium vendor/set as Phase 08
+icons to maintain visual coherence.
 
 **Color families required:**
 - `accent/oak` (warm oak amber) — highlight, bookmark, annotation actions.

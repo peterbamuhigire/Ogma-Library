@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Infrastructure.Catalogue.Configurations;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -29,6 +30,7 @@ public sealed class CatalogueDbContext : DbContext
     public CatalogueDbContext(DbContextOptions<CatalogueDbContext> options)
         : base(options)
     {
+        EnsureSqlitePragmas();
     }
 
     // ── Catalogue core ──────────────────────────────────────────────────────────
@@ -97,6 +99,17 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Append-only local audit trail.</summary>
     public DbSet<AuditEventRow> AuditEvents => Set<AuditEventRow>();
 
+    // ── Phase 09 — Annotations, Layers, Bookmarks, Reading Memory ────────────
+
+    /// <summary>Named annotation layers for grouping highlights and notes.</summary>
+    public DbSet<AnnotationLayerRow> AnnotationLayers => Set<AnnotationLayerRow>();
+
+    /// <summary>Extended annotations with normalized region list and layer assignment.</summary>
+    public DbSet<AnnotationV2Row> AnnotationsV2 => Set<AnnotationV2Row>();
+
+    /// <summary>Per-book reading-memory journal entries.</summary>
+    public DbSet<ReadingMemoryRow> ReadingMemory => Set<ReadingMemoryRow>();
+
     // ── Work / Edition layer (schema only, Phase 04 WP9) ──────────────────────
 
     /// <summary>Canonical works (schema-only; UI in Phase 06/07).</summary>
@@ -133,6 +146,11 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new WorkConfiguration());
         modelBuilder.ApplyConfiguration(new EditionConfiguration());
 
+        // Phase 09 — Annotations, Layers, Reading Memory.
+        modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());
+        modelBuilder.ApplyConfiguration(new AnnotationV2Configuration());
+        modelBuilder.ApplyConfiguration(new ReadingMemoryConfiguration());
+
         base.OnModelCreating(modelBuilder);
     }
 
@@ -148,5 +166,28 @@ public sealed class CatalogueDbContext : DbContext
         }
 
         base.OnConfiguring(optionsBuilder);
+    }
+
+    private void EnsureSqlitePragmas()
+    {
+        if (Database.GetDbConnection() is not SqliteConnection connection)
+        {
+            return;
+        }
+
+        Database.OpenConnection();
+        ExecutePragma(connection, "PRAGMA foreign_keys=ON;");
+
+        if (!string.Equals(connection.DataSource, ":memory:", StringComparison.OrdinalIgnoreCase))
+        {
+            ExecutePragma(connection, "PRAGMA journal_mode=WAL;");
+        }
+    }
+
+    private static void ExecutePragma(SqliteConnection connection, string commandText)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = commandText;
+        command.ExecuteNonQuery();
     }
 }

@@ -1,4 +1,5 @@
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Reader.Cache;
 
@@ -114,6 +115,55 @@ public sealed class PageRenderCacheTests
     }
 
     [Fact]
+    public async Task CachedPageTurn_P95_With100Annotations_Under100ms()
+    {
+        var mockRenderer = new MockPdfRenderer(10);
+        var factory = new MockPdfRendererFactory(_ => mockRenderer);
+        using var cache = CreateCache(factory);
+        cache.SetRenderer("book1", mockRenderer);
+        var request = new RenderRequest(800);
+        List<AnnotationRegion> regions = Enumerable.Range(0, 100)
+            .Select(index => new AnnotationRegion(
+                PageIndex: index % 10,
+                NormLeft: 0.04 + (index % 10) * 0.08,
+                NormTop: 0.04 + ((index / 10) % 10) * 0.08,
+                NormWidth: 0.06,
+                NormHeight: 0.03))
+            .ToList();
+
+        for (int page = 0; page < 10; page++)
+        {
+            await cache.GetOrRenderAsync("book1", page, request, CancellationToken.None);
+        }
+
+        var durations = new List<TimeSpan>(capacity: 20);
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            int page = iteration % 10;
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+
+            await cache.GetOrRenderAsync("book1", page, request, CancellationToken.None);
+            foreach (AnnotationRegion region in regions.Where(region => region.PageIndex == page))
+            {
+                _ = OgmaLibrary.Reader.Annotations.AnnotationRenderHelper.ToScreenRect(
+                    region,
+                    renderedWidthPx: 720,
+                    renderedHeightPx: 960,
+                    rotationDegrees: page % 2 == 0 ? 0 : 90,
+                    zoomFactor: 1.5);
+            }
+
+            durations.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started));
+        }
+
+        TimeSpan p95 = Percentile95(durations);
+
+        Assert.True(
+            p95 <= TimeSpan.FromMilliseconds(100),
+            $"Cached page turn plus 100-annotation overlay transform should stay under 100 ms P95; actual {p95.TotalMilliseconds:F3} ms.");
+    }
+
+    [Fact]
     public void Invalidate_RemovesCachedEntries()
     {
         var mockRenderer = new MockPdfRenderer(5);
@@ -190,5 +240,12 @@ public sealed class PageRenderCacheTests
 
         // No assertions on counts here — the key invariant is that no exception is thrown.
         Assert.True(true, "CancelOutside completed without exception");
+    }
+
+    private static TimeSpan Percentile95(IReadOnlyList<TimeSpan> durations)
+    {
+        TimeSpan[] sorted = durations.OrderBy(static duration => duration).ToArray();
+        int index = (int)Math.Ceiling(sorted.Length * 0.95) - 1;
+        return sorted[Math.Clamp(index, 0, sorted.Length - 1)];
     }
 }

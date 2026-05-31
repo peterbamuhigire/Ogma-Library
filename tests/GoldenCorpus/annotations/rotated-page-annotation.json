@@ -1,0 +1,21 @@
+{
+  "fixture": "rotated-pages",
+  "bookId": "P09BOOK00000000000000001",
+  "pageIndex": 2,
+  "rotationDegrees": 90,
+  "renderedWidthPx": 720,
+  "renderedHeightPx": 960,
+  "zoomFactor": 1.25,
+  "region": {
+    "normLeft": 0.14,
+    "normTop": 0.22,
+    "normWidth": 0.31,
+    "normHeight": 0.08
+  },
+  "expectedScreenRect": {
+    "x": 840,
+    "y": 126,
+    "width": 96,
+    "height": 279
+  }
+}

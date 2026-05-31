@@ -67,6 +67,30 @@ public sealed class PdfiumAdapter : IPdfRenderer
     }
 
     /// <inheritdoc />
+    public int GetPageRotationDegrees(int pageIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
+
+        try
+        {
+            using var doc = PdfDocument.Open(_fileBytes);
+            var pages = doc.GetPages().ToList();
+            if (pageIndex >= pages.Count)
+            {
+                return 0;
+            }
+
+            return NormalizeRotation(pages[pageIndex].Rotation.Value);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    /// <inheritdoc />
     public TextLayer ExtractTextLayer(int pageIndex)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -204,4 +228,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
             return (595, 842);
         }
     }
+
+    private static int NormalizeRotation(int rotation) =>
+        ((rotation % 360) + 360) % 360;
 }

@@ -149,7 +149,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
         {
             if (kvp.Key.BookId == bookId && !keepSet.Contains(kvp.Key.PageIndex))
             {
-                kvp.Value.Cancel();
+                CancelSafely(kvp.Value);
             }
         }
     }
@@ -164,7 +164,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
         {
             if (kvp.Key.BookId == bookId)
             {
-                kvp.Value.Cancel();
+                CancelSafely(kvp.Value);
             }
         }
 
@@ -196,7 +196,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
         foreach (var cts in _pendingCts.Values)
         {
-            cts.Cancel();
+            CancelSafely(cts);
             cts.Dispose();
         }
 
@@ -340,6 +340,18 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
             _lruList.Remove(node);
             var newNode = _lruList.AddLast(key);
             _lruNodes[key] = newNode;
+        }
+    }
+
+    private static void CancelSafely(CancellationTokenSource cts)
+    {
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // A render task can dispose its CTS while cancellation is being broadcast.
         }
     }
 

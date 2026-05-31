@@ -96,6 +96,47 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.ToTable("AnnotationBodies", (string)null);
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationLayerRow", b =>
+                {
+                    b.Property<string>("LayerId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BookId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("#FFD700");
+
+                    b.Property<bool>("IsVisible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("LayerId");
+
+                    b.HasIndex("BookId")
+                        .HasDatabaseName("IX_AnnotationLayers_BookId");
+
+                    b.ToTable("AnnotationLayers", (string)null);
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationRow", b =>
                 {
                     b.Property<string>("AnnotationId")
@@ -129,6 +170,58 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Annotations_BookId_Page");
 
                     b.ToTable("Annotations", (string)null);
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationV2Row", b =>
+                {
+                    b.Property<string>("AnnotationId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BookId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ColorKey")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LayerId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("ModifiedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NoteText")
+                        .HasMaxLength(65536)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("QuoteText")
+                        .HasMaxLength(8192)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RegionsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("[]");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("AnnotationId");
+
+                    b.HasIndex("LayerId");
+
+                    b.HasIndex("BookId", "LayerId")
+                        .HasDatabaseName("IX_AnnotationsV2_BookId_LayerId");
+
+                    b.ToTable("AnnotationsV2", (string)null);
                 });
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AuditEventRow", b =>
@@ -597,6 +690,38 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.ToTable("MetadataLookups", (string)null);
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ReadingMemoryRow", b =>
+                {
+                    b.Property<string>("BookId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Disposition")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("KeyInsight")
+                        .HasMaxLength(8192)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OpenQuestions")
+                        .HasMaxLength(8192)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OpenedBecause")
+                        .HasMaxLength(8192)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("BookId");
+
+                    b.ToTable("ReadingMemory", (string)null);
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ReadingProgressRow", b =>
                 {
                     b.Property<string>("BookId")
@@ -761,6 +886,17 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Navigation("Annotation");
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationLayerRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.BookRow", "Book")
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationRow", b =>
                 {
                     b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.BookRow", "Book")
@@ -770,6 +906,24 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Book");
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationV2Row", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.BookRow", "Book")
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationLayerRow", "Layer")
+                        .WithMany("Annotations")
+                        .HasForeignKey("LayerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Book");
+
+                    b.Navigation("Layer");
                 });
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.BookAuthorRow", b =>
@@ -878,6 +1032,17 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Navigation("Book");
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ReadingMemoryRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.BookRow", "Book")
+                        .WithOne()
+                        .HasForeignKey("OgmaLibrary.Infrastructure.Catalogue.Entities.ReadingMemoryRow", "BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ReadingProgressRow", b =>
                 {
                     b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.BookRow", "Book")
@@ -916,6 +1081,11 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Navigation("Book");
 
                     b.Navigation("Shelf");
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationLayerRow", b =>
+                {
+                    b.Navigation("Annotations");
                 });
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AnnotationRow", b =>

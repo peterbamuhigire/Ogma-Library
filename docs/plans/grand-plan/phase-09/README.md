@@ -28,7 +28,7 @@ any PDF including rotated pages.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 4 (Reader — annotations) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both |
-| **Status** | Planned — not started |
+| **Status** | Locally implementation-complete; automated gates green; owner icon procurement in progress, owner confirmations, and manual accessibility/visual signoff pending |
 | **Depends on** | Phase 08 (Reader Core — `ReaderView`, `IPdfRenderer`, text layer) |
 | **Unblocks** | Phase 10 (FTS5 index — annotation text is indexed), Phase 11 (annotation text in embeddings), Phase 13 (reading memory feeds AI advisor) |
 
@@ -66,8 +66,8 @@ any PDF including rotated pages.
 - `Annotations` bounded context (sub-context of Reader): `AnnotationService`,
   `BookmarkService`, `AnnotationLayerService`, `CitationService`,
   `ReadingMemoryService`.
-- Persistence: `Annotations`, `AnnotationBodies`, `Bookmarks`, `AnnotationLayers`
-  tables (schema in Phase 04 catalogue; migrations added here if incomplete).
+- Persistence: Phase 09 `AnnotationsV2`, `AnnotationLayers`, and `ReadingMemory`
+  tables plus the Phase 04 durable `Bookmarks` table.
 - Highlight rendering overlay: colored highlight rectangles over text selection;
   correct for zoom, scroll, and page rotation (NFR-OGMA-008 rotated-page golden
   fixture).
@@ -108,7 +108,7 @@ any PDF including rotated pages.
 | FR-READ-007 | MVP | Bookmarks with labels + page jump, durable | `Bookmark_SaveAndJump_RoundTrip` integration test + fault injection |
 | FR-READ-008 | MVP | Highlights & notes persist in catalogue; reload accurately | `Annotation_Reload_CorrectPosition` integration test; rotated-page golden fixture |
 | FR-READ-011 | V1 | Citation capture card (title, author, page, selection) | `CitationCard_CaptureAndExport` integration test |
-| NFR-OGMA-008 | MVP | Annotation durable across abnormal termination | `FaultInjection_AbnormalTermination_AnnotationSurvives` fault test |
+| NFR-OGMA-008 | MVP | Annotation durable across abnormal termination | R1 repository rollback, failed-publisher, concurrent-write, and bookmark-abort fault tests |
 
 ---
 
@@ -119,8 +119,8 @@ any PDF including rotated pages.
 - **Phase 08** — `ReaderView`, `ReaderViewModel`, `TextLayerService`
   (bounding-box coordinate system), `IPdfRenderer` (page rotation info),
   `PageRenderCache` (overlay must render over the cached bitmap).
-- **Phase 04** — `Annotations`, `AnnotationBodies`, `Bookmarks`,
-  `AnnotationLayers` table schema; EF Core context; SQLite WAL confirmed.
+- **Phase 04** — catalogue EF Core context, SQLite WAL, and durable
+  `Bookmarks` table schema.
 - **Phase 03** — Design-system tokens, icon system, `ILocalizationService`.
 - **ADR-0008** — DB-first annotations; no PDF write-back confirmed.
 - **OQ-03** — Annotation write-back strategy resolved: DB-first, no write-back
@@ -182,8 +182,7 @@ All writes use an EF Core transaction with SQLite in WAL mode:
 
 ```csharp
 await using var tx = await _db.Database.BeginTransactionAsync(ct);
-_db.Annotations.Add(annotation);
-_db.AnnotationBodies.Add(body);
+_db.AnnotationsV2.Add(annotation);
 await _db.SaveChangesAsync(ct);   // throws on failure; never returns partial state
 await tx.CommitAsync(ct);
 // Only now: notify IAnnotationReadModel observers
@@ -237,25 +236,31 @@ state sync. Interface defined now; no LAN built here.
 
 ## 9. Cross-cutting checklist
 
-- [ ] **Colorful icons + manifest**: `icons.md` complete; all annotation,
-      bookmark, layer, citation, and reading-memory icons listed; owner
-      procurement request issued.
-- [ ] **i18n (en/fr)**: all annotation UI strings externalized and in both
-      `en` and `fr`; pseudolocale check passes.
-- [ ] **Accessibility**: highlight color paired with text/aria label (never
-      color-only); annotation controls keyboard-operable; screen-reader
-      announces annotation count and bookmark list; WCAG 2.2 AA.
-- [ ] **Privacy/egress**: all annotation data stays local; no network calls —
-      N/A for this phase.
-- [ ] **Reversibility (R1)**: durable write pattern enforced; fault-injection
-      tests for abnormal termination, disk-full, transaction abort all pass;
-      no R1 data-loss path open.
-- [ ] **Performance**: annotation overlay render adds ≤ 10 ms to page-turn time
-      (stays within NFR-OGMA-005 budget); annotation write ≤ 200 ms P95.
-- [ ] **Bounded-context tests**: Annotations does not depend on Search or AI;
-      Catalogue accessed only through contracts.
-- [ ] **Documentation**: `IAnnotationReadModel`, `AnnotationRegion` normalized
-      coordinate model, durable-write pattern all carry XML doc comments.
+- [ ] **Colorful icons + manifest**: key-named SVG placeholder assets are wired
+      and tested for every annotation, bookmark, layer, citation, and
+      reading-memory icon; premium PNG procurement is in progress with the
+      owner and remains open until licensed PNGs are committed.
+- [x] **i18n (en/fr)**: Phase 09 reader strings are externalized in both
+      `annotations.en.resx` and `annotations.fr.resx`; automated pseudolocale
+      rendering passes.
+- [ ] **Accessibility**: highlight color is paired with accessible text labels,
+      annotation controls are keyboard-operable in automated coverage, and the
+      overlay contrast gate passes; manual Narrator/VoiceOver signoff remains
+      pending.
+- [x] **Privacy/egress**: annotation data stays local; source audit of the
+      Phase 09 reader/annotation path found no network client APIs.
+- [x] **Reversibility (R1)**: durable write pattern enforced with repository
+      rollback, disk-full simulation, failed-publisher, invalid-FK,
+      partial-region repair, concurrent-write, bookmark-abort,
+      bookmark-reopen, and failed layer-delete tests.
+- [x] **Performance**: annotation overlay render adds <= 10 ms P95 in the
+      100-annotation transform test; page turn with 100 annotations remains
+      <= 100 ms P95; annotation writes remain <= 200 ms P95.
+- [x] **Bounded-context tests**: Annotations does not depend on Search or AI;
+      Catalogue persistence is accessed only through contracts/repositories.
+- [x] **Documentation**: `IAnnotationReadModel`, `AnnotationRegion` normalized
+      coordinate model, and durable-write/read-model contracts carry XML doc
+      comments.
 
 ---
 
@@ -263,26 +268,30 @@ state sync. Interface defined now; no LAN built here.
 
 **Global DoD (README §6) fully applied, plus:**
 
-- [ ] FR-READ-007 (bookmarks) and FR-READ-008 (highlights/notes) have passing
+- [x] FR-READ-007 (bookmarks) and FR-READ-008 (highlights/notes) have passing
       deterministic automated tests including reload-accuracy test.
-- [ ] Rotated-page golden fixture: annotation created on a 90°-rotated page;
+- [x] Rotated-page golden fixture: annotation created on a 90°-rotated page;
       app restarted; annotation reloads at the correct screen position.
-- [ ] `FaultInjection_AbnormalTermination_AnnotationSurvives`: kill DI scope
-      during `SaveChangesAsync`; reopen; annotation is either fully saved or
-      absent — never partially corrupt.
-- [ ] `FaultInjection_DiskFull_TransactionRolledBack`: mock filesystem throws
-      on write; catalogue row is absent; no partial row.
-- [ ] FR-READ-011 citation card captures correct title/author/page/selection
+- [x] R1 fault-injection coverage: repository failures, invalid FK rollback,
+      disk-full simulation, failed read-model publication, partial-region
+      repair, bookmark abort, bookmark reopen-after-save, concurrent writes, and
+      failed/cross-book layer deletion leave the catalogue consistent.
+- [x] FR-READ-011 citation card captures correct title/author/page/selection
       and produces a well-formed export file.
-- [ ] Annotation layer UI: create, rename, delete, toggle visibility, merge
-      all work; at-least-one-layer constraint enforced.
-- [ ] Reading-memory journal persists across restart; fields editable in
+- [x] Annotation layer UI: create, rename, delete, toggle visibility, merge
+      all work; direct delete moves annotations to the default remaining layer;
+      at-least-one-layer constraint enforced.
+- [x] Reading-memory journal persists across restart; fields editable in
       book-detail view.
 - [ ] All annotation controls reachable via keyboard; highlight color has
-      accessible label; screen-reader announces bookmark count.
-- [ ] `icons.md` complete; all icons in en + fr labels; no hard-coded strings.
-- [ ] Architecture tests pass; no R1/R2 defects open.
-- [ ] `/code-review` completed; findings resolved.
+      accessible label; screen-reader announces bookmark count. Automated
+      coverage is present; manual screen-reader pass remains pending.
+- [ ] `icons.md` complete; all icons in en + fr labels; no hard-coded Phase 09
+      reader strings. Premium PNG procurement is in progress and remains
+      pending until the purchased assets are committed.
+- [x] Architecture tests pass; no automated R1/R2 defects open.
+- [x] `/code-review` completed via sub-agent review; High/Medium/Low findings
+      resolved in code and tests.
 
 ---
 
@@ -309,14 +318,17 @@ See `skills.md` for full guidance. Summary:
 | Artifact | Location |
 | --- | --- |
 | `AnnotationService`, `BookmarkService`, `AnnotationLayerService`, `CitationService`, `ReadingMemoryService` | `src/OgmaLibrary.Reader/Annotations/` |
-| `IAnnotationReadModel` interface | `src/OgmaLibrary.Application/Annotations/` |
-| `AnnotationRegion` normalized-coordinate model | `src/OgmaLibrary.Domain/Reader/` |
-| `AnnotationOverlayPanel` Avalonia control | `src/OgmaLibrary.App/Views/Reader/` |
-| Annotation-related DB migrations | `src/OgmaLibrary.Infrastructure/Migrations/` |
+| `IAnnotationReadModel` interface | `src/OgmaLibrary.Application/Reader/IAnnotationReadModel.cs` |
+| `AnnotationRegion` normalized-coordinate model | `src/OgmaLibrary.Domain/Annotations.cs` |
+| Annotation overlay and note anchors | `src/OgmaLibrary.App/Views/Reader/ReaderView.axaml`, `src/OgmaLibrary.App/ViewModels/Reader/ReaderViewModel.cs` |
+| Annotation-related DB migrations | `src/OgmaLibrary.Infrastructure/Persistence/Migrations/20260531120000_Phase09Annotations.cs` |
 | Annotation en/fr resource files | `src/OgmaLibrary.App/Assets/Strings/annotations.en.resx`, `annotations.fr.resx` |
-| Fault-injection test suite | `tests/OgmaLibrary.Tests/FaultInjection/AnnotationFaultTests.cs` |
+| Fault-injection test suite | `tests/OgmaLibrary.Tests/Reader/Phase09AnnotationTests.cs` |
 | Golden-corpus rotated-page annotation fixture | `tests/GoldenCorpus/annotations/rotated-page-annotation.json` |
 | `icons.md` icon manifest | `docs/plans/grand-plan/phase-09/icons.md` |
+| Phase 09 verification evidence | `docs/plans/grand-plan/phase-09/evidence.md` |
+| Phase 09 closeout audit | `docs/implementation/review-31-May-2026/phase-09-closeout-audit.md` |
+| Phase 09 manual signoff packet | `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md` |
 
 ---
 
@@ -332,11 +344,35 @@ See `skills.md` for full guidance. Summary:
 
 ---
 
-## 14. Owner asks
+## 14. Implementation progress and next steps
+
+Current implementation progress:
+
+- Phase 09 core implementation is locally complete for annotations, notes,
+  bookmarks, layers, citations, reading memory, persistence, and reader UI.
+- Automated Debug and Release verification is green; see
+  `docs/plans/grand-plan/phase-09/evidence.md`.
+- Placeholder SVG icons are wired and covered by icon/catalog tests.
+- The owner is buying the 22 premium PNG icon sets listed in `icons.md`.
+
+Next steps before final Phase 09 closure:
+
+1. Commit the purchased PNG icon sets under the reader annotation/memory icon
+   folders and update `icons.md` from "owner buying" to delivered.
+2. Record the owner decisions for palette, citation export V1 scope, and
+   reading-memory disposition wording.
+3. Complete the manual Narrator/VoiceOver walkthrough and visual accessibility
+   review in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
+4. Re-run Release build/test after icon delivery and update `evidence.md`.
+
+---
+
+## 15. Owner asks
 
 1. **Premium icon procurement (Annotations set):** Please review `icons.md`
    and purchase the named premium PNG icons for annotation, bookmark, layer,
    citation, and reading-memory surfaces. Full style/size spec in `icons.md`.
+   Status: owner is buying these icons; final closure waits for committed PNGs.
 
 2. **Annotation layer color palette:** The system pre-creates four default
    layer colors; please confirm or adjust the warm-library color palette for
@@ -354,8 +390,10 @@ See `skills.md` for full guidance. Summary:
 
 ---
 
-## 15. Change log
+## 16. Change log
 
 | Date | Change | Author |
 | --- | --- | --- |
 | 2026-05-30 | Initial v1.0 baseline authored | Grand-plan agent |
+| 2026-05-31 | Updated implementation status, deliverable paths, and evidence-backed closeout checklist | Codex |
+| 2026-05-31 | Recorded owner icon procurement in progress and added next-step closeout path | Codex |

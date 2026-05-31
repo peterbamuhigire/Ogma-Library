@@ -62,6 +62,12 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IReadingProgressRepository, ReadingProgressRepository>();
         services.AddSingleton<IAuditRepository, AuditRepository>();
 
+        // Phase 09 — Annotations, Bookmarks, Layers, Reading Memory.
+        services.AddSingleton<IBookmarkRepository, BookmarkRepository>();
+        services.AddSingleton<IAnnotationV2Repository, AnnotationV2Repository>();
+        services.AddSingleton<IAnnotationLayerRepository, AnnotationLayerRepository>();
+        services.AddSingleton<IReadingMemoryRepository, ReadingMemoryRepository>();
+
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));
 

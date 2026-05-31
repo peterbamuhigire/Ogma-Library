@@ -48,6 +48,9 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
     public ReaderSession? CurrentSession => _currentSession;
 
     /// <inheritdoc />
+    public IPdfRenderer? CurrentRenderer => _currentRenderer;
+
+    /// <inheritdoc />
     public IObservable<ReaderEvent> Events => _events;
 
     /// <inheritdoc />
@@ -89,7 +92,8 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
             progress.ScrollOffset,
             progress.ZoomMode,
             progress.ZoomPercent,
-            progress.DisplayMode);
+            progress.DisplayMode,
+            GetPageRotationDegrees(renderer, startPage));
 
         _currentSession = session;
 
@@ -142,7 +146,10 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
 
         pageIndex = Math.Clamp(pageIndex, 0, _currentSession.PageCount - 1);
 
-        _currentSession = _currentSession.WithPage(pageIndex, scrollOffset);
+        _currentSession = _currentSession.WithPage(
+            pageIndex,
+            scrollOffset,
+            GetPageRotationDegrees(_currentRenderer, pageIndex));
 
         // Cancel stale renders for pages outside the ±1 window.
         _renderCache.CancelOutside(
@@ -244,6 +251,17 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
         var pages = GetPrefetchRange(session);
         var request = new RenderRequest(800);
         _renderCache.Prefetch(session.BookId, pages, request);
+    }
+
+    private static int GetPageRotationDegrees(IPdfRenderer? renderer, int pageIndex)
+    {
+        if (renderer is null)
+        {
+            return 0;
+        }
+
+        int rotation = renderer.GetPageRotationDegrees(pageIndex);
+        return ((rotation % 360) + 360) % 360;
     }
 
     private static IEnumerable<int> GetPrefetchRange(ReaderSession session)

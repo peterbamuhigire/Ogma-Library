@@ -77,6 +77,7 @@ public sealed class SidecarServiceTests : IDisposable
     [InlineData(SidecarClass.Embeddings, "bin")]
     [InlineData(SidecarClass.Backups, "pdf")]
     [InlineData(SidecarClass.Export, "zip")]
+    [InlineData(SidecarClass.CitationExports, "txt")]
     public void SidecarService_AllClasses_HaveCorrectExtension(SidecarClass cls, string expectedExtension)
     {
         string relative = _service.ResolveRelative(SampleHash, cls);
