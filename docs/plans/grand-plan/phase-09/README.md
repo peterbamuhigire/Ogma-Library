@@ -358,6 +358,13 @@ Current implementation progress:
 - Direct PDF open now preserves the existing library root for external files
   while still queueing metadata/thumbnail work for rematched books and allowing
   PDF metadata write-back for the exact registered writable external file.
+- Direct PDF metadata completion now refreshes the running shell catalogue,
+  shelf sidebar, and loaded detail projection so extracted title/author data
+  appears without restarting or forcing a new query.
+- Startup catalogue migration now verifies that model tables still exist even
+  when EF migration history reports the database current; missing tables such
+  as `BookFiles` are backed up and repaired before direct-PDF registration or
+  shell catalogue queries run.
 - The book-detail panel now exposes selected-book deterministic metadata
   enrichment using the existing no-AI provider pipeline, refreshes provider
   results into the detail projection, and displays provider provenance rows.
@@ -402,3 +409,4 @@ Next steps before final Phase 09 closure:
 | 2026-05-31 | Updated implementation status, deliverable paths, and evidence-backed closeout checklist | Codex |
 | 2026-05-31 | Recorded owner icon procurement in progress and added next-step closeout path | Codex |
 | 2026-05-31 | Replaced Phase 09 placeholder icons with delivered premium SVG assets | Codex |
+| 2026-05-31 | Recorded live shell refresh after direct-PDF metadata completion and startup repair for missing catalogue model tables | Codex |
