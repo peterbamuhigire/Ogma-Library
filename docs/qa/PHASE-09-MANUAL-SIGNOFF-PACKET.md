@@ -1,6 +1,7 @@
 # Phase 09 Manual Signoff Packet
 
 Date prepared: 2026-05-31
+Last updated: 2026-06-01
 
 Purpose: collect the remaining human evidence required before Phase 09 can be
 marked fully closed. Automated implementation, build, format, architecture, UI,
@@ -38,7 +39,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 316 total tests: Core 231, UI 70, Architecture 15.
+Release tests pass 317 total tests: Core 232, UI 70, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -99,7 +100,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 72 direct-PDF and metadata regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 13 migration/direct-PDF regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 231, UI 70, Architecture 15 |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 232, UI 70, Architecture 15 |
 
 ## Closure Rule
 

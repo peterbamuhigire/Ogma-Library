@@ -2,7 +2,8 @@
 
 Status: automated evidence present; manual assistive-technology pass pending.
 
-Date: 2026-05-31
+Date prepared: 2026-05-31
+Last updated: 2026-06-01
 
 Manual runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`
 
@@ -41,10 +42,10 @@ owner-controlled release folder named in the row.
 Latest focused command:
 
 ```powershell
-dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --no-build --filter "FullyQualifiedName~IconCatalogPhase09Tests|FullyQualifiedName~ReaderViewRenderTests"
+dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ReaderViewRenderTests|FullyQualifiedName~IconCatalogPhase09Tests"
 ```
 
-Result: passed, 59 tests.
+Result: passed, 59 Phase 09 UI/resource tests.
 
 Latest full UI release command:
 
