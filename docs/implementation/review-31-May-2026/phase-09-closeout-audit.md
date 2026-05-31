@@ -29,7 +29,7 @@ owner or manual evidence. Premium SVG icon assets have been delivered.
 The current Phase 09 evidence record is
 `docs/plans/grand-plan/phase-09/evidence.md`.
 
-Recorded local verification. Newer rows supersede earlier aggregate test totals:
+Recorded local verification. The latest full-suite aggregate is authoritative:
 
 | Command | Result |
 | --- | --- |
@@ -54,9 +54,6 @@ Recorded local verification. Newer rows supersede earlier aggregate test totals:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 10 migration/direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 15 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 65 UI tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 65, Core 226 |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 66, Core 227 |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 67, Core 227 |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 67, Core 228 |
 | `.github/workflows/ci.yml` | Configured: `windows-latest` + `macos-latest` matrix runs restore, format, Release build, and Release tests on push/PR |
 

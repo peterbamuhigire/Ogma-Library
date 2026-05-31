@@ -15,7 +15,7 @@ and owner confirmations. Premium SVG icons have been delivered and committed.
 
 ## Automated verification
 
-Recorded local commands. Newer rows supersede earlier aggregate test totals:
+Recorded local commands. The latest full-suite aggregate is authoritative:
 
 | Command | Result |
 | --- | --- |
@@ -40,9 +40,6 @@ Recorded local commands. Newer rows supersede earlier aggregate test totals:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 10 migration/direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 15 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 65 UI tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 65, Core 226 |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 66, Core 227 |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 67, Core 227 |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 15, UI 67, Core 228 |
 | `.github/workflows/ci.yml` | Configured: `windows-latest` + `macos-latest` matrix runs `dotnet restore`, `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore`, `dotnet build OgmaLibrary.sln --configuration Release --no-restore`, and `dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal` on push/PR |
 
@@ -52,7 +49,7 @@ Recorded local commands. Newer rows supersede earlier aggregate test totals:
 | --- | --- | --- |
 | Annotation/bookmark/layer persistence | `tests/OgmaLibrary.Tests/Reader/Phase09AnnotationTests.cs`; null bookmark labels remain presentation-localized | Automated coverage present |
 | End-to-end restart smoke | `Phase09_EndToEndRestartSmoke_PersistsReaderArtifacts`; persists bookmark, layer rename, highlight, note, reading memory, and citation export through a real SQLite reopen | Automated coverage present |
-| Closeout audit | `docs/implementation/review-31-May-2026/phase-09-closeout-audit.md`; independent sub-agent audit findings for direct-PDF runtime refresh and stale evidence were addressed | Locally complete; manual/owner gates remain |
+| Closeout audit | `docs/implementation/review-31-May-2026/phase-09-closeout-audit.md`; independent sub-agent audit findings for direct-PDF runtime refresh, startup schema repair, and stale evidence were addressed | Locally complete; manual/owner gates remain |
 | Manual signoff packet | `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`; exact reviewer steps, evidence fields, and owner decisions documented | Ready for reviewer/owner completion |
 | Code-review findings | Sub-agent review findings addressed: reader VM continuations stay on UI context; reader async handlers await VM work; cross-book layer delete is ignored; direct layer delete moves annotations to the default remaining layer; citation export fallback strings localize through `ILocalizationService` | Resolved locally |
 | Rotated-page annotation oracle | `tests/GoldenCorpus/annotations/rotated-page-annotation.json` and `Annotation_RotatedPage_Reload_KeepsScreenRectWithinOnePixel` | Automated coverage present |
