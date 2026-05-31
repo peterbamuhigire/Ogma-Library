@@ -1,4 +1,5 @@
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Tests.Catalogue;
@@ -74,6 +75,44 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
         var locator = new BookFileLocator(context, settings);
         Assert.Equal(pdfPath, await locator.LocateAsync(bookId, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_ExistingMatch_QueuesMetadataAndThumbnailJobs()
+    {
+        string libraryRoot = Path.Combine(_tempRoot, "library");
+        string externalRoot = Path.Combine(_tempRoot, "external");
+        Directory.CreateDirectory(libraryRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        string pdfPath = Path.Combine(externalRoot, "existing.pdf");
+        byte[] content = "%PDF-1.4\n% existing direct open test\n"u8.ToArray();
+        await File.WriteAllBytesAsync(pdfPath, content);
+        string sha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(content));
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "EXISTING01",
+            Status = 1,
+            Sha256Hash = sha256,
+        });
+        await context.SaveChangesAsync();
+
+        var settings = new LibrarySettingsService(_tempRoot);
+        await settings.SetLibraryRootAsync(libraryRoot);
+
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context));
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        Assert.Equal("EXISTING01", bookId);
+        Assert.Equal(0, context.Books.Single(b => b.BookId == bookId).Status);
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "MetadataExtraction" && j.Payload == pdfPath);
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "ThumbnailGeneration" && j.Payload == pdfPath);
     }
 
     [Fact]

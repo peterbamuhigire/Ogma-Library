@@ -206,6 +206,60 @@ public sealed class PdfWriteBackTests
             () => svc.PrepareBackupAsync("WB03", @"C:\EvilPath\evil.pdf"));
     }
 
+    [Fact]
+    public async Task PdfWriteBack_RegisteredExternalDirectPdf_AllowsWriteBack()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"ogma-wb-external-{Guid.NewGuid():N}");
+        string libraryRoot = Path.Combine(tempDir, "library");
+        string externalRoot = Path.Combine(tempDir, "external");
+        Directory.CreateDirectory(libraryRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        string originalPath = Path.Combine(externalRoot, "outside.pdf");
+        await File.WriteAllBytesAsync(originalPath, MinimalPdfContent);
+
+        try
+        {
+            using var context = CatalogueTestHelper.CreateInMemoryContext();
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "WB04",
+                Status = 0,
+                RelativePath = originalPath.Replace(Path.DirectorySeparatorChar, '/'),
+            });
+            context.BookFiles.Add(new Infrastructure.Catalogue.Entities.BookFileRow
+            {
+                BookId = "WB04",
+                RelativePath = originalPath.Replace(Path.DirectorySeparatorChar, '/'),
+                FileStatus = 0,
+                LastSeenUtc = DateTimeOffset.UtcNow,
+            });
+            await context.SaveChangesAsync();
+
+            var sidecar = new FakeSidecarService(libraryRoot);
+            var svc = new PdfWriteBackService(context, sidecar, libraryRoot);
+
+            BackupToken token = await svc.PrepareBackupAsync("WB04", originalPath);
+            Assert.StartsWith(externalRoot, token.BackupAbsolutePath, StringComparison.OrdinalIgnoreCase);
+
+            var proposals = new[] { new AcceptedFieldProposal("Title", "External Title", "GoogleBooks", 0.85, false) };
+            bool succeeded = await svc.WriteAsync("WB04", proposals, token);
+
+            Assert.True(succeeded);
+            using (var written = UglyToad.PdfPig.PdfDocument.Open(originalPath))
+            {
+                Assert.Equal("External Title", written.Information.Title);
+            }
+
+            Assert.Contains(context.AuditEvents, e => e.EventType == "WriteBackSucceeded" && e.EntityId == "WB04");
+            Assert.NotNull(context.Books.Single(b => b.BookId == "WB04").Sha256Hash);
+        }
+        finally
+        {
+            DeleteDirectory(tempDir);
+        }
+    }
+
     private static void DeleteDirectory(string path)
     {
         try

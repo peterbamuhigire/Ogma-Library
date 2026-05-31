@@ -355,6 +355,9 @@ Current implementation progress:
   metadata enrichment, scan health, catalogue write, audit, and legacy
   repository paths lease factory-created EF contexts per operation instead of
   sharing a singleton unit-of-work.
+- Direct PDF open now preserves the existing library root for external files
+  while still queueing metadata/thumbnail work for rematched books and allowing
+  PDF metadata write-back for the exact registered writable external file.
 
 Next steps before final Phase 09 closure:
 

@@ -144,6 +144,12 @@ public sealed class BookRegistrationService : IBookRegistrationService
             book.MtimeTicks = discovered.MtimeTicks;
         }
 
+        TryAddJob(context, bookId, "MetadataExtraction",
+            ComputeIdempotencyKey(bookId, "MetadataExtraction"), discovered.AbsolutePath);
+
+        TryAddJob(context, bookId, "ThumbnailGeneration",
+            ComputeIdempotencyKey(bookId, "ThumbnailGeneration"), discovered.AbsolutePath);
+
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

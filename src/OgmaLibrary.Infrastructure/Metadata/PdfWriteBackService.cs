@@ -86,7 +86,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(absoluteFilePath);
-        string activeLibraryRoot = await ValidatePathUnderLibraryRootAsync(absoluteFilePath, cancellationToken)
+        string backupRoot = await ValidateWriteTargetAsync(bookId, absoluteFilePath, cancellationToken)
             .ConfigureAwait(false);
 
         string sha256 = await ComputeSha256Async(absoluteFilePath, cancellationToken)
@@ -97,7 +97,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string backupFileName = $"{timestamp}_pre_writeback_{sha8}.pdf";
 
         // Resolve sidecar path using the sha256 of the file content.
-        string backupDir = Path.Combine(activeLibraryRoot, ".ogma", "backups");
+        string backupDir = Path.Combine(backupRoot, ".ogma", "backups");
         Directory.CreateDirectory(backupDir);
         string backupPath = Path.Combine(backupDir, backupFileName);
 
@@ -173,7 +173,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentNullException.ThrowIfNull(acceptedProposals);
         ArgumentNullException.ThrowIfNull(backupToken);
-        await ValidatePathUnderLibraryRootAsync(backupToken.OriginalAbsolutePath, cancellationToken)
+        await ValidateWriteTargetAsync(bookId, backupToken.OriginalAbsolutePath, cancellationToken)
             .ConfigureAwait(false);
 
         string originalPath = backupToken.OriginalAbsolutePath;
@@ -367,25 +367,30 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         return Convert.ToHexStringLower(hashBytes);
     }
 
-    private async Task<string> ValidatePathUnderLibraryRootAsync(
+    private async Task<string> ValidateWriteTargetAsync(
+        string bookId,
         string absolutePath,
         CancellationToken cancellationToken)
     {
         string libraryRoot = await GetActiveLibraryRootAsync(cancellationToken).ConfigureAwait(false);
         string fullPath = Path.GetFullPath(absolutePath);
         string fullRoot = Path.GetFullPath(libraryRoot);
-        string rootWithSeparator = fullRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? fullRoot
-            : fullRoot + Path.DirectorySeparatorChar;
 
-        if (!string.Equals(fullPath, fullRoot, StringComparison.OrdinalIgnoreCase) &&
-            !fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
+        if (IsUnderRoot(fullPath, fullRoot))
         {
-            throw new InvalidOperationException(
-                $"Write-back path '{absolutePath}' is outside the library root '{fullRoot}'.");
+            return fullRoot;
         }
 
-        return fullRoot;
+        if (await IsRegisteredAbsoluteFileAsync(bookId, fullPath, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return Path.GetDirectoryName(fullPath)
+                ?? throw new InvalidOperationException(
+                    $"Write-back path '{absolutePath}' has no containing directory.");
+        }
+
+        throw new InvalidOperationException(
+            $"Write-back path '{absolutePath}' is outside the library root '{fullRoot}' and is not the registered absolute file for book '{bookId}'.");
     }
 
     private async Task<string> GetActiveLibraryRootAsync(CancellationToken cancellationToken)
@@ -404,4 +409,53 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
 
         return _libraryRoot;
     }
+
+    private async Task<bool> IsRegisteredAbsoluteFileAsync(
+        string bookId,
+        string fullPath,
+        CancellationToken cancellationToken)
+    {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<string> storedPaths = await context.BookFiles
+            .AsNoTracking()
+            .Where(f => f.BookId == bookId && f.FileStatus == 0)
+            .Select(f => f.RelativePath)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (string storedPath in storedPaths)
+        {
+            string platformPath = storedPath.Replace('/', Path.DirectorySeparatorChar);
+            if (!Path.IsPathFullyQualified(platformPath))
+            {
+                continue;
+            }
+
+            if (string.Equals(
+                Path.GetFullPath(platformPath),
+                fullPath,
+                PathComparison))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsUnderRoot(string fullPath, string fullRoot)
+    {
+        string rootWithSeparator = Path.TrimEndingDirectorySeparator(fullRoot)
+            + Path.DirectorySeparatorChar;
+
+        return string.Equals(fullPath, fullRoot, PathComparison) ||
+            fullPath.StartsWith(rootWithSeparator, PathComparison);
+    }
+
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 }
