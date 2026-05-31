@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 
 namespace OgmaLibrary.Infrastructure.Catalogue;
@@ -10,16 +11,28 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// </summary>
 public sealed class CatalogueReadModel : ICatalogueReadModel
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueReadModel"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public CatalogueReadModel(CatalogueDbContext context)
+    internal CatalogueReadModel(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="CatalogueReadModel"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    [ActivatorUtilitiesConstructor]
+    public CatalogueReadModel(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -27,7 +40,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         CatalogueFilter filter,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var query = _context.Books.AsNoTracking();
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var query = context.Books.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(filter.TitleContains))
         {
@@ -94,7 +110,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        var result = await _context.Books
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var result = await context.Books
             .AsNoTracking()
             .Where(b => b.BookId == bookId)
             .Select(b => new
@@ -171,7 +190,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var shelves = await _context.Shelves
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var shelves = await context.Shelves
             .AsNoTracking()
             .OrderBy(s => s.DisplayOrder)
             .ThenBy(s => s.Name)
@@ -202,7 +224,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        var result = await _context.ReadingProgress
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var result = await context.ReadingProgress
             .AsNoTracking()
             .Where(r => r.BookId == bookId)
             .Select(r => new { r.BookId, r.CurrentPage, r.CompletionPct, r.LastReadUtc, r.Status })
@@ -217,5 +242,38 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 CompletionPct: result.CompletionPct,
                 LastReadUtc: result.LastReadUtc,
                 Status: result.Status);
+    }
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
     }
 }

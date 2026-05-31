@@ -43,6 +43,7 @@ Latest recorded local verification:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests"` | Passed: 7 startup/direct-PDF/job recovery regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests\|FullyQualifiedName~Ingestion\|FullyQualifiedName~BookIdentityServiceTests"` | Passed: 31 startup/direct-PDF/ingestion identity regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Phase09AnnotationTests\|FullyQualifiedName~ReadingProgressServiceTests\|FullyQualifiedName~ReaderSessionServiceTests"` | Passed: 46 reader persistence/session regression tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShelfTests\|FullyQualifiedName~Phase09AnnotationTests\|FullyQualifiedName~ReaderSessionServiceTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 49 catalogue/read-model/citation/session/direct-open regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 65 UI tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 219 |
 
@@ -63,6 +64,7 @@ Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 | Desktop hosted-service lifecycle | Covered by startup lifecycle regression; `BookIngestionWorker` now starts in the Avalonia app instead of only being registered for a generic host that the app does not create. |
 | Foreground/background context isolation | Covered by distinct-context registration regression and ingestion identity/direct-open regression set; direct PDF registration and background job polling no longer share one singleton EF Core unit-of-work. |
 | Phase 09 reader repository context isolation | Annotation, bookmark, layer, reading-memory, and reading-progress repositories use factory-created contexts per method; verified by reader persistence/session and full UI regression suites. |
+| Reader-facing read-path context isolation | Catalogue read model and book-file locator use factory-created contexts per operation; verified by catalogue/read-model, citation, reader-session, direct-open, and full UI suites. |
 
 ## Closeout Position
 
