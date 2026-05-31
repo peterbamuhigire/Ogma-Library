@@ -27,8 +27,8 @@ any PDF including rotated pages.
 | **Estimate** | 3 engineer-weeks |
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 4 (Reader — annotations) |
-| **Platforms** | Windows 10+ + macOS 12+; CI on both |
-| **Status** | Locally implementation-complete; automated gates green; premium SVG icons delivered; owner confirmations and manual accessibility/visual signoff pending |
+| **Platforms** | Windows 10+ + macOS 12+; CI workflow targets both; latest remote run result unavailable from this environment |
+| **Status** | Locally implementation-complete; local automated gates green; CI workflow configured with remote run result unavailable; premium SVG icons delivered; owner confirmations and manual accessibility/visual signoff pending |
 | **Depends on** | Phase 08 (Reader Core — `ReaderView`, `IPdfRenderer`, text layer) |
 | **Unblocks** | Phase 10 (FTS5 index — annotation text is indexed), Phase 11 (annotation text in embeddings), Phase 13 (reading memory feeds AI advisor) |
 
