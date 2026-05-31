@@ -17,7 +17,7 @@ All nine test layers applied to Annotations, Bookmarks & Reading Memory.
 | 7 — 3D | No | N/A |
 | 8 — Performance | Yes — overlay overhead <= 10 ms; page-turn regression with 100 annotations | xUnit stopwatch gates |
 | 9 — Packaging | No | N/A |
-| Manual | Yes — screen-reader pass; highlight color accessibility | Documented below |
+| Manual | Yes — screen-reader pass; highlight color accessibility | Recorded in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md` |
 
 ---
 
@@ -133,19 +133,19 @@ BenchmarkDotNet, so the checks run in the normal local/CI test path.
 
 ---
 
-## 9. Manual test checklist
+## 9. Manual signoff source of truth
 
-- [ ] Create a highlight on a rotated page; restart the application; confirm
-      highlight appears at the same visual position.
-- [ ] Create 5 bookmarks across different pages; kill the app via Task Manager;
-      reopen; confirm all 5 bookmarks present in the panel.
-- [ ] Add a note; type text; click elsewhere (focus-out); wait 1 s; restart;
-      confirm note text preserved.
-- [ ] In French locale: open annotation panel; confirm all labels in French;
-      confirm layer name input accepts accented characters (é, è, ê).
-- [ ] Under VoiceOver (macOS): focus a highlight; confirm layer name and page
-      number announced.
-- [ ] Delete a layer with annotations; confirm annotations moved to default
-      layer (not deleted); reload; annotations visible under default layer.
-- [ ] Cite a passage with Ctrl+Shift+C; copy to clipboard; paste into a text
-      editor; confirm format matches specification.
+Manual Phase 09 signoff is collected in
+`docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`, with assistive-technology details
+also summarized in `docs/qa/PHASE-09-A11Y-SIGNOFF.md`.
+
+This test plan defines the required manual coverage categories. The signoff
+packet is the authoritative place to mark reviewer/date/evidence fields because
+it includes the expanded closeout checks added during implementation:
+
+- rotated-page highlight persistence;
+- bookmark, note, French-locale, layer-delete, and citation workflows;
+- direct external PDF open plus metadata/write-back inspection;
+- deterministic no-AI metadata enrichment from the book-detail panel;
+- Narrator/VoiceOver, keyboard-only, color, and pseudolocale visual reviews;
+- owner decisions for palette, citation export scope, and reading-memory wording.
