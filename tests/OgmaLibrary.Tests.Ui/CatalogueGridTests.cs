@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -7,10 +11,6 @@ using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Infrastructure.Localization;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;

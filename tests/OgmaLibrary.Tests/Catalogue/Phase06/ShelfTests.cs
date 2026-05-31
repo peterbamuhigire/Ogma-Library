@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
-using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Catalogue.Phase06;

@@ -1,9 +1,9 @@
-using OgmaLibrary.Application.Catalogue;
-using OgmaLibrary.App.ViewModels.Catalogue;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.Application.Catalogue;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Catalogue.Phase06;
