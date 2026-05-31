@@ -29,7 +29,7 @@ owner-gated:
 | Bookmark sorting | `23abfaa feat: add bookmark panel sorting`; `ReaderViewModel_BookmarkSortOptions_ReorderByPageOrCreationDate` covers page/date sorting |
 | Reading-memory disposition label | `29fa18d fix: expose reading memory disposition range`; focused reader UI tests cover the announced `Disposition (1-5)` label and existing validation |
 | Active writable layer marker | `ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` covers the visible and announced active-layer marker |
-| Direct PDF open hardening | `DirectPdfOpen_FuzzyMatch_RegistersSelectedPdfAsNewBook`; migration/direct-open focused slice covers missing-table repair and explicit selected-file registration behavior |
+| Direct PDF open hardening | `DirectPdfOpen_FuzzyMatch_RegistersSelectedPdfAsNewBook`; `DirectPdfOpen_SameHashAtUnregisteredPath_RegistersSelectedPdfAsNewBook`; migration/direct-open focused slice covers missing-table repair and explicit selected-file registration behavior |
 
 ## Remote CI Status Check
 
@@ -54,7 +54,7 @@ them:
 | Bookmark panel did not expose the planned page/date sort selector. | Added a localized bookmark sort selector with page-number default and creation-date alternate ordering. |
 | Reading-memory disposition field did not visibly include the planned 1-5 range in its label. | Updated English/French runtime strings and accessibility tests to announce `Disposition (1-5)`. |
 | Layer sidebar did not visibly identify which layer receives new annotations. | Added a localized active writable layer marker and automation label that follows the first visible layer. |
-| Direct PDF open could still surface `no such table: BookFiles` in damaged catalogues and weak/fuzzy selected-file matches could update an existing book. | Forced direct-open DI to receive the catalogue migrator, retries repair on SQLite missing-table errors, and registers weak/fuzzy selected PDFs as new books unless there is an exact path/hash match. |
+| Direct PDF open could still surface `no such table: BookFiles` in damaged catalogues and selected-file identity matches could update an existing book that did not already own the selected path. | Forced direct-open DI to receive the catalogue migrator, retries repair on SQLite missing-table errors, and registers selected PDFs as new books unless the selected path already has a present `BookFiles` row. |
 
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.

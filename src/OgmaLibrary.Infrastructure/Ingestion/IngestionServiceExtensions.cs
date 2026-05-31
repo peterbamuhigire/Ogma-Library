@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
@@ -37,7 +38,8 @@ public static class IngestionServiceExtensions
             sp.GetRequiredService<ILibrarySettingsService>(),
             sp.GetRequiredService<IBookIdentityService>(),
             sp.GetRequiredService<IBookRegistrationService>(),
-            sp.GetRequiredService<CatalogueMigrator>()));
+            sp.GetRequiredService<CatalogueMigrator>(),
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
         services.AddSingleton<IMetadataExtractionService, MetadataExtractionService>();
         services.AddSingleton<IThumbnailService, ThumbnailService>();
         services.AddSingleton<ISpineService, SpineService>();

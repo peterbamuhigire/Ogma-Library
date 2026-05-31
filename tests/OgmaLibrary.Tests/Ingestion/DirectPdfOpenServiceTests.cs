@@ -31,7 +31,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var settings = new LibrarySettingsService(_tempRoot);
         var identity = new BookIdentityService(context);
         var registration = new BookRegistrationService(context);
-        var service = new DirectPdfOpenService(settings, identity, registration);
+        var service = new DirectPdfOpenService(settings, identity, registration, context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
 
@@ -65,7 +65,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var service = new DirectPdfOpenService(
             settings,
             new BookIdentityService(context),
-            new BookRegistrationService(context));
+            new BookRegistrationService(context),
+            context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
 
@@ -100,6 +101,13 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
             Status = 1,
             Sha256Hash = sha256,
         });
+        context.BookFiles.Add(new BookFileRow
+        {
+            BookId = "EXISTING01",
+            RelativePath = pdfPath.Replace(Path.DirectorySeparatorChar, '/'),
+            FileStatus = 0,
+            LastSeenUtc = DateTimeOffset.UtcNow.AddDays(-1),
+        });
         await context.SaveChangesAsync();
 
         var settings = new LibrarySettingsService(_tempRoot);
@@ -108,7 +116,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var service = new DirectPdfOpenService(
             settings,
             new BookIdentityService(context),
-            new BookRegistrationService(context));
+            new BookRegistrationService(context),
+            context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
 
@@ -173,7 +182,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var service = new DirectPdfOpenService(
             settings,
             new BookIdentityService(context),
-            new BookRegistrationService(context));
+            new BookRegistrationService(context),
+            context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
 
@@ -222,7 +232,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var service = new DirectPdfOpenService(
             settings,
             new BookIdentityService(context),
-            new BookRegistrationService(context));
+            new BookRegistrationService(context),
+            context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
 
@@ -232,6 +243,56 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
         var file = context.BookFiles.Single(f => f.BookId == bookId);
         Assert.Equal(pdfPath.Replace(Path.DirectorySeparatorChar, '/'), file.RelativePath);
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_SameHashAtUnregisteredPath_RegistersSelectedPdfAsNewBook()
+    {
+        string libraryRoot = Path.Combine(_tempRoot, "library");
+        string externalRoot = Path.Combine(_tempRoot, "external");
+        Directory.CreateDirectory(libraryRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        byte[] content = "%PDF-1.4\n% duplicate direct open test\n"u8.ToArray();
+        string existingPath = Path.Combine(libraryRoot, "already-known.pdf");
+        string selectedPath = Path.Combine(externalRoot, "selected-copy.pdf");
+        await File.WriteAllBytesAsync(existingPath, content);
+        await File.WriteAllBytesAsync(selectedPath, content);
+        string sha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(content));
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "EXISTING-HASH",
+            Status = 0,
+            Sha256Hash = sha256,
+        });
+        context.BookFiles.Add(new BookFileRow
+        {
+            BookId = "EXISTING-HASH",
+            RelativePath = "already-known.pdf",
+            FileStatus = 0,
+            LastSeenUtc = DateTimeOffset.UtcNow.AddDays(-1),
+        });
+        await context.SaveChangesAsync();
+
+        var settings = new LibrarySettingsService(_tempRoot);
+        await settings.SetLibraryRootAsync(libraryRoot);
+
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context),
+            context: context);
+
+        string bookId = await service.OpenAsync(selectedPath);
+
+        Assert.NotEqual("EXISTING-HASH", bookId);
+        Assert.Equal(2, context.Books.Count());
+        Assert.Equal("already-known.pdf", context.BookFiles.Single(f => f.BookId == "EXISTING-HASH").RelativePath);
+        Assert.Equal(
+            selectedPath.Replace(Path.DirectorySeparatorChar, '/'),
+            context.BookFiles.Single(f => f.BookId == bookId).RelativePath);
     }
 
     [Fact]
@@ -245,7 +306,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var service = new DirectPdfOpenService(
             settings,
             new BookIdentityService(context),
-            new BookRegistrationService(context));
+            new BookRegistrationService(context),
+            context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
         var extraction = new MetadataExtractionService(context);
@@ -296,7 +358,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
             settings,
             new BookIdentityService(context),
             new BookRegistrationService(context),
-            new CatalogueMigrator(context));
+            new CatalogueMigrator(context),
+            context: context);
 
         string bookId = await service.OpenAsync(pdfPath);
 
@@ -318,7 +381,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var service = new DirectPdfOpenService(
             settings,
             new BookIdentityService(context),
-            new BookRegistrationService(context));
+            new BookRegistrationService(context),
+            context: context);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.OpenAsync(textPath));
     }
