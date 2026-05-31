@@ -689,6 +689,14 @@ public sealed class ReaderViewRenderTests
             Assert.Contains(
                 window.GetVisualDescendants().OfType<Button>(),
                 button => GetAutomationName(button) == "Delete layer");
+            viewModel
+                .SetLayerVisibilityAsync(viewModel.Layers[0], isVisible: false, CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<CheckBox>(),
+                box => GetAutomationName(box) == "Layer hidden");
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();

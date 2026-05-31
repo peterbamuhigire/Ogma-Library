@@ -1429,7 +1429,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 layer.Id,
                 layer.Name,
                 layer.Color,
-                layer.IsVisible));
+                layer.IsVisible,
+                _localization["Layer.Visible"],
+                _localization["Layer.Hidden"]));
         }
 
         RefreshLayerFilterOptions();
@@ -1775,12 +1777,20 @@ public sealed class LayerListItem : INotifyPropertyChanged
     private string _name;
 
     /// <summary>Creates a new layer list item.</summary>
-    public LayerListItem(string id, string name, string color, bool isVisible)
+    public LayerListItem(
+        string id,
+        string name,
+        string color,
+        bool isVisible,
+        string visibleLabel,
+        string hiddenLabel)
     {
         Id = id;
         _name = name;
         Color = color;
         IsVisible = isVisible;
+        VisibleLabel = visibleLabel;
+        HiddenLabel = hiddenLabel;
     }
 
     /// <inheritdoc />
@@ -1808,6 +1818,15 @@ public sealed class LayerListItem : INotifyPropertyChanged
 
     /// <summary>Whether the layer is currently visible.</summary>
     public bool IsVisible { get; }
+
+    /// <summary>Localized automation label for a visible layer toggle.</summary>
+    public string VisibleLabel { get; }
+
+    /// <summary>Localized automation label for a hidden layer toggle.</summary>
+    public string HiddenLabel { get; }
+
+    /// <summary>Automation label that includes the current visibility state.</summary>
+    public string VisibilityAutomationLabel => IsVisible ? VisibleLabel : HiddenLabel;
 }
 
 /// <summary>A display option for filtering annotations by layer.</summary>

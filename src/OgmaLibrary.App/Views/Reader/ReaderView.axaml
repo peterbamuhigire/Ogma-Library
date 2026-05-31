@@ -514,7 +514,7 @@
                                LostFocus="LayerName_LostFocus" />
                       <CheckBox Grid.Column="2"
                                 IsChecked="{Binding IsVisible, Mode=OneWay}"
-                                AutomationProperties.Name="{Binding #Root.DataContext.LayerVisibilityLabel}"
+                                AutomationProperties.Name="{Binding VisibilityAutomationLabel}"
                                 Click="LayerVisibility_Click" />
                       <Button Grid.Column="3"
                               Padding="8,4"
