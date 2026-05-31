@@ -64,7 +64,7 @@ can be called fully closed:
 | Bookmark panel announces list count and item labels | Pending | Pending | Pending | Audio note or reviewer note. | Keyboard focus must reach each bookmark action. |
 | Layer visibility and delete controls announce action-specific labels | Pending | Pending | Pending | Audio note or reviewer note. | Includes visible/hidden state naming. |
 | Citation card copy/export buttons announce distinct actions | Pending | Pending | Pending | Audio note or reviewer note. | Export must not sound identical to copy. |
-| Reading-memory fields announce field purpose | Pending | Pending | Pending | Reviewer note. | Opened because, key insight, questions, disposition. |
+| Reading-memory fields announce field purpose | Pending | Pending | Pending | Reviewer note. | Opened because, key insight, questions, and `Disposition (1-5)`. |
 | Keyboard-only walkthrough reaches every Phase 09 control | Pending | Pending | Pending | Reviewer note. | Include selection action menu and sidebars. |
 
 ## Visual Accessibility Review

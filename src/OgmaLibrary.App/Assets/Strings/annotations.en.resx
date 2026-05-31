@@ -69,7 +69,7 @@
   <data name="Citation.UnknownTitle" xml:space="preserve"><value>Unknown title</value></data>
   <data name="Citation.UnknownAuthor" xml:space="preserve"><value>Unknown author</value></data>
   <data name="ReadingMemory.Open" xml:space="preserve"><value>Reading memory</value></data>
-  <data name="ReadingMemory.Disposition" xml:space="preserve"><value>Disposition</value></data>
+  <data name="ReadingMemory.Disposition" xml:space="preserve"><value>Disposition (1-5)</value></data>
   <data name="ReadingMemory.OpenedBecause" xml:space="preserve"><value>Why I opened this</value></data>
   <data name="ReadingMemory.KeyInsight" xml:space="preserve"><value>Key insight</value></data>
   <data name="ReadingMemory.OpenQuestions" xml:space="preserve"><value>Open questions</value></data>

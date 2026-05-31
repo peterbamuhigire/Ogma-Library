@@ -782,7 +782,7 @@ public sealed class ReaderViewRenderTests
                 textBox => GetAutomationName(textBox) == "Why I opened this");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<TextBox>(),
-                textBox => GetAutomationName(textBox) == "Disposition");
+                textBox => GetAutomationName(textBox) == "Disposition (1-5)");
 
             Assert.Contains(
                 window.GetVisualDescendants().OfType<Button>(),
@@ -857,7 +857,7 @@ public sealed class ReaderViewRenderTests
             AssertFocusableControl<TextBox>(window, "Why I opened this");
             AssertFocusableControl<TextBox>(window, "Key insight");
             AssertFocusableControl<TextBox>(window, "Open questions");
-            AssertFocusableControl<TextBox>(window, "Disposition");
+            AssertFocusableControl<TextBox>(window, "Disposition (1-5)");
             AssertFocusableControl<Button>(window, "Save memory");
         }
         finally
