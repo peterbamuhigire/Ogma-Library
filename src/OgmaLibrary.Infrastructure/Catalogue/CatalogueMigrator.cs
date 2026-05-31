@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OgmaLibrary.Infrastructure.Catalogue;
 
@@ -10,16 +11,32 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// </summary>
 public sealed class CatalogueMigrator
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueMigrator"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context to migrate.</param>
-    public CatalogueMigrator(CatalogueDbContext context)
+    internal CatalogueMigrator(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="CatalogueMigrator"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="serviceProvider">The service provider, used only to make DI constructor selection unambiguous.</param>
+    [ActivatorUtilitiesConstructor]
+    public CatalogueMigrator(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        _contextFactory = contextFactory;
     }
 
     /// <summary>
@@ -32,24 +49,28 @@ public sealed class CatalogueMigrator
     /// </exception>
     public async Task ApplyAsync(CancellationToken cancellationToken = default)
     {
-        string? dbPath = GetDatabasePath();
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        string? dbPath = GetDatabasePath(context);
 
         // In-memory databases (tests) need no backup.
         if (dbPath is null || dbPath == ":memory:")
         {
-            await _context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-            await EnsureModelTablesExistAsync(dbPath, cancellationToken).ConfigureAwait(false);
+            await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
             return;
         }
 
         // Check whether there are any pending migrations. If none, skip the backup.
-        var pending = await _context.Database
+        var pending = await context.Database
             .GetPendingMigrationsAsync(cancellationToken)
             .ConfigureAwait(false);
 
         if (!pending.Any())
         {
-            await EnsureModelTablesExistAsync(dbPath, cancellationToken).ConfigureAwait(false);
+            await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -59,8 +80,8 @@ public sealed class CatalogueMigrator
 
         try
         {
-            await _context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-            await EnsureModelTablesExistAsync(dbPath, cancellationToken).ConfigureAwait(false);
+            await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -81,11 +102,12 @@ public sealed class CatalogueMigrator
         }
     }
 
-    private async Task EnsureModelTablesExistAsync(
+    private static async Task EnsureModelTablesExistAsync(
+        CatalogueDbContext context,
         string? dbPath,
         CancellationToken cancellationToken)
     {
-        List<string> missingTables = await GetMissingModelTablesAsync(cancellationToken)
+        List<string> missingTables = await GetMissingModelTablesAsync(context, cancellationToken)
             .ConfigureAwait(false);
         if (missingTables.Count == 0)
         {
@@ -97,19 +119,21 @@ public sealed class CatalogueMigrator
             BackupDatabase(dbPath);
         }
 
-        string createScript = _context.Database.GenerateCreateScript();
+        string createScript = context.Database.GenerateCreateScript();
         foreach (string statement in SplitSqlStatements(createScript))
         {
             string idempotentStatement = MakeCreateStatementIdempotent(statement);
-            await _context.Database.ExecuteSqlRawAsync(idempotentStatement, cancellationToken)
+            await context.Database.ExecuteSqlRawAsync(idempotentStatement, cancellationToken)
                 .ConfigureAwait(false);
         }
     }
 
-    private async Task<List<string>> GetMissingModelTablesAsync(CancellationToken cancellationToken)
+    private static async Task<List<string>> GetMissingModelTablesAsync(
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
     {
         var missing = new List<string>();
-        var tableNames = _context.Model
+        var tableNames = context.Model
             .GetEntityTypes()
             .Select(entity => entity.GetTableName())
             .Where(tableName => !string.IsNullOrWhiteSpace(tableName))
@@ -119,7 +143,7 @@ public sealed class CatalogueMigrator
 
         foreach (string tableName in tableNames)
         {
-            if (!await TableExistsAsync(tableName, cancellationToken).ConfigureAwait(false))
+            if (!await TableExistsAsync(context, tableName, cancellationToken).ConfigureAwait(false))
             {
                 missing.Add(tableName);
             }
@@ -128,26 +152,34 @@ public sealed class CatalogueMigrator
         return missing;
     }
 
-    private async Task<bool> TableExistsAsync(
+    private static async Task<bool> TableExistsAsync(
+        CatalogueDbContext context,
         string tableName,
         CancellationToken cancellationToken)
     {
-        await _context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        var connection = _context.Database.GetDbConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT COUNT(1)
-            FROM sqlite_master
-            WHERE type = 'table' AND name = $tableName
-            """;
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = "$tableName";
-        parameter.Value = tableName;
-        command.Parameters.Add(parameter);
+        try
+        {
+            var connection = context.Database.GetDbConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT COUNT(1)
+                FROM sqlite_master
+                WHERE type = 'table' AND name = $tableName
+                """;
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "$tableName";
+            parameter.Value = tableName;
+            command.Parameters.Add(parameter);
 
-        object? result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture) > 0;
+            object? result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture) > 0;
+        }
+        finally
+        {
+            await context.Database.CloseConnectionAsync().ConfigureAwait(false);
+        }
     }
 
     private static string? BackupDatabase(string dbPath)
@@ -205,9 +237,9 @@ public sealed class CatalogueMigrator
     /// Returns the file-system path of the SQLite database, or <see langword="null"/>
     /// for in-memory databases.
     /// </summary>
-    private string? GetDatabasePath()
+    private static string? GetDatabasePath(CatalogueDbContext context)
     {
-        string? connectionString = _context.Database.GetConnectionString();
+        string? connectionString = context.Database.GetConnectionString();
         if (connectionString is null)
         {
             return null;
@@ -225,5 +257,38 @@ public sealed class CatalogueMigrator
         }
 
         return null;
+    }
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
     }
 }

@@ -362,6 +362,9 @@ Current implementation progress:
   missing model table such as `BookFiles`, and weak/fuzzy direct-open matches
   register the selected PDF as a new book instead of overwriting an existing
   catalogue entry.
+- Direct PDF open missing-table repair now uses the production DI path with
+  fresh factory-created migration contexts, so damaged catalogues can be
+  repaired before a user-selected PDF is registered and opened.
 - The annotation layer sidebar now marks the active writable layer and exposes
   an `Active annotation layer: <name>` automation label that follows the first
   visible layer.
@@ -429,3 +432,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added active writable layer marker and hardened direct PDF open against missing `BookFiles` schema errors and weak fuzzy rematches | Codex |
 | 2026-06-01 | Tightened direct PDF registration so untracked selected paths become new books even on same-hash matches | Codex |
 | 2026-06-01 | Rendered delivered Phase 09 reader icons across note anchors, panel tabs, highlight color, bookmark rename, and reading-memory disposition surfaces | Codex |
+| 2026-06-01 | Hardened production-DI direct PDF repair so missing `BookFiles` is rebuilt through fresh migrator contexts before selected PDFs are registered | Codex |

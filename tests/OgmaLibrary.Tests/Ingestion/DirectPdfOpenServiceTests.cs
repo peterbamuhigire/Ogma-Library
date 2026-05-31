@@ -1,6 +1,8 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
@@ -365,6 +367,39 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
         Assert.Equal(1, await context.BookFiles.CountAsync(f => f.BookId == bookId));
         Assert.Equal("repair-open.pdf", await context.BookFiles
+            .Where(f => f.BookId == bookId)
+            .Select(f => f.RelativePath)
+            .SingleAsync());
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_ProductionDi_RepairsMissingBookFilesTableBeforeRegisteringSelectedPdf()
+    {
+        string dataDirectory = Path.Combine(_tempRoot, "app-data");
+        string pdfPath = Path.Combine(_tempRoot, "production-repair-open.pdf");
+        await File.WriteAllBytesAsync(pdfPath, "%PDF-1.4\n% production repair direct open test\n"u8.ToArray());
+
+        await using ServiceProvider services = new ServiceCollection()
+            .AddCatalogueContext(dataDirectory, dataDirectory)
+            .AddIngestionPipeline(dataDirectory)
+            .BuildServiceProvider();
+
+        await using (var setup = services.GetRequiredService<CatalogueDbContext>())
+        {
+            await setup.Database.MigrateAsync();
+            await setup.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
+            await setup.Database.ExecuteSqlRawAsync("DROP TABLE BookFiles;");
+            await setup.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+        }
+
+        SqliteConnection.ClearAllPools();
+
+        string bookId = await services.GetRequiredService<IDirectPdfOpenService>()
+            .OpenAsync(pdfPath);
+
+        await using var verification = services.GetRequiredService<CatalogueDbContext>();
+        Assert.Equal(1, await verification.BookFiles.CountAsync(f => f.BookId == bookId));
+        Assert.Equal("production-repair-open.pdf", await verification.BookFiles
             .Where(f => f.BookId == bookId)
             .Select(f => f.RelativePath)
             .SingleAsync());
