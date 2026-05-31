@@ -13,16 +13,26 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BatchEnrichmentOrchestrator"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public BatchEnrichmentOrchestrator(CatalogueDbContext context)
+    internal BatchEnrichmentOrchestrator(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="BatchEnrichmentOrchestrator"/>.
+    /// </summary>
+    public BatchEnrichmentOrchestrator(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -31,6 +41,11 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(bookIds);
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
 
         int created = 0;
 
@@ -44,7 +59,7 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
             string idempotencyKey = ComputeIdempotencyKey(bookId);
 
             // Skip if an enrichment job already exists for this book.
-            bool exists = await _context.Jobs
+            bool exists = await context.Jobs
                 .AsNoTracking()
                 .AnyAsync(
                     j => j.IdempotencyKey == idempotencyKey && j.JobType == "Enrich",
@@ -56,7 +71,7 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
                 continue;
             }
 
-            _context.Jobs.Add(new JobRow
+            context.Jobs.Add(new JobRow
             {
                 JobType = "Enrich",
                 IdempotencyKey = idempotencyKey,
@@ -69,7 +84,7 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
 
         if (created > 0)
         {
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return created;

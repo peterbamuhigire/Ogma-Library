@@ -10,22 +10,37 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class ShelfRepository : IShelfRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ShelfRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public ShelfRepository(CatalogueDbContext context)
+    internal ShelfRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
     }
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="ShelfRepository"/>.
+    /// </summary>
+    public ShelfRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
+    }
+
     /// <inheritdoc />
     public async Task<IReadOnlyList<Shelf>> ListAsync(CancellationToken cancellationToken)
     {
-        List<ShelfRow> rows = await _context.Shelves
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<ShelfRow> rows = await context.Shelves
             .AsNoTracking()
             .OrderBy(s => s.DisplayOrder)
             .ThenBy(s => s.Name)
@@ -45,13 +60,18 @@ public sealed class ShelfRepository : IShelfRepository
     {
         ArgumentNullException.ThrowIfNull(shelf);
 
-        ShelfRow? existing = await _context.Shelves
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ShelfRow? existing = await context.Shelves
             .FirstOrDefaultAsync(s => s.ShelfId == shelf.Id, cancellationToken)
             .ConfigureAwait(false);
 
         if (existing is null)
         {
-            _context.Shelves.Add(new ShelfRow
+            context.Shelves.Add(new ShelfRow
             {
                 ShelfId = shelf.Id,
                 Name = shelf.Name,
@@ -65,6 +85,6 @@ public sealed class ShelfRepository : IShelfRepository
             existing.ShelfType = shelf.IsSmart ? 1 : 0;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -23,7 +23,8 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
     private readonly IBookRegistrationService _registration;
     private readonly IUnavailableFileFlagService _flagService;
     private readonly IScanProgressService _progress;
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="IngestionOrchestrator"/>.
@@ -35,7 +36,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
     /// <param name="flagService">The unavailable-file flag service.</param>
     /// <param name="progress">The scan progress service.</param>
     /// <param name="context">The catalogue DB context.</param>
-    public IngestionOrchestrator(
+    internal IngestionOrchestrator(
         ILibrarySettingsService settings,
         IPdfDiscoveryService discovery,
         IBookIdentityService identity,
@@ -59,6 +60,35 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         _flagService = flagService;
         _progress = progress;
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="IngestionOrchestrator"/>.
+    /// </summary>
+    public IngestionOrchestrator(
+        ILibrarySettingsService settings,
+        IPdfDiscoveryService discovery,
+        IBookIdentityService identity,
+        IBookRegistrationService registration,
+        IUnavailableFileFlagService flagService,
+        IScanProgressService progress,
+        IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(discovery);
+        ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(registration);
+        ArgumentNullException.ThrowIfNull(flagService);
+        ArgumentNullException.ThrowIfNull(progress);
+        ArgumentNullException.ThrowIfNull(contextFactory);
+
+        _settings = settings;
+        _discovery = discovery;
+        _identity = identity;
+        _registration = registration;
+        _flagService = flagService;
+        _progress = progress;
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -122,8 +152,13 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         string root,
         CancellationToken cancellationToken)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Incremental rescan fast-path: check size+mtime before hashing (FR-LIB-006).
-        BookFileRow? existing = await _context.BookFiles
+        BookFileRow? existing = await context.BookFiles
             .AsNoTracking()
             .FirstOrDefaultAsync(
                 f => f.RelativePath == file.RelativePath,
@@ -132,7 +167,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
 
         if (existing is not null)
         {
-            BookRow? bookRow = await _context.Books
+            BookRow? bookRow = await context.Books
                 .AsNoTracking()
                 .FirstOrDefaultAsync(b => b.BookId == existing.BookId, cancellationToken)
                 .ConfigureAwait(false);
@@ -140,14 +175,14 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
             if (bookRow?.SizeBytes == file.SizeBytes && bookRow?.MtimeTicks == file.MtimeTicks)
             {
                 // File unchanged — update LastSeenUtc only.
-                BookFileRow? tracked = await _context.BookFiles
+                BookFileRow? tracked = await context.BookFiles
                     .FirstOrDefaultAsync(f => f.BookFileId == existing.BookFileId, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (tracked is not null)
                 {
                     tracked.LastSeenUtc = DateTimeOffset.UtcNow;
-                    await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                    await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 return;
@@ -189,15 +224,20 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         string errorMessage,
         CancellationToken cancellationToken)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         string idempotencyKey = ComputeFailureKey(relativePath);
 
-        bool exists = await _context.Jobs
+        bool exists = await context.Jobs
             .AnyAsync(j => j.IdempotencyKey == idempotencyKey, cancellationToken)
             .ConfigureAwait(false);
 
         if (!exists)
         {
-            _context.Jobs.Add(new JobRow
+            context.Jobs.Add(new JobRow
             {
                 JobType = "IngestionFailure",
                 IdempotencyKey = idempotencyKey,
@@ -208,7 +248,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
                 CompletedUtc = DateTimeOffset.UtcNow,
             });
 
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 

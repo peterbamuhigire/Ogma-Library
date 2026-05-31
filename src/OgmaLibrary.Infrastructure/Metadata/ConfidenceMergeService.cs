@@ -47,16 +47,26 @@ public sealed class ConfidenceMergeService : IConfidenceMergeService
             ["PDF"] = 0.50,
         };
 
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ConfidenceMergeService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context for reading existing field values.</param>
-    public ConfidenceMergeService(CatalogueDbContext context)
+    internal ConfidenceMergeService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="ConfidenceMergeService"/>.
+    /// </summary>
+    public ConfidenceMergeService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -68,8 +78,13 @@ public sealed class ConfidenceMergeService : IConfidenceMergeService
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentNullException.ThrowIfNull(lookupResults);
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Load existing metadata fields for this book (for match scoring and override detection).
-        var existingFields = await _context.BookMetadataFields
+        var existingFields = await context.BookMetadataFields
             .AsNoTracking()
             .Where(f => f.BookId == bookId)
             .ToListAsync(cancellationToken)

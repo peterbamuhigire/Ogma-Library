@@ -76,7 +76,7 @@ public static class MetadataServiceExtensions
         // Write-back.
         services.AddSingleton<IMetadataWriteBackService>(sp =>
             new PdfWriteBackService(
-                sp.GetRequiredService<Catalogue.CatalogueDbContext>(),
+                sp.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<Catalogue.CatalogueDbContext>>(),
                 sp.GetRequiredService<ISidecarService>(),
                 libraryRoot,
                 sp.GetRequiredService<ILibrarySettingsService>()));

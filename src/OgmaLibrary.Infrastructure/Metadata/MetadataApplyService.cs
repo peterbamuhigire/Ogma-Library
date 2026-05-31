@@ -15,7 +15,8 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class MetadataApplyService : IMetadataApplyService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
     private readonly IMetadataQualityService _qualityService;
 
     /// <summary>
@@ -23,13 +24,26 @@ public sealed class MetadataApplyService : IMetadataApplyService
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
     /// <param name="qualityService">The quality score service.</param>
-    public MetadataApplyService(
+    internal MetadataApplyService(
         CatalogueDbContext context,
         IMetadataQualityService qualityService)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(qualityService);
         _context = context;
+        _qualityService = qualityService;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="MetadataApplyService"/>.
+    /// </summary>
+    public MetadataApplyService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IMetadataQualityService qualityService)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(qualityService);
+        _contextFactory = contextFactory;
         _qualityService = qualityService;
     }
 
@@ -47,8 +61,13 @@ public sealed class MetadataApplyService : IMetadataApplyService
             return;
         }
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Snapshot before state for audit.
-        var beforeFields = await _context.BookMetadataFields
+        var beforeFields = await context.BookMetadataFields
             .AsNoTracking()
             .Where(f => f.BookId == bookId)
             .ToListAsync(cancellationToken)
@@ -61,7 +80,7 @@ public sealed class MetadataApplyService : IMetadataApplyService
 
         foreach (AcceptedFieldProposal proposal in acceptedProposals)
         {
-            var existing = await _context.BookMetadataFields
+            var existing = await context.BookMetadataFields
                 .FirstOrDefaultAsync(
                     f => f.BookId == bookId && f.FieldName == proposal.FieldName,
                     cancellationToken)
@@ -69,7 +88,7 @@ public sealed class MetadataApplyService : IMetadataApplyService
 
             if (existing is null)
             {
-                _context.BookMetadataFields.Add(new BookMetadataFieldRow
+                context.BookMetadataFields.Add(new BookMetadataFieldRow
                 {
                     BookId = bookId,
                     FieldName = proposal.FieldName,
@@ -90,7 +109,7 @@ public sealed class MetadataApplyService : IMetadataApplyService
             }
         }
 
-        await MirrorCatalogueColumnsAsync(bookId, acceptedProposals, cancellationToken)
+        await MirrorCatalogueColumnsAsync(context, bookId, acceptedProposals, cancellationToken)
             .ConfigureAwait(false);
 
         // Snapshot after state.
@@ -98,7 +117,7 @@ public sealed class MetadataApplyService : IMetadataApplyService
             acceptedProposals.Select(p => new { p.FieldName, p.AcceptedValue, p.Source, p.Confidence }));
 
         // Audit event.
-        _context.AuditEvents.Add(new AuditEventRow
+        context.AuditEvents.Add(new AuditEventRow
         {
             EventType = "MetadataApplied",
             EntityId = bookId,
@@ -109,18 +128,19 @@ public sealed class MetadataApplyService : IMetadataApplyService
             IsLocalOnly = true,
         });
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Recalculate quality score after metadata write.
         await _qualityService.RecalculateAsync(bookId, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task MirrorCatalogueColumnsAsync(
+    private static async Task MirrorCatalogueColumnsAsync(
+        CatalogueDbContext context,
         string bookId,
         IReadOnlyList<AcceptedFieldProposal> acceptedProposals,
         CancellationToken cancellationToken)
     {
-        BookRow? book = await _context.Books
+        BookRow? book = await context.Books
             .Include(b => b.BookAuthors)
             .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
@@ -151,11 +171,12 @@ public sealed class MetadataApplyService : IMetadataApplyService
         string? authorValue = FindAcceptedValue(acceptedProposals, "Author");
         if (!string.IsNullOrWhiteSpace(authorValue))
         {
-            await ReplaceAuthorsAsync(book, authorValue, cancellationToken).ConfigureAwait(false);
+            await ReplaceAuthorsAsync(context, book, authorValue, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task ReplaceAuthorsAsync(
+    private static async Task ReplaceAuthorsAsync(
+        CatalogueDbContext context,
         BookRow book,
         string authorValue,
         CancellationToken cancellationToken)
@@ -172,14 +193,14 @@ public sealed class MetadataApplyService : IMetadataApplyService
             return;
         }
 
-        _context.BookAuthors.RemoveRange(book.BookAuthors);
+        context.BookAuthors.RemoveRange(book.BookAuthors);
         book.BookAuthors.Clear();
 
         int displayOrder = 0;
         foreach (string authorName in authorNames)
         {
             string normalized = NormalizeAuthorName(authorName);
-            AuthorRow? author = await _context.Authors
+            AuthorRow? author = await context.Authors
                 .FirstOrDefaultAsync(a => a.NormalizedName == normalized, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -190,7 +211,7 @@ public sealed class MetadataApplyService : IMetadataApplyService
                     NormalizedName = normalized,
                     SortName = BuildSortName(authorName),
                 };
-                _context.Authors.Add(author);
+                context.Authors.Add(author);
             }
 
             book.BookAuthors.Add(new BookAuthorRow

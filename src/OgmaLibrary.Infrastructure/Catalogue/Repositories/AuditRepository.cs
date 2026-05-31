@@ -11,16 +11,26 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class AuditRepository : IAuditRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="AuditRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public AuditRepository(CatalogueDbContext context)
+    internal AuditRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="AuditRepository"/>.
+    /// </summary>
+    public AuditRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -28,7 +38,12 @@ public sealed class AuditRepository : IAuditRepository
     {
         ArgumentNullException.ThrowIfNull(auditEvent);
 
-        _context.AuditEvents.Add(new AuditEventRow
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        context.AuditEvents.Add(new AuditEventRow
         {
             EventType = auditEvent.EventType,
             EntityId = auditEvent.EntityId,
@@ -38,7 +53,7 @@ public sealed class AuditRepository : IAuditRepository
             IsLocalOnly = true,
         });
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -51,7 +66,12 @@ public sealed class AuditRepository : IAuditRepository
         // SQLite EF Core does not support DateTimeOffset in ORDER BY.
         // We load and then sort on the client. For audit reads (max recent N rows)
         // this is acceptable; the index on EventId keeps retrieval fast.
-        List<AuditEventRow> rows = await _context.AuditEvents
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<AuditEventRow> rows = await context.AuditEvents
             .AsNoTracking()
             .OrderByDescending(e => e.EventId) // EventId is monotonically increasing
             .Take(maxCount)

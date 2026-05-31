@@ -11,22 +11,43 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class LibraryHealthService : ILibraryHealthService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="LibraryHealthService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public LibraryHealthService(CatalogueDbContext context)
+    internal LibraryHealthService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="LibraryHealthService"/>.
+    /// </summary>
+    public LibraryHealthService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
     public async Task<LibraryHealthSnapshot> GetHealthSnapshotAsync(
         CancellationToken cancellationToken = default)
     {
+        if (_contextFactory is null)
+        {
+            return new LibraryHealthSnapshot(
+                Duplicates: await LoadDuplicatesAsync(cancellationToken).ConfigureAwait(false),
+                MissingCovers: await LoadMissingCoversAsync(cancellationToken).ConfigureAwait(false),
+                MissingIsbns: await LoadMissingIsbnsAsync(cancellationToken).ConfigureAwait(false),
+                UnavailableFiles: await LoadUnavailableFilesAsync(cancellationToken).ConfigureAwait(false),
+                FailedJobs: await LoadFailedJobsAsync(cancellationToken).ConfigureAwait(false),
+                LoadedUtc: DateTimeOffset.UtcNow);
+        }
+
         // Run all five queries concurrently for maximum throughput.
         var duplicatesTask = LoadDuplicatesAsync(cancellationToken);
         var missingCoversTask = LoadMissingCoversAsync(cancellationToken);
@@ -49,7 +70,12 @@ public sealed class LibraryHealthService : ILibraryHealthService
     /// <inheritdoc />
     public async Task RetryJobAsync(long jobId, CancellationToken cancellationToken = default)
     {
-        var job = await _context.Jobs
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var job = await context.Jobs
             .FirstOrDefaultAsync(j => j.JobId == jobId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -63,14 +89,19 @@ public sealed class LibraryHealthService : ILibraryHealthService
         job.CompletedUtc = null;
         job.RetryCount++;
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<DuplicateBookEntry>> LoadDuplicatesAsync(
         CancellationToken cancellationToken)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Load all books with an ISBN or hash; group client-side for SQLite compatibility.
-        var booksWithIsbn = await _context.Books
+        var booksWithIsbn = await context.Books
             .AsNoTracking()
             .Where(b => b.IsbnNormalized != null)
             .Select(b => new { b.BookId, b.Title, b.IsbnNormalized, b.Sha256Hash })
@@ -93,7 +124,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
         }
 
         // Hash duplicates.
-        var booksWithHash = await _context.Books
+        var booksWithHash = await context.Books
             .AsNoTracking()
             .Where(b => b.Sha256Hash != null)
             .Select(b => new { b.BookId, b.Title, b.Sha256Hash })
@@ -124,8 +155,13 @@ public sealed class LibraryHealthService : ILibraryHealthService
     private async Task<IReadOnlyList<MissingCoverEntry>> LoadMissingCoversAsync(
         CancellationToken cancellationToken)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Books with no Cover metadata field value set.
-        var missing = await _context.Books
+        var missing = await context.Books
             .AsNoTracking()
             .Where(b => !b.MetadataFields.Any(
                 f => f.FieldName == "Cover" && f.Value != null))
@@ -140,7 +176,12 @@ public sealed class LibraryHealthService : ILibraryHealthService
     private async Task<IReadOnlyList<MissingIsbnEntry>> LoadMissingIsbnsAsync(
         CancellationToken cancellationToken)
     {
-        var missing = await _context.Books
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var missing = await context.Books
             .AsNoTracking()
             .Where(b => b.IsbnNormalized == null)
             .OrderBy(b => b.Title ?? string.Empty)
@@ -154,8 +195,13 @@ public sealed class LibraryHealthService : ILibraryHealthService
     private async Task<IReadOnlyList<UnavailableFileEntry>> LoadUnavailableFilesAsync(
         CancellationToken cancellationToken)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Books whose status is Unavailable (1).
-        var unavailable = await _context.Books
+        var unavailable = await context.Books
             .AsNoTracking()
             .Where(b => b.Status == 1)
             .OrderBy(b => b.Title ?? string.Empty)
@@ -169,8 +215,13 @@ public sealed class LibraryHealthService : ILibraryHealthService
     private async Task<IReadOnlyList<FailedJobEntry>> LoadFailedJobsAsync(
         CancellationToken cancellationToken)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Jobs with status = Failed (3).
-        var failed = await _context.Jobs
+        var failed = await context.Jobs
             .AsNoTracking()
             .Where(j => j.Status == 3)
             .OrderByDescending(j => j.JobId)

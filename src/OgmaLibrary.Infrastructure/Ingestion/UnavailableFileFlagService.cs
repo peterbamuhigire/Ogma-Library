@@ -13,16 +13,26 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// </summary>
 public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="UnavailableFileFlagService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public UnavailableFileFlagService(CatalogueDbContext context)
+    internal UnavailableFileFlagService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="UnavailableFileFlagService"/>.
+    /// </summary>
+    public UnavailableFileFlagService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -32,8 +42,13 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Load all Present book files (FileStatus=0).
-        List<BookFileRow> presentFiles = await _context.BookFiles
+        List<BookFileRow> presentFiles = await context.BookFiles
             .Where(f => f.FileStatus == 0)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -58,7 +73,7 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
             fileRow.FileStatus = 1; // Missing
 
             // Flag the owning book as Unavailable (only if currently Active).
-            BookRow? book = await _context.Books
+            BookRow? book = await context.Books
                 .FirstOrDefaultAsync(b => b.BookId == fileRow.BookId, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -68,7 +83,7 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
             }
 
             // Append audit event — never deleted (NFR-PROD-013).
-            _context.AuditEvents.Add(new AuditEventRow
+            context.AuditEvents.Add(new AuditEventRow
             {
                 EventType = "BookMarkedUnavailable",
                 EntityId = fileRow.BookId,
@@ -83,7 +98,7 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
 
         if (flagged > 0)
         {
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return flagged;

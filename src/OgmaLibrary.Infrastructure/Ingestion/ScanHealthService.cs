@@ -12,24 +12,39 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// </summary>
 public sealed class ScanHealthService : IScanHealthService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ScanHealthService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public ScanHealthService(CatalogueDbContext context)
+    internal ScanHealthService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
     }
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="ScanHealthService"/>.
+    /// </summary>
+    public ScanHealthService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
+    }
+
     /// <inheritdoc />
     public async Task<ScanHealthReport> GetReportAsync(CancellationToken cancellationToken = default)
     {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // General failed jobs (excluding password-protected sentinel).
         // Use JobId for ORDER BY since SQLite does not support DateTimeOffset in ORDER BY.
-        List<JobRow> failedJobs = await _context.Jobs
+        List<JobRow> failedJobs = await context.Jobs
             .Where(j => j.Status == 3 && j.JobType != "PasswordProtectedDetected")
             .OrderByDescending(j => j.JobId)
             .Take(200)
@@ -37,27 +52,27 @@ public sealed class ScanHealthService : IScanHealthService
             .ConfigureAwait(false);
 
         // Password-protected files (sentinel job type).
-        List<JobRow> passwordJobs = await _context.Jobs
+        List<JobRow> passwordJobs = await context.Jobs
             .Where(j => j.JobType == "PasswordProtectedDetected")
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         // Books missing thumbnails: ThumbnailGeneration jobs that failed or are still pending.
-        List<JobRow> missingThumbnailJobs = await _context.Jobs
+        List<JobRow> missingThumbnailJobs = await context.Jobs
             .Where(j => j.JobType == "ThumbnailGeneration" &&
                         (j.Status == 3 || j.Status == 0))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         // Books with metadata gaps (no Title in BookMetadataFields).
-        List<string> booksWithTitle = await _context.BookMetadataFields
+        List<string> booksWithTitle = await context.BookMetadataFields
             .Where(f => f.FieldName == "Title" && f.Value != null)
             .Select(f => f.BookId)
             .Distinct()
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        List<string> allActiveBookIds = await _context.Books
+        List<string> allActiveBookIds = await context.Books
             .Where(b => b.Status == 0) // Active
             .Select(b => b.BookId)
             .ToListAsync(cancellationToken)
@@ -68,7 +83,7 @@ public sealed class ScanHealthService : IScanHealthService
 
         foreach (string bookId in metadataGapIds)
         {
-            BookFileRow? fileRow = await _context.BookFiles
+            BookFileRow? fileRow = await context.BookFiles
                 .AsNoTracking()
                 .FirstOrDefaultAsync(f => f.BookId == bookId, cancellationToken)
                 .ConfigureAwait(false);
@@ -102,7 +117,12 @@ public sealed class ScanHealthService : IScanHealthService
     /// <inheritdoc />
     public async Task RetryAllFailedAsync(CancellationToken cancellationToken = default)
     {
-        List<JobRow> failed = await _context.Jobs
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<JobRow> failed = await context.Jobs
             .Where(j => j.Status == 3)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -114,13 +134,18 @@ public sealed class ScanHealthService : IScanHealthService
             job.ErrorMessage = null;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task RetryJobAsync(long jobId, CancellationToken cancellationToken = default)
     {
-        JobRow? job = await _context.Jobs
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        JobRow? job = await context.Jobs
             .FirstOrDefaultAsync(j => j.JobId == jobId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -129,7 +154,7 @@ public sealed class ScanHealthService : IScanHealthService
             job.Status = 0; // Pending
             job.RetryCount += 1;
             job.ErrorMessage = null;
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -11,16 +11,26 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class AnnotationRepository : IAnnotationRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="AnnotationRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public AnnotationRepository(CatalogueDbContext context)
+    internal AnnotationRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="AnnotationRepository"/>.
+    /// </summary>
+    public AnnotationRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -30,11 +40,16 @@ public sealed class AnnotationRepository : IAnnotationRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Find the book with this relative path via BookFiles.
-        List<AnnotationRow> rows = await _context.Annotations
+        List<AnnotationRow> rows = await context.Annotations
             .AsNoTracking()
             .Include(a => a.Body)
-            .Where(a => _context.BookFiles
+            .Where(a => context.BookFiles
                 .Any(f => f.RelativePath == relativePath && f.BookId == a.BookId))
             .OrderBy(a => a.Page)
             .ThenBy(a => a.CreatedUtc)
@@ -53,8 +68,13 @@ public sealed class AnnotationRepository : IAnnotationRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
         ArgumentNullException.ThrowIfNull(annotation);
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Resolve the book from the file path.
-        BookFileRow? fileRow = await _context.BookFiles
+        BookFileRow? fileRow = await context.BookFiles
             .FirstOrDefaultAsync(f => f.RelativePath == relativePath, cancellationToken)
             .ConfigureAwait(false);
 
@@ -65,7 +85,7 @@ public sealed class AnnotationRepository : IAnnotationRepository
                 "Import the book before saving annotations.");
         }
 
-        AnnotationRow? existing = await _context.Annotations
+        AnnotationRow? existing = await context.Annotations
             .Include(a => a.Body)
             .FirstOrDefaultAsync(a => a.AnnotationId == annotation.Id, cancellationToken)
             .ConfigureAwait(false);
@@ -88,7 +108,7 @@ public sealed class AnnotationRepository : IAnnotationRepository
                     RectJson = FormatRect(annotation.SelectionStart, annotation.SelectionEnd),
                 },
             };
-            _context.Annotations.Add(row);
+            context.Annotations.Add(row);
         }
         else
         {
@@ -101,7 +121,7 @@ public sealed class AnnotationRepository : IAnnotationRepository
             }
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static Annotation MapToDomain(AnnotationRow row)

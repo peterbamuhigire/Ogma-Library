@@ -17,7 +17,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
 {
     private const double AutoApplyThreshold = 0.70;
 
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
     private readonly ILibrarySettingsService _settings;
     private readonly IIsbnDetectionService _isbnDetection;
     private readonly IMetadataProviderAggregator _providerAggregator;
@@ -26,7 +27,7 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
     private readonly IMetadataWriteBackService _writeBackService;
 
     /// <summary>Initializes a new instance of <see cref="BookMetadataEnrichmentService"/>.</summary>
-    public BookMetadataEnrichmentService(
+    internal BookMetadataEnrichmentService(
         CatalogueDbContext context,
         ILibrarySettingsService settings,
         IIsbnDetectionService isbnDetection,
@@ -52,6 +53,33 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         _writeBackService = writeBackService;
     }
 
+    /// <summary>Initializes a new instance of <see cref="BookMetadataEnrichmentService"/>.</summary>
+    public BookMetadataEnrichmentService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        ILibrarySettingsService settings,
+        IIsbnDetectionService isbnDetection,
+        IMetadataProviderAggregator providerAggregator,
+        IConfidenceMergeService mergeService,
+        IMetadataApplyService applyService,
+        IMetadataWriteBackService writeBackService)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(isbnDetection);
+        ArgumentNullException.ThrowIfNull(providerAggregator);
+        ArgumentNullException.ThrowIfNull(mergeService);
+        ArgumentNullException.ThrowIfNull(applyService);
+        ArgumentNullException.ThrowIfNull(writeBackService);
+
+        _contextFactory = contextFactory;
+        _settings = settings;
+        _isbnDetection = isbnDetection;
+        _providerAggregator = providerAggregator;
+        _mergeService = mergeService;
+        _applyService = applyService;
+        _writeBackService = writeBackService;
+    }
+
     /// <inheritdoc />
     public async Task<(bool Success, string? ErrorMessage)> EnrichAsync(
         string bookId,
@@ -62,23 +90,34 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
 
         try
         {
-            BookRow? book = await _context.Books
-                .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
-                .Include(b => b.MetadataFields)
-                .Include(b => b.BookFiles)
-                .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
-                .ConfigureAwait(false);
+            BookRow? book;
+            string? pdfPath;
+            MetadataLookupRequest request;
 
-            if (book is null)
+            using (CatalogueContextLease lease = await CatalogueContextLease
+                .CreateAsync(_contextFactory, _context, cancellationToken)
+                .ConfigureAwait(false))
             {
-                return (false, "Book not found.");
+                CatalogueDbContext context = lease.Context;
+
+                book = await context.Books
+                    .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
+                    .Include(b => b.MetadataFields)
+                    .Include(b => b.BookFiles)
+                    .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (book is null)
+                {
+                    return (false, "Book not found.");
+                }
+
+                pdfPath = await ResolvePdfPathAsync(book, absoluteFilePath, cancellationToken)
+                    .ConfigureAwait(false);
+
+                request = await BuildLookupRequestAsync(book, pdfPath, cancellationToken)
+                    .ConfigureAwait(false);
             }
-
-            string? pdfPath = await ResolvePdfPathAsync(book, absoluteFilePath, cancellationToken)
-                .ConfigureAwait(false);
-
-            MetadataLookupRequest request = await BuildLookupRequestAsync(book, pdfPath, cancellationToken)
-                .ConfigureAwait(false);
 
             if (!request.HasAnySearchKey)
             {
@@ -276,7 +315,12 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         object payload,
         CancellationToken cancellationToken)
     {
-        _context.AuditEvents.Add(new AuditEventRow
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        context.AuditEvents.Add(new AuditEventRow
         {
             EventType = eventType,
             EntityId = bookId,
@@ -286,7 +330,7 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
             IsLocalOnly = true,
         });
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static bool CanAttemptWrite(string filePath)

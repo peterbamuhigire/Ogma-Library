@@ -31,16 +31,26 @@ public sealed class MetadataQualityService : IMetadataQualityService
         "Description",
     ];
 
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataQualityService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public MetadataQualityService(CatalogueDbContext context)
+    internal MetadataQualityService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="MetadataQualityService"/>.
+    /// </summary>
+    public MetadataQualityService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -50,11 +60,16 @@ public sealed class MetadataQualityService : IMetadataQualityService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        var book = await _context.Books
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var book = await context.Books
             .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
 
-        var fields = await _context.BookMetadataFields
+        var fields = await context.BookMetadataFields
             .AsNoTracking()
             .Where(f => f.BookId == bookId)
             .ToListAsync(cancellationToken)
@@ -117,7 +132,7 @@ public sealed class MetadataQualityService : IMetadataQualityService
         if (book is not null)
         {
             book.QualityScore = qualityScore;
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return new BookQualityScore(
@@ -133,7 +148,12 @@ public sealed class MetadataQualityService : IMetadataQualityService
         double maxScore,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var results = await _context.Books
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var results = await context.Books
             .AsNoTracking()
             .Where(b => b.QualityScore <= maxScore)
             .OrderBy(b => b.QualityScore)

@@ -13,7 +13,8 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// </summary>
 public sealed class CatalogueWriteService : ICatalogueWriteService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
     private readonly IAuditRepository _audit;
 
     /// <summary>
@@ -21,11 +22,24 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
     /// <param name="audit">The audit repository.</param>
-    public CatalogueWriteService(CatalogueDbContext context, IAuditRepository audit)
+    internal CatalogueWriteService(CatalogueDbContext context, IAuditRepository audit)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(audit);
         _context = context;
+        _audit = audit;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="CatalogueWriteService"/>.
+    /// </summary>
+    public CatalogueWriteService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IAuditRepository audit)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(audit);
+        _contextFactory = contextFactory;
         _audit = audit;
     }
 
@@ -38,6 +52,11 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         string id = Guid.NewGuid().ToString("N");
         var row = new ShelfRow
         {
@@ -48,8 +67,8 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             CreatedUtc = DateTimeOffset.UtcNow,
         };
 
-        _context.Shelves.Add(row);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        context.Shelves.Add(row);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return id;
     }
 
@@ -62,7 +81,12 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         ArgumentException.ThrowIfNullOrWhiteSpace(shelfId);
         ArgumentException.ThrowIfNullOrWhiteSpace(newName);
 
-        ShelfRow? row = await _context.Shelves
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ShelfRow? row = await context.Shelves
             .FirstOrDefaultAsync(s => s.ShelfId == shelfId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -72,7 +96,7 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         }
 
         row.Name = newName;
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -80,7 +104,12 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shelfId);
 
-        ShelfRow? row = await _context.Shelves
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ShelfRow? row = await context.Shelves
             .Include(s => s.ShelfBooks)
             .FirstOrDefaultAsync(s => s.ShelfId == shelfId, cancellationToken)
             .ConfigureAwait(false);
@@ -90,8 +119,8 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             return;
         }
 
-        _context.Shelves.Remove(row);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        context.Shelves.Remove(row);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -103,7 +132,12 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         ArgumentException.ThrowIfNullOrWhiteSpace(shelfId);
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        bool already = await _context.ShelfBooks
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        bool already = await context.ShelfBooks
             .AnyAsync(sb => sb.ShelfId == shelfId && sb.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -112,14 +146,14 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             return;
         }
 
-        _context.ShelfBooks.Add(new ShelfBookRow
+        context.ShelfBooks.Add(new ShelfBookRow
         {
             ShelfId = shelfId,
             BookId = bookId,
             AddedUtc = DateTimeOffset.UtcNow,
         });
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -131,7 +165,12 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         ArgumentException.ThrowIfNullOrWhiteSpace(shelfId);
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        ShelfBookRow? row = await _context.ShelfBooks
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ShelfBookRow? row = await context.ShelfBooks
             .FirstOrDefaultAsync(sb => sb.ShelfId == shelfId && sb.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -140,8 +179,8 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             return;
         }
 
-        _context.ShelfBooks.Remove(row);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        context.ShelfBooks.Remove(row);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -154,7 +193,12 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
 
-        var fieldRow = await _context.BookMetadataFields
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var fieldRow = await context.BookMetadataFields
             .FirstOrDefaultAsync(f => f.BookId == bookId && f.FieldName == fieldName, cancellationToken)
             .ConfigureAwait(false);
 
@@ -162,7 +206,7 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
 
         if (fieldRow is null)
         {
-            _context.BookMetadataFields.Add(new BookMetadataFieldRow
+            context.BookMetadataFields.Add(new BookMetadataFieldRow
             {
                 BookId = bookId,
                 FieldName = fieldName,
@@ -177,7 +221,7 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             fieldRow.IsOverridden = true;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await _audit.AppendAsync(new AuditEvent
         {
@@ -204,8 +248,13 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             return;
         }
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Capture before-state for audit.
-        var beforeBooks = await _context.Books
+        var beforeBooks = await context.Books
             .AsNoTracking()
             .Where(b => command.BookIds.Contains(b.BookId))
             .Select(b => new { b.BookId, b.Status, b.Rating })
@@ -215,7 +264,7 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         // Apply status / rating overrides.
         if (command.NewStatus.HasValue || command.NewRating.HasValue)
         {
-            var books = await _context.Books
+            var books = await context.Books
                 .Where(b => command.BookIds.Contains(b.BookId))
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -239,13 +288,13 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         {
             foreach (string bookId in command.BookIds)
             {
-                bool exists = await _context.ShelfBooks
+                bool exists = await context.ShelfBooks
                     .AnyAsync(sb => sb.ShelfId == command.ShelfIdToAdd && sb.BookId == bookId, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (!exists)
                 {
-                    _context.ShelfBooks.Add(new ShelfBookRow
+                    context.ShelfBooks.Add(new ShelfBookRow
                     {
                         ShelfId = command.ShelfIdToAdd,
                         BookId = bookId,
@@ -258,18 +307,18 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         // Apply shelf removals.
         if (command.ShelfIdToRemove is not null)
         {
-            var toRemove = await _context.ShelfBooks
+            var toRemove = await context.ShelfBooks
                 .Where(sb => sb.ShelfId == command.ShelfIdToRemove && command.BookIds.Contains(sb.BookId))
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            _context.ShelfBooks.RemoveRange(toRemove);
+            context.ShelfBooks.RemoveRange(toRemove);
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Record audit snapshot.
-        var afterBooks = await _context.Books
+        var afterBooks = await context.Books
             .AsNoTracking()
             .Where(b => command.BookIds.Contains(b.BookId))
             .Select(b => new { b.BookId, b.Status, b.Rating })

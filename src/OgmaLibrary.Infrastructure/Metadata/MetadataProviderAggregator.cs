@@ -16,14 +16,15 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
 {
     private readonly IReadOnlyList<IMetadataProvider> _providers;
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataProviderAggregator"/>.
     /// </summary>
     /// <param name="providers">All registered metadata providers.</param>
     /// <param name="context">The catalogue DB context for persisting lookup rows.</param>
-    public MetadataProviderAggregator(
+    internal MetadataProviderAggregator(
         IEnumerable<IMetadataProvider> providers,
         CatalogueDbContext context)
     {
@@ -31,6 +32,19 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         ArgumentNullException.ThrowIfNull(context);
         _providers = providers.ToList();
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="MetadataProviderAggregator"/>.
+    /// </summary>
+    public MetadataProviderAggregator(
+        IEnumerable<IMetadataProvider> providers,
+        IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(providers);
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _providers = providers.ToList();
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -65,6 +79,11 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         var tasks = _providers.Select(p => SafeSearchAsync(p, request, cancellationToken)).ToArray();
         IReadOnlyList<ProviderMetadataResult>[] providerResults = await Task.WhenAll(tasks).ConfigureAwait(false);
 
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         var results = new List<ProviderMetadataResult>();
 
         foreach (ProviderMetadataResult result in providerResults.SelectMany(r => r))
@@ -72,7 +91,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
             results.Add(result);
 
             // Persist the lookup row.
-            _context.MetadataLookups.Add(new MetadataLookupRow
+            context.MetadataLookups.Add(new MetadataLookupRow
             {
                 BookId = bookId,
                 Provider = result.Provider,
@@ -84,7 +103,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
             });
 
             // Audit event.
-            _context.AuditEvents.Add(new AuditEventRow
+            context.AuditEvents.Add(new AuditEventRow
             {
                 EventType = "ProviderLookup",
                 EntityId = bookId,
@@ -102,7 +121,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
             });
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return results;
     }

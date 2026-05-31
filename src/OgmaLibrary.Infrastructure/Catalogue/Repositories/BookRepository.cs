@@ -10,22 +10,37 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class BookRepository : IBookRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public BookRepository(CatalogueDbContext context)
+    internal BookRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
     }
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="BookRepository"/>.
+    /// </summary>
+    public BookRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
+    }
+
     /// <inheritdoc />
     public async Task<Book?> FindAsync(BookId id, CancellationToken cancellationToken)
     {
-        BookRow? row = await _context.Books
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookRow? row = await context.Books
             .AsNoTracking()
             .Include(b => b.BookFiles)
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
@@ -41,14 +56,19 @@ public sealed class BookRepository : IBookRepository
     {
         ArgumentNullException.ThrowIfNull(book);
 
-        BookRow? existing = await _context.Books
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookRow? existing = await context.Books
             .FirstOrDefaultAsync(b => b.BookId == book.Id.Value, cancellationToken)
             .ConfigureAwait(false);
 
         if (existing is null)
         {
             var row = MapToRow(book);
-            _context.Books.Add(row);
+            context.Books.Add(row);
         }
         else
         {
@@ -58,7 +78,7 @@ public sealed class BookRepository : IBookRepository
             existing.IsbnNormalized = book.Isbn?.Normalized;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static Book MapToDomain(BookRow row)

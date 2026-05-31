@@ -20,7 +20,8 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class PdfWriteBackService : IMetadataWriteBackService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
     private readonly ISidecarService _sidecarService;
     private readonly string _libraryRoot;
     private readonly ILibrarySettingsService? _settingsService;
@@ -31,7 +32,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     /// <param name="context">The catalogue DB context.</param>
     /// <param name="sidecarService">The sidecar path resolver.</param>
     /// <param name="libraryRoot">The validated library root directory.</param>
-    public PdfWriteBackService(
+    internal PdfWriteBackService(
         CatalogueDbContext context,
         ISidecarService sidecarService,
         string libraryRoot)
@@ -44,7 +45,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     /// to the active library settings. This constructor is used by the app runtime
     /// so write-back validates against the user-selected library root.
     /// </summary>
-    public PdfWriteBackService(
+    internal PdfWriteBackService(
         CatalogueDbContext context,
         ISidecarService sidecarService,
         string libraryRoot,
@@ -54,6 +55,24 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         ArgumentNullException.ThrowIfNull(sidecarService);
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
         _context = context;
+        _sidecarService = sidecarService;
+        _libraryRoot = Path.GetFullPath(libraryRoot);
+        _settingsService = settingsService;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="PdfWriteBackService"/>.
+    /// </summary>
+    public PdfWriteBackService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        ISidecarService sidecarService,
+        string libraryRoot,
+        ILibrarySettingsService? settingsService)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(sidecarService);
+        ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
+        _contextFactory = contextFactory;
         _sidecarService = sidecarService;
         _libraryRoot = Path.GetFullPath(libraryRoot);
         _settingsService = settingsService;
@@ -184,7 +203,12 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             string newSha256 = await ComputeSha256Async(originalPath, cancellationToken)
                 .ConfigureAwait(false);
 
-            var book = await _context.Books
+            using CatalogueContextLease lease = await CatalogueContextLease
+                .CreateAsync(_contextFactory, _context, cancellationToken)
+                .ConfigureAwait(false);
+            CatalogueDbContext context = lease.Context;
+
+            var book = await context.Books
                 .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -194,7 +218,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 book.MtimeTicks = new System.IO.FileInfo(originalPath).LastWriteTimeUtc.Ticks;
             }
 
-            _context.AuditEvents.Add(new AuditEventRow
+            context.AuditEvents.Add(new AuditEventRow
             {
                 EventType = "WriteBackSucceeded",
                 EntityId = bookId,
@@ -208,7 +232,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 IsLocalOnly = true,
             });
 
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (OperationCanceledException)
@@ -309,7 +333,12 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
 
         try
         {
-            _context.AuditEvents.Add(new AuditEventRow
+            using CatalogueContextLease lease = await CatalogueContextLease
+                .CreateAsync(_contextFactory, _context, CancellationToken.None)
+                .ConfigureAwait(false);
+            CatalogueDbContext context = lease.Context;
+
+            context.AuditEvents.Add(new AuditEventRow
             {
                 EventType = "WriteBackFailed",
                 EntityId = bookId,
@@ -323,7 +352,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 IsLocalOnly = true,
             });
 
-            await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception)
         {

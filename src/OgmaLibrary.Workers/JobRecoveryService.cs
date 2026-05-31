@@ -11,16 +11,26 @@ namespace OgmaLibrary.Workers;
 /// </summary>
 public sealed class JobRecoveryService
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="JobRecoveryService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public JobRecoveryService(CatalogueDbContext context)
+    internal JobRecoveryService(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="JobRecoveryService"/>.
+    /// </summary>
+    public JobRecoveryService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <summary>
@@ -32,7 +42,12 @@ public sealed class JobRecoveryService
     /// <returns>The number of jobs recovered.</returns>
     public async Task<int> RecoverAsync(CancellationToken cancellationToken = default)
     {
-        List<JobRow> stuck = await _context.Jobs
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<JobRow> stuck = await context.Jobs
             .Where(j => j.Status == 1) // Running
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -43,7 +58,7 @@ public sealed class JobRecoveryService
             job.RetryCount += 1;
             job.StartedUtc = null;
 
-            _context.AuditEvents.Add(new AuditEventRow
+            context.AuditEvents.Add(new AuditEventRow
             {
                 EventType = "JobRecovered",
                 EntityId = job.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -56,7 +71,7 @@ public sealed class JobRecoveryService
 
         if (stuck.Count > 0)
         {
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return stuck.Count;

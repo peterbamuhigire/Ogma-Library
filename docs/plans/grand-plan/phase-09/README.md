@@ -351,6 +351,10 @@ Current implementation progress:
 - Automated Debug and Release verification is green; see
   `docs/plans/grand-plan/phase-09/evidence.md`.
 - Premium SVG icons are wired and covered by icon/catalog tests.
+- Runtime catalogue access has been hardened so app-lived reader, ingestion,
+  metadata enrichment, scan health, catalogue write, audit, and legacy
+  repository paths lease factory-created EF contexts per operation instead of
+  sharing a singleton unit-of-work.
 
 Next steps before final Phase 09 closure:
 
