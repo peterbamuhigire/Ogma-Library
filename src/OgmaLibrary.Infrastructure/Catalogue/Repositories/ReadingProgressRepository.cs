@@ -85,6 +85,67 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task<ReadingProgress?> GetByBookIdAsync(
+        string bookId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+
+        ReadingProgressRow? row = await _context.ReadingProgress
+            .AsNoTracking()
+            .Where(r => r.BookId == bookId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return row is null ? null : MapToDomain(row);
+    }
+
+    /// <inheritdoc />
+    public async Task SaveByBookIdAsync(
+        string bookId,
+        ReadingProgress progress,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentNullException.ThrowIfNull(progress);
+
+        ReadingProgressRow? existing = await _context.ReadingProgress
+            .FirstOrDefaultAsync(r => r.BookId == bookId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (existing is null)
+        {
+            // Ensure the book exists before inserting progress.
+            bool bookExists = await _context.Books
+                .AnyAsync(b => b.BookId == bookId, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!bookExists)
+            {
+                return; // Silently skip — book was removed.
+            }
+
+            _context.ReadingProgress.Add(new ReadingProgressRow
+            {
+                BookId = bookId,
+                CurrentPage = progress.LastPageIndex,
+                ScrollOffsetPx = progress.LastScrollOffset,
+                LastReadUtc = progress.LastOpenedUtc,
+                Status = (int)progress.Status,
+            });
+        }
+        else
+        {
+            existing.CurrentPage = progress.LastPageIndex;
+            existing.ScrollOffsetPx = progress.LastScrollOffset;
+            existing.LastReadUtc = progress.LastOpenedUtc;
+            existing.Status = (int)progress.Status;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static ReadingProgress MapToDomain(ReadingProgressRow row) => new ReadingProgress
     {
         LastPageIndex = row.CurrentPage,

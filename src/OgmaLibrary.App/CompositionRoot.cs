@@ -7,11 +7,17 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Reader.Cache;
+using OgmaLibrary.Reader.Progress;
+using OgmaLibrary.Reader.Session;
+using OgmaLibrary.Reader.TextLayer;
 using OgmaLibrary.Workers;
 
 namespace OgmaLibrary.App;
@@ -107,8 +113,33 @@ public static class CompositionRoot
         services.AddSingleton<IReaderNavigationService>(sp =>
             sp.GetRequiredService<MainShellViewModel>());
 
-        // Bounded-context registrations (Reader, Search, AI,
-        // Bookshelf, Settings & Security, Packaging) are added here in Phases 07+.
+        // Phase 08 — Reader bounded context.
+        services.AddSingleton<IPdfRendererFactory, PdfiumAdapterFactory>();
+        services.AddSingleton<IBookFileLocator, BookFileLocator>();
+        services.AddSingleton<IReadingProgressService, ReadingProgressService>();
+        services.AddSingleton<PageRenderCache>(sp =>
+            new PageRenderCache(
+                sp.GetRequiredService<IPdfRendererFactory>(),
+                sp.GetRequiredService<IBenchmarkContext>()));
+        services.AddSingleton<IPageRenderCache>(sp => sp.GetRequiredService<PageRenderCache>());
+
+        services.AddSingleton<ReaderSessionService>(sp =>
+            new ReaderSessionService(
+                sp.GetRequiredService<IPdfRendererFactory>(),
+                sp.GetRequiredService<IReadingProgressService>(),
+                sp.GetRequiredService<IBookFileLocator>(),
+                sp.GetRequiredService<PageRenderCache>()));
+        services.AddSingleton<IReaderSessionService>(sp =>
+            sp.GetRequiredService<ReaderSessionService>());
+        services.AddSingleton<IReaderSessionReadModel>(sp =>
+            sp.GetRequiredService<ReaderSessionService>());
+
+        services.AddSingleton<TextLayerService>();
+        services.AddSingleton<ITextLayerService>(sp => sp.GetRequiredService<TextLayerService>());
+        services.AddSingleton<IInDocumentSearchService, InDocumentSearchService>();
+
+        // Bounded-context registrations (Search, AI,
+        // Bookshelf, Settings & Security, Packaging) are added here in Phases 09+.
         return services;
     }
 }

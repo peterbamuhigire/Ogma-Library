@@ -1,8 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\OgmaLibrary.Domain\OgmaLibrary.Domain.csproj" />
     <ProjectReference Include="..\OgmaLibrary.Application\OgmaLibrary.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reactive Extensions for IObservable<ReaderEvent> event stream (IReaderSessionReadModel). -->
+    <PackageReference Include="System.Reactive" Version="6.0.1" />
   </ItemGroup>
 
   <PropertyGroup>

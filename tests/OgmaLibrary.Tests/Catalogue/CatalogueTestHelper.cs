@@ -22,7 +22,8 @@ internal static class CatalogueTestHelper
         // disrupt a concurrently-open connection in another parallel test (which caused a
         // flaky OpenAsync failure under heavy parallel load).
         var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-            .UseSqlite($"Data Source={dbPath};Pooling=False")
+            .UseSqlite($"Data Source={dbPath};Pooling=False",
+                sqlite => sqlite.MigrationsAssembly("OgmaLibrary.Infrastructure"))
             .Options;
         var context = new CatalogueDbContext(options);
         return (context, dbPath);

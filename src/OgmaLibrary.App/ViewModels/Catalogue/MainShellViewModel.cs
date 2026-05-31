@@ -9,6 +9,18 @@ using OgmaLibrary.Application.Navigation;
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
 /// <summary>
+/// The high-level content areas of the shell (Phase 08).
+/// </summary>
+public enum ShellView
+{
+    /// <summary>The catalogue browsing view (grid/list/directory).</summary>
+    Catalogue = 0,
+
+    /// <summary>The PDF reader view (Phase 08).</summary>
+    Reader = 1,
+}
+
+/// <summary>
 /// Marker interface that exposes the navigation target methods of
 /// <see cref="MainShellViewModel"/> without requiring the proxy to reference
 /// <see cref="MainShellViewModel"/> directly.
@@ -44,6 +56,7 @@ public sealed class MainShellViewModel :
     private bool _isSidebarOpen = true;
     private bool _isFilterPanelOpen;
     private string? _readerPlaceholderMessage;
+    private ShellView _activeView = ShellView.Catalogue;
 
     /// <summary>
     /// Full constructor used at runtime.
@@ -100,6 +113,28 @@ public sealed class MainShellViewModel :
     public ShelfSidebarViewModel ShelfSidebar { get; }
 
     // ── Layout state ──────────────────────────────────────────────────────────
+
+    /// <summary>The currently active content area in the shell.</summary>
+    public ShellView ActiveView
+    {
+        get => _activeView;
+        set
+        {
+            if (_activeView != value)
+            {
+                _activeView = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsCatalogueActive));
+                OnPropertyChanged(nameof(IsReaderActive));
+            }
+        }
+    }
+
+    /// <summary>True when the catalogue view is the active content area.</summary>
+    public bool IsCatalogueActive => _activeView == ShellView.Catalogue;
+
+    /// <summary>True when the reader view is the active content area.</summary>
+    public bool IsReaderActive => _activeView == ShellView.Reader;
 
     /// <summary>Whether the left sidebar (shelves) is open.</summary>
     public bool IsSidebarOpen
@@ -245,11 +280,15 @@ public sealed class MainShellViewModel :
     public Task OpenReaderAsync(string bookId, int? pageHint = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
-        // Phase 08 placeholder
+
+        // Phase 08: navigate to the reader view.
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            ReaderPlaceholderMessage = _localization["Reader.Phase08Placeholder"];
+            ActiveView = ShellView.Reader;
+            ReaderPlaceholderMessage = null;
+            OnPropertyChanged(nameof(IsReaderActive));
         });
+
         return Task.CompletedTask;
     }
 

@@ -58,11 +58,23 @@ public interface IReadingProgressRepository
     /// <returns>The progress, or <see langword="null"/> if the file was never opened.</returns>
     Task<ReadingProgress?> GetAsync(string relativePath, CancellationToken cancellationToken);
 
+    /// <summary>Gets the saved progress for a book by its stable identity (Phase 08).</summary>
+    /// <param name="bookId">The stable book identity.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The progress, or <see langword="null"/> if the book was never opened.</returns>
+    Task<ReadingProgress?> GetByBookIdAsync(string bookId, CancellationToken cancellationToken);
+
     /// <summary>Persists the reading progress for a file.</summary>
     /// <param name="relativePath">The file the progress belongs to.</param>
     /// <param name="progress">The progress to persist.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task SaveAsync(string relativePath, ReadingProgress progress, CancellationToken cancellationToken);
+
+    /// <summary>Persists reading progress keyed by the book's stable identity (Phase 08).</summary>
+    /// <param name="bookId">The stable book identity.</param>
+    /// <param name="progress">The progress to persist.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task SaveByBookIdAsync(string bookId, ReadingProgress progress, CancellationToken cancellationToken);
 }
 
 /// <summary>

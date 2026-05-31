@@ -1,7 +1,9 @@
 using NetArchTest.Rules;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Reader.Navigation;
 using OgmaLibrary.Workers;
 using Xunit;
 
@@ -124,6 +126,66 @@ public sealed class ArchitectureTests
         Assert.True(appResult.IsSuccessful, "Application must not use HttpClient: " + Describe(appResult));
         Assert.True(domainResult.IsSuccessful, "Domain must not use HttpClient: " + Describe(domainResult));
         Assert.True(hasProviders, "Expected metadata provider types in Infrastructure.Metadata.Providers namespace");
+    }
+
+    /// <summary>
+    /// The Reader project must not depend directly on Infrastructure
+    /// (it may only depend on Domain + Application per HLD §2.2).
+    /// </summary>
+    [Fact]
+    public void Architecture_Reader_DoesNotDependOnInfrastructure()
+    {
+        var result = Types.InAssembly(typeof(NavigationHistory).Assembly)
+            .ShouldNot()
+            .HaveDependencyOn(Infrastructure)
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// The Reader project must not depend on the Search bounded context.
+    /// </summary>
+    [Fact]
+    public void Architecture_Reader_DoesNotDependOnSearch()
+    {
+        var result = Types.InAssembly(typeof(NavigationHistory).Assembly)
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Search")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// The Reader project must not depend on the AI bounded context.
+    /// </summary>
+    [Fact]
+    public void Architecture_Reader_DoesNotDependOnAI()
+    {
+        var result = Types.InAssembly(typeof(NavigationHistory).Assembly)
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.AI")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// The Reader Application contracts must not depend on Infrastructure.
+    /// </summary>
+    [Fact]
+    public void Architecture_Reader_ApplicationContracts_DoNotDependOnInfrastructure()
+    {
+        // IPdfRenderer and friends live in Application.Reader namespace.
+        var result = Types.InAssembly(typeof(IPdfRenderer).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.Reader")
+            .ShouldNot()
+            .HaveDependencyOn(Infrastructure)
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
     }
 
     private static string Describe(TestResult result) =>
