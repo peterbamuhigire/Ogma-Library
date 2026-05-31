@@ -51,7 +51,7 @@
       </Grid>
     </Border>
 
-    <!-- ─── Empty-state body ─────────────────────────────────────────────── -->
+    <!-- ─── Empty-state / scan-progress body ───────────────────────────── -->
     <Border Grid.Row="1" Margin="32,8,32,8"
             CornerRadius="{DynamicResource Radius.L}"
             BorderThickness="1"
@@ -89,13 +89,31 @@
                 Foreground="White"
                 Background="{DynamicResource Brush.Accent.Oak}"
                 CornerRadius="{DynamicResource Radius.S}"
-                AutomationProperties.Name="{Binding ChooseFolderText}">
+                AutomationProperties.Name="{Binding ChooseFolderText}"
+                Click="ChooseFolderButton_Click">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Image Width="20" Height="20"
                    Source="{svg:SvgImageExtension 'avares://OgmaLibrary.App/Assets/icons/library/ic_lib_folder_open.svg'}" />
             <TextBlock Text="{Binding ChooseFolderText}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
+
+        <!-- Scan progress area (visible when scanning) -->
+        <StackPanel IsVisible="{Binding IsScanning}" Spacing="8" Margin="0,8,0,0">
+          <TextBlock Text="{Binding ScanPhaseText}"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <ProgressBar Value="{Binding ScanProgress}"
+                       Minimum="0" Maximum="1"
+                       HorizontalAlignment="Stretch"
+                       AutomationProperties.Name="Scan progress"
+                       AutomationProperties.HelpText="{Binding StatusText}" />
+          <TextBlock Text="{Binding StatusText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </StackPanel>
 
       </StackPanel>
     </Border>

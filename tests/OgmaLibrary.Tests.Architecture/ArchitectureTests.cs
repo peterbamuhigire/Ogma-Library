@@ -2,6 +2,7 @@ using NetArchTest.Rules;
 using OgmaLibrary.Application;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Workers;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Architecture;
@@ -81,6 +82,21 @@ public sealed class ArchitectureTests
         Assert.True(domain.IsSuccessful, Describe(domain));
         Assert.True(application.IsSuccessful, Describe(application));
         Assert.True(dbContextDependsOnEf.IsSuccessful, "CatalogueDbContext should depend on EF Core: " + Describe(dbContextDependsOnEf));
+    }
+
+    /// <summary>
+    /// The Workers project must not reference the App project — workers are headless
+    /// background services and must not depend on Avalonia UI (HLD §2.3, Phase 05).
+    /// </summary>
+    [Fact]
+    public void Architecture_WorkersProject_HasNoDependencyOnAppProject()
+    {
+        var result = Types.InAssembly(typeof(BookIngestionWorker).Assembly)
+            .ShouldNot()
+            .HaveDependencyOn(App)
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
     }
 
     private static string Describe(TestResult result) =>

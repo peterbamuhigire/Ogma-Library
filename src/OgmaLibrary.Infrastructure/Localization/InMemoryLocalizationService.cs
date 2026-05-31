@@ -55,6 +55,20 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Icon.ic_status_available.Label"] = "Available",
         ["Icon.ic_status_unavailable.Label"] = "Unavailable",
         ["Icon.ic_status_loading.Label"] = "Loading",
+
+        // Phase 05 — Scan progress and status strings (en)
+        ["Scan.Phase.Idle"] = "Ready",
+        ["Scan.Phase.Discovering"] = "Discovering files…",
+        ["Scan.Phase.Processing"] = "Processing…",
+        ["Scan.Phase.GeneratingAssets"] = "Generating thumbnails…",
+        ["Scan.Phase.Complete"] = "Scan complete",
+        ["Scan.Phase.PartialFailure"] = "Scan complete — some files failed",
+        ["Scan.Phase.Cancelled"] = "Scan cancelled",
+        ["Scan.Status.Scanned"] = "Scanned {0} books",
+        ["Scan.Button.Cancel"] = "Cancel",
+        ["Scan.Progress.Files"] = "{0} / {1} files",
+        ["Scan.Progress.Failed"] = "{0} failed",
+        ["MainWindow.Status.Ready"] = "Ready — choose a library folder to begin",
     };
 
     private static readonly IReadOnlyDictionary<string, string> French = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -101,6 +115,20 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Icon.ic_status_available.Label"] = "Disponible",
         ["Icon.ic_status_unavailable.Label"] = "Indisponible",
         ["Icon.ic_status_loading.Label"] = "Chargement",
+
+        // Phase 05 — Scan progress and status strings (fr)
+        ["Scan.Phase.Idle"] = "Prêt",
+        ["Scan.Phase.Discovering"] = "Découverte des fichiers…",
+        ["Scan.Phase.Processing"] = "Traitement…",
+        ["Scan.Phase.GeneratingAssets"] = "Génération des miniatures…",
+        ["Scan.Phase.Complete"] = "Analyse terminée",
+        ["Scan.Phase.PartialFailure"] = "Analyse terminée — certains fichiers ont échoué",
+        ["Scan.Phase.Cancelled"] = "Analyse annulée",
+        ["Scan.Status.Scanned"] = "{0} livres analysés",
+        ["Scan.Button.Cancel"] = "Annuler",
+        ["Scan.Progress.Files"] = "{0} / {1} fichiers",
+        ["Scan.Progress.Failed"] = "{0} échoués",
+        ["MainWindow.Status.Ready"] = "Prêt — choisissez un dossier de bibliothèque pour commencer",
     };
 
     private IReadOnlyDictionary<string, string> _active = English;

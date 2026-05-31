@@ -1,9 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.Application;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Workers;
 
 namespace OgmaLibrary.App;
 
@@ -32,7 +35,7 @@ public static class CompositionRoot
         // Localization: MVP English + French (Phase 02).
         services.AddSingleton<ILocalizationService, InMemoryLocalizationService>();
 
-        // View models.
+        // View models — registered after ingestion pipeline so DI resolves all deps.
         services.AddTransient<MainWindowViewModel>();
 
         // Phase 04 — Catalogue & Data Layer.
@@ -42,8 +45,15 @@ public static class CompositionRoot
             dataDirectory: dataDirectory,
             libraryRoot: dataDirectory);
 
-        // Bounded-context registrations (Ingestion, Reader, Search, AI,
-        // Bookshelf, Settings & Security, Packaging) are added here in Phases 05+.
+        // Phase 05 — Ingestion Pipeline (Infrastructure services).
+        services.AddIngestionPipeline(dataDirectory: dataDirectory);
+
+        // Phase 05 — Workers: background job worker + crash-recovery service.
+        services.AddSingleton<JobRecoveryService>();
+        services.AddHostedService<BookIngestionWorker>();
+
+        // Bounded-context registrations (Reader, Search, AI,
+        // Bookshelf, Settings & Security, Packaging) are added here in Phases 06+.
         return services;
     }
 }

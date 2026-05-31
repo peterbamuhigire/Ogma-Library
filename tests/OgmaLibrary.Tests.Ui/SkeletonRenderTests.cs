@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.Views;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
@@ -26,13 +27,17 @@ public sealed class SkeletonRenderTests
         }
     }
 
+    /// <summary>Creates a MainWindowViewModel with stub/no-op services for UI tests.</summary>
+    private static MainWindowViewModel CreateViewModel(InMemoryLocalizationService localization) =>
+        new(localization, new NullLibrarySettingsService(), new NullIngestionOrchestrator(), new NullScanProgressService());
+
     [AvaloniaFact]
     public void MainWindow_RendersAndCapturesScreenshot_English()
     {
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("en");
 
-        var window = new MainWindow { DataContext = new MainWindowViewModel(localization) };
+        var window = new MainWindow { DataContext = CreateViewModel(localization) };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -47,7 +52,7 @@ public sealed class SkeletonRenderTests
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("fr");
 
-        var window = new MainWindow { DataContext = new MainWindowViewModel(localization) };
+        var window = new MainWindow { DataContext = CreateViewModel(localization) };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -60,7 +65,7 @@ public sealed class SkeletonRenderTests
     public void MainWindow_CultureSwitch_UpdatesTitle_WithoutMissingResources()
     {
         var localization = new InMemoryLocalizationService();
-        var viewModel = new MainWindowViewModel(localization);
+        var viewModel = CreateViewModel(localization);
 
         localization.SetCulture("en");
         Assert.Equal("Ogma Library", viewModel.Title);
@@ -70,5 +75,46 @@ public sealed class SkeletonRenderTests
 
         // No key resolves to the missing-key sentinel for the skeleton window.
         Assert.DoesNotContain("⟦", viewModel.Tagline, StringComparison.Ordinal);
+
+        viewModel.Dispose();
+    }
+
+    // ── Null/stub implementations for UI test isolation ──────────────────────────
+
+    private sealed class NullLibrarySettingsService : ILibrarySettingsService
+    {
+        public Task<string?> GetLibraryRootAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task SetLibraryRootAsync(string rootPath, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyList<string>> GetExcludedFoldersAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+        public Task SetExcludedFoldersAsync(IReadOnlyList<string> excludedFolders, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class NullIngestionOrchestrator : IIngestionOrchestrator
+    {
+        public Task ScanAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class NullScanProgressService : IScanProgressService
+    {
+        public ScanProgressSnapshot CurrentSnapshot { get; } =
+            new(ScanPhase.Idle, 0, 0, 0, IsCancellable: false);
+
+        public event EventHandler<ScanProgressSnapshot>? ProgressChanged;
+
+        public void SetPhase(ScanPhase phase) { }
+        public void IncrementDiscovered() { }
+        public void IncrementCompleted() { }
+        public void IncrementFailed() { }
+        public void Reset() { }
+
+        // Suppress unused warning.
+        private void RaiseProgressChanged() => ProgressChanged?.Invoke(this, CurrentSnapshot);
     }
 }
