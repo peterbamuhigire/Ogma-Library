@@ -28,7 +28,7 @@ any PDF including rotated pages.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 4 (Reader — annotations) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both |
-| **Status** | Locally implementation-complete; automated gates green; owner icon procurement in progress, owner confirmations, and manual accessibility/visual signoff pending |
+| **Status** | Locally implementation-complete; automated gates green; premium SVG icons delivered; owner confirmations and manual accessibility/visual signoff pending |
 | **Depends on** | Phase 08 (Reader Core — `ReaderView`, `IPdfRenderer`, text layer) |
 | **Unblocks** | Phase 10 (FTS5 index — annotation text is indexed), Phase 11 (annotation text in embeddings), Phase 13 (reading memory feeds AI advisor) |
 
@@ -236,10 +236,9 @@ state sync. Interface defined now; no LAN built here.
 
 ## 9. Cross-cutting checklist
 
-- [ ] **Colorful icons + manifest**: key-named SVG placeholder assets are wired
+- [x] **Colorful icons + manifest**: key-named premium SVG assets are wired
       and tested for every annotation, bookmark, layer, citation, and
-      reading-memory icon; premium PNG procurement is in progress with the
-      owner and remains open until licensed PNGs are committed.
+      reading-memory icon.
 - [x] **i18n (en/fr)**: Phase 09 reader strings are externalized in both
       `annotations.en.resx` and `annotations.fr.resx`; automated pseudolocale
       rendering passes.
@@ -286,9 +285,8 @@ state sync. Interface defined now; no LAN built here.
 - [ ] All annotation controls reachable via keyboard; highlight color has
       accessible label; screen-reader announces bookmark count. Automated
       coverage is present; manual screen-reader pass remains pending.
-- [ ] `icons.md` complete; all icons in en + fr labels; no hard-coded Phase 09
-      reader strings. Premium PNG procurement is in progress and remains
-      pending until the purchased assets are committed.
+- [x] `icons.md` complete; all icons have en + fr labels; no hard-coded Phase 09
+      reader strings; premium SVG assets are committed.
 - [x] Architecture tests pass; no automated R1/R2 defects open.
 - [x] `/code-review` completed via sub-agent review; High/Medium/Low findings
       resolved in code and tests.
@@ -352,27 +350,23 @@ Current implementation progress:
   bookmarks, layers, citations, reading memory, persistence, and reader UI.
 - Automated Debug and Release verification is green; see
   `docs/plans/grand-plan/phase-09/evidence.md`.
-- Placeholder SVG icons are wired and covered by icon/catalog tests.
-- The owner is buying the 22 premium PNG icon sets listed in `icons.md`.
+- Premium SVG icons are wired and covered by icon/catalog tests.
 
 Next steps before final Phase 09 closure:
 
-1. Commit the purchased PNG icon sets under the reader annotation/memory icon
-   folders and update `icons.md` from "owner buying" to delivered.
-2. Record the owner decisions for palette, citation export V1 scope, and
+1. Record the owner decisions for palette, citation export V1 scope, and
    reading-memory disposition wording.
-3. Complete the manual Narrator/VoiceOver walkthrough and visual accessibility
+2. Complete the manual Narrator/VoiceOver walkthrough and visual accessibility
    review in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
-4. Re-run Release build/test after icon delivery and update `evidence.md`.
+3. Re-run Release build/test after manual signoff updates and update
+   `evidence.md`.
 
 ---
 
 ## 15. Owner asks
 
-1. **Premium icon procurement (Annotations set):** Please review `icons.md`
-   and purchase the named premium PNG icons for annotation, bookmark, layer,
-   citation, and reading-memory surfaces. Full style/size spec in `icons.md`.
-   Status: owner is buying these icons; final closure waits for committed PNGs.
+1. **Premium icon procurement (Annotations set):** Delivered as premium SVGs
+   and copied into key-named runtime paths. See `icons.md` for source mapping.
 
 2. **Annotation layer color palette:** The system pre-creates four default
    layer colors; please confirm or adjust the warm-library color palette for
@@ -397,3 +391,4 @@ Next steps before final Phase 09 closure:
 | 2026-05-30 | Initial v1.0 baseline authored | Grand-plan agent |
 | 2026-05-31 | Updated implementation status, deliverable paths, and evidence-backed closeout checklist | Codex |
 | 2026-05-31 | Recorded owner icon procurement in progress and added next-step closeout path | Codex |
+| 2026-05-31 | Replaced Phase 09 placeholder icons with delivered premium SVG assets | Codex |

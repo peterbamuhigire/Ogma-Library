@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -22,6 +23,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     private readonly CatalogueDbContext _context;
     private readonly ISidecarService _sidecarService;
     private readonly string _libraryRoot;
+    private readonly ILibrarySettingsService? _settingsService;
 
     /// <summary>
     /// Initializes a new instance of <see cref="PdfWriteBackService"/>.
@@ -33,6 +35,20 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         CatalogueDbContext context,
         ISidecarService sidecarService,
         string libraryRoot)
+        : this(context, sidecarService, libraryRoot, settingsService: null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="PdfWriteBackService"/> with access
+    /// to the active library settings. This constructor is used by the app runtime
+    /// so write-back validates against the user-selected library root.
+    /// </summary>
+    public PdfWriteBackService(
+        CatalogueDbContext context,
+        ISidecarService sidecarService,
+        string libraryRoot,
+        ILibrarySettingsService? settingsService)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(sidecarService);
@@ -40,6 +56,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         _context = context;
         _sidecarService = sidecarService;
         _libraryRoot = Path.GetFullPath(libraryRoot);
+        _settingsService = settingsService;
     }
 
     /// <inheritdoc />
@@ -50,7 +67,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(absoluteFilePath);
-        ValidatePathUnderLibraryRoot(absoluteFilePath);
+        string activeLibraryRoot = await ValidatePathUnderLibraryRootAsync(absoluteFilePath, cancellationToken)
+            .ConfigureAwait(false);
 
         string sha256 = await ComputeSha256Async(absoluteFilePath, cancellationToken)
             .ConfigureAwait(false);
@@ -60,7 +78,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string backupFileName = $"{timestamp}_pre_writeback_{sha8}.pdf";
 
         // Resolve sidecar path using the sha256 of the file content.
-        string backupDir = Path.Combine(_libraryRoot, ".ogma", "backups");
+        string backupDir = Path.Combine(activeLibraryRoot, ".ogma", "backups");
         Directory.CreateDirectory(backupDir);
         string backupPath = Path.Combine(backupDir, backupFileName);
 
@@ -136,7 +154,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentNullException.ThrowIfNull(acceptedProposals);
         ArgumentNullException.ThrowIfNull(backupToken);
-        ValidatePathUnderLibraryRoot(backupToken.OriginalAbsolutePath);
+        await ValidatePathUnderLibraryRootAsync(backupToken.OriginalAbsolutePath, cancellationToken)
+            .ConfigureAwait(false);
 
         string originalPath = backupToken.OriginalAbsolutePath;
         string tempPath = originalPath + ".ogma_tmp";
@@ -319,13 +338,41 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         return Convert.ToHexStringLower(hashBytes);
     }
 
-    private void ValidatePathUnderLibraryRoot(string absolutePath)
+    private async Task<string> ValidatePathUnderLibraryRootAsync(
+        string absolutePath,
+        CancellationToken cancellationToken)
     {
+        string libraryRoot = await GetActiveLibraryRootAsync(cancellationToken).ConfigureAwait(false);
         string fullPath = Path.GetFullPath(absolutePath);
-        if (!fullPath.StartsWith(_libraryRoot, StringComparison.OrdinalIgnoreCase))
+        string fullRoot = Path.GetFullPath(libraryRoot);
+        string rootWithSeparator = fullRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? fullRoot
+            : fullRoot + Path.DirectorySeparatorChar;
+
+        if (!string.Equals(fullPath, fullRoot, StringComparison.OrdinalIgnoreCase) &&
+            !fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                $"Write-back path '{absolutePath}' is outside the library root '{_libraryRoot}'.");
+                $"Write-back path '{absolutePath}' is outside the library root '{fullRoot}'.");
         }
+
+        return fullRoot;
+    }
+
+    private async Task<string> GetActiveLibraryRootAsync(CancellationToken cancellationToken)
+    {
+        if (_settingsService is not null)
+        {
+            string? configuredRoot = await _settingsService
+                .GetLibraryRootAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!string.IsNullOrWhiteSpace(configuredRoot))
+            {
+                return configuredRoot;
+            }
+        }
+
+        return _libraryRoot;
     }
 }

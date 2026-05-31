@@ -82,6 +82,45 @@ public sealed class ProviderClientTests
         Assert.Equal(0.0, result!.Confidence);
     }
 
+    [Fact]
+    public async Task GoogleBooksProvider_SearchByTitleAuthor_ParsesRatingsAndPages()
+    {
+        const string json = """
+            {
+              "totalItems": 1,
+              "items": [{
+                "volumeInfo": {
+                  "title": "Domain-Driven Design",
+                  "authors": ["Eric Evans"],
+                  "publisher": "Addison-Wesley",
+                  "publishedDate": "2003-08-30",
+                  "averageRating": 4.7,
+                  "ratingsCount": 91,
+                  "pageCount": 560,
+                  "language": "en",
+                  "industryIdentifiers": [
+                    {"type": "ISBN_13", "identifier": "9780321125217"}
+                  ]
+                }
+              }]
+            }
+            """;
+
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, json);
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://www.googleapis.com/books/v1/") };
+        var provider = new GoogleBooksProvider(httpClient);
+
+        IReadOnlyList<ProviderMetadataResult> results = await provider.SearchAsync(
+            new MetadataLookupRequest(Isbn13: null, Title: "Domain Driven Design", Author: "Eric Evans"));
+
+        ProviderMetadataResult result = Assert.Single(results);
+        Assert.Equal("Domain-Driven Design", result.Title);
+        Assert.Equal(4.7, result.AverageRating);
+        Assert.Equal(91, result.RatingsCount);
+        Assert.Equal(560, result.PageCount);
+        Assert.Equal("en", result.Language);
+    }
+
     // â”€â”€ Open Library client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
@@ -130,6 +169,43 @@ public sealed class ProviderClientTests
         ProviderMetadataResult? result = await provider.LookupAsync("9780000000001");
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task OpenLibraryProvider_SearchByTitleAuthor_ParsesSearchDocument()
+    {
+        const string json = """
+            {
+              "numFound": 1,
+              "docs": [{
+                "title": "The Left Hand of Darkness",
+                "author_name": ["Ursula K. Le Guin"],
+                "first_publish_year": 1969,
+                "publisher": ["Ace Books"],
+                "isbn": ["0441478123", "9780441478125"],
+                "cover_i": 8231856,
+                "subject": ["Science fiction"],
+                "language": ["eng"],
+                "number_of_pages_median": 304,
+                "ratings_average": 4.2,
+                "ratings_count": 212
+              }]
+            }
+            """;
+
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, json);
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://openlibrary.org/") };
+        var provider = new OpenLibraryProvider(httpClient);
+
+        IReadOnlyList<ProviderMetadataResult> results = await provider.SearchAsync(
+            new MetadataLookupRequest(Isbn13: null, Title: "The Left Hand of Darkness", Author: "Ursula Le Guin"));
+
+        ProviderMetadataResult result = Assert.Single(results);
+        Assert.Equal("The Left Hand of Darkness", result.Title);
+        Assert.Equal("9780441478125", result.IsbnNormalized);
+        Assert.Equal(304, result.PageCount);
+        Assert.Equal(4.2, result.AverageRating);
+        Assert.Equal("eng", result.Language);
     }
 
     // â”€â”€ Aggregator concurrent call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

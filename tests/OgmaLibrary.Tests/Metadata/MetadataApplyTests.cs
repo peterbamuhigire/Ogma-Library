@@ -92,6 +92,39 @@ public sealed class MetadataApplyTests
     }
 
     [Fact]
+    public async Task MetadataApply_MirrorsCoreFieldsToCatalogueColumns()
+    {
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow { BookId = "APPLY04", Status = 0 });
+        await context.SaveChangesAsync();
+
+        var qualitySvc = new MetadataQualityService(context);
+        var svc = new MetadataApplyService(context, qualitySvc);
+
+        var proposals = new[]
+        {
+            new AcceptedFieldProposal("Title", "Domain-Driven Design", "GoogleBooks", 0.85, false),
+            new AcceptedFieldProposal("Author", "Eric Evans", "GoogleBooks", 0.85, false),
+            new AcceptedFieldProposal("ISBN", "9780321125217", "GoogleBooks", 0.85, false),
+            new AcceptedFieldProposal("Year", "2003", "GoogleBooks", 0.85, false),
+        };
+
+        await svc.ApplyMergedMetadataAsync("APPLY04", proposals);
+
+        var book = context.Books.Single(b => b.BookId == "APPLY04");
+        Assert.Equal("Domain-Driven Design", book.Title);
+        Assert.Equal("9780321125217", book.IsbnNormalized);
+        Assert.Equal(2003, book.Year);
+
+        var author = context.Authors.Single();
+        Assert.Equal("Eric Evans", author.NormalizedName);
+
+        var bookAuthor = context.BookAuthors.Single();
+        Assert.Equal("APPLY04", bookAuthor.BookId);
+        Assert.Equal("Author", bookAuthor.Role);
+    }
+
+    [Fact]
     public async Task EnrichmentUI_AcceptAll_AppliesOnlyAboveThreshold()
     {
         // Simulate the logic of "Accept all above 0.8": only proposals with

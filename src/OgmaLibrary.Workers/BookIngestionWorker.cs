@@ -1,6 +1,9 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -19,6 +22,7 @@ public sealed class BookIngestionWorker : BackgroundService
     private readonly IThumbnailService _thumbnailService;
     private readonly ISpineService _spineService;
     private readonly IScanProgressService _progress;
+    private readonly IBookMetadataEnrichmentService _metadataEnrichment;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookIngestionWorker"/>.
@@ -28,24 +32,28 @@ public sealed class BookIngestionWorker : BackgroundService
     /// <param name="thumbnailService">The thumbnail generation service.</param>
     /// <param name="spineService">The spine generation service.</param>
     /// <param name="progress">The scan progress service.</param>
+    /// <param name="metadataEnrichment">The deterministic online metadata enrichment service.</param>
     public BookIngestionWorker(
         CatalogueDbContext context,
         IMetadataExtractionService metadataExtraction,
         IThumbnailService thumbnailService,
         ISpineService spineService,
-        IScanProgressService progress)
+        IScanProgressService progress,
+        IBookMetadataEnrichmentService metadataEnrichment)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(metadataExtraction);
         ArgumentNullException.ThrowIfNull(thumbnailService);
         ArgumentNullException.ThrowIfNull(spineService);
         ArgumentNullException.ThrowIfNull(progress);
+        ArgumentNullException.ThrowIfNull(metadataEnrichment);
 
         _context = context;
         _metadataExtraction = metadataExtraction;
         _thumbnailService = thumbnailService;
         _spineService = spineService;
         _progress = progress;
+        _metadataEnrichment = metadataEnrichment;
     }
 
     /// <inheritdoc />
@@ -57,6 +65,7 @@ public sealed class BookIngestionWorker : BackgroundService
             List<JobRow> pending = await _context.Jobs
                 .Where(j => j.Status == 0 && // Pending
                     (j.JobType == "MetadataExtraction" ||
+                     j.JobType == "Enrich" ||
                      j.JobType == "ThumbnailGeneration" ||
                      j.JobType == "SpineGeneration"))
                 .OrderBy(j => j.JobId)
@@ -108,6 +117,16 @@ public sealed class BookIngestionWorker : BackgroundService
             if (job.JobType == "MetadataExtraction")
             {
                 (success, errorMessage) = await _metadataExtraction.ExtractAsync(
+                    job.BookId ?? string.Empty, filePath, stoppingToken).ConfigureAwait(false);
+
+                if (success && !string.IsNullOrWhiteSpace(job.BookId))
+                {
+                    TryAddEnrichJob(job.BookId, filePath);
+                }
+            }
+            else if (job.JobType == "Enrich")
+            {
+                (success, errorMessage) = await _metadataEnrichment.EnrichAsync(
                     job.BookId ?? string.Empty, filePath, stoppingToken).ConfigureAwait(false);
             }
             else if (job.JobType == "ThumbnailGeneration" && !string.IsNullOrEmpty(contentHash))
@@ -167,5 +186,31 @@ public sealed class BookIngestionWorker : BackgroundService
                 // Swallow to prevent worker crash on DB save issues.
             }
         }
+    }
+
+    private void TryAddEnrichJob(string bookId, string filePath)
+    {
+        string idempotencyKey = ComputeIdempotencyKey(bookId, "Enrich");
+        bool exists = _context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
+        if (exists)
+        {
+            return;
+        }
+
+        _context.Jobs.Add(new JobRow
+        {
+            JobType = "Enrich",
+            IdempotencyKey = idempotencyKey,
+            Status = 0,
+            BookId = bookId,
+            Payload = filePath,
+        });
+    }
+
+    private static string ComputeIdempotencyKey(string bookId, string jobType)
+    {
+        byte[] data = Encoding.UTF8.GetBytes($"{bookId}|{jobType}");
+        byte[] hash = SHA256.HashData(data);
+        return Convert.ToHexStringLower(hash)[..32];
     }
 }

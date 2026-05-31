@@ -10,10 +10,8 @@ separate from the plan so unresolved owner/manual items remain visible.
 Current status: locally implementation-complete. Direct audit and independent
 sub-agent review found no remaining locally actionable Phase 09 code, test, or
 documentation gaps. Final phase closure is still blocked on owner/manual gates:
-premium PNG icon delivery, Narrator/VoiceOver walkthrough, manual color review,
-manual pseudolocale review, and owner confirmations. The owner is buying the
-premium icon set; runtime still uses placeholder SVGs until the purchased PNGs
-are committed.
+Narrator/VoiceOver walkthrough, manual color review, manual pseudolocale review,
+and owner confirmations. Premium SVG icons have been delivered and committed.
 
 ## Automated verification
 
@@ -52,7 +50,7 @@ Latest local commands:
 | Bookmark keyboard navigation | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates`; `ReaderView.axaml` wires `Bookmarks_KeyDown` | Automated coverage present |
 | Bookmark context menu | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark`; bookmark rows expose right-click rename/delete actions | Automated coverage present |
 | Note editor keyboard dismissal | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating`; `ReaderView.axaml.cs` handles Escape on `NoteEditorTextBox` | Automated coverage present |
-| Icon registration and labels | `IconCatalog_Phase09ManifestKeys_AllResolve`; `IconCatalog_Phase09ManifestKeys_HaveAccessibleLabels` | Key-named placeholder SVG registration verified |
+| Icon registration and labels | `IconCatalog_Phase09ManifestKeys_AllResolve`; `IconCatalog_Phase09ManifestKeys_HaveAccessibleLabels`; `docs/plans/grand-plan/phase-09/icons.md` delivered asset mapping | Key-named premium SVG registration verified |
 | Overlay contrast | `ReaderViewModel_AnnotationOverlayColors_MeetContrastGate` | Automated contrast gate present |
 | Pseudolocale render | `ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds`; screenshot `artifacts/screenshots/reader-qps-ploc.png` | Automated render evidence present |
 | No PDF write-back | `Architecture_Phase09Annotations_DoNotDependOnPdfWriteBack`; source audit of Phase 09 annotation path | Automated guard present |
@@ -61,7 +59,6 @@ Latest local commands:
 
 | Item | Current state | Closeout evidence needed |
 | --- | --- | --- |
-| Premium PNG icon procurement | Owner is buying the 22 icon sets listed in `icons.md`; runtime currently uses key-named SVG placeholders in `Assets/icons/reader/annotations/` and `Assets/icons/reader/memory/`. | Delivered licensed PNGs in the same reader annotation/memory folders; update `icons.md` status from "owner buying" to delivered. |
 | Screen-reader walkthrough | Automation names are covered by UI tests and summarized in `docs/qa/PHASE-09-A11Y-SIGNOFF.md`; runbook exists in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`, but Narrator/VoiceOver has not been manually recorded in this repository. | Manual pass on Windows Narrator and macOS VoiceOver with bookmark count, annotation overlay, note anchor, layer controls, citation card. |
 | Color accessibility manual review | Automated contrast math is present; human review against actual platform rendering is not archived. | Manual review of highlight overlays and color-only meaning. |
 | Pseudolocale manual review | Headless pseudolocale screenshot is archived in artifacts; human review is not archived. | Manual review of pseudolocale screenshot for polish. |

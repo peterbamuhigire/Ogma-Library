@@ -31,6 +31,11 @@ public sealed class ConfidenceMergeService : IConfidenceMergeService
         "Publisher",
         "Description",
         "Categories",
+        "CoverUrl",
+        "AverageRating",
+        "RatingsCount",
+        "PageCount",
+        "Language",
     ];
 
     private static readonly Dictionary<string, double> ProviderWeights =
@@ -110,7 +115,7 @@ public sealed class ConfidenceMergeService : IConfidenceMergeService
                     continue;
                 }
 
-                double providerWeight = GetProviderWeight(result.Provider);
+                double providerWeight = Math.Min(GetProviderWeight(result.Provider), result.Confidence);
                 double matchScore = ComputeMatchScore(field, fieldValue, existingValue);
                 double recencyBonus = ComputeRecencyBonus(result.RetrievedUtc);
                 double fieldConfidence = providerWeight * matchScore * recencyBonus;
@@ -291,6 +296,11 @@ public sealed class ConfidenceMergeService : IConfidenceMergeService
             "Publisher" => result.Publisher,
             "Description" => result.Description,
             "Categories" => result.Categories.Count > 0 ? string.Join(", ", result.Categories) : null,
+            "CoverUrl" => result.CoverUrl,
+            "AverageRating" => result.AverageRating.HasValue ? result.AverageRating.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : null,
+            "RatingsCount" => result.RatingsCount.HasValue ? result.RatingsCount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
+            "PageCount" => result.PageCount.HasValue ? result.PageCount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
+            "Language" => result.Language,
             _ => null,
         };
 }

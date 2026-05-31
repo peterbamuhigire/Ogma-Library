@@ -1,6 +1,26 @@
 namespace OgmaLibrary.Application.Metadata;
 
 /// <summary>
+/// Deterministic provider lookup request. ISBN is preferred when available because
+/// it is an exact identifier; title and author are used as a fallback when no valid
+/// ISBN can be detected from the file or catalogue.
+/// </summary>
+/// <param name="Isbn13">The normalized ISBN-13/ISBN-10 value, digits only.</param>
+/// <param name="Title">The best known title candidate, if any.</param>
+/// <param name="Author">The best known primary author candidate, if any.</param>
+public sealed record MetadataLookupRequest(
+    string? Isbn13,
+    string? Title,
+    string? Author)
+{
+    /// <summary>Returns true when the request has enough data for a provider search.</summary>
+    public bool HasAnySearchKey =>
+        !string.IsNullOrWhiteSpace(Isbn13) ||
+        !string.IsNullOrWhiteSpace(Title) ||
+        !string.IsNullOrWhiteSpace(Author);
+}
+
+/// <summary>
 /// The raw metadata result returned by a single external provider lookup (FR-META-002).
 /// All fields are optional strings since any provider may omit any field.
 /// </summary>
@@ -17,6 +37,10 @@ namespace OgmaLibrary.Application.Metadata;
 /// <param name="Confidence">Initial match confidence score in [0.0, 1.0] (refined by merge).</param>
 /// <param name="RetrievedUtc">UTC timestamp when this result was fetched.</param>
 /// <param name="RawJson">The raw JSON response from the provider, for audit storage.</param>
+/// <param name="AverageRating">Provider average rating, if supplied.</param>
+/// <param name="RatingsCount">Provider rating count, if supplied.</param>
+/// <param name="PageCount">Provider page count, if supplied.</param>
+/// <param name="Language">Provider language code, if supplied.</param>
 public sealed record ProviderMetadataResult(
     string Provider,
     string RequestIsbn,
@@ -30,7 +54,11 @@ public sealed record ProviderMetadataResult(
     string? IsbnNormalized,
     double Confidence,
     DateTimeOffset RetrievedUtc,
-    string? RawJson);
+    string? RawJson,
+    double? AverageRating = null,
+    int? RatingsCount = null,
+    int? PageCount = null,
+    string? Language = null);
 
 /// <summary>
 /// A single metadata provider that resolves bibliographic data for a given ISBN
@@ -56,6 +84,31 @@ public interface IMetadataProvider
     Task<ProviderMetadataResult?> LookupAsync(
         string isbn13,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Searches for bibliographic metadata using the richest deterministic request
+    /// available. Implementations must prefer exact ISBN lookup when
+    /// <see cref="MetadataLookupRequest.Isbn13"/> is present and fall back to
+    /// provider-native title/author search otherwise. This method never uses AI.
+    /// </summary>
+    /// <param name="request">The provider search request.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>Zero or more provider results, ordered by provider relevance.</returns>
+    async Task<IReadOnlyList<ProviderMetadataResult>> SearchAsync(
+        MetadataLookupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!string.IsNullOrWhiteSpace(request.Isbn13))
+        {
+            ProviderMetadataResult? result = await LookupAsync(request.Isbn13, cancellationToken)
+                .ConfigureAwait(false);
+            return result is null ? [] : [result];
+        }
+
+        return [];
+    }
 }
 
 /// <summary>
@@ -81,5 +134,19 @@ public interface IMetadataProviderAggregator
     Task<IReadOnlyList<ProviderMetadataResult>> AggregateAsync(
         string bookId,
         string isbn13,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Concurrently calls all registered providers with a deterministic request that
+    /// can contain ISBN, title, and author search keys. Every provider result is
+    /// persisted with provenance and audit metadata.
+    /// </summary>
+    /// <param name="bookId">The catalogue book identifier.</param>
+    /// <param name="request">The lookup request.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>All provider results, including zero-confidence failure results.</returns>
+    Task<IReadOnlyList<ProviderMetadataResult>> AggregateAsync(
+        string bookId,
+        MetadataLookupRequest request,
         CancellationToken cancellationToken = default);
 }

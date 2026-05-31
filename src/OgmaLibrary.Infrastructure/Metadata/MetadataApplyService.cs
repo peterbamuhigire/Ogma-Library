@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -89,6 +90,9 @@ public sealed class MetadataApplyService : IMetadataApplyService
             }
         }
 
+        await MirrorCatalogueColumnsAsync(bookId, acceptedProposals, cancellationToken)
+            .ConfigureAwait(false);
+
         // Snapshot after state.
         string afterJson = JsonSerializer.Serialize(
             acceptedProposals.Select(p => new { p.FieldName, p.AcceptedValue, p.Source, p.Confidence }));
@@ -109,5 +113,115 @@ public sealed class MetadataApplyService : IMetadataApplyService
 
         // Recalculate quality score after metadata write.
         await _qualityService.RecalculateAsync(bookId, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task MirrorCatalogueColumnsAsync(
+        string bookId,
+        IReadOnlyList<AcceptedFieldProposal> acceptedProposals,
+        CancellationToken cancellationToken)
+    {
+        BookRow? book = await _context.Books
+            .Include(b => b.BookAuthors)
+            .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (book is null)
+        {
+            return;
+        }
+
+        string? title = FindAcceptedValue(acceptedProposals, "Title");
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            book.Title = title.Trim();
+        }
+
+        string? year = FindAcceptedValue(acceptedProposals, "Year");
+        if (int.TryParse(year, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int parsedYear))
+        {
+            book.Year = parsedYear;
+        }
+
+        string? isbn = FindAcceptedValue(acceptedProposals, "ISBN");
+        if (Isbn.TryParse(isbn, out Isbn parsedIsbn))
+        {
+            book.IsbnNormalized = parsedIsbn.Normalized;
+        }
+
+        string? authorValue = FindAcceptedValue(acceptedProposals, "Author");
+        if (!string.IsNullOrWhiteSpace(authorValue))
+        {
+            await ReplaceAuthorsAsync(book, authorValue, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ReplaceAuthorsAsync(
+        BookRow book,
+        string authorValue,
+        CancellationToken cancellationToken)
+    {
+        var authorNames = authorValue
+            .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(12)
+            .ToList();
+
+        if (authorNames.Count == 0)
+        {
+            return;
+        }
+
+        _context.BookAuthors.RemoveRange(book.BookAuthors);
+        book.BookAuthors.Clear();
+
+        int displayOrder = 0;
+        foreach (string authorName in authorNames)
+        {
+            string normalized = NormalizeAuthorName(authorName);
+            AuthorRow? author = await _context.Authors
+                .FirstOrDefaultAsync(a => a.NormalizedName == normalized, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (author is null)
+            {
+                author = new AuthorRow
+                {
+                    NormalizedName = normalized,
+                    SortName = BuildSortName(authorName),
+                };
+                _context.Authors.Add(author);
+            }
+
+            book.BookAuthors.Add(new BookAuthorRow
+            {
+                BookId = book.BookId,
+                Author = author,
+                Role = "Author",
+                DisplayOrder = displayOrder++,
+            });
+        }
+    }
+
+    private static string? FindAcceptedValue(
+        IReadOnlyList<AcceptedFieldProposal> proposals,
+        string fieldName) =>
+        proposals
+            .FirstOrDefault(p => string.Equals(p.FieldName, fieldName, StringComparison.OrdinalIgnoreCase))
+            ?.AcceptedValue;
+
+    private static string NormalizeAuthorName(string authorName) =>
+        string.Join(
+            ' ',
+            authorName.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+            .Trim();
+
+    private static string BuildSortName(string authorName)
+    {
+        string normalized = NormalizeAuthorName(authorName);
+        int lastSpace = normalized.LastIndexOf(' ');
+        return lastSpace <= 0
+            ? normalized
+            : normalized[(lastSpace + 1)..] + ", " + normalized[..lastSpace];
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using OgmaLibrary.Application.Metadata;
 
@@ -69,6 +70,68 @@ public sealed class OpenLibraryProvider : IMetadataProvider
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ProviderMetadataResult>> SearchAsync(
+        MetadataLookupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!string.IsNullOrWhiteSpace(request.Isbn13))
+        {
+            ProviderMetadataResult? isbnResult = await LookupAsync(request.Isbn13, cancellationToken)
+                .ConfigureAwait(false);
+            return isbnResult is null ? [] : [isbnResult];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Title) && string.IsNullOrWhiteSpace(request.Author))
+        {
+            return [];
+        }
+
+        DateTimeOffset retrievedUtc = DateTimeOffset.UtcNow;
+
+        try
+        {
+            var query = new List<string>();
+            if (!string.IsNullOrWhiteSpace(request.Title))
+            {
+                query.Add($"title={Uri.EscapeDataString(request.Title.Trim())}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Author))
+            {
+                query.Add($"author={Uri.EscapeDataString(request.Author.Trim())}");
+            }
+
+            query.Add("limit=5");
+            query.Add("fields=title,author_name,first_publish_year,publisher,isbn,cover_i,subject,language,number_of_pages_median,ratings_average,ratings_count");
+
+            string url = "search.json?" + string.Join('&', query);
+            using var response = await _httpClient
+                .GetAsync(url, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return [BuildFailureResult(string.Empty, retrievedUtc, $"HTTP {(int)response.StatusCode}")];
+            }
+
+            string json = await response.Content.ReadAsStringAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return ParseSearchResponse(request, json, retrievedUtc);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return [BuildFailureResult(string.Empty, retrievedUtc, ex.Message)];
+        }
+    }
+
     private ProviderMetadataResult? ParseResponse(
         string isbn13,
         string json,
@@ -87,6 +150,10 @@ public sealed class OpenLibraryProvider : IMetadataProvider
 
         string? title = book.TryGetProperty("title", out var t) ? t.GetString() : null;
         string? description = null;
+        int? pageCount = book.TryGetProperty("number_of_pages", out var pages)
+            && pages.TryGetInt32(out int parsedPages)
+                ? parsedPages
+                : null;
 
         if (book.TryGetProperty("description", out var desc))
         {
@@ -176,7 +243,92 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             IsbnNormalized: isbn13,
             Confidence: 0.80, // Provider weight per DECISIONS.md D-007
             RetrievedUtc: retrievedUtc,
-            RawJson: json);
+            RawJson: json,
+            PageCount: pageCount);
+    }
+
+    private List<ProviderMetadataResult> ParseSearchResponse(
+        MetadataLookupRequest request,
+        string json,
+        DateTimeOffset retrievedUtc)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("docs", out var docs) || docs.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var results = new List<ProviderMetadataResult>();
+        foreach (var item in docs.EnumerateArray())
+        {
+            string? title = item.TryGetProperty("title", out var t) ? t.GetString() : null;
+            var authors = ReadStringArray(item, "author_name");
+            var publishers = ReadStringArray(item, "publisher");
+            var categories = ReadStringArray(item, "subject");
+            var languages = ReadStringArray(item, "language");
+            var isbnValues = ReadStringArray(item, "isbn");
+
+            if (string.IsNullOrWhiteSpace(title) && authors.Count == 0 && isbnValues.Count == 0)
+            {
+                continue;
+            }
+
+            int? year = item.TryGetProperty("first_publish_year", out var firstYear)
+                && firstYear.TryGetInt32(out int parsedYear)
+                    ? parsedYear
+                    : null;
+
+            int? pageCount = item.TryGetProperty("number_of_pages_median", out var pages)
+                && pages.TryGetInt32(out int parsedPages)
+                    ? parsedPages
+                    : null;
+
+            double? averageRating = item.TryGetProperty("ratings_average", out var avgRating)
+                && avgRating.TryGetDouble(out double parsedRating)
+                    ? parsedRating
+                    : null;
+
+            int? ratingsCount = item.TryGetProperty("ratings_count", out var ratingCount)
+                && ratingCount.TryGetInt32(out int parsedRatingCount)
+                    ? parsedRatingCount
+                    : null;
+
+            string? coverUrl = null;
+            if (item.TryGetProperty("cover_i", out var coverId) &&
+                coverId.TryGetInt64(out long parsedCoverId))
+            {
+                coverUrl = $"https://covers.openlibrary.org/b/id/{parsedCoverId}-L.jpg";
+            }
+
+            string? canonicalIsbn = isbnValues
+                .FirstOrDefault(i => i.Length == 13) ??
+                isbnValues.FirstOrDefault();
+
+            results.Add(new ProviderMetadataResult(
+                Provider: ProviderName,
+                RequestIsbn: request.Isbn13 ?? string.Empty,
+                Title: title,
+                Authors: authors,
+                Publisher: publishers.FirstOrDefault(),
+                Year: year,
+                Description: null,
+                CoverUrl: coverUrl,
+                Categories: categories,
+                IsbnNormalized: canonicalIsbn,
+                Confidence: 0.80 * ScoreResult(request, title, authors),
+                RetrievedUtc: retrievedUtc,
+                RawJson: item.GetRawText(),
+                AverageRating: averageRating,
+                RatingsCount: ratingsCount,
+                PageCount: pageCount,
+                Language: languages.FirstOrDefault()));
+        }
+
+        return results
+            .OrderByDescending(r => ScoreResult(request, r.Title, r.Authors))
+            .ToList();
     }
 
     private ProviderMetadataResult BuildFailureResult(
@@ -199,4 +351,61 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             RetrievedUtc: retrievedUtc,
             RawJson: JsonSerializer.Serialize(new { error = errorMessage }));
     }
+
+    private static List<string> ReadStringArray(JsonElement parent, string propertyName)
+    {
+        var values = new List<string>();
+        if (parent.TryGetProperty(propertyName, out var array) && array.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in array.EnumerateArray())
+            {
+                string? value = item.GetString();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    values.Add(value);
+                }
+            }
+        }
+
+        return values;
+    }
+
+    private static double ScoreResult(
+        MetadataLookupRequest request,
+        string? title,
+        IReadOnlyList<string> authors)
+    {
+        double score = 0.55;
+        if (!string.IsNullOrWhiteSpace(request.Title) && !string.IsNullOrWhiteSpace(title))
+        {
+            score += 0.30 * TokenOverlap(request.Title, title);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Author) && authors.Count > 0)
+        {
+            score += 0.15 * TokenOverlap(request.Author, string.Join(' ', authors));
+        }
+
+        return Math.Clamp(score, 0.10, 1.0);
+    }
+
+    private static double TokenOverlap(string a, string b)
+    {
+        var tokensA = Tokenize(a);
+        var tokensB = Tokenize(b);
+        if (tokensA.Count == 0 || tokensB.Count == 0)
+        {
+            return 0.0;
+        }
+
+        return tokensA.Intersect(tokensB, StringComparer.OrdinalIgnoreCase).Count() /
+            (double)Math.Max(tokensA.Count, tokensB.Count);
+    }
+
+    private static HashSet<string> Tokenize(string value) =>
+        new(
+            value.Split([' ', ',', '.', ':', ';', '-', '_', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 1),
+            StringComparer.OrdinalIgnoreCase);
 }

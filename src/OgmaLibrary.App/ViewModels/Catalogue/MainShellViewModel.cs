@@ -56,6 +56,7 @@ public sealed class MainShellViewModel :
     private CancellationTokenSource _scanCts = new();
     private bool _isSidebarOpen = true;
     private bool _isFilterPanelOpen;
+    private string? _statusOverride;
     private string? _readerPlaceholderMessage;
     private ShellView _activeView = ShellView.Catalogue;
 
@@ -205,6 +206,11 @@ public sealed class MainShellViewModel :
     {
         get
         {
+            if (!string.IsNullOrWhiteSpace(_statusOverride))
+            {
+                return _statusOverride;
+            }
+
             if (_scanPhase == ScanPhase.Complete)
             {
                 return string.Format(
@@ -315,23 +321,51 @@ public sealed class MainShellViewModel :
 
         if (_settingsService is null || _orchestrator is null)
         {
+            SetStatusOverride(_localization["MainWindow.FolderPicker.NotConfigured"]);
             return;
         }
 
-        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
-            new FolderPickerOpenOptions
-            {
-                Title = ChooseFolderText,
-                AllowMultiple = false,
-            }).ConfigureAwait(true);
+        if (!topLevel.StorageProvider.CanOpen)
+        {
+            SetStatusOverride(_localization["MainWindow.FolderPicker.Unavailable"]);
+            return;
+        }
+
+        if (topLevel is Avalonia.Controls.Window window)
+        {
+            window.Activate();
+        }
+
+        SetStatusOverride(_localization["MainWindow.FolderPicker.Opening"]);
+
+        IReadOnlyList<IStorageFolder> folders;
+        try
+        {
+            folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions
+                {
+                    Title = ChooseFolderText,
+                    AllowMultiple = false,
+                }).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            SetStatusOverride(string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["MainWindow.FolderPicker.FailedFormat"],
+                ex.Message));
+            return;
+        }
 
         if (folders.Count == 0)
         {
+            SetStatusOverride(null);
             return;
         }
 
         string path = folders[0].Path.LocalPath;
         await _settingsService.SetLibraryRootAsync(path).ConfigureAwait(true);
+        SetStatusOverride(_localization["MainWindow.FolderPicker.ScanStarting"]);
 
         _scanCts.Cancel();
         _scanCts.Dispose();
@@ -354,6 +388,10 @@ public sealed class MainShellViewModel :
         });
     }
 
+    /// <summary>Reports that the folder picker could not be reached from the current view.</summary>
+    public void ReportChooseFolderUnavailable() =>
+        SetStatusOverride(_localization["MainWindow.FolderPicker.Unavailable"]);
+
     /// <summary>Cancels the currently running scan, if any.</summary>
     public void CancelScan() => _scanCts.Cancel();
 
@@ -373,12 +411,19 @@ public sealed class MainShellViewModel :
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
+            _statusOverride = null;
             _scanPhase = snapshot.Phase;
             _filesDiscovered = snapshot.FilesDiscovered;
             _filesCompleted = snapshot.FilesCompleted;
             _filesFailed = snapshot.FilesFailed;
             RaiseAllChanged();
         });
+    }
+
+    private void SetStatusOverride(string? value)
+    {
+        _statusOverride = value;
+        OnPropertyChanged(nameof(StatusText));
     }
 
     private void RaiseAllChanged()

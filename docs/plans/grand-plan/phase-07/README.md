@@ -27,7 +27,67 @@ through FR-META-007, NFR-PROD-010, and ADR-0008.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | Original Phase 3 (metadata repair) + V1 collection health |
 | **Platforms** | Windows 10+ (x64/ARM64) and macOS 12+ (x64/Apple Silicon) |
-| **Status** | Planned — not yet started |
+| **Status** | Core deterministic enrichment slice implemented locally on 2026-05-31; UI review panel, rate-limit controls, and manual write-back confirmation remain |
+
+---
+
+## 2.1 Implementation Update — 2026-05-31
+
+Implemented in the current working tree:
+
+- Google Books and Open Library provider clients now support deterministic ISBN
+  lookup plus title/author fallback search. Google Books uses `isbn:`,
+  `intitle:`, and `inauthor:` query operators; Open Library uses `search.json`
+  title/author parameters.
+- Provider results now capture publisher, year, description, cover URL,
+  categories, average rating, rating count, page count, and language when the
+  provider returns them.
+- `MetadataProviderAggregator` accepts a richer `MetadataLookupRequest`, calls
+  providers concurrently, stores `MetadataLookups`, and writes `ProviderLookup`
+  audit events without using any AI service.
+- `BookMetadataEnrichmentService` now runs the full no-AI enrichment flow for one
+  book: derive ISBN/title/author keys, call providers, confidence-merge results,
+  auto-apply high-confidence fields, and attempt PDF DocInfo write-back only when
+  the file is writable.
+- `MetadataApplyService` now mirrors accepted Title, Author, ISBN, and Year into
+  the `Books`, `Authors`, and `BookAuthors` catalogue tables so enriched data is
+  visible in catalogue views and citation capture.
+- The ingestion worker now processes `Enrich` jobs and queues enrichment after
+  local PDF metadata extraction succeeds.
+- Runtime DI now registers Phase 07 metadata enrichment services and named
+  provider HTTP clients with a product `User-Agent`.
+- PDF write-back now validates paths against the active user-selected library
+  root, not only the app-data directory; it still uses the backup -> diff ->
+  temp-write -> verify -> replace/restore protocol.
+
+Current guarantees:
+
+- No AI tokens are used for metadata enrichment. The implemented path is regular
+  HTTP JSON lookup against provider APIs plus local deterministic matching.
+- PDF mutation is best-effort and guarded: if the PDF is missing, read-only,
+  locked, outside the library root, or fails verification, the database metadata
+  remains applied and an audit event records the skipped/failed write-back.
+
+Next steps:
+
+- Add the user-facing enrichment review panel so users can accept/reject/edit
+  fields before apply for lower-confidence cases.
+- Add configurable provider rate limits and retry/backoff policy around the named
+  HTTP clients.
+- Add settings for optional paid/commercial providers such as ISBNdb, Amazon
+  Product Advertising API, and API League.
+- Add cover image download/caching into the sidecar asset store.
+- Add first-run payload preview/consent for online metadata lookup.
+
+Provider documentation checked:
+
+- Google Books API `volumes` search supports `isbn:`, `intitle:`, and
+  `inauthor:` query operators and returns fields such as authors, publisher,
+  published date, description, page count, categories, average rating, rating
+  count, and images.
+- Open Library Search API supports `search.json?title=...` and
+  `search.json?author=...` and returns `docs` containing work and edition-level
+  metadata.
 
 ---
 

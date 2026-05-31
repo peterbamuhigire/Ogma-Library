@@ -69,7 +69,7 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 
 | Decision | Current proposal | Owner response |
 | --- | --- | --- |
-| Premium PNG icon procurement | Procure the 22 icons listed in `docs/plans/grand-plan/phase-09/icons.md`. | In progress - owner buying icons |
+| Premium icon procurement | 22 premium SVG icons listed in `docs/plans/grand-plan/phase-09/icons.md`. | Delivered and copied into runtime asset paths |
 | Annotation layer palette | Amber, sage, clay, plum. | Pending |
 | Citation export V1 scope | Plain-text export; BibTeX/RIS/Markdown deferred unless requested. | Pending |
 | Reading-memory disposition wording | 1 to 5 integer scale, where 1 is not useful/did not finish and 5 is transformative. | Pending |

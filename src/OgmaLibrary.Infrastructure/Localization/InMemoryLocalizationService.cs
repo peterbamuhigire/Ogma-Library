@@ -68,6 +68,11 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Scan.Button.Cancel"] = "Cancel",
         ["Scan.Progress.Files"] = "{0} / {1} files",
         ["Scan.Progress.Failed"] = "{0} failed",
+        ["MainWindow.FolderPicker.Opening"] = "Opening folder picker...",
+        ["MainWindow.FolderPicker.ScanStarting"] = "Library folder selected. Starting scan...",
+        ["MainWindow.FolderPicker.Unavailable"] = "Folder picker is unavailable in this window.",
+        ["MainWindow.FolderPicker.NotConfigured"] = "Library folder picker is not configured.",
+        ["MainWindow.FolderPicker.FailedFormat"] = "Folder picker failed: {0}",
         ["MainWindow.Status.Ready"] = "Ready — choose a library folder to begin",
 
         // Phase 06 — Catalogue browsing strings (en)
@@ -314,6 +319,11 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Scan.Button.Cancel"] = "Annuler",
         ["Scan.Progress.Files"] = "{0} / {1} fichiers",
         ["Scan.Progress.Failed"] = "{0} échoués",
+        ["MainWindow.FolderPicker.Opening"] = "Ouverture du selecteur de dossier...",
+        ["MainWindow.FolderPicker.ScanStarting"] = "Dossier de bibliotheque choisi. Analyse en cours...",
+        ["MainWindow.FolderPicker.Unavailable"] = "Le selecteur de dossier n'est pas disponible dans cette fenetre.",
+        ["MainWindow.FolderPicker.NotConfigured"] = "Le selecteur de dossier de bibliotheque n'est pas configure.",
+        ["MainWindow.FolderPicker.FailedFormat"] = "Echec du selecteur de dossier : {0}",
         ["MainWindow.Status.Ready"] = "Prêt — choisissez un dossier de bibliothèque pour commencer",
 
         // Phase 06 — Catalogue browsing strings (fr)

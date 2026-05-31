@@ -5,6 +5,33 @@ Task IDs: `P07-WPN-TN`. Traceability to FR/NFR/CTRL/ADR, estimates in hours
 
 ---
 
+## Current Progress — 2026-05-31
+
+Completed / implemented:
+
+- WP1 core ISBN detection service exists and is covered by metadata tests.
+- WP2 provider clients now cover Google Books and Open Library ISBN lookup plus
+  title/author fallback search. Results are stored with provenance and audit
+  events through `MetadataProviderAggregator`.
+- WP3 confidence merge is implemented and now includes cover URL, rating,
+  ratings count, page count, and language fields.
+- WP5 apply/provenance is implemented for `BookMetadataFields`; accepted Title,
+  Author, ISBN, and Year are also mirrored into catalogue tables used by the UI.
+- WP6 service-level PDF DocInfo write-back exists with backup, diff, verify, and
+  restore behavior; runtime path validation now uses the selected library root.
+- WP7 job execution now processes `Enrich` jobs through `BookIngestionWorker` and
+  queues enrichment after local metadata extraction.
+- Runtime DI registers metadata enrichment services in the app composition root.
+
+Still pending:
+
+- WP4 enrichment review UI and per-field accept/reject/edit controls.
+- WP7 token-bucket provider rate limits, pause/resume/cancel UI, and per-book
+  progress panel.
+- Provider settings for ISBNdb, Amazon Product Advertising API, and API League.
+- Cover image download/caching into sidecar assets.
+- First-run payload preview/consent before online metadata calls.
+
 ## WP1 — ISBN detection (all four sources)
 
 **Goal:** `IIsbnDetectionService` detects ISBN-10/13 from filename, XMP, DocInfo,

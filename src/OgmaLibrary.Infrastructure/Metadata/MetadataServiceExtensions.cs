@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Metadata.Providers;
 
@@ -39,6 +40,7 @@ public static class MetadataServiceExtensions
             {
                 client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
                 client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
             });
 
         services.AddHttpClient<OpenLibraryProvider>(
@@ -47,6 +49,7 @@ public static class MetadataServiceExtensions
             {
                 client.BaseAddress = new Uri("https://openlibrary.org/");
                 client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
             });
 
         // Register both providers as IMetadataProvider implementations.
@@ -75,10 +78,12 @@ public static class MetadataServiceExtensions
             new PdfWriteBackService(
                 sp.GetRequiredService<Catalogue.CatalogueDbContext>(),
                 sp.GetRequiredService<ISidecarService>(),
-                libraryRoot));
+                libraryRoot,
+                sp.GetRequiredService<ILibrarySettingsService>()));
 
         // Batch enrichment orchestrator.
         services.AddSingleton<IBatchEnrichmentOrchestrator, BatchEnrichmentOrchestrator>();
+        services.AddSingleton<IBookMetadataEnrichmentService, BookMetadataEnrichmentService>();
 
         return services;
     }

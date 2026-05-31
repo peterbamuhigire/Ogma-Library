@@ -15,6 +15,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Cache;
@@ -62,6 +63,9 @@ public static class CompositionRoot
 
         // Phase 05 — Ingestion Pipeline (Infrastructure services).
         services.AddIngestionPipeline(dataDirectory: dataDirectory);
+
+        // Phase 07 — deterministic metadata enrichment and PDF DocInfo write-back.
+        services.AddMetadataEnrichment(libraryRoot: dataDirectory);
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();

@@ -39,22 +39,36 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         string isbn13,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(isbn13);
 
+        return await AggregateAsync(
+            bookId,
+            new MetadataLookupRequest(isbn13, Title: null, Author: null),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ProviderMetadataResult>> AggregateAsync(
+        string bookId,
+        MetadataLookupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!request.HasAnySearchKey)
+        {
+            return [];
+        }
+
         // Call all providers concurrently; isolate per-provider failures.
-        var tasks = _providers.Select(p => SafeLookupAsync(p, isbn13, cancellationToken)).ToArray();
-        ProviderMetadataResult?[] rawResults = await Task.WhenAll(tasks).ConfigureAwait(false);
+        var tasks = _providers.Select(p => SafeSearchAsync(p, request, cancellationToken)).ToArray();
+        IReadOnlyList<ProviderMetadataResult>[] providerResults = await Task.WhenAll(tasks).ConfigureAwait(false);
 
         var results = new List<ProviderMetadataResult>();
 
-        foreach (ProviderMetadataResult? result in rawResults)
+        foreach (ProviderMetadataResult result in providerResults.SelectMany(r => r))
         {
-            if (result is null)
-            {
-                continue;
-            }
-
             results.Add(result);
 
             // Persist the lookup row.
@@ -79,6 +93,8 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
                 {
                     provider = result.Provider,
                     isbn = result.RequestIsbn,
+                    title = request.Title,
+                    author = request.Author,
                     confidence = result.Confidence,
                 }),
                 Timestamp = result.RetrievedUtc,
@@ -91,14 +107,14 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         return results;
     }
 
-    private static async Task<ProviderMetadataResult?> SafeLookupAsync(
+    private static async Task<IReadOnlyList<ProviderMetadataResult>> SafeSearchAsync(
         IMetadataProvider provider,
-        string isbn13,
+        MetadataLookupRequest request,
         CancellationToken cancellationToken)
     {
         try
         {
-            return await provider.LookupAsync(isbn13, cancellationToken).ConfigureAwait(false);
+            return await provider.SearchAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -107,9 +123,9 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         catch (Exception ex)
         {
             // Return a zero-confidence placeholder so the caller knows the provider was attempted.
-            return new ProviderMetadataResult(
+            return [new ProviderMetadataResult(
                 Provider: provider.ProviderName,
-                RequestIsbn: isbn13,
+                RequestIsbn: request.Isbn13 ?? string.Empty,
                 Title: null,
                 Authors: [],
                 Publisher: null,
@@ -117,10 +133,10 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
                 Description: null,
                 CoverUrl: null,
                 Categories: [],
-                IsbnNormalized: isbn13,
+                IsbnNormalized: request.Isbn13,
                 Confidence: 0.0,
                 RetrievedUtc: DateTimeOffset.UtcNow,
-                RawJson: JsonSerializer.Serialize(new { error = ex.Message }));
+                RawJson: JsonSerializer.Serialize(new { error = ex.Message }))];
         }
     }
 }

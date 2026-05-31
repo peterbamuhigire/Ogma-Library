@@ -65,10 +65,18 @@ public partial class CatalogueShellView : UserControl
     {
         if (DataContext is MainShellViewModel vm)
         {
-            var topLevel = TopLevel.GetTopLevel(this);
+            var source = sender as Control;
+            var topLevel = source is null
+                ? TopLevel.GetTopLevel(this)
+                : TopLevel.GetTopLevel(source);
+
             if (topLevel is not null)
             {
                 await vm.ChooseFolderAsync(topLevel).ConfigureAwait(true);
+            }
+            else
+            {
+                vm.ReportChooseFolderUnavailable();
             }
         }
     }
