@@ -538,6 +538,18 @@ public sealed class ReaderViewRenderTests
         Assert.Contains("Highlight", overlay.AccessibleLabel, StringComparison.Ordinal);
         Assert.Contains("Key arguments", overlay.AccessibleLabel, StringComparison.Ordinal);
         Assert.Contains("Page 1 of 10", overlay.AccessibleLabel, StringComparison.Ordinal);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Border>(),
+                border => GetAutomationName(border) == overlay.AccessibleLabel);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
