@@ -405,13 +405,32 @@
           </TabItem>
 
           <TabItem Header="{Binding BookmarkPanelLabel}">
-            <Grid RowDefinitions="Auto,*" Margin="12">
+            <Grid RowDefinitions="Auto,Auto,*" Margin="12">
               <TextBlock Grid.Row="0"
                          Text="{Binding BookmarkPanelLabel}"
                          AutomationProperties.Name="{Binding BookmarkPanelAccessibleLabel}"
                          FontWeight="SemiBold"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-               <ListBox Grid.Row="1"
+              <StackPanel Grid.Row="1"
+                          Margin="0,10,0,0"
+                          Spacing="4">
+                <TextBlock Text="{Binding BookmarkSortLabel}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <ComboBox ItemsSource="{Binding BookmarkSortOptions}"
+                          SelectedItem="{Binding SelectedBookmarkSortOption, Mode=TwoWay}"
+                          MinHeight="32"
+                          HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="{Binding BookmarkSortLabel}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BookmarkSortOption">
+                      <TextBlock Text="{Binding Label}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+              <ListBox Grid.Row="2"
                         Margin="0,10,0,0"
                         Focusable="True"
                         ItemsSource="{Binding Bookmarks}"

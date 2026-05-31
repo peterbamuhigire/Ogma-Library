@@ -25,6 +25,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _localization;
     private readonly ITextLayerService? _textLayers;
     private const int BookmarkTabIndex = 1;
+    private const string BookmarkSortByPageId = "page";
+    private const string BookmarkSortByCreatedId = "created";
     private const string AllVisibleLayersFilterId = "all-visible-layers";
     private const string LayerDefaultColorOptionId = "layer-default";
     private const double BasePageSurfaceWidth = 720.0;
@@ -53,6 +55,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private AnnotationListItem? _selectedAnnotation;
     private AnnotationListItem? _editingNote;
     private AnnotationListItem? _pendingDeleteAnnotation;
+    private BookmarkSortOption? _selectedBookmarkSortOption;
     private string? _editingNoteText;
     private string? _selectedHighlightColorOverride;
     private LayerFilterOption? _selectedLayerFilter;
@@ -89,6 +92,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _textLayers = textLayers;
 
         _localization.CultureChanged += (_, _) => RaiseLocalizedProperties();
+        RefreshBookmarkSortOptions();
         RefreshHighlightColorOptions();
     }
 
@@ -253,6 +257,22 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Loaded bookmarks for the active book.</summary>
     public ObservableCollection<BookmarkListItem> Bookmarks { get; } = [];
+
+    /// <summary>Available bookmark panel sort modes.</summary>
+    public ObservableCollection<BookmarkSortOption> BookmarkSortOptions { get; } = [];
+
+    /// <summary>The selected bookmark panel sort mode.</summary>
+    public BookmarkSortOption? SelectedBookmarkSortOption
+    {
+        get => _selectedBookmarkSortOption;
+        set
+        {
+            if (SetField(ref _selectedBookmarkSortOption, value))
+            {
+                SortBookmarks();
+            }
+        }
+    }
 
     /// <summary>True when the current page already has a bookmark.</summary>
     public bool IsCurrentPageBookmarked => CurrentPageBookmark() is not null;
@@ -446,6 +466,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Localized label for the bookmark panel.</summary>
     public string BookmarkPanelLabel => _localization["Bookmark.Panel"];
+
+    /// <summary>Localized label for the bookmark sort selector.</summary>
+    public string BookmarkSortLabel => _localization["Bookmark.Sort.Label"];
 
     /// <summary>Screen-reader label for the bookmark panel including item count.</summary>
     public string BookmarkPanelAccessibleLabel => string.Format(
@@ -1287,9 +1310,11 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 bookmark.Id,
                 bookmark.PageIndex,
                 bookmark.Label ?? DefaultBookmarkLabel(bookmark.PageIndex),
+                bookmark.CreatedUtc,
                 _localization["Bookmark.Item.AccessibleFormat"]));
         }
 
+        SortBookmarks();
         OnPropertyChanged(nameof(IsCurrentPageBookmarked));
         OnPropertyChanged(nameof(BookmarkPanelAccessibleLabel));
     }
@@ -1703,6 +1728,53 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private BookmarkListItem? CurrentPageBookmark() =>
         Bookmarks.FirstOrDefault(bookmark => bookmark.PageIndex == CurrentPageIndex);
 
+    private void SortBookmarks()
+    {
+        if (Bookmarks.Count <= 1)
+        {
+            return;
+        }
+
+        IEnumerable<BookmarkListItem> sorted = SelectedBookmarkSortOption?.Id == BookmarkSortByCreatedId
+            ? Bookmarks
+                .OrderBy(bookmark => bookmark.CreatedUtc)
+                .ThenBy(bookmark => bookmark.PageIndex)
+                .ThenBy(bookmark => bookmark.Id)
+            : Bookmarks
+                .OrderBy(bookmark => bookmark.PageIndex)
+                .ThenBy(bookmark => bookmark.CreatedUtc)
+                .ThenBy(bookmark => bookmark.Id);
+
+        BookmarkListItem[] ordered = sorted.ToArray();
+        if (ordered.SequenceEqual(Bookmarks))
+        {
+            return;
+        }
+
+        Bookmarks.Clear();
+        foreach (BookmarkListItem bookmark in ordered)
+        {
+            Bookmarks.Add(bookmark);
+        }
+    }
+
+    private void RefreshBookmarkSortOptions()
+    {
+        string selectedId = SelectedBookmarkSortOption?.Id ?? BookmarkSortByPageId;
+
+        BookmarkSortOptions.Clear();
+        BookmarkSortOptions.Add(new BookmarkSortOption(
+            BookmarkSortByPageId,
+            _localization["Bookmark.Sort.Page"]));
+        BookmarkSortOptions.Add(new BookmarkSortOption(
+            BookmarkSortByCreatedId,
+            _localization["Bookmark.Sort.Created"]));
+
+        SelectedBookmarkSortOption =
+            BookmarkSortOptions.FirstOrDefault(option => option.Id == selectedId) ??
+            BookmarkSortOptions[0];
+    }
+
     private AnnotationRegion DefaultAnnotationRegion()
     {
         double top = Math.Min(0.82, 0.18 + (Annotations.Count * 0.075));
@@ -1730,6 +1802,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(NoteEditorLabel));
         OnPropertyChanged(nameof(BookmarkPanelLabel));
         OnPropertyChanged(nameof(BookmarkPanelAccessibleLabel));
+        OnPropertyChanged(nameof(BookmarkSortLabel));
+        RefreshBookmarkSortOptions();
         OnPropertyChanged(nameof(AddBookmarkLabel));
         OnPropertyChanged(nameof(RemoveBookmarkLabel));
         OnPropertyChanged(nameof(RenameBookmarkLabel));
@@ -1775,11 +1849,17 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
     private string _label;
 
     /// <summary>Creates a new bookmark list item.</summary>
-    public BookmarkListItem(long id, int pageIndex, string label, string accessibleLabelFormat)
+    public BookmarkListItem(
+        long id,
+        int pageIndex,
+        string label,
+        DateTimeOffset createdUtc,
+        string accessibleLabelFormat)
     {
         Id = id;
         PageIndex = pageIndex;
         _label = label;
+        CreatedUtc = createdUtc;
         AccessibleLabelFormat = accessibleLabelFormat;
     }
 
@@ -1791,6 +1871,9 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
 
     /// <summary>The zero-based page index.</summary>
     public int PageIndex { get; }
+
+    /// <summary>The UTC timestamp when the bookmark was created.</summary>
+    public DateTimeOffset CreatedUtc { get; }
 
     /// <summary>The editable bookmark label.</summary>
     public string Label
@@ -1818,6 +1901,13 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
         PageNumber);
 
     private string AccessibleLabelFormat { get; }
+}
+
+/// <summary>A bookmark panel sort option.</summary>
+public sealed record BookmarkSortOption(string Id, string Label)
+{
+    /// <inheritdoc />
+    public override string ToString() => Label;
 }
 
 /// <summary>A display row for an annotation layer in the reader sidebar.</summary>

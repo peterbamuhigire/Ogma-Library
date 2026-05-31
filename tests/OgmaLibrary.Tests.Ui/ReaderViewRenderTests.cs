@@ -614,6 +614,51 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public void ReaderViewModel_BookmarkSortOptions_ReorderByPageOrCreationDate()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var createdFirst = new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero);
+        var bookmarkService = new FakeBookmarkService(
+        [
+            new Bookmark
+            {
+                Id = 10,
+                BookId = "book-001",
+                PageIndex = 8,
+                Label = "Created first",
+                CreatedUtc = createdFirst,
+            },
+            new Bookmark
+            {
+                Id = 11,
+                BookId = "book-001",
+                PageIndex = 1,
+                Label = "Created second",
+                CreatedUtc = createdFirst.AddMinutes(5),
+            },
+        ]);
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            bookmarkService,
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert.Equal(["Created second", "Created first"], viewModel.Bookmarks.Select(bookmark => bookmark.Label));
+
+        viewModel.SelectedBookmarkSortOption = Assert.Single(
+            viewModel.BookmarkSortOptions,
+            option => option.Label == "Creation date");
+
+        Assert.Equal(["Created first", "Created second"], viewModel.Bookmarks.Select(bookmark => bookmark.Label));
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_PageTurnP95_With100AnnotationsPerPage_Under100ms()
     {
         var localization = new InMemoryLocalizationService();
@@ -792,6 +837,7 @@ public sealed class ReaderViewRenderTests
 
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
+            AssertFocusableControl<ComboBox>(window, "Sort bookmarks by");
             AssertFocusableControl<ListBox>(window, "Bookmarks (1)");
             AssertFocusableControl<Button>(window, "Important page, page 3");
             AssertFocusableControl<TextBox>(window, "Rename bookmark");
@@ -2205,17 +2251,27 @@ public sealed class ReaderViewRenderTests
 
     private sealed class FakeBookmarkService : IBookmarkService
     {
-        private readonly List<Bookmark> _bookmarks =
-        [
-            new()
-            {
-                Id = 1,
-                BookId = "book-001",
-                PageIndex = 2,
-                Label = "Important page",
-                CreatedUtc = DateTimeOffset.UtcNow,
-            },
-        ];
+        private readonly List<Bookmark> _bookmarks;
+
+        public FakeBookmarkService()
+            : this(
+            [
+                new()
+                {
+                    Id = 1,
+                    BookId = "book-001",
+                    PageIndex = 2,
+                    Label = "Important page",
+                    CreatedUtc = DateTimeOffset.UtcNow,
+                },
+            ])
+        {
+        }
+
+        public FakeBookmarkService(IEnumerable<Bookmark> bookmarks)
+        {
+            _bookmarks = bookmarks.ToList();
+        }
 
         public Task<Bookmark> CreateAsync(
             string bookId,

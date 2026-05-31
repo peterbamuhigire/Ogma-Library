@@ -38,6 +38,9 @@
   <data name="Bookmark.DefaultLabelFormat" xml:space="preserve"><value>Page {0}</value></data>
   <data name="Bookmark.Panel.AccessibleFormat" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="Bookmark.Item.AccessibleFormat" xml:space="preserve"><value>{0}, page {1}</value></data>
+  <data name="Bookmark.Sort.Label" xml:space="preserve"><value>Sort bookmarks by</value></data>
+  <data name="Bookmark.Sort.Page" xml:space="preserve"><value>Page number</value></data>
+  <data name="Bookmark.Sort.Created" xml:space="preserve"><value>Creation date</value></data>
   <data name="Layer.Panel" xml:space="preserve"><value>Annotation layers</value></data>
   <data name="Layer.Filter" xml:space="preserve"><value>Show annotations from</value></data>
   <data name="Layer.Filter.AllVisible" xml:space="preserve"><value>All visible layers</value></data>

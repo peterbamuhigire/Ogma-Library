@@ -24,6 +24,7 @@ owner-controlled release folder named in the row.
 | Selection action menu opens from mouse drag with focusable named actions | `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions` |
 | Core Phase 09 controls expose names and accept keyboard focus | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` |
 | Bookmark panel announces count | `ReaderViewModel_BookmarkPanelAccessibleLabel_IncludesCount` |
+| Bookmark panel sort selector is named and keyboard focusable | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames`; `ReaderViewModel_BookmarkSortOptions_ReorderByPageOrCreationDate` |
 | Bookmark panel supports arrow selection and Enter navigation | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` |
 | Bookmark context flyout exposes rename/delete actions | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` |
 | Note editor supports Escape dismissal without navigation | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` |
@@ -41,7 +42,7 @@ Latest focused command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --no-build --filter "FullyQualifiedName~IconCatalogPhase09Tests|FullyQualifiedName~ReaderViewRenderTests"
 ```
 
-Result: passed, 56 tests.
+Result: passed, 58 tests.
 
 Latest full UI release command:
 
@@ -49,7 +50,7 @@ Latest full UI release command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
 ```
 
-Result: passed, 67 tests.
+Result: passed, 69 tests.
 
 ## Assistive Technology Walkthrough
 
