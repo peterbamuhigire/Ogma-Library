@@ -28,7 +28,7 @@ owner or manual evidence. Premium SVG icon assets have been delivered.
 The current Phase 09 evidence record is
 `docs/plans/grand-plan/phase-09/evidence.md`.
 
-Latest recorded local verification:
+Recorded local verification. Newer rows supersede earlier aggregate test totals:
 
 | Command | Result |
 | --- | --- |

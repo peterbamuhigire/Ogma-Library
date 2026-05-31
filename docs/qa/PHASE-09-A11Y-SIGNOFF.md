@@ -32,6 +32,14 @@ dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --no-build --
 
 Result: passed, 56 tests.
 
+Latest full UI release command:
+
+```powershell
+dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
+```
+
+Result: passed, 65 tests.
+
 ## Manual Checklist
 
 These items require a human pass on the target operating systems before Phase 09

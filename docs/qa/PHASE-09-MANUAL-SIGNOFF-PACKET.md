@@ -14,7 +14,7 @@ and backend test evidence is tracked in
 | Reviewer name | Pending |
 | Windows device / OS build | Pending |
 | macOS device / OS build | Pending |
-| Ogma build or commit | Pending |
+| Ogma build or commit | `47036d6` or later |
 | Review date | Pending |
 
 ## Preflight
@@ -28,7 +28,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 289 total tests.
+Release tests pass 300 total tests: Core 221, UI 65, Architecture 14.
 
 ## Manual Reader Walkthrough
 
@@ -42,6 +42,7 @@ Use a PDF with selectable text and at least one rotated page.
 | Switch to French locale and open annotation, layer, citation, bookmark, and reading-memory panels. | User-facing Phase 09 labels render in French and accented layer names save correctly. | Screenshot of French panels. |
 | Delete a non-default layer containing annotations. | Annotations move to the remaining default layer and remain visible after reload. | Screenshot before/after delete. |
 | Select text and press Ctrl+Shift+C, then copy/export citation. | Citation uses selected text, title, author, and page format. | Pasted citation text plus exported sidecar file path. |
+| Directly open a writable PDF outside the current library root, let metadata jobs run, then inspect its PDF properties. | The book is registered without changing the library root, metadata/thumbnail jobs are queued, and permitted PDF metadata write-back updates DocInfo for the exact registered file. | Screenshot of catalogue entry, job state, and PDF properties. |
 
 ## Assistive Technology Walkthrough
 
@@ -73,6 +74,17 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 | Annotation layer palette | Amber, sage, clay, plum. | Pending |
 | Citation export V1 scope | Plain-text export; BibTeX/RIS/Markdown deferred unless requested. | Pending |
 | Reading-memory disposition wording | 1 to 5 integer scale, where 1 is not useful/did not finish and 5 is transformative. | Pending |
+
+## Automated Evidence Snapshot
+
+Latest recorded Release verification for this signoff packet:
+
+| Command | Expected result |
+| --- | --- |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~PdfWriteBackTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~BookMetadataEnrichment\|FullyQualifiedName~Metadata"` | Passed: 66 metadata/direct-PDF/write-back regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 221, UI 65, Architecture 14 |
 
 ## Closure Rule
 

@@ -15,7 +15,7 @@ and owner confirmations. Premium SVG icons have been delivered and committed.
 
 ## Automated verification
 
-Latest local commands:
+Recorded local commands. Newer rows supersede earlier aggregate test totals:
 
 | Command | Result |
 | --- | --- |
@@ -36,6 +36,7 @@ Latest local commands:
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 14 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 65 UI tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 221 |
+| `git status --short --branch` | Clean on `main...origin/main` after commit `47036d6` |
 
 ## Evidence by area
 
