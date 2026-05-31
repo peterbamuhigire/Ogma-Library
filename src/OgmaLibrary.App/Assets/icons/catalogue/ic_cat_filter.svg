@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER - replace with premium Flaticon SVG via scripts/Import-Icons.ps1 -->
-  <rect width="48" height="48" rx="10" ry="10" fill="#2B4A7A"/>
-  <text x="24" y="24" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">CF</text>
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <circle cx="256" cy="256" r="232" fill="#EAF2F8"/>
+  <path d="M120 150c0-16 13-29 29-29h214c25 0 38 30 21 48L302 257v93c0 10-5 19-14 24l-54 34c-19 12-44-2-44-24V257l-82-88c-17-18-4-48 21-48z" fill="#275E87"/>
+  <path d="M158 161l67 72h62l67-72z" fill="#68B1FC"/>
+  <path d="M225 233v130l42-26V233z" fill="#1F476A"/>
 </svg>
+

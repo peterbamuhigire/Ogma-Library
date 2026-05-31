@@ -1,5 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER - replace with premium Flaticon SVG via scripts/Import-Icons.ps1 -->
-  <rect width="48" height="48" rx="10" ry="10" fill="#6A3A7A"/>
-  <text x="24" y="24" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">AD</text>
+﻿<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g>
+	<g>
+		<path style="fill:none;stroke:#000000;stroke-width:22;stroke-linejoin:round;stroke-miterlimit:10;" d="M163.502,197H55&#10;&#9;&#9;&#9;c-24.301,0-44,19.699-44,44v152c0,24.301,19.699,44,44,44h164.05L256,501l36.95-64H457c24.301,0,44-19.699,44-44V241&#10;&#9;&#9;&#9;c0-24.301-19.699-44-44-44H348.498"/>
+		<g>
+			<path style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linejoin:round;stroke-miterlimit:10;" d="M226.909,104.938V87.091&#10;&#9;&#9;&#9;&#9;C226.909,71.025,239.933,58,256,58h0c16.067,0,29.091,13.025,29.091,29.091v17.847"/>
+			<path style="fill:none;stroke:#000000;stroke-width:22;stroke-linejoin:round;stroke-miterlimit:10;" d="M287.487,184.87h-62.974&#10;&#9;&#9;&#9;&#9;c-9.97,0-18.053-8.083-18.053-18.053v-43.825c0-9.97,8.083-18.053,18.053-18.053h62.974c9.97,0,18.053,8.083,18.053,18.053&#10;&#9;&#9;&#9;&#9;v43.825C305.54,176.787,297.458,184.87,287.487,184.87z"/>
+		</g>
+	</g>
+	<g>
+		<g>
+			<g>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="96.441" y1="286.835" x2="96.441" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="125.882" y1="308.225" x2="96.441" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="114.636" y1="342.835" x2="96.441" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="78.245" y1="342.835" x2="96.441" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="67" y1="308.225" x2="96.441" y2="317.791"/>
+			</g>
+			<g>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="202.814" y1="286.835" x2="202.814" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="232.255" y1="308.225" x2="202.814" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="221.009" y1="342.835" x2="202.814" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="184.618" y1="342.835" x2="202.814" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="173.373" y1="308.225" x2="202.814" y2="317.791"/>
+			</g>
+			<g>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="309.186" y1="286.835" x2="309.186" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="338.627" y1="308.225" x2="309.186" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="327.382" y1="342.835" x2="309.186" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="290.991" y1="342.835" x2="309.186" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="279.745" y1="308.225" x2="309.186" y2="317.791"/>
+			</g>
+			<g>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="415.559" y1="286.835" x2="415.559" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="445" y1="308.225" x2="415.559" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="433.755" y1="342.835" x2="415.559" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="397.364" y1="342.835" x2="415.559" y2="317.791"/>
+				
+					<line style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="386.118" y1="308.225" x2="415.559" y2="317.791"/>
+			</g>
+		</g>
+		
+			<circle style="fill:none;stroke:#33CCCC;stroke-width:22;stroke-linejoin:round;stroke-miterlimit:10;" cx="256" cy="127" r="116"/>
+	</g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
 </svg>

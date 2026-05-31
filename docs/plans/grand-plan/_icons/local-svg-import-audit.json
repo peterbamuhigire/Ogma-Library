@@ -1,0 +1,156 @@
+﻿{
+    "imported_from_downloads":  [
+                                    {
+                                        "destination":  "app\\ic_app_logo.svg",
+                                        "source":  "online-library.svg",
+                                        "reason":  "online library identity",
+                                        "bytes":  12795
+                                    },
+                                    {
+                                        "destination":  "app\\ic_search.svg",
+                                        "source":  "search.svg",
+                                        "reason":  "search magnifier replacement from newer download batch",
+                                        "bytes":  2968
+                                    },
+                                    {
+                                        "destination":  "catalogue\\ic_cat_shelf.svg",
+                                        "source":  "bookshelf.svg",
+                                        "reason":  "repair bad URL with bookshelf asset",
+                                        "bytes":  2563
+                                    },
+                                    {
+                                        "destination":  "catalogue\\ic_cat_shelf_new.svg",
+                                        "source":  "new-features.svg",
+                                        "reason":  "new/add shelf concept",
+                                        "bytes":  9748
+                                    },
+                                    {
+                                        "destination":  "reader\\ic_read_open.svg",
+                                        "source":  "book.svg",
+                                        "reason":  "open book / reader entry",
+                                        "bytes":  6843
+                                    },
+                                    {
+                                        "destination":  "reader\\ic_read_bookmark.svg",
+                                        "source":  "book (1).svg",
+                                        "reason":  "book-related reader marker fallback",
+                                        "bytes":  1990
+                                    },
+                                    {
+                                        "destination":  "reader\\ic_read_fullscreen.svg",
+                                        "source":  "full-screen.svg",
+                                        "reason":  "fullscreen replacement from newer download batch",
+                                        "bytes":  1476
+                                    },
+                                    {
+                                        "destination":  "reader\\ic_read_zoom_in.svg",
+                                        "source":  "zoom-in.svg",
+                                        "reason":  "zoom in replacement from newer download batch",
+                                        "bytes":  7403
+                                    },
+                                    {
+                                        "destination":  "reader\\ic_read_zoom_out.svg",
+                                        "source":  "zoom-out.svg",
+                                        "reason":  "zoom out replacement from newer download batch",
+                                        "bytes":  2552
+                                    },
+                                    {
+                                        "destination":  "search\\ic_search_metadata.svg",
+                                        "source":  "json-code-chat.svg",
+                                        "reason":  "structured metadata / code card",
+                                        "bytes":  3980
+                                    },
+                                    {
+                                        "destination":  "search\\ic_search_fulltext.svg",
+                                        "source":  "pdf.svg",
+                                        "reason":  "document/full-text source",
+                                        "bytes":  3895
+                                    },
+                                    {
+                                        "destination":  "ai\\ic_ai_advisor.svg",
+                                        "source":  "skills.svg",
+                                        "reason":  "advisor/intelligence skills",
+                                        "bytes":  7889
+                                    },
+                                    {
+                                        "destination":  "ai\\ic_ai_privacy.svg",
+                                        "source":  "top-secret.svg",
+                                        "reason":  "privacy/secret",
+                                        "bytes":  8133
+                                    },
+                                    {
+                                        "destination":  "ai\\ic_ai_disable.svg",
+                                        "source":  "password-protection.svg",
+                                        "reason":  "protection/lockdown fallback",
+                                        "bytes":  5153
+                                    },
+                                    {
+                                        "destination":  "settings\\ic_set_appearance.svg",
+                                        "source":  "portrait.svg",
+                                        "reason":  "visual appearance/profile image",
+                                        "bytes":  2173
+                                    },
+                                    {
+                                        "destination":  "settings\\ic_set_language.svg",
+                                        "source":  "languages.svg",
+                                        "reason":  "language/globe replacement from newer download batch",
+                                        "bytes":  12678
+                                    },
+                                    {
+                                        "destination":  "settings\\ic_set_updates.svg",
+                                        "source":  "app-development.svg",
+                                        "reason":  "software/update configuration",
+                                        "bytes":  3875
+                                    },
+                                    {
+                                        "destination":  "settings\\ic_set_about.svg",
+                                        "source":  "profile.svg",
+                                        "reason":  "profile/about information",
+                                        "bytes":  4100
+                                    },
+                                    {
+                                        "destination":  "library\\ic_lib_preferences.svg",
+                                        "source":  "library.svg",
+                                        "reason":  "library preferences fallback",
+                                        "bytes":  2800
+                                    },
+                                    {
+                                        "destination":  "catalogue\\ic_cat_view_shelf3d.svg",
+                                        "source":  "bookshelf (2).svg",
+                                        "reason":  "bookshelf/shelf view replacement",
+                                        "bytes":  6503
+                                    },
+                                    {
+                                        "destination":  "status\\ic_status_available.svg",
+                                        "source":  "available.svg",
+                                        "reason":  "available status replacement from newer download batch",
+                                        "bytes":  4066
+                                    },
+                                    {
+                                        "destination":  "status\\ic_status_loading.svg",
+                                        "source":  "loading (1).svg",
+                                        "reason":  "loading spinner replacement from newer download batch",
+                                        "bytes":  1622
+                                    }
+                                ],
+    "generated_utility_icons":  [
+                                    {
+                                        "destination":  "catalogue\\ic_cat_filter.svg",
+                                        "source":  "self-authored utility SVG",
+                                        "reason":  "No clean semantic match in provided Downloads SVG batches",
+                                        "bytes":  419
+                                    },
+                                    {
+                                        "destination":  "catalogue\\ic_cat_sort.svg",
+                                        "source":  "self-authored utility SVG",
+                                        "reason":  "No clean semantic match in provided Downloads SVG batches",
+                                        "bytes":  575
+                                    },
+                                    {
+                                        "destination":  "status\\ic_status_unavailable.svg",
+                                        "source":  "self-authored utility SVG",
+                                        "reason":  "No clean semantic match in provided Downloads SVG batches",
+                                        "bytes":  439
+                                    }
+                                ]
+}

@@ -1,5 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER - replace with premium Flaticon SVG via scripts/Import-Icons.ps1 -->
-  <rect width="48" height="48" rx="10" ry="10" fill="#2B4A7A"/>
-  <text x="24" y="24" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">SM</text>
+﻿<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 510 510" style="enable-background:new 0 0 510 510;" xml:space="preserve">
+<g>
+	<g>
+		<g>
+			<path style="fill:#BC9AF4;" d="M388.184,124.067H60.764C32.728,124.067,10,146.795,10,174.831v218.712&#10;&#9;&#9;&#9;&#9;c0,28.036,22.728,50.764,50.764,50.764h32.332V500l66.771-55.694h228.317c28.036,0,50.764-22.728,50.764-50.764V174.831&#10;&#9;&#9;&#9;&#9;C438.948,146.795,416.22,124.067,388.184,124.067z"/>
+			<path style="fill:#6864F7;" d="M189.356,238.022c0-41.91,12.1-80.991,32.985-113.955H60.764&#10;&#9;&#9;&#9;&#9;C32.728,124.067,10,146.795,10,174.831v218.712c0,28.036,22.728,50.764,50.764,50.764h32.332V500l66.771-55.694h188.576&#10;&#9;&#9;&#9;&#9;C256.902,420.346,189.356,337.076,189.356,238.022z"/>
+		</g>
+	</g>
+	<g>
+		<g>
+			<g>
+				<g>
+					
+						<line style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="140.46" y1="238.187" x2="140.46" y2="238.187"/>
+					
+						<line style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="184.46" y1="238.187" x2="184.46" y2="238.187"/>
+					
+						<line style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="228.46" y1="238.187" x2="228.46" y2="238.187"/>
+				</g>
+				
+					<line style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="140.46" y1="284.187" x2="229.037" y2="284.187"/>
+				
+					<line style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="140.46" y1="330.187" x2="308.488" y2="330.187"/>
+			</g>
+			<g>
+				<path style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;&#9;M119.293,371.611L119.293,371.611c-15.546,0-28.149-12.603-28.149-28.149v-23.162c0-14.851-7.865-28.591-20.67-36.113h0h0&#10;&#9;&#9;&#9;&#9;&#9;c12.806-7.521,20.67-21.262,20.67-36.113v-23.162c0-15.546,12.603-28.149,28.149-28.149h0"/>
+				<path style="fill:none;stroke:#FFFFFF;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;&#9;M329.655,371.611L329.655,371.611c15.546,0,28.149-12.603,28.149-28.149v-23.162c0-14.851,7.865-28.591,20.67-36.113l0,0l0,0&#10;&#9;&#9;&#9;&#9;&#9;c-12.806-7.521-20.67-21.262-20.67-36.113v-23.162c0-15.546-12.603-28.149-28.149-28.149h0"/>
+				<path style="fill:none;stroke:#052A75;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:10;" d="M388.184,124.067&#10;&#9;&#9;&#9;&#9;&#9;H60.764C32.728,124.067,10,146.795,10,174.831v218.712c0,28.036,22.728,50.764,50.764,50.764h32.332V500l66.771-55.694h228.317&#10;&#9;&#9;&#9;&#9;&#9;c28.036,0,50.764-22.728,50.764-50.764V174.831C438.948,146.795,416.22,124.067,388.184,124.067z"/>
+			</g>
+		</g>
+		<g>
+			<path style="fill:none;stroke:#FDCB50;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:10;" d="M478,54L478,54&#10;&#9;&#9;&#9;&#9;c0-12.15,9.85-22,22-22v0c-12.15,0-22-9.85-22-22h0c0,12.15-9.85,22-22,22v0C468.15,32,478,41.85,478,54z"/>
+			<path style="fill:none;stroke:#FDCB50;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:10;" d="M305.828,80.067&#10;&#9;&#9;&#9;&#9;L305.828,80.067c0-12.15-9.85-22-22-22v0c12.15,0,22-9.85,22-22h0c0,12.15,9.85,22,22,22v0&#10;&#9;&#9;&#9;&#9;C315.678,58.067,305.828,67.917,305.828,80.067z"/>
+			<path style="fill:#FDCB50;" d="M336.95,124.067c27.539,13.474,49.945,35.88,63.419,63.418&#10;&#9;&#9;&#9;&#9;c13.474-27.539,35.88-49.945,63.418-63.418c-27.539-13.474-49.945-35.88-63.418-63.419&#10;&#9;&#9;&#9;&#9;C386.895,88.188,364.489,110.594,336.95,124.067z"/>
+		</g>
+	</g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
 </svg>

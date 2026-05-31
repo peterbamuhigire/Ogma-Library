@@ -1,5 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER - replace with premium Flaticon SVG via scripts/Import-Icons.ps1 -->
-  <rect width="48" height="48" rx="10" ry="10" fill="#6A3A7A"/>
-  <text x="24" y="24" font-family="system-ui,sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">AP</text>
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve" width="512" height="512">
+<g>
+	<g>
+		<g>
+			<path style="fill:#FFC344;" d="M179.214,93.664L146.22,60.64c-3.845-3.848-9.059-6.01-14.496-6.01H61.532&#10;&#9;&#9;&#9;&#9;c-11.322,0-20.501,9.187-20.501,20.52V436.85c0,11.333,9.179,20.52,20.501,20.52h422.467c11.322,0,20.501-9.187,20.501-20.52&#10;&#9;&#9;&#9;&#9;V120.193c0-11.333-9.179-20.52-20.501-20.52H193.71C188.273,99.674,183.058,97.512,179.214,93.664z"/>
+			<polygon style="fill:#F9F3F1;" points="452.932,136.168 26.143,134.556 26.143,235.253 452.932,236.866 &#9;&#9;&#9;"/>
+			<path style="fill:#FFE177;" d="M487.798,429.527c-9.254,0.025-16.829-7.672-16.829-16.935c0-76.547,0-180.97,0-257.517&#10;&#9;&#9;&#9;&#9;c0-11.333-9.179-20.52-20.501-20.52H161.339c-5.437,0-10.652,2.162-14.496,6.01l-34.154,34.185&#10;&#9;&#9;&#9;&#9;c-3.845,3.848-9.059,6.01-14.496,6.01H28.001c-11.322,0-20.501,9.187-20.501,20.52v235.57c0,11.333,9.179,20.52,20.501,20.52&#10;&#9;&#9;&#9;&#9;h455.998c11.322,0,20.501-9.187,20.501-20.52v-24.104C504.5,412.746,503.849,429.483,487.798,429.527z"/>
+			<path style="fill:#FFD15B;" d="M487.798,429.527c-9.254,0.025-16.829-7.672-16.829-16.935c0-76.547,0-180.97,0-257.517&#10;&#9;&#9;&#9;&#9;c0-11.333-9.178-20.52-20.501-20.52h-40c11.322,0,20.501,9.187,20.501,20.52c0,76.547,0,208.814,0,285.36&#10;&#9;&#9;&#9;&#9;c0,9.262,7.575,16.96,16.829,16.935h36.202c11.322,0,20.501-9.187,20.501-20.52v-24.104&#10;&#9;&#9;&#9;&#9;C504.5,412.746,503.849,429.483,487.798,429.527z"/>
+		</g>
+		<g>
+			<polygon style="fill:#FE5694;" points="62.978,243.023 377.343,180.015 412.86,349.239 99.816,414.911 &#9;&#9;&#9;"/>
+		</g>
+	</g>
+	<g>
+		<g>
+			<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;M386.934,99.674H193.71c-5.437,0-10.652-2.162-14.496-6.01L146.22,60.64c-3.845-3.848-9.059-6.01-14.496-6.01H61.532&#10;&#9;&#9;&#9;&#9;c-11.322,0-20.501,9.187-20.501,20.52v57.685"/>
+			<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;M504.5,436.85V120.193c0-11.333-9.179-20.52-20.501-20.52h-66.457"/>
+			
+				<polyline style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" points="&#10;&#9;&#9;&#9;&#9;452.932,134.391 26.143,132.778 26.143,180.761 &#9;&#9;&#9;"/>
+			<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;M487.798,429.527c-9.254,0.025-16.829-7.672-16.829-16.935c0-76.547,0-180.97,0-257.517c0-11.333-9.179-20.52-20.501-20.52&#10;&#9;&#9;&#9;&#9;H161.339c-5.437,0-10.652,2.162-14.496,6.01l-34.154,34.185c-3.845,3.848-9.059,6.01-14.496,6.01H28.001&#10;&#9;&#9;&#9;&#9;c-11.322,0-20.501,9.187-20.501,20.52v235.57c0,11.333,9.179,20.52,20.501,20.52h455.998c11.322,0,20.501-9.187,20.501-20.52&#10;&#9;&#9;&#9;&#9;v-24.104C504.5,412.746,503.849,429.483,487.798,429.527z"/>
+		</g>
+		<g>
+			
+				<polyline style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" points="&#10;&#9;&#9;&#9;&#9;137.76,406.951 99.816,414.911 62.978,243.023 377.343,180.015 412.86,349.239 166.88,400.842 &#9;&#9;&#9;"/>
+			<g>
+				<g>
+					<g>
+						<g>
+							<g>
+								<g>
+									
+										<polyline style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" points="&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;185.641,321.771 166.88,325.707 176.257,370.285 195.018,366.349 &#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;"/>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="188.946" y1="344.35" x2="171.568" y2="347.996"/>
+								</g>
+								<g>
+									
+										<polyline style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" points="&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;325.204,292.489 306.443,296.424 315.82,341.002 334.581,337.066 &#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;"/>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="328.509" y1="315.068" x2="311.131" y2="318.713"/>
+								</g>
+								<g>
+									
+										<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;M241.397,313.87c-4.096-1.673-8.717-2.183-13.37-1.206c-12.409,2.603-20.349,14.784-17.736,27.208&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;c2.613,12.423,14.791,20.384,27.199,17.781c5.04-1.057,8.835-3.588,11.391-7.053c0.529-0.717,1.005-1.474,1.427-2.266"/>
+								</g>
+								<g>
+									
+										<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;M146.363,334.627c0,0-9.491-5.094-18.396-0.232c-8.177,4.465-7.278,14.8-0.094,17.598c0,0,6.78,1.468,14.189,2.565&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;c17.834,2.64,14.077,20.163,0.755,22.958c-6.671,1.4-12.885-0.351-17.062-3.384"/>
+								</g>
+								<g>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="345.122" y1="288.094" x2="369.938" y2="282.888"/>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="357.782" y1="286.938" x2="366.943" y2="330.49"/>
+								</g>
+								<g>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="272.509" y1="327.884" x2="295.901" y2="345.397"/>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="262.143" y1="305.505" x2="271.607" y2="350.493"/>
+									
+										<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;M288.897,312.1c1.358,6.457-3.196,12.878-9.88,14.281c-3.315,0.695-11.847,2.539-11.847,2.539l-5.013-23.418l11.941-2.505&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;C280.783,301.595,287.539,305.643,288.897,312.1z"/>
+								</g>
+							</g>
+							<g>
+								<g>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="163.241" y1="250.633" x2="188.056" y2="245.427"/>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="175.9" y1="249.477" x2="185.062" y2="293.029"/>
+								</g>
+								<g>
+									
+										<line style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="268.559" y1="228.536" x2="278.022" y2="273.525"/>
+									
+										<path style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;M296.67,235.895c1.475,7.012-3.255,13.939-10.259,15.408c-3.473,0.729-12.413,2.663-12.413,2.663l-5.44-25.429&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;&#9;l12.512-2.625C288.074,224.442,295.195,228.883,296.67,235.895z"/>
+								</g>
+								
+									<ellipse transform="matrix(0.9192 -0.3939 0.3939 0.9192 -83.9981 111.286)" style="fill:none;stroke:#000000;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" cx="229.137" cy="260.295" rx="22.955" ry="22.988"/>
+							</g>
+						</g>
+					</g>
+				</g>
+			</g>
+		</g>
+	</g>
+</g>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </svg>
+
