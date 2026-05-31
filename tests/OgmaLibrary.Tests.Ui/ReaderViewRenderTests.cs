@@ -756,6 +756,7 @@ public sealed class ReaderViewRenderTests
             AssertSvgIconPath(window, "ic_bookmark_panel.svg");
             AssertSvgIconPath(window, "ic_layer_panel.svg");
             AssertSvgIconPath(window, "ic_reading_memory.svg");
+            AssertSvgIconPath(window, "ic_annotation_highlight_color.svg");
             AssertSvgIconPath(window, "ic_annotation_highlight.svg");
             AssertSvgIconPath(window, "ic_annotation_note.svg");
             AssertSvgIconPath(window, "ic_bookmark_add.svg");
@@ -770,6 +771,7 @@ public sealed class ReaderViewRenderTests
                 window.GetVisualDescendants().OfType<ListBox>(),
                 list => GetAutomationName(list) == "Bookmarks (1)");
             AssertSvgIconPath(window, "ic_bookmark_item.svg");
+            AssertSvgIconPath(window, "ic_bookmark_rename.svg");
             AssertSvgIconPath(window, "ic_bookmark_remove.svg");
 
             tabControl.SelectedIndex = 2;
@@ -802,6 +804,7 @@ public sealed class ReaderViewRenderTests
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();
+            AssertSvgIconPath(window, "ic_reading_memory_disposition.svg");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<TextBox>(),
                 textBox => GetAutomationName(textBox) == "Why I opened this");

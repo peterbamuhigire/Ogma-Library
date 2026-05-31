@@ -52,6 +52,12 @@
                     Orientation="Horizontal"
                     Spacing="6"
                     VerticalAlignment="Center">
+          <svg:Svg Width="16"
+                   Height="16"
+                   VerticalAlignment="Center"
+                   AutomationProperties.Name="{Binding ChooseHighlightColorLabel}"
+                   ToolTip.Tip="{Binding ChooseHighlightColorLabel}"
+                   Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight_color.svg" />
           <ItemsControl ItemsSource="{Binding HighlightColorOptions}"
                         VerticalAlignment="Center">
             <ItemsControl.ItemsPanel>
@@ -501,7 +507,7 @@
                         KeyDown="Bookmarks_KeyDown">
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:BookmarkListItem">
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,4">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" Margin="0,4">
                       <Grid.ContextFlyout>
                         <MenuFlyout>
                           <MenuItem Header="{Binding #Root.DataContext.RenameBookmarkLabel}"
@@ -525,13 +531,20 @@
                           <TextBlock Text="{Binding PageNumber}" />
                         </StackPanel>
                       </Button>
-                      <TextBox Grid.Column="1"
+                      <svg:Svg Grid.Column="1"
+                               Width="16"
+                               Height="16"
+                               VerticalAlignment="Center"
+                               AutomationProperties.Name="{Binding #Root.DataContext.RenameBookmarkLabel}"
+                               ToolTip.Tip="{Binding #Root.DataContext.RenameBookmarkLabel}"
+                               Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_rename.svg" />
+                      <TextBox Grid.Column="2"
                                Text="{Binding Label, Mode=TwoWay}"
                                MinHeight="30"
                                VerticalContentAlignment="Center"
                                AutomationProperties.Name="{Binding #Root.DataContext.RenameBookmarkLabel}"
                                LostFocus="BookmarkLabel_LostFocus" />
-                      <Button Grid.Column="2"
+                      <Button Grid.Column="3"
                               Padding="8,4"
                               AutomationProperties.Name="{Binding #Root.DataContext.RemoveBookmarkLabel}"
                               Click="DeleteBookmarkButton_Click">
@@ -699,9 +712,17 @@
                          AutomationProperties.Name="{Binding OpenQuestionsLabel}"
                          LostFocus="ReadingMemoryField_LostFocus" />
 
-                <TextBlock Text="{Binding DispositionLabel}"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <svg:Svg Width="16"
+                           Height="16"
+                           VerticalAlignment="Center"
+                           AutomationProperties.Name="{Binding DispositionLabel}"
+                           ToolTip.Tip="{Binding DispositionLabel}"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/memory/ic_reading_memory_disposition.svg" />
+                  <TextBlock Text="{Binding DispositionLabel}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                </StackPanel>
                 <TextBox Text="{Binding DispositionText, Mode=TwoWay}"
                          MaxLength="1"
                          Width="56"
