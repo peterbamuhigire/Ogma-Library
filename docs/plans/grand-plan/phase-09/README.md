@@ -105,9 +105,9 @@ any PDF including rotated pages.
 
 | ID | Tier | Summary | Verified by |
 | --- | --- | --- | --- |
-| FR-READ-007 | MVP | Bookmarks with labels + page jump, durable | `Bookmark_SaveAndJump_RoundTrip` integration test + fault injection |
-| FR-READ-008 | MVP | Highlights & notes persist in catalogue; reload accurately | `Annotation_Reload_CorrectPosition` integration test; rotated-page golden fixture |
-| FR-READ-011 | V1 | Citation capture card (title, author, page, selection) | `CitationCard_CaptureAndExport` integration test |
+| FR-READ-007 | MVP | Bookmarks with labels + page jump, durable | `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete`, `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates`, and bookmark fault-injection tests |
+| FR-READ-008 | MVP | Highlights & notes persist in catalogue; reload accurately | `AnnotationRepository_CommittedAnnotation_SurvivesFreshContextReopen`, `Annotation_RotatedPage_Reload_KeepsScreenRectWithinOnePixel`, and reader overlay tests |
+| FR-READ-011 | V1 | Citation capture card (title, author, page, selection) | `CitationService_CaptureAndExport_UsesCatalogueMetadata`, `ReaderViewModel_SelectionCitation_UsesTextLayerWordsWhenAvailable`, and citation export tests |
 | NFR-OGMA-008 | MVP | Annotation durable across abnormal termination | R1 repository rollback, failed-publisher, concurrent-write, and bookmark-abort fault tests |
 
 ---
@@ -410,3 +410,4 @@ Next steps before final Phase 09 closure:
 | 2026-05-31 | Recorded owner icon procurement in progress and added next-step closeout path | Codex |
 | 2026-05-31 | Replaced Phase 09 placeholder icons with delivered premium SVG assets | Codex |
 | 2026-05-31 | Recorded live shell refresh after direct-PDF metadata completion and startup repair for missing catalogue model tables | Codex |
+| 2026-06-01 | Reconciled Phase 09 evidence dates/counts and replaced placeholder verification test names with current automated test names | Codex |

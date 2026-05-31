@@ -80,15 +80,15 @@ never a corrupt JSON region.
 
 | Test | ID | Oracle |
 | --- | --- | --- |
-| `Annotation_Reload_CorrectPosition` | FR-READ-008 | Highlight at page 3 coords reloads within 1 px after restart |
-| `Annotation_RotatedPage_Reload` | FR-READ-008, NFR-OGMA-008 | `rotated-pages` fixture: bounding box identical after restart |
-| `Bookmark_SaveAndJump_RoundTrip` | FR-READ-007 | Create bookmark at page 7; restart; panel shows "Page 7"; click → navigates to 7 |
-| `Bookmark_AbnormalTermination_Survives` | FR-READ-007, NFR-OGMA-008 | Fault-injection bookmark test green |
-| `Layer_Create_Rename_Delete_Merge` | World-class | Full lifecycle; row counts match expected after each step |
-| `Layer_AtLeastOneConstraint` | World-class | Delete attempt on sole remaining layer returns error |
-| `CitationCard_CaptureAndExport` | FR-READ-011 | Card title/author/page/selection match `simple-text` fixture metadata |
+| `AnnotationRepository_CommittedAnnotation_SurvivesFreshContextReopen` | FR-READ-008 | Persisted highlight reloads from a fresh catalogue context |
+| `Annotation_RotatedPage_Reload_KeepsScreenRectWithinOnePixel` | FR-READ-008, NFR-OGMA-008 | `rotated-pages` fixture: bounding box remains within 1 px after reload |
+| `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete` | FR-READ-007 | Bookmark create, rename, delete, and book-scoped event behavior round-trip |
+| `FaultInjection_BookmarkAfterSave_Reopen_Present` | FR-READ-007, NFR-OGMA-008 | Bookmark written before abnormal termination model is present after catalogue reopen |
+| `AnnotationLayerService_RenameVisibilityMergeAndLastLayerConstraint_Work` | World-class | Full lifecycle and last-layer constraint behavior match expected state |
+| `AnnotationLayerService_Delete_MovesAnnotationsToDefaultLayer` | World-class | Deleting a non-default layer moves annotations to the default remaining layer |
+| `CitationService_CaptureAndExport_UsesCatalogueMetadata` | FR-READ-011 | Card title/author/page/selection match catalogue metadata and selected text |
 | `CitationService_Export_UsesLocalizedFallbackStrings` | FR-READ-011, i18n | Citation sidecar export uses localized unknown title/author/page fallbacks |
-| `ReadingMemory_AutoSave_OnFocusOut` | World-class | Field edited; focus moved; wait 1.5 s; row updated in DB |
+| `ReaderViewModel_AutoSaveReadingMemory_PersistsEditedFields` | World-class | Field edited; debounced auto-save updates the reading-memory row |
 | `Phase09_EndToEndRestartSmoke_PersistsReaderArtifacts` | Global DoD | Bookmark, layer rename, highlight, note, memory, and citation export survive a real SQLite reopen |
 
 ---
