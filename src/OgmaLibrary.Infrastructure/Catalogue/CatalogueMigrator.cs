@@ -38,6 +38,7 @@ public sealed class CatalogueMigrator
         if (dbPath is null || dbPath == ":memory:")
         {
             await _context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureModelTablesExistAsync(dbPath, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -48,23 +49,18 @@ public sealed class CatalogueMigrator
 
         if (!pending.Any())
         {
+            await EnsureModelTablesExistAsync(dbPath, cancellationToken).ConfigureAwait(false);
             return;
         }
 
         // --- Backup the existing DB file before touching it (NFR-PROD-010) ---
-        string? backupPath = null;
-        bool dbExisted = File.Exists(dbPath);
-
-        if (dbExisted)
-        {
-            string timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-            backupPath = $"{dbPath}.{timestamp}.bak";
-            File.Copy(dbPath, backupPath, overwrite: false);
-        }
+        string? backupPath = BackupDatabase(dbPath);
+        bool dbExisted = backupPath is not null;
 
         try
         {
             await _context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureModelTablesExistAsync(dbPath, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -83,6 +79,126 @@ public sealed class CatalogueMigrator
 
             throw;
         }
+    }
+
+    private async Task EnsureModelTablesExistAsync(
+        string? dbPath,
+        CancellationToken cancellationToken)
+    {
+        List<string> missingTables = await GetMissingModelTablesAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (missingTables.Count == 0)
+        {
+            return;
+        }
+
+        if (dbPath is not null && dbPath != ":memory:")
+        {
+            BackupDatabase(dbPath);
+        }
+
+        string createScript = _context.Database.GenerateCreateScript();
+        foreach (string statement in SplitSqlStatements(createScript))
+        {
+            string idempotentStatement = MakeCreateStatementIdempotent(statement);
+            await _context.Database.ExecuteSqlRawAsync(idempotentStatement, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private async Task<List<string>> GetMissingModelTablesAsync(CancellationToken cancellationToken)
+    {
+        var missing = new List<string>();
+        var tableNames = _context.Model
+            .GetEntityTypes()
+            .Select(entity => entity.GetTableName())
+            .Where(tableName => !string.IsNullOrWhiteSpace(tableName))
+            .Select(tableName => tableName!)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
+
+        foreach (string tableName in tableNames)
+        {
+            if (!await TableExistsAsync(tableName, cancellationToken).ConfigureAwait(false))
+            {
+                missing.Add(tableName);
+            }
+        }
+
+        return missing;
+    }
+
+    private async Task<bool> TableExistsAsync(
+        string tableName,
+        CancellationToken cancellationToken)
+    {
+        await _context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+        var connection = _context.Database.GetDbConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(1)
+            FROM sqlite_master
+            WHERE type = 'table' AND name = $tableName
+            """;
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "$tableName";
+        parameter.Value = tableName;
+        command.Parameters.Add(parameter);
+
+        object? result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture) > 0;
+    }
+
+    private static string? BackupDatabase(string dbPath)
+    {
+        if (!File.Exists(dbPath))
+        {
+            return null;
+        }
+
+        string timestamp = DateTimeOffset.UtcNow.ToString(
+            "yyyyMMddHHmmss",
+            System.Globalization.CultureInfo.InvariantCulture);
+        string backupPath = $"{dbPath}.{timestamp}.bak";
+
+        int suffix = 0;
+        while (File.Exists(backupPath))
+        {
+            suffix++;
+            backupPath = $"{dbPath}.{timestamp}.{suffix}.bak";
+        }
+
+        File.Copy(dbPath, backupPath, overwrite: false);
+        return backupPath;
+    }
+
+    private static IEnumerable<string> SplitSqlStatements(string sql)
+    {
+        foreach (string statement in sql.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            yield return statement;
+        }
+    }
+
+    private static string MakeCreateStatementIdempotent(string statement)
+    {
+        if (statement.StartsWith("CREATE TABLE ", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CREATE TABLE IF NOT EXISTS " + statement["CREATE TABLE ".Length..];
+        }
+
+        if (statement.StartsWith("CREATE UNIQUE INDEX ", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CREATE UNIQUE INDEX IF NOT EXISTS " + statement["CREATE UNIQUE INDEX ".Length..];
+        }
+
+        if (statement.StartsWith("CREATE INDEX ", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CREATE INDEX IF NOT EXISTS " + statement["CREATE INDEX ".Length..];
+        }
+
+        return statement;
     }
 
     /// <summary>

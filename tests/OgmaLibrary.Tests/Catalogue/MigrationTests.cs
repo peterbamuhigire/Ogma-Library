@@ -1,7 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Tests.Catalogue;
 
@@ -149,6 +151,51 @@ public sealed class MigrationTests
             await using (var ctx3 = new CatalogueDbContext(options))
             {
                 Assert.Equal(0, await ctx3.Books.CountAsync());
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            CatalogueTestHelper.DeleteTempDb(dbPath);
+            foreach (string bak in Directory.GetFiles(
+                Path.GetTempPath(),
+                Path.GetFileName(dbPath) + "*.bak"))
+            {
+                File.Delete(bak);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Migration_RepairsMissingModelTable_WhenHistorySaysCurrent()
+    {
+        string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-repair-{Guid.NewGuid():N}.db");
+        try
+        {
+            var options = new DbContextOptionsBuilder<CatalogueDbContext>()
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
+                .Options;
+
+            await using (var setup = new CatalogueDbContext(options))
+            {
+                await setup.Database.MigrateAsync();
+                await setup.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
+                await setup.Database.ExecuteSqlRawAsync("DROP TABLE BookFiles;");
+                await setup.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await using (var repaired = new CatalogueDbContext(options))
+            {
+                var migrator = new CatalogueMigrator(repaired);
+                await migrator.ApplyAsync();
+
+                string bookId = await new BookRegistrationService(repaired).RegisterAsync(
+                    new DiscoveredFile("repair.pdf", "repair.pdf", 10, 1234),
+                    new string('a', 64));
+
+                Assert.Equal(1, await repaired.BookFiles.CountAsync(f => f.BookId == bookId));
             }
         }
         finally
