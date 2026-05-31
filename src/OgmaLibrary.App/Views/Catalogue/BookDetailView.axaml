@@ -1,0 +1,233 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Catalogue.BookDetailView"
+             x:DataType="vm:BookDetailViewModel"
+             IsVisible="{Binding IsVisible}">
+
+  <!--
+    Book-detail panel (FR-CAT-004). Slides in from the right.
+    Five tab groups: File, Bibliographic, Reading, Enrichment, AI.
+    "Read" button routes through IReaderNavigationService (Phase 08 placeholder).
+    "Enrich" button is disabled until Phase 07.
+  -->
+
+  <Border Background="{DynamicResource Brush.Surface.Card}"
+          BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+          BorderThickness="1,0,0,0"
+          Width="320">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+      <!-- Header: title + close button -->
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="16,12,12,8">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding Title}"
+                   FontSize="{DynamicResource Type.Size.Subtitle}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="6"
+                VerticalAlignment="Center"
+                AutomationProperties.Name="Close book detail"
+                Click="CloseButton_Click">
+          <TextBlock Text="✕" FontSize="14" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </Button>
+      </Grid>
+
+      <!-- Scrollable detail area -->
+      <ScrollViewer Grid.Row="1" Margin="0,0,0,0">
+        <StackPanel Spacing="0" Margin="16,0,16,16">
+
+          <!-- Cover placeholder -->
+          <Border Height="180"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Background="{DynamicResource Brush.Accent.Ink}"
+                  Margin="0,0,0,16"
+                  ClipToBounds="True">
+            <TextBlock Text="{Binding Title}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       MaxWidth="260"
+                       Foreground="White"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       FontWeight="SemiBold"
+                       Margin="12" />
+          </Border>
+
+          <!-- Authors -->
+          <TextBlock Text="{Binding AuthorsDisplay}"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap"
+                     Margin="0,0,0,4" />
+
+          <!-- Year -->
+          <TextBlock Text="{Binding Year}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     Margin="0,0,0,16" />
+
+          <!-- Tab control for 5 field groups -->
+          <TabControl>
+
+            <!-- Group 1: File -->
+            <TabItem Header="File">
+              <StackPanel Spacing="6" Margin="0,8,0,0">
+                <TextBlock Text="{Binding RelativePath}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                           TextWrapping="Wrap" />
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="Size: {0} bytes">
+                      <Binding Path="SizeBytes" FallbackValue="Unknown" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                           TextWrapping="Wrap"
+                           Text="{Binding Sha256Hash}" />
+              </StackPanel>
+            </TabItem>
+
+            <!-- Group 2: Bibliographic -->
+            <TabItem Header="Biblio">
+              <StackPanel Spacing="6" Margin="0,8,0,0">
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="ISBN: {0}">
+                      <Binding Path="Isbn" FallbackValue="—" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="DOI: {0}">
+                      <Binding Path="Doi" FallbackValue="—" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+              </StackPanel>
+            </TabItem>
+
+            <!-- Group 3: Reading -->
+            <TabItem Header="Reading">
+              <StackPanel Spacing="6" Margin="0,8,0,0">
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="Rating: {0}/5">
+                      <Binding Path="Rating" FallbackValue="Unrated" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="Progress: {0:F0}%">
+                      <Binding Path="ReadingProgressPct" FallbackValue="0" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="Last read: {0}">
+                      <Binding Path="LastReadDisplay" FallbackValue="Never" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                  <TextBlock.Text>
+                    <MultiBinding StringFormat="Annotations: {0}">
+                      <Binding Path="AnnotationCount" FallbackValue="0" />
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+              </StackPanel>
+            </TabItem>
+
+            <!-- Group 4: Enrichment -->
+            <TabItem Header="Enrichment">
+              <StackPanel Spacing="4" Margin="0,8,0,0">
+                <TextBlock Text="Enrichment data (Phase 07)"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <ItemsControl ItemsSource="{Binding EnrichmentFields}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </TabItem>
+
+            <!-- Group 5: AI -->
+            <TabItem Header="AI">
+              <StackPanel Spacing="4" Margin="0,8,0,0">
+                <TextBlock Text="AI insights (Phase 13)"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Accent.Plum}" />
+                <ItemsControl ItemsSource="{Binding AiFields}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </TabItem>
+
+          </TabControl>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Action buttons -->
+      <StackPanel Grid.Row="2"
+                  Orientation="Horizontal"
+                  Spacing="8"
+                  Margin="16,8,16,16"
+                  HorizontalAlignment="Center">
+
+        <!-- Read button -->
+        <Button Padding="16,8"
+                Background="{DynamicResource Brush.Accent.Ink}"
+                Foreground="White"
+                CornerRadius="{DynamicResource Radius.S}"
+                AutomationProperties.Name="Open reader"
+                Click="ReadButton_Click">
+          <TextBlock Text="Read" />
+        </Button>
+
+        <!-- Enrich button (disabled until Phase 07) -->
+        <Button Padding="16,8"
+                Background="{DynamicResource Brush.Accent.Plum}"
+                Foreground="White"
+                CornerRadius="{DynamicResource Radius.S}"
+                IsEnabled="False"
+                AutomationProperties.Name="Enrich metadata"
+                ToolTip.Tip="Available in Metadata Enrichment (Phase 07)">
+          <TextBlock Text="Enrich" />
+        </Button>
+
+      </StackPanel>
+
+    </Grid>
+  </Border>
+</UserControl>

@@ -1,3 +1,4 @@
+
 # Contributing to Ogma Library
 
 This guide defines how work enters the Ogma Library codebase. It applies to every

@@ -1,9 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OgmaLibrary.App.ViewModels;
+using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Commands;
+using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Workers;
@@ -52,8 +58,57 @@ public static class CompositionRoot
         services.AddSingleton<JobRecoveryService>();
         services.AddHostedService<BookIngestionWorker>();
 
+        // Phase 06 — Catalogue Browsing.
+
+        // Write service.
+        services.AddSingleton<ICatalogueWriteService, CatalogueWriteService>();
+
+        // Command history (ring-buffer undo stack).
+        services.AddSingleton<ICommandHistory, CommandHistory>();
+
+        // Phase 06 — Catalogue browsing.
+        // The MainShellViewModel is the composition root for its subtree.
+        // It creates its own child VMs internally to avoid circular-dependency.
+        services.AddSingleton<MainShellViewModel>(sp =>
+        {
+            var localization = sp.GetRequiredService<ILocalizationService>();
+            var readModel = sp.GetRequiredService<ICatalogueReadModel>();
+            var writeService = sp.GetRequiredService<ICatalogueWriteService>();
+
+            var filterVm = new CatalogueFilterViewModel();
+
+            var shelfSidebar = new ShelfSidebarViewModel(
+                readModel, writeService, localization, filterVm);
+
+            // The shell itself implements both navigation services; pass it as a
+            // lazy provider so CatalogueViewModel can be created before the shell
+            // is fully constructed.
+            MainShellViewModel? shell = null;
+            var navProxy = new NavigationServiceProxy(() => shell!);
+
+            var catalogueVm = new CatalogueViewModel(readModel, navProxy, localization);
+            var bookDetailVm = new BookDetailViewModel(readModel, navProxy, localization);
+
+            shell = new MainShellViewModel(
+                localization,
+                catalogueVm,
+                bookDetailVm,
+                shelfSidebar,
+                sp.GetRequiredService<ILibrarySettingsService>(),
+                sp.GetRequiredService<IIngestionOrchestrator>(),
+                sp.GetRequiredService<IScanProgressService>());
+
+            return shell;
+        });
+
+        // Navigation services — resolved from the MainShellViewModel singleton.
+        services.AddSingleton<IBookDetailNavigationService>(sp =>
+            sp.GetRequiredService<MainShellViewModel>());
+        services.AddSingleton<IReaderNavigationService>(sp =>
+            sp.GetRequiredService<MainShellViewModel>());
+
         // Bounded-context registrations (Reader, Search, AI,
-        // Bookshelf, Settings & Security, Packaging) are added here in Phases 06+.
+        // Bookshelf, Settings & Security, Packaging) are added here in Phases 07+.
         return services;
     }
 }

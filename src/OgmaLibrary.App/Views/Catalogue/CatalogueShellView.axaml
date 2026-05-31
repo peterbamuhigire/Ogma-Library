@@ -1,0 +1,233 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
+             x:DataType="vm:MainShellViewModel">
+
+  <!--
+    The full catalogue shell (Phase 06): sidebar (shelves) + toolbar (view toggle,
+    sort, filter) + content area (grid/list/directory) + detail panel.
+    Replaces the empty-state-only window when books are present.
+  -->
+
+  <Grid ColumnDefinitions="Auto,*,Auto">
+
+    <!-- ─── Left sidebar ───────────────────────────────────────────── -->
+    <Border Grid.Column="0"
+            Width="220"
+            IsVisible="{Binding IsSidebarOpen}"
+            Background="{DynamicResource Brush.Surface.Footer}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="Auto,*">
+
+        <!-- Sidebar header -->
+        <Border Grid.Row="0" Padding="16,12">
+          <TextBlock Text="Shelves"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        </Border>
+
+        <!-- Shelf list -->
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding ShelfSidebar.Shelves}"
+                 SelectedItem="{Binding ShelfSidebar.SelectedShelf, Mode=TwoWay}"
+                 Background="Transparent"
+                 BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,2">
+                <TextBlock Text="{Binding Name}"
+                           FontSize="{DynamicResource Type.Size.Body}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                           VerticalAlignment="Center" />
+                <Border CornerRadius="8"
+                        Background="{DynamicResource Brush.Accent.Oak}"
+                        Padding="6,1">
+                  <TextBlock Text="{Binding BookCount}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+
+    <!-- ─── Main content area ─────────────────────────────────────── -->
+    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+
+      <!-- Toolbar: view toggle + sort + filter -->
+      <Border Grid.Row="0"
+              Padding="12,8"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+
+          <!-- Sidebar toggle -->
+          <Button Grid.Column="0"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="6"
+                  AutomationProperties.Name="Toggle sidebar"
+                  Click="SidebarToggle_Click">
+            <TextBlock Text="☰" FontSize="18" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
+
+          <!-- View toggle buttons -->
+          <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="2"
+                      VerticalAlignment="Center"
+                      Margin="8,0">
+
+            <Button Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8,4"
+                    AutomationProperties.Name="{Binding GridViewLabel}"
+                    Click="GridViewButton_Click">
+              <TextBlock Text="⊞" FontSize="16" Foreground="{DynamicResource Brush.Accent.Oak}" />
+            </Button>
+
+            <Button Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8,4"
+                    AutomationProperties.Name="{Binding ListViewLabel}"
+                    Click="ListViewButton_Click">
+              <TextBlock Text="☰" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            </Button>
+
+            <Button Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8,4"
+                    AutomationProperties.Name="{Binding DirectoryViewLabel}"
+                    Click="DirectoryViewButton_Click">
+              <TextBlock Text="📁" FontSize="16" />
+            </Button>
+
+            <Button Background="Transparent"
+                    BorderThickness="0"
+                    Padding="8,4"
+                    AutomationProperties.Name="{Binding Shelf3DViewLabel}"
+                    ToolTip.Tip="3D shelf coming in Phase 14"
+                    IsEnabled="False">
+              <TextBlock Text="🗂" FontSize="16" Opacity="0.4" />
+            </Button>
+
+          </StackPanel>
+
+          <!-- Filter panel toggle -->
+          <Button Grid.Column="2"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  AutomationProperties.Name="{Binding FilterLabel}"
+                  Click="FilterToggle_Click">
+            <TextBlock Text="⚗" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </Button>
+
+          <!-- Count badge -->
+          <TextBlock Grid.Column="3"
+                     VerticalAlignment="Center"
+                     Margin="8,0,4,0"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+            <TextBlock.Text>
+              <MultiBinding StringFormat="{}{0} books">
+                <Binding Path="Catalogue.FilteredCount" />
+              </MultiBinding>
+            </TextBlock.Text>
+          </TextBlock>
+
+        </Grid>
+      </Border>
+
+      <!-- Filter panel (inline, shown when open) -->
+      <Border Grid.Row="1"
+              IsVisible="{Binding IsFilterPanelOpen}"
+              Background="{DynamicResource Brush.Surface.Footer}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="0,0,0,1"
+              Padding="12,8">
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <TextBlock Text="Filters" FontSize="{DynamicResource Type.Size.Caption}" VerticalAlignment="Center" />
+          <ComboBox PlaceholderText="Sort by"
+                    Width="120">
+            <ComboBoxItem Content="Title" />
+            <ComboBoxItem Content="Author" />
+            <ComboBoxItem Content="Year" />
+            <ComboBoxItem Content="Rating" />
+          </ComboBox>
+          <Button Padding="8,4"
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Click="ClearFilters_Click">
+            <TextBlock Text="Clear all" FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </StackPanel>
+      </Border>
+
+      <!-- Main catalogue content (grid/list views) -->
+      <Grid Grid.Row="2">
+
+        <!-- Grid view wrapper controls visibility from MainShellViewModel; inner view has CatalogueViewModel DC -->
+        <Panel IsVisible="{Binding Catalogue.IsGridView}">
+          <cat:CatalogueGridView DataContext="{Binding Catalogue}" />
+        </Panel>
+
+        <!-- List view -->
+        <Panel IsVisible="{Binding Catalogue.IsListView}">
+          <cat:CatalogueListView DataContext="{Binding Catalogue}" />
+        </Panel>
+
+        <!-- Directory view placeholder -->
+        <Border IsVisible="{Binding Catalogue.IsDirectoryView}"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+          <TextBlock Text="Directory view (coming soon)"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </Border>
+
+        <!-- Empty state -->
+        <Border IsVisible="{Binding Catalogue.IsEmpty}"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+          <StackPanel Spacing="8" MaxWidth="400">
+            <TextBlock Text="{Binding EmptyStateHeading}"
+                       FontSize="{DynamicResource Type.Size.Title}"
+                       FontWeight="SemiBold"
+                       TextAlignment="Center"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <TextBlock Text="{Binding EmptyStateBody}"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Reader placeholder message -->
+        <Border IsVisible="{Binding IsReaderPlaceholderVisible}"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+          <TextBlock Text="{Binding ReaderPlaceholderMessage}"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </Border>
+
+      </Grid>
+    </Grid>
+
+    <!-- ─── Book detail panel ─────────────────────────────────────── -->
+    <cat:BookDetailView Grid.Column="2"
+                        DataContext="{Binding BookDetail}"
+                        IsVisible="{Binding BookDetail.IsVisible}"
+                        x:CompileBindings="False" />
+
+  </Grid>
+</UserControl>
