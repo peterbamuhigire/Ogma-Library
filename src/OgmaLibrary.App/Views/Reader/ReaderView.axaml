@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Reader"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Reader.ReaderView"
              x:Name="Root"
              x:DataType="vm:ReaderViewModel"
@@ -88,7 +89,12 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CreateHighlightLabel}"
                   Click="CreateHighlightButton_Click">
-            <TextBlock Text="{Binding CreateHighlightLabel}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <svg:Svg Width="16"
+                       Height="16"
+                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight.svg" />
+              <TextBlock Text="{Binding CreateHighlightLabel}" />
+            </StackPanel>
           </Button>
           <Button Padding="12,6"
                   Background="{DynamicResource Brush.Accent.Clay}"
@@ -96,7 +102,12 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CreateNoteLabel}"
                   Click="CreateNoteButton_Click">
-            <TextBlock Text="{Binding CreateNoteLabel}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <svg:Svg Width="16"
+                       Height="16"
+                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note.svg" />
+              <TextBlock Text="{Binding CreateNoteLabel}" />
+            </StackPanel>
           </Button>
           <Button Padding="12,6"
                   Background="{DynamicResource Brush.Accent.Ink}"
@@ -104,12 +115,22 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding AddBookmarkLabel}"
                   Click="AddBookmarkButton_Click">
-            <TextBlock Text="{Binding AddBookmarkLabel}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <svg:Svg Width="16"
+                       Height="16"
+                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_add.svg" />
+              <TextBlock Text="{Binding AddBookmarkLabel}" />
+            </StackPanel>
           </Button>
           <Button Padding="12,6"
                   AutomationProperties.Name="{Binding CaptureCitationLabel}"
                   Click="CaptureCitationButton_Click">
-            <TextBlock Text="{Binding CaptureCitationLabel}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <svg:Svg Width="16"
+                       Height="16"
+                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_citation_capture.svg" />
+              <TextBlock Text="{Binding CaptureCitationLabel}" />
+            </StackPanel>
           </Button>
         </StackPanel>
       </Grid>
@@ -203,17 +224,32 @@
               <Button Padding="8,4"
                       AutomationProperties.Name="{Binding CreateHighlightLabel}"
                       Click="SelectionHighlightButton_Click">
-                <TextBlock Text="{Binding CreateHighlightLabel}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <svg:Svg Width="14"
+                           Height="14"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight.svg" />
+                  <TextBlock Text="{Binding CreateHighlightLabel}" />
+                </StackPanel>
               </Button>
               <Button Padding="8,4"
                       AutomationProperties.Name="{Binding CreateNoteLabel}"
                       Click="SelectionNoteButton_Click">
-                <TextBlock Text="{Binding CreateNoteLabel}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <svg:Svg Width="14"
+                           Height="14"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note.svg" />
+                  <TextBlock Text="{Binding CreateNoteLabel}" />
+                </StackPanel>
               </Button>
               <Button Padding="8,4"
                       AutomationProperties.Name="{Binding CaptureCitationLabel}"
                       Click="SelectionCitationButton_Click">
-                <TextBlock Text="{Binding CaptureCitationLabel}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <svg:Svg Width="14"
+                           Height="14"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_citation_capture.svg" />
+                  <TextBlock Text="{Binding CaptureCitationLabel}" />
+                </StackPanel>
               </Button>
             </StackPanel>
           </Border>
@@ -278,7 +314,12 @@
                 <Button Padding="10,6"
                         AutomationProperties.Name="{Binding CopyCitationLabel}"
                         Click="CopyCitationButton_Click">
-                  <TextBlock Text="{Binding CopyCitationLabel}" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <svg:Svg Width="16"
+                             Height="16"
+                             Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_citation_copy.svg" />
+                    <TextBlock Text="{Binding CopyCitationLabel}" />
+                  </StackPanel>
                 </Button>
                 <Button Padding="10,6"
                         Background="{DynamicResource Brush.Accent.Ink}"
@@ -286,7 +327,12 @@
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding ExportCitationLabel}"
                         Click="ExportCitationButton_Click">
-                  <TextBlock Text="{Binding ExportCitationLabel}" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <svg:Svg Width="16"
+                             Height="16"
+                             Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_citation_export.svg" />
+                    <TextBlock Text="{Binding ExportCitationLabel}" />
+                  </StackPanel>
                 </Button>
               </StackPanel>
             </StackPanel>
@@ -339,14 +385,18 @@
                               AutomationProperties.Name="{Binding #Root.DataContext.EditNoteLabel}"
                               ToolTip.Tip="{Binding #Root.DataContext.EditNoteLabel}"
                               Click="EditNoteButton_Click">
-                        <TextBlock Text="..." />
+                        <svg:Svg Width="16"
+                                 Height="16"
+                                 Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note.svg" />
                       </Button>
                       <Button Grid.Column="3"
                               Padding="8,4"
                               AutomationProperties.Name="{Binding #Root.DataContext.DeleteAnnotationLabel}"
                               ToolTip.Tip="{Binding #Root.DataContext.DeleteAnnotationLabel}"
                               Click="DeleteAnnotationButton_Click">
-                        <TextBlock Text="x" />
+                        <svg:Svg Width="16"
+                                 Height="16"
+                                 Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_delete.svg" />
                       </Button>
                     </Grid>
                   </DataTemplate>
@@ -455,7 +505,12 @@
                               Padding="8,4"
                               AutomationProperties.Name="{Binding AccessibleLabel}"
                               Click="BookmarkNavigateButton_Click">
-                        <TextBlock Text="{Binding PageNumber}" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <svg:Svg Width="14"
+                                   Height="14"
+                                   Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_item.svg" />
+                          <TextBlock Text="{Binding PageNumber}" />
+                        </StackPanel>
                       </Button>
                       <TextBox Grid.Column="1"
                                Text="{Binding Label, Mode=TwoWay}"
@@ -467,7 +522,9 @@
                               Padding="8,4"
                               AutomationProperties.Name="{Binding #Root.DataContext.RemoveBookmarkLabel}"
                               Click="DeleteBookmarkButton_Click">
-                        <TextBlock Text="x" />
+                        <svg:Svg Width="16"
+                                 Height="16"
+                                 Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_remove.svg" />
                       </Button>
                     </Grid>
                   </DataTemplate>
@@ -483,7 +540,12 @@
                       Padding="10,6"
                       AutomationProperties.Name="{Binding AddLayerLabel}"
                       Click="AddLayerButton_Click">
-                <TextBlock Text="{Binding AddLayerLabel}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <svg:Svg Width="16"
+                           Height="16"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_layer_add.svg" />
+                  <TextBlock Text="{Binding AddLayerLabel}" />
+                </StackPanel>
               </Button>
               <StackPanel Grid.Row="1"
                           Margin="0,10,0,0"
@@ -544,21 +606,29 @@
                       <CheckBox Grid.Column="3"
                                 IsChecked="{Binding IsVisible, Mode=OneWay}"
                                 AutomationProperties.Name="{Binding VisibilityAutomationLabel}"
-                                Click="LayerVisibility_Click" />
+                                Click="LayerVisibility_Click">
+                        <svg:Svg Width="16"
+                                 Height="16"
+                                 Path="{Binding VisibilityIconPath}" />
+                      </CheckBox>
                       <Button Grid.Column="4"
                               Padding="8,4"
                               IsEnabled="{Binding CanMergeOrDelete}"
                               AutomationProperties.Name="{Binding MergeAutomationLabel}"
                               ToolTip.Tip="{Binding MergeAutomationLabel}"
                               Click="MergeLayerButton_Click">
-                        <TextBlock Text=">" />
+                        <svg:Svg Width="16"
+                                 Height="16"
+                                 Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_layer_merge.svg" />
                       </Button>
                       <Button Grid.Column="5"
                               Padding="8,4"
                               IsEnabled="{Binding CanMergeOrDelete}"
                               AutomationProperties.Name="{Binding DeleteAutomationLabel}"
                               Click="DeleteLayerButton_Click">
-                        <TextBlock Text="x" />
+                        <svg:Svg Width="16"
+                                 Height="16"
+                                 Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_layer_delete.svg" />
                       </Button>
                     </Grid>
                   </DataTemplate>
@@ -617,7 +687,12 @@
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding SaveReadingMemoryLabel}"
                         Click="SaveMemoryButton_Click">
-                  <TextBlock Text="{Binding SaveReadingMemoryLabel}" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <svg:Svg Width="16"
+                             Height="16"
+                             Path="avares://OgmaLibrary.App/Assets/icons/reader/memory/ic_reading_memory.svg" />
+                    <TextBlock Text="{Binding SaveReadingMemoryLabel}" />
+                  </StackPanel>
                 </Button>
               </StackPanel>
             </ScrollViewer>

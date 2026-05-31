@@ -743,6 +743,7 @@ public sealed class ReaderViewRenderTests
             localization);
         viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
         viewModel.AddLayerAsync(CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CreateHighlightAsync(CancellationToken.None).GetAwaiter().GetResult();
         viewModel.SelectedCitationText = "Action-specific citation passage";
         viewModel.CaptureCitationAsync(CancellationToken.None).GetAwaiter().GetResult();
         Window window = ShowReaderWindow(viewModel);
@@ -751,14 +752,28 @@ public sealed class ReaderViewRenderTests
         {
             var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
 
+            AssertSvgIconPath(window, "ic_annotation_highlight.svg");
+            AssertSvgIconPath(window, "ic_annotation_note.svg");
+            AssertSvgIconPath(window, "ic_bookmark_add.svg");
+            AssertSvgIconPath(window, "ic_citation_capture.svg");
+            AssertSvgIconPath(window, "ic_citation_copy.svg");
+            AssertSvgIconPath(window, "ic_citation_export.svg");
+            AssertSvgIconPath(window, "ic_annotation_delete.svg");
+
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(
                 window.GetVisualDescendants().OfType<ListBox>(),
                 list => GetAutomationName(list) == "Bookmarks (1)");
+            AssertSvgIconPath(window, "ic_bookmark_item.svg");
+            AssertSvgIconPath(window, "ic_bookmark_remove.svg");
 
             tabControl.SelectedIndex = 2;
             Dispatcher.UIThread.RunJobs();
+            AssertSvgIconPath(window, "ic_layer_add.svg");
+            AssertSvgIconPath(window, "ic_layer_visible.svg");
+            AssertSvgIconPath(window, "ic_layer_merge.svg");
+            AssertSvgIconPath(window, "ic_layer_delete.svg");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<Border>(),
                 border => GetAutomationName(border) == "Active annotation layer: Key arguments");
@@ -776,12 +791,14 @@ public sealed class ReaderViewRenderTests
                 .GetAwaiter()
                 .GetResult();
             Dispatcher.UIThread.RunJobs();
+            AssertSvgIconPath(window, "ic_layer_hidden.svg");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<CheckBox>(),
                 box => GetAutomationName(box) == "Layer hidden: Key arguments");
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();
+            AssertSvgIconPath(window, "ic_reading_memory.svg");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<TextBox>(),
                 textBox => GetAutomationName(textBox) == "Why I opened this");
@@ -2164,6 +2181,16 @@ public sealed class ReaderViewRenderTests
 
     private static string? GetAutomationName(Control control) =>
         control.GetValue(AutomationProperties.NameProperty);
+
+    private static void AssertSvgIconPath(Window window, string fileName)
+    {
+        Assert.Contains(
+            window.GetVisualDescendants().OfType<Control>(),
+            control =>
+                control.GetType().Name == "Svg" &&
+                control.GetType().GetProperty("Path")?.GetValue(control)?.ToString()
+                    ?.EndsWith(fileName, StringComparison.Ordinal) == true);
+    }
 
     private static T AssertFocusableControl<T>(Window window, string automationName)
         where T : Control

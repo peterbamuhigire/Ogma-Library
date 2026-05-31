@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia;
+using OgmaLibrary.App.Icons;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
@@ -1997,6 +1998,10 @@ public sealed class LayerListItem : INotifyPropertyChanged
 
     /// <summary>Automation label that includes the current visibility state.</summary>
     public string VisibilityAutomationLabel => FormatLayerLabel(IsVisible ? _visibleFormat : _hiddenFormat);
+
+    /// <summary>Premium SVG icon path for the current visibility state.</summary>
+    public string VisibilityIconPath => IconCatalog.GetAvaresPath(
+        IsVisible ? "ic_layer_visible" : "ic_layer_hidden")!;
 
     /// <summary>Automation label for merging this layer.</summary>
     public string MergeAutomationLabel => FormatLayerLabel(_mergeFormat);
