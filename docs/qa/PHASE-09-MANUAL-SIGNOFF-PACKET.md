@@ -81,7 +81,7 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 
 | Decision | Current proposal | Owner response | Owner/date | Evidence reference |
 | --- | --- | --- | --- | --- |
-| Premium icon procurement | 22 premium SVG icons listed in `docs/plans/grand-plan/phase-09/icons.md`. | Delivered and copied into runtime asset paths | Peter / 2026-05-31 | `docs/plans/grand-plan/phase-09/icons.md` |
+| Premium icon procurement | 22 premium SVG icons listed in `docs/plans/grand-plan/phase-09/icons.md`. | Delivered, copied into runtime asset paths, rendered on reader surfaces, and covered by UI/resource tests | Peter / 2026-05-31 | `docs/plans/grand-plan/phase-09/icons.md`; `docs/plans/grand-plan/phase-09/evidence.md` |
 | Annotation layer palette | Amber, sage, clay, plum. | Pending | Pending | Pending |
 | Citation export V1 scope | Plain-text export; BibTeX/RIS/Markdown deferred unless requested. | Pending | Pending | Pending |
 | Reading-memory disposition wording | UI label currently renders as `Disposition (1-5)`; semantic scale is 1 to 5, where 1 is not useful/did not finish and 5 is transformative. | Pending | Pending | Pending |

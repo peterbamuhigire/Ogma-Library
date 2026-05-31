@@ -11,7 +11,8 @@ Current status: locally implementation-complete. Direct audit and independent
 sub-agent review findings have been addressed in code, tests, and evidence; no
 remaining locally actionable Phase 09 gaps are known. Final phase closure is still blocked on owner/manual gates:
 Narrator/VoiceOver walkthrough, manual color review, manual pseudolocale review,
-and owner confirmations. Premium SVG icons have been delivered and committed.
+and owner confirmations. Premium SVG icons have been delivered, committed, rendered
+on reader surfaces, and covered by UI/resource tests.
 
 ## Automated verification
 
