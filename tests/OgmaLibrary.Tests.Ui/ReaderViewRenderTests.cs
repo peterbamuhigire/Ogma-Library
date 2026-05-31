@@ -752,6 +752,10 @@ public sealed class ReaderViewRenderTests
         {
             var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
 
+            AssertSvgIconPath(window, "ic_annotation_panel.svg");
+            AssertSvgIconPath(window, "ic_bookmark_panel.svg");
+            AssertSvgIconPath(window, "ic_layer_panel.svg");
+            AssertSvgIconPath(window, "ic_reading_memory.svg");
             AssertSvgIconPath(window, "ic_annotation_highlight.svg");
             AssertSvgIconPath(window, "ic_annotation_note.svg");
             AssertSvgIconPath(window, "ic_bookmark_add.svg");
@@ -798,7 +802,6 @@ public sealed class ReaderViewRenderTests
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();
-            AssertSvgIconPath(window, "ic_reading_memory.svg");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<TextBox>(),
                 textBox => GetAutomationName(textBox) == "Why I opened this");

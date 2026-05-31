@@ -342,7 +342,15 @@
               BorderThickness="1,0,0,0"
               Background="{DynamicResource Brush.Surface.Card}">
         <TabControl SelectedIndex="{Binding SelectedSidebarTabIndex, Mode=TwoWay}">
-          <TabItem Header="{Binding AnnotationPanelLabel}">
+          <TabItem AutomationProperties.Name="{Binding AnnotationPanelLabel}">
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <svg:Svg Width="16"
+                         Height="16"
+                         Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_panel.svg" />
+                <TextBlock Text="{Binding AnnotationPanelLabel}" />
+              </StackPanel>
+            </TabItem.Header>
             <Grid RowDefinitions="Auto,*,Auto" Margin="12">
               <TextBlock Grid.Row="0"
                          Text="{Binding AnnotationPanelLabel}"
@@ -451,7 +459,15 @@
             </Grid>
           </TabItem>
 
-          <TabItem Header="{Binding BookmarkPanelLabel}">
+          <TabItem AutomationProperties.Name="{Binding BookmarkPanelLabel}">
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <svg:Svg Width="16"
+                         Height="16"
+                         Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_panel.svg" />
+                <TextBlock Text="{Binding BookmarkPanelLabel}" />
+              </StackPanel>
+            </TabItem.Header>
             <Grid RowDefinitions="Auto,Auto,*" Margin="12">
               <TextBlock Grid.Row="0"
                          Text="{Binding BookmarkPanelLabel}"
@@ -530,7 +546,15 @@
             </Grid>
           </TabItem>
 
-          <TabItem Header="{Binding LayerPanelLabel}">
+          <TabItem AutomationProperties.Name="{Binding LayerPanelLabel}">
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <svg:Svg Width="16"
+                         Height="16"
+                         Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_layer_panel.svg" />
+                <TextBlock Text="{Binding LayerPanelLabel}" />
+              </StackPanel>
+            </TabItem.Header>
             <Grid RowDefinitions="Auto,Auto,*" Margin="12">
               <Button Grid.Row="0"
                       HorizontalAlignment="Left"
@@ -634,7 +658,15 @@
             </Grid>
           </TabItem>
 
-          <TabItem Header="{Binding ReadingMemoryLabel}">
+          <TabItem AutomationProperties.Name="{Binding ReadingMemoryLabel}">
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <svg:Svg Width="16"
+                         Height="16"
+                         Path="avares://OgmaLibrary.App/Assets/icons/reader/memory/ic_reading_memory.svg" />
+                <TextBlock Text="{Binding ReadingMemoryLabel}" />
+              </StackPanel>
+            </TabItem.Header>
             <ScrollViewer Margin="12">
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding OpenedBecauseLabel}"
