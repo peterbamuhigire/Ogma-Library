@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Phase 03 design-system SVG placeholder icons (and eventual premium Flaticon SVGs).
+    <!-- Design-system and delivered premium SVG icons.
          Bundled as AvaloniaResource so avares://OgmaLibrary.App/Assets/icons/... resolves. -->
     <AvaloniaResource Include="Assets\icons\**\*.svg" />
     <!-- Application window icon (titlebar/dock). -->
