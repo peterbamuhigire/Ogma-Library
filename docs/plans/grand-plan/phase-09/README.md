@@ -28,7 +28,7 @@ any PDF including rotated pages.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 4 (Reader — annotations) |
 | **Platforms** | Windows 10+ + macOS 12+; CI workflow targets both; latest remote run result unavailable from this environment |
-| **Status** | Locally implementation-complete; local automated gates green; CI workflow configured with remote run result unavailable; premium SVG icons delivered; owner confirmations and manual accessibility/visual signoff pending |
+| **Status** | Locally implementation-complete; local automated gates green; CI workflow configured with remote run result unavailable; premium SVG icons delivered and rendered on reader surfaces; owner confirmations and manual accessibility/visual signoff pending |
 | **Depends on** | Phase 08 (Reader Core — `ReaderView`, `IPdfRenderer`, text layer) |
 | **Unblocks** | Phase 10 (FTS5 index — annotation text is indexed), Phase 11 (annotation text in embeddings), Phase 13 (reading memory feeds AI advisor) |
 
@@ -375,6 +375,13 @@ Current implementation progress:
 - The book-detail panel now exposes selected-book deterministic metadata
   enrichment using the existing no-AI provider pipeline, refreshes provider
   results into the detail projection, and displays provider provenance rows.
+- Direct PDF open now registers any selected PDF path that does not already
+  have a present `BookFiles` row, even if hash or fuzzy identity matches an
+  existing catalogue item.
+- Delivered Phase 09 premium SVGs now render across reader toolbar actions,
+  selection actions, citation cards, sidebar tab headers, bookmark/layer
+  panels, note anchors, highlight color picker, bookmark rename, and
+  reading-memory disposition surfaces.
 
 Next steps before final Phase 09 closure:
 
@@ -420,3 +427,5 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Reconciled Phase 09 evidence dates/counts and replaced placeholder verification test names with current automated test names | Codex |
 | 2026-06-01 | Added bookmark page/date sorting and made the reading-memory disposition range visible in the reader UI and accessibility evidence | Codex |
 | 2026-06-01 | Added active writable layer marker and hardened direct PDF open against missing `BookFiles` schema errors and weak fuzzy rematches | Codex |
+| 2026-06-01 | Tightened direct PDF registration so untracked selected paths become new books even on same-hash matches | Codex |
+| 2026-06-01 | Rendered delivered Phase 09 reader icons across note anchors, panel tabs, highlight color, bookmark rename, and reading-memory disposition surfaces | Codex |

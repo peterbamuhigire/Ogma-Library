@@ -2,8 +2,8 @@
 
 Date: 2026-06-01
 
-Scope: Phase 09 closeout evidence through the active-layer and direct-PDF
-hardening pass on 2026-06-01.
+Scope: Phase 09 closeout evidence through the active-layer, direct-PDF
+hardening, and delivered reader-icon rendering passes on 2026-06-01.
 
 ## Current Position
 
@@ -22,7 +22,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, and direct-PDF open hardening |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, and delivered reader-icon rendering |
 | Worktree | Expected to remain clean after this pass except unrelated `docs/developer-guide/images/scan-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -30,6 +30,7 @@ owner-gated:
 | Reading-memory disposition label | `29fa18d fix: expose reading memory disposition range`; focused reader UI tests cover the announced `Disposition (1-5)` label and existing validation |
 | Active writable layer marker | `ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` covers the visible and announced active-layer marker |
 | Direct PDF open hardening | `DirectPdfOpen_FuzzyMatch_RegistersSelectedPdfAsNewBook`; `DirectPdfOpen_SameHashAtUnregisteredPath_RegistersSelectedPdfAsNewBook`; migration/direct-open focused slice covers missing-table repair and explicit selected-file registration behavior |
+| Delivered reader-icon rendering | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; `ReaderViewModel_NoteOverlay_ExposesAnchorMarker`; `IconCatalogPhase09Tests` cover rendered premium SVG paths for toolbar actions, selection actions, citation card actions, sidebar panel tabs, bookmark/layer panels, note anchors, highlight color, bookmark rename, and reading-memory disposition |
 
 ## Remote CI Status Check
 
@@ -46,7 +47,7 @@ not claim a remote CI pass.
 
 ## Locally Actionable Findings
 
-The continuation pass found four locally actionable mismatches and fixed
+The continuation pass found five locally actionable mismatches and fixed
 them:
 
 | Finding | Resolution |
@@ -55,6 +56,7 @@ them:
 | Reading-memory disposition field did not visibly include the planned 1-5 range in its label. | Updated English/French runtime strings and accessibility tests to announce `Disposition (1-5)`. |
 | Layer sidebar did not visibly identify which layer receives new annotations. | Added a localized active writable layer marker and automation label that follows the first visible layer. |
 | Direct PDF open could still surface `no such table: BookFiles` in damaged catalogues and selected-file identity matches could update an existing book that did not already own the selected path. | Forced direct-open DI to receive the catalogue migrator, retries repair on SQLite missing-table errors, and registers selected PDFs as new books unless the selected path already has a present `BookFiles` row. |
+| Delivered Phase 09 premium SVG assets were registered but some reader surfaces still used text-only or placeholder controls. | Rendered delivered SVGs on note anchors, sidebar panel tabs, highlight color picker, bookmark rename affordance, and reading-memory disposition while preserving automation labels. |
 
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.
