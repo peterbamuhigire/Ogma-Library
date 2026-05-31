@@ -23,6 +23,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
     private readonly IBookRegistrationService _registration;
     private readonly IUnavailableFileFlagService _flagService;
     private readonly IScanProgressService _progress;
+    private readonly CatalogueMigrator? _migrator;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -36,6 +37,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
     /// <param name="flagService">The unavailable-file flag service.</param>
     /// <param name="progress">The scan progress service.</param>
     /// <param name="context">The catalogue DB context.</param>
+    /// <param name="migrator">Optional schema migrator used to repair startup-damaged catalogues.</param>
     internal IngestionOrchestrator(
         ILibrarySettingsService settings,
         IPdfDiscoveryService discovery,
@@ -43,7 +45,8 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         IBookRegistrationService registration,
         IUnavailableFileFlagService flagService,
         IScanProgressService progress,
-        CatalogueDbContext context)
+        CatalogueDbContext context,
+        CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(discovery);
@@ -60,11 +63,20 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         _flagService = flagService;
         _progress = progress;
         _context = context;
+        _migrator = migrator;
     }
 
     /// <summary>
     /// Initializes a new instance of <see cref="IngestionOrchestrator"/>.
     /// </summary>
+    /// <param name="settings">The library settings service.</param>
+    /// <param name="discovery">The PDF discovery service.</param>
+    /// <param name="identity">The book identity service.</param>
+    /// <param name="registration">The book registration service.</param>
+    /// <param name="flagService">The unavailable-file flag service.</param>
+    /// <param name="progress">The scan progress service.</param>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="migrator">Optional schema migrator used to repair startup-damaged catalogues.</param>
     public IngestionOrchestrator(
         ILibrarySettingsService settings,
         IPdfDiscoveryService discovery,
@@ -72,7 +84,8 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         IBookRegistrationService registration,
         IUnavailableFileFlagService flagService,
         IScanProgressService progress,
-        IDbContextFactory<CatalogueDbContext> contextFactory)
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(discovery);
@@ -89,11 +102,17 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         _flagService = flagService;
         _progress = progress;
         _contextFactory = contextFactory;
+        _migrator = migrator;
     }
 
     /// <inheritdoc />
     public async Task ScanAsync(CancellationToken cancellationToken = default)
     {
+        if (_migrator is not null)
+        {
+            await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         string? root = await _settings.GetLibraryRootAsync(cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(root))
         {

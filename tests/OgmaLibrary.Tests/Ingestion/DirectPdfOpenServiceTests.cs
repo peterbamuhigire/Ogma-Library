@@ -1,3 +1,5 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -232,6 +234,39 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DirectPdfOpen_RepairsMissingBookFilesTableBeforeRegisteringSelectedPdf()
+    {
+        string pdfPath = Path.Combine(_tempRoot, "repair-open.pdf");
+        await File.WriteAllBytesAsync(pdfPath, "%PDF-1.4\n% repair direct open test\n"u8.ToArray());
+
+        string dbPath = Path.Combine(_tempRoot, "repair-open.db");
+        var options = new DbContextOptionsBuilder<CatalogueDbContext>()
+            .UseSqlite($"Data Source={dbPath};Pooling=False")
+            .Options;
+
+        await using var context = new CatalogueDbContext(options);
+        await context.Database.MigrateAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
+        await context.Database.ExecuteSqlRawAsync("DROP TABLE BookFiles;");
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+
+        var settings = new LibrarySettingsService(_tempRoot);
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context),
+            new CatalogueMigrator(context));
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        Assert.Equal(1, await context.BookFiles.CountAsync(f => f.BookId == bookId));
+        Assert.Equal("repair-open.pdf", await context.BookFiles
+            .Where(f => f.BookId == bookId)
+            .Select(f => f.RelativePath)
+            .SingleAsync());
+    }
+
+    [Fact]
     public async Task DirectPdfOpen_RejectsNonPdfFile()
     {
         string textPath = Path.Combine(_tempRoot, "notes.txt");
@@ -249,6 +284,8 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
     public void Dispose()
     {
+        SqliteConnection.ClearAllPools();
+
         try
         {
             if (Directory.Exists(_tempRoot))

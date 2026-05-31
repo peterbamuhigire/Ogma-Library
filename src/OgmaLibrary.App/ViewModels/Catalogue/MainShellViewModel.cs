@@ -393,6 +393,14 @@ public sealed class MainShellViewModel :
             {
                 // Scan was cancelled — normal path.
             }
+            catch (Exception ex)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    SetStatusOverride(string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        _localization["MainWindow.FolderPicker.ScanFailedFormat"],
+                        ex.Message)));
+            }
         });
     }
 

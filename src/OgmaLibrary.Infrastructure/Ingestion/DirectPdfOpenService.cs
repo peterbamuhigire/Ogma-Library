@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Infrastructure.Catalogue;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -13,12 +14,18 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
     private readonly ILibrarySettingsService _settings;
     private readonly IBookIdentityService _identity;
     private readonly IBookRegistrationService _registration;
+    private readonly CatalogueMigrator? _migrator;
 
     /// <summary>Initializes a new instance of <see cref="DirectPdfOpenService"/>.</summary>
+    /// <param name="settings">The library settings service.</param>
+    /// <param name="identity">The book identity service.</param>
+    /// <param name="registration">The book registration service.</param>
+    /// <param name="migrator">Optional schema migrator used to repair startup-damaged catalogues.</param>
     public DirectPdfOpenService(
         ILibrarySettingsService settings,
         IBookIdentityService identity,
-        IBookRegistrationService registration)
+        IBookRegistrationService registration,
+        CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(identity);
@@ -27,6 +34,7 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
         _settings = settings;
         _identity = identity;
         _registration = registration;
+        _migrator = migrator;
     }
 
     /// <inheritdoc />
@@ -45,6 +53,11 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
         if (!string.Equals(Path.GetExtension(fullPath), ".pdf", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("The selected file is not a PDF document.");
+        }
+
+        if (_migrator is not null)
+        {
+            await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
         }
 
         string containingFolder = Path.GetDirectoryName(fullPath)
