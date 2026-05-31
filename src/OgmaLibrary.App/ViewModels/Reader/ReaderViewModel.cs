@@ -1437,6 +1437,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         IReadOnlyList<AnnotationLayer> items = await _layers
             .GetLayersAsync(BookId, cancellationToken)
             .ConfigureAwait(true);
+        bool canMergeOrDelete = items.Count > 1;
 
         foreach (AnnotationLayer layer in items)
         {
@@ -1445,6 +1446,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 layer.Name,
                 layer.Color,
                 layer.IsVisible,
+                canMergeOrDelete,
                 _localization["Layer.Visible.AccessibleFormat"],
                 _localization["Layer.Hidden.AccessibleFormat"],
                 _localization["Layer.Merge.AccessibleFormat"],
@@ -1833,6 +1835,7 @@ public sealed class LayerListItem : INotifyPropertyChanged
         string name,
         string color,
         bool isVisible,
+        bool canMergeOrDelete,
         string visibleFormat,
         string hiddenFormat,
         string mergeFormat,
@@ -1842,6 +1845,7 @@ public sealed class LayerListItem : INotifyPropertyChanged
         _name = name;
         Color = color;
         IsVisible = isVisible;
+        CanMergeOrDelete = canMergeOrDelete;
         _visibleFormat = visibleFormat;
         _hiddenFormat = hiddenFormat;
         _mergeFormat = mergeFormat;
@@ -1876,6 +1880,9 @@ public sealed class LayerListItem : INotifyPropertyChanged
 
     /// <summary>Whether the layer is currently visible.</summary>
     public bool IsVisible { get; }
+
+    /// <summary>Whether destructive/combining layer actions are allowed.</summary>
+    public bool CanMergeOrDelete { get; }
 
     /// <summary>Automation label that includes the current visibility state.</summary>
     public string VisibilityAutomationLabel => FormatLayerLabel(IsVisible ? _visibleFormat : _hiddenFormat);

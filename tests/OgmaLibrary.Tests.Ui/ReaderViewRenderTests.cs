@@ -695,6 +695,7 @@ public sealed class ReaderViewRenderTests
             new FakeReadingMemoryService(),
             localization);
         viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.AddLayerAsync(CancellationToken.None).GetAwaiter().GetResult();
         viewModel.SelectedCitationText = "Action-specific citation passage";
         viewModel.CaptureCitationAsync(CancellationToken.None).GetAwaiter().GetResult();
         Window window = ShowReaderWindow(viewModel);
@@ -767,6 +768,7 @@ public sealed class ReaderViewRenderTests
             localization);
 
         viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.AddLayerAsync(CancellationToken.None).GetAwaiter().GetResult();
         viewModel.CreateNoteAsync(CancellationToken.None).GetAwaiter().GetResult();
         viewModel.OpenNoteEditor(viewModel.Annotations[0]);
         viewModel.SelectedCitationText = "Accessible citation passage";
@@ -811,6 +813,45 @@ public sealed class ReaderViewRenderTests
             AssertFocusableControl<TextBox>(window, "Open questions");
             AssertFocusableControl<TextBox>(window, "Disposition");
             AssertFocusableControl<Button>(window, "Save memory");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void ReaderView_LayerActions_DisabledWhenOnlyOneLayerRemains()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        Window window = ShowReaderWindow(viewModel);
+
+        try
+        {
+            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            tabControl.SelectedIndex = 2;
+            Dispatcher.UIThread.RunJobs();
+
+            var merge = Assert.Single(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == "Merge layer Key arguments");
+            var delete = Assert.Single(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == "Delete layer Key arguments");
+
+            Assert.False(merge.IsEnabled);
+            Assert.False(delete.IsEnabled);
         }
         finally
         {
