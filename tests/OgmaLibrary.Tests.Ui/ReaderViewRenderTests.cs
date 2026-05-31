@@ -667,6 +667,8 @@ public sealed class ReaderViewRenderTests
             new FakeReadingMemoryService(),
             localization);
         viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.SelectedCitationText = "Action-specific citation passage";
+        viewModel.CaptureCitationAsync(CancellationToken.None).GetAwaiter().GetResult();
         Window window = ShowReaderWindow(viewModel);
 
         try
@@ -696,6 +698,14 @@ public sealed class ReaderViewRenderTests
             Assert.Contains(
                 window.GetVisualDescendants().OfType<TextBox>(),
                 textBox => GetAutomationName(textBox) == "Disposition");
+
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == "Copy citation");
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == "Export citation");
+            Assert.NotEqual(viewModel.CopyCitationLabel, viewModel.ExportCitationLabel);
         }
         finally
         {
@@ -720,6 +730,8 @@ public sealed class ReaderViewRenderTests
         viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
         viewModel.CreateNoteAsync(CancellationToken.None).GetAwaiter().GetResult();
         viewModel.OpenNoteEditor(viewModel.Annotations[0]);
+        viewModel.SelectedCitationText = "Accessible citation passage";
+        viewModel.CaptureCitationAsync(CancellationToken.None).GetAwaiter().GetResult();
 
         Window window = ShowReaderWindow(viewModel);
         try
@@ -728,6 +740,9 @@ public sealed class ReaderViewRenderTests
             AssertFocusableControl<Button>(window, "Add note");
             AssertFocusableControl<Button>(window, "Add bookmark");
             AssertFocusableControl<Button>(window, "Capture citation");
+            AssertFocusableControl<Button>(window, "Copy citation");
+            AssertFocusableControl<Button>(window, "Export citation");
+            AssertFocusableControl<Button>(window, "Close");
             AssertFocusableControl<Button>(window, "Edit note");
             AssertFocusableControl<Button>(window, "Delete annotation");
             AssertFocusableControl<TextBox>(window, "Note");
