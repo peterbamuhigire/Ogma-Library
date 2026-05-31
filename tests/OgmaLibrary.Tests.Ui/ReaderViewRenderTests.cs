@@ -583,6 +583,8 @@ public sealed class ReaderViewRenderTests
         viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
 
         Assert.Equal("Bookmarks (1)", viewModel.BookmarkPanelAccessibleLabel);
+        BookmarkListItem bookmark = Assert.Single(viewModel.Bookmarks);
+        Assert.Equal("Important page, page 3", bookmark.AccessibleLabel);
     }
 
     [AvaloniaFact]
@@ -760,7 +762,7 @@ public sealed class ReaderViewRenderTests
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
             AssertFocusableControl<ListBox>(window, "Bookmarks (1)");
-            AssertFocusableControl<Button>(window, "Important page");
+            AssertFocusableControl<Button>(window, "Important page, page 3");
             AssertFocusableControl<TextBox>(window, "Rename bookmark");
             AssertFocusableControl<Button>(window, "Remove bookmark");
 

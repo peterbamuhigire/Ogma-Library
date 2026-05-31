@@ -34,6 +34,7 @@
   <data name="Bookmark.Removed" xml:space="preserve"><value>Signet supprimé</value></data>
   <data name="Bookmark.DefaultLabelFormat" xml:space="preserve"><value>Page {0}</value></data>
   <data name="Bookmark.Panel.AccessibleFormat" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="Bookmark.Item.AccessibleFormat" xml:space="preserve"><value>{0}, page {1}</value></data>
   <data name="Layer.Panel" xml:space="preserve"><value>Couches d'annotation</value></data>
   <data name="Layer.Filter" xml:space="preserve"><value>Afficher les annotations de</value></data>
   <data name="Layer.Filter.AllVisible" xml:space="preserve"><value>Toutes les couches visibles</value></data>

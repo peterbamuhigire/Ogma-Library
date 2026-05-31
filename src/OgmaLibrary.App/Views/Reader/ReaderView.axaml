@@ -434,7 +434,7 @@
                       </Grid.ContextFlyout>
                       <Button Grid.Column="0"
                               Padding="8,4"
-                              AutomationProperties.Name="{Binding Label}"
+                              AutomationProperties.Name="{Binding AccessibleLabel}"
                               Click="BookmarkNavigateButton_Click">
                         <TextBlock Text="{Binding PageNumber}" />
                       </Button>

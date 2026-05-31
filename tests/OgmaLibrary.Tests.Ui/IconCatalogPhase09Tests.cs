@@ -66,6 +66,7 @@ public sealed class IconCatalogPhase09Tests
         "Bookmark.Removed",
         "Bookmark.DefaultLabelFormat",
         "Bookmark.Panel.AccessibleFormat",
+        "Bookmark.Item.AccessibleFormat",
         "Layer.Panel",
         "Layer.Filter",
         "Layer.Filter.AllVisible",

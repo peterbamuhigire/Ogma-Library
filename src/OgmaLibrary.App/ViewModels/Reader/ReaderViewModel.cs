@@ -1286,7 +1286,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             Bookmarks.Add(new BookmarkListItem(
                 bookmark.Id,
                 bookmark.PageIndex,
-                bookmark.Label ?? DefaultBookmarkLabel(bookmark.PageIndex)));
+                bookmark.Label ?? DefaultBookmarkLabel(bookmark.PageIndex),
+                _localization["Bookmark.Item.AccessibleFormat"]));
         }
 
         OnPropertyChanged(nameof(IsCurrentPageBookmarked));
@@ -1737,11 +1738,12 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
     private string _label;
 
     /// <summary>Creates a new bookmark list item.</summary>
-    public BookmarkListItem(long id, int pageIndex, string label)
+    public BookmarkListItem(long id, int pageIndex, string label, string accessibleLabelFormat)
     {
         Id = id;
         PageIndex = pageIndex;
         _label = label;
+        AccessibleLabelFormat = accessibleLabelFormat;
     }
 
     /// <inheritdoc />
@@ -1763,12 +1765,22 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
             {
                 _label = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AccessibleLabel)));
             }
         }
     }
 
     /// <summary>Human-readable page number.</summary>
     public int PageNumber => PageIndex + 1;
+
+    /// <summary>Localized accessible label including the bookmark name and page number.</summary>
+    public string AccessibleLabel => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        AccessibleLabelFormat,
+        Label,
+        PageNumber);
+
+    private string AccessibleLabelFormat { get; }
 }
 
 /// <summary>A display row for an annotation layer in the reader sidebar.</summary>
