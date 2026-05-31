@@ -5,6 +5,7 @@
         x:Class="OgmaLibrary.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding Title}"
+        Icon="/Assets/app.png"
         Width="1000" Height="680"
         MinWidth="720" MinHeight="480"
         Background="{DynamicResource Brush.Surface.Parchment}">

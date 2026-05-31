@@ -4,6 +4,9 @@
     <OutputType>WinExe</OutputType>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Windows .exe / taskbar icon (the books mark). macOS .icns/.iconset and the
+         store PNGs live in Assets and are consumed by the Phase 22 packaging. -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AvaloniaVersion>11.3.17</AvaloniaVersion>
   </PropertyGroup>
 
@@ -31,6 +34,8 @@
     <!-- Phase 03 design-system SVG placeholder icons (and eventual premium Flaticon SVGs).
          Bundled as AvaloniaResource so avares://OgmaLibrary.App/Assets/icons/... resolves. -->
     <AvaloniaResource Include="Assets\icons\**\*.svg" />
+    <!-- Application window icon (titlebar/dock). -->
+    <AvaloniaResource Include="Assets\app.png" />
     <!-- Design tokens resource dictionary. -->
     <AvaloniaResource Include="Themes\Tokens.axaml" />
   </ItemGroup>
