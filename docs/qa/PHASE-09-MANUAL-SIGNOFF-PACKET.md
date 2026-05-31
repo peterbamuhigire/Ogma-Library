@@ -38,7 +38,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 310 total tests: Core 228, UI 67, Architecture 15.
+Release tests pass 313 total tests: Core 229, UI 69, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -66,7 +66,7 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 | Bookmark panel announces list count and item labels. | Pending | Pending | Pending | Audio note or reviewer note. |
 | Layer visibility and delete controls announce action-specific labels. | Pending | Pending | Pending | Audio note or reviewer note. |
 | Citation card copy/export buttons announce distinct actions. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Reading-memory fields announce field purpose. | Pending | Pending | Pending | Reviewer note. |
+| Reading-memory fields announce field purpose. | Pending | Pending | Pending | Reviewer note. Expected disposition label: `Disposition (1-5)`. |
 | Keyboard-only walkthrough reaches every Phase 09 control. | Pending | Pending | Pending | Reviewer note. |
 
 ## Visual Accessibility Review
@@ -84,7 +84,7 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 | Premium icon procurement | 22 premium SVG icons listed in `docs/plans/grand-plan/phase-09/icons.md`. | Delivered and copied into runtime asset paths | Peter / 2026-05-31 | `docs/plans/grand-plan/phase-09/icons.md` |
 | Annotation layer palette | Amber, sage, clay, plum. | Pending | Pending | Pending |
 | Citation export V1 scope | Plain-text export; BibTeX/RIS/Markdown deferred unless requested. | Pending | Pending | Pending |
-| Reading-memory disposition wording | 1 to 5 integer scale, where 1 is not useful/did not finish and 5 is transformative. | Pending | Pending | Pending |
+| Reading-memory disposition wording | UI label currently renders as `Disposition (1-5)`; semantic scale is 1 to 5, where 1 is not useful/did not finish and 5 is transformative. | Pending | Pending | Pending |
 
 ## Automated Evidence Snapshot
 
@@ -99,7 +99,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 72 direct-PDF and metadata regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 10 migration/direct-PDF regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 228, UI 67, Architecture 15 |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 229, UI 69, Architecture 15 |
 
 ## Closure Rule
 

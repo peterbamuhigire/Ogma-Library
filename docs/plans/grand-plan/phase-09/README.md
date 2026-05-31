@@ -372,7 +372,7 @@ Current implementation progress:
 Next steps before final Phase 09 closure:
 
 1. Record the owner decisions for palette, citation export V1 scope, and
-   reading-memory disposition wording.
+   final reading-memory disposition wording.
 2. Complete the manual Narrator/VoiceOver walkthrough and visual accessibility
    review in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 3. Re-run Release build/test after manual signoff updates and update
@@ -394,10 +394,10 @@ Next steps before final Phase 09 closure:
    text with a structured template. Please confirm whether a secondary export
    to a structured format (BibTeX, RIS, or Markdown) is desired for V1.
 
-4. **Reading-memory disposition scale:** The disposition field is proposed as
-   a 1–5 integer (1 = "did not finish / not useful", 5 = "transformative").
-   Please confirm the scale and any label wording before `reader.en.resx` is
-   finalized.
+4. **Reading-memory disposition scale:** The disposition field currently uses
+   the label `Disposition (1-5)` and a 1–5 integer scale (1 = "did not
+   finish / not useful", 5 = "transformative"). Please confirm the scale and
+   any final label wording before release signoff.
 
 ---
 
@@ -411,3 +411,4 @@ Next steps before final Phase 09 closure:
 | 2026-05-31 | Replaced Phase 09 placeholder icons with delivered premium SVG assets | Codex |
 | 2026-05-31 | Recorded live shell refresh after direct-PDF metadata completion and startup repair for missing catalogue model tables | Codex |
 | 2026-06-01 | Reconciled Phase 09 evidence dates/counts and replaced placeholder verification test names with current automated test names | Codex |
+| 2026-06-01 | Added bookmark page/date sorting and made the reading-memory disposition range visible in the reader UI and accessibility evidence | Codex |
