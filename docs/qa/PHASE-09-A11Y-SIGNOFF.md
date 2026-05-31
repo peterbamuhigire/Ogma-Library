@@ -6,6 +6,16 @@ Date: 2026-05-31
 
 Manual runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`
 
+## Evidence Recording Rules
+
+Use exact dates in `YYYY-MM-DD` format. Every completed manual row must include
+the reviewer initials, target OS where applicable, result, and a durable
+evidence reference such as a screenshot path, audio note path, exported artifact
+path, or short dated reviewer note. If a check is intentionally waived, record
+`Waived` plus the owner initials, waiver date, and reason. Do not replace
+`Pending` with `Passed` unless the evidence exists in the repository or in the
+owner-controlled release folder named in the row.
+
 ## Automated Evidence
 
 | Requirement | Evidence |
@@ -40,22 +50,28 @@ dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configurati
 
 Result: passed, 67 tests.
 
-## Manual Checklist
+## Assistive Technology Walkthrough
 
 These items require a human pass on the target operating systems before Phase 09
 can be called fully closed:
 
-| Check | Windows Narrator | macOS VoiceOver | Notes |
-| --- | --- | --- | --- |
-| Annotation overlay announces type, layer, and page | Pending | Pending | Expected shape: "Highlight - Key arguments - Page N of M". |
-| Note anchor announces a note-specific label | Pending | Pending | Verify the visual marker is not the only signal. |
-| Bookmark panel announces list count and item labels | Pending | Pending | Keyboard focus must reach each bookmark action. |
-| Layer visibility and delete controls announce action-specific labels | Pending | Pending | Includes visible/hidden state naming. |
-| Citation card copy/export buttons announce distinct actions | Pending | Pending | Export must not sound identical to copy. |
-| Reading-memory fields announce field purpose | Pending | Pending | Opened because, key insight, questions, disposition. |
-| Keyboard-only walkthrough reaches every Phase 09 control | Pending | Pending | Include selection action menu and sidebars. |
-| Highlight colors are not color-only meaning | Pending | Pending | Automated contrast math is present; human check should verify actual rendered appearance. |
-| Pseudolocale render visual polish | Pending | Pending | Automated headless bounds check and screenshot exist; human review still needed. |
+| Check | Windows Narrator | macOS VoiceOver | Reviewer/date | Evidence reference | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Annotation overlay announces type, layer, and page | Pending | Pending | Pending | Audio note or reviewer note. | Expected shape: "Highlight - Key arguments - Page N of M". |
+| Note anchor announces a note-specific label | Pending | Pending | Pending | Audio note or reviewer note. | Verify the visual marker is not the only signal. |
+| Bookmark panel announces list count and item labels | Pending | Pending | Pending | Audio note or reviewer note. | Keyboard focus must reach each bookmark action. |
+| Layer visibility and delete controls announce action-specific labels | Pending | Pending | Pending | Audio note or reviewer note. | Includes visible/hidden state naming. |
+| Citation card copy/export buttons announce distinct actions | Pending | Pending | Pending | Audio note or reviewer note. | Export must not sound identical to copy. |
+| Reading-memory fields announce field purpose | Pending | Pending | Pending | Reviewer note. | Opened because, key insight, questions, disposition. |
+| Keyboard-only walkthrough reaches every Phase 09 control | Pending | Pending | Pending | Reviewer note. | Include selection action menu and sidebars. |
+
+## Visual Accessibility Review
+
+| Check | Expected result | Result | Reviewer/date | Evidence reference | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Highlight colors are not the only signal | Annotation labels and note anchors remain visible/understandable without relying on color alone. | Pending | Pending | Reviewer note. | Automated contrast math is present; human check should verify actual rendered appearance. |
+| Highlight contrast matches automated gate in real rendering | Highlights remain legible over page content in the target platform renderer. | Pending | Pending | Screenshot set. | Compare rendered output against the automated contrast gate. |
+| Pseudolocale screenshot polish | `artifacts/screenshots/reader-qps-ploc.png` has no unacceptable clipping or overlapping text. | Pending | Pending | Reviewer note. | Automated headless bounds check and screenshot exist; human review still needed. |
 
 ## Current Closeout Position
 
