@@ -80,11 +80,11 @@ public sealed class BookRegistrationService : IBookRegistrationService
 
         // Enqueue metadata extraction job (idempotent).
         TryAddJob(context, bookId, "MetadataExtraction",
-            ComputeIdempotencyKey(bookId, "MetadataExtraction"), discovered.AbsolutePath);
+            ComputeIdempotencyKey(bookId, "MetadataExtraction", contentHash), discovered.AbsolutePath);
 
         // Enqueue thumbnail generation job (idempotent).
         TryAddJob(context, bookId, "ThumbnailGeneration",
-            ComputeIdempotencyKey(bookId, "ThumbnailGeneration"), discovered.AbsolutePath);
+            ComputeIdempotencyKey(bookId, "ThumbnailGeneration", contentHash), discovered.AbsolutePath);
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return bookId;
@@ -145,10 +145,10 @@ public sealed class BookRegistrationService : IBookRegistrationService
         }
 
         TryAddJob(context, bookId, "MetadataExtraction",
-            ComputeIdempotencyKey(bookId, "MetadataExtraction"), discovered.AbsolutePath);
+            ComputeIdempotencyKey(bookId, "MetadataExtraction", contentHash), discovered.AbsolutePath);
 
         TryAddJob(context, bookId, "ThumbnailGeneration",
-            ComputeIdempotencyKey(bookId, "ThumbnailGeneration"), discovered.AbsolutePath);
+            ComputeIdempotencyKey(bookId, "ThumbnailGeneration", contentHash), discovered.AbsolutePath);
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -160,9 +160,8 @@ public sealed class BookRegistrationService : IBookRegistrationService
         string idempotencyKey,
         string filePath)
     {
-        // Only add if no job with this idempotency key exists.
-        bool exists = context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
-        if (!exists)
+        JobRow? existing = context.Jobs.FirstOrDefault(j => j.IdempotencyKey == idempotencyKey);
+        if (existing is null)
         {
             context.Jobs.Add(new JobRow
             {
@@ -172,12 +171,23 @@ public sealed class BookRegistrationService : IBookRegistrationService
                 BookId = bookId,
                 Payload = filePath,
             });
+            return;
+        }
+
+        if (existing.Status is 3 or 4)
+        {
+            existing.Status = 0; // Pending
+            existing.Payload = filePath;
+            existing.StartedUtc = null;
+            existing.CompletedUtc = null;
+            existing.ErrorMessage = null;
+            existing.RetryCount += 1;
         }
     }
 
-    private static string ComputeIdempotencyKey(string bookId, string jobType)
+    private static string ComputeIdempotencyKey(string bookId, string jobType, string contentHash)
     {
-        byte[] data = Encoding.UTF8.GetBytes($"{bookId}|{jobType}");
+        byte[] data = Encoding.UTF8.GetBytes($"{bookId}|{jobType}|{contentHash}");
         byte[] hash = SHA256.HashData(data);
         // 32-hex-char idempotency key (128-bit) is sufficient for uniqueness.
         return Convert.ToHexStringLower(hash)[..32];

@@ -116,6 +116,81 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DirectPdfOpen_ExistingMatchWithPriorJobs_QueuesJobsForSelectedFileVersion()
+    {
+        string libraryRoot = Path.Combine(_tempRoot, "library");
+        string externalRoot = Path.Combine(_tempRoot, "external");
+        Directory.CreateDirectory(libraryRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        string pdfPath = Path.Combine(externalRoot, "changed.pdf");
+        byte[] oldContent = "%PDF-1.4\n% old content\n"u8.ToArray();
+        byte[] selectedContent = "%PDF-1.4\n% selected changed content\n"u8.ToArray();
+        await File.WriteAllBytesAsync(pdfPath, selectedContent);
+
+        string oldHash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(oldContent));
+        string selectedHash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(selectedContent));
+        string storedPath = pdfPath.Replace(Path.DirectorySeparatorChar, '/');
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "EXISTING02",
+            Status = 0,
+            Sha256Hash = oldHash,
+        });
+        context.BookFiles.Add(new BookFileRow
+        {
+            BookId = "EXISTING02",
+            RelativePath = storedPath,
+            FileStatus = 0,
+            LastSeenUtc = DateTimeOffset.UtcNow.AddDays(-1),
+        });
+        context.Jobs.Add(new JobRow
+        {
+            BookId = "EXISTING02",
+            JobType = "MetadataExtraction",
+            IdempotencyKey = ComputeJobKey("EXISTING02", "MetadataExtraction", oldHash),
+            Status = 2,
+            Payload = @"C:\old\changed.pdf",
+        });
+        context.Jobs.Add(new JobRow
+        {
+            BookId = "EXISTING02",
+            JobType = "ThumbnailGeneration",
+            IdempotencyKey = ComputeJobKey("EXISTING02", "ThumbnailGeneration", oldHash),
+            Status = 2,
+            Payload = @"C:\old\changed.pdf",
+        });
+        await context.SaveChangesAsync();
+
+        var settings = new LibrarySettingsService(_tempRoot);
+        await settings.SetLibraryRootAsync(libraryRoot);
+
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context));
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        Assert.Equal("EXISTING02", bookId);
+        Assert.Equal(selectedHash, context.Books.Single(b => b.BookId == bookId).Sha256Hash);
+        Assert.Contains(context.Jobs, j =>
+            j.BookId == bookId &&
+            j.JobType == "MetadataExtraction" &&
+            j.Status == 0 &&
+            j.IdempotencyKey == ComputeJobKey(bookId, "MetadataExtraction", selectedHash) &&
+            j.Payload == pdfPath);
+        Assert.Contains(context.Jobs, j =>
+            j.BookId == bookId &&
+            j.JobType == "ThumbnailGeneration" &&
+            j.Status == 0 &&
+            j.IdempotencyKey == ComputeJobKey(bookId, "ThumbnailGeneration", selectedHash) &&
+            j.Payload == pdfPath);
+    }
+
+    [Fact]
     public async Task DirectPdfOpen_RejectsNonPdfFile()
     {
         string textPath = Path.Combine(_tempRoot, "notes.txt");
@@ -144,5 +219,12 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         {
             // Best effort cleanup for Windows file-handle timing.
         }
+    }
+
+    private static string ComputeJobKey(string bookId, string jobType, string discriminator)
+    {
+        byte[] data = System.Text.Encoding.UTF8.GetBytes($"{bookId}|{jobType}|{discriminator}");
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(data);
+        return Convert.ToHexStringLower(hash)[..32];
     }
 }

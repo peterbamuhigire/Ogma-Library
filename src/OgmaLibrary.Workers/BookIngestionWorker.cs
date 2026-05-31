@@ -128,7 +128,7 @@ public sealed class BookIngestionWorker : BackgroundService
 
                 if (success && !string.IsNullOrWhiteSpace(job.BookId))
                 {
-                    TryAddEnrichJob(context, job.BookId, filePath);
+                    TryAddEnrichJob(context, job.BookId, filePath, contentHash ?? filePath);
                 }
             }
             else if (job.JobType == "Enrich")
@@ -195,28 +195,44 @@ public sealed class BookIngestionWorker : BackgroundService
         }
     }
 
-    private static void TryAddEnrichJob(CatalogueDbContext context, string bookId, string filePath)
+    private static void TryAddEnrichJob(
+        CatalogueDbContext context,
+        string bookId,
+        string filePath,
+        string idempotencyDiscriminator)
     {
-        string idempotencyKey = ComputeIdempotencyKey(bookId, "Enrich");
-        bool exists = context.Jobs.Any(j => j.IdempotencyKey == idempotencyKey);
-        if (exists)
+        string idempotencyKey = ComputeIdempotencyKey(bookId, "Enrich", idempotencyDiscriminator);
+        JobRow? existing = context.Jobs.FirstOrDefault(j => j.IdempotencyKey == idempotencyKey);
+        if (existing is null)
         {
+            context.Jobs.Add(new JobRow
+            {
+                JobType = "Enrich",
+                IdempotencyKey = idempotencyKey,
+                Status = 0,
+                BookId = bookId,
+                Payload = filePath,
+            });
             return;
         }
 
-        context.Jobs.Add(new JobRow
+        if (existing.Status is 3 or 4)
         {
-            JobType = "Enrich",
-            IdempotencyKey = idempotencyKey,
-            Status = 0,
-            BookId = bookId,
-            Payload = filePath,
-        });
+            existing.Status = 0;
+            existing.Payload = filePath;
+            existing.StartedUtc = null;
+            existing.CompletedUtc = null;
+            existing.ErrorMessage = null;
+            existing.RetryCount += 1;
+        }
     }
 
-    private static string ComputeIdempotencyKey(string bookId, string jobType)
+    private static string ComputeIdempotencyKey(
+        string bookId,
+        string jobType,
+        string idempotencyDiscriminator)
     {
-        byte[] data = Encoding.UTF8.GetBytes($"{bookId}|{jobType}");
+        byte[] data = Encoding.UTF8.GetBytes($"{bookId}|{jobType}|{idempotencyDiscriminator}");
         byte[] hash = SHA256.HashData(data);
         return Convert.ToHexStringLower(hash)[..32];
     }
