@@ -31,6 +31,7 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IScanProgressService, ScanProgressService>();
         services.AddSingleton<IUnavailableFileFlagService, UnavailableFileFlagService>();
         services.AddSingleton<IBookRegistrationService, BookRegistrationService>();
+        services.AddSingleton<IDirectPdfOpenService, DirectPdfOpenService>();
         services.AddSingleton<IMetadataExtractionService, MetadataExtractionService>();
         services.AddSingleton<IThumbnailService, ThumbnailService>();
         services.AddSingleton<ISpineService, SpineService>();

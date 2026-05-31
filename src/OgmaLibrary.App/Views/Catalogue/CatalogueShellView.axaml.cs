@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
@@ -65,10 +67,7 @@ public partial class CatalogueShellView : UserControl
     {
         if (DataContext is MainShellViewModel vm)
         {
-            var source = sender as Control;
-            var topLevel = source is null
-                ? TopLevel.GetTopLevel(this)
-                : TopLevel.GetTopLevel(source);
+            var topLevel = ResolveTopLevel(sender);
 
             if (topLevel is not null)
             {
@@ -79,5 +78,42 @@ public partial class CatalogueShellView : UserControl
                 vm.ReportChooseFolderUnavailable();
             }
         }
+    }
+
+    private async void OpenPdfButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            var topLevel = ResolveTopLevel(sender);
+
+            if (topLevel is not null)
+            {
+                await vm.OpenPdfAsync(topLevel).ConfigureAwait(true);
+            }
+            else
+            {
+                vm.ReportOpenPdfUnavailable();
+            }
+        }
+    }
+
+    private TopLevel? ResolveTopLevel(object? sender)
+    {
+        if (sender is Control source && TopLevel.GetTopLevel(source) is { } senderTopLevel)
+        {
+            return senderTopLevel;
+        }
+
+        if (TopLevel.GetTopLevel(this) is { } viewTopLevel)
+        {
+            return viewTopLevel;
+        }
+
+        if (global::Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return desktop.MainWindow;
+        }
+
+        return null;
     }
 }

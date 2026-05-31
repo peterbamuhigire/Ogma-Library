@@ -12,10 +12,12 @@
     Replaces the empty-state-only window when books are present.
   -->
 
-  <Grid ColumnDefinitions="Auto,*,Auto">
+  <Grid ColumnDefinitions="Auto,*,Auto"
+        RowDefinitions="*,Auto">
 
     <!-- ─── Left sidebar ───────────────────────────────────────────── -->
-    <Border Grid.Column="0"
+    <Border Grid.Row="0"
+            Grid.Column="0"
             Width="220"
             IsVisible="{Binding IsSidebarOpen}"
             Background="{DynamicResource Brush.Surface.Footer}"
@@ -59,14 +61,16 @@
     </Border>
 
     <!-- ─── Main content area ─────────────────────────────────────── -->
-    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+    <Grid Grid.Row="0"
+          Grid.Column="1"
+          RowDefinitions="Auto,Auto,*">
 
       <!-- Toolbar: view toggle + sort + filter -->
       <Border Grid.Row="0"
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
 
           <!-- Sidebar toggle -->
           <Button Grid.Column="0"
@@ -130,8 +134,32 @@
             <TextBlock Text="⚗" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           </Button>
 
+          <Button Grid.Column="3"
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Padding="10,5"
+                  Margin="8,0,0,0"
+                  AutomationProperties.Name="{Binding ChooseFolderText}"
+                  Click="ChooseFolderButton_Click">
+            <TextBlock Text="{Binding ChooseFolderText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+
+          <Button Grid.Column="4"
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Padding="10,5"
+                  Margin="8,0,0,0"
+                  AutomationProperties.Name="{Binding OpenPdfText}"
+                  Click="OpenPdfButton_Click">
+            <TextBlock Text="{Binding OpenPdfText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+
           <!-- Count badge -->
-          <TextBlock Grid.Column="3"
+          <TextBlock Grid.Column="5"
                      VerticalAlignment="Center"
                      Margin="8,0,4,0"
                      FontSize="{DynamicResource Type.Size.Caption}"
@@ -210,16 +238,27 @@
                          TextWrapping="Wrap"
                          TextAlignment="Center"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-              <Button HorizontalAlignment="Center"
-                      Margin="0,8,0,0"
-                      Padding="16,8"
-                      Background="{DynamicResource Brush.Accent.Oak}"
-                      Foreground="White"
-                      CornerRadius="{DynamicResource Radius.S}"
-                      AutomationProperties.Name="{Binding ChooseFolderText}"
-                      Click="ChooseFolderButton_Click">
-                <TextBlock Text="{Binding ChooseFolderText}" />
-              </Button>
+              <StackPanel Orientation="Horizontal"
+                          HorizontalAlignment="Center"
+                          Spacing="8"
+                          Margin="0,8,0,0">
+                <Button Padding="16,8"
+                        Background="{DynamicResource Brush.Accent.Oak}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.Name="{Binding ChooseFolderText}"
+                        Click="ChooseFolderButton_Click">
+                  <TextBlock Text="{Binding ChooseFolderText}" />
+                </Button>
+                <Button Padding="16,8"
+                        Background="{DynamicResource Brush.Accent.Clay}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.Name="{Binding OpenPdfText}"
+                        Click="OpenPdfButton_Click">
+                  <TextBlock Text="{Binding OpenPdfText}" />
+                </Button>
+              </StackPanel>
             </StackPanel>
           </Border>
         </Grid>
@@ -232,10 +271,22 @@
     </Grid>
 
     <!-- ─── Book detail panel ─────────────────────────────────────── -->
-    <cat:BookDetailView Grid.Column="2"
+    <cat:BookDetailView Grid.Row="0"
+                        Grid.Column="2"
                         DataContext="{Binding BookDetail}"
                         IsVisible="{Binding BookDetail.IsVisible}"
                         x:CompileBindings="False" />
+
+    <Border Grid.Row="1"
+            Grid.ColumnSpan="3"
+            Background="{DynamicResource Brush.Surface.Footer}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="0,1,0,0"
+            Padding="12,6">
+      <TextBlock Text="{Binding StatusText}"
+                 FontSize="{DynamicResource Type.Size.Caption}"
+                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+    </Border>
 
   </Grid>
 </UserControl>

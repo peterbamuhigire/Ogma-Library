@@ -18,6 +18,7 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.EmptyState.Heading"] = "Your library will appear here",
         ["MainWindow.EmptyState.Body"] = "Choose a folder of PDFs to begin. Ogma will scan it, recognise your books, and let you browse them as covers and spines.",
         ["MainWindow.Action.ChooseFolder"] = "Choose library folder",
+        ["MainWindow.Action.OpenPdf"] = "Open PDF",
         ["MainWindow.Status.Skeleton"] = "Skeleton build — Phase 02",
 
         // Phase 03 icon accessible labels (en)
@@ -73,6 +74,13 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.FolderPicker.Unavailable"] = "Folder picker is unavailable in this window.",
         ["MainWindow.FolderPicker.NotConfigured"] = "Library folder picker is not configured.",
         ["MainWindow.FolderPicker.FailedFormat"] = "Folder picker failed: {0}",
+        ["MainWindow.PdfPicker.Opening"] = "Opening PDF picker...",
+        ["MainWindow.PdfPicker.Registering"] = "Registering selected PDF...",
+        ["MainWindow.PdfPicker.Opened"] = "PDF opened in reader.",
+        ["MainWindow.PdfPicker.Unavailable"] = "PDF picker is unavailable in this window.",
+        ["MainWindow.PdfPicker.NotConfigured"] = "Direct PDF opening is not configured.",
+        ["MainWindow.PdfPicker.FailedFormat"] = "PDF open failed: {0}",
+        ["MainWindow.PdfPicker.PdfFiles"] = "PDF documents",
         ["MainWindow.Status.Ready"] = "Ready — choose a library folder to begin",
 
         // Phase 06 — Catalogue browsing strings (en)
@@ -269,6 +277,7 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.EmptyState.Heading"] = "Votre bibliothèque apparaîtra ici",
         ["MainWindow.EmptyState.Body"] = "Choisissez un dossier de PDF pour commencer. Ogma l'analysera, reconnaîtra vos livres et vous laissera les parcourir sous forme de couvertures et de tranches.",
         ["MainWindow.Action.ChooseFolder"] = "Choisir le dossier de la bibliothèque",
+        ["MainWindow.Action.OpenPdf"] = "Ouvrir un PDF",
         ["MainWindow.Status.Skeleton"] = "Version squelette — Phase 02",
 
         // Phase 03 icon accessible labels (fr)
@@ -324,6 +333,13 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.FolderPicker.Unavailable"] = "Le selecteur de dossier n'est pas disponible dans cette fenetre.",
         ["MainWindow.FolderPicker.NotConfigured"] = "Le selecteur de dossier de bibliotheque n'est pas configure.",
         ["MainWindow.FolderPicker.FailedFormat"] = "Echec du selecteur de dossier : {0}",
+        ["MainWindow.PdfPicker.Opening"] = "Ouverture du selecteur PDF...",
+        ["MainWindow.PdfPicker.Registering"] = "Enregistrement du PDF choisi...",
+        ["MainWindow.PdfPicker.Opened"] = "PDF ouvert dans le lecteur.",
+        ["MainWindow.PdfPicker.Unavailable"] = "Le selecteur PDF n'est pas disponible dans cette fenetre.",
+        ["MainWindow.PdfPicker.NotConfigured"] = "L'ouverture directe de PDF n'est pas configuree.",
+        ["MainWindow.PdfPicker.FailedFormat"] = "Echec de l'ouverture PDF : {0}",
+        ["MainWindow.PdfPicker.PdfFiles"] = "Documents PDF",
         ["MainWindow.Status.Ready"] = "Prêt — choisissez un dossier de bibliothèque pour commencer",
 
         // Phase 06 — Catalogue browsing strings (fr)

@@ -48,6 +48,7 @@ public sealed class MainShellViewModel :
     private readonly ILibrarySettingsService? _settingsService;
     private readonly IIngestionOrchestrator? _orchestrator;
     private readonly IScanProgressService? _scanProgress;
+    private readonly IDirectPdfOpenService? _directPdfOpenService;
 
     private ScanPhase _scanPhase = ScanPhase.Idle;
     private int _filesDiscovered;
@@ -71,6 +72,7 @@ public sealed class MainShellViewModel :
     /// <param name="settingsService">The library settings service.</param>
     /// <param name="orchestrator">The ingestion orchestrator.</param>
     /// <param name="scanProgress">The scan progress service.</param>
+    /// <param name="directPdfOpenService">The direct single-PDF open service.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -79,7 +81,8 @@ public sealed class MainShellViewModel :
         ReaderViewModel? reader = null,
         ILibrarySettingsService? settingsService = null,
         IIngestionOrchestrator? orchestrator = null,
-        IScanProgressService? scanProgress = null)
+        IScanProgressService? scanProgress = null,
+        IDirectPdfOpenService? directPdfOpenService = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -94,6 +97,7 @@ public sealed class MainShellViewModel :
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
+        _directPdfOpenService = directPdfOpenService;
 
         _localization.CultureChanged += (_, _) => RaiseAllChanged();
 
@@ -200,6 +204,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>The label of the primary "choose folder" action.</summary>
     public string ChooseFolderText => _localization["MainWindow.Action.ChooseFolder"];
+
+    /// <summary>The label of the direct PDF open action.</summary>
+    public string OpenPdfText => _localization["MainWindow.Action.OpenPdf"];
 
     /// <summary>The status-bar text showing scan state or default ready message.</summary>
     public string StatusText
@@ -388,9 +395,94 @@ public sealed class MainShellViewModel :
         });
     }
 
+    /// <summary>
+    /// Registers a user-selected PDF and opens it in the reader immediately.
+    /// </summary>
+    /// <param name="topLevel">The top-level Avalonia control used to open the file picker.</param>
+    public async Task OpenPdfAsync(Avalonia.Controls.TopLevel topLevel)
+    {
+        ArgumentNullException.ThrowIfNull(topLevel);
+
+        if (_directPdfOpenService is null)
+        {
+            SetStatusOverride(_localization["MainWindow.PdfPicker.NotConfigured"]);
+            return;
+        }
+
+        if (!topLevel.StorageProvider.CanOpen)
+        {
+            SetStatusOverride(_localization["MainWindow.PdfPicker.Unavailable"]);
+            return;
+        }
+
+        if (topLevel is Avalonia.Controls.Window window)
+        {
+            window.Activate();
+        }
+
+        SetStatusOverride(_localization["MainWindow.PdfPicker.Opening"]);
+
+        IReadOnlyList<IStorageFile> files;
+        try
+        {
+            files = await topLevel.StorageProvider.OpenFilePickerAsync(
+                new FilePickerOpenOptions
+                {
+                    Title = OpenPdfText,
+                    AllowMultiple = false,
+                    FileTypeFilter =
+                    [
+                        new FilePickerFileType(_localization["MainWindow.PdfPicker.PdfFiles"])
+                        {
+                            Patterns = ["*.pdf"],
+                            AppleUniformTypeIdentifiers = ["com.adobe.pdf"],
+                            MimeTypes = ["application/pdf"],
+                        },
+                    ],
+                }).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            SetStatusOverride(string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["MainWindow.PdfPicker.FailedFormat"],
+                ex.Message));
+            return;
+        }
+
+        if (files.Count == 0)
+        {
+            SetStatusOverride(null);
+            return;
+        }
+
+        string path = files[0].Path.LocalPath;
+        SetStatusOverride(_localization["MainWindow.PdfPicker.Registering"]);
+
+        try
+        {
+            string bookId = await _directPdfOpenService.OpenAsync(path).ConfigureAwait(true);
+            await Catalogue.LoadAsync().ConfigureAwait(true);
+            await ShelfSidebar.LoadAsync().ConfigureAwait(true);
+            await OpenReaderAsync(bookId).ConfigureAwait(true);
+            SetStatusOverride(_localization["MainWindow.PdfPicker.Opened"]);
+        }
+        catch (Exception ex)
+        {
+            SetStatusOverride(string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["MainWindow.PdfPicker.FailedFormat"],
+                ex.Message));
+        }
+    }
+
     /// <summary>Reports that the folder picker could not be reached from the current view.</summary>
     public void ReportChooseFolderUnavailable() =>
         SetStatusOverride(_localization["MainWindow.FolderPicker.Unavailable"]);
+
+    /// <summary>Reports that the PDF picker could not be reached from the current view.</summary>
+    public void ReportOpenPdfUnavailable() =>
+        SetStatusOverride(_localization["MainWindow.PdfPicker.Unavailable"]);
 
     /// <summary>Cancels the currently running scan, if any.</summary>
     public void CancelScan() => _scanCts.Cancel();
@@ -432,6 +524,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(EmptyStateHeading));
         OnPropertyChanged(nameof(EmptyStateBody));
         OnPropertyChanged(nameof(ChooseFolderText));
+        OnPropertyChanged(nameof(OpenPdfText));
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(ScanPhaseText));
         OnPropertyChanged(nameof(IsScanning));

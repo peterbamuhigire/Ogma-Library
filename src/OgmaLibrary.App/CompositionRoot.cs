@@ -119,7 +119,8 @@ public static class CompositionRoot
                 readerVm,
                 sp.GetRequiredService<ILibrarySettingsService>(),
                 sp.GetRequiredService<IIngestionOrchestrator>(),
-                sp.GetRequiredService<IScanProgressService>());
+                sp.GetRequiredService<IScanProgressService>(),
+                sp.GetRequiredService<IDirectPdfOpenService>());
 
             return shell;
         });
