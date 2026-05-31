@@ -75,3 +75,6 @@ desktop.ini
 *.ogma.db
 *.ogma.db-shm
 *.ogma.db-wal
+
+# Throwaway icon-fetch browser tooling (Phase 03 exploration)
+tools/icon-fetch/

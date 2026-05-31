@@ -1,6 +1,7 @@
 using NetArchTest.Rules;
 using OgmaLibrary.Application;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.Catalogue;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Architecture;
@@ -19,6 +20,7 @@ public sealed class ArchitectureTests
     private const string App = "OgmaLibrary.App";
     private const string Http = "System.Net.Http";
     private const string DependencyInjection = "Microsoft.Extensions.DependencyInjection";
+    private const string EntityFrameworkCore = "Microsoft.EntityFrameworkCore";
 
     /// <summary>The Domain project must depend on no other project (strict isolation).</summary>
     [Fact]
@@ -56,6 +58,29 @@ public sealed class ArchitectureTests
 
         Assert.True(domain.IsSuccessful, Describe(domain));
         Assert.True(application.IsSuccessful, Describe(application));
+    }
+
+    /// <summary>
+    /// Only the Infrastructure assembly may reference Microsoft.EntityFrameworkCore.
+    /// Domain, Application, Reader, and Bookshelf3D are projection consumers only.
+    /// </summary>
+    [Fact]
+    public void Architecture_OnlyInfrastructureUsesEntityFrameworkCore()
+    {
+        var domain = Types.InAssembly(typeof(Book).Assembly)
+            .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
+        var application = Types.InAssembly(typeof(IBenchmarkContext).Assembly)
+            .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
+
+        // Verify that Infrastructure DOES contain types that use EF Core (sanity check).
+        // CatalogueDbContext itself must depend on EF Core.
+        var dbContextDependsOnEf = Types.InAssembly(typeof(CatalogueDbContext).Assembly)
+            .That().HaveName("CatalogueDbContext")
+            .Should().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
+
+        Assert.True(domain.IsSuccessful, Describe(domain));
+        Assert.True(application.IsSuccessful, Describe(application));
+        Assert.True(dbContextDependsOnEf.IsSuccessful, "CatalogueDbContext should depend on EF Core: " + Describe(dbContextDependsOnEf));
     }
 
     private static string Describe(TestResult result) =>

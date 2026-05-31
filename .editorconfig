@@ -75,5 +75,14 @@ dotnet_diagnostic.IDE0008.severity = none   # use explicit type ('var' policy is
 
 # Test projects deliberately use Method_Scenario_ExpectedOutcome naming
 # (Development Standards §10), which requires underscores — so disable CA1707 there.
+# CA2007 (ConfigureAwait) is not needed in test methods since xUnit uses its own
+# synchronization context.
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA2007.severity = none
+
+# EF Core-generated migration files use block-scoped namespaces and inline arrays;
+# suppress the rules that would otherwise fail the build for auto-generated code.
+[src/**/Persistence/Migrations/**.cs]
+dotnet_diagnostic.IDE0161.severity = none   # file-scoped namespace (generated code uses block)
+dotnet_diagnostic.CA1861.severity = none    # constant array arguments (generated code pattern)

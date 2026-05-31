@@ -1,0 +1,152 @@
+using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Infrastructure.Catalogue.Configurations;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
+
+namespace OgmaLibrary.Infrastructure.Catalogue;
+
+/// <summary>
+/// The EF Core <see cref="DbContext"/> for the Ogma Library catalogue of record
+/// (ADR-0005). All structured metadata, reading state, annotations, and audit data
+/// live in a single SQLite file accessed through this context.
+/// </summary>
+/// <remarks>
+/// <para>
+/// EF Core types live only in Infrastructure; the Domain and Application layers
+/// never reference <c>Microsoft.EntityFrameworkCore</c> directly (enforced by
+/// architecture tests).
+/// </para>
+/// <para>
+/// The context is registered as a singleton and opened once per process. WAL mode
+/// and <c>PRAGMA foreign_keys=ON</c> are enabled at connection open.
+/// </para>
+/// </remarks>
+public sealed class CatalogueDbContext : DbContext
+{
+    /// <summary>
+    /// Initializes a new instance of <see cref="CatalogueDbContext"/>.
+    /// </summary>
+    /// <param name="options">The context options, typically provided by the DI container.</param>
+    public CatalogueDbContext(DbContextOptions<CatalogueDbContext> options)
+        : base(options)
+    {
+    }
+
+    // ── Catalogue core ──────────────────────────────────────────────────────────
+
+    /// <summary>Catalogue records for books — the primary identity table.</summary>
+    public DbSet<BookRow> Books => Set<BookRow>();
+
+    /// <summary>Physical file records bound to books.</summary>
+    public DbSet<BookFileRow> BookFiles => Set<BookFileRow>();
+
+    /// <summary>Field-level metadata with provenance tracking.</summary>
+    public DbSet<BookMetadataFieldRow> BookMetadataFields => Set<BookMetadataFieldRow>();
+
+    /// <summary>Normalized author records.</summary>
+    public DbSet<AuthorRow> Authors => Set<AuthorRow>();
+
+    /// <summary>Many-to-many join between books and authors.</summary>
+    public DbSet<BookAuthorRow> BookAuthors => Set<BookAuthorRow>();
+
+    // ── Shelves ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Virtual and smart shelves.</summary>
+    public DbSet<ShelfRow> Shelves => Set<ShelfRow>();
+
+    /// <summary>Many-to-many join between shelves and books.</summary>
+    public DbSet<ShelfBookRow> ShelfBooks => Set<ShelfBookRow>();
+
+    // ── Reading state ────────────────────────────────────────────────────────────
+
+    /// <summary>Per-book reading progress (one row per book).</summary>
+    public DbSet<ReadingProgressRow> ReadingProgress => Set<ReadingProgressRow>();
+
+    /// <summary>Durable bookmarks with labels.</summary>
+    public DbSet<BookmarkRow> Bookmarks => Set<BookmarkRow>();
+
+    /// <summary>Highlights and notes.</summary>
+    public DbSet<AnnotationRow> Annotations => Set<AnnotationRow>();
+
+    /// <summary>Annotation bodies (quoted text, note text, geometry).</summary>
+    public DbSet<AnnotationBodyRow> AnnotationBodies => Set<AnnotationBodyRow>();
+
+    // ── Search &amp; embeddings ──────────────────────────────────────────────────────
+
+    /// <summary>Per-page extracted text records.</summary>
+    public DbSet<ExtractedPageRow> ExtractedPages => Set<ExtractedPageRow>();
+
+    /// <summary>Search-index chunks derived from extracted pages.</summary>
+    public DbSet<SearchChunkRow> SearchChunks => Set<SearchChunkRow>();
+
+    /// <summary>Embedding vectors derived from search chunks.</summary>
+    public DbSet<EmbeddingVectorRow> EmbeddingVectors => Set<EmbeddingVectorRow>();
+
+    // ── AI &amp; metadata ──────────────────────────────────────────────────────────────
+
+    /// <summary>Local AI query history with soft-delete support.</summary>
+    public DbSet<AiQueryHistoryRow> AiQueryHistory => Set<AiQueryHistoryRow>();
+
+    /// <summary>Metadata lookup results from external providers.</summary>
+    public DbSet<MetadataLookupRow> MetadataLookups => Set<MetadataLookupRow>();
+
+    // ── Background jobs &amp; audit ─────────────────────────────────────────────────
+
+    /// <summary>Background job queue with idempotency keys.</summary>
+    public DbSet<JobRow> Jobs => Set<JobRow>();
+
+    /// <summary>Append-only local audit trail.</summary>
+    public DbSet<AuditEventRow> AuditEvents => Set<AuditEventRow>();
+
+    // ── Work / Edition layer (schema only, Phase 04 WP9) ──────────────────────
+
+    /// <summary>Canonical works (schema-only; UI in Phase 06/07).</summary>
+    public DbSet<WorkRow> Works => Set<WorkRow>();
+
+    /// <summary>Published editions of works (schema-only; UI in Phase 06/07).</summary>
+    public DbSet<EditionRow> Editions => Set<EditionRow>();
+
+    // ── Configuration ────────────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+
+        modelBuilder.ApplyConfiguration(new BookConfiguration());
+        modelBuilder.ApplyConfiguration(new BookFileConfiguration());
+        modelBuilder.ApplyConfiguration(new BookMetadataFieldConfiguration());
+        modelBuilder.ApplyConfiguration(new AuthorConfiguration());
+        modelBuilder.ApplyConfiguration(new BookAuthorConfiguration());
+        modelBuilder.ApplyConfiguration(new ShelfConfiguration());
+        modelBuilder.ApplyConfiguration(new ShelfBookConfiguration());
+        modelBuilder.ApplyConfiguration(new ReadingProgressConfiguration());
+        modelBuilder.ApplyConfiguration(new BookmarkConfiguration());
+        modelBuilder.ApplyConfiguration(new AnnotationConfiguration());
+        modelBuilder.ApplyConfiguration(new AnnotationBodyConfiguration());
+        modelBuilder.ApplyConfiguration(new ExtractedPageConfiguration());
+        modelBuilder.ApplyConfiguration(new SearchChunkConfiguration());
+        modelBuilder.ApplyConfiguration(new EmbeddingVectorConfiguration());
+        modelBuilder.ApplyConfiguration(new AiQueryHistoryConfiguration());
+        modelBuilder.ApplyConfiguration(new MetadataLookupConfiguration());
+        modelBuilder.ApplyConfiguration(new JobConfiguration());
+        modelBuilder.ApplyConfiguration(new AuditEventConfiguration());
+        modelBuilder.ApplyConfiguration(new WorkConfiguration());
+        modelBuilder.ApplyConfiguration(new EditionConfiguration());
+
+        base.OnModelCreating(modelBuilder);
+    }
+
+    /// <inheritdoc />
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Fallback used only by design-time tools via the factory.
+            optionsBuilder.UseSqlite("Data Source=:memory:");
+        }
+
+        base.OnConfiguring(optionsBuilder);
+    }
+}

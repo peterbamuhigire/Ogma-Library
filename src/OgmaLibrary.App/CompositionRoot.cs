@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.Application;
 using OgmaLibrary.Infrastructure;
+using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Localization;
 
 namespace OgmaLibrary.App;
@@ -34,8 +35,15 @@ public static class CompositionRoot
         // View models.
         services.AddTransient<MainWindowViewModel>();
 
-        // Bounded-context registrations (Catalogue, Ingestion, Reader, Search, AI,
-        // Bookshelf, Settings & Security, Packaging) are added here in Phases 04+.
+        // Phase 04 — Catalogue & Data Layer.
+        // The data directory defaults to "Ogma Library Data" under OS app-data.
+        string dataDirectory = CatalogueServiceExtensions.GetDefaultDataDirectory();
+        services.AddCatalogueContext(
+            dataDirectory: dataDirectory,
+            libraryRoot: dataDirectory);
+
+        // Bounded-context registrations (Ingestion, Reader, Search, AI,
+        // Bookshelf, Settings & Security, Packaging) are added here in Phases 05+.
         return services;
     }
 }
