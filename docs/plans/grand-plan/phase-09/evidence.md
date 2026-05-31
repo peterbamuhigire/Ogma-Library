@@ -29,6 +29,8 @@ Latest local commands:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 4 startup/direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests"` | Passed: 7 startup/direct-PDF/job recovery regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests\|FullyQualifiedName~Ingestion\|FullyQualifiedName~BookIdentityServiceTests"` | Passed: 31 startup/direct-PDF/ingestion identity regression tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Phase09AnnotationTests\|FullyQualifiedName~ReadingProgressServiceTests\|FullyQualifiedName~ReaderSessionServiceTests"` | Passed: 46 reader persistence/session regression tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build` | Passed: 65 UI tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 219 |
 
 ## Evidence by area
@@ -60,6 +62,7 @@ Latest local commands:
 | Direct PDF open startup regression | `ApplicationStartupTests.InitializeAsync_AppliesCatalogueMigrations_BeforeShellQueries`; `DirectPdfOpenServiceTests.DirectPdfOpen_ExternalPdf_AddsBookWithoutChangingExistingLibraryRoot`; app startup now applies `CatalogueMigrator` before shell resolution and direct-open registers external PDFs without changing the current library root | Resolved locally |
 | Desktop ingestion worker lifecycle | `ApplicationStartupTests.InitializeAsync_StartsHostedServices_AndStopAsyncStopsThem`; startup now recovers interrupted jobs and starts registered hosted services so queued metadata/thumbnail/enrichment jobs are processed in the Avalonia app | Resolved locally |
 | Foreground/background catalogue context isolation | `ApplicationStartupTests.CatalogueContext_ResolvesDistinctInstances_ForForegroundAndWorkerSafety`; `BookIngestionWorker` now uses `IDbContextFactory<CatalogueDbContext>` per polling cycle, and direct-open identity/registration/metadata extraction use factory-created contexts per operation | Resolved locally |
+| Phase 09 reader repository context isolation | Annotation, bookmark, layer, reading-memory, and reading-progress repositories now use `IDbContextFactory<CatalogueDbContext>` per method while preserving legacy test constructors; verified by 46 reader persistence/session regression tests and the full 65-test UI suite | Resolved locally |
 
 ## Manual and owner-gated evidence
 

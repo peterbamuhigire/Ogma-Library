@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -10,16 +11,28 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class ReadingProgressRepository : IReadingProgressRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ReadingProgressRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public ReadingProgressRepository(CatalogueDbContext context)
+    internal ReadingProgressRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="ReadingProgressRepository"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    [ActivatorUtilitiesConstructor]
+    public ReadingProgressRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -29,9 +42,12 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
 
-        ReadingProgressRow? row = await _context.ReadingProgress
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ReadingProgressRow? row = await context.ReadingProgress
             .AsNoTracking()
-            .Where(r => _context.BookFiles
+            .Where(r => context.BookFiles
                 .Any(f => f.RelativePath == relativePath && f.BookId == r.BookId))
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -48,7 +64,10 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
         ArgumentNullException.ThrowIfNull(progress);
 
-        BookFileRow? fileRow = await _context.BookFiles
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookFileRow? fileRow = await context.BookFiles
             .FirstOrDefaultAsync(f => f.RelativePath == relativePath, cancellationToken)
             .ConfigureAwait(false);
 
@@ -59,13 +78,13 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
                 "Import the book before saving reading progress.");
         }
 
-        ReadingProgressRow? existing = await _context.ReadingProgress
+        ReadingProgressRow? existing = await context.ReadingProgress
             .FirstOrDefaultAsync(r => r.BookId == fileRow.BookId, cancellationToken)
             .ConfigureAwait(false);
 
         if (existing is null)
         {
-            _context.ReadingProgress.Add(new ReadingProgressRow
+            context.ReadingProgress.Add(new ReadingProgressRow
             {
                 BookId = fileRow.BookId,
                 CurrentPage = progress.LastPageIndex,
@@ -82,7 +101,7 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
             existing.Status = (int)progress.Status;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -92,7 +111,10 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        ReadingProgressRow? row = await _context.ReadingProgress
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ReadingProgressRow? row = await context.ReadingProgress
             .AsNoTracking()
             .Where(r => r.BookId == bookId)
             .FirstOrDefaultAsync(cancellationToken)
@@ -110,14 +132,17 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentNullException.ThrowIfNull(progress);
 
-        ReadingProgressRow? existing = await _context.ReadingProgress
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        ReadingProgressRow? existing = await context.ReadingProgress
             .FirstOrDefaultAsync(r => r.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
 
         if (existing is null)
         {
             // Ensure the book exists before inserting progress.
-            bool bookExists = await _context.Books
+            bool bookExists = await context.Books
                 .AnyAsync(b => b.BookId == bookId, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -126,7 +151,7 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
                 return; // Silently skip — book was removed.
             }
 
-            _context.ReadingProgress.Add(new ReadingProgressRow
+            context.ReadingProgress.Add(new ReadingProgressRow
             {
                 BookId = bookId,
                 CurrentPage = progress.LastPageIndex,
@@ -143,7 +168,7 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
             existing.Status = (int)progress.Status;
         }
 
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static ReadingProgress MapToDomain(ReadingProgressRow row) => new ReadingProgress
@@ -153,4 +178,37 @@ public sealed class ReadingProgressRepository : IReadingProgressRepository
         LastOpenedUtc = row.LastReadUtc,
         Status = (ReadingStatus)row.Status,
     };
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
+    }
 }

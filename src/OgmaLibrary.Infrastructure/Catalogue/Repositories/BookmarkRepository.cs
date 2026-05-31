@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -12,16 +13,28 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class BookmarkRepository : IBookmarkRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookmarkRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public BookmarkRepository(CatalogueDbContext context)
+    internal BookmarkRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="BookmarkRepository"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    [ActivatorUtilitiesConstructor]
+    public BookmarkRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -31,7 +44,10 @@ public sealed class BookmarkRepository : IBookmarkRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        List<BookmarkRow> rows = await _context.Bookmarks
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<BookmarkRow> rows = await context.Bookmarks
             .AsNoTracking()
             .Where(b => b.BookId == bookId)
             .ToListAsync(cancellationToken)
@@ -47,7 +63,10 @@ public sealed class BookmarkRepository : IBookmarkRepository
     /// <inheritdoc />
     public async Task<Bookmark?> FindAsync(long bookmarkId, CancellationToken cancellationToken)
     {
-        BookmarkRow? row = await _context.Bookmarks
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookmarkRow? row = await context.Bookmarks
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.BookmarkId == bookmarkId, cancellationToken)
             .ConfigureAwait(false);
@@ -60,6 +79,9 @@ public sealed class BookmarkRepository : IBookmarkRepository
     {
         ArgumentNullException.ThrowIfNull(bookmark);
 
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         var row = new BookmarkRow
         {
             BookId = bookmark.BookId,
@@ -68,20 +90,20 @@ public sealed class BookmarkRepository : IBookmarkRepository
             CreatedUtc = bookmark.CreatedUtc,
         };
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
             try
             {
-                _context.Bookmarks.Add(row);
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                context.Bookmarks.Add(row);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                _context.Entry(row).State = EntityState.Detached;
+                context.Entry(row).State = EntityState.Detached;
                 throw;
             }
         }
@@ -94,7 +116,10 @@ public sealed class BookmarkRepository : IBookmarkRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(newLabel);
 
-        BookmarkRow? row = await _context.Bookmarks
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookmarkRow? row = await context.Bookmarks
             .FirstOrDefaultAsync(b => b.BookmarkId == bookmarkId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -104,9 +129,9 @@ public sealed class BookmarkRepository : IBookmarkRepository
         }
 
         Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues originalValues =
-            _context.Entry(row).OriginalValues.Clone();
+            context.Entry(row).OriginalValues.Clone();
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
@@ -114,13 +139,13 @@ public sealed class BookmarkRepository : IBookmarkRepository
             try
             {
                 row.Label = newLabel;
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                _context.Entry(row).CurrentValues.SetValues(originalValues);
-                _context.Entry(row).State = EntityState.Unchanged;
+                context.Entry(row).CurrentValues.SetValues(originalValues);
+                context.Entry(row).State = EntityState.Unchanged;
                 throw;
             }
         }
@@ -129,7 +154,10 @@ public sealed class BookmarkRepository : IBookmarkRepository
     /// <inheritdoc />
     public async Task DeleteAsync(long bookmarkId, CancellationToken cancellationToken)
     {
-        BookmarkRow? row = await _context.Bookmarks
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookmarkRow? row = await context.Bookmarks
             .FirstOrDefaultAsync(b => b.BookmarkId == bookmarkId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -138,20 +166,20 @@ public sealed class BookmarkRepository : IBookmarkRepository
             return;
         }
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
             try
             {
-                _context.Bookmarks.Remove(row);
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                context.Bookmarks.Remove(row);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                _context.Entry(row).State = EntityState.Unchanged;
+                context.Entry(row).State = EntityState.Unchanged;
                 throw;
             }
         }
@@ -166,4 +194,37 @@ public sealed class BookmarkRepository : IBookmarkRepository
             Label = row.Label,
             CreatedUtc = row.CreatedUtc,
         };
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
+    }
 }

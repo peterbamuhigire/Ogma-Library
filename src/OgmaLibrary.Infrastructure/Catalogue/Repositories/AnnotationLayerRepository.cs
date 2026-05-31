@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -10,16 +11,28 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="AnnotationLayerRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public AnnotationLayerRepository(CatalogueDbContext context)
+    internal AnnotationLayerRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="AnnotationLayerRepository"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    [ActivatorUtilitiesConstructor]
+    public AnnotationLayerRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -29,7 +42,10 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        List<AnnotationLayerRow> rows = await _context.AnnotationLayers
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<AnnotationLayerRow> rows = await context.AnnotationLayers
             .AsNoTracking()
             .Where(l => l.BookId == bookId)
             .OrderBy(l => l.SortOrder)
@@ -47,7 +63,10 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(layerId);
 
-        AnnotationLayerRow? row = await _context.AnnotationLayers
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        AnnotationLayerRow? row = await context.AnnotationLayers
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.LayerId == layerId, cancellationToken)
             .ConfigureAwait(false);
@@ -62,6 +81,9 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
     {
         ArgumentNullException.ThrowIfNull(layer);
 
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         var row = new AnnotationLayerRow
         {
             LayerId = layer.Id,
@@ -72,13 +94,13 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
             SortOrder = layer.SortOrder,
         };
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
-            _context.AnnotationLayers.Add(row);
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            context.AnnotationLayers.Add(row);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -90,7 +112,10 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
     {
         ArgumentNullException.ThrowIfNull(layer);
 
-        AnnotationLayerRow? row = await _context.AnnotationLayers
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        AnnotationLayerRow? row = await context.AnnotationLayers
             .FirstOrDefaultAsync(l => l.LayerId == layer.Id, cancellationToken)
             .ConfigureAwait(false);
 
@@ -104,12 +129,12 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
         row.IsVisible = layer.IsVisible;
         row.SortOrder = layer.SortOrder;
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -119,7 +144,10 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(layerId);
 
-        AnnotationLayerRow? row = await _context.AnnotationLayers
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        AnnotationLayerRow? row = await context.AnnotationLayers
             .FirstOrDefaultAsync(l => l.LayerId == layerId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -128,13 +156,13 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
             return;
         }
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
-            _context.AnnotationLayers.Remove(row);
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            context.AnnotationLayers.Remove(row);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -148,8 +176,11 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLayerId);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetLayerId);
 
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Move all annotations from source to target layer.
-        List<AnnotationV2Row> annotations = await _context.AnnotationsV2
+        List<AnnotationV2Row> annotations = await context.AnnotationsV2
             .Where(a => a.LayerId == sourceLayerId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -159,12 +190,12 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
             ann.LayerId = targetLayerId;
         }
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -179,4 +210,37 @@ public sealed class AnnotationLayerRepository : IAnnotationLayerRepository
             IsVisible = row.IsVisible,
             SortOrder = row.SortOrder,
         };
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
+        }
+    }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -12,16 +13,28 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// </summary>
 public sealed class AnnotationV2Repository : IAnnotationV2Repository
 {
-    private readonly CatalogueDbContext _context;
+    private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
+    private readonly CatalogueDbContext? _context;
 
     /// <summary>
     /// Initializes a new instance of <see cref="AnnotationV2Repository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    public AnnotationV2Repository(CatalogueDbContext context)
+    internal AnnotationV2Repository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="AnnotationV2Repository"/>.
+    /// </summary>
+    /// <param name="contextFactory">The catalogue DB context factory.</param>
+    [ActivatorUtilitiesConstructor]
+    public AnnotationV2Repository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    {
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
@@ -31,7 +44,10 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
-        List<AnnotationV2Row> rows = await _context.AnnotationsV2
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<AnnotationV2Row> rows = await context.AnnotationsV2
             .AsNoTracking()
             .Where(a => a.BookId == bookId)
             .ToListAsync(cancellationToken)
@@ -51,9 +67,12 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
         // Regions JSON contains the pageIndex; we filter server-side by bookId
         // then client-side by page for simplicity (page count is small).
-        List<AnnotationV2Row> rows = await _context.AnnotationsV2
+        List<AnnotationV2Row> rows = await context.AnnotationsV2
             .AsNoTracking()
             .Where(a => a.BookId == bookId)
             .ToListAsync(cancellationToken)
@@ -73,7 +92,10 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(annotationId);
 
-        AnnotationV2Row? row = await _context.AnnotationsV2
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        AnnotationV2Row? row = await context.AnnotationsV2
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.AnnotationId == annotationId, cancellationToken)
             .ConfigureAwait(false);
@@ -87,6 +109,9 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(annotation);
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
 
         var row = new AnnotationV2Row
         {
@@ -102,20 +127,20 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
             ModifiedUtc = annotation.ModifiedUtc,
         };
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
             try
             {
-                _context.AnnotationsV2.Add(row);
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                context.AnnotationsV2.Add(row);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                _context.Entry(row).State = EntityState.Detached;
+                context.Entry(row).State = EntityState.Detached;
                 throw;
             }
         }
@@ -128,7 +153,10 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
     {
         ArgumentNullException.ThrowIfNull(annotation);
 
-        AnnotationV2Row? row = await _context.AnnotationsV2
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        AnnotationV2Row? row = await context.AnnotationsV2
             .FirstOrDefaultAsync(a => a.AnnotationId == annotation.Id, cancellationToken)
             .ConfigureAwait(false);
 
@@ -138,9 +166,9 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
         }
 
         Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues originalValues =
-            _context.Entry(row).OriginalValues.Clone();
+            context.Entry(row).OriginalValues.Clone();
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
@@ -154,13 +182,13 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
                 row.RegionsJson = SerializeRegions(annotation.Regions);
                 row.ModifiedUtc = annotation.ModifiedUtc;
 
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                _context.Entry(row).CurrentValues.SetValues(originalValues);
-                _context.Entry(row).State = EntityState.Unchanged;
+                context.Entry(row).CurrentValues.SetValues(originalValues);
+                context.Entry(row).State = EntityState.Unchanged;
                 throw;
             }
         }
@@ -171,7 +199,10 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(annotationId);
 
-        AnnotationV2Row? row = await _context.AnnotationsV2
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        AnnotationV2Row? row = await context.AnnotationsV2
             .FirstOrDefaultAsync(a => a.AnnotationId == annotationId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -180,20 +211,20 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
             return;
         }
 
-        var tx = await _context.Database
+        var tx = await context.Database
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using (tx.ConfigureAwait(false))
         {
             try
             {
-                _context.AnnotationsV2.Remove(row);
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                context.AnnotationsV2.Remove(row);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                _context.Entry(row).State = EntityState.Unchanged;
+                context.Entry(row).State = EntityState.Unchanged;
                 throw;
             }
         }
@@ -253,6 +284,39 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
         catch (JsonException)
         {
             return [];
+        }
+    }
+
+    private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null)
+        {
+            return new ContextLease(_context!, ownsContext: false);
+        }
+
+        CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private readonly struct ContextLease : IDisposable
+    {
+        public ContextLease(CatalogueDbContext context, bool ownsContext)
+        {
+            Context = context;
+            _ownsContext = ownsContext;
+        }
+
+        private readonly bool _ownsContext;
+
+        public CatalogueDbContext Context { get; }
+
+        public void Dispose()
+        {
+            if (_ownsContext)
+            {
+                Context.Dispose();
+            }
         }
     }
 }
