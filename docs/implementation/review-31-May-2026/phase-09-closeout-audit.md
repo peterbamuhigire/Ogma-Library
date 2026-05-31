@@ -40,7 +40,8 @@ Latest recorded local verification:
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --no-build --filter "FullyQualifiedName~ArchitectureTests"` | Passed: 14 architecture tests |
 | `dotnet test OgmaLibrary.sln --no-build` | Passed: Architecture 14, UI 65, Core 210 |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 4 startup/direct-PDF regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 217 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests"` | Passed: 7 startup/direct-PDF/job recovery regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 218 |
 
 Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 
@@ -56,6 +57,7 @@ Manual signoff runbook: `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 | Premium icons | Delivered SVG assets copied into all 22 Phase 09 key-named runtime paths and recorded in `docs/plans/grand-plan/phase-09/icons.md`. |
 | Architecture | Covered by annotations/Search isolation, annotations/AI isolation, catalogue contract boundary, and no PDF write-back tests. |
 | Direct PDF open and startup migration | Covered by startup migration regression and direct external-PDF registration regression; selected PDFs outside the library are added without replacing the library root. |
+| Desktop hosted-service lifecycle | Covered by startup lifecycle regression; `BookIngestionWorker` now starts in the Avalonia app instead of only being registered for a generic host that the app does not create. |
 
 ## Closeout Position
 

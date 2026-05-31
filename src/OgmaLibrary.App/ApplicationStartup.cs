@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Workers;
 
 namespace OgmaLibrary.App;
 
@@ -9,8 +11,8 @@ namespace OgmaLibrary.App;
 public static class ApplicationStartup
 {
     /// <summary>
-    /// Applies catalogue migrations before any catalogue-backed view model is
-    /// resolved. This keeps fresh and pre-existing empty SQLite files usable.
+    /// Applies catalogue migrations, recovers interrupted jobs, and starts
+    /// background services before any catalogue-backed view model is resolved.
     /// </summary>
     /// <param name="services">The built application service provider.</param>
     /// <param name="cancellationToken">A token to cancel startup work.</param>
@@ -24,5 +26,34 @@ public static class ApplicationStartup
         await services.GetRequiredService<CatalogueMigrator>()
             .ApplyAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        JobRecoveryService? recovery = services.GetService<JobRecoveryService>();
+        if (recovery is not null)
+        {
+            await recovery.RecoverAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (IHostedService hostedService in services.GetServices<IHostedService>())
+        {
+            await hostedService.StartAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Stops hosted services before the desktop process exits.
+    /// </summary>
+    /// <param name="services">The built application service provider.</param>
+    /// <param name="cancellationToken">A token to cancel shutdown work.</param>
+    /// <returns>A task representing the shutdown work.</returns>
+    public static async Task StopAsync(
+        IServiceProvider services,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        foreach (IHostedService hostedService in services.GetServices<IHostedService>().Reverse())
+        {
+            await hostedService.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 }

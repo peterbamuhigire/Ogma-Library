@@ -14,7 +14,7 @@ namespace OgmaLibrary.App;
 /// </summary>
 public sealed class App : Avalonia.Application
 {
-    private IServiceProvider? _services;
+    private ServiceProvider? _services;
 
     /// <inheritdoc />
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -27,6 +27,7 @@ public sealed class App : Avalonia.Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            desktop.Exit += (_, _) => StopApplicationServices();
             desktop.MainWindow = new MainWindow
             {
                 DataContext = _services.GetRequiredService<MainShellViewModel>(),
@@ -34,5 +35,23 @@ public sealed class App : Avalonia.Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void StopApplicationServices()
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        try
+        {
+            ApplicationStartup.StopAsync(_services).GetAwaiter().GetResult();
+        }
+        finally
+        {
+            _services.Dispose();
+            _services = null;
+        }
     }
 }

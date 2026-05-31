@@ -27,7 +27,8 @@ Latest local commands:
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --no-build --filter "FullyQualifiedName~ArchitectureTests"` | Passed: 14 architecture tests |
 | `dotnet test OgmaLibrary.sln --no-build` | Passed: Architecture 14, UI 65, Core 210 |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 4 startup/direct-PDF regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 217 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ApplicationStartupTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~JobManagementTests"` | Passed: 7 startup/direct-PDF/job recovery regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 14, UI 65, Core 218 |
 
 ## Evidence by area
 
@@ -56,6 +57,7 @@ Latest local commands:
 | Pseudolocale render | `ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds`; screenshot `artifacts/screenshots/reader-qps-ploc.png` | Automated render evidence present |
 | No PDF write-back | `Architecture_Phase09Annotations_DoNotDependOnPdfWriteBack`; source audit of Phase 09 annotation path | Automated guard present |
 | Direct PDF open startup regression | `ApplicationStartupTests.InitializeAsync_AppliesCatalogueMigrations_BeforeShellQueries`; `DirectPdfOpenServiceTests.DirectPdfOpen_ExternalPdf_AddsBookWithoutChangingExistingLibraryRoot`; app startup now applies `CatalogueMigrator` before shell resolution and direct-open registers external PDFs without changing the current library root | Resolved locally |
+| Desktop ingestion worker lifecycle | `ApplicationStartupTests.InitializeAsync_StartsHostedServices_AndStopAsyncStopsThem`; startup now recovers interrupted jobs and starts registered hosted services so queued metadata/thumbnail/enrichment jobs are processed in the Avalonia app | Resolved locally |
 
 ## Manual and owner-gated evidence
 
