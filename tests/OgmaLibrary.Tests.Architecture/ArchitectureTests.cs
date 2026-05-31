@@ -1,8 +1,11 @@
 using NetArchTest.Rules;
+using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Navigation;
 using OgmaLibrary.Workers;
@@ -130,6 +133,52 @@ public sealed class ArchitectureTests
         Assert.True(appResult.IsSuccessful, "Application must not use HttpClient: " + Describe(appResult));
         Assert.True(domainResult.IsSuccessful, "Domain must not use HttpClient: " + Describe(domainResult));
         Assert.True(hasProviders, "Expected metadata provider types in Infrastructure.Metadata.Providers namespace");
+    }
+
+    /// <summary>
+    /// Deterministic metadata enrichment must not depend on AI gateways, OpenAI SDKs,
+    /// or future token-consuming model namespaces.
+    /// </summary>
+    [Fact]
+    public void Architecture_MetadataEnrichment_DoesNotDependOnAiOrOpenAi()
+    {
+        string[] forbidden =
+        [
+            "OgmaLibrary.AI",
+            "OgmaLibrary.Application.AI",
+            "OgmaLibrary.Infrastructure.AI",
+            "OpenAI",
+        ];
+
+        var applicationMetadata = Types.InAssembly(typeof(IMetadataProvider).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.Metadata")
+            .ShouldNot()
+            .HaveDependencyOnAny(forbidden)
+            .GetResult();
+        var infrastructureMetadata = Types.InAssembly(typeof(BookMetadataEnrichmentService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.Metadata")
+            .ShouldNot()
+            .HaveDependencyOnAny(forbidden)
+            .GetResult();
+        var appBookDetail = Types.InAssembly(typeof(BookDetailViewModel).Assembly)
+            .That()
+            .HaveName("BookDetailViewModel")
+            .ShouldNot()
+            .HaveDependencyOnAny(forbidden)
+            .GetResult();
+        var worker = Types.InAssembly(typeof(BookIngestionWorker).Assembly)
+            .That()
+            .HaveName("BookIngestionWorker")
+            .ShouldNot()
+            .HaveDependencyOnAny(forbidden)
+            .GetResult();
+
+        Assert.True(applicationMetadata.IsSuccessful, Describe(applicationMetadata));
+        Assert.True(infrastructureMetadata.IsSuccessful, Describe(infrastructureMetadata));
+        Assert.True(appBookDetail.IsSuccessful, Describe(appBookDetail));
+        Assert.True(worker.IsSuccessful, Describe(worker));
     }
 
     /// <summary>

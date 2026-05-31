@@ -85,9 +85,9 @@ When this phase is done, all of the following are true:
 - **Smart shelf editor**: condition builder (field → operator → value); stored as
   JSON query; evaluated on open (not pre-computed — deferred to Phase 10 if FTS5 needed).
 - **Book-detail panel** (`BookDetailView`): slides in from the right; five field groups
-  with inline edit (plain text fields only); "Enrich" button placeholder (Phase 07);
-  "Read" button → Phase 08 reader; cover image; rating stars; tags editor; shelf
-  membership.
+  with inline edit (plain text fields only); selected-book "Enrich" action wired to
+  deterministic Phase 07 providers; "Read" button → Phase 08 reader; cover image;
+  rating stars; tags editor; shelf membership.
 - **Bulk edit** (V1): multi-select in grid/list (checkboxes, Ctrl+Click, Shift+Click);
   bulk-edit toolbar (tags, shelves, status, rating, confidence); before/after diff
   preview modal; Undo via `ICommandHistory`.
@@ -104,7 +104,8 @@ When this phase is done, all of the following are true:
 ### Explicitly out of scope
 
 - 3D bookshelf view (Phase 14); the toggle slot is present, routes to a placeholder.
-- Metadata enrichment actions (Phase 07); the "Enrich" button is present but disabled.
+- Bulk metadata enrichment workbench screens (Phase 07); the selected-book
+  "Enrich" button is active and shows provider provenance after enrichment.
 - PDF reader (Phase 08); the "Read" button opens a placeholder or a stub.
 - Full-text search (Phase 10); the search bar is present but limited to metadata search.
 - Annotation display in book detail (Phase 09).
@@ -284,7 +285,7 @@ Full detail in `tasks.md`.
 | WP4 | Directory view | `CatalogueDirectoryView` tree; folder-filter integration |
 | WP5 | Sort & filter | `FilterPanelView`, `CatalogueFilter`, LINQ application, < 150 ms gate |
 | WP6 | Shelf sidebar | `ShelfSidebarView`; CRUD; drag-and-drop assignment; smart shelf editor |
-| WP7 | Book-detail panel | `BookDetailView`; five field groups; inline edit; "Read" button; "Enrich" placeholder |
+| WP7 | Book-detail panel | `BookDetailView`; five field groups; inline edit; "Read" button; selected-book "Enrich" action and provider provenance display |
 | WP8 | Shared navigation contract | `IBookDetailNavigationService`; `IReaderNavigationService` stub |
 | WP9 | Bulk edit (V1) | `BulkEditViewModel`; preview modal; `ICommandHistory` undo |
 | WP10 | Settings panel | Excluded folders; display preferences |

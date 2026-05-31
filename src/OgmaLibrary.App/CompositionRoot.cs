@@ -7,6 +7,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
@@ -100,7 +101,11 @@ public static class CompositionRoot
             var navProxy = new NavigationServiceProxy(() => shell!);
 
             var catalogueVm = new CatalogueViewModel(readModel, navProxy, localization);
-            var bookDetailVm = new BookDetailViewModel(readModel, navProxy, localization);
+            var bookDetailVm = new BookDetailViewModel(
+                readModel,
+                navProxy,
+                localization,
+                sp.GetRequiredService<IBookMetadataEnrichmentService>());
             var readerVm = new ReaderViewModel(
                 sp.GetRequiredService<IReaderSessionService>(),
                 sp.GetRequiredService<IAnnotationService>(),

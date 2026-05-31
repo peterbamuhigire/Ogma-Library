@@ -358,6 +358,9 @@ Current implementation progress:
 - Direct PDF open now preserves the existing library root for external files
   while still queueing metadata/thumbnail work for rematched books and allowing
   PDF metadata write-back for the exact registered writable external file.
+- The book-detail panel now exposes selected-book deterministic metadata
+  enrichment using the existing no-AI provider pipeline, refreshes provider
+  results into the detail projection, and displays provider provenance rows.
 
 Next steps before final Phase 09 closure:
 

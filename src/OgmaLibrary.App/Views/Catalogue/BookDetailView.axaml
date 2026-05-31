@@ -8,8 +8,8 @@
   <!--
     Book-detail panel (FR-CAT-004). Slides in from the right.
     Five tab groups: File, Bibliographic, Reading, Enrichment, AI.
-    "Read" button routes through IReaderNavigationService (Phase 08 placeholder).
-    "Enrich" button is disabled until Phase 07.
+    "Read" button routes through IReaderNavigationService.
+    "Enrich" runs deterministic no-AI metadata provider lookup.
   -->
 
   <Border Background="{DynamicResource Brush.Surface.Card}"
@@ -118,6 +118,16 @@
                     </MultiBinding>
                   </TextBlock.Text>
                 </TextBlock>
+                <ItemsControl ItemsSource="{Binding BiblioFieldDisplayRows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                 TextWrapping="Wrap" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
               </StackPanel>
             </TabItem>
 
@@ -190,11 +200,13 @@
                 <TextBlock Text="Enrichment data (Phase 07)"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <ItemsControl ItemsSource="{Binding EnrichmentFields}">
+                <ItemsControl ItemsSource="{Binding EnrichmentFieldDisplayRows}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                      <TextBlock Text="{Binding}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                 TextWrapping="Wrap" />
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -220,6 +232,13 @@
 
           </TabControl>
 
+          <TextBlock Text="{Binding EnrichmentStatusText}"
+                     IsVisible="{Binding HasEnrichmentStatus}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap"
+                     Margin="0,12,0,0" />
+
         </StackPanel>
       </ScrollViewer>
 
@@ -240,15 +259,16 @@
           <TextBlock Text="Read" />
         </Button>
 
-        <!-- Enrich button (disabled until Phase 07) -->
+        <!-- Enrich button -->
         <Button Padding="16,8"
                 Background="{DynamicResource Brush.Accent.Plum}"
                 Foreground="White"
                 CornerRadius="{DynamicResource Radius.S}"
-                IsEnabled="False"
+                IsEnabled="{Binding CanEnrich}"
                 AutomationProperties.Name="Enrich metadata"
-                ToolTip.Tip="Available in Metadata Enrichment (Phase 07)">
-          <TextBlock Text="Enrich" />
+                ToolTip.Tip="{Binding EnrichTooltip}"
+                Click="EnrichButton_Click">
+          <TextBlock Text="{Binding EnrichText}" />
         </Button>
 
       </StackPanel>

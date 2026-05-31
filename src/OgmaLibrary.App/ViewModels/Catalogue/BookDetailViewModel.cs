@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
@@ -9,17 +10,20 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// <summary>
 /// View model for the book-detail panel (FR-CAT-004). Exposes all five metadata
 /// field groups from <see cref="BookDetailProjection"/> and the "Read" / "Enrich"
-/// action commands. The "Enrich" action is disabled until Phase 07.
+/// action commands.
 /// </summary>
 public sealed class BookDetailViewModel : INotifyPropertyChanged
 {
     private readonly ICatalogueReadModel _readModel;
     private readonly IReaderNavigationService _reader;
     private readonly ILocalizationService _localization;
+    private readonly IBookMetadataEnrichmentService? _metadataEnrichment;
 
     private BookDetailProjection? _book;
     private bool _isLoading;
+    private bool _isEnriching;
     private bool _isVisible;
+    private string? _enrichmentStatusText;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookDetailViewModel"/>.
@@ -27,10 +31,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="readModel">The catalogue read model.</param>
     /// <param name="reader">The reader navigation service.</param>
     /// <param name="localization">The localization service.</param>
+    /// <param name="metadataEnrichment">The deterministic no-AI metadata enrichment service.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        IBookMetadataEnrichmentService? metadataEnrichment = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -39,6 +45,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _readModel = readModel;
         _reader = reader;
         _localization = localization;
+        _metadataEnrichment = metadataEnrichment;
     }
 
     /// <inheritdoc />
@@ -60,6 +67,21 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>True while deterministic provider metadata enrichment is running.</summary>
+    public bool IsEnriching
+    {
+        get => _isEnriching;
+        private set
+        {
+            if (_isEnriching != value)
+            {
+                _isEnriching = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEnrich));
+            }
+        }
+    }
+
     /// <summary>True when the detail panel should be shown.</summary>
     public bool IsVisible
     {
@@ -73,6 +95,33 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             }
         }
     }
+
+    /// <summary>True when the selected book can run deterministic metadata enrichment.</summary>
+    public bool CanEnrich => _book is not null && _metadataEnrichment is not null && !IsEnriching;
+
+    /// <summary>Localized button label for deterministic metadata enrichment.</summary>
+    public string EnrichText => _localization["Catalogue.BookDetail.Enrich"];
+
+    /// <summary>Localized tooltip for deterministic metadata enrichment.</summary>
+    public string EnrichTooltip => _localization["Catalogue.BookDetail.EnrichTooltip"];
+
+    /// <summary>Current user-facing enrichment status, if any.</summary>
+    public string? EnrichmentStatusText
+    {
+        get => _enrichmentStatusText;
+        private set
+        {
+            if (_enrichmentStatusText != value)
+            {
+                _enrichmentStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasEnrichmentStatus));
+            }
+        }
+    }
+
+    /// <summary>True when the detail panel has an enrichment status to display.</summary>
+    public bool HasEnrichmentStatus => !string.IsNullOrWhiteSpace(EnrichmentStatusText);
 
     // ── Core identity ───────────────────────────────────────────────────────────
 
@@ -106,9 +155,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(HasReadingMemorySummary));
             OnPropertyChanged(nameof(FileFields));
             OnPropertyChanged(nameof(BiblioFields));
+            OnPropertyChanged(nameof(BiblioFieldDisplayRows));
             OnPropertyChanged(nameof(ReadingFields));
             OnPropertyChanged(nameof(EnrichmentFields));
+            OnPropertyChanged(nameof(EnrichmentFieldDisplayRows));
             OnPropertyChanged(nameof(AiFields));
+            OnPropertyChanged(nameof(CanEnrich));
         }
     }
 
@@ -206,6 +258,13 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             .Where(f => BiblioFieldNames.Contains(f.FieldName))
             .ToList() ?? [];
 
+    /// <summary>Formatted bibliographic metadata rows for display.</summary>
+    public IReadOnlyList<string> BiblioFieldDisplayRows =>
+        BiblioFields
+            .Where(f => !string.IsNullOrWhiteSpace(f.Value))
+            .Select(FormatField)
+            .ToList();
+
     /// <summary>Reading state fields (group 3).</summary>
     public IReadOnlyList<MetadataFieldProjection> ReadingFields =>
         _book?.MetadataFields
@@ -215,8 +274,15 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>Enrichment fields from metadata providers (group 4).</summary>
     public IReadOnlyList<MetadataFieldProjection> EnrichmentFields =>
         _book?.MetadataFields
-            .Where(f => EnrichmentFieldNames.Contains(f.FieldName))
+            .Where(IsProviderEnrichedField)
             .ToList() ?? [];
+
+    /// <summary>Formatted provider-sourced metadata rows with provenance for display.</summary>
+    public IReadOnlyList<string> EnrichmentFieldDisplayRows =>
+        EnrichmentFields
+            .Where(f => !string.IsNullOrWhiteSpace(f.Value))
+            .Select(FormatField)
+            .ToList();
 
     /// <summary>AI-generated fields (group 5).</summary>
     public IReadOnlyList<MetadataFieldProjection> AiFields =>
@@ -239,6 +305,68 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
 
         await _reader.OpenReaderAsync(_book.BookId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs deterministic provider metadata enrichment for the loaded book.</summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task EnrichMetadataAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null)
+        {
+            return;
+        }
+
+        if (_metadataEnrichment is null)
+        {
+            EnrichmentStatusText = _localization["Catalogue.BookDetail.EnrichUnavailable"];
+            return;
+        }
+
+        string bookId = _book.BookId;
+        IsEnriching = true;
+        EnrichmentStatusText = _localization["Catalogue.BookDetail.Enriching"];
+
+        try
+        {
+            (bool success, string? errorMessage) = await _metadataEnrichment
+                .EnrichAsync(bookId, absoluteFilePath: null, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!success)
+            {
+                UpdateOnUiThread(() =>
+                {
+                    EnrichmentStatusText = string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        _localization["Catalogue.BookDetail.EnrichFailedFormat"],
+                        errorMessage ?? _localization["Catalogue.BookDetail.EnrichUnknownError"]);
+                    IsEnriching = false;
+                });
+                return;
+            }
+
+            BookDetailProjection? detail = await _readModel
+                .GetBookDetailAsync(bookId, cancellationToken)
+                .ConfigureAwait(false);
+
+            UpdateOnUiThread(() =>
+            {
+                Book = detail;
+                EnrichmentStatusText = _localization["Catalogue.BookDetail.EnrichComplete"];
+                IsEnriching = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                EnrichmentStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.EnrichFailedFormat"],
+                    ex.Message);
+                IsEnriching = false;
+            });
+        }
     }
 
     /// <summary>Closes the detail panel.</summary>
@@ -310,6 +438,49 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             : string.Concat(trimmed.AsSpan(0, maxLength - 3), "...");
     }
 
+    private static string FormatField(MetadataFieldProjection field)
+    {
+        string value = string.IsNullOrWhiteSpace(field.Value) ? "-" : field.Value.Trim();
+        string provenance = FormatProvenance(field);
+        return string.IsNullOrWhiteSpace(provenance)
+            ? $"{field.FieldName}: {value}"
+            : $"{field.FieldName}: {value} ({provenance})";
+    }
+
+    private static string FormatProvenance(MetadataFieldProjection field)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(field.Source))
+        {
+            parts.Add(field.Source.Trim());
+        }
+
+        if (field.Confidence is double confidence)
+        {
+            parts.Add(confidence.ToString("P0", System.Globalization.CultureInfo.CurrentCulture));
+        }
+
+        if (field.IsOverridden)
+        {
+            parts.Add("manual");
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    private static bool IsProviderEnrichedField(MetadataFieldProjection field)
+    {
+        if (string.IsNullOrWhiteSpace(field.Source))
+        {
+            return false;
+        }
+
+        return !field.IsOverridden &&
+            !string.Equals(field.Source, "System", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(field.Source, "User", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(field.Source, "Local", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static readonly HashSet<string> FileFieldNames =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -328,12 +499,6 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         new(StringComparer.OrdinalIgnoreCase)
         {
             "Status", "Rating", "Tags", "ReadingProgressPct", "LastReadDate",
-        };
-
-    private static readonly HashSet<string> EnrichmentFieldNames =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Provider", "Confidence", "LookupDate", "IsOverridden",
         };
 
     private static readonly HashSet<string> AiFieldNames =

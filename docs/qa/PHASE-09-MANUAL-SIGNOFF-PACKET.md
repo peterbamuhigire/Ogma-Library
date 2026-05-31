@@ -28,7 +28,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 301 total tests: Core 222, UI 65, Architecture 14.
+Release tests pass 306 total tests: Core 226, UI 65, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -43,6 +43,7 @@ Use a PDF with selectable text and at least one rotated page.
 | Delete a non-default layer containing annotations. | Annotations move to the remaining default layer and remain visible after reload. | Screenshot before/after delete. |
 | Select text and press Ctrl+Shift+C, then copy/export citation. | Citation uses selected text, title, author, and page format. | Pasted citation text plus exported sidecar file path. |
 | Directly open a writable PDF outside the current library root, let metadata jobs run, then inspect its PDF properties. | The book is registered without changing the library root, metadata/thumbnail jobs are queued for the selected file version, and permitted PDF metadata write-back updates DocInfo for the exact registered file. | Screenshot of catalogue entry, job state, and PDF properties. |
+| Select a book in the catalogue and click Enrich in the book-detail panel. | The button runs deterministic no-AI provider lookup, refreshes the detail panel, displays provider-sourced fields with provenance, and reports provider/refresh failures in-panel. | Screenshot of before/after metadata fields and provenance rows. |
 
 ## Assistive Technology Walkthrough
 
@@ -84,7 +85,8 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed, 0 warnings, 0 errors |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~PdfWriteBackTests\|FullyQualifiedName~Metadata\|FullyQualifiedName~JobManagementTests"` | Passed: 69 direct-PDF, metadata, write-back, and job regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 222, UI 65, Architecture 14 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~BookDetailViewModelTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 74 selected-book enrichment, metadata, and direct-PDF regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 226, UI 65, Architecture 15 |
 
 ## Closure Rule
 

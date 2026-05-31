@@ -28,4 +28,12 @@ public partial class BookDetailView : UserControl
             _ = vm.OpenReaderAsync();
         }
     }
+
+    private async void EnrichButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.EnrichMetadataAsync().ConfigureAwait(true);
+        }
+    }
 }
