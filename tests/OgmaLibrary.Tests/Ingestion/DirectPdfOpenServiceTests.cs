@@ -194,6 +194,47 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DirectPdfOpen_FuzzyMatch_RegistersSelectedPdfAsNewBook()
+    {
+        string libraryRoot = Path.Combine(_tempRoot, "library");
+        string externalRoot = Path.Combine(_tempRoot, "external");
+        Directory.CreateDirectory(libraryRoot);
+        Directory.CreateDirectory(externalRoot);
+
+        string pdfPath = Path.Combine(externalRoot, "same-stat-different-content.pdf");
+        await File.WriteAllBytesAsync(pdfPath, "%PDF-1.4\n% selected explicit open\n"u8.ToArray());
+        var selectedInfo = new FileInfo(pdfPath);
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "EXISTING-FUZZY",
+            Status = 0,
+            Sha256Hash = new string('b', 64),
+            SizeBytes = selectedInfo.Length,
+            MtimeTicks = selectedInfo.LastWriteTimeUtc.Ticks,
+        });
+        await context.SaveChangesAsync();
+
+        var settings = new LibrarySettingsService(_tempRoot);
+        await settings.SetLibraryRootAsync(libraryRoot);
+
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context));
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        Assert.NotEqual("EXISTING-FUZZY", bookId);
+        Assert.Equal(2, context.Books.Count());
+        Assert.Equal(new string('b', 64), context.Books.Single(b => b.BookId == "EXISTING-FUZZY").Sha256Hash);
+
+        var file = context.BookFiles.Single(f => f.BookId == bookId);
+        Assert.Equal(pdfPath.Replace(Path.DirectorySeparatorChar, '/'), file.RelativePath);
+    }
+
+    [Fact]
     public async Task DirectPdfOpen_MetadataExtraction_VisibleInCatalogueProjection()
     {
         string pdfPath = Path.Combine(_tempRoot, "metadata.pdf");

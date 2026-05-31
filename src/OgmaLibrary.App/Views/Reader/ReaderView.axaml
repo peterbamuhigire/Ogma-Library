@@ -519,7 +519,7 @@
                             ItemsSource="{Binding Layers}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:LayerListItem">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,5">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,5">
                       <Border Grid.Column="0"
                               Width="14"
                               Height="14"
@@ -531,11 +531,21 @@
                                VerticalContentAlignment="Center"
                                AutomationProperties.Name="{Binding Name}"
                                LostFocus="LayerName_LostFocus" />
-                      <CheckBox Grid.Column="2"
+                      <Border Grid.Column="2"
+                              Padding="6,2"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              Background="{DynamicResource Brush.Accent.Ink}"
+                              IsVisible="{Binding IsActiveWritableLayer}"
+                              AutomationProperties.Name="{Binding ActiveAutomationLabel}">
+                        <TextBlock Text="{Binding ActiveLabel}"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="White" />
+                      </Border>
+                      <CheckBox Grid.Column="3"
                                 IsChecked="{Binding IsVisible, Mode=OneWay}"
                                 AutomationProperties.Name="{Binding VisibilityAutomationLabel}"
                                 Click="LayerVisibility_Click" />
-                      <Button Grid.Column="3"
+                      <Button Grid.Column="4"
                               Padding="8,4"
                               IsEnabled="{Binding CanMergeOrDelete}"
                               AutomationProperties.Name="{Binding MergeAutomationLabel}"
@@ -543,7 +553,7 @@
                               Click="MergeLayerButton_Click">
                         <TextBlock Text=">" />
                       </Button>
-                      <Button Grid.Column="4"
+                      <Button Grid.Column="5"
                               Padding="8,4"
                               IsEnabled="{Binding CanMergeOrDelete}"
                               AutomationProperties.Name="{Binding DeleteAutomationLabel}"

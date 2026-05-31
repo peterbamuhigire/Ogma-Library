@@ -47,10 +47,12 @@
   <data name="Layer.Add" xml:space="preserve"><value>New layer</value></data>
   <data name="Layer.DefaultName" xml:space="preserve"><value>Key arguments</value></data>
   <data name="Layer.DefaultNameFormat" xml:space="preserve"><value>Layer {0}</value></data>
+  <data name="Layer.Active" xml:space="preserve"><value>Active</value></data>
   <data name="Layer.Visible" xml:space="preserve"><value>Layer visible</value></data>
   <data name="Layer.Hidden" xml:space="preserve"><value>Layer hidden</value></data>
   <data name="Layer.Merge" xml:space="preserve"><value>Merge layer</value></data>
   <data name="Layer.Delete" xml:space="preserve"><value>Delete layer</value></data>
+  <data name="Layer.Active.AccessibleFormat" xml:space="preserve"><value>Active annotation layer: {0}</value></data>
   <data name="Layer.Visible.AccessibleFormat" xml:space="preserve"><value>Layer visible: {0}</value></data>
   <data name="Layer.Hidden.AccessibleFormat" xml:space="preserve"><value>Layer hidden: {0}</value></data>
   <data name="Layer.Merge.AccessibleFormat" xml:space="preserve"><value>Merge layer {0}</value></data>

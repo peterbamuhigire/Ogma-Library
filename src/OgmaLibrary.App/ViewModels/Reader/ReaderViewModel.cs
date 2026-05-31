@@ -1463,6 +1463,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             .GetLayersAsync(BookId, cancellationToken)
             .ConfigureAwait(true);
         bool canMergeOrDelete = items.Count > 1;
+        string? activeLayerId = items.FirstOrDefault(layer => layer.IsVisible)?.Id;
 
         foreach (AnnotationLayer layer in items)
         {
@@ -1471,7 +1472,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 layer.Name,
                 layer.Color,
                 layer.IsVisible,
+                string.Equals(layer.Id, activeLayerId, StringComparison.Ordinal),
                 canMergeOrDelete,
+                _localization["Layer.Active"],
+                _localization["Layer.Active.AccessibleFormat"],
                 _localization["Layer.Visible.AccessibleFormat"],
                 _localization["Layer.Hidden.AccessibleFormat"],
                 _localization["Layer.Merge.AccessibleFormat"],
@@ -1914,6 +1918,7 @@ public sealed record BookmarkSortOption(string Id, string Label)
 public sealed class LayerListItem : INotifyPropertyChanged
 {
     private string _name;
+    private readonly string _activeFormat;
     private readonly string _visibleFormat;
     private readonly string _hiddenFormat;
     private readonly string _mergeFormat;
@@ -1925,7 +1930,10 @@ public sealed class LayerListItem : INotifyPropertyChanged
         string name,
         string color,
         bool isVisible,
+        bool isActiveWritableLayer,
         bool canMergeOrDelete,
+        string activeLabel,
+        string activeFormat,
         string visibleFormat,
         string hiddenFormat,
         string mergeFormat,
@@ -1935,7 +1943,10 @@ public sealed class LayerListItem : INotifyPropertyChanged
         _name = name;
         Color = color;
         IsVisible = isVisible;
+        IsActiveWritableLayer = isActiveWritableLayer;
         CanMergeOrDelete = canMergeOrDelete;
+        ActiveLabel = activeLabel;
+        _activeFormat = activeFormat;
         _visibleFormat = visibleFormat;
         _hiddenFormat = hiddenFormat;
         _mergeFormat = mergeFormat;
@@ -1958,6 +1969,7 @@ public sealed class LayerListItem : INotifyPropertyChanged
             {
                 _name = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ActiveAutomationLabel)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibilityAutomationLabel)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MergeAutomationLabel)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeleteAutomationLabel)));
@@ -1971,8 +1983,17 @@ public sealed class LayerListItem : INotifyPropertyChanged
     /// <summary>Whether the layer is currently visible.</summary>
     public bool IsVisible { get; }
 
+    /// <summary>Whether this visible layer receives newly created highlights and notes.</summary>
+    public bool IsActiveWritableLayer { get; }
+
+    /// <summary>Localized active-layer marker text.</summary>
+    public string ActiveLabel { get; }
+
     /// <summary>Whether destructive/combining layer actions are allowed.</summary>
     public bool CanMergeOrDelete { get; }
+
+    /// <summary>Automation label for the active writable layer marker.</summary>
+    public string ActiveAutomationLabel => FormatLayerLabel(_activeFormat);
 
     /// <summary>Automation label that includes the current visibility state.</summary>
     public string VisibilityAutomationLabel => FormatLayerLabel(IsVisible ? _visibleFormat : _hiddenFormat);

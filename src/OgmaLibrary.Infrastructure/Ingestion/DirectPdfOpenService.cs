@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Microsoft.Data.Sqlite;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -60,6 +61,21 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
         }
 
+        try
+        {
+            return await RegisterOrUpdateAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (_migrator is not null && IsMissingSqliteTable(ex))
+        {
+            await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
+            return await RegisterOrUpdateAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<string> RegisterOrUpdateAsync(
+        string fullPath,
+        CancellationToken cancellationToken)
+    {
         string containingFolder = Path.GetDirectoryName(fullPath)
             ?? throw new InvalidOperationException("The selected PDF has no containing folder.");
 
@@ -109,8 +125,9 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             BookMatchResult.ExactMatch exact => await UpdateExistingAsync(
                 exact.BookId, discovered, contentHash, cancellationToken).ConfigureAwait(false),
 
-            BookMatchResult.FuzzyMatch fuzzy => await UpdateExistingAsync(
-                fuzzy.BookId, discovered, contentHash, cancellationToken).ConfigureAwait(false),
+            BookMatchResult.FuzzyMatch => await _registration
+                .RegisterAsync(discovered, contentHash, cancellationToken)
+                .ConfigureAwait(false),
 
             BookMatchResult.Unresolvable unresolved => throw new InvalidOperationException(
                 $"Cannot open selected PDF: {unresolved.Reason}"),
@@ -130,6 +147,21 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             .ConfigureAwait(false);
 
         return bookId;
+    }
+
+    private static bool IsMissingSqliteTable(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is SqliteException sqlite &&
+                sqlite.SqliteErrorCode == 1 &&
+                sqlite.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task<string> ComputeSha256Async(

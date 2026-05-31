@@ -29,6 +29,7 @@ owner-controlled release folder named in the row.
 | Bookmark context flyout exposes rename/delete actions | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` |
 | Note editor supports Escape dismissal without navigation | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` |
 | Bookmark, layer, citation, and memory actions expose target-specific automation names | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; layer visibility, merge, and delete names include the layer name |
+| Active writable annotation layer is visible and announced | `ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` |
 | Last-layer destructive controls are unavailable before data loss can occur | `ReaderView_LayerActions_DisabledWhenOnlyOneLayerRemains` |
 | Note overlays expose an anchor marker state | `ReaderViewModel_NoteOverlay_ExposesAnchorMarker` |
 | Phase 09 icon labels exist in English and French | `IconCatalog_Phase09ManifestKeys_HaveAccessibleLabels` |
@@ -42,7 +43,7 @@ Latest focused command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --no-build --filter "FullyQualifiedName~IconCatalogPhase09Tests|FullyQualifiedName~ReaderViewRenderTests"
 ```
 
-Result: passed, 58 tests.
+Result: passed, 59 tests.
 
 Latest full UI release command:
 
@@ -50,7 +51,7 @@ Latest full UI release command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
 ```
 
-Result: passed, 69 tests.
+Result: passed, 70 tests.
 
 ## Assistive Technology Walkthrough
 
@@ -62,7 +63,7 @@ can be called fully closed:
 | Annotation overlay announces type, layer, and page | Pending | Pending | Pending | Audio note or reviewer note. | Expected shape: "Highlight - Key arguments - Page N of M". |
 | Note anchor announces a note-specific label | Pending | Pending | Pending | Audio note or reviewer note. | Verify the visual marker is not the only signal. |
 | Bookmark panel announces list count and item labels | Pending | Pending | Pending | Audio note or reviewer note. | Keyboard focus must reach each bookmark action. |
-| Layer visibility and delete controls announce action-specific labels | Pending | Pending | Pending | Audio note or reviewer note. | Includes visible/hidden state naming. |
+| Layer visibility, active marker, and delete controls announce action-specific labels | Pending | Pending | Pending | Audio note or reviewer note. | Includes visible/hidden state naming and active writable layer marker. |
 | Citation card copy/export buttons announce distinct actions | Pending | Pending | Pending | Audio note or reviewer note. | Export must not sound identical to copy. |
 | Reading-memory fields announce field purpose | Pending | Pending | Pending | Reviewer note. | Opened because, key insight, questions, and `Disposition (1-5)`. |
 | Keyboard-only walkthrough reaches every Phase 09 control | Pending | Pending | Pending | Reviewer note. | Include selection action menu and sidebars. |

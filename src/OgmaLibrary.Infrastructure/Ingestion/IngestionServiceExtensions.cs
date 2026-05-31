@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Assets;
+using OgmaLibrary.Infrastructure.Catalogue;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -31,7 +33,11 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IScanProgressService, ScanProgressService>();
         services.AddSingleton<IUnavailableFileFlagService, UnavailableFileFlagService>();
         services.AddSingleton<IBookRegistrationService, BookRegistrationService>();
-        services.AddSingleton<IDirectPdfOpenService, DirectPdfOpenService>();
+        services.AddSingleton<IDirectPdfOpenService>(sp => new DirectPdfOpenService(
+            sp.GetRequiredService<ILibrarySettingsService>(),
+            sp.GetRequiredService<IBookIdentityService>(),
+            sp.GetRequiredService<IBookRegistrationService>(),
+            sp.GetRequiredService<CatalogueMigrator>()));
         services.AddSingleton<IMetadataExtractionService, MetadataExtractionService>();
         services.AddSingleton<IThumbnailService, ThumbnailService>();
         services.AddSingleton<ISpineService, SpineService>();

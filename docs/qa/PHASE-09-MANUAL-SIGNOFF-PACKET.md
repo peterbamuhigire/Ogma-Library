@@ -38,7 +38,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 313 total tests: Core 229, UI 69, Architecture 15.
+Release tests pass 315 total tests: Core 230, UI 70, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -64,7 +64,7 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 | Annotation overlay announces type, layer, and page. | Pending | Pending | Pending | Audio note or reviewer note. |
 | Note anchor announces a note-specific label. | Pending | Pending | Pending | Audio note or reviewer note. |
 | Bookmark panel announces list count and item labels. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Layer visibility and delete controls announce action-specific labels. | Pending | Pending | Pending | Audio note or reviewer note. |
+| Layer visibility, active marker, and delete controls announce action-specific labels. | Pending | Pending | Pending | Audio note or reviewer note. |
 | Citation card copy/export buttons announce distinct actions. | Pending | Pending | Pending | Audio note or reviewer note. |
 | Reading-memory fields announce field purpose. | Pending | Pending | Pending | Reviewer note. Expected disposition label: `Disposition (1-5)`. |
 | Keyboard-only walkthrough reaches every Phase 09 control. | Pending | Pending | Pending | Reviewer note. |
@@ -98,8 +98,8 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~BookDetailViewModelTests\|FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 74 selected-book enrichment, metadata, and direct-PDF regression tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 72 direct-PDF and metadata regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 10 migration/direct-PDF regression tests |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 229, UI 69, Architecture 15 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 12 migration/direct-PDF regression tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 230, UI 70, Architecture 15 |
 
 ## Closure Rule
 

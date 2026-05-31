@@ -47,10 +47,12 @@
   <data name="Layer.Add" xml:space="preserve"><value>Nouvelle couche</value></data>
   <data name="Layer.DefaultName" xml:space="preserve"><value>Arguments clés</value></data>
   <data name="Layer.DefaultNameFormat" xml:space="preserve"><value>Couche {0}</value></data>
+  <data name="Layer.Active" xml:space="preserve"><value>Active</value></data>
   <data name="Layer.Visible" xml:space="preserve"><value>Couche visible</value></data>
   <data name="Layer.Hidden" xml:space="preserve"><value>Couche masquée</value></data>
   <data name="Layer.Merge" xml:space="preserve"><value>Fusionner la couche</value></data>
   <data name="Layer.Delete" xml:space="preserve"><value>Supprimer la couche</value></data>
+  <data name="Layer.Active.AccessibleFormat" xml:space="preserve"><value>Couche d'annotation active : {0}</value></data>
   <data name="Layer.Visible.AccessibleFormat" xml:space="preserve"><value>Couche visible : {0}</value></data>
   <data name="Layer.Hidden.AccessibleFormat" xml:space="preserve"><value>Couche masquée : {0}</value></data>
   <data name="Layer.Merge.AccessibleFormat" xml:space="preserve"><value>Fusionner la couche {0}</value></data>

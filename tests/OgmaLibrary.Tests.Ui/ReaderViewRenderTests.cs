@@ -132,6 +132,8 @@ public sealed class ReaderViewRenderTests
             "Layer.Panel",
             "Layer.Filter",
             "Layer.Filter.AllVisible",
+            "Layer.Active",
+            "Layer.Active.AccessibleFormat",
             "Layer.Merge",
             "Layer.Delete",
             "Layer.AtLeastOne",
@@ -757,6 +759,9 @@ public sealed class ReaderViewRenderTests
 
             tabControl.SelectedIndex = 2;
             Dispatcher.UIThread.RunJobs();
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Border>(),
+                border => GetAutomationName(border) == "Active annotation layer: Key arguments");
             Assert.Contains(
                 window.GetVisualDescendants().OfType<CheckBox>(),
                 box => GetAutomationName(box) == "Layer visible: Key arguments");
@@ -1432,6 +1437,36 @@ public sealed class ReaderViewRenderTests
 
         Assert.Equal(3, viewModel.Annotations.Count);
         Assert.Equal(3, viewModel.AnnotationOverlays.Count);
+    }
+
+    [AvaloniaFact]
+    public void ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.AddLayerAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert.True(viewModel.Layers[0].IsActiveWritableLayer);
+        Assert.False(viewModel.Layers[1].IsActiveWritableLayer);
+        Assert.Equal("Active annotation layer: Key arguments", viewModel.Layers[0].ActiveAutomationLabel);
+
+        viewModel
+            .SetLayerVisibilityAsync(viewModel.Layers[0], isVisible: false, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+
+        Assert.False(viewModel.Layers[0].IsActiveWritableLayer);
+        Assert.True(viewModel.Layers[1].IsActiveWritableLayer);
     }
 
     [AvaloniaFact]

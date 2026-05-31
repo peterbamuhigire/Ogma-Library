@@ -358,6 +358,13 @@ Current implementation progress:
 - Direct PDF open now preserves the existing library root for external files
   while still queueing metadata/thumbnail work for rematched books and allowing
   PDF metadata write-back for the exact registered writable external file.
+- Direct PDF open now retries catalogue schema repair if SQLite reports a
+  missing model table such as `BookFiles`, and weak/fuzzy direct-open matches
+  register the selected PDF as a new book instead of overwriting an existing
+  catalogue entry.
+- The annotation layer sidebar now marks the active writable layer and exposes
+  an `Active annotation layer: <name>` automation label that follows the first
+  visible layer.
 - Direct PDF metadata completion now refreshes the running shell catalogue,
   shelf sidebar, and loaded detail projection so extracted title/author data
   appears without restarting or forcing a new query.
@@ -412,3 +419,4 @@ Next steps before final Phase 09 closure:
 | 2026-05-31 | Recorded live shell refresh after direct-PDF metadata completion and startup repair for missing catalogue model tables | Codex |
 | 2026-06-01 | Reconciled Phase 09 evidence dates/counts and replaced placeholder verification test names with current automated test names | Codex |
 | 2026-06-01 | Added bookmark page/date sorting and made the reading-memory disposition range visible in the reader UI and accessibility evidence | Codex |
+| 2026-06-01 | Added active writable layer marker and hardened direct PDF open against missing `BookFiles` schema errors and weak fuzzy rematches | Codex |
