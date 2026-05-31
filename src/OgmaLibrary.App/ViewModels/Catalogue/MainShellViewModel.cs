@@ -457,15 +457,33 @@ public sealed class MainShellViewModel :
         }
 
         string path = files[0].Path.LocalPath;
+        await OpenPdfPathAsync(path).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Registers a PDF path, refreshes catalogue projections, and opens it in the reader.
+    /// </summary>
+    /// <param name="path">Absolute path to the selected PDF.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task OpenPdfPathAsync(string path, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (_directPdfOpenService is null)
+        {
+            SetStatusOverride(_localization["MainWindow.PdfPicker.NotConfigured"]);
+            return;
+        }
+
         SetStatusOverride(_localization["MainWindow.PdfPicker.Registering"]);
 
         try
         {
-            string bookId = await _directPdfOpenService.OpenAsync(path).ConfigureAwait(true);
-            await Catalogue.LoadAsync().ConfigureAwait(true);
-            await ShelfSidebar.LoadAsync().ConfigureAwait(true);
-            await OpenReaderAsync(bookId).ConfigureAwait(true);
-            SetStatusOverride(_localization["MainWindow.PdfPicker.Opened"]);
+            string bookId = await _directPdfOpenService.OpenAsync(path, cancellationToken).ConfigureAwait(true);
+            await Catalogue.LoadAsync(cancellationToken).ConfigureAwait(true);
+            await ShelfSidebar.LoadAsync(cancellationToken).ConfigureAwait(true);
+            await OpenReaderAsync(bookId, pageHint: null, cancellationToken).ConfigureAwait(true);
+            SetStatusOverride(_localization["MainWindow.PdfPicker.OpenedWithMetadata"]);
         }
         catch (Exception ex)
         {

@@ -109,10 +109,10 @@ delete, and drag books onto shelves.
 
 | ID | Task | Req / NFR | Est (h) | Depends on |
 | --- | --- | --- | --- | --- |
-| P06-WP7-T1 | Implement `BookDetailViewModel`: loads `BookDetailProjection` for selected `BookId`; exposes grouped field view-models; `OpenReaderCommand`; `OpenEnrichCommand` (disabled). | FR-CAT-004 | 3 | Phase 04 `ICatalogueReadModel` |
+| P06-WP7-T1 | Implement `BookDetailViewModel`: loads `BookDetailProjection` for selected `BookId`; exposes grouped field view-models; `OpenReaderCommand`; active `OpenEnrichCommand` when the deterministic metadata-enrichment service is registered. | FR-CAT-004 | 3 | Phase 04 `ICatalogueReadModel` |
 | P06-WP7-T2 | Build `BookDetailView`: slide-in panel from right; cover image (200x300); five tab groups; inline edit on text fields; Rating star control; Tags chip editor; Shelf membership list. | FR-CAT-004 | 5 | P06-WP7-T1; Phase 03 tokens |
 | P06-WP7-T3 | Implement inline-edit commit via `ICatalogueWriteService.UpdateMetadataFieldAsync`; write `AuditEvent`; Undo via `ICommandHistory`. | FR-CAT-004; NFR-PROD-010 | 2 | P06-WP7-T1 |
-| P06-WP7-T4 | Add "Enrich" button (oak-amber, `ic_enrich`, disabled with tooltip "Available in Metadata Enrichment"); "Read" button (`ic_open_reader`) calls `IReaderNavigationService`. | FR-CAT-004; FR-META-003 placeholder | 1 | P06-WP7-T2; WP8 |
+| P06-WP7-T4 | Add "Enrich" button (oak-amber, `ic_enrich`) that runs deterministic provider metadata lookup for the selected book; "Read" button (`ic_open_reader`) calls `IReaderNavigationService`. | FR-CAT-004; FR-META-003 | 1 | P06-WP7-T2; WP8 |
 | P06-WP7-T5 | Add cover-image empty state: `ic_book_no_cover` icon + "Cover not yet generated" label when sidecar cover absent. | FR-CAT-004 | 1 | P06-WP7-T2 |
 | P06-WP7-T6 | Unit test: `BookDetail_AllFiveFieldGroups_Populated` — seed fully-enriched book; assert each group's ViewModel has ≥ 1 non-null field. | FR-CAT-004 | 2 | P06-WP7-T1 |
 | P06-WP7-T7 | Accessibility: panel opened by keyboard (`Enter` on grid/list item); all fields Tab-navigable; close by `Escape`. | NFR-PROD-007 | 1 | P06-WP7-T2 |

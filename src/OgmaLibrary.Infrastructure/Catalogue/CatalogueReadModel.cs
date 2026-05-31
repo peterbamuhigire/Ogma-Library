@@ -47,7 +47,24 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
         if (!string.IsNullOrWhiteSpace(filter.TitleContains))
         {
-            query = query.Where(b => b.Title != null && b.Title.Contains(filter.TitleContains));
+            string titleContains = filter.TitleContains;
+            query = query.Where(b =>
+                (b.Title != null && b.Title.Contains(titleContains)) ||
+                b.MetadataFields.Any(f =>
+                    f.FieldName == "Title" &&
+                    f.Value != null &&
+                    f.Value.Contains(titleContains)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.AuthorContains))
+        {
+            string authorContains = filter.AuthorContains;
+            query = query.Where(b =>
+                b.BookAuthors.Any(ba => ba.Author != null && ba.Author.NormalizedName.Contains(authorContains)) ||
+                b.MetadataFields.Any(f =>
+                    f.FieldName == "Author" &&
+                    f.Value != null &&
+                    f.Value.Contains(authorContains)));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.ShelfId))
@@ -78,6 +95,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .ToList(),
                 Progress = b.ReadingProgress,
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
+                MetadataFields = b.MetadataFields
+                    .Where(f => f.FieldName == "Title" || f.FieldName == "Author")
+                    .Select(f => new { f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden })
+                    .ToList(),
             });
 
         if (filter.MaxResults > 0)
@@ -89,10 +110,14 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
         foreach (var item in results)
         {
+            var fields = item.MetadataFields
+                .Select(f => new MetadataFieldProjection(f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden))
+                .ToList();
+
             yield return new BookSummaryProjection(
                 BookId: item.BookId,
-                Title: item.Title,
-                Authors: item.Authors,
+                Title: ResolveTitle(item.Title, fields),
+                Authors: ResolveAuthors(item.Authors, fields),
                 CoverRelativePath: null, // Phase 05 populates covers
                 Status: item.Status,
                 Rating: item.Rating,
@@ -169,8 +194,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
         return new BookDetailProjection(
             BookId: result.BookId,
-            Title: result.Title,
-            Authors: result.Authors,
+            Title: ResolveTitle(result.Title, fields),
+            Authors: ResolveAuthors(result.Authors, fields),
             Year: result.Year,
             Isbn: result.IsbnNormalized,
             Doi: result.Doi,
@@ -185,6 +210,47 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             MetadataFields: fields,
             ReadingMemory: memory);
     }
+
+    private static string? ResolveTitle(
+        string? title,
+        IReadOnlyList<MetadataFieldProjection> fields) =>
+        !string.IsNullOrWhiteSpace(title)
+            ? title
+            : SelectBestMetadataValue(fields, "Title");
+
+    private static List<string> ResolveAuthors(
+        List<string> authors,
+        IReadOnlyList<MetadataFieldProjection> fields)
+    {
+        if (authors.Count > 0)
+        {
+            return authors;
+        }
+
+        string? value = SelectBestMetadataValue(fields, "Author");
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return [];
+        }
+
+        return value
+            .Split([';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .ToList();
+    }
+
+    private static string? SelectBestMetadataValue(
+        IReadOnlyList<MetadataFieldProjection> fields,
+        string fieldName) =>
+        fields
+            .Where(f =>
+                string.Equals(f.FieldName, fieldName, StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(f.Value))
+            .OrderByDescending(f => f.IsOverridden)
+            .ThenByDescending(f => f.Confidence ?? 0)
+            .ThenBy(f => f.Source)
+            .Select(f => f.Value)
+            .FirstOrDefault();
 
     /// <inheritdoc />
     public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(

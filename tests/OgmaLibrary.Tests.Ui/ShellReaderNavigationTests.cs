@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
@@ -54,6 +55,44 @@ public sealed class ShellReaderNavigationTests
         Assert.True(shell.Reader?.IsOpen);
         Assert.Equal("book-001", sessionService.OpenedBookId);
         Assert.Equal(4, shell.Reader?.CurrentPageIndex);
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_OpenPdfPathAsync_OpensReaderAndReportsMetadataQueued()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var sessionService = new FakeReaderSessionService();
+        var reader = new ReaderViewModel(
+            sessionService,
+            new EmptyAnnotationService(),
+            new EmptyBookmarkService(),
+            new EmptyLayerService(),
+            new EmptyCitationService(),
+            new EmptyReadingMemoryService(),
+            localization);
+        var directOpen = new FakeDirectPdfOpenService("book-direct");
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            reader,
+            directPdfOpenService: directOpen);
+
+        await shell.OpenPdfPathAsync(@"C:\fixtures\direct.pdf");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(@"C:\fixtures\direct.pdf", directOpen.OpenedPath);
+        Assert.Equal(ShellView.Reader, shell.ActiveView);
+        Assert.Equal("book-direct", sessionService.OpenedBookId);
+        Assert.Equal("PDF opened in reader. Metadata extraction and enrichment are queued.", shell.StatusText);
     }
 
     private sealed class EmptyCatalogueReadModel : ICatalogueReadModel
@@ -137,6 +176,23 @@ public sealed class ShellReaderNavigationTests
             int? pageHint = null,
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class FakeDirectPdfOpenService : IDirectPdfOpenService
+    {
+        private readonly string _bookId;
+
+        public FakeDirectPdfOpenService(string bookId) => _bookId = bookId;
+
+        public string? OpenedPath { get; private set; }
+
+        public Task<string> OpenAsync(
+            string absoluteFilePath,
+            CancellationToken cancellationToken = default)
+        {
+            OpenedPath = absoluteFilePath;
+            return Task.FromResult(_bookId);
+        }
     }
 
     private sealed class FakeReaderSessionService : IReaderSessionService

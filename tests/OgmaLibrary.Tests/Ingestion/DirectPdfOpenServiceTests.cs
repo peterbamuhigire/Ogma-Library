@@ -1,3 +1,4 @@
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
@@ -191,6 +192,46 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DirectPdfOpen_MetadataExtraction_VisibleInCatalogueProjection()
+    {
+        string pdfPath = Path.Combine(_tempRoot, "metadata.pdf");
+        await File.WriteAllBytesAsync(pdfPath, CreatePdfWithInfo("Direct Metadata Title", "Direct Metadata Author"));
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        var settings = new LibrarySettingsService(_tempRoot);
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context));
+
+        string bookId = await service.OpenAsync(pdfPath);
+        var extraction = new MetadataExtractionService(context);
+
+        (bool success, string? errorMessage) = await extraction.ExtractAsync(bookId, pdfPath);
+
+        Assert.True(success, errorMessage);
+
+        var readModel = new CatalogueReadModel(context);
+        BookDetailProjection? detail = await readModel.GetBookDetailAsync(bookId);
+
+        Assert.NotNull(detail);
+        Assert.Equal("Direct Metadata Title", detail.Title);
+        Assert.Equal(["Direct Metadata Author"], detail.Authors);
+
+        var summaries = new List<BookSummaryProjection>();
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(
+            new CatalogueFilter(TitleContains: "Direct Metadata")))
+        {
+            summaries.Add(summary);
+        }
+
+        BookSummaryProjection visible = Assert.Single(summaries);
+        Assert.Equal(bookId, visible.BookId);
+        Assert.Equal("Direct Metadata Title", visible.Title);
+        Assert.Equal(["Direct Metadata Author"], visible.Authors);
+    }
+
+    [Fact]
     public async Task DirectPdfOpen_RejectsNonPdfFile()
     {
         string textPath = Path.Combine(_tempRoot, "notes.txt");
@@ -226,5 +267,17 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         byte[] data = System.Text.Encoding.UTF8.GetBytes($"{bookId}|{jobType}|{discriminator}");
         byte[] hash = System.Security.Cryptography.SHA256.HashData(data);
         return Convert.ToHexStringLower(hash)[..32];
+    }
+
+    private static byte[] CreatePdfWithInfo(string title, string author)
+    {
+        using var document = new PdfSharp.Pdf.PdfDocument();
+        document.Info.Title = title;
+        document.Info.Author = author;
+        document.AddPage();
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        return stream.ToArray();
     }
 }

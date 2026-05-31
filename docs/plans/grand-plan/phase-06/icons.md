@@ -56,7 +56,7 @@ slate for secondary actions).
 | Icon key | Used on | Meaning | Style / color note | Sizes (px) | Status |
 | --- | --- | --- | --- | --- | --- |
 | `ic_open_reader` | "Read" button in book-detail | Open the PDF reader | Open book; ink blue | 16/24/32 @1x-3x | ⬜ to procure |
-| `ic_enrich` | "Enrich" button (disabled placeholder) | Enrich metadata from online providers | Sparkle or globe+book; plum; muted when disabled | 16/24 @1x-3x | ⬜ to procure |
+| `ic_enrich` | "Enrich" button | Enrich metadata from deterministic online providers | Sparkle or globe+book; plum | 16/24 @1x-3x | ⬜ to procure |
 | `ic_book_no_cover` | Cover placeholder in book-detail + grid | Book has no cover yet | Book outline with question mark; slate | 48/96 @1x-3x | ⬜ to procure |
 | `ic_provenance` | Provenance indicator on enriched fields | Indicates field was enriched from a provider | Small badge: source icon; oak-amber | 12/16 @1x-3x | ⬜ to procure |
 | `ic_edit_inline` | Inline field edit affordance | Click to edit this field | Pencil; slate | 12/16 @1x-3x | ⬜ to procure |
