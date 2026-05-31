@@ -132,7 +132,7 @@ copy and export.
 | Task ID | Description | Est. | Deps | Satisfies |
 | --- | --- | --- | --- | --- |
 | P09-WP8-T1 | Create `annotations.en.resx` and `annotations.fr.resx`; externalize all strings for annotation actions, bookmark panel, layer sidebar, citation card, reading memory journal | 3 h | Phase 03 i18n scaffold | I18N-STRATEGY.md |
-| P09-WP8-T2 | Wire premium icon PNGs (or placeholders) for all annotation surfaces; register in `IconCatalog` | 2 h | icons.md, Phase 03 | ICON-SYSTEM.md |
+| P09-WP8-T2 | Wire delivered premium SVG icons for all annotation surfaces; register in `IconCatalog` and preserve PNG generation as a packaging-only derivative if later required | 2 h | icons.md, Phase 03 | ICON-SYSTEM.md |
 | P09-WP8-T3 | Accessibility: highlight color is never sole differentiator — each highlight carries an ARIA label with the layer name; note icons have `aria-label`; bookmark list keyboard-navigable | 2 h | P09-WP3-T1, P09-WP4-T2, P09-WP5-T4 | NFR-PROD-008 |
 | P09-WP8-T4 | Screen-reader walkthrough: VoiceOver/Narrator announces "Highlight on page N, layer X"; bookmark list announces count and item labels | 1 h | P09-WP8-T3 | NFR-PROD-008 |
 | P09-WP8-T5 | Pseudolocale render: annotation panel, layer sidebar, reading memory — no truncation/overflow | 1 h | P09-WP8-T1 | I18N-STRATEGY.md |

@@ -105,4 +105,4 @@ Store + direct distribution permitted).
 `OgmaLibrary.App/Assets/icons/reader/annotations/` and
 `OgmaLibrary.App/Assets/icons/reader/memory/`.
 
-Shipping with placeholder icons is no longer a Phase 09 blocker.
+Icon procurement is no longer a Phase 09 blocker.
