@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Shelf3D"
+             xmlns:messages="using:OgmaLibrary.Bookshelf3D.Messages"
+             x:Class="OgmaLibrary.App.Views.Shelf3D.Bookshelf3DView"
+             x:DataType="vm:Bookshelf3DViewModel">
+  <Grid RowDefinitions="Auto,*" RowSpacing="8" Margin="12">
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+      <TextBlock Text="3D Bookshelf"
+                 FontSize="18"
+                 FontWeight="SemiBold"
+                 VerticalAlignment="Center" />
+      <Button Grid.Column="1"
+              Content="Shelf"
+              AutomationProperties.Name="Shelf layout"
+              Click="ShelfLayout_Click" />
+      <Button Grid.Column="2"
+              Content="Grid 3D"
+              AutomationProperties.Name="Grid 3D layout"
+              Click="GridLayout_Click" />
+    </Grid>
+
+    <Grid Grid.Row="1">
+      <Border IsVisible="{Binding IsWebGl2Supported}"
+              BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+              BorderThickness="1"
+              CornerRadius="6"
+              Background="{DynamicResource ThemeSurfaceSubtleBrush}"
+              MinHeight="360"
+              AutomationProperties.Name="3D bookshelf WebView host">
+        <NativeControlHost x:Name="WebViewHost"
+                           Focusable="True"
+                           IsTabStop="True" />
+      </Border>
+
+      <Border IsVisible="{Binding IsFallbackVisible}"
+              BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+              BorderThickness="1"
+              CornerRadius="6"
+              Padding="12"
+              Background="{DynamicResource ThemeSurfaceSubtleBrush}">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <TextBlock Text="3D view is not available on this device - showing the accessible bookshelf list."
+                     TextWrapping="Wrap" />
+          <ListBox Grid.Row="1"
+                   ItemsSource="{Binding Books}"
+                   MinHeight="320"
+                   AutomationProperties.Name="Accessible bookshelf fallback">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="messages:BookSceneItem">
+                <Grid ColumnDefinitions="2*,*" ColumnSpacing="10" Margin="0,3">
+                  <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding Author}"
+                             TextTrimming="CharacterEllipsis" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

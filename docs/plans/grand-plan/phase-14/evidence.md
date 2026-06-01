@@ -18,7 +18,8 @@ selection.
 `Bookshelf3DViewModel` now projects catalogue summaries into scene items, posts
 `SetScene` and `SetLayout` bridge messages, reacts to WebGL2 fallback messages,
 and navigates through the same book-detail navigation contract used by the
-catalogue grid.
+catalogue grid. The first Avalonia shell now hosts the future native WebView
+area and renders an accessible fallback bookshelf list when WebGL2 is absent.
 
 The platform-specific native WebView packages are not wired yet; the bridge is
 ready for those adapters through `IWebViewHostAdapter`.
@@ -32,6 +33,7 @@ ready for those adapters through `IWebViewHostAdapter`.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SpineTextureGeneratorTests` | Passed: 3 spine texture generator tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewModelTests` | Passed: 4 Bookshelf3D view-model tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~ApplicationStartupTests` | Passed: 3 startup/DI tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewRenderTests` | Passed: 1 Bookshelf3D fallback render test |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity` | Passed: 1 Bookshelf3D bounded-context architecture test |
 | `npx --yes -p typescript tsc --noEmit -p src\shelf3d\tsconfig.json` | Passed: strict TypeScript message contract check |
 | `npm install` in `src\shelf3d` | Passed: installed TypeScript, Three.js, and type declarations; 0 vulnerabilities |
@@ -63,6 +65,8 @@ ready for those adapters through `IWebViewHostAdapter`.
 | Navigation parity | Validated `BookClicked` / `BookDoubleClicked` inbound messages call `IBookDetailNavigationService.OpenDetailAsync` |
 | Fallback state | `WebGl2Status(false)` flips `IsWebGl2Supported` and exposes `IsFallbackVisible` for the upcoming Avalonia fallback view |
 | Composition root | `IWebViewBridge` is registered per platform facade and `Bookshelf3DViewModel` is registered as transient |
+| Bookshelf3D view | `Bookshelf3DView` defines the toolbar, native host placeholder, and accessible fallback list |
+| Bookshelf3D render test | `Bookshelf3DViewRenderTests` headless-renders the fallback catalogue path |
 
 ## Remaining Phase 14 Work
 
