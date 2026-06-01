@@ -33,13 +33,13 @@ folder named in the row.
 Run these from the repository root before manual review:
 
 ```powershell
-dotnet format OgmaLibrary.sln --verify-no-changes --no-restore
-dotnet build OgmaLibrary.sln --configuration Release --no-restore
-dotnet test OgmaLibrary.sln --configuration Release --no-build
+.\scripts\Phase09-Preflight.ps1
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 344 total tests: Core 236, UI 93, Architecture 15.
+Release tests pass 344 total tests: Core 236, UI 93, Architecture 15. Attach
+the generated `docs/qa/evidence/phase09-preflight-*.md` file as the preflight
+evidence reference for this packet.
 
 ## Manual Reader Walkthrough
 
@@ -103,6 +103,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 14 migration/direct-PDF regression tests including production-DI missing-`BookFiles` direct-open repair |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~IngestionPipelineTests\|FullyQualifiedName~MigrationTests\|FullyQualifiedName~ApplicationStartupTests"` | Passed: 23 direct-PDF, folder-scan, migration repair, and startup tests including production-DI missing-`BookFiles` repair for direct open and Choose Library Folder, plus same-hash unregistered-path folder-scan registration |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 236, UI 93, Architecture 15 |
+| `.\scripts\Phase09-Preflight.ps1` | Generates a dated `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
 
 ## Closure Rule
 

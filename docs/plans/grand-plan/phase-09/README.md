@@ -445,6 +445,9 @@ Current implementation progress:
   green: Architecture 15, Core 236, and UI 93 tests.
 - Developer-guide screenshots for the reader and scan surfaces were refreshed
   from the UI screenshot tests after the delivered-icon reader updates.
+- Manual review preflight is now scriptable with
+  `scripts/Phase09-Preflight.ps1`, which emits a dated QA evidence record
+  before the reviewer starts the Narrator/VoiceOver and visual checks.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -521,3 +524,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added rendered bookmark direct-control coverage and fixed inline bookmark rename after two-way binding | Codex |
 | 2026-06-01 | Refreshed the local Release full-suite gate after bookmark direct-control coverage: Architecture 15, Core 236, UI 93 | Codex |
 | 2026-06-01 | Refreshed developer-guide reader and scan screenshots from the current UI screenshot tests | Codex |
+| 2026-06-01 | Added a Phase 09 manual-review preflight collector for dated QA evidence records | Codex |
