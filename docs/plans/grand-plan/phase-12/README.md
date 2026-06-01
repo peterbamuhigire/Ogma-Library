@@ -29,7 +29,7 @@ through one controllable, auditable, reversible surface.
 | Platforms | Windows (WebView2 not needed here) + macOS; fully cross-platform .NET 10 |
 | ADRs in scope | ADR-0007 (provider-neutral AI gateway + 4 tiers) |
 | Security/CTRL IDs | SI-1, CTRL-OGMA-016, 017, 018, 019, 020, 022 |
-| Status | WP1 contracts, WP2 persistence, WP3 gateway core, WP4 provider adapters, WP5 payload preview, WP6 Privacy Center shell, WP7 cost display, and WP8 architecture guards implemented locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, payload-preview/consent/audit gateway enforcement, OpenAI-compatible/DeepSeek-compatible, Anthropic, Ollama adapters, localized payload preview dialog shell, Privacy Center tier/history/embedding/audit operations, culture-aware cost text, AI egress boundary tests, and focused tests; WP9 pending |
+| Status | WP1-WP9 implemented and verified locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, payload-preview/consent/audit gateway enforcement, OpenAI-compatible/DeepSeek-compatible, Anthropic, Ollama adapters, localized payload preview dialog shell, Privacy Center tier/history/embedding/audit operations, culture-aware cost text, AI egress boundary tests, SQLite-backed gateway integration, and full local test/build evidence; remote CI/manual accessibility/formal security review pending before beta signoff |
 
 ---
 
@@ -446,3 +446,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Codex | WP6 Privacy Center shell implemented: concrete privacy service, tier controls, recent audit list, delete-history action, embedding erasure action, audit export, en/fr labels, and focused tests |
 | 2026-06-01 | Codex | WP7 cost display implemented: culture-aware USD formatter, Privacy Center formatted cost rows, and en/fr decimal-format tests |
 | 2026-06-01 | Codex | WP8 architecture guards implemented: AI provider HTTP client ownership test and AI/Reader bounded-context dependency test |
+| 2026-06-01 | Codex | WP9 local integration/closeout completed: SQLite-backed gateway path, full core/architecture/UI tests, format verification, and release build evidence |
