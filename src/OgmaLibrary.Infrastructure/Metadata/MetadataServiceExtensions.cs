@@ -41,7 +41,9 @@ public static class MetadataServiceExtensions
                 client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
                 client.Timeout = TimeSpan.FromSeconds(10);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
-            });
+            })
+            .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
+                MetadataProviderRateLimitPolicy.GoogleBooks));
 
         services.AddHttpClient<OpenLibraryProvider>(
             "OpenLibrary",
@@ -50,7 +52,9 @@ public static class MetadataServiceExtensions
                 client.BaseAddress = new Uri("https://openlibrary.org/");
                 client.Timeout = TimeSpan.FromSeconds(10);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
-            });
+            })
+            .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
+                MetadataProviderRateLimitPolicy.OpenLibrary));
 
         // Register both providers as IMetadataProvider implementations.
         services.AddSingleton<IMetadataProvider, GoogleBooksProvider>(sp =>

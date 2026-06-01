@@ -25,6 +25,8 @@ is supplied through `Tesseract.Data.English`, which copies
 The WP4 reader handoff now opens protected PDFs through `OpenProtectedAsync`,
 passes the password to the PDFium adapter, clears provider-owned password
 buffers after open, and covers the known-password PDF render path.
+The first WP6 scale-hardening slice adds provider-specific rate limiting and
+429/503 retry handling to the Google Books and Open Library HTTP clients.
 
 ## Verified Locally
 
@@ -39,6 +41,7 @@ buffers after open, and covers the known-password PDF render path.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PasswordProviderTests` | Passed: 5 password-provider security/handoff tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~PasswordProviderTests\|FullyQualifiedName~ReaderSessionServiceTests\|FullyQualifiedName~PdfiumAdapterPasswordTests"` | Passed: 16 password/session/PDFium handoff tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PdfiumAdapterPasswordTests` | Passed: 1 real PDFium password-protected render test |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RateLimitedHttpClientTests` | Passed: 3 provider rate-limit/retry tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -66,6 +69,7 @@ buffers after open, and covers the known-password PDF render path.
 | Password unlock view model | `PasswordUnlockViewModel` requests passwords without writing secret values to EF rows or sidecars |
 | Protected reader handoff | `IReaderSessionService.OpenProtectedAsync` and `IPdfRendererFactory.Open(filePath, password)` carry OS-supplied passwords to the renderer boundary |
 | PDFium password render path | `PdfiumAdapter` detects required passwords, opens protected PDFs with supplied credentials, and clears its session password buffer on dispose |
+| Provider HTTP resilience | `RateLimitedHttpClientHandler` spaces Google Books/Open Library requests and retries 429/503 responses with bounded exponential backoff |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work
@@ -74,7 +78,7 @@ buffers after open, and covers the known-password PDF render path.
 - WP3 OCR trigger/pause/cancel/retry controls.
 - WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
-- WP6 batch enrichment scale hardening.
+- WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
 - WP7 smart-shelf performance optimization.
 - WP8 OCR extension point.
 - WP9 golden-corpus, security review, and full remote CI evidence.
