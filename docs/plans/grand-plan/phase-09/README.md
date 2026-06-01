@@ -459,7 +459,7 @@ Current implementation progress:
   `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
   available; the signoff gate accepts only a passing current-commit record.
 - The latest remote-CI collection attempt is archived at
-  `docs/qa/evidence/phase09-remote-ci-20260601-073039.md`; GitHub Actions API
+  `docs/qa/evidence/phase09-remote-ci-20260601-073636.md`; GitHub Actions API
   access still returns 404 from this environment, so remote CI remains pending.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
@@ -543,3 +543,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added a GitHub Actions remote-CI evidence collector for the Phase 09 signoff gate | Codex |
 | 2026-06-01 | Archived a remote-CI collection attempt showing GitHub Actions API 404 for the current pushed commit | Codex |
 | 2026-06-01 | Improved the Phase 09 signoff gate with row-level pending evidence details | Codex |
+| 2026-06-01 | Refreshed remote-CI evidence attempt for the current Phase 09 signoff-gate commit | Codex |

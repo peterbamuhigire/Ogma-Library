@@ -105,7 +105,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 236, UI 93, Architecture 15 |
 | `.\scripts\Phase09-Preflight.ps1` | Generates a dated `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
 | `docs/qa/evidence/phase09-preflight-20260601-072040.md` | Current preflight evidence for commit `f4c09954bdeab37a59cdcc3350560eff133c919b`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
-| `docs/qa/evidence/phase09-remote-ci-20260601-073039.md` | Current remote-CI collection attempt for commit `fb48f58b32a625306f40356dc280261dd5076b1d`: GitHub Actions API returned 404, so remote CI remains pending |
+| `docs/qa/evidence/phase09-remote-ci-20260601-073636.md` | Current remote-CI collection attempt for commit `8e82c9a60d4da88df65fa15a1874854f5b441571`: GitHub Actions API returned 404, so remote CI remains pending |
 
 ## Closure Rule
 
