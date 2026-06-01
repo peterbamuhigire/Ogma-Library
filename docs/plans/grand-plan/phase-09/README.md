@@ -455,6 +455,9 @@ Current implementation progress:
   the gate remains pending until manual, owner, and remote-CI evidence rows are
   completed or explicitly waived, and the generated report lists the exact
   pending rows still needing evidence.
+- The signoff gate now scopes preflight evidence to the current commit or to an
+  ancestor commit only when no product source, tests, workflow, solution,
+  project, props, targets, or `.editorconfig` files changed afterward.
 - Remote GitHub Actions evidence can be collected with
   `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
   available; the signoff gate accepts only a passing current-commit record.
@@ -544,3 +547,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Archived a remote-CI collection attempt showing GitHub Actions API 404 for the current pushed commit | Codex |
 | 2026-06-01 | Improved the Phase 09 signoff gate with row-level pending evidence details | Codex |
 | 2026-06-01 | Refreshed remote-CI evidence attempt for the current Phase 09 signoff-gate commit | Codex |
+| 2026-06-01 | Tightened the Phase 09 signoff gate so ancestor preflight evidence remains valid only when no product/test/build/workflow files changed afterward | Codex |

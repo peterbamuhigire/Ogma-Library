@@ -57,6 +57,74 @@ function Get-PendingTableRows {
     return @($rows)
 }
 
+function Get-TableValue {
+    param(
+        [string]$Markdown,
+        [string]$Field
+    )
+
+    $pattern = "(?m)^\|\s*$([regex]::Escape($Field))\s*\|\s*(?<Value>.*?)\s*\|\s*$"
+    $match = [regex]::Match($Markdown, $pattern)
+    if (-not $match.Success) {
+        return ''
+    }
+
+    return $match.Groups['Value'].Value.Trim()
+}
+
+function Test-PreflightCommitCoverage {
+    param(
+        [string]$PreflightCommit,
+        [string]$CurrentCommit
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PreflightCommit)) {
+        return [PSCustomObject]@{
+            IsCovered = $false
+            Reason = 'Preflight evidence does not record a commit.'
+        }
+    }
+
+    if ($PreflightCommit -eq $CurrentCommit) {
+        return [PSCustomObject]@{
+            IsCovered = $true
+            Reason = 'Preflight evidence was generated for the current commit.'
+        }
+    }
+
+    & git merge-base --is-ancestor $PreflightCommit $CurrentCommit 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return [PSCustomObject]@{
+            IsCovered = $false
+            Reason = "Preflight commit $PreflightCommit is not an ancestor of current commit $CurrentCommit."
+        }
+    }
+
+    $changedFiles = @((& git diff --name-only $PreflightCommit $CurrentCommit) | ForEach-Object { $_.ToString() })
+    $requiresFreshPreflight = @($changedFiles | Where-Object {
+            $_ -like 'src/*' -or
+            $_ -like 'tests/*' -or
+            $_ -like '.github/*' -or
+            $_ -eq 'OgmaLibrary.sln' -or
+            $_ -like '*.csproj' -or
+            $_ -like '*.props' -or
+            $_ -like '*.targets' -or
+            $_ -like '*.editorconfig'
+        })
+
+    if ($requiresFreshPreflight.Count -gt 0) {
+        return [PSCustomObject]@{
+            IsCovered = $false
+            Reason = "Fresh preflight required because production/test/build files changed after preflight: $($requiresFreshPreflight -join ', ')"
+        }
+    }
+
+    return [PSCustomObject]@{
+        IsCovered = $true
+        Reason = "Preflight commit $PreflightCommit is an ancestor and no product, test, workflow, solution, project, props, targets, or editorconfig files changed afterward."
+    }
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $repoRoot
 
@@ -102,11 +170,20 @@ else {
     $missing = @($preflightChecks | Where-Object {
             $preflightText.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -lt 0
         })
-    if ($missing.Count -eq 0) {
-        Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName 'None'
+    $preflightCommit = Get-TableValue -Markdown $preflightText -Field 'Commit'
+    $coverage = Test-PreflightCommitCoverage -PreflightCommit $preflightCommit -CurrentCommit $currentCommit
+    if ($missing.Count -eq 0 -and $coverage.IsCovered) {
+        Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName $coverage.Reason
     }
     else {
-        Add-Result $results 'Automated preflight evidence' 'Fail' $preflight.FullName "Regenerate preflight evidence; missing markers: $($missing -join '; ')"
+        $reasons = @()
+        if ($missing.Count -gt 0) {
+            $reasons += "missing markers: $($missing -join '; ')"
+        }
+        if (-not $coverage.IsCovered) {
+            $reasons += $coverage.Reason
+        }
+        Add-Result $results 'Automated preflight evidence' 'Fail' $preflight.FullName "Regenerate preflight evidence; $($reasons -join '; ')"
     }
 }
 

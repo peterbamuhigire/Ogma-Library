@@ -121,6 +121,9 @@ The gate exits `0` only when preflight evidence is valid and no manual,
 owner-decision, accessibility, visual-review, or remote-CI evidence remains
 pending. When it exits nonzero, the generated report includes a `Pending Detail
 Rows` section listing the exact table rows that still need evidence or waiver.
+Preflight evidence is accepted for the current commit, or for an ancestor commit
+when no product source, tests, workflow, solution, project, props, targets, or
+`.editorconfig` files changed after that preflight run.
 
 To collect remote CI evidence when GitHub Actions is readable from the
 workstation, run:
