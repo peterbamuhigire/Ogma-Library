@@ -4,6 +4,7 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
+using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Infrastructure.Sidecar;
 
 namespace OgmaLibrary.Infrastructure.Catalogue;
@@ -75,6 +76,7 @@ public static class CatalogueServiceExtensions
         // Phase 10 — Search & indexing.
         services.AddSingleton<IExtractedTextStore, ExtractedTextStore>();
         services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
+        services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
 
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));

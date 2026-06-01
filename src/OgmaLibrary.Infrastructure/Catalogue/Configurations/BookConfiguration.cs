@@ -40,6 +40,9 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.HasIndex(b => b.Sha256Hash).HasDatabaseName("IX_Books_Sha256Hash");
         // ISBN lookup index: fast ISBN-based identity tier.
         builder.HasIndex(b => b.IsbnNormalized).HasDatabaseName("IX_Books_IsbnNormalized");
+        // Metadata search covering index for title and ISBN lookup.
+        builder.HasIndex(b => new { b.Title, b.IsbnNormalized })
+            .HasDatabaseName("IX_Books_Title_IsbnNormalized");
         // Status filter index.
         builder.HasIndex(b => b.Status).HasDatabaseName("IX_Books_Status");
         // Search indexing status filter.
