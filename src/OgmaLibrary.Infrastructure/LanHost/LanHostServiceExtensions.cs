@@ -21,6 +21,13 @@ public static class LanHostServiceExtensions
         services.AddSingleton<ILanBookFileResolver>(sp => new LanBookFileResolver(
             sp.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<Catalogue.CatalogueDbContext>>(),
             dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));
+        services.AddSingleton<ILanPageRenderer>(sp =>
+        {
+            var rendererFactory = sp.GetService<OgmaLibrary.Application.Reader.IPdfRendererFactory>();
+            return rendererFactory is null
+                ? new UnavailableLanPageRenderer()
+                : new LanPageRenderer(sp.GetRequiredService<ILanBookFileResolver>(), rendererFactory);
+        });
         services.AddSingleton<IHostModeListener, KestrelHostModeListener>();
         services.AddSingleton<ILibraryHostService, LibraryHostService>();
         return services;

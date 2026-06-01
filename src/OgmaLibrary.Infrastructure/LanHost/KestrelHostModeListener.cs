@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 
@@ -20,6 +21,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly IMetadataSearchService _metadataSearch;
     private readonly ISidecarService _sidecarService;
     private readonly ILanBookFileResolver _fileResolver;
+    private readonly ILanPageRenderer _pageRenderer;
     private readonly IClientSessionService _sessions;
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
@@ -30,6 +32,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IMetadataSearchService metadataSearch,
         ISidecarService sidecarService,
         ILanBookFileResolver fileResolver,
+        ILanPageRenderer pageRenderer,
         IClientSessionService sessions,
         IHostServerCertificateProvider certificates,
         IAuditRepository audit)
@@ -38,6 +41,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
         _sidecarService = sidecarService ?? throw new ArgumentNullException(nameof(sidecarService));
         _fileResolver = fileResolver ?? throw new ArgumentNullException(nameof(fileResolver));
+        _pageRenderer = pageRenderer ?? throw new ArgumentNullException(nameof(pageRenderer));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
@@ -233,6 +237,38 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             }
 
             return Results.File(path, "image/jpeg", enableRangeProcessing: true);
+        });
+
+        app.MapGet("/api/v1/books/{bookId}/page/{pageNumber:int}", async (
+            string bookId,
+            int pageNumber,
+            int? widthPx,
+            CancellationToken ct) =>
+        {
+            if (settings.ContentMode != HostContentDeliveryMode.PageRender)
+            {
+                return Results.Json(
+                    new LanHostError(
+                        "page_render_disabled",
+                        "Page-render streaming is disabled for this Host. File-stream mode uses the raw PDF endpoint."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            if (pageNumber <= 0)
+            {
+                return Results.BadRequest(new LanHostError("invalid_page_number", "Page number must be 1 or greater."));
+            }
+
+            int width = Math.Clamp(widthPx ?? 1200, 320, 2400);
+            RenderResult? result = await _pageRenderer
+                .RenderAsync(bookId, pageNumber, new RenderRequest(width), ct)
+                .ConfigureAwait(false);
+            if (result is null)
+            {
+                return Results.NotFound(new LanHostError("page_not_found", "The requested page was not found or cannot be rendered."));
+            }
+
+            return Results.Bytes(result.PngBytes, "image/png");
         });
 
         app.MapGet("/api/v1/books/{bookId}/file", async (string bookId, CancellationToken ct) =>

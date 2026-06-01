@@ -8,10 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
 using OgmaLibrary.Infrastructure.Sidecar;
+using OgmaLibrary.Tests.Reader;
 
 namespace OgmaLibrary.Tests.LanHost;
 
@@ -58,6 +60,8 @@ public sealed class LanHostEndpointTests
             string bookDetailJson = await bookDetail.Content.ReadAsStringAsync();
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
             byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
+            using HttpResponseMessage page = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/page/1?widthPx=800");
+            byte[] renderedPage = await page.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage invalidAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('z', 64)}");
             using HttpResponseMessage fileStream = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/file");
             string fileStreamBody = await fileStream.Content.ReadAsStringAsync();
@@ -76,7 +80,11 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             Assert.Equal(HttpStatusCode.OK, bookDetail.StatusCode);
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, page.StatusCode);
             Assert.Equal(assetBytes, servedAsset);
+            Assert.Equal("image/png", page.Content.Headers.ContentType?.MediaType);
+            Assert.True(renderedPage.Length >= 8);
+            Assert.Equal([0x89, 0x50, 0x4E, 0x47], renderedPage[..4]);
             Assert.Equal(HttpStatusCode.BadRequest, invalidAsset.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, fileStream.StatusCode);
             Assert.DoesNotContain("%PDF", fileStreamBody, StringComparison.OrdinalIgnoreCase);
@@ -109,10 +117,12 @@ public sealed class LanHostEndpointTests
                 new { clientId = "teacher-1", role = "Teacher", lifetimeMinutes = 5 });
             string fileStreamToken = await ReadJsonStringAsync(fileStreamSession, "token");
             fileStreamHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fileStreamToken);
+            using HttpResponseMessage disabledPageRender = await fileStreamHttp.GetAsync("/api/v1/books/01LANENDPOINT000000000001/page/1");
             using HttpResponseMessage enabledFileStream = await fileStreamHttp.GetAsync("/api/v1/books/01LANENDPOINT000000000001/file");
             byte[] streamedPdf = await enabledFileStream.Content.ReadAsByteArrayAsync();
             await host.StopAsync();
 
+            Assert.Equal(HttpStatusCode.Forbidden, disabledPageRender.StatusCode);
             Assert.Equal(HttpStatusCode.OK, enabledFileStream.StatusCode);
             Assert.Equal("application/pdf", enabledFileStream.Content.Headers.ContentType?.MediaType);
             Assert.Equal(pdfBytes, streamedPdf);
@@ -138,6 +148,7 @@ public sealed class LanHostEndpointTests
     {
         ServiceProvider services = new ServiceCollection()
             .AddCatalogueContext(dataDirectory, dataDirectory)
+            .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
             .BuildServiceProvider();
 
