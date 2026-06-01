@@ -8,8 +8,8 @@ Embeddings.
 ## Current Position
 
 Phase 11 WP1, WP2 backend foundations, WP3 semantic-search foundations, the
-WP4 hybrid ranking formula, WP5 match-location backend, and WP6 erasure backend
-have started locally. The embedding schema has been aligned with the Phase 11 model/version requirements,
+WP4 hybrid ranking formula, WP5 match-location backend, and WP6 erasure/spike
+foundations have started locally. The embedding schema has been aligned with the Phase 11 model/version requirements,
 `Books.EmbeddingStatus` is in the EF model, a Phase 12-compatible `IAiProvider`
 stub exists in Application, the local Ollama embedding provider is registered
 behind Application contracts, and the embedding generation pipeline can process
@@ -32,6 +32,7 @@ float BLOBs keyed back to `SearchChunks`.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~EmbeddingErasureTests` | Passed: 2 embedding erasure, audit-event, status-reset, and requeue-oracle tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 18 architecture tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+| Document review: `docs/spikes/ANN-SQLite-Vec-Spike.md`, `docs/architecture/adr/ADR-0006-hybrid-search.md` | Added sqlite-vec/Vec1 spike plan, `IVectorIndex` proposed contract, ANN trigger thresholds, fallback criteria, and ADR-0006 ANN stub |
 
 ## Evidence Map
 
@@ -48,6 +49,7 @@ float BLOBs keyed back to `SearchChunks`.
 | Hybrid ranking formula | `IHybridRankingService` and `HybridRankingService` blend exact, semantic, recency, status, and rating signals with deterministic score/`BookId` ordering and no-embedding fallback |
 | Match-location backend | `MatchLocation`, `ConfidenceLabel`, `IMatchLocationService`, and `MatchLocationService` derive ordered explanation badges and confidence labels from exact, FTS, semantic, and hybrid ranking signals |
 | Embedding erasure backend | `IEmbeddingErasureService` and `EmbeddingErasureService` delete vectors, reset book embedding status, and write an `EmbeddingVectorsErased` audit event in one transaction |
+| ANN spike/ADR | `docs/spikes/ANN-SQLite-Vec-Spike.md` and `docs/architecture/adr/ADR-0006-hybrid-search.md` document the sqlite-vec evaluation path and brute-force trigger thresholds |
 | Architecture guard | Architecture tests verify Application semantic search does not depend on Infrastructure AI and the Ollama adapter remains an internal Infrastructure detail |
 
 ## Remaining Phase 11 Work
@@ -56,5 +58,5 @@ float BLOBs keyed back to `SearchChunks`.
 - WP3: cosine similarity, deterministic top-K, and semantic search service are implemented locally; P95 benchmark remains.
 - WP4: hybrid ranking formula, defaults, determinism, and graceful no-embedding fallback are implemented locally; persistence-backed weight settings remain.
 - WP5: backend match-location derivation and confidence labels are implemented locally; UI badges, keyboard/SR behavior, and i18n remain.
-- WP6: embedding erasure service with audit event is implemented locally; UI confirmation flow, ANN spike document, and ADR stub remain.
+- WP6: embedding erasure service with audit event plus ANN spike/ADR docs are implemented locally; UI confirmation flow remains.
 - WP7/WP8: UI, icons, i18n, accessibility, full regression, manual checks, and remote CI evidence.
