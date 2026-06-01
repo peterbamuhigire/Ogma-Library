@@ -50,6 +50,63 @@ function Add-CodeBlock {
     $Lines.Add("``````")
 }
 
+function Test-IsWindows {
+    return [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)
+}
+
+function Get-OperatingSystemSummary {
+    if (Test-IsWindows) {
+        try {
+            $os = Get-CimInstance Win32_OperatingSystem
+            return "$($os.Caption) $($os.Version) build $($os.BuildNumber)"
+        }
+        catch {
+            return [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+        }
+    }
+
+    return [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+}
+
+function Get-OgmaAppProcesses {
+    if (Test-IsWindows) {
+        try {
+            return @(Get-CimInstance Win32_Process |
+                Where-Object {
+                    $_.Name -in @('OgmaLibrary.App.exe', 'dotnet.exe') -and
+                    ($_.CommandLine -like '*OgmaLibrary.App*' -or $_.CommandLine -like '*OgmaLibrary.App.csproj*')
+                } |
+                Select-Object ProcessId, Name, CommandLine)
+        }
+        catch {
+            return @()
+        }
+    }
+
+    $processes = [System.Collections.Generic.List[object]]::new()
+    $lines = @(& ps -axo pid=,comm=,args= 2>$null)
+    foreach ($line in $lines) {
+        $text = $line.ToString().Trim()
+        if ($text -notlike '*OgmaLibrary.App*' -and $text -notlike '*OgmaLibrary.App.csproj*') {
+            continue
+        }
+
+        $match = [regex]::Match($text, '^\s*(?<Pid>\d+)\s+(?<Name>\S+)\s+(?<Args>.*)$')
+        if (-not $match.Success) {
+            continue
+        }
+
+        $processes.Add([PSCustomObject]@{
+            ProcessId = $match.Groups['Pid'].Value
+            Name = $match.Groups['Name'].Value
+            CommandLine = $match.Groups['Args'].Value
+        })
+    }
+
+    return @($processes)
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $repoRoot
 
@@ -69,13 +126,8 @@ $commit = (& git rev-parse HEAD).Trim()
 $branch = (& git branch --show-current).Trim()
 $remote = (& git remote get-url origin).Trim()
 $dotnetVersion = (& dotnet --version).Trim()
-$os = Get-CimInstance Win32_OperatingSystem
-$appProcesses = @(Get-CimInstance Win32_Process |
-    Where-Object {
-        $_.Name -in @('OgmaLibrary.App.exe', 'dotnet.exe') -and
-        ($_.CommandLine -like '*OgmaLibrary.App*' -or $_.CommandLine -like '*OgmaLibrary.App.csproj*')
-    } |
-    Select-Object ProcessId, Name, CommandLine)
+$osSummary = Get-OperatingSystemSummary
+$appProcesses = @(Get-OgmaAppProcesses)
 
 $results = @()
 if (-not $SkipVerification) {
@@ -107,7 +159,7 @@ $lines.Add("| Generated UTC | $((Get-Date).ToUniversalTime().ToString('yyyy-MM-d
 $lines.Add("| Repository | $remote |")
 $lines.Add("| Branch | $branch |")
 $lines.Add("| Commit | $commit |")
-$lines.Add("| OS | $($os.Caption) $($os.Version) build $($os.BuildNumber) |")
+$lines.Add("| OS | $osSummary |")
 $lines.Add("| .NET SDK | $dotnetVersion |")
 $lines.Add("| Verification skipped | $($SkipVerification.IsPresent) |")
 $lines.Add('')

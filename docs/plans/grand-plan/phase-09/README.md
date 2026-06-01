@@ -447,7 +447,13 @@ Current implementation progress:
   from the UI screenshot tests after the delivered-icon reader updates.
 - Manual review preflight is now scriptable with
   `scripts/Phase09-Preflight.ps1`, which emits a dated QA evidence record
-  before the reviewer starts the Narrator/VoiceOver and visual checks.
+  before the reviewer starts the Narrator/VoiceOver and visual checks; the
+  script now records OS/app-process context without depending on Windows-only
+  CIM APIs when run on macOS.
+- Manual evidence packaging is now scriptable with
+  `scripts/New-Phase09ManualEvidencePackage.ps1`, which creates a dated
+  reviewer folder with screenshot/audio/export/note locations and per-row note
+  templates for every pending manual and accessibility row.
 - The first preflight record is archived at
   `docs/qa/evidence/phase09-preflight-20260601-072040.md` for commit
   `f4c09954bdeab37a59cdcc3350560eff133c919b`.
@@ -458,7 +464,9 @@ Current implementation progress:
 - The signoff gate now scopes preflight and passing remote-CI evidence to the
   current commit or to an ancestor commit only when no verification-impacting
   files changed afterward, and it requires the evidence file to be tracked and
-  clean in `HEAD`.
+  clean in `HEAD`; it evaluates all candidate evidence files and chooses the
+  newest valid passing candidate instead of letting a newer draft shadow older
+  valid evidence.
 - Remote GitHub Actions evidence can be collected with
   `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
   available; the signoff gate accepts only a passing current-commit record or a
@@ -553,3 +561,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Tightened the Phase 09 signoff gate so ancestor preflight evidence remains valid only when no product/test/build/workflow files changed afterward | Codex |
 | 2026-06-01 | Extended the same verification-impacting file scope check to passing remote-CI evidence and archived a fresh GitHub API 404 attempt | Codex |
 | 2026-06-01 | Hardened the Phase 09 signoff gate so untracked, staged-only, or locally edited evidence files cannot satisfy release evidence checks | Codex |
+| 2026-06-01 | Made Phase 09 preflight cross-platform, added a manual evidence package helper, and hardened signoff evidence selection against newer invalid drafts | Codex |

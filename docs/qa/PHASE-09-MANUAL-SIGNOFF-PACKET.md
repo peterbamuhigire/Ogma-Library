@@ -34,12 +34,15 @@ Run these from the repository root before manual review:
 
 ```powershell
 .\scripts\Phase09-Preflight.ps1
+.\scripts\New-Phase09ManualEvidencePackage.ps1
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
 Release tests pass 344 total tests: Core 236, UI 93, Architecture 15. Attach
 the generated `docs/qa/evidence/phase09-preflight-*.md` file as the preflight
-evidence reference for this packet.
+evidence reference for this packet. The manual evidence package creates a dated
+folder with `screenshots`, `audio`, `exports`, and `notes` subfolders plus
+per-row note templates for the remaining manual and accessibility rows.
 
 ## Manual Reader Walkthrough
 
@@ -103,7 +106,8 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 14 migration/direct-PDF regression tests including production-DI missing-`BookFiles` direct-open repair |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~IngestionPipelineTests\|FullyQualifiedName~MigrationTests\|FullyQualifiedName~ApplicationStartupTests"` | Passed: 23 direct-PDF, folder-scan, migration repair, and startup tests including production-DI missing-`BookFiles` repair for direct open and Choose Library Folder, plus same-hash unregistered-path folder-scan registration |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 236, UI 93, Architecture 15 |
-| `.\scripts\Phase09-Preflight.ps1` | Generates a dated `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
+| `.\scripts\Phase09-Preflight.ps1` | Generates a dated cross-platform `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
+| `.\scripts\New-Phase09ManualEvidencePackage.ps1` | Generates a dated reviewer evidence package with per-row note templates and screenshot/audio/export folders for the remaining manual and accessibility rows |
 | `docs/qa/evidence/phase09-preflight-20260601-072040.md` | Current preflight evidence for commit `f4c09954bdeab37a59cdcc3350560eff133c919b`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
 | `docs/qa/evidence/phase09-remote-ci-20260601-074523.md` | Current remote-CI collection attempt for commit `45a1c633a427cb196b5901cb3d9ef17e1d7db637`: GitHub Actions API returned 404, so remote CI remains pending |
 

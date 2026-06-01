@@ -92,6 +92,20 @@ function Test-VerificationImpactingPath {
     )
 }
 
+function Invoke-GitQuiet {
+    param([string[]]$Arguments)
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & git @Arguments *> $null
+        return $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
 function Test-EvidenceCommitCoverage {
     param(
         [string]$EvidenceName,
@@ -115,8 +129,8 @@ function Test-EvidenceCommitCoverage {
         }
     }
 
-    & git merge-base --is-ancestor $EvidenceCommit $CurrentCommit 2>$null
-    if ($LASTEXITCODE -ne 0) {
+    $ancestorExitCode = Invoke-GitQuiet -Arguments @('merge-base', '--is-ancestor', $EvidenceCommit, $CurrentCommit)
+    if ($ancestorExitCode -ne 0) {
         return [PSCustomObject]@{
             IsCovered = $false
             Reason = "$EvidenceName commit $EvidenceCommit is not an ancestor of current commit $CurrentCommit."
@@ -156,24 +170,24 @@ function Test-CommittedCleanEvidenceFile {
 
     $relativePath = $resolvedPath.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
 
-    & git ls-files --error-unmatch -- $relativePath *> $null
-    if ($LASTEXITCODE -ne 0) {
+    $trackedExitCode = Invoke-GitQuiet -Arguments @('ls-files', '--error-unmatch', '--', $relativePath)
+    if ($trackedExitCode -ne 0) {
         return [PSCustomObject]@{
             IsCommittedClean = $false
             Reason = "Evidence file is not tracked in git: $relativePath"
         }
     }
 
-    & git diff --quiet -- $relativePath
-    if ($LASTEXITCODE -ne 0) {
+    $worktreeDiffExitCode = Invoke-GitQuiet -Arguments @('diff', '--quiet', '--', $relativePath)
+    if ($worktreeDiffExitCode -ne 0) {
         return [PSCustomObject]@{
             IsCommittedClean = $false
             Reason = "Evidence file has uncommitted working-tree changes: $relativePath"
         }
     }
 
-    & git diff --cached --quiet -- $relativePath
-    if ($LASTEXITCODE -ne 0) {
+    $cachedDiffExitCode = Invoke-GitQuiet -Arguments @('diff', '--cached', '--quiet', '--', $relativePath)
+    if ($cachedDiffExitCode -ne 0) {
         return [PSCustomObject]@{
             IsCommittedClean = $false
             Reason = "Evidence file has staged changes not present in HEAD: $relativePath"
@@ -183,6 +197,109 @@ function Test-CommittedCleanEvidenceFile {
     return [PSCustomObject]@{
         IsCommittedClean = $true
         Reason = "Evidence file is tracked and clean in HEAD: $relativePath"
+    }
+}
+
+function Test-PreflightEvidenceFile {
+    param(
+        [System.IO.FileInfo]$EvidenceFile,
+        [string]$RepoRoot,
+        [string]$CurrentCommit
+    )
+
+    $text = Get-Content -Raw -Path $EvidenceFile.FullName
+    $requiredMarkers = @(
+        '| Verification skipped | False |',
+        '| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | 0 |',
+        '| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | 0 |',
+        '| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | 0 |',
+        '0 Warning(s)',
+        '0 Error(s)'
+    )
+    $missing = @($requiredMarkers | Where-Object {
+            $text.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -lt 0
+        })
+    if (-not [regex]::IsMatch($text, '(?m)^Passed!\s+-\s+Failed:\s+0,')) {
+        $missing += 'at least one successful dotnet test summary with Failed: 0'
+    }
+
+    $commit = Get-TableValue -Markdown $text -Field 'Commit'
+    $coverage = Test-EvidenceCommitCoverage `
+        -EvidenceName 'Preflight' `
+        -EvidenceCommit $commit `
+        -CurrentCommit $CurrentCommit `
+        -CurrentReason 'Preflight evidence was generated for the current commit.' `
+        -CoveredReason "Preflight commit $commit is an ancestor and no verification-impacting files changed afterward."
+    $fileState = Test-CommittedCleanEvidenceFile -Path $EvidenceFile.FullName -RepoRoot $RepoRoot
+
+    $reasons = @()
+    if ($missing.Count -gt 0) {
+        $reasons += "missing markers: $($missing -join '; ')"
+    }
+    if (-not $coverage.IsCovered) {
+        $reasons += $coverage.Reason
+    }
+    if (-not $fileState.IsCommittedClean) {
+        $reasons += $fileState.Reason
+    }
+
+    if ($reasons.Count -eq 0) {
+        return [PSCustomObject]@{
+            Status = 'Pass'
+            Evidence = $EvidenceFile.FullName
+            Message = "$($coverage.Reason) $($fileState.Reason)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        Status = 'Fail'
+        Evidence = $EvidenceFile.FullName
+        Message = "Regenerate preflight evidence; $($reasons -join '; ')"
+    }
+}
+
+function Test-RemoteCiEvidenceFile {
+    param(
+        [System.IO.FileInfo]$EvidenceFile,
+        [string]$RepoRoot,
+        [string]$CurrentCommit
+    )
+
+    $text = Get-Content -Raw -Path $EvidenceFile.FullName
+    $commit = Get-TableValue -Markdown $text -Field 'Commit'
+    $coverage = Test-EvidenceCommitCoverage `
+        -EvidenceName 'Remote CI' `
+        -EvidenceCommit $commit `
+        -CurrentCommit $CurrentCommit `
+        -CurrentReason 'Remote CI evidence was collected for the current commit.' `
+        -CoveredReason "Remote CI commit $commit is an ancestor and no verification-impacting files changed afterward."
+    $fileState = Test-CommittedCleanEvidenceFile -Path $EvidenceFile.FullName -RepoRoot $RepoRoot
+
+    $remoteStatus = Get-TableValue -Markdown $text -Field 'Status'
+    $remoteConclusion = Get-TableValue -Markdown $text -Field 'Conclusion'
+    $reasons = @("latest remote CI status is $remoteStatus / $remoteConclusion")
+    if (-not $coverage.IsCovered) {
+        $reasons += $coverage.Reason
+    }
+    if (-not $fileState.IsCommittedClean) {
+        $reasons += $fileState.Reason
+    }
+
+    if ($text -like '*| Status | Pass |*' -and
+        $text -like '*| Conclusion | All completed workflow runs passed |*' -and
+        $coverage.IsCovered -and
+        $fileState.IsCommittedClean) {
+        return [PSCustomObject]@{
+            Status = 'Pass'
+            Evidence = $EvidenceFile.FullName
+            Message = "$($coverage.Reason) $($fileState.Reason)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        Status = 'Pending'
+        Evidence = $EvidenceFile.FullName
+        Message = "Attach a passing remote CI evidence file for the current commit or an ancestor with no verification-impacting changes afterward; $($reasons -join '; ')"
     }
 }
 
@@ -208,52 +325,25 @@ foreach ($path in $requiredFiles) {
     }
 }
 
-$preflight = Get-ChildItem -Path $preflightDir -Filter 'phase09-preflight-*.md' -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
+$preflightCandidates = @(Get-ChildItem -Path $preflightDir -Filter 'phase09-preflight-*.md' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending)
 
-if ($null -eq $preflight) {
+if ($preflightCandidates.Count -eq 0) {
     Add-Result $results 'Automated preflight evidence' 'Fail' $preflightDir 'Run scripts/Phase09-Preflight.ps1 and commit the generated evidence file.'
 }
 else {
-    $preflightText = Get-Content -Raw -Path $preflight.FullName
-    $preflightChecks = @(
-        '| Verification skipped | False |',
-        '| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | 0 |',
-        '| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | 0 |',
-        '| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | 0 |',
-        'Passed:   236',
-        'Passed:    93',
-        'Passed:    15',
-        '0 Warning(s)',
-        '0 Error(s)'
-    )
-    $missing = @($preflightChecks | Where-Object {
-            $preflightText.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -lt 0
+    $preflightEvaluations = @($preflightCandidates | ForEach-Object {
+            Test-PreflightEvidenceFile -EvidenceFile $_ -RepoRoot $repoRoot -CurrentCommit $currentCommit
         })
-    $preflightCommit = Get-TableValue -Markdown $preflightText -Field 'Commit'
-    $coverage = Test-EvidenceCommitCoverage `
-        -EvidenceName 'Preflight' `
-        -EvidenceCommit $preflightCommit `
-        -CurrentCommit $currentCommit `
-        -CurrentReason 'Preflight evidence was generated for the current commit.' `
-        -CoveredReason "Preflight commit $preflightCommit is an ancestor and no verification-impacting files changed afterward."
-    $preflightFileState = Test-CommittedCleanEvidenceFile -Path $preflight.FullName -RepoRoot $repoRoot
-    if ($missing.Count -eq 0 -and $coverage.IsCovered -and $preflightFileState.IsCommittedClean) {
-        Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName "$($coverage.Reason) $($preflightFileState.Reason)"
+    $selectedPreflight = @($preflightEvaluations | Where-Object { $_.Status -eq 'Pass' } | Select-Object -First 1)
+    if ($selectedPreflight.Count -eq 0) {
+        $selectedPreflight = @($preflightEvaluations | Select-Object -First 1)
+    }
+    if ($selectedPreflight[0].Status -eq 'Pass') {
+        Add-Result $results 'Automated preflight evidence' 'Pass' $selectedPreflight[0].Evidence $selectedPreflight[0].Message
     }
     else {
-        $reasons = @()
-        if ($missing.Count -gt 0) {
-            $reasons += "missing markers: $($missing -join '; ')"
-        }
-        if (-not $coverage.IsCovered) {
-            $reasons += $coverage.Reason
-        }
-        if (-not $preflightFileState.IsCommittedClean) {
-            $reasons += $preflightFileState.Reason
-        }
-        Add-Result $results 'Automated preflight evidence' 'Fail' $preflight.FullName "Regenerate preflight evidence; $($reasons -join '; ')"
+        Add-Result $results 'Automated preflight evidence' 'Fail' $selectedPreflight[0].Evidence $selectedPreflight[0].Message
     }
 }
 
@@ -283,40 +373,25 @@ else {
     Add-Result $results 'Accessibility signoff pending rows' 'Pending' $a11yPath "Complete or explicitly waive $($a11yPendingRows.Count) pending table row(s); see Pending Detail Rows."
 }
 
-$remoteEvidence = Get-ChildItem -Path $preflightDir -Filter 'phase09-remote-ci-*.md' -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
+$remoteCandidates = @(Get-ChildItem -Path $preflightDir -Filter 'phase09-remote-ci-*.md' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending)
 
-if ($null -eq $remoteEvidence) {
+if ($remoteCandidates.Count -eq 0) {
     Add-Result $results 'Remote CI evidence' 'Pending' $preflightDir 'Run scripts/Get-Phase09RemoteCiEvidence.ps1 with GitHub Actions read access, or attach a dated Actions result manually.'
 }
 else {
-    $remoteEvidenceText = Get-Content -Raw -Path $remoteEvidence.FullName
-    $remoteCommit = Get-TableValue -Markdown $remoteEvidenceText -Field 'Commit'
-    $remoteCoverage = Test-EvidenceCommitCoverage `
-        -EvidenceName 'Remote CI' `
-        -EvidenceCommit $remoteCommit `
-        -CurrentCommit $currentCommit `
-        -CurrentReason 'Remote CI evidence was collected for the current commit.' `
-        -CoveredReason "Remote CI commit $remoteCommit is an ancestor and no verification-impacting files changed afterward."
-    $remoteFileState = Test-CommittedCleanEvidenceFile -Path $remoteEvidence.FullName -RepoRoot $repoRoot
-    if ($remoteEvidenceText -like '*| Status | Pass |*' -and
-        $remoteEvidenceText -like '*| Conclusion | All completed workflow runs passed |*' -and
-        $remoteCoverage.IsCovered -and
-        $remoteFileState.IsCommittedClean) {
-        Add-Result $results 'Remote CI evidence' 'Pass' $remoteEvidence.FullName "$($remoteCoverage.Reason) $($remoteFileState.Reason)"
+    $remoteEvaluations = @($remoteCandidates | ForEach-Object {
+            Test-RemoteCiEvidenceFile -EvidenceFile $_ -RepoRoot $repoRoot -CurrentCommit $currentCommit
+        })
+    $selectedRemote = @($remoteEvaluations | Where-Object { $_.Status -eq 'Pass' } | Select-Object -First 1)
+    if ($selectedRemote.Count -eq 0) {
+        $selectedRemote = @($remoteEvaluations | Select-Object -First 1)
+    }
+    if ($selectedRemote[0].Status -eq 'Pass') {
+        Add-Result $results 'Remote CI evidence' 'Pass' $selectedRemote[0].Evidence $selectedRemote[0].Message
     }
     else {
-        $remoteStatus = Get-TableValue -Markdown $remoteEvidenceText -Field 'Status'
-        $remoteConclusion = Get-TableValue -Markdown $remoteEvidenceText -Field 'Conclusion'
-        $reasons = @("latest remote CI status is $remoteStatus / $remoteConclusion")
-        if (-not $remoteCoverage.IsCovered) {
-            $reasons += $remoteCoverage.Reason
-        }
-        if (-not $remoteFileState.IsCommittedClean) {
-            $reasons += $remoteFileState.Reason
-        }
-        Add-Result $results 'Remote CI evidence' 'Pending' $remoteEvidence.FullName "Attach a passing remote CI evidence file for the current commit or an ancestor with no verification-impacting changes afterward; $($reasons -join '; ')"
+        Add-Result $results 'Remote CI evidence' 'Pending' $selectedRemote[0].Evidence $selectedRemote[0].Message
     }
 }
 
