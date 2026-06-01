@@ -49,7 +49,9 @@ listener endpoints:
   when saturated.
 - The catalogue shell now includes a compact Host sharing control strip with
   status, connected-client count, certificate fingerprint preview, and explicit
-  start/stop controls bound through `HostSharingViewModel`.
+  start/stop controls bound through `HostSharingViewModel`. The strip also shows
+  the active content-delivery mode and allows switching between Page Render and
+  File Stream while the Host is stopped.
 - `LanHostLoadSmokeTests` starts the real HTTPS Host on loopback and verifies 20
   concurrent authenticated catalogue clients complete successfully with a local
   P95 guard under 2 seconds.
@@ -81,7 +83,7 @@ listener endpoints:
 
 | Gate | Evidence |
 | --- | --- |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanPageRenderLimiterTests\|FullyQualifiedName~LanHostEndpointTests\|FullyQualifiedName~LanHostLoadSmokeTests\|FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 30 scaffold/persistence/certificate/mDNS/bind-selector/resolver/limiter/listener/load/UI tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, page-render concurrency saturation and lease release, Host sharing start/stop UI state, 20 concurrent authenticated catalogue clients, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanPageRenderLimiterTests\|FullyQualifiedName~LanHostEndpointTests\|FullyQualifiedName~LanHostLoadSmokeTests\|FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 30 scaffold/persistence/certificate/mDNS/bind-selector/resolver/limiter/listener/load/UI tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, page-render concurrency saturation and lease release, Host sharing start/stop UI state, Host content-mode toggle persistence and running-mode lockout, 20 concurrent authenticated catalogue clients, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
@@ -102,7 +104,7 @@ listener endpoints:
 | LanHost page-render limiter | Caps simultaneous page renders at 10 and fails fast with `429` when saturated |
 | LanHost file-stream endpoint | Default page-render mode returns `403`; explicit FileStream mode streams catalogue-resolved PDFs with path traversal/rooted-path protection and range support |
 | LanHost request audit | `LanHostRequestServed` rows in `AuditEvents` for health, session, unauthorized, authenticated catalogue, asset, and FileStream requests; payloads include status code and active content mode |
-| Host sharing UI scaffold | Catalogue shell status strip includes Host status, client count, fingerprint preview, and explicit start/stop controls |
+| Host sharing UI scaffold | Catalogue shell status strip includes Host status, client count, fingerprint preview, content-mode toggle, and explicit start/stop controls |
 | LanHost catalogue load smoke | Live HTTPS loopback Host handles 20 concurrent authenticated catalogue requests with local P95 under 2 seconds |
 | LanHost EF entities/configurations | `HostModeSettingsRow`, `HostClientSessionRow`, and matching EF configurations |
 | LanHost persistence migration | `src/OgmaLibrary.Infrastructure/Persistence/Migrations/20260601184330_Phase16LanHostTables.cs` |
@@ -113,6 +115,6 @@ listener endpoints:
 
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
-- WP8+ full Sharing settings surface (content-mode selector, QR/fingerprint copy,
-  confirmation flows), same-subnet verification, full page-render load tests, and
-  macOS Keychain-specific CA private-key storage.
+- WP8+ full Sharing settings surface (QR/fingerprint copy and confirmation
+  flows), same-subnet verification, full page-render load tests, and macOS
+  Keychain-specific CA private-key storage.

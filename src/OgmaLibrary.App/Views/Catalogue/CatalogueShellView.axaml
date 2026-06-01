@@ -373,6 +373,20 @@
                      FontSize="{DynamicResource Type.Size.Caption}"
                      Foreground="{DynamicResource Brush.Accent.Slate}"
                      VerticalAlignment="Center" />
+          <TextBlock Text="{Binding HostSharing.ContentModeText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     VerticalAlignment="Center" />
+          <Button Padding="8,3"
+                  Background="{DynamicResource Brush.Accent.Slate}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding HostSharing.CanChangeContentMode}"
+                  AutomationProperties.Name="{Binding HostSharing.ToggleContentModeText}"
+                  Click="HostContentModeButton_Click">
+            <TextBlock Text="{Binding HostSharing.ToggleContentModeText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
           <Button Padding="8,3"
                   Background="{DynamicResource Brush.Accent.Sage}"
                   Foreground="White"

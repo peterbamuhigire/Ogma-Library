@@ -466,3 +466,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-01 | Implementation | Advanced WP5: added `LanPageRenderLimiter`, capping simultaneous page renders at 10 and returning `429` when the Host is saturated instead of queuing unbounded work. |
 | 2026-06-01 | Implementation | Advanced WP8 scaffold: added a catalogue-shell Host sharing control strip with status, connected-client count, fingerprint preview, and explicit start/stop controls backed by `HostSharingViewModel`. |
 | 2026-06-01 | Implementation | Advanced WP11 smoke: added a live HTTPS load smoke test for 20 concurrent authenticated catalogue clients with a local P95 guard under 2 seconds. |
+| 2026-06-01 | Implementation | Advanced WP8: added Host content-delivery mode display and stopped-state toggle for Page Render vs File Stream, persisted through `IHostModeSettingsRepository`. |

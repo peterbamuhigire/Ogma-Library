@@ -185,6 +185,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private async void HostContentModeButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            await vm.HostSharing.ToggleContentModeAsync().ConfigureAwait(true);
+        }
+    }
+
     private TopLevel? ResolveTopLevel(object? sender)
     {
         if (sender is Control source && TopLevel.GetTopLevel(source) is { } senderTopLevel)

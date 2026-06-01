@@ -165,7 +165,8 @@ public static class CompositionRoot
                 sp.GetRequiredService<IEmbeddingErasureService>(),
                 localization);
             var hostSharingVm = new HostSharingViewModel(
-                sp.GetRequiredService<ILibraryHostService>());
+                sp.GetRequiredService<ILibraryHostService>(),
+                sp.GetRequiredService<IHostModeSettingsRepository>());
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(

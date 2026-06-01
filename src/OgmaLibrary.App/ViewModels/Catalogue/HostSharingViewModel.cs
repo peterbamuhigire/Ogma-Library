@@ -8,7 +8,13 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 public sealed class HostSharingViewModel : INotifyPropertyChanged
 {
     private readonly ILibraryHostService _hostService;
+    private readonly IHostModeSettingsRepository _settingsRepository;
     private readonly string _title = "Host";
+    private HostModeSettings _settings = new(
+        IsEnabled: false,
+        Port: 7473,
+        ContentMode: HostContentDeliveryMode.PageRender,
+        DisplayName: "Ogma Library");
     private LibraryHostStatus _status = new(
         LibraryHostState.Stopped,
         Port: 7473,
@@ -17,9 +23,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ErrorMessage: null);
     private bool _isBusy;
 
-    public HostSharingViewModel(ILibraryHostService hostService)
+    public HostSharingViewModel(
+        ILibraryHostService hostService,
+        IHostModeSettingsRepository settingsRepository)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
+        _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
     }
 
     /// <inheritdoc />
@@ -41,6 +50,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         string.IsNullOrWhiteSpace(_status.CertificateFingerprint)
             ? "No fingerprint"
             : _status.CertificateFingerprint[..Math.Min(12, _status.CertificateFingerprint.Length)];
+
+    public string ContentModeText => _settings.ContentMode == HostContentDeliveryMode.PageRender
+        ? "Page Render"
+        : "File Stream";
+
+    public string ToggleContentModeText => _settings.ContentMode == HostContentDeliveryMode.PageRender
+        ? "Use File Stream"
+        : "Use Page Render";
 
     public string PrimaryActionText => IsRunning ? "Stop" : "Start";
 
@@ -65,8 +82,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public bool CanStop => !IsBusy && IsRunning;
 
+    public bool CanChangeContentMode => !IsBusy && !IsRunning;
+
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
+        _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
         _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(false);
         RaiseStatusChanged();
     }
@@ -81,6 +101,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
+            _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
             _status = await _hostService.StartAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -109,15 +130,42 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
     }
 
+    public async Task ToggleContentModeAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanChangeContentMode)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
+            HostContentDeliveryMode nextMode = _settings.ContentMode == HostContentDeliveryMode.PageRender
+                ? HostContentDeliveryMode.FileStream
+                : HostContentDeliveryMode.PageRender;
+            _settings = _settings with { ContentMode = nextMode };
+            await _settingsRepository.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseStatusChanged();
+        }
+    }
+
     private void RaiseStatusChanged()
     {
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(ClientCountText));
         OnPropertyChanged(nameof(FingerprintText));
+        OnPropertyChanged(nameof(ContentModeText));
+        OnPropertyChanged(nameof(ToggleContentModeText));
         OnPropertyChanged(nameof(PrimaryActionText));
         OnPropertyChanged(nameof(IsRunning));
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(CanStop));
+        OnPropertyChanged(nameof(CanChangeContentMode));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
