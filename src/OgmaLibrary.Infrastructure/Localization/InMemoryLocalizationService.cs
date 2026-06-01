@@ -298,6 +298,9 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["SplitView.RightPane"] = "Reference reader",
         ["SplitView.Placeholder"] = "Split view is coming in V2.",
         ["SplitView.AccessibleLabel"] = "Split-view scaffold",
+        ["PasswordUnlock.Status.Locked"] = "Book is locked",
+        ["PasswordUnlock.Status.Cancelled"] = "Password unlock cancelled",
+        ["PasswordUnlock.Status.Unlocked"] = "Book unlocked",
 
         // Phase 09 — Annotations, Bookmarks & Reading Memory (en)
         ["Annotation.Highlight.Create"] = "Highlight",
@@ -724,6 +727,9 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["SplitView.RightPane"] = "Lecteur de reference",
         ["SplitView.Placeholder"] = "La vue partagee arrive dans la V2.",
         ["SplitView.AccessibleLabel"] = "Echafaudage de vue partagee",
+        ["PasswordUnlock.Status.Locked"] = "Le livre est verrouille",
+        ["PasswordUnlock.Status.Cancelled"] = "Deverrouillage annule",
+        ["PasswordUnlock.Status.Unlocked"] = "Livre deverrouille",
 
         // Phase 09 — Annotations, Bookmarks & Reading Memory (fr)
         ["Annotation.Highlight.Create"] = "Surligner",

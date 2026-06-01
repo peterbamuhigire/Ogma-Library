@@ -27,6 +27,7 @@ using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Infrastructure.Security;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Cache;
 using OgmaLibrary.Reader.Progress;
@@ -68,6 +69,7 @@ public static class CompositionRoot
         services.AddTransient<ReadingPlanViewModel>();
         services.AddTransient<Bookshelf3DViewModel>();
         services.AddTransient<SplitViewViewModel>();
+        services.AddTransient<PasswordUnlockViewModel>();
 
         // Phase 04 — Catalogue & Data Layer.
         // The data directory defaults to "Ogma Library Data" under OS app-data.
@@ -80,6 +82,10 @@ public static class CompositionRoot
             RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? new WKWebViewBridge()
                 : new WebView2Bridge());
+        services.AddSingleton<IPasswordProvider>(_ =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new WindowsPasswordProvider()
+                : new UnsupportedPasswordProvider());
 
         // Phase 05 — Ingestion Pipeline (Infrastructure services).
         services.AddIngestionPipeline(dataDirectory: dataDirectory);

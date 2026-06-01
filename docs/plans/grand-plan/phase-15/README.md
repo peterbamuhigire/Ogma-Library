@@ -403,3 +403,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Added WP2 OCR processor, native Tesseract provider seam, English tessdata packaging, hosted OCR worker, and resumable job tests. |
 | 2026-06-01 | Implementation | Added WP3 OCR job status projection in Index Manager with localized active-job and page-progress display. |
 | 2026-06-01 | Implementation | Added WP5 split-view V2 scaffold route, view model, view, localized placeholder, and shell navigation test. |
+| 2026-06-01 | Implementation | Started WP4 password flow: provider contract, Windows Credential Manager provider, unlock view model, and no-plaintext-catalogue tests. |
