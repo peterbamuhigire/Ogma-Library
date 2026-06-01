@@ -29,4 +29,7 @@ public sealed record SemanticSearchResult(
     SearchChunkSource? Source,
     string? Snippet,
     float? SemanticScore,
-    bool ExactFallback);
+    bool ExactFallback,
+    double? HybridScore = null,
+    IReadOnlyList<MatchLocation>? MatchLocations = null,
+    ConfidenceLabel? ConfidenceLabel = null);

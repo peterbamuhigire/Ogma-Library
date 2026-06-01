@@ -33,7 +33,8 @@ public sealed class SemanticSearchServiceTests : IDisposable
         long relevant = SeedBookChunk(
             "P11SEMANTIC00000000001",
             "A Plain Title",
-            "colonial school reform and public administration");
+            "colonial school reform and public administration",
+            rating: 5);
         long irrelevant = SeedBookChunk(
             "P11SEMANTIC00000000002",
             "Cooking Notes",
@@ -58,7 +59,48 @@ public sealed class SemanticSearchServiceTests : IDisposable
         Assert.Equal("P11SEMANTIC00000000001", first.BookId);
         Assert.False(first.ExactFallback);
         Assert.NotNull(first.SemanticScore);
+        Assert.Equal(ConfidenceLabel.Low, first.ConfidenceLabel);
+        Assert.Contains(MatchLocation.Semantic, first.MatchLocations ?? []);
         Assert.Contains("colonial school", first.Snippet, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SemanticSearch_MergesExactAndSemanticResults_WithLocations()
+    {
+        long semanticChunk = SeedBookChunk(
+            "P11SEMANTIC00000000003",
+            "Semantic-only book",
+            "teacher training and classroom policy",
+            rating: 5);
+        var repository = new EmbeddingVectorRepository(_context);
+        await repository.CreateAsync(NewVector(semanticChunk, [1.0f, 0.0f]), CancellationToken.None);
+        var exact = new StubExactSearch(
+            new CombinedSearchResult(
+                "P11EXACT0000000000001",
+                "Teacher title exact",
+                "Author",
+                100,
+                ["title"],
+                []));
+        var service = new SemanticSearchService(
+            _context,
+            new StubOllamaProvider { QueryVector = [1.0f, 0.0f] },
+            exact);
+
+        SemanticSearchResponse response = await service.SearchAsync(
+            "teacher",
+            5,
+            CancellationToken.None);
+
+        Assert.False(response.UsedExactFallback);
+        Assert.Contains(response.Results, result =>
+            result.BookId == "P11SEMANTIC00000000003" &&
+            result.MatchLocations?.Contains(MatchLocation.Semantic) == true &&
+            result.HybridScore.HasValue);
+        Assert.Contains(response.Results, result =>
+            result.BookId == "P11EXACT0000000000001" &&
+            result.MatchLocations?.Contains(MatchLocation.Title) == true &&
+            result.HybridScore.HasValue);
     }
 
     [Fact]
@@ -90,7 +132,11 @@ public sealed class SemanticSearchServiceTests : IDisposable
         Assert.Null(result.SemanticScore);
     }
 
-    private long SeedBookChunk(string bookId, string title, string chunkText)
+    private long SeedBookChunk(
+        string bookId,
+        string title,
+        string chunkText,
+        int? rating = null)
     {
         _context.Books.Add(new BookRow
         {
@@ -99,6 +145,7 @@ public sealed class SemanticSearchServiceTests : IDisposable
             Status = 0,
             IndexStatus = (int)SearchBookIndexStatus.Indexed,
             EmbeddingStatus = (int)SearchEmbeddingStatus.Embedded,
+            Rating = rating,
         });
         var chunk = new SearchChunkRow
         {

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 
 namespace OgmaLibrary.Infrastructure.Search;
@@ -18,6 +19,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private readonly CatalogueDbContext? _context;
     private readonly IOllamaEmbeddingProvider _provider;
     private readonly ICombinedSearchService _exactSearch;
+    private readonly IHybridRankingService _hybridRanking;
+    private readonly IMatchLocationService _matchLocations;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SemanticSearchService"/>.
@@ -26,21 +29,29 @@ public sealed class SemanticSearchService : ISemanticSearchService
     public SemanticSearchService(
         IDbContextFactory<CatalogueDbContext> contextFactory,
         IOllamaEmbeddingProvider provider,
-        ICombinedSearchService exactSearch)
+        ICombinedSearchService exactSearch,
+        IHybridRankingService hybridRanking,
+        IMatchLocationService matchLocations)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(exactSearch);
+        ArgumentNullException.ThrowIfNull(hybridRanking);
+        ArgumentNullException.ThrowIfNull(matchLocations);
 
         _contextFactory = contextFactory;
         _provider = provider;
         _exactSearch = exactSearch;
+        _hybridRanking = hybridRanking;
+        _matchLocations = matchLocations;
     }
 
     internal SemanticSearchService(
         CatalogueDbContext context,
         IOllamaEmbeddingProvider provider,
-        ICombinedSearchService exactSearch)
+        ICombinedSearchService exactSearch,
+        IHybridRankingService? hybridRanking = null,
+        IMatchLocationService? matchLocations = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(provider);
@@ -49,6 +60,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _context = context;
         _provider = provider;
         _exactSearch = exactSearch;
+        _hybridRanking = hybridRanking ?? new HybridRankingService();
+        _matchLocations = matchLocations ?? new MatchLocationService();
     }
 
     /// <inheritdoc />
@@ -66,12 +79,14 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 .ConfigureAwait(false);
         }
 
+        IReadOnlyList<CombinedSearchResult> exact = await _exactSearch
+            .SearchAsync(queryText, maxResults * OversampleMultiplier, cancellationToken)
+            .ConfigureAwait(false);
         IReadOnlyList<VectorCandidateRow> corpus = await LoadCorpusAsync(cancellationToken)
             .ConfigureAwait(false);
         if (corpus.Count == 0)
         {
-            return await ExactFallbackAsync(queryText, maxResults, providerUnavailable: false, cancellationToken)
-                .ConfigureAwait(false);
+            return ExactFallback(exact, maxResults, providerUnavailable: false);
         }
 
         OllamaEmbeddingResult query = await _provider
@@ -83,7 +98,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
             Math.Max(maxResults * OversampleMultiplier, maxResults));
         Dictionary<long, VectorCandidateRow> byChunk = corpus.ToDictionary(row => row.ChunkId);
 
-        List<SemanticSearchResult> results = hits
+        List<SemanticSearchResult> semanticResults = hits
             .Select(hit => (Hit: hit, Row: byChunk[hit.ChunkId]))
             .GroupBy(item => item.Row.BookId, StringComparer.Ordinal)
             .Select(group => group
@@ -103,6 +118,24 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 ExactFallback: false))
             .ToList();
 
+        IReadOnlyDictionary<string, HybridBookSignals> signals = await LoadBookSignalsAsync(
+                exact.Select(result => result.BookId)
+                    .Concat(semanticResults.Select(result => result.BookId))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray(),
+                cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<HybridRankedResult> ranked = _hybridRanking.Rank(
+            exact,
+            semanticResults,
+            signals,
+            HybridRankingWeights.Default,
+            DateTimeOffset.UtcNow,
+            maxResults);
+        List<SemanticSearchResult> results = ranked
+            .Select(ToSemanticSearchResult)
+            .ToList();
+
         return new SemanticSearchResponse(
             ProviderUnavailable: false,
             UsedExactFallback: false,
@@ -119,6 +152,14 @@ public sealed class SemanticSearchService : ISemanticSearchService
             .SearchAsync(queryText, maxResults, cancellationToken)
             .ConfigureAwait(false);
 
+        return ExactFallback(exact, maxResults, providerUnavailable);
+    }
+
+    private SemanticSearchResponse ExactFallback(
+        IReadOnlyList<CombinedSearchResult> exact,
+        int maxResults,
+        bool providerUnavailable)
+    {
         return new SemanticSearchResponse(
             providerUnavailable,
             UsedExactFallback: true,
@@ -129,8 +170,71 @@ public sealed class SemanticSearchService : ISemanticSearchService
                     result.FtsHits.Count > 0 ? result.FtsHits[0].Source : null,
                     result.FtsHits.Count > 0 ? result.FtsHits[0].Snippet : null,
                     SemanticScore: null,
-                    ExactFallback: true))
+                    ExactFallback: true,
+                    HybridScore: null,
+                    MatchLocations: _matchLocations.GetLocations(result, semanticResult: null),
+                    ConfidenceLabel: null))
+                .Take(maxResults)
                 .ToList());
+    }
+
+    private SemanticSearchResult ToSemanticSearchResult(HybridRankedResult result)
+    {
+        SearchResultEnrichment enrichment = _matchLocations.Enrich(result);
+        SemanticSearchResult? semantic = result.SemanticResult;
+        CombinedSearchResult? exact = result.ExactResult;
+        FtsSearchResult? fts = exact?.FtsHits.Count > 0 ? exact.FtsHits[0] : null;
+
+        return new SemanticSearchResult(
+            result.BookId,
+            result.Title,
+            semantic?.ChunkId ?? fts?.ChunkId,
+            semantic?.Source ?? fts?.Source,
+            semantic?.Snippet ?? fts?.Snippet,
+            semantic?.SemanticScore,
+            ExactFallback: false,
+            HybridScore: result.HybridScore,
+            MatchLocations: enrichment.MatchLocations,
+            ConfidenceLabel: enrichment.ConfidenceLabel);
+    }
+
+    private async Task<IReadOnlyDictionary<string, HybridBookSignals>> LoadBookSignalsAsync(
+        string[] bookIds,
+        CancellationToken cancellationToken)
+    {
+        if (bookIds.Length == 0)
+        {
+            return new Dictionary<string, HybridBookSignals>(StringComparer.Ordinal);
+        }
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        List<BookSignalRow> rows = await context.Books
+            .AsNoTracking()
+            .Where(book => bookIds.Contains(book.BookId))
+            .GroupJoin(
+                context.ReadingProgress.AsNoTracking(),
+                book => book.BookId,
+                progress => progress.BookId,
+                (book, progress) => new { book, progress })
+            .SelectMany(
+                item => item.progress.DefaultIfEmpty(),
+                (item, progress) => new BookSignalRow(
+                    item.book.BookId,
+                    progress == null ? null : progress.LastReadUtc,
+                    progress == null ? null : (ReadingStatus?)((ReadingStatus)progress.Status),
+                    item.book.Rating))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows.ToDictionary(
+            row => row.BookId,
+            row => new HybridBookSignals(
+                row.BookId,
+                row.LastReadUtc,
+                row.ReadingStatus,
+                row.Rating),
+            StringComparer.Ordinal);
     }
 
     private async Task<IReadOnlyList<VectorCandidateRow>> LoadCorpusAsync(CancellationToken cancellationToken)
@@ -214,6 +318,12 @@ public sealed class SemanticSearchService : ISemanticSearchService
         SearchChunkSource Source,
         string Text,
         float[] Vector);
+
+    private sealed record BookSignalRow(
+        string BookId,
+        DateTimeOffset? LastReadUtc,
+        ReadingStatus? ReadingStatus,
+        int? Rating);
 
     private readonly struct ContextLease : IDisposable
     {
