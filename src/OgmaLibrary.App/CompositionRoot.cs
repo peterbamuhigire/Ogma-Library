@@ -71,6 +71,7 @@ public static class CompositionRoot
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();
         services.AddHostedService<BookIngestionWorker>();
+        services.AddHostedService<SearchExtractionWorker>();
 
         // Phase 06 — Catalogue Browsing.
 

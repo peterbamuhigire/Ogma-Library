@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Headless;
 using OgmaLibrary.Tests.Ui;
+using Xunit;
 
 [assembly: AvaloniaTestApplication(typeof(TestAppBuilder))]
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace OgmaLibrary.Tests.Ui;
 

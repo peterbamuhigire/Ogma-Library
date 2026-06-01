@@ -74,9 +74,11 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IReadingMemoryRepository, ReadingMemoryRepository>();
 
         // Phase 10 — Search & indexing.
+        services.AddSingleton<SearchChunker>();
         services.AddSingleton<IExtractedTextStore, ExtractedTextStore>();
         services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
+        services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
 
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));

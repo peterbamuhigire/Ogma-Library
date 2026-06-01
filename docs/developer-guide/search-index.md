@@ -23,6 +23,31 @@ Repository code writes only `SearchChunks`; it never writes the FTS table
 directly. Rebuild and repair paths may recreate the virtual table and triggers
 because they are SQLite objects outside the EF Core entity model.
 
+## Extraction Pipeline
+
+`IExtractionPipelineService` is the Application contract for Phase 10
+extraction. `ExtractionPipelineService` implements it in Infrastructure by using
+the existing Reader PDF boundary (`IBookFileLocator` and `IPdfRendererFactory`),
+then writing through `IExtractedTextStore` and `ISearchChunkRepository`.
+
+The pipeline is idempotent by content hash. A page with an existing
+`ExtractedPages` row for the current book hash is skipped, and source-scoped
+chunk replacement keeps reruns from creating duplicate `SearchChunks`. Page
+failures are stored as `ExtractionQuality = Failed`, logged as
+`Jobs.JobType = ExtractionFailed`, and do not stop sibling pages from indexing.
+
+Implemented chunk sources are:
+
+- `page`: extracted PDF page text with `ExtractedPageId`.
+- `note`: Phase 09 `AnnotationsV2.NoteText`, plus legacy annotation bodies.
+- `tag`: metadata tags/categories and shelf names.
+- `description`: metadata description/summary fields.
+- `toc`: currently replaced with an empty source set until a real outline
+  extractor is added.
+
+`SearchExtractionWorker` polls the pipeline in the background so indexing does
+not block the UI thread.
+
 ## Rationale
 
 The external-content design avoids storing text twice in the catalogue while
