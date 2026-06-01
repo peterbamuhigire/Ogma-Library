@@ -117,6 +117,7 @@ BenchmarkDotNet, so the checks run in the normal local/CI test path.
 | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` | Avalonia headless | Bookmark row context flyout exposes rename/delete; rename focuses inline editor; delete removes bookmark |
 | `ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation` | Avalonia headless | Annotation row context flyout delete opens the confirmation prompt and does not delete before confirmation |
 | `ReaderViewModel_HidingLayer_FiltersAnnotationsAndOverlays` | Avalonia headless | Toggle off -> overlay redraws without that layer's highlights |
+| `ReaderView_LayerVisibilityCheckbox_FiltersAnnotationsAndOverlays` | Avalonia headless | Rendered layer visibility checkbox persists hide/show changes and refreshes annotation rows/overlays |
 | Screen-reader pass (manual) | VoiceOver / Narrator | "Highlight, layer Key arguments, page 3" announced on focus; bookmark list item labels announced |
 | `ReaderViewModel_AnnotationOverlayColors_MeetContrastGate` | Avalonia headless + WCAG contrast math | Rendered overlay display colors composite to ≥ 3:1 contrast against the white page surface |
 | `ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds` | Avalonia headless | Pseudolocale reader panels render and capture `reader-qps-ploc.png`; text bounds stay within parent controls |

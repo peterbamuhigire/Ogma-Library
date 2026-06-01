@@ -1432,6 +1432,65 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public void ReaderView_LayerVisibilityCheckbox_FiltersAnnotationsAndOverlays()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CreateHighlightAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            tabControl.SelectedIndex = 2;
+            Dispatcher.UIThread.RunJobs();
+
+            LayerListItem layer = Assert.Single(viewModel.Layers);
+            var visibilityToggle = window.GetVisualDescendants()
+                .OfType<CheckBox>()
+                .First(checkBox =>
+                    ReferenceEquals(checkBox.DataContext, layer) &&
+                    GetAutomationName(checkBox) == "Layer visible: Key arguments");
+
+            visibilityToggle.IsChecked = false;
+            InvokeReaderViewHandler(view, "LayerVisibility_Click", visibilityToggle);
+
+            Assert.False(viewModel.Layers[0].IsVisible);
+            Assert.Empty(viewModel.Annotations);
+            Assert.Empty(viewModel.AnnotationOverlays);
+
+            visibilityToggle = window.GetVisualDescendants()
+                .OfType<CheckBox>()
+                .First(checkBox =>
+                    ReferenceEquals(checkBox.DataContext, viewModel.Layers[0]) &&
+                    GetAutomationName(checkBox) == "Layer hidden: Key arguments");
+
+            visibilityToggle.IsChecked = true;
+            InvokeReaderViewHandler(view, "LayerVisibility_Click", visibilityToggle);
+
+            Assert.True(viewModel.Layers[0].IsVisible);
+            Assert.Single(viewModel.Annotations);
+            Assert.Single(viewModel.AnnotationOverlays);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_LayerFilter_ShowsOnlySelectedLayerAnnotationsAndOverlays()
     {
         var localization = new InMemoryLocalizationService();
