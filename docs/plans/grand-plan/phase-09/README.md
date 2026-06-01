@@ -407,6 +407,9 @@ Current implementation progress:
 - Note-anchor icons on page overlays are now rendered as actionable buttons;
   clicking an anchor opens the inline note editor for that annotation, matching
   the planned note pop-over route.
+- Annotation delete confirmation now has rendered-view coverage for both the
+  Confirm and Cancel buttons, proving the UI button route deletes only after
+  confirmation and leaves annotations intact on cancel.
 - Phase 09 reader shortcut wiring has been rechecked against the Avalonia reader
   view: Ctrl+B toggles the current-page bookmark, Ctrl+Shift+B opens the
   bookmark panel, and Ctrl+Shift+C captures a citation from selected text.
@@ -428,6 +431,9 @@ Current implementation progress:
 - Reader text selection now accepts touch and pen drags without requiring the
   mouse-left-button flag, while preserving primary-button gating for mouse
   selection.
+- Selection action menu buttons now have rendered-view coverage for the
+  Highlight, Add note, and Capture citation routes, proving the XAML click
+  handlers execute the planned selection workflows.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -498,3 +504,5 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added rendered citation clipboard regression coverage for the copy action | Codex |
 | 2026-06-01 | Added rendered citation export coverage for the clipboard side effect plus sidecar export | Codex |
 | 2026-06-01 | Made rendered note-anchor icons actionable and covered click-to-open note editing | Codex |
+| 2026-06-01 | Added rendered annotation delete confirmation coverage for Confirm and Cancel button routes | Codex |
+| 2026-06-01 | Added rendered selection action button coverage for highlight, note, and citation routes | Codex |

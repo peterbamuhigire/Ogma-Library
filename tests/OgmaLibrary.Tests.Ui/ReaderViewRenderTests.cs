@@ -492,6 +492,67 @@ public sealed class ReaderViewRenderTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task ReaderView_SelectionActionButtons_InvokeHighlightNoteAndCitationRoutes()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            var actionMenu = Assert.IsType<Border>(view.FindControl<Border>("SelectionActionMenu"));
+
+            SelectText(viewModel);
+            Button highlightButton = SelectionActionButton(actionMenu, viewModel.CreateHighlightLabel);
+            InvokeReaderViewHandler(view, "SelectionHighlightButton_Click", highlightButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            AnnotationV2 highlight = Assert.Single(annotationService.CreatedAnnotations);
+            Assert.Equal(AnnotationKind.Highlight, highlight.Kind);
+            Assert.False(viewModel.HasSelection);
+
+            SelectText(viewModel);
+            Button noteButton = SelectionActionButton(actionMenu, viewModel.CreateNoteLabel);
+            InvokeReaderViewHandler(view, "SelectionNoteButton_Click", noteButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            AnnotationV2 note = Assert.Single(
+                annotationService.CreatedAnnotations,
+                annotation => annotation.Kind == AnnotationKind.Note);
+            Assert.Equal("Selection on page 1", note.NoteText);
+            Assert.False(viewModel.HasSelection);
+
+            SelectText(viewModel);
+            Button citationButton = SelectionActionButton(actionMenu, viewModel.CaptureCitationLabel);
+            InvokeReaderViewHandler(view, "SelectionCitationButton_Click", citationButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(viewModel.HasCitationCard);
+            Assert.Equal("Selection on page 1", viewModel.CitationCard?.SelectedText);
+            Assert.False(viewModel.HasSelection);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     [Theory]
     [InlineData(PointerType.Mouse, false, false)]
     [InlineData(PointerType.Mouse, true, true)]
@@ -1119,6 +1180,87 @@ public sealed class ReaderViewRenderTests
             Assert.Equal("Delete this Highlight?", viewModel.DeleteAnnotationConfirmationText);
             Assert.Equal(0, annotationService.DeleteCallCount);
             Assert.Single(viewModel.Annotations);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ReaderView_AnnotationDeleteConfirmation_ConfirmDeletesAnnotation()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CreateHighlightAsync(CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.RequestDeleteAnnotation(viewModel.Annotations[0]);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            Button confirmButton = AssertFocusableControl<Button>(window, "Delete");
+
+            InvokeReaderViewHandler(view, "ConfirmDeleteAnnotationButton_Click", confirmButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(viewModel.HasPendingDeleteAnnotation);
+            Assert.Equal(1, annotationService.DeleteCallCount);
+            Assert.Empty(annotationService.CreatedAnnotations);
+            Assert.Empty(viewModel.Annotations);
+            Assert.Empty(viewModel.AnnotationOverlays);
+            Assert.Equal("Annotation deleted", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void ReaderView_AnnotationDeleteConfirmation_CancelKeepsAnnotation()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CreateHighlightAsync(CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.RequestDeleteAnnotation(viewModel.Annotations[0]);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            Button cancelButton = AssertFocusableControl<Button>(window, "Cancel");
+
+            InvokeReaderViewHandler(view, "CancelDeleteAnnotationButton_Click", cancelButton);
+
+            Assert.False(viewModel.HasPendingDeleteAnnotation);
+            Assert.Equal(0, annotationService.DeleteCallCount);
+            Assert.Single(annotationService.CreatedAnnotations);
+            Assert.Single(viewModel.Annotations);
+            Assert.Single(viewModel.AnnotationOverlays);
         }
         finally
         {
@@ -2559,6 +2701,22 @@ public sealed class ReaderViewRenderTests
         Assert.True(control.IsFocused, $"{typeof(T).Name} '{automationName}' should accept keyboard focus.");
         return control;
     }
+
+    private static void SelectText(ReaderViewModel viewModel)
+    {
+        viewModel.BeginSelection(72, 96);
+        viewModel.UpdateSelection(230, 180);
+        viewModel.CompleteSelection();
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(viewModel.HasSelection);
+    }
+
+    private static Button SelectionActionButton(Border actionMenu, string automationName) =>
+        actionMenu.GetVisualDescendants()
+            .OfType<Button>()
+            .FirstOrDefault(button => GetAutomationName(button) == automationName)
+            ?? throw new InvalidOperationException(
+                $"Could not find selection action button '{automationName}'.");
 
     private static void InvokeReaderViewHandler(ReaderView view, string methodName, object sender)
     {
