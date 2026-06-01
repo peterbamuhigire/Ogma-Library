@@ -18,7 +18,8 @@ write pattern (transaction + WAL + confirm-after-save); R1 fault-injection basel
 | P09-WP1-T5 | Confirm SQLite WAL mode is set at catalogue open (`PRAGMA journal_mode=WAL`; verify in Phase 04 migration or add here) | 1 h | Phase 04 | NFR-OGMA-008 |
 | P09-WP1-T6 | Write R1 fault-injection tests: repository failure does not emit events; invalid-book annotation rollback; `FaultInjection_DiskFull_TransactionRolledBack`; partial region JSON repair; concurrent writes; bookmark abort recovery; failed layer-delete projection suppression. | 2 h | P09-WP1-T4 | NFR-OGMA-008, R1 |
 
-**WP1 exit:** migrations pass; transaction tests red (TDD contract established).
+**WP1 exit:** migrations pass; durable-write, WAL, rollback, and recovery tests
+are green.
 
 ---
 
@@ -137,7 +138,9 @@ copy and export.
 | P09-WP8-T4 | Screen-reader walkthrough: VoiceOver/Narrator announces "Highlight on page N, layer X"; bookmark list announces count and item labels | 1 h | P09-WP8-T3 | NFR-PROD-008 |
 | P09-WP8-T5 | Pseudolocale render: annotation panel, layer sidebar, reading memory — no truncation/overflow | 1 h | P09-WP8-T1 | I18N-STRATEGY.md |
 
-**WP8 exit:** pseudolocale clean; no hard-coded strings; all icons registered; SR walkthrough passes.
+**WP8 exit:** pseudolocale clean; no hard-coded strings; all icons registered;
+automated accessibility coverage is present; manual SR walkthrough remains a
+release-signoff gate.
 
 ---
 

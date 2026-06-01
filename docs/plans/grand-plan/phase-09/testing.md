@@ -50,7 +50,7 @@ out-of-scope layers are documented below.
 | `AnnotationRepository_CommittedAnnotation_SurvivesFreshContextReopen` | Row present in DB immediately after `CreateAsync` returns and after reopening a fresh context |
 | `AnnotationRepository_InvalidBook_RollsBackAnnotationAndBody` | Simulate invalid-book FK failure; annotation and body rows are absent and the context recovers |
 | `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete` | Create, rename, delete, and book-scoped delete event behavior round-trip |
-| `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete` | Row is absent after `DeleteAsync` and a book-scoped delete event is emitted |
+| `BookmarkRepository_CreateWithInvalidBook_RecoversOnSameContext` | Failed bookmark write rolls back cleanly and the same context accepts a later valid bookmark |
 | `AnnotationLayerService_Delete_MovesAnnotationsToDefaultLayer` | Annotations in deleted layer now have `LayerId = defaultLayerId` |
 | `AnnotationLayerService_Delete_IgnoresLayerFromDifferentBook` | Cross-book layer delete request leaves the other book's layer intact and emits no wrong-book event |
 | `ReadingMemoryService_Save_UpsertsAndValidatesDisposition` | Second save updates, does not insert duplicate; disposition rejects non-range values |
