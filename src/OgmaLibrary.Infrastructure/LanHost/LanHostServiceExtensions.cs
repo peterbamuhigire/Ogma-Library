@@ -13,9 +13,12 @@ public static class LanHostServiceExtensions
 
         services.AddSingleton<IHostModeSettingsRepository, HostModeSettingsRepository>();
         services.AddSingleton<IClientSessionService, ClientSessionService>();
-        services.AddSingleton<ICertificateProvisioner>(_ => new LocalCertificateProvisioner(
+        services.AddSingleton(_ => new LocalCertificateProvisioner(
             dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));
+        services.AddSingleton<ICertificateProvisioner>(sp => sp.GetRequiredService<LocalCertificateProvisioner>());
+        services.AddSingleton<IHostServerCertificateProvider>(sp => sp.GetRequiredService<LocalCertificateProvisioner>());
         services.AddSingleton<IMdnsAdvertiser, MdnsAdvertiser>();
+        services.AddSingleton<IHostModeListener, KestrelHostModeListener>();
         services.AddSingleton<ILibraryHostService, LibraryHostService>();
         return services;
     }

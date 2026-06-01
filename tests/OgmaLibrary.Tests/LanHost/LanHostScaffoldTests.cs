@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +46,8 @@ public sealed class LanHostScaffoldTests
         {
             await using ServiceProvider services = await CreateServicesAsync(dataDirectory);
             var sessions = services.GetRequiredService<IClientSessionService>();
+            await services.GetRequiredService<IHostModeSettingsRepository>()
+                .SaveAsync(new HostModeSettings(false, GetFreeTcpPort(), HostContentDeliveryMode.PageRender, "Ogma Library"));
             ClientSessionResult session = await sessions.IssueAsync(
                 new ClientSessionRequest("client-1", "Student", TimeSpan.FromMinutes(30)),
                 CancellationToken.None);
@@ -84,6 +88,15 @@ public sealed class LanHostScaffoldTests
         string dataDirectory = Path.Combine(Path.GetTempPath(), $"ogma-lanhost-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dataDirectory);
         return dataDirectory;
+    }
+
+    private static int GetFreeTcpPort()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
     }
 
     private static void CleanupTempDirectory(string dataDirectory)

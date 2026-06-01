@@ -8,7 +8,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 namespace OgmaLibrary.Infrastructure.LanHost;
 
 /// <summary>Creates and loads the local LAN Host certificate authority.</summary>
-internal sealed class LocalCertificateProvisioner : ICertificateProvisioner
+internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHostServerCertificateProvider
 {
     private const string CertificateDirectoryName = "LanHost";
     private const string ProtectedCertificateFileName = "host-ca.pfx.dpapi";
@@ -32,12 +32,19 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner
     public async Task<CertificateProvisioningResult> EnsureProvisionedAsync(
         CancellationToken cancellationToken = default)
     {
-        using X509Certificate2 certificate = await LoadOrCreateCertificateAsync(cancellationToken)
+        using X509Certificate2 certificate = await LoadOrCreateRootCertificateAsync(cancellationToken)
             .ConfigureAwait(false);
         return new CertificateProvisioningResult(Fingerprint(certificate), certificate.NotAfter.ToUniversalTime());
     }
 
-    internal async Task<X509Certificate2> LoadOrCreateCertificateAsync(CancellationToken cancellationToken = default)
+    public async Task<X509Certificate2> LoadOrCreateCertificateAsync(CancellationToken cancellationToken = default)
+    {
+        using X509Certificate2 root = await LoadOrCreateRootCertificateAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return CreateServerCertificate(root);
+    }
+
+    internal async Task<X509Certificate2> LoadOrCreateRootCertificateAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(_certificateDirectory);
@@ -106,6 +113,39 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner
         return LoadFromPfx(pfxBytes);
     }
 
+    private static X509Certificate2 CreateServerCertificate(X509Certificate2 root)
+    {
+        using RSA rsa = RSA.Create(2048);
+        var subject = new X500DistinguishedName("CN=localhost");
+        var request = new CertificateRequest(subject, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(
+            certificateAuthority: false,
+            hasPathLengthConstraint: false,
+            pathLengthConstraint: 0,
+            critical: true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment,
+            critical: true));
+        request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+            new OidCollection
+            {
+                new("1.3.6.1.5.5.7.3.1"),
+            },
+            critical: false));
+        var subjectAlternativeNames = new SubjectAlternativeNameBuilder();
+        subjectAlternativeNames.AddDnsName("localhost");
+        subjectAlternativeNames.AddIpAddress(System.Net.IPAddress.Loopback);
+        request.CertificateExtensions.Add(subjectAlternativeNames.Build());
+
+        DateTimeOffset notBefore = DateTimeOffset.UtcNow.AddMinutes(-5);
+        DateTimeOffset notAfter = Min(root.NotAfter.ToUniversalTime().AddDays(-1), notBefore.AddYears(1));
+        byte[] serial = RandomNumberGenerator.GetBytes(16);
+        using X509Certificate2 certificate = request.Create(root, notBefore, notAfter, serial);
+        using X509Certificate2 withPrivateKey = certificate.CopyWithPrivateKey(rsa);
+        byte[] pfxBytes = withPrivateKey.Export(X509ContentType.Pkcs12);
+        return LoadFromPfx(pfxBytes);
+    }
+
     private static X509Certificate2 LoadFromPfx(byte[] pfxBytes)
     {
         try
@@ -113,13 +153,16 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner
             return X509CertificateLoader.LoadPkcs12(
                 pfxBytes,
                 password: null,
-                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+                X509KeyStorageFlags.Exportable);
         }
         finally
         {
             Array.Clear(pfxBytes);
         }
     }
+
+    private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) =>
+        first <= second ? first : second;
 
     private static void RestrictUnixFile(string path)
     {

@@ -7,8 +7,9 @@ Date started: 2026-06-01
 Phase 16 WP1/WP2/WP10 is underway. The first implementation slices establish
 the LAN Host bounded-context contract, keep the default standalone product
 listener-free, add durable local Host settings/session persistence, replace
-the scaffold certificate fingerprint with a real local X.509 Host CA, and wire
-the discovery boundary to a real DNS-SD adapter:
+the scaffold certificate fingerprint with a real local X.509 Host CA, wire the
+discovery boundary to a real DNS-SD adapter, and add the first opt-in HTTPS Host
+listener endpoints:
 
 - `OgmaLibrary.Application.LanHost` defines Host-mode status/settings records
   and contracts for host control, client sessions, certificate provisioning,
@@ -28,6 +29,12 @@ the discovery boundary to a real DNS-SD adapter:
 - `MdnsAdvertiser` wraps `Makaretu.Dns.Multicast` and validates DNS-SD service
   type, instance name, port, and TXT record sizes before advertising
   `_ogma-library._tcp`.
+- `KestrelHostModeListener` binds HTTPS on loopback only for the first endpoint
+  slice. It exposes `/api/v1/health`, `/api/v1/auth/session`, and authenticated
+  `/api/v1/catalogue`; unauthenticated catalogue requests return `401`.
+- The listener uses a short-lived server certificate with `localhost` and
+  `127.0.0.1` SANs issued from the persisted Host CA; the advertised fingerprint
+  remains the Host CA SHA-256 fingerprint.
 - The scaffold can start/stop its coordinator, advertise the planned mDNS record
   shape, and revoke persisted sessions on stop without binding a network port.
 - Architecture tests guard the LanHost boundary from credential-store,
@@ -38,7 +45,7 @@ the discovery boundary to a real DNS-SD adapter:
 
 | Gate | Evidence |
 | --- | --- |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests" --logger "console;verbosity=minimal"` | Passed: 11 scaffold/persistence/certificate/mDNS tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, and DNS-SD size validation |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 13 scaffold/persistence/certificate/mDNS/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, HTTPS health, session issue, catalogue 401, and authenticated catalogue projection |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
@@ -51,6 +58,7 @@ the discovery boundary to a real DNS-SD adapter:
 | LanHost infrastructure scaffold | `src/OgmaLibrary.Infrastructure/LanHost/` |
 | LanHost certificate provisioner | `LocalCertificateProvisioner` creates/reloads the Host CA and exposes stable SHA-256 fingerprint |
 | LanHost mDNS advertiser | `MdnsAdvertiser` wraps `Makaretu.Dns.Multicast` behind `IMdnsAdvertiser` |
+| LanHost HTTPS listener | `KestrelHostModeListener` exposes loopback health/auth/catalogue endpoints behind bearer session validation |
 | LanHost EF entities/configurations | `HostModeSettingsRow`, `HostClientSessionRow`, and matching EF configurations |
 | LanHost persistence migration | `src/OgmaLibrary.Infrastructure/Persistence/Migrations/20260601184330_Phase16LanHostTables.cs` |
 | DI registration | `CompositionRoot.AddOgmaLibrary()` calls `AddLanHostServices()` |
@@ -60,4 +68,5 @@ the discovery boundary to a real DNS-SD adapter:
 
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
-- WP3+ HTTPS endpoints, auth, audit, UI, and load tests.
+- WP3+ LAN-bound listener interface selection, catalogue pagination contract
+  hardening, asset/page-render/file-stream endpoints, audit, UI, and load tests.

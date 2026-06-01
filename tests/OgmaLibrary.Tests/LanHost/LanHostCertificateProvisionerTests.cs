@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Infrastructure.LanHost;
@@ -16,7 +17,7 @@ public sealed class LanHostCertificateProvisionerTests
         {
             var provisioner = new LocalCertificateProvisioner(dataDirectory);
 
-            using X509Certificate2 certificate = await provisioner.LoadOrCreateCertificateAsync();
+            using X509Certificate2 certificate = await provisioner.LoadOrCreateRootCertificateAsync();
             CertificateProvisioningResult result = await provisioner.EnsureProvisionedAsync();
 
             Assert.Equal(3, certificate.Version);
@@ -28,6 +29,29 @@ public sealed class LanHostCertificateProvisionerTests
             Assert.Contains(
                 certificate.Extensions.OfType<X509BasicConstraintsExtension>(),
                 extension => extension.CertificateAuthority);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task CertificateProvisioner_ServerCertificate_HasLoopbackSanAndPrivateKey()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var provisioner = new LocalCertificateProvisioner(dataDirectory);
+
+            using X509Certificate2 certificate = await provisioner.LoadOrCreateCertificateAsync();
+
+            Assert.True(certificate.HasPrivateKey);
+            Assert.Contains("CN=localhost", certificate.Subject, StringComparison.Ordinal);
+            Assert.Contains(
+                certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>(),
+                extension => extension.EnhancedKeyUsages.Cast<Oid>().Any(oid => oid.Value == "1.3.6.1.5.5.7.3.1"));
         }
         finally
         {

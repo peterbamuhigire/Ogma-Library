@@ -6,13 +6,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="AI\Advisor\prompts\*.txt" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- PDF rendering (spike S02 winner, updated to 5.x for SkiaSharp 3.x compat) -->
     <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
     <PackageReference Include="PDFsharp" Version="6.1.1" />
     <PackageReference Include="PDFtoImage" Version="5.2.1" />
     <!-- SkiaSharp for thumbnail/spine encoding (3.x required by Avalonia.Svg.Skia) -->

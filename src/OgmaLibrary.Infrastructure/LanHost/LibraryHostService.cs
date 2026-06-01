@@ -3,8 +3,8 @@ using OgmaLibrary.Application.LanHost;
 namespace OgmaLibrary.Infrastructure.LanHost;
 
 /// <summary>
-/// Phase 16 Host-mode coordinator scaffold. It does not bind a network listener
-/// until the Kestrel HTTPS adapter lands behind this bounded-context boundary.
+/// Phase 16 Host-mode coordinator. It starts the opt-in HTTPS listener only
+/// when an administrator explicitly starts Host mode.
 /// </summary>
 internal sealed class LibraryHostService : ILibraryHostService
 {
@@ -12,6 +12,7 @@ internal sealed class LibraryHostService : ILibraryHostService
     private readonly ICertificateProvisioner _certificates;
     private readonly IMdnsAdvertiser _mdns;
     private readonly IClientSessionService _sessions;
+    private readonly IHostModeListener _listener;
     private LibraryHostStatus _status = new(
         LibraryHostState.Stopped,
         Port: 7473,
@@ -23,17 +24,20 @@ internal sealed class LibraryHostService : ILibraryHostService
         IHostModeSettingsRepository settings,
         ICertificateProvisioner certificates,
         IMdnsAdvertiser mdns,
-        IClientSessionService sessions)
+        IClientSessionService sessions,
+        IHostModeListener listener)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(certificates);
         ArgumentNullException.ThrowIfNull(mdns);
         ArgumentNullException.ThrowIfNull(sessions);
+        ArgumentNullException.ThrowIfNull(listener);
 
         _settings = settings;
         _certificates = certificates;
         _mdns = mdns;
         _sessions = sessions;
+        _listener = listener;
     }
 
     /// <inheritdoc />
@@ -44,6 +48,8 @@ internal sealed class LibraryHostService : ILibraryHostService
 
         CertificateProvisioningResult certificate = await _certificates
             .EnsureProvisionedAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await _listener.StartAsync(settings, certificate.Fingerprint, cancellationToken)
             .ConfigureAwait(false);
         await _mdns.StartAsync(
                 new MdnsServiceRecord(
@@ -69,8 +75,9 @@ internal sealed class LibraryHostService : ILibraryHostService
     /// <inheritdoc />
     public async Task<LibraryHostStatus> StopAsync(CancellationToken cancellationToken = default)
     {
-        await _mdns.StopAsync(cancellationToken).ConfigureAwait(false);
+        await _listener.StopAsync(cancellationToken).ConfigureAwait(false);
         await _sessions.RevokeAllAsync(cancellationToken).ConfigureAwait(false);
+        await _mdns.StopAsync(cancellationToken).ConfigureAwait(false);
         _status = _status with { State = LibraryHostState.Stopped, ConnectedClientCount = 0 };
         return _status;
     }
