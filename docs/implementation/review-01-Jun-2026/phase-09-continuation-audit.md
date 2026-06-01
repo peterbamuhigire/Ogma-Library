@@ -10,8 +10,9 @@ reading-memory editing, note editor blur-save, Phase 09 French localization
 cleanup, text-selection service traceability, Choose Library Folder
 missing-`BookFiles` scan repair and same-hash unregistered-path registration
 coverage, reader file-locator missing-`BookFiles` retry repair, citation
-clipboard/export behavior coverage, plus follow-up evidence-count, test-name,
-filter-token, and task-exit documentation sweeps on 2026-06-01.
+clipboard/export behavior coverage, actionable note-anchor coverage, plus
+follow-up evidence-count, test-name, filter-token, and task-exit documentation
+sweeps on 2026-06-01.
 
 ## Current Position
 
@@ -30,7 +31,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open, reader file location, and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, reader keyboard shortcuts, citation clipboard copy/export behavior, touch-capable selection, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, manual signoff documentation source-of-truth cleanup, current evidence-count/test-name reconciliation, stale metadata filter cleanup, and task-exit/manual-gate wording cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open, reader file location, and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, actionable note anchors, reader keyboard shortcuts, citation clipboard copy/export behavior, touch-capable selection, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, manual signoff documentation source-of-truth cleanup, current evidence-count/test-name reconciliation, stale metadata filter cleanup, and task-exit/manual-gate wording cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -49,6 +50,7 @@ owner-gated:
 | Reading-memory blur auto-save | `ReaderView_ReadingMemoryFieldLostFocus_AutoSavesEditedField` verifies the rendered reader field blur route schedules and persists edited reading-memory text |
 | Book-detail reading-memory editing | `BookDetailViewModel_ReadingMemoryEditor_SavesAndRefreshesSummary` verifies the catalogue book-detail path saves opened-because, key-insight, open-questions, and disposition through `IReadingMemoryService` and refreshes the summary projection |
 | Note editor blur-save | `ReaderView_NoteEditorLostFocus_SavesEditedNote` verifies the rendered note editor focus-out route persists edited note text, closes the editor, and reports save completion |
+| Actionable note anchors | `ReaderView_NoteAnchorClick_OpensInlineNoteEditor` verifies a rendered note-anchor button opens the inline note editor for the clicked annotation; `ReaderViewModel_NoteOverlay_ExposesAnchorMarker` continues to verify the anchor label and premium SVG path |
 | French Phase 09 localization | `Phase09AnnotationResources_DoNotContainMojibake`, `InMemoryLocalization_Phase09FrenchStrings_DoNotContainMojibake`, and `InMemoryLocalization_Phase09Strings_MatchResourceValues` verify resource/runtime labels reject common mojibake markers and match the committed Phase 09 resource values |
 | Text-selection mapping service | `TextSelectionService.GetRegionsForSelection` and `TextSelectionService_GetRegionsForSelection_MapsScreenRectToUnrotatedRegion` verify the planned P09-WP2-T2 mapping from screen-space selection rectangles to normalized unrotated annotation regions |
 | Task-exit documentation cleanup | `tasks.md` now describes WP1 as green for durable-write/WAL/rollback/recovery tests and WP8 as automated-accessibility complete with manual SR walkthrough still pending; `testing.md` no longer repeats one bookmark test row for two assertions |
@@ -94,6 +96,7 @@ actionable mismatches and fixed them:
 | `tasks.md` still described WP1 as an early TDD red-test state and WP8 as if manual screen-reader walkthrough had passed. | Updated WP1 to the current green durable-write/WAL/rollback/recovery state and WP8 to automated accessibility complete with manual SR signoff pending. |
 | WP6 copy-to-clipboard had implementation but only indirect automation-name/focus evidence. | Added `ReaderView_CopyCitation_WritesPlainTextToClipboardAndReportsCopied`, which invokes the rendered reader copy path, reads the headless clipboard, and verifies the copied status message. |
 | WP6 rendered export had sidecar coverage at the view-model layer but not the button route that copies to clipboard before exporting. | Added `ReaderView_ExportCitation_WritesClipboardAndExportsCapturedCard`, which invokes the rendered export handler, verifies clipboard content, verifies the captured domain card was exported, and checks the exported status. |
+| P09-WP3-T3 required clicking the note icon to open the inline note editor, but the rendered note anchor was only a passive SVG marker. | Replaced the marker with an accessible note-anchor button wired to `OpenNoteEditorById`, and added `ReaderView_NoteAnchorClick_OpensInlineNoteEditor` to verify the rendered click route. |
 
 The final code-level pass also rechecked the planned Ctrl+B, Ctrl+Shift+B, and
 Ctrl+Shift+C shortcuts against `ReaderView.axaml.cs` and the focused UI tests.
@@ -123,7 +126,7 @@ The text-selection pass extracted the planned selection-region mapping helper
 so screen-space drag rectangles have an explicit tested service before
 annotation persistence.
 No further locally actionable Phase 09 implementation gaps were found in this
-pass beyond the reader file-locator and citation clipboard/export hardening
-recorded above.
+pass beyond the reader file-locator, citation clipboard/export, and note-anchor
+hardening recorded above.
 Do not mark Phase 09 fully closed until the manual and owner-gated rows above
 have dated evidence or explicit waivers.

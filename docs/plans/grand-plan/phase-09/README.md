@@ -401,6 +401,9 @@ Current implementation progress:
   selection actions, citation cards, sidebar tab headers, bookmark/layer
   panels, note anchors, highlight color picker, bookmark rename, and
   reading-memory disposition surfaces.
+- Note-anchor icons on page overlays are now rendered as actionable buttons;
+  clicking an anchor opens the inline note editor for that annotation, matching
+  the planned note pop-over route.
 - Phase 09 reader shortcut wiring has been rechecked against the Avalonia reader
   view: Ctrl+B toggles the current-page bookmark, Ctrl+Shift+B opens the
   bookmark panel, and Ctrl+Shift+C captures a citation from selected text.
@@ -490,3 +493,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Hardened reader file location against missing `BookFiles` errors after direct PDF open and verified selected PDFs are immediately locatable | Codex |
 | 2026-06-01 | Added rendered citation clipboard regression coverage for the copy action | Codex |
 | 2026-06-01 | Added rendered citation export coverage for the clipboard side effect plus sidecar export | Codex |
+| 2026-06-01 | Made rendered note-anchor icons actionable and covered click-to-open note editing | Codex |

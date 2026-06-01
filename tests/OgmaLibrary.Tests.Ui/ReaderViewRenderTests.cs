@@ -1241,9 +1241,47 @@ public sealed class ReaderViewRenderTests
             Assert.Contains(
                 window.GetVisualDescendants().OfType<Control>(),
                 control =>
-                    control.GetType().Name == "Svg" &&
+                    control is Button &&
                     GetAutomationName(control) == overlay.NoteAnchorAccessibleLabel);
             AssertSvgIconPath(window, "ic_annotation_note_anchor.svg");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void ReaderView_NoteAnchorClick_OpensInlineNoteEditor()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CreateNoteAsync(CancellationToken.None).GetAwaiter().GetResult();
+        AnnotationOverlayItem overlay = Assert.Single(viewModel.AnnotationOverlays);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            Button noteAnchor = window.GetVisualDescendants()
+                .OfType<Button>()
+                .First(button => GetAutomationName(button) == overlay.NoteAnchorAccessibleLabel);
+
+            InvokeReaderViewHandler(view, "NoteAnchorButton_Click", noteAnchor);
+
+            Assert.True(viewModel.IsNoteEditorOpen);
+            Assert.Equal(overlay.AnnotationId, viewModel.EditingNote?.Id);
+            Assert.Equal("Note on page 1", viewModel.EditingNoteText);
         }
         finally
         {

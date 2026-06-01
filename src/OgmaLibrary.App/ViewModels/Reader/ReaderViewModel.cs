@@ -909,6 +909,23 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         EditingNoteText = annotation.NoteText;
     }
 
+    /// <summary>Opens the inline note editor for a note annotation by identifier.</summary>
+    public bool OpenNoteEditorById(string annotationId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(annotationId);
+
+        AnnotationListItem? annotation = Annotations
+            .FirstOrDefault(item => string.Equals(item.Id, annotationId, StringComparison.Ordinal));
+
+        if (annotation is not { IsNote: true })
+        {
+            return false;
+        }
+
+        OpenNoteEditor(annotation);
+        return true;
+    }
+
     /// <summary>Closes the inline note editor without persisting additional changes.</summary>
     public void CloseNoteEditor()
     {

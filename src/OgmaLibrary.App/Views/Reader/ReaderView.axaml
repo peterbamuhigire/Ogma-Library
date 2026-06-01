@@ -168,8 +168,7 @@
           <ItemsControl Grid.Row="0"
                         ItemsSource="{Binding AnnotationOverlays}"
                         Width="{Binding PageSurfaceWidth}"
-                        Height="{Binding PageSurfaceHeight}"
-                        IsHitTestVisible="False">
+                        Height="{Binding PageSurfaceHeight}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <Grid />
@@ -186,15 +185,24 @@
                           Background="{Binding OverlayColor}"
                           Opacity="0.8"
                           CornerRadius="3"
+                          IsHitTestVisible="False"
                           AutomationProperties.Name="{Binding AccessibleLabel}" />
-                  <svg:Svg Width="16"
-                           Height="16"
-                           Margin="{Binding NoteAnchorMargin}"
-                           HorizontalAlignment="Left"
-                           VerticalAlignment="Top"
-                           IsVisible="{Binding IsNote}"
-                           AutomationProperties.Name="{Binding NoteAnchorAccessibleLabel}"
-                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note_anchor.svg" />
+                  <Button Width="24"
+                          Height="24"
+                          Padding="3"
+                          Margin="{Binding NoteAnchorMargin}"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          IsVisible="{Binding IsNote}"
+                          AutomationProperties.Name="{Binding NoteAnchorAccessibleLabel}"
+                          ToolTip.Tip="{Binding NoteAnchorAccessibleLabel}"
+                          Click="NoteAnchorButton_Click">
+                    <svg:Svg Width="16"
+                             Height="16"
+                             Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note_anchor.svg" />
+                  </Button>
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

@@ -164,6 +164,16 @@ public partial class ReaderView : UserControl
         }
     }
 
+    private void NoteAnchorButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ReaderViewModel vm &&
+            sender is Button { DataContext: AnnotationOverlayItem overlay })
+        {
+            vm.OpenNoteEditorById(overlay.AnnotationId);
+            e.Handled = true;
+        }
+    }
+
     private async void NoteEditor_LostFocus(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
