@@ -6,9 +6,9 @@ Date started: 2026-06-01
 
 The first Phase 14 foundation slice is implemented locally. It adds the shared
 WebView bridge contracts, testable WebView host adapter, WebView2/WKWebView
-bridge facades, scheme-handler response contracts, C# bridge message records,
-inbound parser, SI-3 inbound validator, and strict TypeScript mirror types for
-the Three.js scene boundary.
+bridge facades, C# bridge message records, inbound parser, SI-3 inbound
+validator, strict TypeScript mirror types for the Three.js scene boundary, and
+the first `ogma://` asset scheme handler with traversal protection.
 
 The platform-specific native WebView packages are not wired yet; the bridge is
 ready for those adapters through `IWebViewHostAdapter`.
@@ -18,6 +18,7 @@ ready for those adapters through `IWebViewHostAdapter`.
 | Gate | Evidence |
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~BridgeMessageTests` | Passed: 6 bridge serialization and SI-3 validation tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 4 scheme-handler tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity` | Passed: 1 Bookshelf3D bounded-context architecture test |
 | `npx --yes -p typescript tsc --noEmit -p src\shelf3d\tsconfig.json` | Passed: strict TypeScript message contract check |
 
@@ -34,10 +35,13 @@ ready for those adapters through `IWebViewHostAdapter`.
 | SI-3 validation | `InboundMessageValidator` rejects invalid local book ids, non-finite/out-of-bounds cameras, non-finite FPS warnings, and unknown message types before dispatch |
 | TypeScript contract | `src/shelf3d/src/messages.ts` mirrors the C# bridge contract as strict discriminated unions |
 | Architecture gate | `Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity` guards the 3D bounded context from catalogue infrastructure coupling |
+| Asset scheme handler | `OgmaSchemeHandler` serves only `ogma://assets/<class>/<filename>` from the sidecar asset root |
+| Path traversal guard | Traversal attempts such as `ogma://assets/covers/../../secrets.db` return 403 instead of leaking filesystem paths |
+| MIME types | PNG, JPEG, JavaScript, and JSON assets return explicit content types |
 
 ## Remaining Phase 14 Work
 
 - WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter` and register platform DI.
-- WP2 `ogma://` scheme handler implementation and traversal tests.
+- WP2 native bridge registration of the `ogma://` handler remains for the WebView initialization slice.
 - WP3 full side-effect integration test against the ViewModel stack after WP6 exists.
 - WP4-WP9 spine textures, Three.js scene, view model/view, fallback, performance benchmarks, review, and remote CI evidence.
