@@ -139,6 +139,53 @@ function Test-EvidenceCommitCoverage {
     }
 }
 
+function Test-CommittedCleanEvidenceFile {
+    param(
+        [string]$Path,
+        [string]$RepoRoot
+    )
+
+    $resolvedPath = (Resolve-Path -Path $Path).Path
+    $rootPath = (Resolve-Path -Path $RepoRoot).Path.TrimEnd('\', '/')
+    if (-not $resolvedPath.StartsWith($rootPath, [StringComparison]::OrdinalIgnoreCase)) {
+        return [PSCustomObject]@{
+            IsCommittedClean = $false
+            Reason = "Evidence file is outside the repository root: $resolvedPath"
+        }
+    }
+
+    $relativePath = $resolvedPath.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
+
+    & git ls-files --error-unmatch -- $relativePath *> $null
+    if ($LASTEXITCODE -ne 0) {
+        return [PSCustomObject]@{
+            IsCommittedClean = $false
+            Reason = "Evidence file is not tracked in git: $relativePath"
+        }
+    }
+
+    & git diff --quiet -- $relativePath
+    if ($LASTEXITCODE -ne 0) {
+        return [PSCustomObject]@{
+            IsCommittedClean = $false
+            Reason = "Evidence file has uncommitted working-tree changes: $relativePath"
+        }
+    }
+
+    & git diff --cached --quiet -- $relativePath
+    if ($LASTEXITCODE -ne 0) {
+        return [PSCustomObject]@{
+            IsCommittedClean = $false
+            Reason = "Evidence file has staged changes not present in HEAD: $relativePath"
+        }
+    }
+
+    return [PSCustomObject]@{
+        IsCommittedClean = $true
+        Reason = "Evidence file is tracked and clean in HEAD: $relativePath"
+    }
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $repoRoot
 
@@ -191,8 +238,9 @@ else {
         -CurrentCommit $currentCommit `
         -CurrentReason 'Preflight evidence was generated for the current commit.' `
         -CoveredReason "Preflight commit $preflightCommit is an ancestor and no verification-impacting files changed afterward."
-    if ($missing.Count -eq 0 -and $coverage.IsCovered) {
-        Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName $coverage.Reason
+    $preflightFileState = Test-CommittedCleanEvidenceFile -Path $preflight.FullName -RepoRoot $repoRoot
+    if ($missing.Count -eq 0 -and $coverage.IsCovered -and $preflightFileState.IsCommittedClean) {
+        Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName "$($coverage.Reason) $($preflightFileState.Reason)"
     }
     else {
         $reasons = @()
@@ -201,6 +249,9 @@ else {
         }
         if (-not $coverage.IsCovered) {
             $reasons += $coverage.Reason
+        }
+        if (-not $preflightFileState.IsCommittedClean) {
+            $reasons += $preflightFileState.Reason
         }
         Add-Result $results 'Automated preflight evidence' 'Fail' $preflight.FullName "Regenerate preflight evidence; $($reasons -join '; ')"
     }
@@ -248,10 +299,12 @@ else {
         -CurrentCommit $currentCommit `
         -CurrentReason 'Remote CI evidence was collected for the current commit.' `
         -CoveredReason "Remote CI commit $remoteCommit is an ancestor and no verification-impacting files changed afterward."
+    $remoteFileState = Test-CommittedCleanEvidenceFile -Path $remoteEvidence.FullName -RepoRoot $repoRoot
     if ($remoteEvidenceText -like '*| Status | Pass |*' -and
         $remoteEvidenceText -like '*| Conclusion | All completed workflow runs passed |*' -and
-        $remoteCoverage.IsCovered) {
-        Add-Result $results 'Remote CI evidence' 'Pass' $remoteEvidence.FullName $remoteCoverage.Reason
+        $remoteCoverage.IsCovered -and
+        $remoteFileState.IsCommittedClean) {
+        Add-Result $results 'Remote CI evidence' 'Pass' $remoteEvidence.FullName "$($remoteCoverage.Reason) $($remoteFileState.Reason)"
     }
     else {
         $remoteStatus = Get-TableValue -Markdown $remoteEvidenceText -Field 'Status'
@@ -259,6 +312,9 @@ else {
         $reasons = @("latest remote CI status is $remoteStatus / $remoteConclusion")
         if (-not $remoteCoverage.IsCovered) {
             $reasons += $remoteCoverage.Reason
+        }
+        if (-not $remoteFileState.IsCommittedClean) {
+            $reasons += $remoteFileState.Reason
         }
         Add-Result $results 'Remote CI evidence' 'Pending' $remoteEvidence.FullName "Attach a passing remote CI evidence file for the current commit or an ancestor with no verification-impacting changes afterward; $($reasons -join '; ')"
     }

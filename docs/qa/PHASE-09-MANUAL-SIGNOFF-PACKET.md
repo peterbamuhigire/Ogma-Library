@@ -126,7 +126,9 @@ for an ancestor commit when no verification-impacting files changed after that
 evidence run. Verification-impacting files include product source, tests,
 workflow files, solution/project files, props/targets, `.editorconfig`,
 `global.json`, `NuGet.config`, and `Directory.Build.*` or
-`Directory.Packages.*` files.
+`Directory.Packages.*` files. Evidence files used by the gate must also be
+tracked by git and clean in `HEAD`; untracked, staged-only, or locally edited
+evidence cannot satisfy a release gate.
 
 To collect remote CI evidence when GitHub Actions is readable from the
 workstation, run:
