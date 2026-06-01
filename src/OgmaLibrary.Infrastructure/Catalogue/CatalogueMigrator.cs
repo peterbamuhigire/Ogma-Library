@@ -285,6 +285,11 @@ public sealed class CatalogueMigrator
             return "CREATE INDEX IF NOT EXISTS " + statement["CREATE INDEX ".Length..];
         }
 
+        if (statement.StartsWith("INSERT INTO \"HostModeSettings\"", StringComparison.OrdinalIgnoreCase))
+        {
+            return "INSERT OR IGNORE INTO \"HostModeSettings\"" + statement["INSERT INTO \"HostModeSettings\"".Length..];
+        }
+
         return statement;
     }
 
