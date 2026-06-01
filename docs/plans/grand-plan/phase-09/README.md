@@ -412,6 +412,10 @@ Current implementation progress:
 - Reader text selection now accepts touch and pen drags without requiring the
   mouse-left-button flag, while preserving primary-button gating for mouse
   selection.
+- The Release desktop app was rebuilt and relaunched after the direct-PDF
+  missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
+  the running app is using the current direct-open path instead of a stale
+  `--no-build` binary.
 
 Next steps before final Phase 09 closure:
 
@@ -469,3 +473,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added editable book-detail reading-memory fields and refreshed Phase 09 UI/full-suite evidence counts | Codex |
 | 2026-06-01 | Added touch/pen-capable reader text-selection eligibility and refreshed Phase 09 evidence counts | Codex |
 | 2026-06-01 | Tightened folder scans so coexisting same-hash unregistered paths register as new books while true moves/renames still rematch | Codex |
+| 2026-06-01 | Rebuilt and relaunched the Release desktop app after rerunning direct-PDF/schema repair evidence, and refreshed stale startup/direct-PDF counts | Codex |
