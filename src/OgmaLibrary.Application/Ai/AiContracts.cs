@@ -19,11 +19,13 @@ public sealed record AiRequest
         string queryType,
         string? queryText,
         IReadOnlyDictionary<string, string>? metadataFields = null,
-        IReadOnlyList<AiContentChunk>? contentChunks = null)
+        IReadOnlyList<AiContentChunk>? contentChunks = null,
+        string consentScope = "library:default")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(queryType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(consentScope);
 
         MetadataFields = metadataFields ?? new Dictionary<string, string>(StringComparer.Ordinal);
         ContentChunks = contentChunks ?? [];
@@ -39,6 +41,7 @@ public sealed record AiRequest
         Model = model;
         QueryType = queryType;
         QueryText = queryText;
+        ConsentScope = consentScope;
     }
 
     /// <summary>Privacy tier requested for this call.</summary>
@@ -55,6 +58,9 @@ public sealed record AiRequest
 
     /// <summary>User query text, if applicable.</summary>
     public string? QueryText { get; }
+
+    /// <summary>Consent scope required before off-device egress.</summary>
+    public string ConsentScope { get; }
 
     /// <summary>Metadata fields allowed in Tier-1 payloads.</summary>
     public IReadOnlyDictionary<string, string> MetadataFields { get; }
@@ -76,11 +82,15 @@ public sealed record AiPayloadPreview(
     AiPrivacyTier Tier,
     string Provider,
     string Model,
+    string QueryType,
+    string? QueryText,
     IReadOnlyDictionary<string, string> MetadataFields,
     IReadOnlyList<AiContentChunk> ContentChunks)
 {
     /// <summary>Approximate payload character count for UI display.</summary>
     public int CharacterCount =>
+        QueryType.Length +
+        (QueryText?.Length ?? 0) +
         MetadataFields.Sum(metadata => metadata.Key.Length + metadata.Value.Length) +
         ContentChunks.Sum(chunk => chunk.BookId.Length + chunk.Source.Length + chunk.Text.Length);
 }

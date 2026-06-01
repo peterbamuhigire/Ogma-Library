@@ -14,6 +14,7 @@ using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
+using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
@@ -63,6 +64,7 @@ public static class CompositionRoot
         services.AddCatalogueContext(
             dataDirectory: dataDirectory,
             libraryRoot: dataDirectory);
+        services.AddAiGatewayCore();
 
         // Phase 05 — Ingestion Pipeline (Infrastructure services).
         services.AddIngestionPipeline(dataDirectory: dataDirectory);

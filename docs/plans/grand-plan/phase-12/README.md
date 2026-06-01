@@ -29,7 +29,7 @@ through one controllable, auditable, reversible surface.
 | Platforms | Windows (WebView2 not needed here) + macOS; fully cross-platform .NET 10 |
 | ADRs in scope | ADR-0007 (provider-neutral AI gateway + 4 tiers) |
 | Security/CTRL IDs | SI-1, CTRL-OGMA-016, 017, 018, 019, 020, 022 |
-| Status | WP1 contracts and WP2 persistence implemented locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, and focused contract/persistence tests; WP3+ pending |
+| Status | WP1 contracts, WP2 persistence, and WP3 gateway core implemented locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, payload-preview/consent/audit gateway enforcement, and focused tests; WP4+ pending |
 
 ---
 
@@ -439,3 +439,5 @@ Full detail in `skills.md`.
 | --- | --- | --- |
 | 2026-05-30 | Chwezi Core Systems | v1.0 baseline authored |
 | 2026-06-01 | Codex | WP1 contracts started: AI privacy tier, consent/audit/history records, gateway request/completion/preview DTOs, advisor/privacy interfaces, and focused contract tests |
+| 2026-06-01 | Codex | WP2 persistence implemented: consent/audit/history repository contracts, SQLite repositories, Phase 12 EF migration with legacy history backfill, and persistence tests |
+| 2026-06-01 | Codex | WP3 gateway core implemented: payload preview gate contract, gateway enforcement, disabled provider, payload hashing, cost attribution, and focused gateway tests |

@@ -81,12 +81,14 @@ public sealed class AiContractTests
             AiPrivacyTier.ContentAware,
             "anthropic",
             "claude-test",
+            "recommendation",
+            null,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["title"] = "Ogma",
             },
             [new AiContentChunk("BOOK1", "page:2", "chunk text")]);
 
-        Assert.Equal(5 + 4 + 5 + 6 + 10, preview.CharacterCount);
+        Assert.Equal(14 + 5 + 4 + 5 + 6 + 10, preview.CharacterCount);
     }
 }
