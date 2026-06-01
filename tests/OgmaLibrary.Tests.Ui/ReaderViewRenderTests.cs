@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -1902,6 +1903,40 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public void ReaderView_CopyCitation_WritesPlainTextToClipboardAndReportsCopied()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.SelectedCitationText = "Copy this passage";
+        viewModel.CaptureCitationAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            InvokeReaderViewTask(view, "CopyCitationToClipboardAsync");
+
+            string? clipboardText = window.Clipboard?.TryGetTextAsync().GetAwaiter().GetResult();
+            Assert.Equal(viewModel.CitationPlainText, clipboardText);
+            Assert.Equal("Citation copied to clipboard", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_ToggleBookmark_AddsAndRemovesCurrentPageBookmark()
     {
         var localization = new InMemoryLocalizationService();
@@ -2454,6 +2489,17 @@ public sealed class ReaderViewRenderTests
             ?? throw new InvalidOperationException($"Could not find ReaderView handler '{methodName}'.");
 
         method.Invoke(view, [sender, new RoutedEventArgs()]);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void InvokeReaderViewTask(ReaderView view, string methodName)
+    {
+        MethodInfo method = typeof(ReaderView)
+            .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Could not find ReaderView task '{methodName}'.");
+
+        var task = (Task?)method.Invoke(view, []);
+        task?.GetAwaiter().GetResult();
         Dispatcher.UIThread.RunJobs();
     }
 

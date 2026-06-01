@@ -404,6 +404,9 @@ Current implementation progress:
 - Phase 09 reader shortcut wiring has been rechecked against the Avalonia reader
   view: Ctrl+B toggles the current-page bookmark, Ctrl+Shift+B opens the
   bookmark panel, and Ctrl+Shift+C captures a citation from selected text.
+- Citation copy now has rendered-view regression coverage proving the card's
+  copy action writes the formatted plain-text citation to the Avalonia clipboard
+  and reports the copied status.
 - Note editor focus-out now has rendered-view regression coverage proving the
   planned blur-save route persists edited note text and closes the editor.
 - Phase 09 French resource and runtime labels are cleaned of mojibake in the
@@ -482,3 +485,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Removed a stale metadata-enrichment filter token from Phase 09 evidence after rerunning the current metadata/direct-PDF/write-back slice | Codex |
 | 2026-06-01 | Aligned Phase 09 task-exit wording with current green fault tests and pending manual screen-reader signoff | Codex |
 | 2026-06-01 | Hardened reader file location against missing `BookFiles` errors after direct PDF open and verified selected PDFs are immediately locatable | Codex |
+| 2026-06-01 | Added rendered citation clipboard regression coverage for the copy action | Codex |
