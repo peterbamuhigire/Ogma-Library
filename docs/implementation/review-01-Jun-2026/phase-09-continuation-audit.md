@@ -17,15 +17,15 @@ sweeps on 2026-06-01.
 ## Current Position
 
 Phase 09 remains locally implementation-complete for code, automated tests, and
-repository documentation. The remaining closure gates are still manual or
-owner-gated:
+repository documentation. The remaining closure gates are manual or remote-CI
+evidence:
 
 | Gate | Status |
 | --- | --- |
 | Narrator and VoiceOver walkthrough | Pending manual evidence |
 | Color accessibility visual review | Pending manual evidence |
 | Pseudolocale visual review | Pending manual evidence |
-| Owner confirmations | Pending palette, citation export, and final reading-memory wording decisions |
+| Remote CI evidence | Pending GitHub Actions result; the collector still receives 404 from this environment |
 
 ## Local Evidence Reviewed
 
@@ -34,7 +34,7 @@ owner-gated:
 | Latest reviewed implementation scope | Bookmark sorting, rendered bookmark toolbar/row controls, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open, reader file location, catalogue projections, and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, actionable note anchors, reader keyboard shortcuts, citation clipboard copy/export behavior, touch-capable selection action buttons, performance gates, annotation context-flyout delete confirmation plus Confirm/Cancel button routes, rendered layer add/filter/rename/merge/delete controls, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, manual signoff documentation source-of-truth cleanup, current evidence-count/test-name reconciliation, stale metadata filter cleanup, and task-exit/manual-gate wording cleanup |
 | Worktree | Expected to remain clean after this pass; generated developer-guide screenshots are now treated as committed documentation evidence when their screenshot tests refresh them |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
-| Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts; latest Release full-suite run passed Architecture 15, Core 236, and UI 93 after rendered bookmark direct-control coverage |
+| Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts; latest preflight evidence `docs/qa/evidence/phase09-preflight-20260601-104948.md` passed format, Release build, and Release tests: Architecture 15, Core 236, and UI 93 |
 | Evidence/test-name cleanup | Follow-up sweeps refreshed stale architecture, catalogue/direct-open, metadata/direct-PDF, startup/direct-PDF, and selected-book enrichment counts; aligned `testing.md` with current implemented test names; removed the stale `BookMetadataEnrichment` filter token after the current metadata/direct-PDF/write-back slice still passed 76 tests |
 | Bookmark sorting | `23abfaa feat: add bookmark panel sorting`; `ReaderViewModel_BookmarkSortOptions_ReorderByPageOrCreationDate` covers page/date sorting |
 | Bookmark direct controls | `ReaderView_BookmarkDirectControls_InvokeRenderedHandlers` covers rendered toolbar add and row navigate, rename-on-blur, and delete handlers; `ReaderViewModel_RenameBookmark_UpdatesLabelAndStatus` remains the view-model rename oracle, and the rendered regression covers persisted-label rename binding |
@@ -63,7 +63,7 @@ Remote CI result evidence is not available from this local environment:
 
 | Check | Result |
 | --- | --- |
-| GitHub Actions REST API for pushed `main` Actions runs | `GET /repos/peterbamuhigire/Ogma-Library/actions/runs?branch=main&per_page=5` and later `per_page=10` checks returned `404 Not Found` when checked unauthenticated from this environment |
+| GitHub Actions REST API for pushed `main` Actions runs | Latest collector attempt `docs/qa/evidence/phase09-remote-ci-20260601-105205.md` queried commit `45ad1cb3da3d868b06e3496d0c0af335c7fc2388` and returned `404 Not Found`; earlier unauthenticated branch checks also returned `404 Not Found` |
 | GitHub connector commit workflow lookup | `_fetch_commit_workflow_runs` for `peterbamuhigire/Ogma-Library` at commit `2d29dd06f1d9783dcaaf77f79192851b3d564ca2` returned `404 Not Found` |
 | GitHub CLI | `gh` is not installed in this environment |
 | Public Actions URL / unauthenticated status | No usable Actions run result was available from this environment |
@@ -138,5 +138,5 @@ annotation persistence.
 No further locally actionable Phase 09 implementation gaps were found in this
 pass beyond the reader file-locator, citation clipboard/export, and note-anchor
 hardening recorded above.
-Do not mark Phase 09 fully closed until the manual and owner-gated rows above
+Do not mark Phase 09 fully closed until the manual and remote-CI rows above
 have dated evidence or explicit waivers.

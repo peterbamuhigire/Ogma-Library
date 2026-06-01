@@ -101,8 +101,9 @@ Latest recorded Release verification for this signoff packet:
 | `.\scripts\Test-Phase09EvidenceTooling.ps1` | Passed: preflight temp evidence generation, manual evidence package generation matching the current pending-row count, and signoff evidence-shadow protection |
 | `.\scripts\Phase09-Preflight.ps1` | Generates a dated cross-platform `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
 | `.\scripts\New-Phase09ManualEvidencePackage.ps1` | Generates a dated reviewer evidence package with per-row note templates and screenshot/audio/export folders for the remaining manual and accessibility rows |
-| `docs/qa/evidence/phase09-preflight-20260601-072040.md` | Current preflight evidence for commit `f4c09954bdeab37a59cdcc3350560eff133c919b`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
-| `docs/qa/evidence/phase09-remote-ci-20260601-081542.md` | Current remote-CI collection attempt for commit `0ed73216681569c4315814040533e69dcf8dd083`: GitHub Actions API returned 404, so remote CI remains pending |
+| `docs/qa/evidence/phase09-preflight-20260601-104948.md` | Current preflight evidence for commit `45ad1cb3da3d868b06e3496d0c0af335c7fc2388`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
+| `docs/qa/evidence/phase09-signoff-gate-20260601-105152.md` | Current signoff-gate report for commit `45ad1cb3da3d868b06e3496d0c0af335c7fc2388`: required files, automated preflight, and CI workflow shape passed; manual packet, accessibility, and remote CI rows remain pending |
+| `docs/qa/evidence/phase09-remote-ci-20260601-105205.md` | Current remote-CI collection attempt for commit `45ad1cb3da3d868b06e3496d0c0af335c7fc2388`: GitHub Actions API returned 404, so remote CI remains pending |
 
 ## Closure Rule
 
