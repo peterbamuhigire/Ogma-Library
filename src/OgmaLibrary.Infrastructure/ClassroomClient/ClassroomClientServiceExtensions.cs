@@ -20,6 +20,7 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<IOfflineCacheService, InMemoryOfflineCacheService>();
         services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
         services.AddSingleton<ILibraryHostClient, UnavailableLibraryHostClient>();
+        services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
         return services;
     }
 }

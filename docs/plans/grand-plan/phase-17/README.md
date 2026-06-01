@@ -470,3 +470,4 @@ Full guidance in `skills.md`. Key skills:
 | --- | --- | --- |
 | 2026-05-30 | Planning agent | Initial v1.0 draft |
 | 2026-06-02 | Implementation | Started WP1: added ADR-0012 draft, ClassroomClient Application contracts, inactive Infrastructure scaffold, DI registration, default-Standalone guardrails, and focused scaffold tests. |
+| 2026-06-02 | Implementation | Advanced WP2: added the Client-mode join payload parser for Phase 16 `ogma-lan://` QR/manual links and legacy `ogma://host?addr=...&fp=...` plan links. |

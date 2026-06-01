@@ -51,7 +51,10 @@ public sealed record DiscoveredClassroomHost(
 public sealed record ClassroomJoinRequest(
     string Address,
     int Port,
-    string CertificateFingerprint);
+    string CertificateFingerprint,
+    string? DisplayName = null,
+    string? EnrollmentCode = null,
+    string AuthMethod = "enrollment-code");
 
 /// <summary>Current sync state for the active classroom profile.</summary>
 public sealed record ClassroomSyncStatus(
