@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
@@ -15,18 +16,24 @@ public sealed class BookFileLocator : IBookFileLocator
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _db;
     private readonly ILibrarySettingsService _settings;
+    private readonly CatalogueMigrator? _migrator;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookFileLocator"/>.
     /// </summary>
     /// <param name="db">The catalogue database context.</param>
     /// <param name="settings">The library settings service (provides library root).</param>
-    internal BookFileLocator(CatalogueDbContext db, ILibrarySettingsService settings)
+    /// <param name="migrator">Optional schema migrator used to repair damaged catalogues before retrying.</param>
+    internal BookFileLocator(
+        CatalogueDbContext db,
+        ILibrarySettingsService settings,
+        CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(settings);
         _db = db;
         _settings = settings;
+        _migrator = migrator;
     }
 
     /// <summary>
@@ -34,15 +41,18 @@ public sealed class BookFileLocator : IBookFileLocator
     /// </summary>
     /// <param name="contextFactory">The catalogue DB context factory.</param>
     /// <param name="settings">The library settings service (provides library root).</param>
+    /// <param name="migrator">Optional schema migrator used to repair damaged catalogues before retrying.</param>
     [ActivatorUtilitiesConstructor]
     public BookFileLocator(
         IDbContextFactory<CatalogueDbContext> contextFactory,
-        ILibrarySettingsService settings)
+        ILibrarySettingsService settings,
+        CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(settings);
         _contextFactory = contextFactory;
         _settings = settings;
+        _migrator = migrator;
     }
 
     /// <inheritdoc />
@@ -50,6 +60,19 @@ public sealed class BookFileLocator : IBookFileLocator
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
+        try
+        {
+            return await LocateCoreAsync(bookId, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (_migrator is not null && IsMissingSqliteTable(ex))
+        {
+            await _migrator.ApplyAsync(ct).ConfigureAwait(false);
+            return await LocateCoreAsync(bookId, ct).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<string?> LocateCoreAsync(string bookId, CancellationToken ct)
+    {
         string? libraryRoot = await _settings.GetLibraryRootAsync(ct).ConfigureAwait(false);
         if (libraryRoot is null)
         {
@@ -78,6 +101,21 @@ public sealed class BookFileLocator : IBookFileLocator
             : Path.Combine(libraryRoot, storedPath);
 
         return File.Exists(fullPath) ? fullPath : null;
+    }
+
+    private static bool IsMissingSqliteTable(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is SqliteException sqlite &&
+                sqlite.SqliteErrorCode == 1 &&
+                sqlite.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)

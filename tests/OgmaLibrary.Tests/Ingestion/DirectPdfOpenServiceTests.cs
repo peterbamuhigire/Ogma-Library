@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
@@ -382,6 +383,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         await using ServiceProvider services = new ServiceCollection()
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddIngestionPipeline(dataDirectory)
+            .AddSingleton<IBookFileLocator, BookFileLocator>()
             .BuildServiceProvider();
 
         await using (var setup = services.GetRequiredService<CatalogueDbContext>())
@@ -403,6 +405,10 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
             .Where(f => f.BookId == bookId)
             .Select(f => f.RelativePath)
             .SingleAsync());
+
+        string? locatedPath = await services.GetRequiredService<IBookFileLocator>()
+            .LocateAsync(bookId, CancellationToken.None);
+        Assert.Equal(pdfPath, locatedPath);
     }
 
     [Fact]

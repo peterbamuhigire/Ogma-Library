@@ -368,6 +368,10 @@ Current implementation progress:
 - Direct PDF open missing-table repair now uses the production DI path with
   fresh factory-created migration contexts, so damaged catalogues can be
   repaired before a user-selected PDF is registered and opened.
+- Reader file location now also retries catalogue schema repair when SQLite
+  reports a missing `BookFiles` table, preventing the post-registration reader
+  open from surfacing the raw SQLite error and preserving the selected-PDF
+  add-then-open flow.
 - The Choose Library Folder scan path has production-DI regression coverage for
   the same damaged-catalogue `BookFiles` repair path before discovered PDFs are
   registered.
@@ -477,3 +481,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Refreshed broader Phase 09 evidence counts and aligned the test plan with current implemented test names | Codex |
 | 2026-06-01 | Removed a stale metadata-enrichment filter token from Phase 09 evidence after rerunning the current metadata/direct-PDF/write-back slice | Codex |
 | 2026-06-01 | Aligned Phase 09 task-exit wording with current green fault tests and pending manual screen-reader signoff | Codex |
+| 2026-06-01 | Hardened reader file location against missing `BookFiles` errors after direct PDF open and verified selected PDFs are immediately locatable | Codex |
