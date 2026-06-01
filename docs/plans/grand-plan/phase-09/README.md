@@ -451,6 +451,9 @@ Current implementation progress:
 - The first preflight record is archived at
   `docs/qa/evidence/phase09-preflight-20260601-072040.md` for commit
   `f4c09954bdeab37a59cdcc3350560eff133c919b`.
+- Final closure is now executable through `scripts/Test-Phase09Signoff.ps1`;
+  the gate remains pending until manual, owner, and remote-CI evidence rows are
+  completed or explicitly waived.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -529,3 +532,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Refreshed developer-guide reader and scan screenshots from the current UI screenshot tests | Codex |
 | 2026-06-01 | Added a Phase 09 manual-review preflight collector for dated QA evidence records | Codex |
 | 2026-06-01 | Archived the first Phase 09 preflight evidence record with format, Release build, and full Release test output | Codex |
+| 2026-06-01 | Added an executable Phase 09 signoff gate for preflight, manual, owner, accessibility, visual, and remote-CI evidence | Codex |

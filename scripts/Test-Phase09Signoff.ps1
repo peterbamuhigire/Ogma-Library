@@ -1,0 +1,172 @@
+param(
+    [string]$OutputPath
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+function Add-Result {
+    param(
+        [System.Collections.Generic.List[object]]$Results,
+        [string]$Gate,
+        [string]$Status,
+        [string]$Evidence,
+        [string]$NextAction
+    )
+
+    $Results.Add([PSCustomObject]@{
+        Gate = $Gate
+        Status = $Status
+        Evidence = $Evidence
+        NextAction = $NextAction
+    })
+}
+
+function Escape-TableCell {
+    param([string]$Value)
+
+    if ($null -eq $Value) {
+        return ''
+    }
+
+    return ($Value -replace '\|', '\|').Replace("`r", ' ').Replace("`n", ' ')
+}
+
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+Set-Location $repoRoot
+
+$manualPacketPath = Join-Path $repoRoot 'docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md'
+$a11yPath = Join-Path $repoRoot 'docs/qa/PHASE-09-A11Y-SIGNOFF.md'
+$phaseEvidencePath = Join-Path $repoRoot 'docs/plans/grand-plan/phase-09/evidence.md'
+$workflowPath = Join-Path $repoRoot '.github/workflows/ci.yml'
+$preflightDir = Join-Path $repoRoot 'docs/qa/evidence'
+
+$results = [System.Collections.Generic.List[object]]::new()
+$requiredFiles = @($manualPacketPath, $a11yPath, $phaseEvidencePath, $workflowPath)
+foreach ($path in $requiredFiles) {
+    if (Test-Path $path) {
+        Add-Result $results 'Required file exists' 'Pass' $path 'None'
+    }
+    else {
+        Add-Result $results 'Required file exists' 'Fail' $path 'Restore or create the missing file.'
+    }
+}
+
+$preflight = Get-ChildItem -Path $preflightDir -Filter 'phase09-preflight-*.md' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+
+if ($null -eq $preflight) {
+    Add-Result $results 'Automated preflight evidence' 'Fail' $preflightDir 'Run scripts/Phase09-Preflight.ps1 and commit the generated evidence file.'
+}
+else {
+    $preflightText = Get-Content -Raw -Path $preflight.FullName
+    $preflightChecks = @(
+        '| Verification skipped | False |',
+        '| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | 0 |',
+        '| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | 0 |',
+        '| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | 0 |',
+        'Passed:   236',
+        'Passed:    93',
+        'Passed:    15',
+        '0 Warning(s)',
+        '0 Error(s)'
+    )
+    $missing = @($preflightChecks | Where-Object {
+            $preflightText.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -lt 0
+        })
+    if ($missing.Count -eq 0) {
+        Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName 'None'
+    }
+    else {
+        Add-Result $results 'Automated preflight evidence' 'Fail' $preflight.FullName "Regenerate preflight evidence; missing markers: $($missing -join '; ')"
+    }
+}
+
+$manualText = Get-Content -Raw -Path $manualPacketPath
+$a11yText = Get-Content -Raw -Path $a11yPath
+$phaseEvidenceText = Get-Content -Raw -Path $phaseEvidencePath
+
+$manualPending = [regex]::Matches($manualText, '\bPending\b').Count
+if ($manualPending -eq 0) {
+    Add-Result $results 'Manual signoff packet pending markers' 'Pass' $manualPacketPath 'None'
+}
+else {
+    Add-Result $results 'Manual signoff packet pending markers' 'Pending' $manualPacketPath "Complete or explicitly waive $manualPending Pending marker(s)."
+}
+
+$a11yPending = [regex]::Matches($a11yText, '\bPending\b').Count
+if ($a11yPending -eq 0) {
+    Add-Result $results 'Accessibility signoff pending markers' 'Pass' $a11yPath 'None'
+}
+else {
+    Add-Result $results 'Accessibility signoff pending markers' 'Pending' $a11yPath "Complete or explicitly waive $a11yPending Pending marker(s)."
+}
+
+$remoteMarkers = @(
+    'remote run result unavailable',
+    'remote CI result not available',
+    'Workflow configured; remote run result unavailable'
+)
+$remotePending = @($remoteMarkers | Where-Object { $phaseEvidenceText -like "*$_*" })
+if ($remotePending.Count -eq 0) {
+    Add-Result $results 'Remote CI evidence' 'Pass' $phaseEvidencePath 'None'
+}
+else {
+    Add-Result $results 'Remote CI evidence' 'Pending' $phaseEvidencePath 'Attach a dated GitHub Actions run result for the pushed Phase 09 commit.'
+}
+
+$workflowText = Get-Content -Raw -Path $workflowPath
+if ($workflowText -like '*windows-latest*' -and $workflowText -like '*macos-latest*' -and $workflowText -like '*dotnet test OgmaLibrary.sln*') {
+    Add-Result $results 'CI workflow shape' 'Pass' $workflowPath 'None'
+}
+else {
+    Add-Result $results 'CI workflow shape' 'Fail' $workflowPath 'Restore Windows/macOS matrix with dotnet test OgmaLibrary.sln.'
+}
+
+$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    New-Item -ItemType Directory -Force -Path $preflightDir | Out-Null
+    $OutputPath = Join-Path $preflightDir "phase09-signoff-gate-$timestamp.md"
+}
+
+$lines = [System.Collections.Generic.List[string]]::new()
+$lines.Add('# Phase 09 Signoff Gate')
+$lines.Add('')
+$lines.Add("| Field | Value |")
+$lines.Add("| --- | --- |")
+$lines.Add("| Generated UTC | $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss')) |")
+$lines.Add("| Commit | $((& git rev-parse HEAD).Trim()) |")
+$lines.Add("| Branch | $((& git branch --show-current).Trim()) |")
+$lines.Add('')
+$lines.Add('| Gate | Status | Evidence | Next action |')
+$lines.Add('| --- | --- | --- | --- |')
+foreach ($result in $results) {
+    $lines.Add("| $(Escape-TableCell $result.Gate) | $($result.Status) | $(Escape-TableCell $result.Evidence) | $(Escape-TableCell $result.NextAction) |")
+}
+
+$failCount = @($results | Where-Object { $_.Status -eq 'Fail' }).Count
+$pendingCount = @($results | Where-Object { $_.Status -eq 'Pending' }).Count
+$lines.Add('')
+$lines.Add("Summary: $failCount failing gate(s), $pendingCount pending gate(s).")
+$lines.Add('')
+if ($failCount -eq 0 -and $pendingCount -eq 0) {
+    $lines.Add('Phase 09 signoff gate passed.')
+}
+else {
+    $lines.Add('Phase 09 signoff gate is not complete.')
+}
+
+Set-Content -Path $OutputPath -Value $lines -Encoding UTF8
+
+foreach ($result in $results) {
+    Write-Host "[$($result.Status)] $($result.Gate): $($result.NextAction)"
+}
+Write-Host "Phase 09 signoff gate report written to $OutputPath"
+
+if ($failCount -gt 0) {
+    exit 2
+}
+if ($pendingCount -gt 0) {
+    exit 1
+}

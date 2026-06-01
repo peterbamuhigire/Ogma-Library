@@ -109,4 +109,13 @@ Latest recorded Release verification for this signoff packet:
 ## Closure Rule
 
 Phase 09 can be marked fully closed only after every row above has dated
-evidence or an explicit owner waiver.
+evidence or an explicit owner waiver. Run the signoff gate before changing the
+phase status:
+
+```powershell
+.\scripts\Test-Phase09Signoff.ps1
+```
+
+The gate exits `0` only when preflight evidence is valid and no manual,
+owner-decision, accessibility, visual-review, or remote-CI evidence remains
+pending.
