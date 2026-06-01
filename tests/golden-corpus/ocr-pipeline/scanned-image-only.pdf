@@ -1,0 +1,16 @@
+%PDF-1.7
+% Ogma Library Phase 15 scanned-image-only deterministic fixture.
+% The integration test uses the fake renderer/OCR oracle so the fixture is
+% stable, small, and safe to keep in git while still manifest-pinned.
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [3 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF

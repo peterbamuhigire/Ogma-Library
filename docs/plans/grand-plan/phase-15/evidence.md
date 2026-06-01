@@ -17,7 +17,8 @@ text and password-protected PDFs:
 The first WP2 reliability slice is also in place: `IOcrProvider`,
 `OcrJobPayload`, and `OcrJobProcessor` process pending/interrupted OCR jobs,
 persist OCR text as `ExtractedPages.Source = "OCR"`, mark books as OCR-derived,
-and enqueue a follow-up FTS reindex job. The native Tesseract provider and
+replace page search chunks so scanned books become searchable, and enqueue
+follow-up FTS and embedding handoff jobs. The native Tesseract provider and
 hosted `OcrWorker` are registered through the composition root without loading
 native OCR binaries until a queued OCR job actually runs. English language data
 is supplied through `Tesseract.Data.English`, which copies
@@ -64,6 +65,7 @@ indexes.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~HealthDashboardTests\|FullyQualifiedName~RateLimitedHttpClientTests"` | Passed: 10 health/batch/rate-limit tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger "console;verbosity=detailed"` | Passed: 3 smart-shelf index/query-plan/2,000-book benchmark tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobProcessorTests\|FullyQualifiedName~OcrWorkerTests"` | Passed: 3 OCR processor/worker tests after internal extension-point hardening |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobProcessorTests\|FullyQualifiedName~OcrGoldenCorpusTests" --logger "console;verbosity=detailed"` | Passed: 4 OCR searchability, recovery, FTS/embedding handoff, and 1,000-page synthetic memory-profile tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrExtensionPoint_IsInternal_In_Phase15` | Passed: 1 OCR extension-point visibility test |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` | Passed: 5 Index Manager tests including OCR pause/cancel/retry state transitions |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 9 search/index-manager UI tests including OCR job actions |
@@ -85,7 +87,9 @@ indexes.
 | OCR provider seam | `IOcrProvider` defines the native OCR boundary without coupling tests to Tesseract binaries |
 | OCR job payload | `OcrJobPayload` records file path, language, total pages, and processed pages in the existing Jobs payload |
 | OCR job processor | `OcrJobProcessor` renders pages through `IPdfRenderer`, calls `IOcrProvider`, writes source-tagged OCR pages, and resumes interrupted jobs by skipping persisted OCR pages |
-| FTS reindex handoff | Completed OCR jobs enqueue `FtsReindexJob` idempotently for the affected book |
+| OCR searchability handoff | Completed OCR jobs replace page search chunks from OCR-derived `ExtractedPages`, so FTS5 can find scanned-book words immediately |
+| FTS/embedding handoff | Completed OCR jobs enqueue `FtsReindexJob` and `EmbeddingJob` idempotently for the affected book |
+| OCR golden corpus | `tests/golden-corpus/ocr-pipeline/` pins the `scanned-image-only` oracle and manifest for `OcrJob_ScannedPdf_BecomesSearchable` |
 | Native OCR adapter | `TesseractOcrProvider` wraps the local Tesseract engine behind `IOcrProvider` |
 | English OCR data | `Tesseract.Data.English` supplies `tessdata/eng.traineddata` without committing the binary to git |
 | Hosted OCR worker | `OcrWorker` polls `IOcrJobProcessor` as a hosted service and backs off on idle/error states |
@@ -110,7 +114,7 @@ indexes.
 
 ## Remaining Phase 15 Work
 
-- WP2 OCR golden-corpus fixture.
+- WP2 native Tesseract golden-corpus run remains to be added when binary/image OCR fixtures are available; deterministic golden-corpus pipeline coverage is now in place.
 - WP3 Health Dashboard OCR trigger discovery, if separate from the Index Manager job surface.
 - WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.

@@ -412,3 +412,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Added WP3 Index Manager OCR controls: pause, cancel, and retry actions now update the shared job table and refresh localized job rows. |
 | 2026-06-01 | Implementation | Completed WP7 Index Manager smart-shelf stats panel with query-time and composite-index health summaries. |
 | 2026-06-01 | Implementation | Added WP3 book-detail Run OCR trigger with idempotent queueing, localized status feedback, missing-file handling, and library-root path validation. |
+| 2026-06-01 | Implementation | Added WP2/WP9 OCR golden-corpus searchability coverage: completed OCR now writes page search chunks, queues FTS/embedding handoffs, verifies recovery, and runs a 1,000-page synthetic memory-profile guard. |

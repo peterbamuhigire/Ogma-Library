@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
+using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Tests.Catalogue;
 using OgmaLibrary.Workers.Ocr;
 
@@ -42,12 +44,16 @@ public sealed class OcrJobProcessorTests : IDisposable
         Assert.Equal(3, provider.CallCount);
         Assert.Equal(3, _context.ExtractedPages.Count(page => page.BookId == bookId && page.Source == "OCR"));
         Assert.True(_context.Books.Single(book => book.BookId == bookId).IsOcrDerived);
+        Assert.Equal(3, _context.SearchChunks.Count(chunk => chunk.BookId == bookId));
+        Assert.Contains(await new FtsIndexService(_context).SearchAsync("recognized", 10, CancellationToken.None),
+            result => result.BookId == bookId && result.Source == SearchChunkSource.Page);
         Assert.Contains(_context.Jobs, job => job.BookId == bookId && job.JobType == "FtsReindexJob");
+        Assert.Contains(_context.Jobs, job => job.BookId == bookId && job.JobType == "EmbeddingJob");
         Assert.Equal(2, _context.Jobs.Single(job => job.JobType == OcrJobProcessor.JobType).Status);
     }
 
     [Fact]
-    public async Task OcrJobProcessor_Recovery_SkipsAlreadyPersistedOcrPages()
+    public async Task OcrJob_Recovery_AfterInterruption_NoDuplicatePages()
     {
         string bookId = SeedBook("BOOKOCRRECOVER00000001");
         SeedOcrJob(bookId, 1, new OcrJobPayload("sample.pdf", TotalPages: 3, ProcessedPages: 1));
@@ -82,7 +88,9 @@ public sealed class OcrJobProcessorTests : IDisposable
             factory,
             rendererFactory,
             provider,
-            new ExtractedTextStore(factory));
+            new ExtractedTextStore(factory),
+            new SearchChunkRepository(factory),
+            new SearchChunker());
     }
 
     private string SeedBook(string bookId)

@@ -29,23 +29,31 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
     private readonly IPdfRendererFactory _rendererFactory;
     private readonly IOcrProvider _ocrProvider;
     private readonly IExtractedTextStore _textStore;
+    private readonly ISearchChunkRepository _chunkRepository;
+    private readonly SearchChunker _chunker;
 
     /// <summary>Initializes a new instance of <see cref="OcrJobProcessor"/>.</summary>
     public OcrJobProcessor(
         IDbContextFactory<CatalogueDbContext> contextFactory,
         IPdfRendererFactory rendererFactory,
         IOcrProvider ocrProvider,
-        IExtractedTextStore textStore)
+        IExtractedTextStore textStore,
+        ISearchChunkRepository chunkRepository,
+        SearchChunker chunker)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(rendererFactory);
         ArgumentNullException.ThrowIfNull(ocrProvider);
         ArgumentNullException.ThrowIfNull(textStore);
+        ArgumentNullException.ThrowIfNull(chunkRepository);
+        ArgumentNullException.ThrowIfNull(chunker);
 
         _contextFactory = contextFactory;
         _rendererFactory = rendererFactory;
         _ocrProvider = ocrProvider;
         _textStore = textStore;
+        _chunkRepository = chunkRepository;
+        _chunker = chunker;
     }
 
     /// <inheritdoc />
@@ -137,7 +145,13 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             }
 
             await MarkBookOcrDerivedAsync(context, job.BookId, cancellationToken).ConfigureAwait(false);
+            int chunkCount = await ReplaceOcrSearchChunksAsync(job.BookId, cancellationToken).ConfigureAwait(false);
             TryAddFtsReindexJob(context, job.BookId);
+            if (chunkCount > 0)
+            {
+                TryAddEmbeddingJob(context, job.BookId);
+            }
+
             job.Status = 2;
             job.CompletedUtc = DateTimeOffset.UtcNow;
             job.ErrorMessage = null;
@@ -156,6 +170,60 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             Fail(job, ex.Message);
             await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
         }
+    }
+
+    private async Task<int> ReplaceOcrSearchChunksAsync(string bookId, CancellationToken cancellationToken)
+    {
+        using CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        List<ExtractedPageRow> pages = await context.ExtractedPages
+            .AsNoTracking()
+            .Where(page => page.BookId == bookId && page.Source == OcrSource)
+            .OrderBy(page => page.PageNumber)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var chunks = new List<SearchChunkRecord>();
+        int chunkIndex = 0;
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        foreach (ExtractedPageRow page in pages)
+        {
+            if (string.IsNullOrWhiteSpace(page.TextContent) ||
+                page.ExtractionQuality == (int)SearchExtractionQuality.Failed)
+            {
+                continue;
+            }
+
+            IReadOnlyList<SearchChunkRecord> pageChunks = _chunker.Chunk(
+                bookId,
+                SearchChunkSource.Page,
+                page.TextContent,
+                chunkIndex,
+                now,
+                page.ExtractedPageId,
+                page.PageNumber);
+            chunks.AddRange(pageChunks);
+            chunkIndex += pageChunks.Count;
+        }
+
+        IReadOnlyList<SearchChunkRecord> saved = await _chunkRepository.ReplaceForBookAsync(
+                bookId,
+                SearchChunkSource.Page,
+                chunks,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        BookRow? book = await context.Books.FirstOrDefaultAsync(row => row.BookId == bookId, cancellationToken)
+            .ConfigureAwait(false);
+        if (book is not null)
+        {
+            book.IndexStatus = 2;
+            book.EmbeddingStatus = 0;
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return saved.Count;
     }
 
     private static ExtractedPageRecord ToExtractedPage(
@@ -216,6 +284,24 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         context.Jobs.Add(new JobRow
         {
             JobType = "FtsReindexJob",
+            BookId = bookId,
+            IdempotencyKey = key,
+            Status = 0,
+            Payload = $"{{\"bookId\":\"{bookId}\",\"source\":\"OCR\"}}",
+        });
+    }
+
+    private static void TryAddEmbeddingJob(CatalogueDbContext context, string bookId)
+    {
+        string key = ComputeIdempotencyKey(bookId, "EmbeddingJob", OcrSource);
+        if (context.Jobs.Any(job => job.IdempotencyKey == key))
+        {
+            return;
+        }
+
+        context.Jobs.Add(new JobRow
+        {
+            JobType = "EmbeddingJob",
             BookId = bookId,
             IdempotencyKey = key,
             Status = 0,
