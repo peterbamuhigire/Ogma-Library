@@ -1,8 +1,10 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using NetArchTest.Rules;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Application.Extensions;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
@@ -366,6 +368,38 @@ public sealed class ArchitectureTests
             .GetResult();
 
         Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>Phase 13 extension markers must remain internal until Phase 23 publishes the SDK.</summary>
+    [Fact]
+    public void ExtensionPoints_AreInternal_In_Phase13()
+    {
+        Assembly applicationAssembly = typeof(AdvisorService).Assembly;
+        string[] typeNames =
+        [
+            "OgmaLibrary.Application.Ai.Extensions.IRecommendationSource",
+            "OgmaLibrary.Application.Ai.Extensions.IAiCatalogueReader",
+        ];
+
+        foreach (string typeName in typeNames)
+        {
+            Type? type = applicationAssembly.GetType(typeName, throwOnError: true);
+            Assert.NotNull(type);
+
+            Assert.True(type!.IsInterface);
+            Assert.False(type.IsPublic);
+            Assert.True(type.IsNotPublic);
+            Assert.Contains(type.GetCustomAttributes(inherit: false), attribute => attribute is ExtensionPointAttribute);
+        }
+
+        string[] friendAssemblies = applicationAssembly
+            .GetCustomAttributes<InternalsVisibleToAttribute>()
+            .Select(attribute => attribute.AssemblyName)
+            .ToArray();
+
+        Assert.Contains("OgmaLibrary.Infrastructure", friendAssemblies);
+        Assert.Contains("OgmaLibrary.Tests", friendAssemblies);
+        Assert.Contains("OgmaLibrary.Tests.Architecture", friendAssemblies);
     }
 
     /// <summary>

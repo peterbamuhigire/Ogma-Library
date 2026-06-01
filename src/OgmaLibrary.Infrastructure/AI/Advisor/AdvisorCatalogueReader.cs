@@ -1,11 +1,13 @@
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Application.Ai.Extensions;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.Infrastructure.AI.Advisor;
 
 /// <summary>Default local catalogue reader for metadata-only recommendations.</summary>
-public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader
+public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalogueReader
 {
     private const int CandidateLimit = 50;
 
@@ -37,6 +39,23 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader
             .Where(candidate => !query.ExcludeAlreadyRead || candidate.ReadingProgressPct is not >= 99.5)
             .Take(CandidateLimit)
             .ToArray();
+    }
+
+    /// <inheritdoc />
+    public Task<BookMetadataDto?> GetByIdAsync(BookId bookId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId.Value);
+        return TryReadDetailAsync(bookId.Value, [], cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<BookMetadataDto>> GetByShelfAsync(string shelfId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(shelfId);
+
+        return await GetCatalogueCandidatesAsync(
+            new RecommendationQuery("shelf recommendation source", shelfFilter: shelfId),
+            cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<List<BookMetadataDto>> GetSearchCandidatesAsync(

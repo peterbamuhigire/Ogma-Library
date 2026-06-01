@@ -41,7 +41,8 @@ embedded schema prompt, parser, retry-on-invalid-output, and gateway-backed
 pipeline. `IAiAdvisorService` is typed, DI-wired, disabled when the active tier
 is Offline, and answer mode is scaffolded as V2. Recommendation and reading-plan
 Avalonia surfaces are implemented and headless-rendered. The WP9 offline
-evaluation harness and benchmark are complete; WP10-WP11 remain pending.
+evaluation harness and benchmark are complete, and WP10 extension markers are
+seeded as internal surfaces for Phase 23; WP11 remains pending.
 
 ---
 
@@ -322,7 +323,7 @@ Full task detail in `tasks.md`.
 - [ ] `AdvisorDisabled_CatalogueBrowse_Unaffected` integration test passes (FR-AI-001).
 - [x] Evaluation harness run produces ≥ 95% structural pass rate on the 20 synthetic
       queries; results committed to `docs/benchmarks/phase-13/`.
-- [ ] `IRecommendationSource` and `IAiCatalogueReader` defined with `[ExtensionPoint]`
+- [x] `IRecommendationSource` and `IAiCatalogueReader` defined with `[ExtensionPoint]`
       attribute and XML doc comments (Phase 23 readiness, SOURCE-SUMMARY delta #8).
 - [ ] `/code-review` completed; findings resolved.
 

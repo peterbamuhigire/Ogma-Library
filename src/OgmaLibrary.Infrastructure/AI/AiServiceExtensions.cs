@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Application.Ai.Extensions;
 using OgmaLibrary.Infrastructure.AI.Advisor;
 using OgmaLibrary.Infrastructure.AI.Providers;
 
@@ -18,7 +19,10 @@ public static class AiServiceExtensions
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
         services.AddSingleton<IAiAdvisorService, AdvisorService>();
-        services.AddSingleton<IAdvisorCatalogueReader, AdvisorCatalogueReader>();
+        services.AddSingleton<AdvisorCatalogueReader>();
+        services.AddSingleton<IAdvisorCatalogueReader>(sp => sp.GetRequiredService<AdvisorCatalogueReader>());
+        services.AddSingleton<IAiCatalogueReader>(sp => sp.GetRequiredService<AdvisorCatalogueReader>());
+        services.AddSingleton<IRecommendationSource, CatalogueRecommendationSource>();
         services.AddSingleton<IMetadataPayloadEnricher, MetadataPayloadEnricher>();
         services.AddSingleton<IRecommendationResponseParser, RecommendationResponseParser>();
         services.AddSingleton<IRecommendationProvenanceValidator, RecommendationProvenanceValidator>();
