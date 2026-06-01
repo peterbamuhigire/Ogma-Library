@@ -4,11 +4,17 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Reader.Cache;
+using OgmaLibrary.Reader.Progress;
+using OgmaLibrary.Reader.Session;
 using OgmaLibrary.Tests.Catalogue;
+using OgmaLibrary.Tests.Reader;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ingestion;
@@ -337,6 +343,45 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         Assert.Equal(bookId, visible.BookId);
         Assert.Equal("Direct Metadata Title", visible.Title);
         Assert.Equal(["Direct Metadata Author"], visible.Authors);
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_RealPdf_RegistersAndOpensInProductionReader()
+    {
+        string pdfPath = Path.Combine(_tempRoot, "real-reader-open.pdf");
+        File.Copy(ReaderTestPdfFixture.PdfPath, pdfPath, overwrite: true);
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        var settings = new LibrarySettingsService(_tempRoot);
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context),
+            context: context);
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        var rendererFactory = new PdfiumAdapterFactory();
+        using var progressService = new ReadingProgressService(new ReadingProgressRepository(context));
+        using var cache = new PageRenderCache(rendererFactory, new StopwatchBenchmarkContext());
+        using var sessionService = new ReaderSessionService(
+            rendererFactory,
+            progressService,
+            new BookFileLocator(context, settings),
+            cache);
+
+        ReaderSession session = await sessionService.OpenAsync(bookId, null, CancellationToken.None);
+        RenderResult firstPage = await sessionService.CurrentRenderer!.RenderPageAsync(
+            0,
+            new RenderRequest(800),
+            CancellationToken.None);
+
+        Assert.Equal(bookId, session.BookId);
+        Assert.Equal(pdfPath, session.FilePath);
+        Assert.Equal(ReaderTestPdfFixture.PageCount, session.PageCount);
+        Assert.Equal(0, session.CurrentPageIndex);
+        Assert.True(firstPage.PngBytes.Length >= 8);
+        Assert.Equal([0x89, 0x50, 0x4E, 0x47], firstPage.PngBytes[..4]);
     }
 
     [Fact]
