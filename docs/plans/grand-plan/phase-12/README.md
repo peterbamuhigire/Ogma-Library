@@ -29,7 +29,7 @@ through one controllable, auditable, reversible surface.
 | Platforms | Windows (WebView2 not needed here) + macOS; fully cross-platform .NET 10 |
 | ADRs in scope | ADR-0007 (provider-neutral AI gateway + 4 tiers) |
 | Security/CTRL IDs | SI-1, CTRL-OGMA-016, 017, 018, 019, 020, 022 |
-| Status | WP1 contracts, WP2 persistence, WP3 gateway core, WP4 provider adapters, and WP5 payload preview implemented locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, payload-preview/consent/audit gateway enforcement, OpenAI-compatible/DeepSeek-compatible, Anthropic, Ollama adapters, localized payload preview dialog shell, and focused tests; WP6+ pending |
+| Status | WP1 contracts, WP2 persistence, WP3 gateway core, WP4 provider adapters, WP5 payload preview, and WP6 Privacy Center shell implemented locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, payload-preview/consent/audit gateway enforcement, OpenAI-compatible/DeepSeek-compatible, Anthropic, Ollama adapters, localized payload preview dialog shell, Privacy Center tier/history/embedding/audit operations, and focused tests; WP7+ pending |
 
 ---
 
@@ -443,3 +443,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Codex | WP3 gateway core implemented: payload preview gate contract, gateway enforcement, disabled provider, payload hashing, cost attribution, and focused gateway tests |
 | 2026-06-01 | Codex | WP4 provider adapters implemented: OpenAI-compatible/DeepSeek-compatible chat, Anthropic Messages with no-training/cache-control headers, local Ollama chat, provider factory, and stubbed HTTP contract tests |
 | 2026-06-01 | Codex | WP5 payload preview implemented: localized view model, Avalonia dialog shell, preview gate bridge, Send/Cancel/Remember decisions, and focused payload-preview tests |
+| 2026-06-01 | Codex | WP6 Privacy Center shell implemented: concrete privacy service, tier controls, recent audit list, delete-history action, embedding erasure action, audit export, en/fr labels, and focused tests |

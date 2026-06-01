@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Ai"
+             xmlns:ai="using:OgmaLibrary.Domain.Ai"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+             x:Class="OgmaLibrary.App.Views.Ai.PrivacyCenterView"
+             x:DataType="vm:PrivacyCenterViewModel">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" Margin="16">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <svg:Svg Width="22" Height="22" Path="{Binding PrivacyIconPath}" />
+      <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+      <StackPanel>
+        <TextBlock Text="{Binding ActiveTierLabel}" FontWeight="SemiBold" />
+        <ComboBox ItemsSource="{Binding Tiers}"
+                  SelectedItem="{Binding ActiveTier}"
+                  SelectionChanged="Tier_SelectionChanged" />
+      </StackPanel>
+      <Button Grid.Column="1" Click="DeleteHistory_Click" Content="{Binding DeleteHistoryLabel}" />
+      <Button Grid.Column="2" Click="EraseEmbeddings_Click" Content="{Binding EraseEmbeddingsLabel}" />
+      <Button Grid.Column="3" Click="ExportAudit_Click" Content="{Binding ExportAuditLabel}" />
+    </Grid>
+
+    <Border Grid.Row="2"
+            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+            BorderThickness="1"
+            Padding="10">
+      <Grid RowDefinitions="Auto,*" RowSpacing="8">
+        <TextBlock Text="{Binding RecentCallsLabel}" FontWeight="SemiBold" />
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding RecentCalls}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="ai:AiAuditEvent">
+              <Border BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="0,8">
+                <Grid ColumnDefinitions="140,90,100,140,90,90,90" ColumnSpacing="8">
+                  <TextBlock Text="{Binding OccurredAt}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Tier}" />
+                  <TextBlock Grid.Column="2" Text="{Binding Provider}" />
+                  <TextBlock Grid.Column="3" Text="{Binding Model}" />
+                  <TextBlock Grid.Column="4" Text="{Binding PromptTokens}" />
+                  <TextBlock Grid.Column="5" Text="{Binding CompletionTokens}" />
+                  <TextBlock Grid.Column="6" Text="{Binding EstimatedCostUsd}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      </Grid>
+    </Border>
+
+    <TextBlock Grid.Row="3" Text="{Binding StatusText}" />
+  </Grid>
+</UserControl>

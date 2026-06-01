@@ -13,6 +13,7 @@ public static class AiServiceExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IAiPayloadBuilder, AiPayloadBuilder>();
         services.AddSingleton<IAiCostCalculator, AiCostCalculator>();
+        services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
         services.AddHttpClient("ai:openai", client => client.BaseAddress = new Uri("https://api.openai.com/v1/"));
         services.AddHttpClient("ai:deepseek", client => client.BaseAddress = new Uri("https://api.deepseek.com/v1/"));
