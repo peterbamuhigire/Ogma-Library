@@ -81,6 +81,11 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IEmbeddingVectorRepository, EmbeddingVectorRepository>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
+        services.AddSingleton<EmbeddingGenerationService>();
+        services.AddSingleton<IEmbeddingGenerationService>(sp =>
+            sp.GetRequiredService<EmbeddingGenerationService>());
+        services.AddSingleton<ISemanticSearchReadModel>(sp =>
+            sp.GetRequiredService<EmbeddingGenerationService>());
         services.AddSingleton<IFtsIndexService, FtsIndexService>();
         services.AddSingleton<ICombinedSearchService, CombinedSearchService>();
         services.AddSingleton<IndexManagerService>();

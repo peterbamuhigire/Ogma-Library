@@ -74,6 +74,7 @@ public static class CompositionRoot
         services.AddSingleton<JobRecoveryService>();
         services.AddHostedService<BookIngestionWorker>();
         services.AddHostedService<SearchExtractionWorker>();
+        services.AddHostedService<EmbeddingGenerationWorker>();
 
         // Phase 06 — Catalogue Browsing.
 

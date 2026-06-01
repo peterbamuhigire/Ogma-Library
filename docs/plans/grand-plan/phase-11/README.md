@@ -28,7 +28,7 @@ reproducible order, and privacy-safe embedding erasure.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 5 (Search — semantic layer) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both; Ollama runs on the same host |
-| **Status** | WP1 started locally: embedding schema upgrade, `IAiProvider` stub, Ollama embedding contract/adapter, vector repository, architecture guards, and focused tests implemented; WP2+ pending |
+| **Status** | WP1 and WP2 backend foundations started locally: embedding schema upgrade, `IAiProvider` stub, Ollama embedding contract/adapter, vector repository, embedding generation service/worker, semantic read-model progress events, architecture guards, and focused tests implemented; WP3+ pending |
 | **Depends on** | Phase 10 (Search & Indexing — `SearchChunks`, FTS5 results, `ISearchReadModel`), Phase 12 (AI Gateway — `IAiProvider` gateway used for Ollama embedding calls; FR-AI-006) |
 | **Unblocks** | Phase 13 (AI advisor uses hybrid ranking); Phase 16 (LAN Host serves semantic search read-model) |
 
@@ -415,3 +415,4 @@ See `skills.md` for full guidance. Summary:
 | --- | --- | --- |
 | 2026-05-30 | Initial v1.0 baseline authored | Grand-plan agent |
 | 2026-06-01 | WP1 started: Phase 11 embedding schema upgrade, Application AI provider stub, local-only Ollama embedding adapter, vector repository, focused schema/provider tests, and architecture guards added | Codex |
+| 2026-06-01 | WP2 backend started: embedding generation service, idempotent pending-chunk selection, unavailable-Ollama degradation, failure-job recording, semantic progress events, worker polling, and focused tests added | Codex |
