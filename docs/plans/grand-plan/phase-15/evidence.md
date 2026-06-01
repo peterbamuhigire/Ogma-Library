@@ -29,6 +29,10 @@ The first WP6 scale-hardening slice adds provider-specific rate limiting and
 429/503 retry handling to the Google Books and Open Library HTTP clients.
 Batch enrichment jobs are now tagged with recoverable 50-book chunk metadata
 while preserving the existing per-book job isolation and older file-path payloads.
+WP7 smart-shelf scale work is in place: the catalogue migration adds composite
+indexes for status/year, shelf membership, and metadata field/value filters; the
+2,000-book benchmark verifies five common query shapes under the 2,000 ms P95
+budget and records their SQLite query plans.
 
 ## Verified Locally
 
@@ -45,6 +49,7 @@ while preserving the existing per-book job isolation and older file-path payload
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PdfiumAdapterPasswordTests` | Passed: 1 real PDFium password-protected render test |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RateLimitedHttpClientTests` | Passed: 3 provider rate-limit/retry tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~HealthDashboardTests\|FullyQualifiedName~RateLimitedHttpClientTests"` | Passed: 10 health/batch/rate-limit tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger "console;verbosity=detailed"` | Passed: 3 smart-shelf index/query-plan/2,000-book benchmark tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -74,6 +79,9 @@ while preserving the existing per-book job isolation and older file-path payload
 | PDFium password render path | `PdfiumAdapter` detects required passwords, opens protected PDFs with supplied credentials, and clears its session password buffer on dispose |
 | Provider HTTP resilience | `RateLimitedHttpClientHandler` spaces Google Books/Open Library requests and retries 429/503 responses with bounded exponential backoff |
 | Batch chunk recovery metadata | `BatchEnrichmentOrchestrator` writes `BatchEnrichmentJobPayload` with 50-book chunk indexes so large runs resume from remaining per-book jobs |
+| Smart-shelf composite indexes | `Phase15SmartShelfIndexes` adds `IX_Books_Status_Year`, `IX_ShelfBooks_ShelfId_BookId`, and `IX_BookMetadataFields_FieldName_Value` |
+| Smart-shelf query evidence | `docs/benchmarks/phase-15/query-plans.md` records `EXPLAIN QUERY PLAN` output for five common smart-shelf filters |
+| Smart-shelf baseline | `docs/benchmarks/phase-15/smart-shelf-baseline.json` records the 2,000-book P95 timing baseline |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work
@@ -83,6 +91,6 @@ while preserving the existing per-book job isolation and older file-path payload
 - WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
-- WP7 smart-shelf performance optimization.
+- WP7 Index Manager smart-shelf query stats panel.
 - WP8 OCR extension point.
 - WP9 golden-corpus, security review, and full remote CI evidence.

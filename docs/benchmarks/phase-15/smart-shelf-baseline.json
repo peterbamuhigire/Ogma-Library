@@ -1,0 +1,50 @@
+{
+  "phase": 15,
+  "benchmark": "SmartShelf_QueryBenchmark_2000Books",
+  "date": "2026-06-01",
+  "environment": {
+    "os": "Windows",
+    "database": "SQLite",
+    "configuration": "Release",
+    "corpusBooks": 2000,
+    "samplesPerQuery": 10,
+    "budgetP95Ms": 2000
+  },
+  "indexes": [
+    "IX_Books_Status_Year",
+    "IX_ShelfBooks_ShelfId_BookId",
+    "IX_BookMetadataFields_FieldName_Value"
+  ],
+  "results": [
+    {
+      "query": "active-books-since-2010",
+      "p95Ms": 4.49,
+      "count": 697
+    },
+    {
+      "query": "active-high-rating",
+      "p95Ms": 0.65,
+      "count": 800
+    },
+    {
+      "query": "shelf-members-high-rating",
+      "p95Ms": 1.20,
+      "count": 400
+    },
+    {
+      "query": "science-category",
+      "p95Ms": 298.85,
+      "count": 500
+    },
+    {
+      "query": "active-science-since-2000",
+      "p95Ms": 209.61,
+      "count": 250
+    }
+  ],
+  "verification": {
+    "command": "dotnet test tests\\OgmaLibrary.Tests\\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger \"console;verbosity=detailed\"",
+    "passed": 3,
+    "failed": 0
+  }
+}

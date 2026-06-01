@@ -28,5 +28,8 @@ public sealed class BookMetadataFieldConfiguration : IEntityTypeConfiguration<Bo
         // Provider-scoped field index.
         builder.HasIndex(m => new { m.BookId, m.FieldName, m.Source })
             .HasDatabaseName("IX_BookMetadataFields_BookId_FieldName_Source");
+        // Smart-shelf field/value filter index.
+        builder.HasIndex(m => new { m.FieldName, m.Value })
+            .HasDatabaseName("IX_BookMetadataFields_FieldName_Value");
     }
 }

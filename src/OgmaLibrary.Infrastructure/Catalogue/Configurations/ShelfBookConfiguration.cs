@@ -20,5 +20,7 @@ public sealed class ShelfBookConfiguration : IEntityTypeConfiguration<ShelfBookR
         builder.Property(sb => sb.BookId).IsRequired().HasMaxLength(26);
         builder.Property(sb => sb.AddedUtc);
         builder.Property(sb => sb.DisplayOrder).HasDefaultValue(0);
+        builder.HasIndex(sb => new { sb.ShelfId, sb.BookId })
+            .HasDatabaseName("IX_ShelfBooks_ShelfId_BookId");
     }
 }

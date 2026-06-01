@@ -48,6 +48,8 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
             .HasDatabaseName("IX_Books_Title_IsbnNormalized");
         // Status filter index.
         builder.HasIndex(b => b.Status).HasDatabaseName("IX_Books_Status");
+        // Smart-shelf status/year range filter.
+        builder.HasIndex(b => new { b.Status, b.Year }).HasDatabaseName("IX_Books_Status_Year");
         // Search indexing status filter.
         builder.HasIndex(b => b.IndexStatus).HasDatabaseName("IX_Books_IndexStatus");
         // Semantic embedding status filter.
