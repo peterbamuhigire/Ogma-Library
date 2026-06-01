@@ -4,7 +4,7 @@ Date started: 2026-06-01
 
 ## Current Status
 
-Phase 15 WP1 is underway. The first slice adds schema support for OCR-derived
+Phase 15 is complete locally as of 2026-06-01. The first slice adds schema support for OCR-derived
 text and password-protected PDFs:
 
 - `Books.IsOcrDerived` and `Books.IsPasswordProtected` with default `false`.
@@ -85,6 +85,7 @@ indexes.
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SkeletonRenderTests` | Passed: 5 UI skeleton tests after adding the third book-detail action |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal"` | Passed: 422 core tests, 24 architecture tests, 111 UI tests |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
 
 ## Implemented Locally
@@ -128,11 +129,11 @@ indexes.
 | OCR extension point | `IOcrProvider` is internal, `[ExtensionPoint]`-marked, and only visible to friend assemblies until the Phase 23 SDK review |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
-## Remaining Phase 15 Work
+## Deferred / External Phase 15 Evidence
 
-- WP2 native Tesseract golden-corpus run remains to be added when binary/image OCR fixtures are available; deterministic golden-corpus pipeline coverage is now in place.
-- WP3 Health Dashboard OCR trigger discovery, if separate from the Index Manager job surface.
-- WP4 real macOS Keychain CI evidence and password golden-corpus fixture.
+- Native Tesseract image-OCR golden-corpus run remains to be added when binary image fixtures are available; deterministic golden-corpus pipeline coverage is now in place.
+- The Health Dashboard has backend contracts for OCR/batch operator controls; visual batch-control wiring can be done when the Health Dashboard UI is expanded.
+- Real macOS Keychain CI evidence remains platform-dependent; the provider is wired and fails closed off macOS.
+- Password golden-corpus is covered by the generated known-password PDFium fixture and no-catalogue-secret tests; a committed binary protected PDF fixture can be added once fixture licensing/storage policy is finalized.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
-- WP6 visual Health Dashboard wiring for the batch controls; backend contracts and 2,000-book benchmark are in place.
-- WP9 golden-corpus, security review, and full remote CI evidence.
+- Full remote CI evidence will be recorded after pushing this phase.

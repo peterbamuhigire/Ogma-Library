@@ -415,3 +415,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Added WP2/WP9 OCR golden-corpus searchability coverage: completed OCR now writes page search chunks, queues FTS/embedding handoffs, verifies recovery, and runs a 1,000-page synthetic memory-profile guard. |
 | 2026-06-01 | Implementation | Added WP4 macOS Keychain provider boundary and book-detail Forget password action, with fail-closed non-macOS coverage and no-catalogue-secret regression tests. |
 | 2026-06-01 | Implementation | Added WP6 batch enrichment operator backend: health snapshots now report batch runs, pause/resume by batch id, failed-job CSV export, and a 2,000-book retry-completion benchmark. |
+| 2026-06-01 | Implementation | Closed Phase 15 local verification: full Release solution tests passed (422 core, 24 architecture, 111 UI), with remaining macOS/native OCR/remote CI evidence tracked externally. |
