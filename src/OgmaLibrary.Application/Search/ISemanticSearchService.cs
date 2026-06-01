@@ -32,4 +32,5 @@ public sealed record SemanticSearchResult(
     bool ExactFallback,
     double? HybridScore = null,
     IReadOnlyList<MatchLocation>? MatchLocations = null,
-    ConfidenceLabel? ConfidenceLabel = null);
+    ConfidenceLabel? ConfidenceLabel = null,
+    int? PageIndex = null);

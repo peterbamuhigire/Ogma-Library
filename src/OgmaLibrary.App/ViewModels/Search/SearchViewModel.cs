@@ -14,7 +14,7 @@ namespace OgmaLibrary.App.ViewModels.Search;
 /// </summary>
 public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
 {
-    private readonly ICombinedSearchService _searchService;
+    private readonly ISemanticSearchService _searchService;
     private readonly IReaderNavigationService _navigation;
     private readonly ILocalizationService _localization;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
@@ -30,7 +30,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     /// Initializes a new instance of <see cref="SearchViewModel"/>.
     /// </summary>
     public SearchViewModel(
-        ICombinedSearchService searchService,
+        ISemanticSearchService searchService,
         IReaderNavigationService navigation,
         ILocalizationService localization)
     {
@@ -199,8 +199,8 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         await Dispatcher.UIThread.InvokeAsync(() => IsSearching = true);
         try
         {
-            IReadOnlyList<CombinedSearchResult> results = await _searchService
-                .SearchAsync(trimmed, limit: 30, cancellationToken)
+            SemanticSearchResponse response = await _searchService
+                .SearchAsync(trimmed, maxResults: 30, cancellationToken)
                 .ConfigureAwait(false);
             if (version != Volatile.Read(ref _searchVersion) ||
                 !string.Equals(trimmed, Query?.Trim() ?? string.Empty, StringComparison.Ordinal))
@@ -211,7 +211,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Results.Clear();
-                foreach (SearchResultItem item in results.Select(MapResult))
+                foreach (SearchResultItem item in response.Results.Select(MapResult))
                 {
                     Results.Add(item);
                 }
@@ -232,19 +232,24 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private static SearchResultItem MapResult(CombinedSearchResult result)
+    private static SearchResultItem MapResult(SemanticSearchResult result)
     {
-        FtsSearchResult? firstHit = result.FtsHits.Count == 0 ? null : result.FtsHits[0];
-        string subtitle = result.Author ?? string.Empty;
-        string snippet = firstHit?.Snippet ?? string.Join(", ", result.MatchedFields);
+        string subtitle = result.ConfidenceLabel.HasValue
+            ? $"{result.ConfidenceLabel} confidence"
+            : string.Empty;
+        string snippet = result.Snippet ?? string.Empty;
+        string matchLocations = result.MatchLocations is { Count: > 0 }
+            ? string.Join(" · ", result.MatchLocations)
+            : result.ExactFallback ? "Exact match" : "Semantic match";
         return new SearchResultItem(
             result.BookId,
             IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty,
             result.Title ?? "Untitled",
             subtitle,
             snippet,
-            firstHit?.PageIndex,
-            result.Score);
+            matchLocations,
+            result.PageIndex,
+            result.HybridScore ?? result.SemanticScore ?? 0);
     }
 
     private void OnCultureChanged(object? sender, EventArgs e)
@@ -273,5 +278,6 @@ public sealed record SearchResultItem(
     string Title,
     string Subtitle,
     string Snippet,
+    string MatchLocations,
     int? PageIndex,
     double Score);

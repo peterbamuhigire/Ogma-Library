@@ -32,7 +32,7 @@ public sealed class SearchViewModelTests
     [AvaloniaFact]
     public async Task SearchViewModel_QueryDebouncesAndOpenSelectedNavigates()
     {
-        var search = new StubCombinedSearchService();
+        var search = new StubSemanticSearchService();
         var navigation = new RecordingReaderNavigation();
         using var vm = new SearchViewModel(search, navigation, new InMemoryLocalizationService());
 
@@ -41,6 +41,8 @@ public sealed class SearchViewModelTests
         await vm.OpenSelectedAsync();
 
         Assert.Equal("ogma", search.LastQuery);
+        Assert.Contains("Semantic", vm.Results[0].MatchLocations, StringComparison.Ordinal);
+        Assert.Contains("High", vm.Results[0].Subtitle, StringComparison.Ordinal);
         Assert.Equal("BOOKSEARCH00000000000001", navigation.OpenedBookId);
         Assert.Equal(3, navigation.OpenedPageHint);
     }
@@ -48,7 +50,7 @@ public sealed class SearchViewModelTests
     [AvaloniaFact]
     public async Task SearchViewModel_StaleResults_DoNotOverwriteLatestQuery()
     {
-        var search = new OutOfOrderCombinedSearchService();
+        var search = new OutOfOrderSemanticSearchService();
         var navigation = new RecordingReaderNavigation();
         using var vm = new SearchViewModel(search, navigation, new InMemoryLocalizationService());
 
@@ -102,7 +104,7 @@ public sealed class SearchViewModelTests
             writeService,
             localization,
             new CatalogueFilterViewModel());
-        using var search = new SearchViewModel(new StubCombinedSearchService(), navigation, localization);
+        using var search = new SearchViewModel(new StubSemanticSearchService(), navigation, localization);
         using var shell = new MainShellViewModel(
             localization,
             catalogue,
@@ -174,7 +176,7 @@ public sealed class SearchViewModelTests
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("qps-ploc");
         var navigation = new RecordingReaderNavigation();
-        using var searchVm = new SearchViewModel(new StubCombinedSearchService(), navigation, localization);
+        using var searchVm = new SearchViewModel(new StubSemanticSearchService(), navigation, localization);
         using var indexVm = new IndexManagerViewModel(new StubIndexManagerService(), localization);
 
         searchVm.Query = "ogma";
@@ -222,64 +224,63 @@ public sealed class SearchViewModelTests
         }
     }
 
-    private sealed class StubCombinedSearchService : ICombinedSearchService
+    private sealed class StubSemanticSearchService : ISemanticSearchService
     {
         public string? LastQuery { get; private set; }
 
-        public Task<IReadOnlyList<CombinedSearchResult>> SearchAsync(
-            string? query,
-            int limit,
+        public Task<SemanticSearchResponse> SearchAsync(
+            string queryText,
+            int maxResults,
             CancellationToken cancellationToken)
         {
-            LastQuery = query;
-            IReadOnlyList<CombinedSearchResult> results =
-            [
-                new CombinedSearchResult(
+            LastQuery = queryText;
+            var response = new SemanticSearchResponse(
+                ProviderUnavailable: false,
+                UsedExactFallback: false,
+                [
+                    new SemanticSearchResult(
                     "BOOKSEARCH00000000000001",
                     "Ogma Search",
-                    "Ada Reader",
-                    90,
-                    ["title"],
-                    [
-                        new FtsSearchResult(
-                            "BOOKSEARCH00000000000001",
-                            "Ogma Search",
-                            "Ada Reader",
-                            12,
-                            3,
-                            0,
-                            SearchChunkSource.Page,
-                            "<b>ogma</b> search",
-                            1.0),
-                    ]),
-            ];
-            return Task.FromResult(results);
+                    12,
+                    SearchChunkSource.Page,
+                    "<b>ogma</b> search",
+                    0.9f,
+                    ExactFallback: false,
+                    HybridScore: 0.92,
+                    MatchLocations: [MatchLocation.Title, MatchLocation.TextPage, MatchLocation.Semantic],
+                    ConfidenceLabel: ConfidenceLabel.High,
+                    PageIndex: 3),
+                ]);
+            return Task.FromResult(response);
         }
     }
 
-    private sealed class OutOfOrderCombinedSearchService : ICombinedSearchService
+    private sealed class OutOfOrderSemanticSearchService : ISemanticSearchService
     {
         public List<string> Queries { get; } = [];
 
-        public async Task<IReadOnlyList<CombinedSearchResult>> SearchAsync(
-            string? query,
-            int limit,
+        public async Task<SemanticSearchResponse> SearchAsync(
+            string queryText,
+            int maxResults,
             CancellationToken cancellationToken)
         {
-            string effectiveQuery = query ?? string.Empty;
-            Queries.Add(effectiveQuery);
-            await Task.Delay(effectiveQuery == "slow" ? 250 : 10, CancellationToken.None).ConfigureAwait(false);
-            string title = effectiveQuery == "slow" ? "Slow Result" : "Fast Result";
-            return
-            [
-                new CombinedSearchResult(
-                    $"BOOK-{effectiveQuery}",
-                    title,
-                    null,
-                    1,
-                    ["title"],
-                    []),
-            ];
+            Queries.Add(queryText);
+            await Task.Delay(queryText == "slow" ? 250 : 10, CancellationToken.None).ConfigureAwait(false);
+            string title = queryText == "slow" ? "Slow Result" : "Fast Result";
+            return new SemanticSearchResponse(
+                ProviderUnavailable: false,
+                UsedExactFallback: false,
+                [
+                    new SemanticSearchResult(
+                        $"BOOK-{queryText}",
+                        title,
+                        ChunkId: null,
+                        Source: null,
+                        Snippet: string.Empty,
+                        SemanticScore: null,
+                        ExactFallback: true,
+                        MatchLocations: [MatchLocation.Title]),
+                ]);
         }
     }
 

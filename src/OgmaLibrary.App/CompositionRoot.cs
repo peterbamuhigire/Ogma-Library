@@ -121,7 +121,7 @@ public static class CompositionRoot
                 localization,
                 sp.GetRequiredService<ITextLayerService>());
             var searchVm = new SearchViewModel(
-                sp.GetRequiredService<ICombinedSearchService>(),
+                sp.GetRequiredService<ISemanticSearchService>(),
                 navProxy,
                 localization);
             var indexManagerVm = new IndexManagerViewModel(

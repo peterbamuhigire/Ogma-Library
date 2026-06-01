@@ -50,8 +50,8 @@
                AutomationProperties.Name="{Binding StatusText}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:SearchResultItem">
-            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
-              <svg:Svg Grid.RowSpan="3"
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <svg:Svg Grid.RowSpan="4"
                        Width="18"
                        Height="18"
                        Margin="0,2,8,0"
@@ -73,6 +73,12 @@
                          MaxLines="2"
                          FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <TextBlock Grid.Row="3"
+                         Grid.Column="1"
+                         Text="{Binding MatchLocations}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Accent.Oak}"
+                         AutomationProperties.Name="{Binding MatchLocations}" />
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>
