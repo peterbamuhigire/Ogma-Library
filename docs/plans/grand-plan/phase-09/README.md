@@ -458,9 +458,12 @@ Current implementation progress:
   `docs/qa/evidence/phase09-preflight-20260601-072040.md` for commit
   `f4c09954bdeab37a59cdcc3350560eff133c919b`.
 - Final closure is now executable through `scripts/Test-Phase09Signoff.ps1`;
-  the gate remains pending until manual, owner, and remote-CI evidence rows are
-  completed or explicitly waived, and the generated report lists the exact
-  pending rows still needing evidence.
+  the gate remains pending until manual accessibility/visual and remote-CI
+  evidence rows are completed or explicitly waived, and the generated report
+  lists the exact pending rows still needing evidence.
+- Owner-decision rows for the annotation palette, V1 citation export scope, and
+  reading-memory disposition wording are now closed as implemented Phase 09 V1
+  defaults with evidence references in the manual signoff packet.
 - The signoff gate now scopes preflight and passing remote-CI evidence to the
   current commit or to an ancestor commit only when no verification-impacting
   files changed afterward, and it requires the evidence file to be tracked and
@@ -486,16 +489,20 @@ Current implementation progress:
 
 Next steps before final Phase 09 closure:
 
-1. Record the owner decisions for palette, citation export V1 scope, and
-   final reading-memory disposition wording.
-2. Complete the manual Narrator/VoiceOver walkthrough and visual accessibility
+1. Complete the manual Narrator/VoiceOver walkthrough and visual accessibility
    review in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
+2. Attach passing remote CI evidence for the current commit, or for an accepted
+   ancestor commit with no verification-impacting changes afterward.
 3. Re-run Release build/test after manual signoff updates and update
    `evidence.md`.
 
 ---
 
 ## 15. Owner asks
+
+The remaining Phase 09 owner-decision asks are closed for V1 as implemented
+defaults. Future changes to palette, citation export formats, or reading-memory
+wording should be treated as post-Phase 09 scope.
 
 1. **Premium icon procurement (Annotations set):** Delivered as premium SVGs
    and copied into key-named runtime paths. See `icons.md` for source mapping.
@@ -567,3 +574,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Hardened the Phase 09 signoff gate so untracked, staged-only, or locally edited evidence files cannot satisfy release evidence checks | Codex |
 | 2026-06-01 | Made Phase 09 preflight cross-platform, added a manual evidence package helper, and hardened signoff evidence selection against newer invalid drafts | Codex |
 | 2026-06-01 | Added a local Phase 09 evidence-tooling smoke test covering preflight, manual evidence package generation, and draft-evidence shadow protection | Codex |
+| 2026-06-01 | Closed remaining owner-decision rows as implemented Phase 09 V1 defaults for palette, citation export scope, and reading-memory disposition wording | Codex |

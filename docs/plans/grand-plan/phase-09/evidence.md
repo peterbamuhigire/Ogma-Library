@@ -9,10 +9,13 @@ separate from the plan so unresolved owner/manual items remain visible.
 
 Current status: locally implementation-complete. Direct audit and independent
 sub-agent review findings have been addressed in code, tests, and evidence; no
-remaining locally actionable Phase 09 gaps are known. Final phase closure is still blocked on owner/manual gates:
-Narrator/VoiceOver walkthrough, manual color review, manual pseudolocale review,
-and owner confirmations. Premium SVG icons have been delivered, committed, rendered
-on reader surfaces, and covered by UI/resource tests.
+remaining locally actionable Phase 09 gaps are known. Final phase closure is
+still blocked on manual and remote gates: Narrator/VoiceOver walkthrough,
+manual color review, manual pseudolocale review, and remote CI evidence.
+Premium SVG icons have been delivered, committed, rendered on reader surfaces,
+and covered by UI/resource tests. The remaining owner-decision rows are closed
+as implemented Phase 09 V1 defaults in
+`docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`.
 
 ## Automated verification
 
@@ -102,7 +105,8 @@ Recorded local commands. The latest full-suite aggregate is authoritative:
 | Remote CI evidence collector | `scripts/Get-Phase09RemoteCiEvidence.ps1`; writes dated `docs/qa/evidence/phase09-remote-ci-*.md` records from GitHub Actions by commit SHA, returning pending when Actions are unavailable | Ready for use when GitHub Actions read access is available |
 | Latest manual preflight evidence | `docs/qa/evidence/phase09-preflight-20260601-072040.md`; generated from clean worktree at commit `f4c09954bdeab37a59cdcc3350560eff133c919b` with format, Release build, and Release tests all passing | Automated preflight evidence archived |
 | Latest remote CI evidence attempt | `docs/qa/evidence/phase09-remote-ci-20260601-074523.md`; GitHub Actions API returned 404 for commit `45a1c633a427cb196b5901cb3d9ef17e1d7db637` | Remote CI remains pending |
-| Continuation audit | `docs/implementation/review-01-Jun-2026/phase-09-continuation-audit.md`; current local state, remaining manual/owner gates, and unavailable remote CI status check recorded | Locally complete; remote CI result not available from this environment |
+| Owner decision defaults | `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`; annotation palette, plain-text citation export scope, and `Disposition (1-5)` wording are recorded as Phase 09 V1 implementation defaults with automated evidence references | Closed for V1 |
+| Continuation audit | `docs/implementation/review-01-Jun-2026/phase-09-continuation-audit.md`; current local state, remaining manual gates, and unavailable remote CI status check recorded | Locally complete; remote CI result not available from this environment |
 | Code-review findings | Sub-agent review findings addressed: reader VM continuations stay on UI context; reader async handlers await VM work; cross-book layer delete is ignored; direct layer delete moves annotations to the default remaining layer; citation export fallback strings localize through `ILocalizationService` | Resolved locally |
 | Rotated-page annotation oracle | `tests/GoldenCorpus/annotations/rotated-page-annotation.json` and `Annotation_RotatedPage_Reload_KeepsScreenRectWithinOnePixel` | Automated coverage present |
 | Text-selection mapping | `TextSelectionService.GetRegionsForSelection`; `TextSelectionService_GetRegionsForSelection_MapsScreenRectToUnrotatedRegion`; reader selection highlight tests verify screen-space drag rectangles are normalized into unrotated `AnnotationRegion` values before persistence | Automated coverage present |
@@ -150,3 +154,4 @@ Recorded local commands. The latest full-suite aggregate is authoritative:
 | Screen-reader walkthrough | Automation names are covered by UI tests and summarized in `docs/qa/PHASE-09-A11Y-SIGNOFF.md`; runbook exists in `docs/qa/PHASE-09-MANUAL-SIGNOFF-PACKET.md`, but Narrator/VoiceOver has not been manually recorded in this repository. | Manual pass on Windows Narrator and macOS VoiceOver with bookmark count, annotation overlay, note anchor, layer controls, citation card. |
 | Color accessibility manual review | Automated contrast math is present; human review against actual platform rendering is not archived. | Manual review of highlight overlays and color-only meaning. |
 | Pseudolocale manual review | Headless pseudolocale screenshot is archived in artifacts; human review is not archived. | Manual review of pseudolocale screenshot for polish. |
+| Remote CI evidence | Local CI workflow shape is validated and latest collection attempt is archived, but GitHub Actions API access returns 404 from this environment. | Passing GitHub Actions evidence for the current commit or an accepted ancestor commit with no verification-impacting changes afterward. |

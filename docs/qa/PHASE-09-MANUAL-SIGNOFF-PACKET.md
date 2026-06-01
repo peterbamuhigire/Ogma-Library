@@ -87,9 +87,9 @@ Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
 | Decision | Current proposal | Owner response | Owner/date | Evidence reference |
 | --- | --- | --- | --- | --- |
 | Premium icon procurement | 22 premium SVG icons listed in `docs/plans/grand-plan/phase-09/icons.md`. | Delivered, copied into runtime asset paths, rendered on reader surfaces, and covered by UI/resource tests | Peter / 2026-05-31 | `docs/plans/grand-plan/phase-09/icons.md`; `docs/plans/grand-plan/phase-09/evidence.md` |
-| Annotation layer palette | Amber, sage, clay, plum. | Pending | Pending | Pending |
-| Citation export V1 scope | Plain-text export; BibTeX/RIS/Markdown deferred unless requested. | Pending | Pending | Pending |
-| Reading-memory disposition wording | UI label currently renders as `Disposition (1-5)`; semantic scale is 1 to 5, where 1 is not useful/did not finish and 5 is transformative. | Pending | Pending | Pending |
+| Annotation layer palette | Amber, sage, clay, plum. | Adopted as the Phase 09 V1 default palette. | Implementation default / 2026-06-01 | `docs/plans/grand-plan/phase-09/icons.md`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; `IconCatalogPhase09Tests` |
+| Citation export V1 scope | Plain-text export; BibTeX/RIS/Markdown deferred unless requested. | Adopted as the Phase 09 V1 export scope. | Implementation default / 2026-06-01 | `CitationService_CaptureAndExport_UsesCatalogueMetadata`; `ReaderView_ExportCitation_WritesClipboardAndExportsCapturedCard`; `src/OgmaLibrary.Application/Catalogue/ISidecarService.cs` |
+| Reading-memory disposition wording | UI label currently renders as `Disposition (1-5)`; semantic scale is 1 to 5, where 1 is not useful/did not finish and 5 is transformative. | Adopted as the Phase 09 V1 label and scale. | Implementation default / 2026-06-01 | `src/OgmaLibrary.App/Assets/Strings/annotations.en.resx`; `ReadingMemoryService_Save_UpsertsAndValidatesDisposition`; `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` |
 
 ## Automated Evidence Snapshot
 
@@ -106,7 +106,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 14 migration/direct-PDF regression tests including production-DI missing-`BookFiles` direct-open repair |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~IngestionPipelineTests\|FullyQualifiedName~MigrationTests\|FullyQualifiedName~ApplicationStartupTests"` | Passed: 23 direct-PDF, folder-scan, migration repair, and startup tests including production-DI missing-`BookFiles` repair for direct open and Choose Library Folder, plus same-hash unregistered-path folder-scan registration |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 236, UI 93, Architecture 15 |
-| `.\scripts\Test-Phase09EvidenceTooling.ps1` | Passed: preflight temp evidence generation, manual evidence package generation for 36 pending rows, and signoff evidence-shadow protection |
+| `.\scripts\Test-Phase09EvidenceTooling.ps1` | Passed: preflight temp evidence generation, manual evidence package generation matching the current pending-row count, and signoff evidence-shadow protection |
 | `.\scripts\Phase09-Preflight.ps1` | Generates a dated cross-platform `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
 | `.\scripts\New-Phase09ManualEvidencePackage.ps1` | Generates a dated reviewer evidence package with per-row note templates and screenshot/audio/export folders for the remaining manual and accessibility rows |
 | `docs/qa/evidence/phase09-preflight-20260601-072040.md` | Current preflight evidence for commit `f4c09954bdeab37a59cdcc3350560eff133c919b`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
