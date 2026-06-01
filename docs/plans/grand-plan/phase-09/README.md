@@ -148,7 +148,7 @@ geometry through `IPageGeometryProvider` (from the Reader render context). It
 
 ```
 ReaderView (Phase 08)
-  └─ AnnotationOverlayPanel       — highlight/note overlay rendered over pages
+  └─ ReaderView overlay layer     — highlight/note overlay rendered over pages
        └─ AnnotationViewModel
             ├─ AnnotationService         — create/update/delete highlights + notes
             ├─ AnnotationLayerService    — named layers, visibility, merge, delete
@@ -166,6 +166,8 @@ coordinates normalized to `[0, 1]` relative to the un-rotated page size.
 On render, the overlay panel transforms normalized coordinates by the current
 zoom factor **and** the page rotation matrix from `IPdfRenderer.GetPageRotation(i)`.
 This is what enables correct reload on rotated pages (NFR-OGMA-008).
+The desktop implementation composes this overlay in `ReaderView.axaml` using
+`AnnotationOverlays` rather than a separate custom overlay-control class.
 
 ```csharp
 public record AnnotationRegion(
@@ -319,6 +321,7 @@ See `skills.md` for full guidance. Summary:
 | `IAnnotationReadModel` interface | `src/OgmaLibrary.Application/Reader/IAnnotationReadModel.cs` |
 | `AnnotationRegion` normalized-coordinate model | `src/OgmaLibrary.Domain/Annotations.cs` |
 | Annotation overlay and note anchors | `src/OgmaLibrary.App/Views/Reader/ReaderView.axaml`, `src/OgmaLibrary.App/ViewModels/Reader/ReaderViewModel.cs` |
+| Text-selection mapping helper | `src/OgmaLibrary.App/ViewModels/Reader/TextSelectionService.cs` |
 | Annotation-related DB migrations | `src/OgmaLibrary.Infrastructure/Persistence/Migrations/20260531120000_Phase09Annotations.cs` |
 | Annotation en/fr resource files | `src/OgmaLibrary.App/Assets/Strings/annotations.en.resx`, `annotations.fr.resx` |
 | Fault-injection test suite | `tests/OgmaLibrary.Tests/Reader/Phase09AnnotationTests.cs` |
@@ -394,6 +397,9 @@ Current implementation progress:
   annotation/bookmark/layer/citation/reading-memory surfaces and guarded by
   automated resource/runtime tests that also catch drift between the committed
   `.resx` values and in-memory runtime dictionaries.
+- Text-selection mapping is now an explicit `TextSelectionService` helper, so
+  the planned screen-space selection to normalized unrotated `AnnotationRegion`
+  path is traceable outside the reader view-model and covered directly.
 
 Next steps before final Phase 09 closure:
 
@@ -446,3 +452,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Rechecked reader shortcut wiring and recorded Ctrl+B, Ctrl+Shift+B, and Ctrl+Shift+C coverage in the closeout evidence | Codex |
 | 2026-06-01 | Added rendered note editor blur-save coverage and refreshed Phase 09 evidence counts | Codex |
 | 2026-06-01 | Cleaned Phase 09 French localization mojibake and added resource/runtime guard tests for mojibake and resource drift | Codex |
+| 2026-06-01 | Extracted explicit text-selection mapping service and added rotation-aware coverage | Codex |

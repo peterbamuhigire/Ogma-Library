@@ -335,6 +335,24 @@ public sealed class ReaderViewRenderTests
         Assert.Single(viewModel.AnnotationOverlays);
     }
 
+    [Fact]
+    public void TextSelectionService_GetRegionsForSelection_MapsScreenRectToUnrotatedRegion()
+    {
+        AnnotationRegion region = Assert.Single(TextSelectionService.GetRegionsForSelection(
+            pageIndex: 2,
+            selectionRect: new Rect(1008, 108, 144, 324),
+            basePageWidth: 720,
+            basePageHeight: 960,
+            currentZoom: 1.5,
+            currentRotation: 90));
+
+        Assert.Equal(2, region.PageIndex);
+        Assert.Equal(0.1, region.NormLeft, precision: 4);
+        Assert.Equal(0.2, region.NormTop, precision: 4);
+        Assert.Equal(0.3, region.NormWidth, precision: 4);
+        Assert.Equal(0.1, region.NormHeight, precision: 4);
+    }
+
     [AvaloniaFact]
     public void ReaderViewModel_SelectionCitation_CapturesSelectionText()
     {

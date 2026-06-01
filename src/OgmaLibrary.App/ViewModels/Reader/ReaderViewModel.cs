@@ -764,7 +764,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             .CreateHighlightAsync(
                 BookId,
                 layer?.Id,
-                [SelectionRegion(selection)],
+                TextSelectionService.GetRegionsForSelection(
+                    CurrentPageIndex,
+                    SelectionRect(selection),
+                    BasePageSurfaceWidth,
+                    BasePageSurfaceHeight,
+                    OverlayZoomFactor,
+                    PageRotationDegrees),
                 SelectedHighlightColor,
                 quote,
                 cancellationToken)
@@ -1555,27 +1561,19 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     private AnnotationRegion SelectionRegion(SelectionOverlayItem selection)
     {
-        double left = selection.X / PageSurfaceWidth;
-        double top = selection.Y / PageSurfaceHeight;
-        double width = selection.Width / PageSurfaceWidth;
-        double height = selection.Height / PageSurfaceHeight;
-
-        (double unrotatedLeft, double unrotatedTop, double unrotatedWidth, double unrotatedHeight) =
-            PageRotationDegrees switch
-            {
-                90 => (top, 1.0 - left - width, height, width),
-                180 => (1.0 - left - width, 1.0 - top - height, width, height),
-                270 => (1.0 - top - height, left, height, width),
-                _ => (left, top, width, height),
-            };
-
-        return new AnnotationRegion(
-            CurrentPageIndex,
-            Clamp(unrotatedLeft, 0, 1),
-            Clamp(unrotatedTop, 0, 1),
-            Clamp(unrotatedWidth, 0, 1),
-            Clamp(unrotatedHeight, 0, 1));
+        return TextSelectionService
+            .GetRegionsForSelection(
+                CurrentPageIndex,
+                SelectionRect(selection),
+                BasePageSurfaceWidth,
+                BasePageSurfaceHeight,
+                OverlayZoomFactor,
+                PageRotationDegrees)
+            .Single();
     }
+
+    private static Rect SelectionRect(SelectionOverlayItem selection) =>
+        new(selection.X, selection.Y, selection.Width, selection.Height);
 
     private async Task<string> SelectedCitationTextFromSelectionAsync(CancellationToken cancellationToken)
     {

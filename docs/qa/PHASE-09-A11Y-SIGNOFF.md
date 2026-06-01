@@ -47,7 +47,7 @@ Latest focused command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ReaderViewRenderTests|FullyQualifiedName~IconCatalogPhase09Tests"
 ```
 
-Result: passed, 68 Phase 09 UI/resource tests.
+Result: passed, 69 Phase 09 UI/resource tests.
 
 Latest full UI release command:
 
@@ -55,7 +55,7 @@ Latest full UI release command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
 ```
 
-Result: passed, 79 tests.
+Result: passed, 80 tests.
 
 ## Assistive Technology Walkthrough
 

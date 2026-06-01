@@ -82,6 +82,7 @@ never a corrupt JSON region.
 | --- | --- | --- |
 | `AnnotationRepository_CommittedAnnotation_SurvivesFreshContextReopen` | FR-READ-008 | Persisted highlight reloads from a fresh catalogue context |
 | `Annotation_RotatedPage_Reload_KeepsScreenRectWithinOnePixel` | FR-READ-008, NFR-OGMA-008 | `rotated-pages` fixture: bounding box remains within 1 px after reload |
+| `TextSelectionService_GetRegionsForSelection_MapsScreenRectToUnrotatedRegion` | P09-WP2-T2 | Screen-space selection rectangle maps to normalized unrotated `AnnotationRegion` coordinates |
 | `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete` | FR-READ-007 | Bookmark create, rename, delete, and book-scoped event behavior round-trip |
 | `FaultInjection_BookmarkAfterSave_Reopen_Present` | FR-READ-007, NFR-OGMA-008 | Bookmark written before abnormal termination model is present after catalogue reopen |
 | `AnnotationLayerService_RenameVisibilityMergeAndLastLayerConstraint_Work` | World-class | Full lifecycle and last-layer constraint behavior match expected state |

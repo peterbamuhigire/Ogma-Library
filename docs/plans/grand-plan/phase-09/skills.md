@@ -41,7 +41,7 @@ Skills and slash commands for Annotations, Bookmarks & Reading Memory.
 | Skill | Task | Artifact |
 | --- | --- | --- |
 | `frontend-ux:interaction-design-patterns` | P09-WP3-T2, T3 — text-selection UX: context-menu trigger, note pop-over dismiss/auto-save; drag-to-select behavior | Selection UX specification (inline notes) |
-| `avalonia-desktop-development` | P09-WP3-T1 — custom `Control` overlay drawing on a `Canvas` above the page bitmap; `InvalidateVisual` dirty-flag pattern | `AnnotationOverlayPanel` implementation |
+| `avalonia-desktop-development` | P09-WP3-T1 — overlay composition above the page bitmap; `AnnotationOverlays` refresh and render positioning pattern | `ReaderView.axaml` overlay layer |
 | `frontend-ux:frontend-performance` | P09-WP3-T6 — overlay invalidation strategy; benchmark ≤ 10 ms overhead | Performance assertion passing |
 | `frontend-ux:motion-design` | P09-WP3-T3 — note pop-over appear/dismiss animation within calm design language | Smooth pop-over |
 

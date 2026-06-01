@@ -6,7 +6,8 @@ Scope: Phase 09 closeout evidence through the active-layer, direct-PDF
 hardening, delivered reader-icon rendering, keyboard shortcut verification,
 performance gate review, annotation delete workflow, and layer visibility UI
 passes, reading-memory blur auto-save, note editor blur-save, and Phase 09
-French localization cleanup passes on 2026-06-01.
+French localization cleanup passes, and text-selection service traceability on
+2026-06-01.
 
 ## Current Position
 
@@ -25,7 +26,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, note editor blur-save, French Phase 09 mojibake cleanup, and manual signoff documentation source-of-truth cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, and manual signoff documentation source-of-truth cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -41,6 +42,7 @@ owner-gated:
 | Reading-memory blur auto-save | `ReaderView_ReadingMemoryFieldLostFocus_AutoSavesEditedField` verifies the rendered reader field blur route schedules and persists edited reading-memory text |
 | Note editor blur-save | `ReaderView_NoteEditorLostFocus_SavesEditedNote` verifies the rendered note editor focus-out route persists edited note text, closes the editor, and reports save completion |
 | French Phase 09 localization | `Phase09AnnotationResources_DoNotContainMojibake`, `InMemoryLocalization_Phase09FrenchStrings_DoNotContainMojibake`, and `InMemoryLocalization_Phase09Strings_MatchResourceValues` verify resource/runtime labels reject common mojibake markers and match the committed Phase 09 resource values |
+| Text-selection mapping service | `TextSelectionService.GetRegionsForSelection` and `TextSelectionService_GetRegionsForSelection_MapsScreenRectToUnrotatedRegion` verify the planned P09-WP2-T2 mapping from screen-space selection rectangles to normalized unrotated annotation regions |
 
 ## Remote CI Status Check
 
@@ -57,7 +59,7 @@ not claim a remote CI pass.
 
 ## Locally Actionable Findings
 
-The continuation pass found nine locally actionable mismatches and fixed
+The continuation pass found ten locally actionable mismatches and fixed
 them:
 
 | Finding | Resolution |
@@ -71,6 +73,7 @@ them:
 | `testing.md` duplicated stale unchecked manual checklist rows instead of pointing reviewers to the expanded manual signoff packet. | Replaced the duplicate checklist with a source-of-truth reference to `PHASE-09-MANUAL-SIGNOFF-PACKET.md` and `PHASE-09-A11Y-SIGNOFF.md`, including the expanded direct-PDF, enrichment, owner, and visual-review checks. |
 | Note editor focus-out was implemented but only indirectly covered by text-binding and Escape-dismissal tests. | Added `ReaderView_NoteEditorLostFocus_SavesEditedNote` to drive the rendered `NoteEditor_LostFocus` route and verify persistence, closure, and save status. |
 | French Phase 09 resource/runtime labels included mojibake in bookmark sorting and related accented labels, and the runtime dictionary was not cross-checked against committed resources. | Rewrote the Phase 09 French `.resx` values with entity-safe accents, normalized the runtime Phase 09 French dictionary, and added resource/runtime mojibake and resource-match regression tests. |
+| The P09-WP2-T2 text-selection mapping behavior lived only as a private reader view-model method, weakening traceability to the planned `TextSelectionService.GetRegionsForSelection` artifact. | Extracted the mapping into `TextSelectionService.GetRegionsForSelection`, kept the reader selection flow on that helper, and added direct rotation-aware mapping coverage. |
 
 The final code-level pass also rechecked the planned Ctrl+B, Ctrl+Shift+B, and
 Ctrl+Shift+C shortcuts against `ReaderView.axaml.cs` and the focused UI tests.
@@ -91,6 +94,9 @@ Escape-dismissal checks.
 The localization pass cleaned up Phase 09 French accented labels in resources
 and runtime dictionaries, then added automated guards against common mojibake
 markers and runtime/resource drift.
+The text-selection pass extracted the planned selection-region mapping helper
+so screen-space drag rectangles have an explicit tested service before
+annotation persistence.
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.
 Do not mark Phase 09 fully closed until the manual and owner-gated rows above

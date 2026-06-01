@@ -39,7 +39,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 326 total tests: Core 232, UI 79, Architecture 15.
+Release tests pass 327 total tests: Core 232, UI 80, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -100,7 +100,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~Metadata"` | Passed: 72 direct-PDF and metadata regression tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 14 migration/direct-PDF regression tests including production-DI missing-`BookFiles` direct-open repair |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 232, UI 79, Architecture 15 |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 232, UI 80, Architecture 15 |
 
 ## Closure Rule
 

@@ -30,7 +30,7 @@ rotation-correct reload on all fixtures.
 | Task ID | Description | Est. | Deps | Satisfies |
 | --- | --- | --- | --- | --- |
 | P09-WP2-T1 | `AnnotationRegion` record: normalized `[0,1]` coordinates relative to un-rotated page; XML doc note on rotation-correction requirement | 1 h | Phase 08 `IPdfRenderer` | FR-READ-008 |
-| P09-WP2-T2 | `TextSelectionService.GetRegionsForSelection(pageIndex, selectionRect, currentZoom, currentRotation)`: maps screen-space selection to normalized `AnnotationRegion[]` | 3 h | P09-WP2-T1, Phase 08 TextLayer | FR-READ-008 |
+| P09-WP2-T2 | `TextSelectionService.GetRegionsForSelection(pageIndex, selectionRect, basePageWidth, basePageHeight, currentZoom, currentRotation)`: maps screen-space selection to normalized unrotated `AnnotationRegion[]` | 3 h | P09-WP2-T1, Phase 08 TextLayer | FR-READ-008 |
 | P09-WP2-T3 | `AnnotationService.CreateHighlightAsync(bookId, layerId, regions, color, textContent, ct)`: build `Annotation` + `AnnotationBody`; call repository; notify `IAnnotationReadModel` | 2 h | P09-WP1-T4, P09-WP2-T1 | FR-READ-008 |
 | P09-WP2-T4 | `AnnotationService.CreateNoteAsync(bookId, layerId, region, noteText, ct)`: same pattern; `Type = Note` | 2 h | P09-WP2-T3 | FR-READ-008 |
 | P09-WP2-T5 | `AnnotationService.GetForPageAsync(bookId, pageIndex)`: return `Annotation[]` for a page; used by overlay panel | 1 h | P09-WP1-T3 | FR-READ-008 |
@@ -49,7 +49,7 @@ correct positions for all zoom levels and page rotations.
 
 | Task ID | Description | Est. | Deps | Satisfies |
 | --- | --- | --- | --- | --- |
-| P09-WP3-T1 | `AnnotationOverlayPanel`: Avalonia custom control that draws highlight rectangles and note-anchor icons over the page render panel; subscribes to `GetForPageAsync` on page change | 4 h | P09-WP2-T6, Phase 08 render panel | FR-READ-008 |
+| P09-WP3-T1 | Reader overlay composition in `ReaderView.axaml`: an Avalonia overlay layer renders highlight rectangles and note-anchor icons over the page render panel from `AnnotationOverlays`; refreshes from `GetForPageAsync` on page/navigation changes | 4 h | P09-WP2-T6, Phase 08 render panel | FR-READ-008 |
 | P09-WP3-T2 | Text-selection gesture: mouse drag / touch drag creates selection rect; on release shows context menu "Highlight" / "Add note" / "Capture citation" | 3 h | P09-WP3-T1 | FR-READ-008, FR-READ-011 |
 | P09-WP3-T3 | Note pop-over: click note icon → inline popover with `TextArea` for note body; auto-save on focus-out; dismiss on Escape | 2 h | P09-WP3-T2 | FR-READ-008 |
 | P09-WP3-T4 | Highlight color picker: choose from active layer's color or override; color visually distinct in both light and dark theme | 1 h | P09-WP3-T2 | FR-READ-008 |
