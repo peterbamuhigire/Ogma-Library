@@ -91,6 +91,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
         services.AddSingleton<IHybridRankingService, HybridRankingService>();
         services.AddSingleton<IMatchLocationService, MatchLocationService>();
+        services.AddSingleton<IEmbeddingErasureService, EmbeddingErasureService>();
         services.AddSingleton<IndexManagerService>();
         services.AddSingleton<IIndexManagerService>(sp => sp.GetRequiredService<IndexManagerService>());
         services.AddSingleton<ISearchReadModel>(sp => sp.GetRequiredService<IndexManagerService>());
