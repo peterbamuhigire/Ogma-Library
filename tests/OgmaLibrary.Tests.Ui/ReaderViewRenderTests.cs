@@ -1043,6 +1043,56 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public void ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CreateHighlightAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            AnnotationListItem annotation = Assert.Single(viewModel.Annotations);
+            var annotationRow = window.GetVisualDescendants()
+                .OfType<Grid>()
+                .First(grid =>
+                    ReferenceEquals(grid.DataContext, annotation) &&
+                    grid.ContextFlyout is MenuFlyout);
+
+            var flyout = Assert.IsType<MenuFlyout>(annotationRow.ContextFlyout);
+            MenuItem deleteItem = Assert.Single(
+                flyout.Items.OfType<MenuItem>(),
+                item => item.Header?.ToString() == "Delete annotation");
+
+            flyout.ShowAt(annotationRow);
+            Dispatcher.UIThread.RunJobs();
+
+            InvokeReaderViewHandler(view, "DeleteAnnotationMenuItem_Click", deleteItem);
+
+            Assert.True(viewModel.HasPendingDeleteAnnotation);
+            Assert.Equal("Delete this Highlight?", viewModel.DeleteAnnotationConfirmationText);
+            Assert.Equal(0, annotationService.DeleteCallCount);
+            Assert.Single(viewModel.Annotations);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_CancelDeleteAnnotation_KeepsAnnotation()
     {
         var localization = new InMemoryLocalizationService();

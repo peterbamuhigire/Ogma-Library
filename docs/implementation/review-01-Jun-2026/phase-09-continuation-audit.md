@@ -3,8 +3,8 @@
 Date: 2026-06-01
 
 Scope: Phase 09 closeout evidence through the active-layer, direct-PDF
-hardening, delivered reader-icon rendering, keyboard shortcut verification, and
-performance gate review passes on 2026-06-01.
+hardening, delivered reader-icon rendering, keyboard shortcut verification,
+performance gate review, and annotation delete workflow passes on 2026-06-01.
 
 ## Current Position
 
@@ -23,7 +23,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, performance gates, and manual signoff documentation source-of-truth cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, performance gates, annotation context-flyout delete confirmation, and manual signoff documentation source-of-truth cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -34,6 +34,7 @@ owner-gated:
 | Delivered reader-icon rendering | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; `ReaderViewModel_NoteOverlay_ExposesAnchorMarker`; `IconCatalogPhase09Tests` cover rendered premium SVG paths for toolbar actions, selection actions, citation card actions, sidebar panel tabs, bookmark/layer panels, note anchors, highlight color, bookmark rename, and reading-memory disposition |
 | Reader keyboard shortcuts | `ReaderView_CtrlB_TogglesCurrentPageBookmark`, `ReaderView_CtrlShiftB_OpensBookmarkPanel`, and `ReaderView_CtrlShiftC_CapturesSelectedCitation` verify the planned Phase 09 bookmark and citation shortcuts against the Avalonia reader view |
 | Performance gates | `AnnotationOverlay_RenderOverhead_100Annotations_Under10msP95`, `AnnotationWrite_P95_Under200ms`, `CachedPageTurn_P95_With100Annotations_Under100ms`, and `ReaderViewModel_PageTurnP95_With100AnnotationsPerPage_Under100ms` verify the documented overlay, write, and page-turn budgets |
+| Annotation delete workflow | `ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation` verifies the annotation row context-flyout delete path opens the same confirmation flow as the explicit delete button before any repository delete occurs |
 
 ## Remote CI Status Check
 
@@ -68,6 +69,9 @@ Ctrl+Shift+C shortcuts against `ReaderView.axaml.cs` and the focused UI tests.
 The performance pass re-ran the focused backend and UI gates for overlay
 transform overhead, annotation write latency, cached page-turn latency, and
 reader view-model page-turn latency with 100 annotations.
+The annotation workflow pass added focused UI coverage for the row context-flyout
+delete action so the planned right-click delete path is no longer covered only
+by view-model confirmation tests.
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.
 Do not mark Phase 09 fully closed until the manual and owner-gated rows above

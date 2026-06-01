@@ -115,6 +115,7 @@ BenchmarkDotNet, so the checks run in the normal local/CI test path.
 | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` | Avalonia headless focus harness | Phase 09 toolbar, note editor, bookmark, layer, and reading-memory controls expose purpose-specific names and accept focus |
 | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` | Avalonia headless | Bookmark list takes focus; ArrowDown selects a bookmark without navigating; Enter navigates |
 | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` | Avalonia headless | Bookmark row context flyout exposes rename/delete; rename focuses inline editor; delete removes bookmark |
+| `ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation` | Avalonia headless | Annotation row context flyout delete opens the confirmation prompt and does not delete before confirmation |
 | `ReaderViewModel_HidingLayer_FiltersAnnotationsAndOverlays` | Avalonia headless | Toggle off -> overlay redraws without that layer's highlights |
 | Screen-reader pass (manual) | VoiceOver / Narrator | "Highlight, layer Key arguments, page 3" announced on focus; bookmark list item labels announced |
 | `ReaderViewModel_AnnotationOverlayColors_MeetContrastGate` | Avalonia headless + WCAG contrast math | Rendered overlay display colors composite to ≥ 3:1 contrast against the white page surface |
