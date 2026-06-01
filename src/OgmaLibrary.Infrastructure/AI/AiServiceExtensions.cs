@@ -25,6 +25,8 @@ public static class AiServiceExtensions
         services.AddSingleton<IHybridRankerConsumer, HybridRankerConsumer>();
         services.AddSingleton<IHybridRecommendationMerger, HybridRecommendationMerger>();
         services.AddSingleton<IRecommendationPipeline, RecommendationPipeline>();
+        services.AddSingleton<IReadingPlanParser, ReadingPlanParser>();
+        services.AddSingleton<IReadingPlanPipeline, ReadingPlanPipeline>();
         services.AddHttpClient("ai:openai", client => client.BaseAddress = new Uri("https://api.openai.com/v1/"));
         services.AddHttpClient("ai:deepseek", client => client.BaseAddress = new Uri("https://api.deepseek.com/v1/"));
         services.AddHttpClient("ai:anthropic", client => client.BaseAddress = new Uri("https://api.anthropic.com/v1/"));

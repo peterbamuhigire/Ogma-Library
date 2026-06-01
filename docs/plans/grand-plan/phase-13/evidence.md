@@ -4,10 +4,12 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1-WP3 are implemented and verified locally. The slices add the structural
+WP1-WP4 are implemented and verified locally. The slices add the structural
 domain contracts plus the metadata-only recommendation pipeline that later
 advisor composition, UI, and evaluation work will consume. Hybrid ranking is
-integrated behind a default-off option.
+integrated behind a default-off option. Reading-plan generation now has a
+validated structured parser, embedded schema prompt, and retry-on-parse-failure
+pipeline.
 
 ## Verified Locally
 
@@ -16,8 +18,9 @@ integrated behind a default-off option.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorDomainTests` | Passed: 17 Phase 13 advisor domain and localization tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~RecommendationPipelineTests\|FullyQualifiedName~AdvisorDomainTests"` | Passed: 21 advisor domain and metadata pipeline tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RecommendationPipelineTests` | Passed: 5 recommendation pipeline tests including hybrid merge |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ReadingPlanPipelineTests\|FullyQualifiedName~RecommendationPipelineTests"` | Passed: 9 recommendation and reading-plan pipeline tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 352 core tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 356 core tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 20 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 104 UI tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
@@ -45,6 +48,10 @@ integrated behind a default-off option.
 | Advisor options | `AdvisorOptions` keeps hybrid ranking disabled by default and exposes AI/semantic merge weights |
 | Hybrid adapter | `HybridRankerConsumer` consumes Phase 11 `ISemanticSearchService` scores without coupling advisor code to search internals |
 | Hybrid merger | `HybridRecommendationMerger` combines provider recommendation order and Phase 11 ranking scores, then re-ranks cards structurally |
+| Reading-plan request | `ReadingPlanRequest` captures goal, max books, difficulty preference, shelf filter, and seed book ids |
+| Reading-plan prompt | `AI/Advisor/prompts/reading-plan.txt` is embedded and defines the strict JSON schema |
+| Reading-plan parser | `ReadingPlanParser` validates local book ids, difficulty labels, non-empty steps, checkpoints, and estimate bounds |
+| Reading-plan pipeline | `ReadingPlanPipeline` routes plan generation through `IAiGateway` and retries once after invalid provider JSON |
 
 ## Verification Notes
 
@@ -58,7 +65,7 @@ integrated behind a default-off option.
 
 ## Remaining Phase 13 Work
 
-- WP4-WP6: reading-plan service, answer-mode scaffold, and advisor composition.
+- WP5-WP6: answer-mode scaffold and advisor composition.
 - WP7-WP8: recommendation and reading-plan UI.
 - WP9: offline structural evaluation harness and benchmark result.
 - WP10-WP11: extension SDK entry points, integration tests, golden-corpus gates, code review, remote CI, and manual accessibility evidence.

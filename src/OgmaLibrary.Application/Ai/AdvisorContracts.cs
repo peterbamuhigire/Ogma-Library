@@ -202,6 +202,51 @@ public sealed record RankedCandidate(
     double HybridScore,
     double? SemanticScore);
 
+/// <summary>Reading-plan generation request.</summary>
+public sealed record ReadingPlanRequest
+{
+    /// <summary>Creates a reading-plan request.</summary>
+    /// <param name="goal">The user's learning or reading objective.</param>
+    /// <param name="maxBooks">Maximum books to include in the plan.</param>
+    /// <param name="difficultyPreference">Optional preferred difficulty level.</param>
+    /// <param name="shelfFilter">Optional shelf identifier to constrain candidates.</param>
+    /// <param name="seedBookIds">Optional seed books to prioritize.</param>
+    public ReadingPlanRequest(
+        string goal,
+        int maxBooks = 10,
+        DifficultyLabel? difficultyPreference = null,
+        string? shelfFilter = null,
+        IReadOnlyList<string>? seedBookIds = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(goal);
+        if (maxBooks is < 1 or > 25)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxBooks), maxBooks, "Reading plan book count must be between 1 and 25.");
+        }
+
+        Goal = goal;
+        MaxBooks = maxBooks;
+        DifficultyPreference = difficultyPreference;
+        ShelfFilter = shelfFilter;
+        SeedBookIds = seedBookIds ?? [];
+    }
+
+    /// <summary>The user's learning or reading objective.</summary>
+    public string Goal { get; }
+
+    /// <summary>Maximum books to include in the plan.</summary>
+    public int MaxBooks { get; }
+
+    /// <summary>Optional preferred difficulty level.</summary>
+    public DifficultyLabel? DifficultyPreference { get; }
+
+    /// <summary>Optional shelf identifier to constrain candidates.</summary>
+    public string? ShelfFilter { get; }
+
+    /// <summary>Optional seed books to prioritize.</summary>
+    public IReadOnlyList<string> SeedBookIds { get; }
+}
+
 /// <summary>Consumes Phase 11 ranking without leaking search implementation details into the advisor pipeline.</summary>
 public interface IHybridRankerConsumer
 {
@@ -221,6 +266,25 @@ public interface IHybridRecommendationMerger
         IReadOnlyList<RankedCandidate> rankedCandidates,
         AdvisorOptions options,
         int maxResults);
+}
+
+/// <summary>Parses provider reading-plan JSON into the structural domain plan.</summary>
+public interface IReadingPlanParser
+{
+    /// <summary>Parses and validates a reading-plan provider response.</summary>
+    ReadingPlan Parse(
+        string responseText,
+        IReadOnlyList<BookMetadataDto> localCandidates);
+}
+
+/// <summary>Gateway-backed reading-plan generation pipeline.</summary>
+public interface IReadingPlanPipeline
+{
+    /// <summary>Generates a structurally validated reading plan.</summary>
+    Task<ReadingPlan> GetReadingPlanAsync(
+        ReadingPlanRequest request,
+        RecommendationGenerationOptions options,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>Metadata-only recommendation pipeline.</summary>
