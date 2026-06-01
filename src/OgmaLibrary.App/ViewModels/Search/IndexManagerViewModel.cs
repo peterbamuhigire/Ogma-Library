@@ -32,6 +32,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     private bool _canConfirmEmbeddingErasure;
     private int _embeddingErasureCountdownSeconds;
     private string? _statusText;
+    private IReadOnlyList<OcrJobStatusItem> _ocrJobs = [];
 
     /// <summary>
     /// Initializes a new instance of <see cref="IndexManagerViewModel"/>.
@@ -64,6 +65,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Current index errors surfaced in the dashboard.</summary>
     public ObservableCollection<string> ErrorItems { get; } = [];
 
+    /// <summary>Current OCR job rows surfaced in the dashboard.</summary>
+    public ObservableCollection<OcrJobStatusDisplayItem> OcrJobs { get; } = [];
+
     /// <summary>Total active books.</summary>
     public int TotalBooks { get; private set; }
 
@@ -78,6 +82,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
 
     /// <summary>Failed extracted pages.</summary>
     public int FailedExtractionPages { get; private set; }
+
+    /// <summary>Queued or running OCR jobs.</summary>
+    public int ActiveOcrJobs { get; private set; }
 
     /// <summary>Search chunks currently stored.</summary>
     public int SearchChunkCount { get; private set; }
@@ -201,6 +208,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Whether dashboard errors should be shown.</summary>
     public bool HasErrors => ErrorItems.Count > 0;
 
+    /// <summary>Whether OCR job status should be shown.</summary>
+    public bool HasOcrJobs => OcrJobs.Count > 0;
+
     /// <summary>Localized panel label.</summary>
     public string PanelLabel => _localization["IndexManager.Panel.Label"];
 
@@ -282,6 +292,12 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         System.Globalization.CultureInfo.CurrentCulture,
         _localization["IndexManager.Summary.OcrFormat"],
         PendingOcrPages);
+
+    /// <summary>Localized OCR job summary.</summary>
+    public string OcrJobsSummary => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["IndexManager.OcrJobs.ActiveFormat"],
+        ActiveOcrJobs);
 
     /// <summary>Localized chunk count summary.</summary>
     public string ChunkSummary => string.Format(
@@ -494,12 +510,16 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             SearchChunkCount = status.SearchChunkCount;
             IndexSizeBytes = status.IndexSizeBytes;
             IntegrityHealthy = status.Integrity.IsHealthy;
+            _ocrJobs = status.OcrJobs;
+            ActiveOcrJobs = status.OcrJobs.Count(job => job.State is OcrJobState.Pending or OcrJobState.Running);
 
             Books.Clear();
             foreach (BookIndexStatusItem book in status.Books)
             {
                 Books.Add(book);
             }
+
+            RefreshOcrJobs();
 
             ErrorItems.Clear();
             if (!status.Integrity.IsHealthy && !string.IsNullOrWhiteSpace(status.Integrity.ErrorMessage))
@@ -546,10 +566,12 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(IndexedSummary));
         OnPropertyChanged(nameof(FailedSummary));
         OnPropertyChanged(nameof(PendingOcrSummary));
+        OnPropertyChanged(nameof(OcrJobsSummary));
         OnPropertyChanged(nameof(ChunkSummary));
         OnPropertyChanged(nameof(SizeSummary));
         OnPropertyChanged(nameof(FailedPagesSummary));
         OnPropertyChanged(nameof(IntegritySummary));
+        RefreshOcrJobs();
     }
 
     private void RaiseStatusProperties()
@@ -559,18 +581,51 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(FailedBooks));
         OnPropertyChanged(nameof(PendingOcrPages));
         OnPropertyChanged(nameof(FailedExtractionPages));
+        OnPropertyChanged(nameof(ActiveOcrJobs));
         OnPropertyChanged(nameof(SearchChunkCount));
         OnPropertyChanged(nameof(IndexSizeBytes));
         OnPropertyChanged(nameof(IntegrityHealthy));
         OnPropertyChanged(nameof(IndexedSummary));
         OnPropertyChanged(nameof(FailedSummary));
         OnPropertyChanged(nameof(PendingOcrSummary));
+        OnPropertyChanged(nameof(OcrJobsSummary));
         OnPropertyChanged(nameof(ChunkSummary));
         OnPropertyChanged(nameof(SizeSummary));
         OnPropertyChanged(nameof(FailedPagesSummary));
         OnPropertyChanged(nameof(IntegritySummary));
         OnPropertyChanged(nameof(HasErrors));
+        OnPropertyChanged(nameof(HasOcrJobs));
     }
+
+    private void RefreshOcrJobs()
+    {
+        OcrJobs.Clear();
+        foreach (OcrJobStatusItem job in _ocrJobs)
+        {
+            OcrJobs.Add(new OcrJobStatusDisplayItem(
+                job.JobId,
+                job.BookId ?? string.Empty,
+                string.IsNullOrWhiteSpace(job.Title) ? job.BookId ?? _localization["IndexManager.OcrJobs.UnknownBook"] : job.Title,
+                _localization[$"IndexManager.OcrJobs.State.{job.State}"],
+                FormatOcrProgress(job),
+                job.ErrorMessage ?? string.Empty));
+        }
+
+        OnPropertyChanged(nameof(HasOcrJobs));
+    }
+
+    private string FormatOcrProgress(OcrJobStatusItem job) =>
+        job.HasPageProgress
+            ? string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["IndexManager.OcrJobs.ProgressFormat"],
+                job.ProcessedPages,
+                job.TotalPages,
+                job.PercentComplete)
+            : string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["IndexManager.OcrJobs.ProgressUnknownFormat"],
+                job.ProcessedPages);
 
     private async Task RunEmbeddingErasureCountdownAsync(CancellationToken cancellationToken)
     {
@@ -623,3 +678,12 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
+
+/// <summary>Localized OCR job row for the Index Manager UI.</summary>
+public sealed record OcrJobStatusDisplayItem(
+    long JobId,
+    string BookId,
+    string Title,
+    string StateText,
+    string ProgressText,
+    string ErrorMessage);

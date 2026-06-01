@@ -53,6 +53,14 @@ public sealed class IndexManagerServiceTests : IDisposable
                 ContentHash = "hash",
                 ExtractionUtc = DateTimeOffset.UtcNow,
             });
+        _context.Jobs.Add(new JobRow
+        {
+            JobType = "OcrJob",
+            IdempotencyKey = "ocr-status-key",
+            Status = 1,
+            BookId = indexedBook,
+            Payload = """{"FilePath":"scan.pdf","Language":"eng","TotalPages":12,"ProcessedPages":3}""",
+        });
         _context.SaveChanges();
         await SaveChunksAsync(indexedBook, "index manager searchable text");
         var service = new IndexManagerService(
@@ -73,6 +81,12 @@ public sealed class IndexManagerServiceTests : IDisposable
         Assert.True(status.IndexSizeBytes > 0);
         Assert.True(status.Integrity.IsHealthy, status.Integrity.ErrorMessage);
         Assert.Contains(status.Books, book => book.BookId == indexedBook && book.PendingOcrPageCount == 1);
+        OcrJobStatusItem ocrJob = Assert.Single(status.OcrJobs);
+        Assert.Equal(indexedBook, ocrJob.BookId);
+        Assert.Equal(OcrJobState.Running, ocrJob.State);
+        Assert.Equal(3, ocrJob.ProcessedPages);
+        Assert.Equal(12, ocrJob.TotalPages);
+        Assert.Equal(25, ocrJob.PercentComplete);
         Assert.Contains(observer.Events, update => update is IndexStatusUpdate.StatusChanged);
     }
 

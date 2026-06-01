@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Search;
@@ -13,6 +14,7 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
 {
     private const int ActiveBookStatus = 0;
     private const int RebuildBatchSize = 5;
+    private const string OcrJobType = "OcrJob";
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -98,6 +100,8 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
             .Select(chunk => chunk.ChunkText == null ? 0 : chunk.ChunkText.Length)
             .SumAsync(cancellationToken)
             .ConfigureAwait(false);
+        List<OcrJobStatusItem> ocrJobs = await LoadOcrJobStatusesAsync(context, cancellationToken)
+            .ConfigureAwait(false);
 
         IndexManagerStatus status = new(
             TotalBooks: bookRows.Count,
@@ -118,7 +122,8 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                     book.SearchChunkCount,
                     book.FailedPageCount,
                     book.PendingOcrPageCount))
-                .ToList());
+                .ToList(),
+            OcrJobs: ocrJobs);
 
         _events.Publish(new IndexStatusUpdate.StatusChanged(status));
         return status;
@@ -252,6 +257,93 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
             status.SearchChunkCount,
             (long)TimeProvider.System.GetElapsedTime(startedTimestamp).TotalMilliseconds,
             publishedAtUtc));
+    }
+
+    private static async Task<List<OcrJobStatusItem>> LoadOcrJobStatusesAsync(
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var jobs = await context.Jobs
+            .AsNoTracking()
+            .Where(job => job.JobType == OcrJobType)
+            .GroupJoin(
+                context.Books.AsNoTracking(),
+                job => job.BookId,
+                book => book.BookId,
+                (job, books) => new { Job = job, Book = books.FirstOrDefault() })
+            .OrderByDescending(row => row.Job.JobId)
+            .Take(10)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return jobs
+            .Select(row =>
+            {
+                (int processedPages, int totalPages) = ReadOcrProgress(row.Job.Payload);
+                return new OcrJobStatusItem(
+                    row.Job.JobId,
+                    row.Job.BookId,
+                    row.Book?.Title,
+                    ToOcrState(row.Job.Status),
+                    processedPages,
+                    totalPages,
+                    row.Job.ErrorMessage);
+            })
+            .ToList();
+    }
+
+    private static OcrJobState ToOcrState(int status) =>
+        status switch
+        {
+            0 => OcrJobState.Pending,
+            1 => OcrJobState.Running,
+            2 => OcrJobState.Completed,
+            3 => OcrJobState.Failed,
+            4 => OcrJobState.Cancelled,
+            _ => OcrJobState.Failed,
+        };
+
+    private static (int ProcessedPages, int TotalPages) ReadOcrProgress(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return (0, 0);
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(payload);
+            JsonElement root = document.RootElement;
+            return (
+                ReadInt(root, "ProcessedPages", "processedPages"),
+                ReadInt(root, "TotalPages", "totalPages"));
+        }
+        catch (JsonException)
+        {
+            return (0, 0);
+        }
+    }
+
+    private static int ReadInt(JsonElement root, string pascalName, string camelName)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return 0;
+        }
+
+        if (root.TryGetProperty(pascalName, out JsonElement pascalValue) &&
+            pascalValue.TryGetInt32(out int pascalInt))
+        {
+            return Math.Max(0, pascalInt);
+        }
+
+        if (root.TryGetProperty(camelName, out JsonElement camelValue) &&
+            camelValue.TryGetInt32(out int camelInt))
+        {
+            return Math.Max(0, camelInt);
+        }
+
+        return 0;
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
