@@ -74,7 +74,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             options.Listen(
                 bindAddress,
                 settings.Port,
-                listen => listen.UseHttps(_certificates.LoadOrCreateCertificateAsync(cancellationToken)
+                listen => listen.UseHttps(_certificates.LoadOrCreateCertificateAsync(bindAddress, cancellationToken)
                     .GetAwaiter()
                     .GetResult()));
         });

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -37,11 +38,14 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHo
         return new CertificateProvisioningResult(Fingerprint(certificate), certificate.NotAfter.ToUniversalTime());
     }
 
-    public async Task<X509Certificate2> LoadOrCreateCertificateAsync(CancellationToken cancellationToken = default)
+    public async Task<X509Certificate2> LoadOrCreateCertificateAsync(
+        IPAddress bindAddress,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(bindAddress);
         using X509Certificate2 root = await LoadOrCreateRootCertificateAsync(cancellationToken)
             .ConfigureAwait(false);
-        return CreateServerCertificate(root);
+        return CreateServerCertificate(root, bindAddress);
     }
 
     internal async Task<X509Certificate2> LoadOrCreateRootCertificateAsync(CancellationToken cancellationToken = default)
@@ -113,7 +117,7 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHo
         return LoadFromPfx(pfxBytes);
     }
 
-    private static X509Certificate2 CreateServerCertificate(X509Certificate2 root)
+    private static X509Certificate2 CreateServerCertificate(X509Certificate2 root, IPAddress bindAddress)
     {
         using RSA rsa = RSA.Create(2048);
         var subject = new X500DistinguishedName("CN=localhost");
@@ -134,7 +138,11 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHo
             critical: false));
         var subjectAlternativeNames = new SubjectAlternativeNameBuilder();
         subjectAlternativeNames.AddDnsName("localhost");
-        subjectAlternativeNames.AddIpAddress(System.Net.IPAddress.Loopback);
+        subjectAlternativeNames.AddIpAddress(IPAddress.Loopback);
+        if (!IPAddress.Loopback.Equals(bindAddress))
+        {
+            subjectAlternativeNames.AddIpAddress(bindAddress);
+        }
         request.CertificateExtensions.Add(subjectAlternativeNames.Build());
 
         DateTimeOffset notBefore = DateTimeOffset.UtcNow.AddMinutes(-5);
