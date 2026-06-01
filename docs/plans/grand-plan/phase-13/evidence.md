@@ -4,17 +4,18 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1 is implemented and verified locally. The slice adds the structural domain
-contracts that later recommendation, reading-plan, answer-mode, UI, and
-evaluation work will consume.
+WP1-WP2 are implemented and verified locally. The slices add the structural
+domain contracts plus the metadata-only recommendation pipeline that later
+advisor composition, UI, and evaluation work will consume.
 
 ## Verified Locally
 
 | Gate | Evidence |
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorDomainTests` | Passed: 17 Phase 13 advisor domain and localization tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~RecommendationPipelineTests\|FullyQualifiedName~AdvisorDomainTests"` | Passed: 21 advisor domain and metadata pipeline tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 347 core tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 351 core tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 20 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 104 UI tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
@@ -31,10 +32,26 @@ evaluation work will consume.
 | Reading plan | `ReadingPlanStep`, `Checkpoint`, and `ReadingPlan` enforce non-empty rationale, positive optional estimates, valid checkpoint indexes, and non-empty steps |
 | Answer citation | `AnswerCitation` defines the V2 local-evidence citation shape with page/chunk support and retrieval confidence |
 | Localization | English and French resource keys exist for advisor confidence and reading difficulty labels |
+| Query contract | `RecommendationQuery` captures text, max results, read-state exclusion, and optional shelf filter |
+| Catalogue candidates | `AdvisorCatalogueReader` uses the catalogue read model and metadata search service to gather local metadata candidates |
+| Payload enrichment | `MetadataPayloadEnricher` emits Tier-1 metadata only and caps candidates at 50 with an estimated 12k-character budget |
+| Prompt template | `AI/Advisor/prompts/recommendation.txt` is embedded in Infrastructure and loaded by `RecommendationPromptTemplate` |
+| Response parser | `RecommendationResponseParser` parses strict provider JSON into `RecommendationCard` domain records |
+| Provenance validator | `RecommendationProvenanceValidator` strips hallucinated provenance and falls back to deterministic local ranking when most ids are invalid |
+| Structural oracle | `RecommendationStructuralValidator` checks sequential rank, confidence bounds, explanation, and provenance |
+| Pipeline | `RecommendationPipeline` routes recommendation calls through `IAiGateway` and validates local-only output before returning cards |
+
+## Verification Notes
+
+- One parallel architecture run collided with a core test build output lock on
+  `OgmaLibrary.Application.dll`; the architecture suite passed when rerun alone.
+- Two full UI runs exposed different existing timing-sensitive tests; both failed
+  cases passed when rerun in isolation, and the third full UI run passed all 104
+  tests.
 
 ## Remaining Phase 13 Work
 
-- WP2-WP6: recommendation pipeline, parsing/validation, hybrid ranking, reading-plan service, answer-mode scaffold, and advisor composition.
+- WP3-WP6: hybrid ranking, reading-plan service, answer-mode scaffold, and advisor composition.
 - WP7-WP8: recommendation and reading-plan UI.
 - WP9: offline structural evaluation harness and benchmark result.
 - WP10-WP11: extension SDK entry points, integration tests, golden-corpus gates, code review, remote CI, and manual accessibility evidence.

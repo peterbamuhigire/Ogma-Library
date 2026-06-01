@@ -6,6 +6,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="AI\Advisor\prompts\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- PDF rendering (spike S02 winner, updated to 5.x for SkiaSharp 3.x compat) -->
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
     <PackageReference Include="PDFsharp" Version="6.1.1" />

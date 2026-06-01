@@ -30,11 +30,12 @@ recommendation can be inspected, not just accepted.
 | ADRs in scope | ADR-0007 (AI gateway); ADR-0006 (hybrid search — Phase 13 consumes Phase 11 ranking) |
 | Skills cross-reference | `ai:ai-rag-patterns`, `ai:ai-evaluation`, `ai:ux-for-ai`, `ai:ai-output-design`, `claude-api` |
 
-**Current implementation status (2026-06-01):** WP1 domain contracts are
-implemented and locally verified. This includes advisor confidence labels,
-recommendation provenance/explanation/card models, reading-plan models, V2
-answer-citation model, and en/fr resource keys for advisor confidence and
-difficulty labels. WP2-WP11 remain pending.
+**Current implementation status (2026-06-01):** WP1-WP2 are implemented and
+locally verified. This includes advisor confidence labels, recommendation
+provenance/explanation/card models, reading-plan models, V2 answer-citation
+model, en/fr resource keys for advisor confidence and difficulty labels, and the
+metadata-only recommendation pipeline with local-catalogue provenance validation.
+WP3-WP11 remain pending.
 
 ---
 
@@ -391,3 +392,4 @@ Full detail in `skills.md`.
 | --- | --- | --- |
 | 2026-05-30 | Chwezi Core Systems | v1.0 baseline authored |
 | 2026-06-01 | Codex | WP1 domain contracts implemented and locally verified; see `evidence.md`. |
+| 2026-06-01 | Codex | WP2 metadata-only recommendation pipeline implemented and locally verified. |

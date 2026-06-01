@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Infrastructure.AI.Advisor;
 using OgmaLibrary.Infrastructure.AI.Providers;
 
 namespace OgmaLibrary.Infrastructure.AI;
@@ -16,6 +17,12 @@ public static class AiServiceExtensions
         services.AddSingleton<IAiCostFormatter, AiCostFormatter>();
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
+        services.AddSingleton<IAdvisorCatalogueReader, AdvisorCatalogueReader>();
+        services.AddSingleton<IMetadataPayloadEnricher, MetadataPayloadEnricher>();
+        services.AddSingleton<IRecommendationResponseParser, RecommendationResponseParser>();
+        services.AddSingleton<IRecommendationProvenanceValidator, RecommendationProvenanceValidator>();
+        services.AddSingleton<IRecommendationStructuralValidator, RecommendationStructuralValidator>();
+        services.AddSingleton<IRecommendationPipeline, RecommendationPipeline>();
         services.AddHttpClient("ai:openai", client => client.BaseAddress = new Uri("https://api.openai.com/v1/"));
         services.AddHttpClient("ai:deepseek", client => client.BaseAddress = new Uri("https://api.deepseek.com/v1/"));
         services.AddHttpClient("ai:anthropic", client => client.BaseAddress = new Uri("https://api.anthropic.com/v1/"));
