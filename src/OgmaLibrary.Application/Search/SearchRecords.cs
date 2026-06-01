@@ -81,6 +81,47 @@ public enum SearchChunkSource
     Toc = 4,
 }
 
+/// <summary>Where a search result matched, used for Phase 11 explanation badges.</summary>
+public enum MatchLocation
+{
+    /// <summary>The query matched the book title.</summary>
+    Title = 0,
+
+    /// <summary>The query matched an author name.</summary>
+    Author = 1,
+
+    /// <summary>The query matched a tag.</summary>
+    Tag = 2,
+
+    /// <summary>The query matched a description or summary.</summary>
+    Description = 3,
+
+    /// <summary>The query matched a table-of-contents entry.</summary>
+    Toc = 4,
+
+    /// <summary>The query matched a user annotation note.</summary>
+    NotePage = 5,
+
+    /// <summary>The query matched extracted page text.</summary>
+    TextPage = 6,
+
+    /// <summary>The query matched through semantic embedding similarity.</summary>
+    Semantic = 7,
+}
+
+/// <summary>Human-readable confidence band derived from hybrid score.</summary>
+public enum ConfidenceLabel
+{
+    /// <summary>Hybrid score is below 0.5.</summary>
+    Low = 0,
+
+    /// <summary>Hybrid score is at least 0.5 and below 0.8.</summary>
+    Medium = 1,
+
+    /// <summary>Hybrid score is at least 0.8.</summary>
+    High = 2,
+}
+
 /// <summary>
 /// A stored text extraction result for one zero-based page in one book.
 /// </summary>
