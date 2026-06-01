@@ -10,6 +10,7 @@
     Five tab groups: File, Bibliographic, Reading, Enrichment, AI.
     "Read" button routes through IReaderNavigationService.
     "Enrich" runs deterministic no-AI metadata provider lookup.
+    "Run OCR" queues scanned PDFs for searchable text extraction.
   -->
 
   <Border Background="{DynamicResource Brush.Surface.Card}"
@@ -288,6 +289,13 @@
                      TextWrapping="Wrap"
                      Margin="0,12,0,0" />
 
+          <TextBlock Text="{Binding OcrStatusText}"
+                     IsVisible="{Binding HasOcrStatus}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap"
+                     Margin="0,6,0,0" />
+
         </StackPanel>
       </ScrollViewer>
 
@@ -318,6 +326,18 @@
                 ToolTip.Tip="{Binding EnrichTooltip}"
                 Click="EnrichButton_Click">
           <TextBlock Text="{Binding EnrichText}" />
+        </Button>
+
+        <!-- OCR button -->
+        <Button Padding="12,8"
+                Background="{DynamicResource Brush.Accent.Sage}"
+                Foreground="White"
+                CornerRadius="{DynamicResource Radius.S}"
+                IsEnabled="{Binding CanRunOcr}"
+                AutomationProperties.Name="{Binding RunOcrText}"
+                ToolTip.Tip="{Binding RunOcrTooltip}"
+                Click="RunOcrButton_Click">
+          <TextBlock Text="{Binding RunOcrText}" />
         </Button>
 
       </StackPanel>

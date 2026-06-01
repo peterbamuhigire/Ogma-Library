@@ -39,6 +39,10 @@ architecture visibility test.
 WP3 OCR job controls are wired through the Index Manager: queued/running OCR jobs
 can be paused or cancelled, failed/paused/cancelled jobs can be retried, and the
 panel exposes localized action labels for each job row.
+WP3 now also has the book-detail OCR trigger: the detail panel can queue a scanned
+book for OCR, shows localized queued/already-queued/error status, and the queue
+service rejects duplicate jobs, missing files, and path traversal outside the
+configured library root.
 WP7 is complete locally: the Index Manager now exposes Smart Shelf Query Stats
 with the latest measured query time and health for the three Phase 15 composite
 indexes.
@@ -63,6 +67,8 @@ indexes.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrExtensionPoint_IsInternal_In_Phase15` | Passed: 1 OCR extension-point visibility test |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` | Passed: 5 Index Manager tests including OCR pause/cancel/retry state transitions |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 9 search/index-manager UI tests including OCR job actions |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobQueueServiceTests\|FullyQualifiedName~BookDetail_RunOcr" --logger "console;verbosity=detailed"` | Passed: 7 OCR queue trigger/idempotency/security and book-detail status tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SkeletonRenderTests` | Passed: 5 UI skeleton tests after adding the third book-detail action |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -85,6 +91,8 @@ indexes.
 | Hosted OCR worker | `OcrWorker` polls `IOcrJobProcessor` as a hosted service and backs off on idle/error states |
 | OCR status surface | `IndexManagerService` projects recent `OcrJob` progress from the Jobs table; `IndexManagerViewModel` localizes active job count, state, and page progress |
 | OCR job controls | `IIndexManagerService` exposes pause/cancel/retry for OCR jobs; `IndexManagerPanelView` surfaces per-job controls with localized labels |
+| Book-detail OCR trigger | `BookDetailViewModel` and `BookDetailView` expose localized Run OCR queueing with success/already-queued/error feedback |
+| OCR queue service | `OcrJobQueueService` creates or resumes `OcrJob` rows idempotently and validates the resolved source PDF path under the configured library root |
 | Split-view scaffold | `SplitViewViewModel`, `SplitViewView`, and `MainShellViewModel.OpenSplitViewScaffold()` provide the Phase 15 V2 route with localized placeholder copy |
 | Password provider boundary | `IPasswordProvider`, `PasswordRequest`, and disposable `PasswordResult` define the no-catalogue-secret unlock contract |
 | Windows credential provider | `WindowsPasswordProvider` checks Windows Credential Manager and uses the OS credential prompt for missing passwords |
@@ -103,7 +111,7 @@ indexes.
 ## Remaining Phase 15 Work
 
 - WP2 OCR golden-corpus fixture.
-- WP3 OCR trigger button in book detail / Health Dashboard.
+- WP3 Health Dashboard OCR trigger discovery, if separate from the Index Manager job surface.
 - WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.

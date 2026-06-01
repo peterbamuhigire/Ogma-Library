@@ -137,7 +137,8 @@ public static class CompositionRoot
                 navProxy,
                 localization,
                 sp.GetRequiredService<IBookMetadataEnrichmentService>(),
-                sp.GetRequiredService<IReadingMemoryService>());
+                sp.GetRequiredService<IReadingMemoryService>(),
+                sp.GetRequiredService<IOcrJobQueueService>());
             var readerVm = new ReaderViewModel(
                 sp.GetRequiredService<IReaderSessionService>(),
                 sp.GetRequiredService<IAnnotationService>(),

@@ -4,6 +4,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 
@@ -21,14 +22,17 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _localization;
     private readonly IBookMetadataEnrichmentService? _metadataEnrichment;
     private readonly IReadingMemoryService? _readingMemoryService;
+    private readonly IOcrJobQueueService? _ocrJobs;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
     private bool _isLoading;
     private bool _isEnriching;
+    private bool _isQueueingOcr;
     private bool _isSavingReadingMemory;
     private bool _isVisible;
     private string? _enrichmentStatusText;
+    private string? _ocrStatusText;
     private string? _readingMemoryStatusText;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
@@ -43,12 +47,14 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="localization">The localization service.</param>
     /// <param name="metadataEnrichment">The deterministic no-AI metadata enrichment service.</param>
     /// <param name="readingMemoryService">The reading-memory persistence service.</param>
+    /// <param name="ocrJobs">The OCR queue service for scanned PDFs.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
         ILocalizationService localization,
         IBookMetadataEnrichmentService? metadataEnrichment = null,
-        IReadingMemoryService? readingMemoryService = null)
+        IReadingMemoryService? readingMemoryService = null,
+        IOcrJobQueueService? ocrJobs = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -59,6 +65,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _localization = localization;
         _metadataEnrichment = metadataEnrichment;
         _readingMemoryService = readingMemoryService;
+        _ocrJobs = ocrJobs;
     }
 
     /// <inheritdoc />
@@ -95,6 +102,21 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>True while an OCR queue request is running.</summary>
+    public bool IsQueueingOcr
+    {
+        get => _isQueueingOcr;
+        private set
+        {
+            if (_isQueueingOcr != value)
+            {
+                _isQueueingOcr = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanRunOcr));
+            }
+        }
+    }
+
     /// <summary>True when the detail panel should be shown.</summary>
     public bool IsVisible
     {
@@ -112,11 +134,20 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>True when the selected book can run deterministic metadata enrichment.</summary>
     public bool CanEnrich => _book is not null && _metadataEnrichment is not null && !IsEnriching;
 
+    /// <summary>True when the selected book can be queued for OCR.</summary>
+    public bool CanRunOcr => _book is not null && _ocrJobs is not null && !IsQueueingOcr;
+
     /// <summary>Localized button label for deterministic metadata enrichment.</summary>
     public string EnrichText => _localization["Catalogue.BookDetail.Enrich"];
 
     /// <summary>Localized tooltip for deterministic metadata enrichment.</summary>
     public string EnrichTooltip => _localization["Catalogue.BookDetail.EnrichTooltip"];
+
+    /// <summary>Localized button label for OCR queueing.</summary>
+    public string RunOcrText => _localization["Catalogue.BookDetail.RunOcr"];
+
+    /// <summary>Localized tooltip for OCR queueing.</summary>
+    public string RunOcrTooltip => _localization["Catalogue.BookDetail.RunOcrTooltip"];
 
     /// <summary>Current user-facing enrichment status, if any.</summary>
     public string? EnrichmentStatusText
@@ -135,6 +166,24 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>True when the detail panel has an enrichment status to display.</summary>
     public bool HasEnrichmentStatus => !string.IsNullOrWhiteSpace(EnrichmentStatusText);
+
+    /// <summary>Current user-facing OCR queue status, if any.</summary>
+    public string? OcrStatusText
+    {
+        get => _ocrStatusText;
+        private set
+        {
+            if (_ocrStatusText != value)
+            {
+                _ocrStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasOcrStatus));
+            }
+        }
+    }
+
+    /// <summary>True when the detail panel has OCR queue status to display.</summary>
+    public bool HasOcrStatus => !string.IsNullOrWhiteSpace(OcrStatusText);
 
     // ── Core identity ───────────────────────────────────────────────────────────
 
@@ -178,6 +227,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(EnrichmentFieldDisplayRows));
             OnPropertyChanged(nameof(AiFields));
             OnPropertyChanged(nameof(CanEnrich));
+            OnPropertyChanged(nameof(CanRunOcr));
         }
     }
 
@@ -486,6 +536,57 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                     _localization["Catalogue.BookDetail.EnrichFailedFormat"],
                     ex.Message);
                 IsEnriching = false;
+            });
+        }
+    }
+
+    /// <summary>Queues OCR for the loaded book so scanned pages become searchable.</summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task RunOcrAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null || IsQueueingOcr)
+        {
+            return;
+        }
+
+        if (_ocrJobs is null)
+        {
+            OcrStatusText = _localization["Catalogue.BookDetail.OcrUnavailable"];
+            return;
+        }
+
+        string bookId = _book.BookId;
+        IsQueueingOcr = true;
+        OcrStatusText = _localization["Catalogue.BookDetail.OcrQueueing"];
+
+        try
+        {
+            OcrQueueResult result = await _ocrJobs.QueueBookAsync(bookId, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            UpdateOnUiThread(() =>
+            {
+                OcrStatusText = result switch
+                {
+                    { Queued: true } => _localization["Catalogue.BookDetail.OcrQueued"],
+                    { AlreadyQueued: true } => _localization["Catalogue.BookDetail.OcrAlreadyQueued"],
+                    _ => string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        _localization["Catalogue.BookDetail.OcrFailedFormat"],
+                        result.ErrorMessage ?? _localization["Catalogue.BookDetail.EnrichUnknownError"]),
+                };
+                IsQueueingOcr = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                OcrStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.OcrFailedFormat"],
+                    ex.Message);
+                IsQueueingOcr = false;
             });
         }
     }

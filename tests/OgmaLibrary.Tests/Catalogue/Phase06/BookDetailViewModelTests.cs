@@ -4,6 +4,7 @@ using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
@@ -20,12 +21,13 @@ public sealed class BookDetailViewModelTests
 
     private static BookDetailViewModel CreateVm(
         BookDetailProjection? detail = null,
-        IBookMetadataEnrichmentService? enrichment = null)
+        IBookMetadataEnrichmentService? enrichment = null,
+        IOcrJobQueueService? ocrJobs = null)
     {
         var readModel = new StubReadModel(detail);
         var reader = new StubReader();
         var loc = new InMemoryLocalizationService();
-        return new BookDetailViewModel(readModel, reader, loc, enrichment);
+        return new BookDetailViewModel(readModel, reader, loc, enrichment, ocrJobs: ocrJobs);
     }
 
     private static readonly IReadOnlyList<string> TestAuthors = new[] { "Author One", "Author Two" };
@@ -225,6 +227,40 @@ public sealed class BookDetailViewModelTests
         Assert.Equal("Metadata enrichment failed: refresh failed", vm.EnrichmentStatusText);
     }
 
+    /// <summary>Manual OCR queueing surfaces a clear status and leaves the action usable.</summary>
+    [Fact]
+    public async Task BookDetail_RunOcr_QueuesBookAndShowsStatus()
+    {
+        var ocrJobs = new StubOcrJobQueueService(new OcrQueueResult(true, false, 42, null));
+        var vm = CreateVm(BuildFullyPopulatedDetail(), ocrJobs: ocrJobs);
+
+        await vm.LoadBookAsync("book-1");
+        Assert.True(vm.CanRunOcr);
+
+        await vm.RunOcrAsync();
+
+        Assert.Equal("book-1", ocrJobs.BookId);
+        Assert.Equal("eng", ocrJobs.LanguageHint);
+        Assert.False(vm.IsQueueingOcr);
+        Assert.True(vm.CanRunOcr);
+        Assert.Equal("OCR job queued.", vm.OcrStatusText);
+    }
+
+    /// <summary>OCR queue failures are visible and do not disable future attempts.</summary>
+    [Fact]
+    public async Task BookDetail_RunOcr_ServiceReturnsFailure_ShowsErrorAndReenables()
+    {
+        var ocrJobs = new StubOcrJobQueueService(new OcrQueueResult(false, false, null, "file missing"));
+        var vm = CreateVm(BuildFullyPopulatedDetail(), ocrJobs: ocrJobs);
+
+        await vm.LoadBookAsync("book-1");
+        await vm.RunOcrAsync();
+
+        Assert.False(vm.IsQueueingOcr);
+        Assert.True(vm.CanRunOcr);
+        Assert.Equal("OCR could not be queued: file missing", vm.OcrStatusText);
+    }
+
     // ── Stubs ─────────────────────────────────────────────────────────────────
 
     private sealed class StubReadModel : ICatalogueReadModel
@@ -303,6 +339,27 @@ public sealed class BookDetailViewModelTests
             AbsoluteFilePath = absoluteFilePath;
             _onEnrich();
             return Task.FromResult((_success, _errorMessage));
+        }
+    }
+
+    private sealed class StubOcrJobQueueService : IOcrJobQueueService
+    {
+        private readonly OcrQueueResult _result;
+
+        public StubOcrJobQueueService(OcrQueueResult result) => _result = result;
+
+        public string? BookId { get; private set; }
+
+        public string? LanguageHint { get; private set; }
+
+        public Task<OcrQueueResult> QueueBookAsync(
+            string bookId,
+            string languageHint = "eng",
+            CancellationToken cancellationToken = default)
+        {
+            BookId = bookId;
+            LanguageHint = languageHint;
+            return Task.FromResult(_result);
         }
     }
 }

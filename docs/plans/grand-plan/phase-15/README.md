@@ -411,3 +411,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Completed WP8 OCR extension-point hardening: `IOcrProvider` is internal, marked with `[ExtensionPoint]`, and protected by an architecture visibility test. |
 | 2026-06-01 | Implementation | Added WP3 Index Manager OCR controls: pause, cancel, and retry actions now update the shared job table and refresh localized job rows. |
 | 2026-06-01 | Implementation | Completed WP7 Index Manager smart-shelf stats panel with query-time and composite-index health summaries. |
+| 2026-06-01 | Implementation | Added WP3 book-detail Run OCR trigger with idempotent queueing, localized status feedback, missing-file handling, and library-root path validation. |

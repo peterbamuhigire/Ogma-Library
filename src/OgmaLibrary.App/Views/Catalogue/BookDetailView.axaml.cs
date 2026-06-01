@@ -37,6 +37,14 @@ public partial class BookDetailView : UserControl
         }
     }
 
+    private async void RunOcrButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.RunOcrAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void ReadingMemoryField_LostFocus(object? sender, RoutedEventArgs e)
     {
         if (DataContext is BookDetailViewModel vm)

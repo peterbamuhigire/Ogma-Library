@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI.Ollama;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
+using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Infrastructure.Sidecar;
 
@@ -96,6 +98,9 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IHybridRankingService, HybridRankingService>();
         services.AddSingleton<IMatchLocationService, MatchLocationService>();
         services.AddSingleton<IEmbeddingErasureService, EmbeddingErasureService>();
+        services.AddSingleton<IOcrJobQueueService>(sp => new OcrJobQueueService(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>(),
+            libraryRoot));
         services.AddSingleton<IndexManagerService>();
         services.AddSingleton<IIndexManagerService>(sp => sp.GetRequiredService<IndexManagerService>());
         services.AddSingleton<ISearchReadModel>(sp => sp.GetRequiredService<IndexManagerService>());
