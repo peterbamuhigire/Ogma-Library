@@ -6,10 +6,11 @@ Scope: Phase 09 closeout evidence through the active-layer, direct-PDF
 hardening, delivered reader-icon rendering, keyboard shortcut verification,
 performance gate review, annotation delete workflow, touch-capable selection,
 and layer visibility UI passes, reading-memory blur auto-save, book-detail
-reading-memory editing, note editor blur-save, and Phase 09 French localization cleanup passes,
-text-selection service traceability, and Choose Library Folder
+reading-memory editing, note editor blur-save, Phase 09 French localization
+cleanup, text-selection service traceability, Choose Library Folder
 missing-`BookFiles` scan repair and same-hash unregistered-path registration
-coverage on 2026-06-01.
+coverage, plus follow-up evidence-count, test-name, filter-token, and task-exit
+documentation sweeps on 2026-06-01.
 
 ## Current Position
 
@@ -28,10 +29,11 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, reader keyboard shortcuts, touch-capable selection, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, and manual signoff documentation source-of-truth cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, reader keyboard shortcuts, touch-capable selection, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, manual signoff documentation source-of-truth cleanup, current evidence-count/test-name reconciliation, stale metadata filter cleanup, and task-exit/manual-gate wording cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
+| Evidence/test-name cleanup | Follow-up sweeps refreshed stale architecture, catalogue/direct-open, metadata/direct-PDF, startup/direct-PDF, and selected-book enrichment counts; aligned `testing.md` with current implemented test names; removed the stale `BookMetadataEnrichment` filter token after the current metadata/direct-PDF/write-back slice still passed 76 tests |
 | Bookmark sorting | `23abfaa feat: add bookmark panel sorting`; `ReaderViewModel_BookmarkSortOptions_ReorderByPageOrCreationDate` covers page/date sorting |
 | Reading-memory disposition label | `29fa18d fix: expose reading memory disposition range`; focused reader UI tests cover the announced `Disposition (1-5)` label and existing validation |
 | Active writable layer marker | `ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` covers the visible and announced active-layer marker |
@@ -47,6 +49,7 @@ owner-gated:
 | Note editor blur-save | `ReaderView_NoteEditorLostFocus_SavesEditedNote` verifies the rendered note editor focus-out route persists edited note text, closes the editor, and reports save completion |
 | French Phase 09 localization | `Phase09AnnotationResources_DoNotContainMojibake`, `InMemoryLocalization_Phase09FrenchStrings_DoNotContainMojibake`, and `InMemoryLocalization_Phase09Strings_MatchResourceValues` verify resource/runtime labels reject common mojibake markers and match the committed Phase 09 resource values |
 | Text-selection mapping service | `TextSelectionService.GetRegionsForSelection` and `TextSelectionService_GetRegionsForSelection_MapsScreenRectToUnrotatedRegion` verify the planned P09-WP2-T2 mapping from screen-space selection rectangles to normalized unrotated annotation regions |
+| Task-exit documentation cleanup | `tasks.md` now describes WP1 as green for durable-write/WAL/rollback/recovery tests and WP8 as automated-accessibility complete with manual SR walkthrough still pending; `testing.md` no longer repeats one bookmark test row for two assertions |
 
 ## Remote CI Status Check
 
@@ -54,7 +57,7 @@ Remote CI result evidence is not available from this local environment:
 
 | Check | Result |
 | --- | --- |
-| GitHub Actions REST API for pushed `main` Actions runs | `GET /repos/peterbamuhigire/Ogma-Library/actions/runs?branch=main&per_page=5` returned `404 Not Found` when checked unauthenticated from this environment |
+| GitHub Actions REST API for pushed `main` Actions runs | `GET /repos/peterbamuhigire/Ogma-Library/actions/runs?branch=main&per_page=5` and later `per_page=10` checks returned `404 Not Found` when checked unauthenticated from this environment |
 | GitHub CLI | `gh` is not installed in this environment |
 | Public Actions URL / unauthenticated status | No usable Actions run result was available from this environment |
 
@@ -63,8 +66,8 @@ not claim a remote CI pass.
 
 ## Locally Actionable Findings
 
-The continuation pass found fourteen locally actionable mismatches and fixed
-them:
+The continuation pass and follow-up documentation sweeps found locally
+actionable mismatches and fixed them:
 
 | Finding | Resolution |
 | --- | --- |
@@ -82,6 +85,10 @@ them:
 | The P09-WP2-T2 text-selection mapping behavior lived only as a private reader view-model method, weakening traceability to the planned `TextSelectionService.GetRegionsForSelection` artifact. | Extracted the mapping into `TextSelectionService.GetRegionsForSelection`, kept the reader selection flow on that helper, and added direct rotation-aware mapping coverage. |
 | The book-detail panel only exposed a compact read-only reading-memory summary, leaving the catalogue-detail editing path weaker than the Phase 09 closeout wording. | Added editable opened-because, key-insight, open-questions, and disposition fields in the book-detail Reading tab, backed by `IReadingMemoryService`, with save/status handling and summary refresh coverage. |
 | P09-WP3-T2 called for mouse and touch drag selection, but reader selection gating required the mouse-left-button flag for all pointer types. | Added pointer eligibility that keeps mouse selection on primary-button drag while allowing touch and pen drags, with focused coverage for mouse, touch, and pen cases. |
+| Several evidence rows had stale counts after direct-PDF, metadata, and architecture coverage grew. | Re-ran the affected focused Release no-build slices and refreshed counts in `evidence.md`, the manual signoff packet, and the closeout audit. |
+| `testing.md` still referenced planned/old test names and overstated "all nine" test layers even though Search, AI, 3D, and Packaging are out of scope for Phase 09. | Replaced stale names with current implemented tests and clarified that applicable layers are applied while out-of-scope layers are documented. |
+| Phase 09 evidence contained a stale `BookMetadataEnrichment` filter token that no longer matched a test-name slice. | Re-ran the current metadata/direct-PDF/write-back filter without the stale token and kept the verified 76-test result. |
+| `tasks.md` still described WP1 as an early TDD red-test state and WP8 as if manual screen-reader walkthrough had passed. | Updated WP1 to the current green durable-write/WAL/rollback/recovery state and WP8 to automated accessibility complete with manual SR signoff pending. |
 
 The final code-level pass also rechecked the planned Ctrl+B, Ctrl+Shift+B, and
 Ctrl+Shift+C shortcuts against `ReaderView.axaml.cs` and the focused UI tests.
