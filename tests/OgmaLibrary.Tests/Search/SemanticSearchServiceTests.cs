@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -104,6 +105,39 @@ public sealed class SemanticSearchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PerfBenchmark_SemanticSearch_P95_LessThan1500ms()
+    {
+        const int bookCount = 2000;
+        const int queryCount = 20;
+        SeedPerformanceCorpus(bookCount);
+        var service = new SemanticSearchService(
+            _context,
+            new StubOllamaProvider { QueryVector = [1.0f, 0.0f, 0.0f, 0.0f] },
+            new StubExactSearch());
+
+        _ = await service.SearchAsync("warmup query", 10, CancellationToken.None);
+
+        var elapsed = new List<double>(queryCount);
+        for (int i = 0; i < queryCount; i++)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            SemanticSearchResponse response = await service.SearchAsync(
+                $"semantic benchmark {i:00}",
+                10,
+                CancellationToken.None);
+            stopwatch.Stop();
+
+            Assert.NotEmpty(response.Results);
+            elapsed.Add(stopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        double p95 = elapsed
+            .OrderBy(value => value)
+            .ElementAt((int)Math.Ceiling(queryCount * 0.95) - 1);
+        Assert.True(p95 <= 1500, $"Expected semantic search P95 <= 1500 ms, actual {p95:F2} ms");
+    }
+
+    [Fact]
     public async Task SemanticSearch_OllamaUnavailable_ReturnsExactFallback()
     {
         var exact = new StubExactSearch(
@@ -161,6 +195,48 @@ public sealed class SemanticSearchServiceTests : IDisposable
         return chunk.ChunkId;
     }
 
+    private void SeedPerformanceCorpus(int bookCount)
+    {
+        for (int i = 0; i < bookCount; i++)
+        {
+            string bookId = $"P11PERF{i:000000000000000000}";
+            _context.Books.Add(new BookRow
+            {
+                BookId = bookId,
+                Title = $"Semantic Benchmark Book {i:0000}",
+                Status = 0,
+                IndexStatus = (int)SearchBookIndexStatus.Indexed,
+                EmbeddingStatus = (int)SearchEmbeddingStatus.Embedded,
+            });
+            var chunk = new SearchChunkRow
+            {
+                BookId = bookId,
+                ChunkIndex = 0,
+                ChunkText = $"benchmark corpus book {i:0000}",
+                Source = (int)SearchChunkSource.Page,
+                TokenCount = 4,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+            };
+            _context.SearchChunks.Add(chunk);
+            _context.EmbeddingVectors.Add(new EmbeddingVectorRow
+            {
+                Chunk = chunk,
+                ModelName = EmbeddingGenerationService.DefaultModelName,
+                ModelVersion = EmbeddingGenerationService.DefaultModelVersion,
+                DimensionCount = 4,
+                VectorBlob = SerializeVector([
+                    i == 0 ? 1.0f : 0.2f,
+                    (i % 7) / 10.0f,
+                    (i % 11) / 10.0f,
+                    (i % 13) / 10.0f,
+                ]),
+                GeneratedAtUtc = DateTimeOffset.UtcNow,
+            });
+        }
+
+        _context.SaveChanges();
+    }
+
     private static EmbeddingVectorRecord NewVector(long chunkId, float[] vector) =>
         new(
             Id: 0,
@@ -170,6 +246,13 @@ public sealed class SemanticSearchServiceTests : IDisposable
             Vector: vector,
             DimensionCount: vector.Length,
             GeneratedAtUtc: DateTimeOffset.UtcNow);
+
+    private static byte[] SerializeVector(float[] vector)
+    {
+        var bytes = new byte[vector.Length * sizeof(float)];
+        Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
+        return bytes;
+    }
 
     private sealed class StubOllamaProvider : IOllamaEmbeddingProvider
     {

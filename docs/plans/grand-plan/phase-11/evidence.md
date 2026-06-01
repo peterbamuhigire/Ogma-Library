@@ -26,7 +26,7 @@ float BLOBs keyed back to `SearchChunks`.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase11EmbeddingSchemaTests` | Passed: 4 Phase 11 schema, repository, and Ollama adapter tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~EmbeddingGenerationServiceTests\|FullyQualifiedName~EmbeddingGenerationWorkerTests"` | Passed: 4 embedding generation service and worker tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~CosineSimilarityServiceTests` | Passed: 6 cosine arithmetic, zero-vector, SIMD-width, and deterministic top-K tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SemanticSearchServiceTests` | Passed: 3 semantic search, exact-fallback, and exact+semantic merge tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SemanticSearchServiceTests` | Passed: 4 semantic search, exact-fallback, exact+semantic merge, and 2,000-book P95 benchmark tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~HybridRankingServiceTests` | Passed: 7 hybrid ranking formula, fallback, tie-break, and 100-query determinism tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~MatchLocationServiceTests` | Passed: 10 match-location, confidence-label, and enrichment tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~EmbeddingErasureTests` | Passed: 2 embedding erasure, audit-event, status-reset, and requeue-oracle tests |
@@ -55,7 +55,7 @@ float BLOBs keyed back to `SearchChunks`.
 ## Remaining Phase 11 Work
 
 - WP2: backend generation service and worker are implemented locally; remaining work is broader batching/rate-limit tuning, model-change configuration, and UI surfacing of unavailable-Ollama events.
-- WP3: cosine similarity, deterministic top-K, and semantic search service are implemented locally; P95 benchmark remains.
+- WP3: cosine similarity, deterministic top-K, semantic search service, and local 2,000-book P95 benchmark are implemented locally.
 - WP4: hybrid ranking formula, defaults, determinism, and graceful no-embedding fallback are implemented locally; persistence-backed weight settings remain.
 - WP5: backend match-location derivation and confidence labels are implemented locally; UI badges, keyboard/SR behavior, and i18n remain.
 - WP6: embedding erasure service with audit event plus ANN spike/ADR docs are implemented locally; UI confirmation flow remains.
