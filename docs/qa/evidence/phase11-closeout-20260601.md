@@ -47,7 +47,7 @@ Phase 11 is not public-beta signed off yet.
 | Premium Phase 11 icons | Pending | Existing catalog icons are wired as placeholders; final premium semantic, match-location, confidence, ranking, and erasure assets must be procured and substituted before public beta. |
 | Manual semantic smoke with real Ollama | Pending | Automated tests use deterministic mock vectors; a local Ollama model must be run manually to confirm natural-language semantic recall on real book content. |
 | Manual screen-reader pass | Pending | Narrator/VoiceOver must confirm semantic availability, match badges, confidence, and erasure confirmation announcements. Automated names/tooltips are present but do not replace AT signoff. |
-| Remote CI signoff | Pending | Local gates are green; remote CI evidence should be captured after the phase is pushed and Actions access is available. |
+| Remote CI signoff | Pending | Local gates are green; `docs/qa/evidence/phase11-remote-ci-20260601.md` records a post-push attempt where unauthenticated GitHub Actions API access returned 404. Authenticated Actions evidence is still required. |
 
 ## Recommendation
 
