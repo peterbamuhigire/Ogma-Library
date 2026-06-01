@@ -27,6 +27,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
     private readonly ILanBindAddressSelector _bindAddressSelector;
+    private readonly ILanClientAddressPolicy _clientAddressPolicy;
     private WebApplication? _app;
 
     public KestrelHostModeListener(
@@ -39,7 +40,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IClientSessionService sessions,
         IHostServerCertificateProvider certificates,
         IAuditRepository audit,
-        ILanBindAddressSelector bindAddressSelector)
+        ILanBindAddressSelector bindAddressSelector,
+        ILanClientAddressPolicy clientAddressPolicy)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
@@ -51,6 +53,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _bindAddressSelector = bindAddressSelector ?? throw new ArgumentNullException(nameof(bindAddressSelector));
+        _clientAddressPolicy = clientAddressPolicy ?? throw new ArgumentNullException(nameof(clientAddressPolicy));
     }
 
     /// <inheritdoc />
@@ -111,6 +114,16 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             long started = Environment.TickCount64;
             string? token = ReadBearerToken(context.Request);
             bool authenticated = false;
+
+            if (!_clientAddressPolicy.IsAllowed(context.Connection.RemoteIpAddress))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsJsonAsync(
+                    new LanHostError("client_address_forbidden", "LAN Host only accepts loopback fallback or private LAN clients."),
+                    context.RequestAborted).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+                return;
+            }
 
             if (IsPublicEndpoint(context.Request.Path))
             {

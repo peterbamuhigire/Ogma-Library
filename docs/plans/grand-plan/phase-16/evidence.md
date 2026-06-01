@@ -32,6 +32,9 @@ listener endpoints:
 - `LanBindAddressSelector` prefers active RFC1918 IPv4 LAN addresses and falls
   back to loopback when no private LAN adapter is available. The selected address
   is used by Kestrel and added to the mDNS TXT record as `addr`.
+- `LanClientAddressPolicy` rejects non-loopback/non-RFC1918 remote client
+  addresses at the Host middleware boundary before auth/session handling; denied
+  attempts are still audited.
 - `KestrelHostModeListener` binds HTTPS on loopback only for the first endpoint
   fallback or on the selected private LAN address. It exposes `/api/v1/health`,
   `/api/v1/auth/session`, authenticated
@@ -83,7 +86,7 @@ listener endpoints:
 
 | Gate | Evidence |
 | --- | --- |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanPageRenderLimiterTests\|FullyQualifiedName~LanHostEndpointTests\|FullyQualifiedName~LanHostLoadSmokeTests\|FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 30 scaffold/persistence/certificate/mDNS/bind-selector/resolver/limiter/listener/load/UI tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, page-render concurrency saturation and lease release, Host sharing start/stop UI state, Host content-mode toggle persistence and running-mode lockout, 20 concurrent authenticated catalogue clients, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanClientAddressPolicyTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanPageRenderLimiterTests\|FullyQualifiedName~LanHostEndpointTests\|FullyQualifiedName~LanHostLoadSmokeTests\|FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 39 scaffold/persistence/certificate/mDNS/bind-selector/client-address-policy/resolver/limiter/listener/load/UI tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, client IP loopback/private allow and public/APIPA deny policy, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, page-render concurrency saturation and lease release, Host sharing start/stop UI state, Host content-mode toggle persistence and running-mode lockout, 20 concurrent authenticated catalogue clients, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
@@ -97,6 +100,7 @@ listener endpoints:
 | LanHost certificate provisioner | `LocalCertificateProvisioner` creates/reloads the Host CA and exposes stable SHA-256 fingerprint |
 | LanHost mDNS advertiser | `MdnsAdvertiser` wraps `Makaretu.Dns.Multicast` behind `IMdnsAdvertiser` |
 | LanHost bind-address selector | Prefers active RFC1918 IPv4 LAN addresses, falls back to loopback, and advertises the selected address in mDNS TXT |
+| LanHost client-address policy | Allows loopback fallback and RFC1918 private IPv4 clients; rejects public/APIPA/IPv6 internet addresses before auth |
 | LanHost HTTPS listener | `KestrelHostModeListener` exposes selected-address health/auth/catalogue endpoints behind bearer session validation |
 | LanHost catalogue contract | Authenticated catalogue list supports bounded `page`/`pageSize` metadata, metadata search projection, and single-book detail lookup |
 | LanHost asset endpoint | Authenticated cover/spine/thumbnail sidecar endpoint with SHA-256 hash validation |
@@ -116,5 +120,5 @@ listener endpoints:
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
 - WP8+ full Sharing settings surface (QR/fingerprint copy and confirmation
-  flows), same-subnet verification, full page-render load tests, and macOS
-  Keychain-specific CA private-key storage.
+  flows), full page-render load tests, real same-subnet Windows/macOS verification,
+  and macOS Keychain-specific CA private-key storage.
