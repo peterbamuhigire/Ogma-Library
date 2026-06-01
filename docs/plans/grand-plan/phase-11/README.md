@@ -28,7 +28,7 @@ reproducible order, and privacy-safe embedding erasure.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 5 (Search — semantic layer) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both; Ollama runs on the same host |
-| **Status** | WP1 and WP2 backend foundations plus WP3 cosine/top-K started locally: embedding schema upgrade, `IAiProvider` stub, Ollama embedding contract/adapter, vector repository, embedding generation service/worker, semantic read-model progress events, SIMD cosine scoring, deterministic top-K, architecture guards, and focused tests implemented; remaining WP3+ pending |
+| **Status** | WP1 and WP2 backend foundations plus WP3 semantic search foundations started locally: embedding schema upgrade, `IAiProvider` stub, Ollama embedding contract/adapter, vector repository, embedding generation service/worker, semantic read-model progress events, SIMD cosine scoring, deterministic top-K, semantic search service, architecture guards, and focused tests implemented; remaining WP3 benchmark and WP4+ pending |
 | **Depends on** | Phase 10 (Search & Indexing — `SearchChunks`, FTS5 results, `ISearchReadModel`), Phase 12 (AI Gateway — `IAiProvider` gateway used for Ollama embedding calls; FR-AI-006) |
 | **Unblocks** | Phase 13 (AI advisor uses hybrid ranking); Phase 16 (LAN Host serves semantic search read-model) |
 
@@ -417,3 +417,4 @@ See `skills.md` for full guidance. Summary:
 | 2026-06-01 | WP1 started: Phase 11 embedding schema upgrade, Application AI provider stub, local-only Ollama embedding adapter, vector repository, focused schema/provider tests, and architecture guards added | Codex |
 | 2026-06-01 | WP2 backend started: embedding generation service, idempotent pending-chunk selection, unavailable-Ollama degradation, failure-job recording, semantic progress events, worker polling, and focused tests added | Codex |
 | 2026-06-01 | WP3 first slice started: SIMD-backed cosine similarity service, deterministic top-K vector ranking, and focused unit tests added | Codex |
+| 2026-06-01 | WP3 semantic service started: query embedding, brute-force vector scoring, chunk/book projection, book-level deduplication, exact-search fallback, and focused semantic tests added | Codex |
