@@ -55,11 +55,15 @@ internal sealed class ClientSessionService : IClientSessionService
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsValidAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<bool> IsValidAsync(string token, CancellationToken cancellationToken = default) =>
+        await GetActiveAsync(token, cancellationToken).ConfigureAwait(false) is not null;
+
+    /// <inheritdoc />
+    public async Task<ClientSessionSnapshot?> GetActiveAsync(string token, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            return false;
+            return null;
         }
 
         string tokenHash = HashToken(token);
@@ -74,7 +78,13 @@ internal sealed class ClientSessionService : IClientSessionService
             .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && x.RevokedUtc == null, cancellationToken)
             .ConfigureAwait(false);
 
-        return session is not null && session.ExpiresUtc > now;
+        return session is not null && session.ExpiresUtc > now
+            ? new ClientSessionSnapshot(
+                TokenFingerprint: tokenHash[..16],
+                ClientId: session.ClientId,
+                Role: session.Role,
+                ExpiresUtc: session.ExpiresUtc)
+            : null;
     }
 
     /// <inheritdoc />

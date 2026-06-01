@@ -126,7 +126,7 @@ test CA, pre-enrolled test session token).
 | --- | --- | --- |
 | `FileStreamEndpoint_Returns403_WhenPageRenderMode` | HTTP 403 with descriptive error body | R2 |
 | `FileStreamEndpoint_StreamsPdfBytes_WhenFileStreamEnabled` | Response begins `%PDF`; Content-Type `application/pdf`; Content-Length matches file size | R5 |
-| `FileStreamEndpoint_WritesAuditEntry_ContentMode_FileStream` | `AuditEvents` row exists with `action = "FileStream"` | R2 |
+| `FileStreamEndpoint_WritesAuditEntry_ContentMode_FileStream` | `AuditEvents` row exists with `action = "StreamFile"`, `resourceType = "BookFile"`, and `contentMode = "FileStream"` | R2 |
 
 ### Authentication
 
@@ -142,7 +142,7 @@ test CA, pre-enrolled test session token).
 | --- | --- | --- |
 | `AuditMiddleware_WritesRowForEvery_AuthenticatedRequest` | 10 catalogue requests → 10 `AuditEvents` rows; timestamps monotonically increasing | R2 |
 | `AuditMiddleware_WritesRow_ForRejectedUnauthenticated` | Unauthenticated request → 1 reduced audit row (statusCode=401, no profileId) | R2 |
-| `AuditMiddleware_RowContains_ClientIdentity_And_Resource` | Row fields: `clientId`, `method`, `resource`, `statusCode`, `durationMs`, `timestamp` all present | R2 |
+| `AuditMiddleware_RowContains_ClientIdentity_And_Resource` | Row fields: `clientId`, `role`, `action`, `resourceType`, `resourceId`, `method`, `statusCode`, `durationMs`, and timestamp all present when applicable | R2 |
 
 ---
 

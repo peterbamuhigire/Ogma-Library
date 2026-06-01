@@ -11,6 +11,9 @@ public interface IClientSessionService
     /// <summary>Returns whether a session token is currently valid.</summary>
     Task<bool> IsValidAsync(string token, CancellationToken cancellationToken = default);
 
+    /// <summary>Resolves active session metadata for a token, or <see langword="null"/> when invalid.</summary>
+    Task<ClientSessionSnapshot?> GetActiveAsync(string token, CancellationToken cancellationToken = default);
+
     /// <summary>Counts active, unexpired, non-revoked client sessions.</summary>
     Task<int> CountActiveAsync(CancellationToken cancellationToken = default);
 

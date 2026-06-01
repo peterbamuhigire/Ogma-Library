@@ -19,6 +19,8 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 /// <summary>Loopback HTTPS listener for the first Phase 16 Host-mode endpoints.</summary>
 internal sealed class KestrelHostModeListener : IHostModeListener
 {
+    private const string IssuedSessionItemKey = "Ogma.LanHost.IssuedSession";
+
     private readonly ICatalogueReadModel _catalogueReadModel;
     private readonly IMetadataSearchService _metadataSearch;
     private readonly ISidecarService _sidecarService;
@@ -118,6 +120,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         {
             long started = Environment.TickCount64;
             string? token = ReadBearerToken(context.Request);
+            ClientSessionSnapshot? session = null;
             bool authenticated = false;
 
             if (!_clientAddressPolicy.IsAllowed(context.Connection.RemoteIpAddress))
@@ -126,30 +129,34 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 await context.Response.WriteAsJsonAsync(
                     new LanHostError("client_address_forbidden", "LAN Host only accepts loopback fallback or private LAN clients."),
                     context.RequestAborted).ConfigureAwait(false);
-                await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
                 return;
             }
 
             if (IsPublicEndpoint(context.Request.Path))
             {
                 await next(context).ConfigureAwait(false);
-                await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+                session = GetIssuedSession(context);
+                await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
                 return;
             }
 
-            if (token is null || !await _sessions.IsValidAsync(token, context.RequestAborted).ConfigureAwait(false))
+            session = token is null
+                ? null
+                : await _sessions.GetActiveAsync(token, context.RequestAborted).ConfigureAwait(false);
+            if (session is null)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsJsonAsync(
                     new LanHostError("unauthorized", "A valid LAN Host session token is required."),
                     context.RequestAborted).ConfigureAwait(false);
-                await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
                 return;
             }
 
             authenticated = true;
             await next(context).ConfigureAwait(false);
-            await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+            await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
         });
 
         app.MapGet("/api/v1/health", () => Results.Json(new LanHostHealthResponse(
@@ -159,7 +166,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             CertificateFingerprint: certificateFingerprint,
             RequiresAuth: true)));
 
-        app.MapPost("/api/v1/auth/session", async (LanSessionIssueRequest request, CancellationToken ct) =>
+        app.MapPost("/api/v1/auth/session", async (LanSessionIssueRequest request, HttpContext context, CancellationToken ct) =>
         {
             if (!IsEnrollmentCodeValid(request.EnrollmentCode, enrollmentCode))
             {
@@ -177,6 +184,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                     new ClientSessionRequest(clientId, role, lifetime),
                     ct)
                 .ConfigureAwait(false);
+            context.Items[IssuedSessionItemKey] = new ClientSessionSnapshot(
+                TokenFingerprint: CreateTokenFingerprint(result.Token),
+                ClientId: clientId.Trim(),
+                Role: role.Trim(),
+                ExpiresUtc: result.ExpiresUtc);
             return Results.Json(new LanSessionIssueResponse(result.Token, result.ExpiresUtc));
         });
 
@@ -346,6 +358,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         path.StartsWithSegments("/api/v1/health", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWithSegments("/api/v1/auth/session", StringComparison.OrdinalIgnoreCase);
 
+    private static ClientSessionSnapshot? GetIssuedSession(HttpContext context) =>
+        context.Items.TryGetValue(IssuedSessionItemKey, out object? value)
+            ? value as ClientSessionSnapshot
+            : null;
+
     private static bool IsEnrollmentCodeValid(string? suppliedCode, string expectedCode)
     {
         if (string.IsNullOrWhiteSpace(suppliedCode))
@@ -375,6 +392,9 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             ? value[prefix.Length..].Trim()
             : null;
     }
+
+    private static string CreateTokenFingerprint(string token) =>
+        ClientSessionService.HashToken(token)[..16];
 
     private static bool TryMapAssetClass(string value, out SidecarClass sidecarClass)
     {
@@ -451,19 +471,77 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             ThumbnailUrl: $"/api/v1/assets/thumb/{escapedHash}");
     }
 
+    private static LanAuditRouteInfo ClassifyAuditRoute(HttpContext context, bool authenticated)
+    {
+        string path = context.Request.Path.Value ?? "/";
+        string[] segments = path
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        string actionPrefix = !authenticated &&
+                              context.Response.StatusCode == StatusCodes.Status401Unauthorized &&
+                              !IsPublicEndpoint(context.Request.Path)
+            ? "RejectUnauthorized"
+            : string.Empty;
+
+        if (segments.Length < 3 ||
+            !string.Equals(segments[0], "api", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(segments[1], "v1", StringComparison.OrdinalIgnoreCase))
+        {
+            return new LanAuditRouteInfo(
+                Action: string.IsNullOrEmpty(actionPrefix) ? "ServeRequest" : actionPrefix,
+                ResourceType: "Unknown",
+                ResourceId: null);
+        }
+
+        LanAuditRouteInfo route = segments[2].ToLowerInvariant() switch
+        {
+            "health" => new LanAuditRouteInfo("CheckHealth", "Health", null),
+            "auth" when segments.Length >= 4 &&
+                        string.Equals(segments[3], "session", StringComparison.OrdinalIgnoreCase) =>
+                new LanAuditRouteInfo("IssueSession", "Session", null),
+            "catalogue" when segments.Length == 3 =>
+                new LanAuditRouteInfo("ListCatalogue", "Catalogue", null),
+            "catalogue" when segments.Length >= 4 &&
+                             string.Equals(segments[3], "search", StringComparison.OrdinalIgnoreCase) =>
+                new LanAuditRouteInfo("SearchCatalogue", "CatalogueSearch", null),
+            "catalogue" when segments.Length >= 4 =>
+                new LanAuditRouteInfo("GetBookDetail", "Book", segments[3]),
+            "assets" when segments.Length >= 5 =>
+                new LanAuditRouteInfo("ServeAsset", "Asset", $"{segments[3]}:{segments[4]}"),
+            "books" when segments.Length >= 6 &&
+                         string.Equals(segments[4], "page", StringComparison.OrdinalIgnoreCase) =>
+                new LanAuditRouteInfo("RenderPage", "BookPage", $"{segments[3]}:page:{segments[5]}"),
+            "books" when segments.Length >= 5 &&
+                         string.Equals(segments[4], "file", StringComparison.OrdinalIgnoreCase) =>
+                new LanAuditRouteInfo("StreamFile", "BookFile", segments[3]),
+            _ => new LanAuditRouteInfo("ServeRequest", "Unknown", null),
+        };
+
+        return string.IsNullOrEmpty(actionPrefix)
+            ? route
+            : route with { Action = actionPrefix };
+    }
+
     private async Task AppendAuditAsync(
         HttpContext context,
         string? token,
+        ClientSessionSnapshot? session,
         bool authenticated,
         HostContentDeliveryMode contentMode,
         long started)
     {
         string path = context.Request.Path.Value ?? "/";
-        string? actorId = string.IsNullOrWhiteSpace(token)
-            ? null
-            : $"session:{ClientSessionService.HashToken(token)[..16]}";
+        LanAuditRouteInfo route = ClassifyAuditRoute(context, authenticated);
+        string? tokenFingerprint = session?.TokenFingerprint ??
+                                   (string.IsNullOrWhiteSpace(token) ? null : CreateTokenFingerprint(token));
+        string? actorId = session is not null
+            ? $"client:{session.ClientId}"
+            : tokenFingerprint is null ? null : $"session:{tokenFingerprint}";
         var payload = new
         {
+            action = route.Action,
+            resourceType = route.ResourceType,
+            resourceId = route.ResourceId,
             method = context.Request.Method,
             path,
             statusCode = context.Response.StatusCode,
@@ -471,6 +549,9 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             elapsedMs = Math.Max(0, Environment.TickCount64 - started),
             authenticated,
             contentMode = contentMode.ToString(),
+            clientId = session?.ClientId,
+            role = session?.Role,
+            sessionFingerprint = tokenFingerprint,
         };
 
         await _audit.AppendAsync(
@@ -486,6 +567,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 context.RequestAborted)
             .ConfigureAwait(false);
     }
+
+    private sealed record LanAuditRouteInfo(
+        string Action,
+        string ResourceType,
+        string? ResourceId);
 
     private sealed record LanHostHealthResponse(
         string State,

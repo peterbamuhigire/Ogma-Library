@@ -124,7 +124,20 @@ public sealed class LanHostEndpointTests
             Assert.Contains("01LANENDPOINT000000000002", searchJson, StringComparison.Ordinal);
             Assert.True(auditEvents.Count >= 4);
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.AfterJson?.Contains("\"statusCode\":401", StringComparison.Ordinal) == true);
-            Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.ActorId?.StartsWith("session:", StringComparison.Ordinal) == true);
+            Assert.Contains(
+                auditEvents,
+                e => e.EntityId == "/api/v1/auth/session" &&
+                     e.ActorId == "client:student-1" &&
+                     e.AfterJson?.Contains("\"action\":\"IssueSession\"", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"clientId\":\"student-1\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"role\":\"Student\"", StringComparison.Ordinal));
+            Assert.Contains(
+                auditEvents,
+                e => e.EntityId == "/api/v1/catalogue" &&
+                     e.ActorId == "client:student-1" &&
+                     e.AfterJson?.Contains("\"action\":\"ListCatalogue\"", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"resourceType\":\"Catalogue\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"sessionFingerprint\":", StringComparison.Ordinal));
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
 
             await services.GetRequiredService<IHostModeSettingsRepository>()
@@ -162,8 +175,13 @@ public sealed class LanHostEndpointTests
             Assert.Contains(
                 fileStreamAuditEvents,
                 e => e.EntityId == "/api/v1/books/01LANENDPOINT000000000001/file" &&
+                     e.ActorId == "client:teacher-1" &&
                      e.AfterJson?.Contains("\"statusCode\":200", StringComparison.Ordinal) == true &&
-                     e.AfterJson.Contains("\"contentMode\":\"FileStream\"", StringComparison.Ordinal));
+                     e.AfterJson.Contains("\"contentMode\":\"FileStream\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"action\":\"StreamFile\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"resourceType\":\"BookFile\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"resourceId\":\"01LANENDPOINT000000000001\"", StringComparison.Ordinal));
+            Assert.DoesNotContain(fileStreamAuditEvents, e => e.AfterJson?.Contains(fileStreamToken, StringComparison.Ordinal) == true);
         }
         finally
         {

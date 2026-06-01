@@ -57,14 +57,22 @@ public sealed class LanHostPersistenceTests
                 CancellationToken.None);
 
             bool validBeforeRevoke = await sessions.IsValidAsync(issued.Token, CancellationToken.None);
+            ClientSessionSnapshot? activeSession = await sessions.GetActiveAsync(issued.Token, CancellationToken.None);
             await sessions.RevokeAllAsync(CancellationToken.None);
             bool validAfterRevoke = await sessions.IsValidAsync(issued.Token, CancellationToken.None);
+            ClientSessionSnapshot? revokedSession = await sessions.GetActiveAsync(issued.Token, CancellationToken.None);
 
             await using CatalogueDbContext context = services.GetRequiredService<CatalogueDbContext>();
             var row = await context.HostClientSessions.SingleAsync();
 
             Assert.True(validBeforeRevoke);
+            Assert.NotNull(activeSession);
+            Assert.Equal("student-tablet-1", activeSession.ClientId);
+            Assert.Equal("Student", activeSession.Role);
+            Assert.Equal(16, activeSession.TokenFingerprint.Length);
+            Assert.DoesNotContain(issued.Token, activeSession.TokenFingerprint, StringComparison.Ordinal);
             Assert.False(validAfterRevoke);
+            Assert.Null(revokedSession);
             Assert.NotEqual(issued.Token, row.TokenHash);
             Assert.Equal(64, row.TokenHash.Length);
             Assert.NotNull(row.RevokedUtc);

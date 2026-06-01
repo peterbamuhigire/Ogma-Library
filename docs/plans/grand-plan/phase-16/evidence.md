@@ -4,7 +4,7 @@ Date started: 2026-06-01
 
 ## Current Status
 
-Phase 16 WP1/WP2/WP6/WP10 is underway. The first implementation slices establish
+Phase 16 WP1/WP2/WP6/WP9/WP10 is underway. The first implementation slices establish
 the LAN Host bounded-context contract, keep the default standalone product
 listener-free, add durable local Host settings/session persistence, replace
 the scaffold certificate fingerprint with a real local X.509 Host CA, wire the
@@ -84,8 +84,10 @@ listener endpoints:
   sharing panel. The advertised fingerprint remains the Host CA SHA-256
   fingerprint.
 - Every Host request currently writes `LanHostRequestServed` to `AuditEvents`
-  with method, path, status code, remote IP, elapsed time, and a hashed session
-  actor when authenticated. Raw bearer tokens are not written to the audit row.
+  with normalized action/resource fields, method, path, status code, remote IP,
+  elapsed time, content mode, client id/role when a session is active or newly
+  issued, and a short one-way session fingerprint. Raw bearer tokens are not
+  written to the audit row.
 - Host status now reports active connected clients from unexpired, non-revoked
   client sessions instead of returning a fixed zero.
 - Authenticated sidecar assets are available at
@@ -98,8 +100,10 @@ listener endpoints:
   endpoint resolves the book through the catalogue, rejects rooted/traversal
   paths, ignores missing/unavailable files, and streams the PDF with HTTP range
   support.
-- LAN request audit payloads include the active Host content delivery mode, so
-  FileStream-mode access is distinguishable from page-render-mode rejections.
+- LAN request audit payloads include the active Host content delivery mode and
+  route-level action/resource classification, so FileStream-mode access,
+  page-render requests, catalogue reads, session issuance, and authorization
+  rejections are distinguishable in persisted audit rows.
 - The scaffold can start/stop its coordinator, advertise the planned mDNS record
   shape, and revoke persisted sessions on stop without binding a network port.
 - Architecture tests guard the LanHost boundary from credential-store,
@@ -141,7 +145,7 @@ reruns passed.
 | LanHost page-render endpoint | Authenticated page-render endpoint returns PNG bytes in PageRender mode and rejects requests in FileStream mode |
 | LanHost page-render limiter | Caps simultaneous page renders at 10 and fails fast with `429` when saturated |
 | LanHost file-stream endpoint | Default page-render mode returns `403`; explicit FileStream mode streams catalogue-resolved PDFs with path traversal/rooted-path protection and range support |
-| LanHost request audit | `LanHostRequestServed` rows in `AuditEvents` for health, session, unauthorized, authenticated catalogue, asset, and FileStream requests; payloads include status code and active content mode |
+| LanHost request audit | `LanHostRequestServed` rows in `AuditEvents` for health, session, unauthorized, authenticated catalogue, asset, page-render, and FileStream requests; payloads include action, resource type/id, status code, active content mode, client id/role when resolved, and a token fingerprint without raw bearer tokens |
 | Host sharing UI scaffold | Catalogue shell status strip includes Host status, active client count, fingerprint preview, content-mode toggle, explicit start/stop controls, Host/FileStream confirmation panels, QR join panel, manual join URI, full fingerprint display, and copy confirmation state |
 | LanHost catalogue/page-render load smoke | Live HTTPS loopback Host handles 20 concurrent authenticated catalogue requests and 10 concurrent authenticated page renders with local P95 under 2 seconds |
 | LanHost EF entities/configurations | `HostModeSettingsRow`, `HostClientSessionRow`, and matching EF configurations |
@@ -153,6 +157,5 @@ reruns passed.
 
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
-- WP8+ full Sharing settings surface confirmation flows for risky Host enablement
-  and FileStream mode, real same-subnet Windows/macOS verification, and macOS
-  Keychain-specific CA private-key storage.
+- WP8+ full standalone Settings > Sharing surface, real same-subnet Windows/macOS
+  verification, and macOS Keychain-specific CA private-key storage.

@@ -66,3 +66,10 @@ public sealed record ClientSessionResult(
     string Token,
     DateTimeOffset ExpiresUtc);
 
+/// <summary>Resolved metadata for an active LAN client session.</summary>
+public sealed record ClientSessionSnapshot(
+    string TokenFingerprint,
+    string ClientId,
+    string Role,
+    DateTimeOffset ExpiresUtc);
+
