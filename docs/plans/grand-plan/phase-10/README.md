@@ -28,7 +28,7 @@ ready read-models for Phase 16.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 5 (Search) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both |
-| **Status** | WP1 complete locally; WP2 backend metadata search implemented locally; WP3 core extraction pipeline implemented locally; search UI debounce/results, FTS service, Index Manager, full benchmarks, UI/i18n/icons, G7, and manual closeout pending |
+| **Status** | WP1 complete locally; WP2 backend metadata search implemented locally; WP3 core extraction pipeline implemented locally; WP4 FTS search implemented locally; search UI debounce/results, Index Manager, UI/i18n/icons, G7, and manual closeout pending |
 | **Depends on** | Phase 04 (Catalogue schema; `Books`, `ExtractedPages`, `SearchChunks`), Phase 05 (book identity / content hash), Phase 08 (`TextLayerService`, `ExtractionQuality` flag), Phase 09 (annotation text available for indexing) |
 | **Unblocks** | Phase 11 (Semantic Search — uses the same `SearchChunks` + `ExtractedPages` schema), Phase 13 (AI advisor reads index), Phase 16 (LAN host serves search read-model) |
 
@@ -373,3 +373,4 @@ See `skills.md` for full guidance. Summary:
 | 2026-06-01 | WP1 started: Phase 10 schema columns, FTS5 virtual table/triggers, Application search contracts, EF repositories, migration repair, focused tests, and developer schema note added | Codex |
 | 2026-06-01 | WP2 backend started: metadata search contract, EF implementation, relevance scoring, covering index, special-character handling, and 2,000-book P95 test added | Codex |
 | 2026-06-01 | WP3 core pipeline started: 512/64 chunker, extraction pipeline contract, PDF-page extraction service, page/note/tag/description source chunking, failure-job recording, idempotent rerun tests, and background worker polling added | Codex |
+| 2026-06-01 | WP4 started: FTS5 query contract, raw-SQL bm25/snippet implementation, integrity check, combined metadata/full-text dedupe, multi-source tests, and warm 2,000-book P95 benchmark added | Codex |

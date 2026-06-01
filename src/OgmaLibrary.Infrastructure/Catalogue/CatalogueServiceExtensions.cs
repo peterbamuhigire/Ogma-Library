@@ -79,6 +79,8 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
+        services.AddSingleton<IFtsIndexService, FtsIndexService>();
+        services.AddSingleton<ICombinedSearchService, CombinedSearchService>();
 
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));

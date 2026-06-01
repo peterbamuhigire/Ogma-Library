@@ -6,8 +6,9 @@ This file tracks implementation evidence for Phase 10 Search & Indexing.
 
 ## Current Position
 
-Phase 10 has started with WP1, the backend portion of WP2, and WP3 extraction
-pipeline foundations. The schema and repository foundation is in place:
+Phase 10 has started with WP1, the backend portion of WP2, WP3 extraction
+pipeline foundations, and WP4 full-text search foundations. The schema and
+repository foundation is in place:
 `Books.IndexStatus`, Phase 10 extraction/chunk columns, the FTS5
 external-content virtual table, trigger maintenance, Application-layer search
 contracts, Infrastructure repositories, migration repair for non-model FTS5
@@ -16,10 +17,14 @@ Infrastructure implementation, relevance scoring, a covering index, and a
 2,000-book P95 test. WP3 now has a token chunker, extraction pipeline contract,
 per-book extraction service, source-scoped page/note/tag/description chunking,
 failure job recording, and background worker polling.
+WP4 now has an Application-layer FTS contract, raw-SQL Infrastructure
+implementation with snippets and bm25 ranking, combined metadata/FTS
+deduplication, FTS integrity check, multi-source tests, and a warm 2,000-book
+P95 benchmark.
 
-The phase is not complete. Search UI debounce/results, FTS query service, Index
-Manager UI, full FTS benchmarks, G7 rebuild reliability, icons, i18n, and manual
-accessibility signoff remain pending.
+The phase is not complete. Search UI debounce/results, Index Manager UI, G7
+rebuild reliability, icons, i18n, and manual accessibility signoff remain
+pending.
 
 ## Automated Verification
 
@@ -39,6 +44,11 @@ accessibility signoff remain pending.
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP3 formatting |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP3 |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 252, UI 93 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --filter "FullyQualifiedName~FtsIndexServiceTests"` | Passed: 5 FTS search, snippet, source, integrity, combined-search, and warm P95 tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP4 formatting |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP4 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 21 WP1-WP4 search tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 257, UI 93 |
 
 ## Evidence Map
 
@@ -67,12 +77,18 @@ accessibility signoff remain pending.
 | Pending/stale batch selection | `ExtractionPipeline_IndexNextBatch_FindsStaleAndPendingBooks` |
 | Background scheduling | `SearchExtractionWorker_StartAsync_PollsExtractionPipeline` verifies hosted worker polling |
 | UI test determinism | `tests/OgmaLibrary.Tests.Ui/TestAppBuilder.cs` disables UI-test parallelization because the shared Avalonia headless app is not parallel-safe |
+| FTS search contract | `IFtsIndexService`, `FtsSearchResult`, and `FtsIntegrityResult` under `src/OgmaLibrary.Application/Search/` |
+| FTS implementation | `FtsIndexService` joins `SearchFts5.rowid` to `SearchChunks.ChunkId`, returns snippets, and exposes higher-is-better scores from `bm25()` |
+| Combined search | `ICombinedSearchService` and `CombinedSearchService` deduplicate metadata and full-text hits by `BookId` |
+| FTS multi-source coverage | `FtsIndex_Search_MatchesDiacriticsAndMultipleSources` verifies page, note, tag, and description source hits |
+| FTS integrity check | `FtsIndex_Search_SanitizesInvalidInputAndIntegrityCheckPasses` |
+| FTS performance | `PerfBenchmark_FtsSearch_P95_LessThan500ms` seeds 2,000 books, warms the index, runs 50 queries, and asserts P95 <= 500 ms |
 
 ## Remaining Phase 10 Work
 
 - WP2: search view-model debounce, result-list interaction, and UI wiring.
 - WP3: larger golden-corpus PDF fixtures and true crash-injection resume test remain; core pipeline, chunking, failure isolation, and worker polling are implemented locally.
-- WP4: `FtsIndexService`, snippets, warm P95 benchmark, multi-source FTS tests.
+- WP4: golden-corpus PDF fixtures remain; FTS service, snippets, integrity check, combined search, multi-source tests, and warm P95 benchmark are implemented locally.
 - WP5: Index Manager service/UI, rebuild/cancel flow, G7 reliability.
 - WP6: search icons, en/fr strings, keyboard and screen-reader coverage.
 - WP7: full phase test/benchmark/CI closeout.

@@ -48,6 +48,28 @@ Implemented chunk sources are:
 `SearchExtractionWorker` polls the pipeline in the background so indexing does
 not block the UI thread.
 
+## Full-Text Search
+
+`IFtsIndexService` exposes FTS5 search without leaking SQLite details into
+Application code. The Infrastructure implementation builds a conservative
+`MATCH` expression from plain user text, joins `SearchFts5.rowid` back to
+`SearchChunks.ChunkId`, and returns `FtsSearchResult` records with book title,
+first author, source, optional page index, snippet, and score.
+
+Ranking uses `bm25(SearchFts5)` sorted ascending inside SQLite and exposed as a
+higher-is-better score by negating the rank. Snippets use:
+
+```sql
+snippet(SearchFts5, 0, '<b>', '</b>', '...', 20)
+```
+
+`ICombinedSearchService` merges metadata and FTS hits into one book-level result
+set, deduplicated by `BookId`. FTS integrity checks use SQLite's standard:
+
+```sql
+INSERT INTO SearchFts5(SearchFts5) VALUES ('integrity-check');
+```
+
 ## Rationale
 
 The external-content design avoids storing text twice in the catalogue while
