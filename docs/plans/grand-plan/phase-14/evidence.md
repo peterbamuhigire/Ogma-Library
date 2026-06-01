@@ -8,7 +8,9 @@ The first Phase 14 foundation slice is implemented locally. It adds the shared
 WebView bridge contracts, testable WebView host adapter, WebView2/WKWebView
 bridge facades, C# bridge message records, inbound parser, SI-3 inbound
 validator, strict TypeScript mirror types for the Three.js scene boundary, and
-the first `ogma://` asset scheme handler with traversal protection.
+the first `ogma://` asset scheme handler with traversal protection. The
+SkiaSharp spine texture generator now produces 128x512 PNG textures with
+adaptive text contrast and title truncation.
 
 The platform-specific native WebView packages are not wired yet; the bridge is
 ready for those adapters through `IWebViewHostAdapter`.
@@ -19,6 +21,7 @@ ready for those adapters through `IWebViewHostAdapter`.
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~BridgeMessageTests` | Passed: 6 bridge serialization and SI-3 validation tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 4 scheme-handler tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SpineTextureGeneratorTests` | Passed: 3 spine texture generator tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity` | Passed: 1 Bookshelf3D bounded-context architecture test |
 | `npx --yes -p typescript tsc --noEmit -p src\shelf3d\tsconfig.json` | Passed: strict TypeScript message contract check |
 
@@ -38,10 +41,13 @@ ready for those adapters through `IWebViewHostAdapter`.
 | Asset scheme handler | `OgmaSchemeHandler` serves only `ogma://assets/<class>/<filename>` from the sidecar asset root |
 | Path traversal guard | Traversal attempts such as `ogma://assets/covers/../../secrets.db` return 403 instead of leaking filesystem paths |
 | MIME types | PNG, JPEG, JavaScript, and JSON assets return explicit content types |
+| Spine texture generator | `SpineTextureGenerator` renders 128x512 PNG textures from title, author, and dominant background color |
+| Spine readability | The generator chooses light/dark text based on background luminance and truncates long title/author text to fit the texture |
 
 ## Remaining Phase 14 Work
 
 - WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter` and register platform DI.
 - WP2 native bridge registration of the `ogma://` handler remains for the WebView initialization slice.
+- WP4 worker integration/cache invalidation remains: generated textures are tested but not yet wired into the ingestion/update pipeline.
 - WP3 full side-effect integration test against the ViewModel stack after WP6 exists.
 - WP4-WP9 spine textures, Three.js scene, view model/view, fallback, performance benchmarks, review, and remote CI evidence.
