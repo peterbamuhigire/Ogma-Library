@@ -1,5 +1,5 @@
 using System.Net;
-using OgmaLibrary.Infrastructure.Metadata;
+using OgmaLibrary.Infrastructure.Metadata.Providers;
 
 namespace OgmaLibrary.Tests.Metadata;
 

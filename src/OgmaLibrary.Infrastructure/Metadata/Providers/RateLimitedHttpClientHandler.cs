@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace OgmaLibrary.Infrastructure.Metadata;
+namespace OgmaLibrary.Infrastructure.Metadata.Providers;
 
 /// <summary>Provider-specific HTTP rate limiting and transient retry policy.</summary>
 public sealed record MetadataProviderRateLimitPolicy(
