@@ -463,3 +463,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-01 | Implementation | Advanced WP3: added authenticated `/api/v1/catalogue/search` metadata search projection using the existing `IMetadataSearchService` application seam and bounded LAN result size. |
 | 2026-06-01 | Implementation | Advanced WP5: added authenticated page-render endpoint that resolves catalogue PDFs, renders 1-based page requests to PNG bytes, clamps render width, and returns `403` when FileStream mode is active. |
 | 2026-06-01 | Implementation | Advanced WP7/network boundary: added LAN bind-address selection that prefers active RFC1918 IPv4 adapters, falls back to loopback, and publishes the selected address in the mDNS TXT record. |
+| 2026-06-01 | Implementation | Advanced WP5: added `LanPageRenderLimiter`, capping simultaneous page renders at 10 and returning `429` when the Host is saturated instead of queuing unbounded work. |

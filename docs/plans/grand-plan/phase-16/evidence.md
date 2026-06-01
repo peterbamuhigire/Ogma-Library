@@ -44,6 +44,9 @@ listener endpoints:
   the catalogue, treats the URL page number as 1-based, clamps render width, and
   returns PNG bytes. It returns `403` when the Host is switched to FileStream
   mode.
+- Page renders are protected by `LanPageRenderLimiter`, a fail-fast concurrency
+  guard that caps simultaneous Host render work at 10 requests and returns `429`
+  when saturated.
 - The listener uses a short-lived server certificate with `localhost` and
   `127.0.0.1` SANs issued from the persisted Host CA; the advertised fingerprint
   remains the Host CA SHA-256 fingerprint.
@@ -72,7 +75,7 @@ listener endpoints:
 
 | Gate | Evidence |
 | --- | --- |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 26 scaffold/persistence/certificate/mDNS/bind-selector/resolver/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanPageRenderLimiterTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 28 scaffold/persistence/certificate/mDNS/bind-selector/resolver/limiter/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, page-render concurrency saturation and lease release, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
@@ -90,6 +93,7 @@ listener endpoints:
 | LanHost catalogue contract | Authenticated catalogue list supports bounded `page`/`pageSize` metadata, metadata search projection, and single-book detail lookup |
 | LanHost asset endpoint | Authenticated cover/spine/thumbnail sidecar endpoint with SHA-256 hash validation |
 | LanHost page-render endpoint | Authenticated page-render endpoint returns PNG bytes in PageRender mode and rejects requests in FileStream mode |
+| LanHost page-render limiter | Caps simultaneous page renders at 10 and fails fast with `429` when saturated |
 | LanHost file-stream endpoint | Default page-render mode returns `403`; explicit FileStream mode streams catalogue-resolved PDFs with path traversal/rooted-path protection and range support |
 | LanHost request audit | `LanHostRequestServed` rows in `AuditEvents` for health, session, unauthorized, authenticated catalogue, asset, and FileStream requests; payloads include status code and active content mode |
 | LanHost EF entities/configurations | `HostModeSettingsRow`, `HostClientSessionRow`, and matching EF configurations |
@@ -101,5 +105,5 @@ listener endpoints:
 
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
-- WP5+ render concurrency/rate controls, Host settings UI, same-subnet
-  verification, and load tests.
+- WP8+ Host settings UI, same-subnet verification, full page-render load tests,
+  and macOS Keychain-specific CA private-key storage.

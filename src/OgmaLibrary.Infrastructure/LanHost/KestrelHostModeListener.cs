@@ -22,6 +22,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly ISidecarService _sidecarService;
     private readonly ILanBookFileResolver _fileResolver;
     private readonly ILanPageRenderer _pageRenderer;
+    private readonly ILanPageRenderLimiter _pageRenderLimiter;
     private readonly IClientSessionService _sessions;
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
@@ -34,6 +35,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         ISidecarService sidecarService,
         ILanBookFileResolver fileResolver,
         ILanPageRenderer pageRenderer,
+        ILanPageRenderLimiter pageRenderLimiter,
         IClientSessionService sessions,
         IHostServerCertificateProvider certificates,
         IAuditRepository audit,
@@ -44,6 +46,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _sidecarService = sidecarService ?? throw new ArgumentNullException(nameof(sidecarService));
         _fileResolver = fileResolver ?? throw new ArgumentNullException(nameof(fileResolver));
         _pageRenderer = pageRenderer ?? throw new ArgumentNullException(nameof(pageRenderer));
+        _pageRenderLimiter = pageRenderLimiter ?? throw new ArgumentNullException(nameof(pageRenderLimiter));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
@@ -266,9 +269,23 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             }
 
             int width = Math.Clamp(widthPx ?? 1200, 320, 2400);
-            RenderResult? result = await _pageRenderer
-                .RenderAsync(bookId, pageNumber, new RenderRequest(width), ct)
-                .ConfigureAwait(false);
+            if (!_pageRenderLimiter.TryAcquire(out IDisposable lease))
+            {
+                return Results.Json(
+                    new LanHostError(
+                        "page_render_busy",
+                        "The Host is currently serving the maximum number of page-render requests. Try again shortly."),
+                    statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
+            RenderResult? result;
+            using (lease)
+            {
+                result = await _pageRenderer
+                    .RenderAsync(bookId, pageNumber, new RenderRequest(width), ct)
+                    .ConfigureAwait(false);
+            }
+
             if (result is null)
             {
                 return Results.NotFound(new LanHostError("page_not_found", "The requested page was not found or cannot be rendered."));
