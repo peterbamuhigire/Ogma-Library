@@ -63,7 +63,7 @@ not claim a remote CI pass.
 
 ## Locally Actionable Findings
 
-The continuation pass found thirteen locally actionable mismatches and fixed
+The continuation pass found fourteen locally actionable mismatches and fixed
 them:
 
 | Finding | Resolution |

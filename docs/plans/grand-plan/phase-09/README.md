@@ -390,6 +390,9 @@ Current implementation progress:
 - Direct PDF open now registers any selected PDF path that does not already
   have a present `BookFiles` row, even if hash or fuzzy identity matches an
   existing catalogue item.
+- Choose Library Folder scans now register coexisting same-hash PDFs at new
+  unregistered paths as new books while preserving true move/rename rematches
+  when the previous file path is no longer present.
 - Delivered Phase 09 premium SVGs now render across reader toolbar actions,
   selection actions, citation cards, sidebar tab headers, bookmark/layer
   panels, note anchors, highlight color picker, bookmark rename, and
