@@ -49,6 +49,8 @@ public sealed record BookSummaryProjection(
 /// <param name="Annotations">Count of annotations.</param>
 /// <param name="MetadataFields">All provenance-tracked metadata fields.</param>
 /// <param name="ReadingMemory">Reading-memory summary, or null.</param>
+/// <param name="IsOcrDerived">Whether searchable text for this book came from OCR.</param>
+/// <param name="IsPasswordProtected">Whether the source PDF is password-protected.</param>
 public sealed record BookDetailProjection(
     string BookId,
     string? Title,
@@ -65,7 +67,9 @@ public sealed record BookDetailProjection(
     ReadingProgressProjection? ReadingProgress,
     int Annotations,
     IReadOnlyList<MetadataFieldProjection> MetadataFields,
-    ReadingMemorySummaryProjection? ReadingMemory = null);
+    ReadingMemorySummaryProjection? ReadingMemory = null,
+    bool IsOcrDerived = false,
+    bool IsPasswordProtected = false);
 
 /// <summary>
 /// Compact reading-memory data surfaced in the book-detail panel.

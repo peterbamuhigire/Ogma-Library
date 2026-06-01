@@ -85,7 +85,9 @@ public static class CompositionRoot
         services.AddSingleton<IPasswordProvider>(_ =>
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new WindowsPasswordProvider()
-                : new UnsupportedPasswordProvider());
+                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? new MacOsKeychainPasswordProvider()
+                    : new UnsupportedPasswordProvider());
 
         // Phase 05 — Ingestion Pipeline (Infrastructure services).
         services.AddIngestionPipeline(dataDirectory: dataDirectory);
@@ -138,7 +140,8 @@ public static class CompositionRoot
                 localization,
                 sp.GetRequiredService<IBookMetadataEnrichmentService>(),
                 sp.GetRequiredService<IReadingMemoryService>(),
-                sp.GetRequiredService<IOcrJobQueueService>());
+                sp.GetRequiredService<IOcrJobQueueService>(),
+                sp.GetRequiredService<IPasswordProvider>());
             var readerVm = new ReaderViewModel(
                 sp.GetRequiredService<IReaderSessionService>(),
                 sp.GetRequiredService<IAnnotationService>(),

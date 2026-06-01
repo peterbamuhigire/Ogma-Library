@@ -23,6 +23,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IBookMetadataEnrichmentService? _metadataEnrichment;
     private readonly IReadingMemoryService? _readingMemoryService;
     private readonly IOcrJobQueueService? _ocrJobs;
+    private readonly IPasswordProvider? _passwordProvider;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -33,6 +34,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _isVisible;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
+    private string? _passwordStatusText;
     private string? _readingMemoryStatusText;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
@@ -48,13 +50,15 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="metadataEnrichment">The deterministic no-AI metadata enrichment service.</param>
     /// <param name="readingMemoryService">The reading-memory persistence service.</param>
     /// <param name="ocrJobs">The OCR queue service for scanned PDFs.</param>
+    /// <param name="passwordProvider">The OS credential provider for protected PDFs.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
         ILocalizationService localization,
         IBookMetadataEnrichmentService? metadataEnrichment = null,
         IReadingMemoryService? readingMemoryService = null,
-        IOcrJobQueueService? ocrJobs = null)
+        IOcrJobQueueService? ocrJobs = null,
+        IPasswordProvider? passwordProvider = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -66,6 +70,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _metadataEnrichment = metadataEnrichment;
         _readingMemoryService = readingMemoryService;
         _ocrJobs = ocrJobs;
+        _passwordProvider = passwordProvider;
     }
 
     /// <inheritdoc />
@@ -137,6 +142,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>True when the selected book can be queued for OCR.</summary>
     public bool CanRunOcr => _book is not null && _ocrJobs is not null && !IsQueueingOcr;
 
+    /// <summary>True when the selected protected book can forget a stored OS password.</summary>
+    public bool CanForgetPassword =>
+        _book is { IsPasswordProtected: true } &&
+        _passwordProvider is not null &&
+        !string.IsNullOrWhiteSpace(_book.Sha256Hash);
+
     /// <summary>Localized button label for deterministic metadata enrichment.</summary>
     public string EnrichText => _localization["Catalogue.BookDetail.Enrich"];
 
@@ -148,6 +159,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Localized tooltip for OCR queueing.</summary>
     public string RunOcrTooltip => _localization["Catalogue.BookDetail.RunOcrTooltip"];
+
+    /// <summary>Localized button label for clearing a stored PDF password.</summary>
+    public string ForgetPasswordText => _localization["Catalogue.BookDetail.ForgetPassword"];
+
+    /// <summary>Localized tooltip for clearing a stored PDF password.</summary>
+    public string ForgetPasswordTooltip => _localization["Catalogue.BookDetail.ForgetPasswordTooltip"];
 
     /// <summary>Current user-facing enrichment status, if any.</summary>
     public string? EnrichmentStatusText
@@ -185,6 +202,24 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>True when the detail panel has OCR queue status to display.</summary>
     public bool HasOcrStatus => !string.IsNullOrWhiteSpace(OcrStatusText);
 
+    /// <summary>Current user-facing password action status, if any.</summary>
+    public string? PasswordStatusText
+    {
+        get => _passwordStatusText;
+        private set
+        {
+            if (_passwordStatusText != value)
+            {
+                _passwordStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasPasswordStatus));
+            }
+        }
+    }
+
+    /// <summary>True when the detail panel has password status to display.</summary>
+    public bool HasPasswordStatus => !string.IsNullOrWhiteSpace(PasswordStatusText);
+
     // ── Core identity ───────────────────────────────────────────────────────────
 
     /// <summary>The loaded book detail projection, or <see langword="null"/> if not loaded.</summary>
@@ -205,6 +240,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(RelativePath));
             OnPropertyChanged(nameof(SizeBytes));
             OnPropertyChanged(nameof(Sha256Hash));
+            OnPropertyChanged(nameof(IsOcrDerived));
+            OnPropertyChanged(nameof(IsPasswordProtected));
             OnPropertyChanged(nameof(ReadingStatus));
             OnPropertyChanged(nameof(ReadingProgressPct));
             OnPropertyChanged(nameof(LastReadDisplay));
@@ -228,6 +265,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(AiFields));
             OnPropertyChanged(nameof(CanEnrich));
             OnPropertyChanged(nameof(CanRunOcr));
+            OnPropertyChanged(nameof(CanForgetPassword));
         }
     }
 
@@ -260,6 +298,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>SHA-256 hex digest.</summary>
     public string? Sha256Hash => _book?.Sha256Hash;
+
+    /// <summary>Whether the loaded book has OCR-derived searchable text.</summary>
+    public bool IsOcrDerived => _book?.IsOcrDerived == true;
+
+    /// <summary>Whether the loaded book's PDF requires a password.</summary>
+    public bool IsPasswordProtected => _book?.IsPasswordProtected == true;
 
     // ── Reading group ─────────────────────────────────────────────────────────
 
@@ -587,6 +631,40 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                     _localization["Catalogue.BookDetail.OcrFailedFormat"],
                     ex.Message);
                 IsQueueingOcr = false;
+            });
+        }
+    }
+
+    /// <summary>Forgets the stored OS credential for the loaded protected PDF.</summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task ForgetPasswordAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null || _passwordProvider is null || string.IsNullOrWhiteSpace(_book.Sha256Hash))
+        {
+            PasswordStatusText = _localization["Catalogue.BookDetail.ForgetPasswordUnavailable"];
+            return;
+        }
+
+        try
+        {
+            await _passwordProvider
+                .ForgetPasswordAsync(
+                    new PasswordRequest(_book.BookId, _book.Sha256Hash, _book.Title),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            UpdateOnUiThread(() =>
+            {
+                PasswordStatusText = _localization["Catalogue.BookDetail.ForgetPasswordComplete"];
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                PasswordStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.ForgetPasswordFailedFormat"],
+                    ex.Message);
             });
         }
     }

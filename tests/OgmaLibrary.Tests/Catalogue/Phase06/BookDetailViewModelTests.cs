@@ -5,6 +5,7 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Ocr;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
@@ -22,17 +23,26 @@ public sealed class BookDetailViewModelTests
     private static BookDetailViewModel CreateVm(
         BookDetailProjection? detail = null,
         IBookMetadataEnrichmentService? enrichment = null,
-        IOcrJobQueueService? ocrJobs = null)
+        IOcrJobQueueService? ocrJobs = null,
+        IPasswordProvider? passwordProvider = null)
     {
         var readModel = new StubReadModel(detail);
         var reader = new StubReader();
         var loc = new InMemoryLocalizationService();
-        return new BookDetailViewModel(readModel, reader, loc, enrichment, ocrJobs: ocrJobs);
+        return new BookDetailViewModel(
+            readModel,
+            reader,
+            loc,
+            enrichment,
+            ocrJobs: ocrJobs,
+            passwordProvider: passwordProvider);
     }
 
     private static readonly IReadOnlyList<string> TestAuthors = new[] { "Author One", "Author Two" };
 
-    private static BookDetailProjection BuildFullyPopulatedDetail(string title = "Test Title") =>
+    private static BookDetailProjection BuildFullyPopulatedDetail(
+        string title = "Test Title",
+        bool isPasswordProtected = false) =>
         new(
             BookId: "book-1",
             Title: title,
@@ -61,7 +71,8 @@ public sealed class BookDetailViewModelTests
                 new MetadataFieldProjection("Description", "Provider summary", "GoogleBooks", 0.82, false),
                 new MetadataFieldProjection("RelativePath", "books/test.pdf", "System", null, false),
                 new MetadataFieldProjection("Status", "0", "System", null, false),
-            });
+            },
+            IsPasswordProtected: isPasswordProtected);
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 
@@ -261,6 +272,27 @@ public sealed class BookDetailViewModelTests
         Assert.Equal("OCR could not be queued: file missing", vm.OcrStatusText);
     }
 
+    /// <summary>Protected book details can clear stored OS credentials without mutating catalogue flags.</summary>
+    [Fact]
+    public async Task BookDetail_ForgetPassword_CallsProviderAndShowsStatus()
+    {
+        var passwordProvider = new StubPasswordProvider();
+        var vm = CreateVm(
+            BuildFullyPopulatedDetail(isPasswordProtected: true),
+            passwordProvider: passwordProvider);
+
+        await vm.LoadBookAsync("book-1");
+        Assert.True(vm.IsPasswordProtected);
+        Assert.True(vm.CanForgetPassword);
+
+        await vm.ForgetPasswordAsync();
+
+        Assert.Equal("book-1", passwordProvider.ForgottenRequest?.BookId);
+        Assert.Equal("abc123", passwordProvider.ForgottenRequest?.ContentHash);
+        Assert.Equal("Stored PDF password forgotten.", vm.PasswordStatusText);
+        Assert.True(vm.IsPasswordProtected);
+    }
+
     // ── Stubs ─────────────────────────────────────────────────────────────────
 
     private sealed class StubReadModel : ICatalogueReadModel
@@ -360,6 +392,22 @@ public sealed class BookDetailViewModelTests
             BookId = bookId;
             LanguageHint = languageHint;
             return Task.FromResult(_result);
+        }
+    }
+
+    private sealed class StubPasswordProvider : IPasswordProvider
+    {
+        public PasswordRequest? ForgottenRequest { get; private set; }
+
+        public Task<PasswordResult> GetPasswordAsync(
+            PasswordRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(PasswordResult.Failed("not used"));
+
+        public Task ForgetPasswordAsync(PasswordRequest request, CancellationToken cancellationToken = default)
+        {
+            ForgottenRequest = request;
+            return Task.CompletedTask;
         }
     }
 }

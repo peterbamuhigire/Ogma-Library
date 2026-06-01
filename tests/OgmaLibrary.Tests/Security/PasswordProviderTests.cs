@@ -35,6 +35,23 @@ public sealed class PasswordProviderTests
     }
 
     [Fact]
+    public async Task MacOsKeychainPasswordProvider_NonMac_ReturnsUnavailableWithoutPrompt()
+    {
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.OSX))
+        {
+            return;
+        }
+
+        var provider = new MacOsKeychainPasswordProvider();
+        using PasswordResult result = await provider.GetPasswordAsync(
+            new PasswordRequest("book-1", new string('e', 64), "Protected fixture"));
+
+        Assert.Null(result.Password);
+        Assert.Contains("macOS Keychain", result.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Password_NeverStoredInCatalogue()
     {
         const string secret = "test-secret-42";

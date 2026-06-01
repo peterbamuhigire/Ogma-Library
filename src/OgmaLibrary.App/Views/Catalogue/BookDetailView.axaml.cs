@@ -45,6 +45,14 @@ public partial class BookDetailView : UserControl
         }
     }
 
+    private async void ForgetPasswordButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.ForgetPasswordAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void ReadingMemoryField_LostFocus(object? sender, RoutedEventArgs e)
     {
         if (DataContext is BookDetailViewModel vm)

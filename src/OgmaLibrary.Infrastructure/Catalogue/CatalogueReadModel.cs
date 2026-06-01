@@ -187,6 +187,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.RelativePath,
                 b.Sha256Hash,
                 b.SizeBytes,
+                b.IsOcrDerived,
+                b.IsPasswordProtected,
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
                     .Select(ba => ba.Author!.NormalizedName)
@@ -242,7 +244,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             ReadingProgress: progress,
             Annotations: result.AnnotationCount,
             MetadataFields: fields,
-            ReadingMemory: memory);
+            ReadingMemory: memory,
+            IsOcrDerived: result.IsOcrDerived,
+            IsPasswordProtected: result.IsPasswordProtected);
     }
 
     private static string? ResolveTitle(

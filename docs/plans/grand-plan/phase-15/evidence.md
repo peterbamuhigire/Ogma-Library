@@ -26,6 +26,11 @@ is supplied through `Tesseract.Data.English`, which copies
 The WP4 reader handoff now opens protected PDFs through `OpenProtectedAsync`,
 passes the password to the PDFium adapter, clears provider-owned password
 buffers after open, and covers the known-password PDF render path.
+WP4 now has platform coverage for the password provider boundary: Windows uses
+Credential Manager, macOS resolves stored credentials through Keychain's
+`security` tool, non-supported platforms fail closed, and the book-detail panel
+can forget a stored OS credential without changing the protected-book catalogue
+flag.
 The first WP6 scale-hardening slice adds provider-specific rate limiting and
 429/503 retry handling to the Google Books and Open Library HTTP clients.
 Batch enrichment jobs are now tagged with recoverable 50-book chunk metadata
@@ -61,6 +66,8 @@ indexes.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PasswordProviderTests` | Passed: 5 password-provider security/handoff tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~PasswordProviderTests\|FullyQualifiedName~ReaderSessionServiceTests\|FullyQualifiedName~PdfiumAdapterPasswordTests"` | Passed: 16 password/session/PDFium handoff tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PdfiumAdapterPasswordTests` | Passed: 1 real PDFium password-protected render test |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~PasswordProviderTests\|FullyQualifiedName~BookDetail_ForgetPassword" --logger "console;verbosity=detailed"` | Passed: 7 password provider, non-macOS Keychain fail-closed, no-catalogue-secret, buffer-clearing, and book-detail forget-password tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SkeletonRenderTests` | Passed: 5 UI skeleton tests after adding the book-detail protected-PDF action |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RateLimitedHttpClientTests` | Passed: 3 provider rate-limit/retry tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~HealthDashboardTests\|FullyQualifiedName~RateLimitedHttpClientTests"` | Passed: 10 health/batch/rate-limit tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger "console;verbosity=detailed"` | Passed: 3 smart-shelf index/query-plan/2,000-book benchmark tests |
@@ -100,7 +107,9 @@ indexes.
 | Split-view scaffold | `SplitViewViewModel`, `SplitViewView`, and `MainShellViewModel.OpenSplitViewScaffold()` provide the Phase 15 V2 route with localized placeholder copy |
 | Password provider boundary | `IPasswordProvider`, `PasswordRequest`, and disposable `PasswordResult` define the no-catalogue-secret unlock contract |
 | Windows credential provider | `WindowsPasswordProvider` checks Windows Credential Manager and uses the OS credential prompt for missing passwords |
+| macOS credential provider | `MacOsKeychainPasswordProvider` reads/deletes stored PDF passwords through macOS Keychain and fails closed off macOS |
 | Password unlock view model | `PasswordUnlockViewModel` requests passwords without writing secret values to EF rows or sidecars |
+| Book-detail forget password | `BookDetailViewModel` and `BookDetailView` expose a protected-PDF forget action that calls `IPasswordProvider.ForgetPasswordAsync` using the book content hash |
 | Protected reader handoff | `IReaderSessionService.OpenProtectedAsync` and `IPdfRendererFactory.Open(filePath, password)` carry OS-supplied passwords to the renderer boundary |
 | PDFium password render path | `PdfiumAdapter` detects required passwords, opens protected PDFs with supplied credentials, and clears its session password buffer on dispose |
 | Provider HTTP resilience | `RateLimitedHttpClientHandler` spaces Google Books/Open Library requests and retries 429/503 responses with bounded exponential backoff |
@@ -116,7 +125,7 @@ indexes.
 
 - WP2 native Tesseract golden-corpus run remains to be added when binary/image OCR fixtures are available; deterministic golden-corpus pipeline coverage is now in place.
 - WP3 Health Dashboard OCR trigger discovery, if separate from the Index Manager job surface.
-- WP4 macOS Keychain provider and book-detail forget-password UI.
+- WP4 real macOS Keychain CI evidence and password golden-corpus fixture.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
 - WP9 golden-corpus, security review, and full remote CI evidence.
