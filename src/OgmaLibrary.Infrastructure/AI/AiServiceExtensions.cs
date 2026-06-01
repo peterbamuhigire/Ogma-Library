@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Infrastructure.AI.Providers;
 
 namespace OgmaLibrary.Infrastructure.AI;
 
@@ -12,6 +13,11 @@ public static class AiServiceExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IAiPayloadBuilder, AiPayloadBuilder>();
         services.AddSingleton<IAiCostCalculator, AiCostCalculator>();
+        services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
+        services.AddHttpClient("ai:openai", client => client.BaseAddress = new Uri("https://api.openai.com/v1/"));
+        services.AddHttpClient("ai:deepseek", client => client.BaseAddress = new Uri("https://api.deepseek.com/v1/"));
+        services.AddHttpClient("ai:anthropic", client => client.BaseAddress = new Uri("https://api.anthropic.com/v1/"));
+        services.AddHttpClient("ai:ollama", client => client.BaseAddress = new Uri("http://localhost:11434/"));
         return services;
     }
 }
