@@ -7,13 +7,14 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 public static class LanHostServiceExtensions
 {
     /// <summary>Adds LAN Host-mode services without opening any listener.</summary>
-    public static IServiceCollection AddLanHostServices(this IServiceCollection services)
+    public static IServiceCollection AddLanHostServices(this IServiceCollection services, string? dataDirectory = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IHostModeSettingsRepository, HostModeSettingsRepository>();
         services.AddSingleton<IClientSessionService, ClientSessionService>();
-        services.AddSingleton<ICertificateProvisioner, StubCertificateProvisioner>();
+        services.AddSingleton<ICertificateProvisioner>(_ => new LocalCertificateProvisioner(
+            dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));
         services.AddSingleton<IMdnsAdvertiser, NoopMdnsAdvertiser>();
         services.AddSingleton<ILibraryHostService, LibraryHostService>();
         return services;

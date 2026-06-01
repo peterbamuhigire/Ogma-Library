@@ -97,7 +97,7 @@ public static class CompositionRoot
         services.AddMetadataEnrichment(libraryRoot: dataDirectory);
 
         // Phase 16 — opt-in LAN Library Host bounded-context scaffold.
-        services.AddLanHostServices();
+        services.AddLanHostServices(dataDirectory);
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();
