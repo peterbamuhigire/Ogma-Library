@@ -42,7 +42,8 @@ public sealed record IndexManagerStatus(
     long IndexSizeBytes,
     FtsIntegrityResult Integrity,
     IReadOnlyList<BookIndexStatusItem> Books,
-    IReadOnlyList<OcrJobStatusItem> OcrJobs);
+    IReadOnlyList<OcrJobStatusItem> OcrJobs,
+    SmartShelfQueryStats SmartShelfStats);
 
 /// <summary>Per-book row for the Index Manager status list.</summary>
 public sealed record BookIndexStatusItem(
@@ -70,6 +71,16 @@ public sealed record OcrJobStatusItem(
     /// <summary>Percentage complete, rounded down, when total pages are known.</summary>
     public int PercentComplete =>
         TotalPages <= 0 ? 0 : Math.Clamp((int)Math.Floor(ProcessedPages * 100d / TotalPages), 0, 100);
+}
+
+/// <summary>Index Manager smart-shelf query performance and index-health status.</summary>
+public sealed record SmartShelfQueryStats(
+    double LastQueryMilliseconds,
+    bool RequiredIndexesHealthy,
+    IReadOnlyList<string> MissingIndexes)
+{
+    /// <summary>Whether the stats include a measured query sample.</summary>
+    public bool HasQuerySample => LastQueryMilliseconds >= 0;
 }
 
 /// <summary>Normalized OCR job states for the Index Manager.</summary>

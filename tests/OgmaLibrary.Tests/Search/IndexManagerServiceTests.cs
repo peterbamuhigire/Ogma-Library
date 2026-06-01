@@ -87,6 +87,8 @@ public sealed class IndexManagerServiceTests : IDisposable
         Assert.Equal(3, ocrJob.ProcessedPages);
         Assert.Equal(12, ocrJob.TotalPages);
         Assert.Equal(25, ocrJob.PercentComplete);
+        Assert.True(status.SmartShelfStats.RequiredIndexesHealthy);
+        Assert.True(status.SmartShelfStats.LastQueryMilliseconds >= 0);
         Assert.Contains(observer.Events, update => update is IndexStatusUpdate.StatusChanged);
     }
 

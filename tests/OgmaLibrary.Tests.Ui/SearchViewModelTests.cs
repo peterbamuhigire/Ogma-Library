@@ -118,6 +118,8 @@ public sealed class SearchViewModelTests
         Assert.Equal("Active OCR jobs: 1", vm.OcrJobsSummary);
         Assert.Contains(vm.OcrJobs, job => job.StateText == "Running" && job.ProgressText == "2/8 pages (25%)");
         Assert.Contains(vm.OcrJobs, job => job.CanPause && job.CanCancel && !job.CanRetry);
+        Assert.True(vm.SmartShelfIndexesHealthy);
+        Assert.Contains("Smart shelf query:", vm.SmartShelfQuerySummary, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
@@ -499,7 +501,11 @@ public sealed class SearchViewModelTests
                         ProcessedPages: 2,
                         TotalPages: 8,
                         ErrorMessage: null),
-                ]);
+                ],
+                SmartShelfStats: new SmartShelfQueryStats(
+                    LastQueryMilliseconds: 3.25,
+                    RequiredIndexesHealthy: true,
+                    MissingIndexes: []));
     }
 
     private sealed class SlowIndexManagerService : IIndexManagerService

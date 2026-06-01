@@ -33,6 +33,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     private int _embeddingErasureCountdownSeconds;
     private string? _statusText;
     private IReadOnlyList<OcrJobStatusItem> _ocrJobs = [];
+    private SmartShelfQueryStats _smartShelfStats = new(-1, RequiredIndexesHealthy: false, MissingIndexes: []);
 
     /// <summary>
     /// Initializes a new instance of <see cref="IndexManagerViewModel"/>.
@@ -211,6 +212,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Whether OCR job status should be shown.</summary>
     public bool HasOcrJobs => OcrJobs.Count > 0;
 
+    /// <summary>Whether smart-shelf indexes are available.</summary>
+    public bool SmartShelfIndexesHealthy => _smartShelfStats.RequiredIndexesHealthy;
+
     /// <summary>Localized panel label.</summary>
     public string PanelLabel => _localization["IndexManager.Panel.Label"];
 
@@ -298,6 +302,22 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         System.Globalization.CultureInfo.CurrentCulture,
         _localization["IndexManager.OcrJobs.ActiveFormat"],
         ActiveOcrJobs);
+
+    /// <summary>Localized smart-shelf query timing summary.</summary>
+    public string SmartShelfQuerySummary => _smartShelfStats.HasQuerySample
+        ? string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["IndexManager.SmartShelves.QueryTimeFormat"],
+            _smartShelfStats.LastQueryMilliseconds)
+        : _localization["IndexManager.SmartShelves.QueryTimeUnknown"];
+
+    /// <summary>Localized smart-shelf index health summary.</summary>
+    public string SmartShelfIndexHealthSummary => _smartShelfStats.RequiredIndexesHealthy
+        ? _localization["IndexManager.SmartShelves.IndexesHealthy"]
+        : string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["IndexManager.SmartShelves.IndexesMissingFormat"],
+            string.Join(", ", _smartShelfStats.MissingIndexes));
 
     /// <summary>Localized pause OCR label.</summary>
     public string PauseOcrLabel => _localization["IndexManager.OcrJobs.Pause"];
@@ -559,6 +579,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             IndexSizeBytes = status.IndexSizeBytes;
             IntegrityHealthy = status.Integrity.IsHealthy;
             _ocrJobs = status.OcrJobs;
+            _smartShelfStats = status.SmartShelfStats;
             ActiveOcrJobs = status.OcrJobs.Count(job => job.State is OcrJobState.Pending or OcrJobState.Running);
 
             Books.Clear();
@@ -615,6 +636,8 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(FailedSummary));
         OnPropertyChanged(nameof(PendingOcrSummary));
         OnPropertyChanged(nameof(OcrJobsSummary));
+        OnPropertyChanged(nameof(SmartShelfQuerySummary));
+        OnPropertyChanged(nameof(SmartShelfIndexHealthSummary));
         OnPropertyChanged(nameof(PauseOcrLabel));
         OnPropertyChanged(nameof(CancelOcrLabel));
         OnPropertyChanged(nameof(RetryOcrLabel));
@@ -636,6 +659,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(SearchChunkCount));
         OnPropertyChanged(nameof(IndexSizeBytes));
         OnPropertyChanged(nameof(IntegrityHealthy));
+        OnPropertyChanged(nameof(SmartShelfIndexesHealthy));
         OnPropertyChanged(nameof(IndexedSummary));
         OnPropertyChanged(nameof(FailedSummary));
         OnPropertyChanged(nameof(PendingOcrSummary));
@@ -644,6 +668,8 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(SizeSummary));
         OnPropertyChanged(nameof(FailedPagesSummary));
         OnPropertyChanged(nameof(IntegritySummary));
+        OnPropertyChanged(nameof(SmartShelfQuerySummary));
+        OnPropertyChanged(nameof(SmartShelfIndexHealthSummary));
         OnPropertyChanged(nameof(HasErrors));
         OnPropertyChanged(nameof(HasOcrJobs));
     }

@@ -39,6 +39,9 @@ architecture visibility test.
 WP3 OCR job controls are wired through the Index Manager: queued/running OCR jobs
 can be paused or cancelled, failed/paused/cancelled jobs can be retried, and the
 panel exposes localized action labels for each job row.
+WP7 is complete locally: the Index Manager now exposes Smart Shelf Query Stats
+with the latest measured query time and health for the three Phase 15 composite
+indexes.
 
 ## Verified Locally
 
@@ -93,6 +96,7 @@ panel exposes localized action labels for each job row.
 | Smart-shelf composite indexes | `Phase15SmartShelfIndexes` adds `IX_Books_Status_Year`, `IX_ShelfBooks_ShelfId_BookId`, and `IX_BookMetadataFields_FieldName_Value` |
 | Smart-shelf query evidence | `docs/benchmarks/phase-15/query-plans.md` records `EXPLAIN QUERY PLAN` output for five common smart-shelf filters |
 | Smart-shelf baseline | `docs/benchmarks/phase-15/smart-shelf-baseline.json` records the 2,000-book P95 timing baseline |
+| Smart-shelf stats panel | Index Manager shows representative smart-shelf query time and missing-index health |
 | OCR extension point | `IOcrProvider` is internal, `[ExtensionPoint]`-marked, and only visible to friend assemblies until the Phase 23 SDK review |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
@@ -103,5 +107,4 @@ panel exposes localized action labels for each job row.
 - WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
-- WP7 Index Manager smart-shelf query stats panel.
 - WP9 golden-corpus, security review, and full remote CI evidence.

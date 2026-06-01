@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -102,6 +104,8 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
             .ConfigureAwait(false);
         List<OcrJobStatusItem> ocrJobs = await LoadOcrJobStatusesAsync(context, cancellationToken)
             .ConfigureAwait(false);
+        SmartShelfQueryStats smartShelfStats = await LoadSmartShelfStatsAsync(context, cancellationToken)
+            .ConfigureAwait(false);
 
         IndexManagerStatus status = new(
             TotalBooks: bookRows.Count,
@@ -123,7 +127,8 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                     book.FailedPageCount,
                     book.PendingOcrPageCount))
                 .ToList(),
-            OcrJobs: ocrJobs);
+            OcrJobs: ocrJobs,
+            SmartShelfStats: smartShelfStats);
 
         _events.Publish(new IndexStatusUpdate.StatusChanged(status));
         return status;
@@ -331,6 +336,56 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                     row.Job.ErrorMessage);
             })
             .ToList();
+    }
+
+    private static async Task<SmartShelfQueryStats> LoadSmartShelfStatsAsync(
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        string[] requiredIndexes =
+        [
+            "IX_Books_Status_Year",
+            "IX_ShelfBooks_ShelfId_BookId",
+            "IX_BookMetadataFields_FieldName_Value",
+        ];
+
+        List<string> missingIndexes = [];
+        foreach (string index in requiredIndexes)
+        {
+            if (!IndexExists(context, index))
+            {
+                missingIndexes.Add(index);
+            }
+        }
+
+        Stopwatch sw = Stopwatch.StartNew();
+        _ = await context.Books
+            .AsNoTracking()
+            .Where(book => book.Status == ActiveBookStatus && book.Year >= 2010)
+            .CountAsync(cancellationToken)
+            .ConfigureAwait(false);
+        sw.Stop();
+
+        return new SmartShelfQueryStats(
+            sw.Elapsed.TotalMilliseconds,
+            missingIndexes.Count == 0,
+            missingIndexes);
+    }
+
+    private static bool IndexExists(CatalogueDbContext context, string indexName)
+    {
+        context.Database.OpenConnection();
+        using DbCommand command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(1)
+            FROM sqlite_master
+            WHERE type = 'index' AND name = $name
+            """;
+        DbParameter parameter = command.CreateParameter();
+        parameter.ParameterName = "$name";
+        parameter.Value = indexName;
+        command.Parameters.Add(parameter);
+        return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) > 0;
     }
 
     private static OcrJobState ToOcrState(int status) =>
