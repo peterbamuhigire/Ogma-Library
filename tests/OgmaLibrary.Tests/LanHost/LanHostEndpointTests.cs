@@ -40,14 +40,24 @@ public sealed class LanHostEndpointTests
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.PageRender, "Ogma Endpoint Test"));
 
             ILibraryHostService host = services.GetRequiredService<ILibraryHostService>();
-            await host.StartAsync();
+            LibraryHostStatus started = await host.StartAsync();
+            string enrollmentCode = started.EnrollmentCode ?? throw new InvalidOperationException("Host did not issue an enrollment code.");
 
             using HttpClient http = CreatePinnedTestClient(port);
             using HttpResponseMessage health = await http.GetAsync("/api/v1/health");
             using HttpResponseMessage unauthorized = await http.GetAsync("/api/v1/catalogue?pageSize=10");
+            using HttpResponseMessage invalidSession = await http.PostAsJsonAsync(
+                "/api/v1/auth/session",
+                new
+                {
+                    clientId = "student-1",
+                    role = "Student",
+                    lifetimeMinutes = 5,
+                    enrollmentCode = "WRONG123",
+                });
             using HttpResponseMessage session = await http.PostAsJsonAsync(
                 "/api/v1/auth/session",
-                new { clientId = "student-1", role = "Student", lifetimeMinutes = 5 });
+                new { clientId = "student-1", role = "Student", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=10");
@@ -74,6 +84,7 @@ public sealed class LanHostEndpointTests
 
             Assert.Equal(HttpStatusCode.OK, health.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, invalidSession.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
@@ -110,11 +121,19 @@ public sealed class LanHostEndpointTests
 
             await services.GetRequiredService<IHostModeSettingsRepository>()
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.FileStream, "Ogma Endpoint Test"));
-            await host.StartAsync();
+            LibraryHostStatus fileStreamStarted = await host.StartAsync();
+            string fileStreamEnrollmentCode = fileStreamStarted.EnrollmentCode ??
+                                              throw new InvalidOperationException("Host did not issue an enrollment code.");
             using HttpClient fileStreamHttp = CreatePinnedTestClient(port);
             using HttpResponseMessage fileStreamSession = await fileStreamHttp.PostAsJsonAsync(
                 "/api/v1/auth/session",
-                new { clientId = "teacher-1", role = "Teacher", lifetimeMinutes = 5 });
+                new
+                {
+                    clientId = "teacher-1",
+                    role = "Teacher",
+                    lifetimeMinutes = 5,
+                    enrollmentCode = fileStreamEnrollmentCode,
+                });
             string fileStreamToken = await ReadJsonStringAsync(fileStreamSession, "token");
             fileStreamHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fileStreamToken);
             using HttpResponseMessage disabledPageRender = await fileStreamHttp.GetAsync("/api/v1/books/01LANENDPOINT000000000001/page/1");

@@ -9,6 +9,7 @@ internal interface IHostModeListener
     Task StartAsync(
         HostModeSettings settings,
         string certificateFingerprint,
+        string enrollmentCode,
         CancellationToken cancellationToken = default);
 
     /// <summary>Stops the listener and releases the bound port.</summary>

@@ -57,6 +57,9 @@ public sealed class HostSharingViewModelTests
         Assert.Contains("ogma-lan://127.0.0.1:7473/join", viewModel.ManualJoinUri, StringComparison.Ordinal);
         Assert.Contains("name=Ogma%20Test%20Host", viewModel.ManualJoinUri, StringComparison.Ordinal);
         Assert.Contains("fp=0123456789abcdef", viewModel.ManualJoinUri, StringComparison.Ordinal);
+        Assert.Contains("code=ABCD2345", viewModel.ManualJoinUri, StringComparison.Ordinal);
+        Assert.Contains("auth=enrollment-code", viewModel.ManualJoinUri, StringComparison.Ordinal);
+        Assert.Equal("Enrollment code: ABCD2345", viewModel.EnrollmentCodeText);
         Assert.Contains("\u2588", viewModel.QrCodeText, StringComparison.Ordinal);
         Assert.Contains("0123 4567 89AB CDEF", viewModel.FullFingerprintText, StringComparison.Ordinal);
 
@@ -115,7 +118,8 @@ public sealed class HostSharingViewModelTests
                 ConnectedClientCount: 0,
                 CertificateFingerprint: string.Concat(Enumerable.Repeat("0123456789abcdef", 4)),
                 ErrorMessage: null,
-                HostAddress: "127.0.0.1");
+                HostAddress: "127.0.0.1",
+                EnrollmentCode: "ABCD2345");
             return Task.FromResult(_status);
         }
 
@@ -127,6 +131,7 @@ public sealed class HostSharingViewModelTests
                 State = LibraryHostState.Stopped,
                 CertificateFingerprint = null,
                 HostAddress = null,
+                EnrollmentCode = null,
             };
             return Task.FromResult(_status);
         }

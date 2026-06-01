@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -60,10 +62,12 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     public async Task StartAsync(
         HostModeSettings settings,
         string certificateFingerprint,
+        string enrollmentCode,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentException.ThrowIfNullOrWhiteSpace(certificateFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(enrollmentCode);
         await StopAsync(cancellationToken).ConfigureAwait(false);
         IPAddress bindAddress = _bindAddressSelector.SelectBindAddress();
 
@@ -84,7 +88,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         });
 
         WebApplication app = builder.Build();
-        ConfigurePipeline(app, settings, certificateFingerprint, bindAddress);
+        ConfigurePipeline(app, settings, certificateFingerprint, enrollmentCode, bindAddress);
 
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
@@ -107,6 +111,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         WebApplication app,
         HostModeSettings settings,
         string certificateFingerprint,
+        string enrollmentCode,
         IPAddress bindAddress)
     {
         app.Use(async (context, next) =>
@@ -156,6 +161,15 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
         app.MapPost("/api/v1/auth/session", async (LanSessionIssueRequest request, CancellationToken ct) =>
         {
+            if (!IsEnrollmentCodeValid(request.EnrollmentCode, enrollmentCode))
+            {
+                return Results.Json(
+                    new LanHostError(
+                        "invalid_enrollment_code",
+                        "A valid LAN Host enrollment code is required to create a session."),
+                    statusCode: StatusCodes.Status401Unauthorized);
+            }
+
             string clientId = string.IsNullOrWhiteSpace(request.ClientId) ? "manual-client" : request.ClientId;
             string role = string.IsNullOrWhiteSpace(request.Role) ? "Reader" : request.Role;
             TimeSpan lifetime = TimeSpan.FromMinutes(Math.Clamp(request.LifetimeMinutes ?? 30, 1, 480));
@@ -332,6 +346,27 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         path.StartsWithSegments("/api/v1/health", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWithSegments("/api/v1/auth/session", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsEnrollmentCodeValid(string? suppliedCode, string expectedCode)
+    {
+        if (string.IsNullOrWhiteSpace(suppliedCode))
+        {
+            return false;
+        }
+
+        byte[] suppliedBytes = Encoding.UTF8.GetBytes(suppliedCode.Trim());
+        byte[] expectedBytes = Encoding.UTF8.GetBytes(expectedCode);
+        try
+        {
+            return suppliedBytes.Length == expectedBytes.Length &&
+                   CryptographicOperations.FixedTimeEquals(suppliedBytes, expectedBytes);
+        }
+        finally
+        {
+            Array.Clear(suppliedBytes);
+            Array.Clear(expectedBytes);
+        }
+    }
+
     private static string? ReadBearerToken(HttpRequest request)
     {
         const string prefix = "Bearer ";
@@ -407,7 +442,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private sealed record LanSessionIssueRequest(
         string? ClientId,
         string? Role,
-        int? LifetimeMinutes);
+        int? LifetimeMinutes,
+        string? EnrollmentCode);
 
     private sealed record LanSessionIssueResponse(
         string Token,

@@ -389,6 +389,13 @@
                  TextWrapping="NoWrap"
                  AutomationProperties.Name="LAN Host join link" />
 
+        <TextBlock Text="{Binding EnrollmentCodeText}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Accent.Slate}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.Name="LAN Host enrollment code" />
+
         <TextBlock Text="{Binding FullFingerprintText}"
                    FontSize="{DynamicResource Type.Size.Caption}"
                    Foreground="{DynamicResource Brush.Accent.Slate}"

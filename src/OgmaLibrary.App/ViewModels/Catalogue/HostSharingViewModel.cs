@@ -66,7 +66,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             : FormatFingerprint(_status.CertificateFingerprint);
 
     public string ManualJoinUri => CanShare
-        ? BuildJoinUri(_settings.DisplayName, _status.HostAddress!, _status.Port, _status.CertificateFingerprint!)
+        ? BuildJoinUri(
+            _settings.DisplayName,
+            _status.HostAddress!,
+            _status.Port,
+            _status.CertificateFingerprint!,
+            _status.EnrollmentCode!)
         : string.Empty;
 
     public string QrCodeText => CanShare ? BuildQrCodeText(ManualJoinUri) : string.Empty;
@@ -76,6 +81,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public string SharePanelSubtitle => CanShare
         ? $"Scan or copy the join link for {_settings.DisplayName}."
         : "Start the Host before sharing.";
+
+    public string EnrollmentCodeText => string.IsNullOrWhiteSpace(_status.EnrollmentCode)
+        ? "No enrollment code"
+        : $"Enrollment code: {_status.EnrollmentCode}";
 
     public string ShareButtonText => _shareButtonText;
 
@@ -121,7 +130,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public bool CanShare =>
         IsRunning &&
         !string.IsNullOrWhiteSpace(_status.HostAddress) &&
-        !string.IsNullOrWhiteSpace(_status.CertificateFingerprint);
+        !string.IsNullOrWhiteSpace(_status.CertificateFingerprint) &&
+        !string.IsNullOrWhiteSpace(_status.EnrollmentCode);
 
     public bool IsSharePanelOpen
     {
@@ -260,6 +270,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ManualJoinUri));
         OnPropertyChanged(nameof(QrCodeText));
         OnPropertyChanged(nameof(SharePanelSubtitle));
+        OnPropertyChanged(nameof(EnrollmentCodeText));
         OnPropertyChanged(nameof(ContentModeText));
         OnPropertyChanged(nameof(ToggleContentModeText));
         OnPropertyChanged(nameof(PrimaryActionText));
@@ -275,10 +286,16 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ManualJoinUri));
         OnPropertyChanged(nameof(QrCodeText));
         OnPropertyChanged(nameof(SharePanelSubtitle));
+        OnPropertyChanged(nameof(EnrollmentCodeText));
         OnPropertyChanged(nameof(FullFingerprintText));
     }
 
-    private static string BuildJoinUri(string displayName, string hostAddress, int port, string fingerprint)
+    private static string BuildJoinUri(
+        string displayName,
+        string hostAddress,
+        int port,
+        string fingerprint,
+        string enrollmentCode)
     {
         var builder = new UriBuilder("ogma-lan", hostAddress, port)
         {
@@ -286,7 +303,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             Query =
                 $"name={Uri.EscapeDataString(displayName)}" +
                 $"&fp={Uri.EscapeDataString(fingerprint)}" +
-                "&auth=bearer",
+                $"&code={Uri.EscapeDataString(enrollmentCode)}" +
+                "&auth=enrollment-code",
         };
         return builder.Uri.AbsoluteUri;
     }

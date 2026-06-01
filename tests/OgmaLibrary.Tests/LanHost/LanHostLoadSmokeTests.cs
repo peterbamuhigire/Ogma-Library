@@ -32,12 +32,13 @@ public sealed class LanHostLoadSmokeTests
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.PageRender, "Ogma Load Smoke"));
 
             ILibraryHostService host = services.GetRequiredService<ILibraryHostService>();
-            await host.StartAsync();
+            LibraryHostStatus started = await host.StartAsync();
+            string enrollmentCode = started.EnrollmentCode ?? throw new InvalidOperationException("Host did not issue an enrollment code.");
 
             using HttpClient http = CreatePinnedTestClient(port);
             using HttpResponseMessage session = await http.PostAsJsonAsync(
                 "/api/v1/auth/session",
-                new { clientId = "load-smoke", role = "Teacher", lifetimeMinutes = 5 });
+                new { clientId = "load-smoke", role = "Teacher", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -72,12 +73,13 @@ public sealed class LanHostLoadSmokeTests
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.PageRender, "Ogma Page Load Smoke"));
 
             ILibraryHostService host = services.GetRequiredService<ILibraryHostService>();
-            await host.StartAsync();
+            LibraryHostStatus started = await host.StartAsync();
+            string enrollmentCode = started.EnrollmentCode ?? throw new InvalidOperationException("Host did not issue an enrollment code.");
 
             using HttpClient http = CreatePinnedTestClient(port);
             using HttpResponseMessage session = await http.PostAsJsonAsync(
                 "/api/v1/auth/session",
-                new { clientId = "page-load-smoke", role = "Teacher", lifetimeMinutes = 5 });
+                new { clientId = "page-load-smoke", role = "Teacher", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 

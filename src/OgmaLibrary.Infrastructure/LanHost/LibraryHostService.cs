@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using OgmaLibrary.Application.LanHost;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
@@ -8,6 +9,8 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 /// </summary>
 internal sealed class LibraryHostService : ILibraryHostService
 {
+    private const string EnrollmentCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private const int EnrollmentCodeLength = 8;
     private readonly IHostModeSettingsRepository _settings;
     private readonly ICertificateProvisioner _certificates;
     private readonly IMdnsAdvertiser _mdns;
@@ -48,13 +51,20 @@ internal sealed class LibraryHostService : ILibraryHostService
     public async Task<LibraryHostStatus> StartAsync(CancellationToken cancellationToken = default)
     {
         HostModeSettings settings = await _settings.GetAsync(cancellationToken).ConfigureAwait(false);
-        _status = _status with { State = LibraryHostState.Starting, Port = settings.Port, ErrorMessage = null };
+        _status = _status with
+        {
+            State = LibraryHostState.Starting,
+            Port = settings.Port,
+            ErrorMessage = null,
+            EnrollmentCode = null,
+        };
 
         CertificateProvisioningResult certificate = await _certificates
             .EnsureProvisionedAsync(cancellationToken)
             .ConfigureAwait(false);
+        string enrollmentCode = CreateEnrollmentCode();
         string bindAddress = _bindAddressSelector.SelectBindAddress().ToString();
-        await _listener.StartAsync(settings, certificate.Fingerprint, cancellationToken)
+        await _listener.StartAsync(settings, certificate.Fingerprint, enrollmentCode, cancellationToken)
             .ConfigureAwait(false);
         await _mdns.StartAsync(
                 new MdnsServiceRecord(
@@ -66,6 +76,7 @@ internal sealed class LibraryHostService : ILibraryHostService
                         ["fp"] = certificate.Fingerprint,
                         ["addr"] = bindAddress,
                         ["requires-auth"] = "true",
+                        ["auth"] = "enrollment-code",
                     }),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -75,6 +86,7 @@ internal sealed class LibraryHostService : ILibraryHostService
             State = LibraryHostState.Running,
             CertificateFingerprint = certificate.Fingerprint,
             HostAddress = bindAddress,
+            EnrollmentCode = enrollmentCode,
             ConnectedClientCount = await _sessions.CountActiveAsync(cancellationToken).ConfigureAwait(false),
         };
         return _status;
@@ -86,7 +98,13 @@ internal sealed class LibraryHostService : ILibraryHostService
         await _listener.StopAsync(cancellationToken).ConfigureAwait(false);
         await _sessions.RevokeAllAsync(cancellationToken).ConfigureAwait(false);
         await _mdns.StopAsync(cancellationToken).ConfigureAwait(false);
-        _status = _status with { State = LibraryHostState.Stopped, ConnectedClientCount = 0, HostAddress = null };
+        _status = _status with
+        {
+            State = LibraryHostState.Stopped,
+            ConnectedClientCount = 0,
+            HostAddress = null,
+            EnrollmentCode = null,
+        };
         return _status;
     }
 
@@ -103,6 +121,17 @@ internal sealed class LibraryHostService : ILibraryHostService
         }
 
         return _status;
+    }
+
+    private static string CreateEnrollmentCode()
+    {
+        Span<char> code = stackalloc char[EnrollmentCodeLength];
+        for (int i = 0; i < code.Length; i++)
+        {
+            code[i] = EnrollmentCodeAlphabet[RandomNumberGenerator.GetInt32(EnrollmentCodeAlphabet.Length)];
+        }
+
+        return new string(code);
     }
 }
 
