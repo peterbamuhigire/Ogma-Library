@@ -134,6 +134,7 @@ listener endpoints:
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --logger "console;verbosity=minimal"` | Passed: 27 architecture tests |
 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Test-Phase16VerificationTooling.ps1` | Passed: draft-mode evidence generation smoke for Phase 16 LAN verification tooling |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Invoke-Phase16LanVerification.ps1 ...` | Passed on Windows development machine; generated `docs/qa/evidence/phase16-lan-verification-20260602-023001.md` with OS/runtime/network context, format/build/LAN/architecture command outputs, and pending real same-subnet/macOS observations |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
 
