@@ -408,3 +408,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Started WP6 batch enrichment scale hardening with provider-specific rate limiting and bounded 429/503 retry handling for metadata HTTP clients. |
 | 2026-06-01 | Implementation | Added WP6 batch chunk metadata: enrichment jobs are tagged in recoverable 50-book chunks while retaining per-book retry isolation. |
 | 2026-06-01 | Implementation | Added WP7 smart-shelf composite indexes, SQLite query-plan evidence, and a 2,000-book benchmark proving the five common shelf/filter query shapes remain below the 2 s P95 budget. |
+| 2026-06-01 | Implementation | Completed WP8 OCR extension-point hardening: `IOcrProvider` is internal, marked with `[ExtensionPoint]`, and protected by an architecture visibility test. |

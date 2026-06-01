@@ -33,6 +33,9 @@ WP7 smart-shelf scale work is in place: the catalogue migration adds composite
 indexes for status/year, shelf membership, and metadata field/value filters; the
 2,000-book benchmark verifies five common query shapes under the 2,000 ms P95
 budget and records their SQLite query plans.
+WP8 is now guarded by the Phase 13 extension pattern: `IOcrProvider` is marked
+`[ExtensionPoint]`, kept internal through friend assemblies, and covered by an
+architecture visibility test.
 
 ## Verified Locally
 
@@ -50,6 +53,8 @@ budget and records their SQLite query plans.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RateLimitedHttpClientTests` | Passed: 3 provider rate-limit/retry tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~HealthDashboardTests\|FullyQualifiedName~RateLimitedHttpClientTests"` | Passed: 10 health/batch/rate-limit tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger "console;verbosity=detailed"` | Passed: 3 smart-shelf index/query-plan/2,000-book benchmark tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobProcessorTests\|FullyQualifiedName~OcrWorkerTests"` | Passed: 3 OCR processor/worker tests after internal extension-point hardening |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrExtensionPoint_IsInternal_In_Phase15` | Passed: 1 OCR extension-point visibility test |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -82,6 +87,7 @@ budget and records their SQLite query plans.
 | Smart-shelf composite indexes | `Phase15SmartShelfIndexes` adds `IX_Books_Status_Year`, `IX_ShelfBooks_ShelfId_BookId`, and `IX_BookMetadataFields_FieldName_Value` |
 | Smart-shelf query evidence | `docs/benchmarks/phase-15/query-plans.md` records `EXPLAIN QUERY PLAN` output for five common smart-shelf filters |
 | Smart-shelf baseline | `docs/benchmarks/phase-15/smart-shelf-baseline.json` records the 2,000-book P95 timing baseline |
+| OCR extension point | `IOcrProvider` is internal, `[ExtensionPoint]`-marked, and only visible to friend assemblies until the Phase 23 SDK review |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work
@@ -92,5 +98,4 @@ budget and records their SQLite query plans.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
 - WP7 Index Manager smart-shelf query stats panel.
-- WP8 OCR extension point.
 - WP9 golden-corpus, security review, and full remote CI evidence.

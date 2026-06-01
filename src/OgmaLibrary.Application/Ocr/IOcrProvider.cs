@@ -1,7 +1,10 @@
+using OgmaLibrary.Application.Extensions;
+
 namespace OgmaLibrary.Application.Ocr;
 
 /// <summary>OCR provider boundary for Phase 15 scanned-PDF text recognition.</summary>
-public interface IOcrProvider
+[ExtensionPoint]
+internal interface IOcrProvider
 {
     /// <summary>Recognizes text from a rendered page image.</summary>
     /// <param name="pageImage">Rendered page image stream, usually PNG.</param>

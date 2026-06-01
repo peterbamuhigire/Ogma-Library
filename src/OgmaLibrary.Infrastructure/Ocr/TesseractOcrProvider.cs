@@ -4,7 +4,7 @@ using Tesseract;
 namespace OgmaLibrary.Infrastructure.Ocr;
 
 /// <summary>Local Tesseract-backed OCR provider for Phase 15 scanned PDFs.</summary>
-public sealed class TesseractOcrProvider : IOcrProvider
+internal sealed class TesseractOcrProvider : IOcrProvider
 {
     private readonly string _tessdataPath;
 

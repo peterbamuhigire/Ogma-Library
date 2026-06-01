@@ -11,7 +11,7 @@ using OgmaLibrary.Infrastructure.Catalogue.Entities;
 namespace OgmaLibrary.Workers.Ocr;
 
 /// <summary>Processes queued OCR jobs from the shared job table.</summary>
-public interface IOcrJobProcessor
+internal interface IOcrJobProcessor
 {
     /// <summary>Processes one pending or interrupted OCR job, if present.</summary>
     /// <returns><see langword="true"/> when a job was processed.</returns>
@@ -19,7 +19,7 @@ public interface IOcrJobProcessor
 }
 
 /// <summary>Processes resumable Phase 15 OCR jobs from the shared Jobs table.</summary>
-public sealed class OcrJobProcessor : IOcrJobProcessor
+internal sealed class OcrJobProcessor : IOcrJobProcessor
 {
     /// <summary>Jobs table type for OCR work.</summary>
     public const string JobType = "OcrJob";

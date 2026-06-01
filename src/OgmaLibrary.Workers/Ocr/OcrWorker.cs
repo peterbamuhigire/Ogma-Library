@@ -6,7 +6,7 @@ namespace OgmaLibrary.Workers.Ocr;
 /// Background worker for Phase 15 OCR jobs. The processor owns idempotency and
 /// resume behavior; this worker only schedules work away from the UI thread.
 /// </summary>
-public sealed class OcrWorker : BackgroundService
+internal sealed class OcrWorker : BackgroundService
 {
     private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan ErrorDelay = TimeSpan.FromSeconds(15);

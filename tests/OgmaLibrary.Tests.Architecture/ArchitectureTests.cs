@@ -403,6 +403,20 @@ public sealed class ArchitectureTests
         Assert.Contains("OgmaLibrary.Tests.Architecture", friendAssemblies);
     }
 
+    /// <summary>Phase 15 OCR provider remains an internal extension candidate until Phase 23.</summary>
+    [Fact]
+    public void OcrExtensionPoint_IsInternal_In_Phase15()
+    {
+        Assembly applicationAssembly = typeof(AdvisorService).Assembly;
+        Type? type = applicationAssembly.GetType("OgmaLibrary.Application.Ocr.IOcrProvider", throwOnError: true);
+        Assert.NotNull(type);
+
+        Assert.True(type!.IsInterface);
+        Assert.False(type.IsPublic);
+        Assert.True(type.IsNotPublic);
+        Assert.Contains(type.GetCustomAttributes(inherit: false), attribute => attribute is ExtensionPointAttribute);
+    }
+
     /// <summary>The 3D shelf context must consume catalogue data through contracts only.</summary>
     [Fact]
     public void Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity()
