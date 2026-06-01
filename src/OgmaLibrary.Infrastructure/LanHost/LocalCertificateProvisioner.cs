@@ -12,10 +12,9 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHostServerCertificateProvider
 {
     private const string CertificateDirectoryName = "LanHost";
-    private const string ProtectedCertificateFileName = "host-ca.pfx.dpapi";
-    private const string FallbackCertificateFileName = "host-ca.pfx";
     private const int RsaKeySizeBits = 3072;
     private readonly string _certificateDirectory;
+    private readonly IHostCaStore _store;
 
     [ActivatorUtilitiesConstructor]
     public LocalCertificateProvisioner()
@@ -23,10 +22,11 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHo
     {
     }
 
-    internal LocalCertificateProvisioner(string dataDirectory)
+    internal LocalCertificateProvisioner(string dataDirectory, IHostCaStore? store = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         _certificateDirectory = Path.Combine(dataDirectory, CertificateDirectoryName);
+        _store = store ?? HostCaStoreFactory.Create(_certificateDirectory);
     }
 
     /// <inheritdoc />
@@ -53,38 +53,16 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHo
         cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(_certificateDirectory);
 
-        string protectedPath = Path.Combine(_certificateDirectory, ProtectedCertificateFileName);
-        if (OperatingSystem.IsWindows() && File.Exists(protectedPath))
+        byte[]? stored = await _store.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (stored is not null)
         {
-            byte[] protectedBytes = await File.ReadAllBytesAsync(protectedPath, cancellationToken)
-                .ConfigureAwait(false);
-            byte[] pfxBytes = WindowsDpapi.Unprotect(protectedBytes);
-            return LoadFromPfx(pfxBytes);
-        }
-
-        string fallbackPath = Path.Combine(_certificateDirectory, FallbackCertificateFileName);
-        if (File.Exists(fallbackPath))
-        {
-            byte[] pfxBytes = await File.ReadAllBytesAsync(fallbackPath, cancellationToken)
-                .ConfigureAwait(false);
-            return LoadFromPfx(pfxBytes);
+            return LoadFromPfx(stored);
         }
 
         using X509Certificate2 created = CreateRootCertificate();
         byte[] export = created.Export(X509ContentType.Pkcs12);
 
-        if (OperatingSystem.IsWindows())
-        {
-            byte[] protectedBytes = WindowsDpapi.Protect(export);
-            await File.WriteAllBytesAsync(protectedPath, protectedBytes, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            await File.WriteAllBytesAsync(fallbackPath, export, cancellationToken)
-                .ConfigureAwait(false);
-            RestrictUnixFile(fallbackPath);
-        }
+        await _store.SaveAsync(export, cancellationToken).ConfigureAwait(false);
 
         return LoadFromPfx(export);
     }
@@ -172,24 +150,7 @@ internal sealed class LocalCertificateProvisioner : ICertificateProvisioner, IHo
     private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) =>
         first <= second ? first : second;
 
-    private static void RestrictUnixFile(string path)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        try
-        {
-            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-        }
-        catch (PlatformNotSupportedException)
-        {
-            // Best effort: macOS Keychain integration is tracked separately in Phase 16.
-        }
-    }
-
-    private static class WindowsDpapi
+    internal static class WindowsDpapi
     {
         private const int CryptProtectUiForbidden = 0x1;
 

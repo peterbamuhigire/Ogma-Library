@@ -112,6 +112,88 @@ public sealed class LanHostCertificateProvisionerTests
     }
 
     [Fact]
+    public async Task CertificateProvisioner_UsesInjectedHostCaStoreWithoutFallbackPfx()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var store = new InMemoryHostCaStore();
+            var firstProvisioner = new LocalCertificateProvisioner(dataDirectory, store);
+            CertificateProvisioningResult first = await firstProvisioner.EnsureProvisionedAsync();
+
+            var secondProvisioner = new LocalCertificateProvisioner(dataDirectory, store);
+            CertificateProvisioningResult second = await secondProvisioner.EnsureProvisionedAsync();
+
+            Assert.Equal(first.Fingerprint, second.Fingerprint);
+            Assert.Equal(1, store.SaveCount);
+            Assert.False(File.Exists(Path.Combine(dataDirectory, "LanHost", "host-ca.pfx")));
+            Assert.False(File.Exists(Path.Combine(dataDirectory, "LanHost", "host-ca.pfx.dpapi")));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task MacOsKeychainHostCaStore_SavesAndLoadsBase64GenericPassword()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var tool = new FakeMacOsSecurityTool();
+            var store = new MacOsKeychainHostCaStore(tool, Path.Combine(dataDirectory, "host-ca.pfx"));
+            byte[] pfxBytes = [1, 2, 3, 4, 5];
+
+            await store.SaveAsync(pfxBytes, CancellationToken.None);
+            byte[]? loaded = await store.LoadAsync(CancellationToken.None);
+
+            Assert.NotNull(loaded);
+            Assert.Equal(pfxBytes, loaded);
+            Assert.Contains(tool.Commands, command => command[0] == "add-generic-password");
+            Assert.Contains(tool.Commands, command => command[0] == "find-generic-password");
+            Assert.All(tool.Commands, command =>
+            {
+                Assert.Contains("-s", command);
+                Assert.Contains(MacOsKeychainHostCaStore.ServiceName, command);
+            });
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task MacOsKeychainHostCaStore_MigratesLegacyFallbackPfx()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            string fallbackPath = Path.Combine(dataDirectory, "host-ca.pfx");
+            byte[] pfxBytes = [6, 7, 8, 9];
+            await File.WriteAllBytesAsync(fallbackPath, pfxBytes);
+            var tool = new FakeMacOsSecurityTool();
+            var store = new MacOsKeychainHostCaStore(tool, fallbackPath);
+
+            byte[]? loaded = await store.LoadAsync(CancellationToken.None);
+            byte[]? reloaded = await store.LoadAsync(CancellationToken.None);
+
+            Assert.Equal(pfxBytes, loaded);
+            Assert.Equal(pfxBytes, reloaded);
+            Assert.False(File.Exists(fallbackPath));
+            Assert.Contains(tool.Commands, command => command[0] == "add-generic-password");
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task CertificateProvisioner_DoesNotWritePrivateKeyToCatalogueDatabase()
     {
         string dataDirectory = CreateTempDirectory();
@@ -179,6 +261,69 @@ public sealed class LanHostCertificateProvisionerTests
         if (Directory.Exists(dataDirectory))
         {
             Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+
+    private sealed class InMemoryHostCaStore : IHostCaStore
+    {
+        private byte[]? _stored;
+
+        public int SaveCount { get; private set; }
+
+        public Task<byte[]?> LoadAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_stored?.ToArray());
+        }
+
+        public Task SaveAsync(byte[] pfxBytes, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(pfxBytes);
+            cancellationToken.ThrowIfCancellationRequested();
+            _stored = pfxBytes.ToArray();
+            SaveCount++;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeMacOsSecurityTool : IMacOsSecurityTool
+    {
+        private string? _storedSecret;
+
+        public List<IReadOnlyList<string>> Commands { get; } = [];
+
+        public Task<MacOsSecurityToolResult> RunAsync(
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Commands.Add(arguments.ToArray());
+
+            if (arguments.Count > 0 && arguments[0] == "find-generic-password")
+            {
+                return Task.FromResult(_storedSecret is null
+                    ? new MacOsSecurityToolResult(44, string.Empty, "not found")
+                    : new MacOsSecurityToolResult(0, _storedSecret + Environment.NewLine, string.Empty));
+            }
+
+            if (arguments.Count > 0 && arguments[0] == "add-generic-password")
+            {
+                int passwordIndex = -1;
+                for (int index = 0; index < arguments.Count; index++)
+                {
+                    if (arguments[index] == "-w")
+                    {
+                        passwordIndex = index;
+                        break;
+                    }
+                }
+
+                Assert.True(passwordIndex >= 0 && passwordIndex + 1 < arguments.Count);
+                _storedSecret = arguments[passwordIndex + 1];
+                return Task.FromResult(new MacOsSecurityToolResult(0, string.Empty, string.Empty));
+            }
+
+            return Task.FromResult(new MacOsSecurityToolResult(64, string.Empty, "unsupported"));
         }
     }
 }

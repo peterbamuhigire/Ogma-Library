@@ -245,7 +245,7 @@ the listener level (subnet validation).
 | --- | --- | --- |
 | HTTPS listener | Kestrel (System.Net) or HttpListener — ADR-0010 | Same; no App Transport Security issue (LAN only, self-signed pinned) |
 | mDNS library | `Manatee.Dns` or `ZeroconfSharp` | Same cross-platform library; macOS Bonjour coexists |
-| Certificate store | DPAPI-backed file store for CA private key | macOS Keychain via `SecKeychain` API |
+| Certificate store | DPAPI-backed file store for CA private key | macOS Keychain generic password via `/usr/bin/security` |
 | Network interface enumeration | `NetworkInterface.GetAllNetworkInterfaces()` | Same .NET API; filter by `OperationalStatus.Up` + not loopback |
 
 ### Data / schema changes
@@ -478,3 +478,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-02 | Implementation | Advanced WP8/WP6 guardrail: added explicit confirmation panels before starting Host mode and before enabling File Stream mode. |
 | 2026-06-02 | Implementation | Advanced WP9: enriched `LanHostRequestServed` audit rows with client id/role, session fingerprint, normalized action, resource type/id, content mode, and token-redaction tests. |
 | 2026-06-02 | Implementation | Advanced WP8: added a full Settings > Sharing shell route and `SharingSettingsView` reusing Host sharing controls for status, content mode, confirmations, QR/manual join details, enrollment code, and fingerprint copy flows. |
+| 2026-06-02 | Implementation | Advanced WP1: added platform-selected Host CA private-key stores with Windows DPAPI, macOS Keychain generic-password storage, non-MVP restricted-file fallback, and migration from legacy macOS fallback PFX files into Keychain. |
