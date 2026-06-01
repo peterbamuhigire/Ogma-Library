@@ -15,7 +15,7 @@ public static class LanHostServiceExtensions
         services.AddSingleton<IClientSessionService, ClientSessionService>();
         services.AddSingleton<ICertificateProvisioner>(_ => new LocalCertificateProvisioner(
             dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));
-        services.AddSingleton<IMdnsAdvertiser, NoopMdnsAdvertiser>();
+        services.AddSingleton<IMdnsAdvertiser, MdnsAdvertiser>();
         services.AddSingleton<ILibraryHostService, LibraryHostService>();
         return services;
     }
