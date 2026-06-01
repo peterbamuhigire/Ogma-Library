@@ -50,7 +50,7 @@ float BLOBs keyed back to `SearchChunks`.
 | Hybrid ranking formula | `IHybridRankingService` and `HybridRankingService` blend exact, semantic, recency, status, and rating signals with deterministic score/`BookId` ordering and no-embedding fallback |
 | Match-location backend | `MatchLocation`, `ConfidenceLabel`, `IMatchLocationService`, and `MatchLocationService` derive ordered explanation badges and confidence labels from exact, FTS, semantic, and hybrid ranking signals |
 | Search panel semantic metadata | `SearchViewModel` consumes `ISemanticSearchService`; result rows expose confidence and match-location metadata for the search panel |
-| Search panel badges/i18n | `SearchPanelView` renders localized semantic availability, localized confidence labels, and focusable match-location badges with automation names |
+| Search panel badges/i18n/icons | `SearchPanelView` renders localized semantic availability, localized confidence labels, focusable match-location badges with automation names/tooltips, and existing catalog icons as placeholders until premium Phase 11 assets arrive |
 | Embedding erasure backend | `IEmbeddingErasureService` and `EmbeddingErasureService` delete vectors, reset book embedding status, and write an `EmbeddingVectorsErased` audit event in one transaction |
 | Embedding erasure UI | `IndexManagerViewModel` and `IndexManagerPanelView` expose an "Erase embeddings" flow with a two-step confirmation, countdown gate, localized copy, progress state, and service-call test |
 | ANN spike/ADR | `docs/spikes/ANN-SQLite-Vec-Spike.md` and `docs/architecture/adr/ADR-0006-hybrid-search.md` document the sqlite-vec evaluation path and brute-force trigger thresholds |
@@ -63,4 +63,4 @@ float BLOBs keyed back to `SearchChunks`.
 - WP4: hybrid ranking formula, defaults, determinism, and graceful no-embedding fallback are implemented locally; persistence-backed weight settings remain.
 - WP5: backend match-location derivation, confidence labels, and search-panel metadata display are implemented locally; fuller badge styling, keyboard/SR behavior, and i18n remain.
 - WP6: embedding erasure service with audit event, Index Manager confirmation countdown, and ANN spike/ADR docs are implemented locally; broader privacy-center placement remains for Phase 12.
-- WP7/WP8: premium icons, manual screen-reader/accessibility checks, full regression evidence, and remote CI evidence.
+- WP7/WP8: premium icon replacement, manual screen-reader/accessibility checks, full regression evidence, and remote CI evidence.

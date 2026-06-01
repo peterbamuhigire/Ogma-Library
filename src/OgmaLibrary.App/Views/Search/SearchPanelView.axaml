@@ -34,10 +34,16 @@
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="1"
               CornerRadius="{DynamicResource Radius.S}"
-              AutomationProperties.Name="{Binding SearchModeText}">
-        <TextBlock Text="{Binding SearchModeText}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              AutomationProperties.Name="{Binding SearchModeText}"
+              ToolTip.Tip="{Binding SearchModeText}">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <svg:Svg Width="12"
+                   Height="12"
+                   Path="{Binding SearchModeIconPath}" />
+          <TextBlock Text="{Binding SearchModeText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        </StackPanel>
       </Border>
       <Button Grid.Row="0"
               Grid.Column="3"
@@ -74,11 +80,18 @@
                          FontWeight="SemiBold"
                          FontSize="{DynamicResource Type.Size.Body}"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-              <TextBlock Grid.Row="1"
-                         Grid.Column="1"
-                         Text="{Binding Subtitle}"
-                         FontSize="{DynamicResource Type.Size.Caption}"
-                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <StackPanel Grid.Row="1"
+                          Grid.Column="1"
+                          Orientation="Horizontal"
+                          Spacing="5">
+                <svg:Svg Width="12"
+                         Height="12"
+                         IsVisible="{Binding HasConfidence}"
+                         Path="{Binding ConfidenceIconPath}" />
+                <TextBlock Text="{Binding Subtitle}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              </StackPanel>
               <TextBlock Grid.Row="2"
                          Grid.Column="1"
                          Text="{Binding Snippet}"
@@ -103,10 +116,16 @@
                             BorderThickness="1"
                             CornerRadius="{DynamicResource Radius.S}"
                             Focusable="True"
-                            AutomationProperties.Name="{Binding AutomationLabel}">
-                      <TextBlock Text="{Binding Label}"
-                                 FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Accent.Oak}" />
+                            AutomationProperties.Name="{Binding AutomationLabel}"
+                            ToolTip.Tip="{Binding AutomationLabel}">
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <svg:Svg Width="12"
+                                 Height="12"
+                                 Path="{Binding IconPath}" />
+                        <TextBlock Text="{Binding Label}"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Accent.Oak}" />
+                      </StackPanel>
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

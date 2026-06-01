@@ -107,6 +107,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 _isSemanticDegraded = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(SearchModeText));
+                OnPropertyChanged(nameof(SearchModeIconPath));
             }
         }
     }
@@ -141,6 +142,11 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     public string SearchModeText => IsSemanticDegraded
         ? _localization["Search.Semantic.Unavailable"]
         : _localization["Search.Semantic.Active"];
+
+    /// <summary>Placeholder icon path for semantic-search mode.</summary>
+    public string SearchModeIconPath => IsSemanticDegraded
+        ? IconCatalog.GetAvaresPath("ic_status_unavailable") ?? string.Empty
+        : IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
 
     /// <summary>Icon path for global search.</summary>
     public string SearchIconPath => _searchIconPath;
@@ -263,6 +269,9 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 _localization["Search.Confidence.Format"],
                 LocalizeConfidence(result.ConfidenceLabel.Value))
             : string.Empty;
+        string confidenceIconPath = result.ConfidenceLabel.HasValue
+            ? GetConfidenceIconPath(result.ConfidenceLabel.Value)
+            : string.Empty;
         string snippet = result.Snippet ?? string.Empty;
         SearchResultBadge[] matchBadges = CreateMatchBadges(result);
         string matchLocations = string.Join(" · ", matchBadges.Select(badge => badge.Label));
@@ -271,6 +280,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty,
             result.Title ?? "Untitled",
             subtitle,
+            confidenceIconPath,
             snippet,
             matchLocations,
             matchBadges,
@@ -288,6 +298,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             return
             [
                 new SearchResultBadge(
+                    GetFallbackIconPath(result.ExactFallback),
                     fallbackLabel,
                     string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
@@ -300,6 +311,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             .Select(LocalizeLocation)
             .Distinct(StringComparer.CurrentCulture)
             .Select(label => new SearchResultBadge(
+                GetLocationIconPath(label),
                 label,
                 string.Format(
                     System.Globalization.CultureInfo.CurrentCulture,
@@ -314,12 +326,47 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private string LocalizeConfidence(ConfidenceLabel label) =>
         _localization[$"Search.Confidence.{label}"];
 
+    private string GetLocationIconPath(string localizedLabel)
+    {
+        Dictionary<string, string> iconByLabel = new(StringComparer.CurrentCulture)
+        {
+            [LocalizeLocation(MatchLocation.Title)] = "ic_search_metadata",
+            [LocalizeLocation(MatchLocation.Author)] = "ic_search_metadata",
+            [LocalizeLocation(MatchLocation.Tag)] = "ic_filter_chip_tag",
+            [LocalizeLocation(MatchLocation.Description)] = "ic_filter_chip_description",
+            [LocalizeLocation(MatchLocation.Toc)] = "ic_filter_chip_toc",
+            [LocalizeLocation(MatchLocation.NotePage)] = "ic_filter_chip_note",
+            [LocalizeLocation(MatchLocation.TextPage)] = "ic_filter_chip_page",
+            [LocalizeLocation(MatchLocation.Semantic)] = "ic_ai_advisor",
+        };
+
+        return iconByLabel.TryGetValue(localizedLabel, out string? iconKey)
+            ? IconCatalog.GetAvaresPath(iconKey) ?? string.Empty
+            : string.Empty;
+    }
+
+    private static string GetFallbackIconPath(bool exactFallback) =>
+        IconCatalog.GetAvaresPath(exactFallback ? "ic_search_fulltext" : "ic_ai_advisor") ?? string.Empty;
+
+    private static string GetConfidenceIconPath(ConfidenceLabel label)
+    {
+        string key = label switch
+        {
+            ConfidenceLabel.High => "ic_status_available",
+            ConfidenceLabel.Medium => "ic_status_loading",
+            ConfidenceLabel.Low => "ic_status_unavailable",
+            _ => "ic_status_unavailable",
+        };
+        return IconCatalog.GetAvaresPath(key) ?? string.Empty;
+    }
+
     private void OnCultureChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(PlaceholderText));
         OnPropertyChanged(nameof(PanelLabel));
         OnPropertyChanged(nameof(OpenSelectedLabel));
         OnPropertyChanged(nameof(SearchModeText));
+        OnPropertyChanged(nameof(SearchModeIconPath));
         OnPropertyChanged(nameof(SearchIconPath));
         OnPropertyChanged(nameof(ResultBookIconPath));
         StatusText = Results.Count == 0
@@ -340,13 +387,19 @@ public sealed record SearchResultItem(
     string IconPath,
     string Title,
     string Subtitle,
+    string ConfidenceIconPath,
     string Snippet,
     string MatchLocations,
     IReadOnlyList<SearchResultBadge> MatchBadges,
     int? PageIndex,
-    double Score);
+    double Score)
+{
+    /// <summary>Whether a confidence icon should be shown.</summary>
+    public bool HasConfidence => !string.IsNullOrWhiteSpace(ConfidenceIconPath);
+}
 
 /// <summary>Localized match-location badge for a search result.</summary>
 public sealed record SearchResultBadge(
+    string IconPath,
     string Label,
     string AutomationLabel);

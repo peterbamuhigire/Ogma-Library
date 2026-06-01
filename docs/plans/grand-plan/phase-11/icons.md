@@ -104,3 +104,15 @@ icons 24/32/48).
 `OgmaLibrary.App/Assets/icons/search/badges/`.
 
 Shipping with `🟨` placeholder icons is a release blocker.
+## Current implementation note
+
+As of 2026-06-01, Phase 11 UI uses existing catalog icons as local development
+placeholders so the semantic-search surfaces are visually inspectable:
+
+- Semantic active/degraded indicator: `ic_ai_advisor` / `ic_status_unavailable`.
+- Match-location badges: Phase 10 search/filter chip icons plus `ic_ai_advisor`.
+- Confidence indicators: status available/loading/unavailable icons.
+- Embedding erasure action: `ic_ai_privacy`.
+
+These placeholders keep the product usable during implementation, but they do
+not satisfy the premium icon procurement gate for public beta.

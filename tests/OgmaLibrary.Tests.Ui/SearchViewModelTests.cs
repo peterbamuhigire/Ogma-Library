@@ -44,7 +44,11 @@ public sealed class SearchViewModelTests
         Assert.Contains("Semantic", vm.Results[0].MatchLocations, StringComparison.Ordinal);
         Assert.Contains("High", vm.Results[0].Subtitle, StringComparison.Ordinal);
         Assert.Equal("Semantic search active", vm.SearchModeText);
+        Assert.Contains("ic_ai_advisor", vm.SearchModeIconPath, StringComparison.Ordinal);
+        Assert.True(vm.Results[0].HasConfidence);
+        Assert.Contains("ic_status_available", vm.Results[0].ConfidenceIconPath, StringComparison.Ordinal);
         Assert.Contains(vm.Results[0].MatchBadges, badge => badge.AutomationLabel == "Match location: Semantic");
+        Assert.All(vm.Results[0].MatchBadges, badge => Assert.False(string.IsNullOrWhiteSpace(badge.IconPath)));
         Assert.Equal("BOOKSEARCH00000000000001", navigation.OpenedBookId);
         Assert.Equal(3, navigation.OpenedPageHint);
     }
@@ -63,6 +67,7 @@ public sealed class SearchViewModelTests
 
         Assert.True(vm.IsSemanticDegraded);
         Assert.Equal("Exact search fallback", vm.SearchModeText);
+        Assert.Contains("ic_status_unavailable", vm.SearchModeIconPath, StringComparison.Ordinal);
         Assert.Equal("Exact match", vm.Results[0].MatchLocations);
     }
 

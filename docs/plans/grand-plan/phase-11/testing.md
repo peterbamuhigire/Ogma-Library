@@ -157,7 +157,7 @@ dictionary enumeration order. Fix: ensure `OrderBy(x => x.HybridScore)
 - [ ] Disable Ollama (stop service); type query; confirm results still appear
       (exact search fallback); confirm "Semantic search unavailable" indicator
       visible.
-- [ ] Open Privacy Settings; click "Erase all embeddings"; confirm 3-second
+- [ ] Open Index Manager; click "Erase embeddings"; confirm 3-second
       countdown on confirm button; confirm all embeddings removed; confirm
       embedding-generation pipeline restarts.
 - [ ] Under VoiceOver (macOS): focus a search result with match-location badges;
