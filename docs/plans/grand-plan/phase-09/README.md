@@ -388,6 +388,12 @@ Current implementation progress:
 - Phase 09 reader shortcut wiring has been rechecked against the Avalonia reader
   view: Ctrl+B toggles the current-page bookmark, Ctrl+Shift+B opens the
   bookmark panel, and Ctrl+Shift+C captures a citation from selected text.
+- Note editor focus-out now has rendered-view regression coverage proving the
+  planned blur-save route persists edited note text and closes the editor.
+- Phase 09 French resource and runtime labels are cleaned of mojibake in the
+  annotation/bookmark/layer/citation/reading-memory surfaces and guarded by
+  automated resource/runtime tests that also catch drift between the committed
+  `.resx` values and in-memory runtime dictionaries.
 
 Next steps before final Phase 09 closure:
 
@@ -438,3 +444,5 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Hardened production-DI direct PDF repair so missing `BookFiles` is rebuilt through fresh migrator contexts before selected PDFs are registered | Codex |
 | 2026-06-01 | Clarified the manual signoff packet as the authoritative Phase 09 manual-evidence source and refreshed CI-audit wording | Codex |
 | 2026-06-01 | Rechecked reader shortcut wiring and recorded Ctrl+B, Ctrl+Shift+B, and Ctrl+Shift+C coverage in the closeout evidence | Codex |
+| 2026-06-01 | Added rendered note editor blur-save coverage and refreshed Phase 09 evidence counts | Codex |
+| 2026-06-01 | Cleaned Phase 09 French localization mojibake and added resource/runtime guard tests for mojibake and resource drift | Codex |

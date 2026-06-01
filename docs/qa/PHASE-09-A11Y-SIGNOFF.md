@@ -36,6 +36,8 @@ owner-controlled release folder named in the row.
 | Phase 09 icon labels exist in English and French | `IconCatalog_Phase09ManifestKeys_HaveAccessibleLabels` |
 | Delivered Phase 09 SVG icons render on reader surfaces without replacing automation names | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; `ReaderViewModel_NoteOverlay_ExposesAnchorMarker`; `IconCatalogPhase09Tests` |
 | Phase 09 resource artifacts contain required keys | `Phase09AnnotationResources_ContainRequiredKeys` |
+| Phase 09 resource/runtime labels reject mojibake | `Phase09AnnotationResources_DoNotContainMojibake`; `InMemoryLocalization_Phase09FrenchStrings_DoNotContainMojibake` |
+| Phase 09 runtime labels match resources | `InMemoryLocalization_Phase09Strings_MatchResourceValues` |
 | Highlight overlay colors meet contrast gate | `ReaderViewModel_AnnotationOverlayColors_MeetContrastGate` |
 | Pseudolocale reader panels render without oversized text bounds | `ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds`; screenshot `artifacts/screenshots/reader-qps-ploc.png` |
 
@@ -45,7 +47,7 @@ Latest focused command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ReaderViewRenderTests|FullyQualifiedName~IconCatalogPhase09Tests"
 ```
 
-Result: passed, 62 Phase 09 UI/resource tests.
+Result: passed, 68 Phase 09 UI/resource tests.
 
 Latest full UI release command:
 
@@ -53,7 +55,7 @@ Latest full UI release command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
 ```
 
-Result: passed, 73 tests.
+Result: passed, 79 tests.
 
 ## Assistive Technology Walkthrough
 

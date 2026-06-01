@@ -1295,6 +1295,49 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public async Task ReaderView_NoteEditorLostFocus_SavesEditedNote()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        await viewModel.OpenAsync("book-001", null, CancellationToken.None);
+        await viewModel.CreateNoteAsync(CancellationToken.None);
+        viewModel.OpenNoteEditor(viewModel.Annotations[0]);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            TextBox editor = Assert.IsType<TextBox>(view.FindControl<TextBox>("NoteEditorTextBox"));
+            editor.Text = "Updated through focus out";
+            Dispatcher.UIThread.RunJobs();
+
+            InvokeReaderViewHandler(view, "NoteEditor_LostFocus", editor);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            AnnotationV2 updated = Assert.Single(annotationService.UpdatedAnnotations);
+            Assert.Equal("Updated through focus out", updated.NoteText);
+            Assert.False(viewModel.IsNoteEditorOpen);
+            Assert.Null(viewModel.EditingNoteText);
+            Assert.Equal("Note saved", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderView_PseudolocalePhase09Panels_RendersWithoutOversizedTextBounds()
     {
         var localization = new PseudoLocalizationService();

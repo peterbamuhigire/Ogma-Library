@@ -177,6 +177,57 @@ public sealed class IconCatalogPhase09Tests
         }
     }
 
+    [Theory]
+    [InlineData("annotations.en.resx")]
+    [InlineData("annotations.fr.resx")]
+    public void Phase09AnnotationResources_DoNotContainMojibake(string fileName)
+    {
+        Dictionary<string, string> resources = LoadPhase09Resources(fileName);
+
+        foreach ((string key, string value) in resources)
+        {
+            Assert.DoesNotContain("Ã", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("Â", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("â", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("�", value, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void InMemoryLocalization_Phase09FrenchStrings_DoNotContainMojibake()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("fr");
+
+        Assert.Equal("Num\u00e9ro de page", localization["Bookmark.Sort.Page"]);
+        Assert.Equal("Date de cr\u00e9ation", localization["Bookmark.Sort.Created"]);
+        foreach (string key in Phase09ResourceKeys)
+        {
+            string value = localization[key];
+            Assert.DoesNotContain("Ã", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("Â", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("â", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("�", value, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("en", "annotations.en.resx")]
+    [InlineData("fr", "annotations.fr.resx")]
+    public void InMemoryLocalization_Phase09Strings_MatchResourceValues(
+        string culture,
+        string fileName)
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture(culture);
+        Dictionary<string, string> resources = LoadPhase09Resources(fileName);
+
+        foreach (string key in Phase09ResourceKeys)
+        {
+            Assert.Equal(resources[key], localization[key]);
+        }
+    }
+
     private static Dictionary<string, string> LoadPhase09Resources(string fileName)
     {
         string path = Path.GetFullPath(Path.Combine(
