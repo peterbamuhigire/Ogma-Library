@@ -2,22 +2,42 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Shelf3D"
              xmlns:messages="using:OgmaLibrary.Bookshelf3D.Messages"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Shelf3D.Bookshelf3DView"
              x:DataType="vm:Bookshelf3DViewModel">
   <Grid RowDefinitions="Auto,*" RowSpacing="8" Margin="12">
     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-      <TextBlock Text="3D Bookshelf"
-                 FontSize="18"
-                 FontWeight="SemiBold"
-                 VerticalAlignment="Center" />
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <svg:Svg Width="20"
+                 Height="20"
+                 Path="{Binding ToggleIconPath}" />
+        <TextBlock Text="{Binding Title}"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center" />
+      </StackPanel>
       <Button Grid.Column="1"
-              Content="Shelf"
-              AutomationProperties.Name="Shelf layout"
-              Click="ShelfLayout_Click" />
+              AutomationProperties.Name="{Binding ShelfLayoutLabel}"
+              ToolTip.Tip="{Binding ShelfLayoutLabel}"
+              Click="ShelfLayout_Click">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <svg:Svg Width="14"
+                   Height="14"
+                   Path="{Binding ShelfLayoutIconPath}" />
+          <TextBlock Text="{Binding ShelfLayoutLabel}" />
+        </StackPanel>
+      </Button>
       <Button Grid.Column="2"
-              Content="Grid 3D"
-              AutomationProperties.Name="Grid 3D layout"
-              Click="GridLayout_Click" />
+              AutomationProperties.Name="{Binding GridLayoutLabel}"
+              ToolTip.Tip="{Binding GridLayoutLabel}"
+              Click="GridLayout_Click">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <svg:Svg Width="14"
+                   Height="14"
+                   Path="{Binding GridLayoutIconPath}" />
+          <TextBlock Text="{Binding GridLayoutLabel}" />
+        </StackPanel>
+      </Button>
     </Grid>
 
     <Grid Grid.Row="1">
@@ -27,7 +47,7 @@
               CornerRadius="6"
               Background="{DynamicResource ThemeSurfaceSubtleBrush}"
               MinHeight="360"
-              AutomationProperties.Name="3D bookshelf WebView host">
+              AutomationProperties.Name="{Binding WebViewHostLabel}">
         <NativeControlHost x:Name="WebViewHost"
                            Focusable="True"
                            IsTabStop="True" />
@@ -40,12 +60,17 @@
               Padding="12"
               Background="{DynamicResource ThemeSurfaceSubtleBrush}">
         <Grid RowDefinitions="Auto,*" RowSpacing="10">
-          <TextBlock Text="3D view is not available on this device - showing the accessible bookshelf list."
-                     TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <svg:Svg Width="18"
+                     Height="18"
+                     Path="{Binding UnavailableIconPath}" />
+            <TextBlock Text="{Binding FallbackMessage}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
           <ListBox Grid.Row="1"
                    ItemsSource="{Binding Books}"
                    MinHeight="320"
-                   AutomationProperties.Name="Accessible bookshelf fallback">
+                   AutomationProperties.Name="{Binding FallbackListLabel}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="messages:BookSceneItem">
                 <Grid ColumnDefinitions="2*,*" ColumnSpacing="10" Margin="0,3">

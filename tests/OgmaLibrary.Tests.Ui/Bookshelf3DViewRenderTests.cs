@@ -9,6 +9,7 @@ using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Bookshelf3D.Assets;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Bookshelf3D.Messages;
+using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
@@ -23,7 +24,8 @@ public sealed class Bookshelf3DViewRenderTests
         using var viewModel = new Bookshelf3DViewModel(
             new FakeCatalogueReadModel(),
             bridge,
-            new RecordingNavigation());
+            new RecordingNavigation(),
+            new InMemoryLocalizationService());
         await viewModel.LoadAsync();
         bridge.Emit(new WebGl2StatusMessage(false));
         Dispatcher.UIThread.RunJobs();

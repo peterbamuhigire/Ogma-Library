@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Reset camera">
+  <path d="M5 8h4l1.5-2h3L15 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z" fill="#52616B"/>
+  <circle cx="12" cy="13.5" r="3" fill="#F5EFE4"/>
+  <path d="M16.5 5.5a5 5 0 0 1 1.1 5.3M17.8 5.3h-3.2v3.2" fill="none" stroke="#F7C873" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

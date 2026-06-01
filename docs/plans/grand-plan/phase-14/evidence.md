@@ -41,8 +41,10 @@ document.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 4 scheme-handler tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SpineTextureGeneratorTests` | Passed: 3 spine texture generator tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewModelTests` | Passed: 4 Bookshelf3D view-model tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewModelTests` | Passed: 5 Bookshelf3D view-model tests including localization/icon-path coverage |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~ApplicationStartupTests` | Passed: 3 startup/DI tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewRenderTests` | Passed: 1 Bookshelf3D fallback render test |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter "FullyQualifiedName~Bookshelf3DViewRenderTests\|FullyQualifiedName~IconCatalogPhase14Tests"` | Passed: 4 UI fallback/icon manifest tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity` | Passed: 1 Bookshelf3D bounded-context architecture test |
 | `npx --yes -p typescript tsc --noEmit -p src\shelf3d\tsconfig.json` | Passed: strict TypeScript message contract check |
 | `npm install` in `src\shelf3d` | Passed: installed TypeScript, Three.js, and type declarations; 0 vulnerabilities |
@@ -80,6 +82,8 @@ document.
 | Composition root | `IWebViewBridge` is registered per platform facade and `Bookshelf3DViewModel` is registered as transient |
 | Bookshelf3D view | `Bookshelf3DView` defines the toolbar, native host placeholder, and accessible fallback list |
 | Bookshelf3D render test | `Bookshelf3DViewRenderTests` headless-renders the fallback catalogue path |
+| i18n | Bookshelf3D toolbar, fallback banner, host labels, and layout labels now resolve through `ILocalizationService` in English and French |
+| Icons | Phase 14 icon manifest keys are registered in `IconCatalog`, backed by SVG assets, and covered by UI tests |
 | Local web bootstrap | `Assets/Web/index.html` loads only local `shelf3d.js` under a restrictive CSP |
 | Three.js bundle | `npm run build` emits the offline bundle into the Bookshelf3D project for publish-time copy |
 | Asset publisher | `Shelf3DAssetPublisher` copies `index.html` and `shelf3d.js` into the `js` asset class served by `ogma://` |

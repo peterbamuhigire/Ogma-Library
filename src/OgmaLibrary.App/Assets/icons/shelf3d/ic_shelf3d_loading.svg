@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Loading 3D view">
+  <path d="M12 3 20 7.5 12 12 4 7.5z" fill="#7A5CFF"/>
+  <path d="M4 7.5V16l8 5v-9z" fill="#8B5A2B"/>
+  <path d="M20 7.5V16l-8 5v-9z" fill="#3E6B89"/>
+  <path d="M19 4.5a9 9 0 0 1 2 3.3" fill="none" stroke="#F7C873" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

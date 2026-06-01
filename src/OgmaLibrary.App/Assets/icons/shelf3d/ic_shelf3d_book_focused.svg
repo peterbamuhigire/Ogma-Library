@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Book selected">
+  <rect x="8" y="4" width="8" height="16" rx="1.4" fill="#7A5CFF"/>
+  <path d="M10 7h4M10 10h4M10 17h4" stroke="#F5EFE4" stroke-width="1.4" stroke-linecap="round"/>
+  <rect x="5" y="2" width="14" height="20" rx="3" fill="none" stroke="#F7C873" stroke-width="1.8" stroke-dasharray="2 2"/>
+</svg>

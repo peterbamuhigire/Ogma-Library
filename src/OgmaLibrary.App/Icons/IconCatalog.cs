@@ -119,6 +119,19 @@ public static class IconCatalog
             ["ic_status_available"] = "status/ic_status_available.svg",
             ["ic_status_unavailable"] = "status/ic_status_unavailable.svg",
             ["ic_status_loading"] = "status/ic_status_loading.svg",
+
+            // Category: shelf3d
+            ["ic_shelf3d_toggle"] = "shelf3d/ic_shelf3d_toggle.svg",
+            ["ic_shelf3d_layout_shelf"] = "shelf3d/ic_shelf3d_layout_shelf.svg",
+            ["ic_shelf3d_layout_grid3d"] = "shelf3d/ic_shelf3d_layout_grid3d.svg",
+            ["ic_shelf3d_camera_reset"] = "shelf3d/ic_shelf3d_camera_reset.svg",
+            ["ic_shelf3d_camera_orbit"] = "shelf3d/ic_shelf3d_camera_orbit.svg",
+            ["ic_shelf3d_camera_zoom"] = "shelf3d/ic_shelf3d_camera_zoom.svg",
+            ["ic_shelf3d_theme_light"] = "shelf3d/ic_shelf3d_theme_light.svg",
+            ["ic_shelf3d_theme_dark"] = "shelf3d/ic_shelf3d_theme_dark.svg",
+            ["ic_shelf3d_unavailable"] = "shelf3d/ic_shelf3d_unavailable.svg",
+            ["ic_shelf3d_loading"] = "shelf3d/ic_shelf3d_loading.svg",
+            ["ic_shelf3d_book_focused"] = "shelf3d/ic_shelf3d_book_focused.svg",
         };
 
     /// <summary>

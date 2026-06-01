@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using OgmaLibrary.App.Icons;
+using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Bookshelf3D.Bridge;
@@ -14,6 +16,11 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     private readonly ICatalogueReadModel _catalogue;
     private readonly IWebViewBridge _bridge;
     private readonly IBookDetailNavigationService _navigation;
+    private readonly ILocalizationService _localization;
+    private readonly string _toggleIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_toggle") ?? string.Empty;
+    private readonly string _shelfLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_shelf") ?? string.Empty;
+    private readonly string _gridLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_grid3d") ?? string.Empty;
+    private readonly string _unavailableIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_unavailable") ?? string.Empty;
     private bool _isWebGl2Supported = true;
     private bool _isLoading;
     private string _currentLayout = "shelf";
@@ -22,16 +29,20 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     public Bookshelf3DViewModel(
         ICatalogueReadModel catalogue,
         IWebViewBridge bridge,
-        IBookDetailNavigationService navigation)
+        IBookDetailNavigationService navigation,
+        ILocalizationService localization)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(bridge);
         ArgumentNullException.ThrowIfNull(navigation);
+        ArgumentNullException.ThrowIfNull(localization);
 
         _catalogue = catalogue;
         _bridge = bridge;
         _navigation = navigation;
+        _localization = localization;
         _bridge.MessageReceived += OnBridgeMessageReceived;
+        _localization.CultureChanged += OnCultureChanged;
     }
 
     /// <inheritdoc />
@@ -86,6 +97,36 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Localized title for the 3D bookshelf panel.</summary>
+    public string Title => _localization["Shelf3D.Title"];
+
+    /// <summary>Localized shelf-layout action label.</summary>
+    public string ShelfLayoutLabel => _localization["Shelf3D.Layout.Shelf"];
+
+    /// <summary>Localized grid-layout action label.</summary>
+    public string GridLayoutLabel => _localization["Shelf3D.Layout.Grid3D"];
+
+    /// <summary>Localized fallback message shown when WebGL2 is unavailable.</summary>
+    public string FallbackMessage => _localization["Shelf3D.Fallback.Message"];
+
+    /// <summary>Localized accessible label for the fallback list.</summary>
+    public string FallbackListLabel => _localization["Shelf3D.Fallback.ListLabel"];
+
+    /// <summary>Localized accessible label for the WebView host.</summary>
+    public string WebViewHostLabel => _localization["Shelf3D.WebViewHost.Label"];
+
+    /// <summary>Icon path for the 3D bookshelf identity.</summary>
+    public string ToggleIconPath => _toggleIconPath;
+
+    /// <summary>Icon path for the shelf layout action.</summary>
+    public string ShelfLayoutIconPath => _shelfLayoutIconPath;
+
+    /// <summary>Icon path for the 3D grid layout action.</summary>
+    public string GridLayoutIconPath => _gridLayoutIconPath;
+
+    /// <summary>Icon path for the unavailable/fallback state.</summary>
+    public string UnavailableIconPath => _unavailableIconPath;
+
     /// <summary>Loads catalogue books and sends a full scene to JavaScript.</summary>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -123,7 +164,11 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _bridge.MessageReceived -= OnBridgeMessageReceived;
+    public void Dispose()
+    {
+        _bridge.MessageReceived -= OnBridgeMessageReceived;
+        _localization.CultureChanged -= OnCultureChanged;
+    }
 
     private static BookSceneItem ToSceneItem(BookSummaryProjection summary)
     {
@@ -158,6 +203,16 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
                 IsWebGl2Supported = status.Supported;
                 break;
         }
+    }
+
+    private void OnCultureChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(ShelfLayoutLabel));
+        OnPropertyChanged(nameof(GridLayoutLabel));
+        OnPropertyChanged(nameof(FallbackMessage));
+        OnPropertyChanged(nameof(FallbackListLabel));
+        OnPropertyChanged(nameof(WebViewHostLabel));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>

@@ -4,6 +4,7 @@ using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Bookshelf3D.Assets;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Bookshelf3D.Messages;
+using OgmaLibrary.Infrastructure.Localization;
 
 namespace OgmaLibrary.Tests.Shelf3D;
 
@@ -17,7 +18,8 @@ public sealed class Bookshelf3DViewModelTests
         using var viewModel = new Bookshelf3DViewModel(
             new FakeCatalogueReadModel(),
             bridge,
-            new RecordingNavigation());
+            new RecordingNavigation(),
+            new InMemoryLocalizationService());
 
         await viewModel.LoadAsync();
 
@@ -34,7 +36,7 @@ public sealed class Bookshelf3DViewModelTests
     {
         var bridge = new FakeBridge();
         var navigation = new RecordingNavigation();
-        using var viewModel = new Bookshelf3DViewModel(new FakeCatalogueReadModel(), bridge, navigation);
+        using var viewModel = CreateViewModel(bridge, navigation);
 
         bridge.Emit(new BookClickedMessage("01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7"));
 
@@ -45,7 +47,7 @@ public sealed class Bookshelf3DViewModelTests
     public void WebGL2Absent_FallbackFlag_IsSet()
     {
         var bridge = new FakeBridge();
-        using var viewModel = new Bookshelf3DViewModel(new FakeCatalogueReadModel(), bridge, new RecordingNavigation());
+        using var viewModel = CreateViewModel(bridge, new RecordingNavigation());
 
         bridge.Emit(new WebGl2StatusMessage(false));
 
@@ -57,7 +59,7 @@ public sealed class Bookshelf3DViewModelTests
     public async Task Bookshelf3DViewModel_SetLayout_PostsLayoutMessage()
     {
         var bridge = new FakeBridge();
-        using var viewModel = new Bookshelf3DViewModel(new FakeCatalogueReadModel(), bridge, new RecordingNavigation());
+        using var viewModel = CreateViewModel(bridge, new RecordingNavigation());
 
         await viewModel.SetLayoutAsync("grid3d");
 
@@ -65,6 +67,28 @@ public sealed class Bookshelf3DViewModelTests
         Assert.Equal("grid3d", layout.Layout);
         Assert.Equal("grid3d", viewModel.CurrentLayout);
     }
+
+    [Fact]
+    public void Bookshelf3DViewModel_Labels_AreLocalized()
+    {
+        var localization = new InMemoryLocalizationService();
+        using var viewModel = new Bookshelf3DViewModel(
+            new FakeCatalogueReadModel(),
+            new FakeBridge(),
+            new RecordingNavigation(),
+            localization);
+
+        Assert.Equal("3D Bookshelf", viewModel.Title);
+        Assert.Contains("ic_shelf3d_toggle", viewModel.ToggleIconPath, StringComparison.Ordinal);
+
+        localization.SetCulture("fr");
+
+        Assert.Equal("Bibliotheque 3D", viewModel.Title);
+        Assert.Equal("Grille 3D", viewModel.GridLayoutLabel);
+    }
+
+    private static Bookshelf3DViewModel CreateViewModel(FakeBridge bridge, RecordingNavigation navigation) =>
+        new(new FakeCatalogueReadModel(), bridge, navigation, new InMemoryLocalizationService());
 
     private sealed class FakeBridge : IWebViewBridge
     {
