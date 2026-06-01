@@ -132,6 +132,7 @@ accessibility signoff, and final closeout remain pending.
 | UI view-model tests | `SearchViewModel_QueryDebouncesAndOpenSelectedNavigates`, `SearchViewModel_StaleResults_DoNotOverwriteLatestQuery`, `IndexManagerViewModel_LoadAndRebuildExposeStatus`, `SearchBar_CtrlK_Opens`, and `IndexManager_RebuildButton_ShowsProgress` |
 | Phase 10 icon catalog | 18 placeholder SVG assets under `src/OgmaLibrary.App/Assets/icons/search/`; `IconCatalog` registration; en/fr accessible labels; `IconCatalogPhase10Tests` |
 | Pseudolocale render | `InMemoryLocalizationService.SetCulture("qps-ploc")`; `SearchIndexPanels_Pseudolocale_RenderWithoutBlankFrame`; screenshot artifact `artifacts/screenshots/search-index-pseudo.png` |
+| Closeout evidence | `docs/qa/evidence/phase10-closeout-20260601.md` records local green gates and non-local blockers |
 
 ## Remaining Phase 10 Work
 
