@@ -372,6 +372,9 @@ Current implementation progress:
   reports a missing `BookFiles` table, preventing the post-registration reader
   open from surfacing the raw SQLite error and preserving the selected-PDF
   add-then-open flow.
+- Catalogue summary/detail/progress/shelf projections now also retry catalogue
+  schema repair when SQLite reports a missing model table, covering the
+  immediate post-open refresh that runs after a selected PDF is added.
 - The Choose Library Folder scan path has production-DI regression coverage for
   the same damaged-catalogue `BookFiles` repair path before discovered PDFs are
   registered.
@@ -491,6 +494,7 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Removed a stale metadata-enrichment filter token from Phase 09 evidence after rerunning the current metadata/direct-PDF/write-back slice | Codex |
 | 2026-06-01 | Aligned Phase 09 task-exit wording with current green fault tests and pending manual screen-reader signoff | Codex |
 | 2026-06-01 | Hardened reader file location against missing `BookFiles` errors after direct PDF open and verified selected PDFs are immediately locatable | Codex |
+| 2026-06-01 | Hardened catalogue projections against missing `BookFiles` errors during the post-open shell refresh | Codex |
 | 2026-06-01 | Added rendered citation clipboard regression coverage for the copy action | Codex |
 | 2026-06-01 | Added rendered citation export coverage for the clipboard side effect plus sidecar export | Codex |
 | 2026-06-01 | Made rendered note-anchor icons actionable and covered click-to-open note editing | Codex |

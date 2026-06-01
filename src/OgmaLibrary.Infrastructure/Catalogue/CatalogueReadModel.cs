@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
@@ -13,32 +14,53 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 {
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly CatalogueMigrator? _migrator;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueReadModel"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    internal CatalogueReadModel(CatalogueDbContext context)
+    /// <param name="migrator">Optional schema migrator used to repair damaged catalogue projections before retrying.</param>
+    internal CatalogueReadModel(CatalogueDbContext context, CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+        _migrator = migrator;
     }
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueReadModel"/>.
     /// </summary>
     /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="migrator">Optional schema migrator used to repair damaged catalogue projections before retrying.</param>
     [ActivatorUtilitiesConstructor]
-    public CatalogueReadModel(IDbContextFactory<CatalogueDbContext> contextFactory)
+    public CatalogueReadModel(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        CatalogueMigrator? migrator = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         _contextFactory = contextFactory;
+        _migrator = migrator;
     }
 
     /// <inheritdoc />
     public async IAsyncEnumerable<BookSummaryProjection> GetBookSummariesAsync(
         CatalogueFilter filter,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<BookSummaryProjection> summaries = await RunWithSchemaRepairRetryAsync(
+            () => GetBookSummariesCoreAsync(filter, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+
+        foreach (BookSummaryProjection summary in summaries)
+        {
+            yield return summary;
+        }
+    }
+
+    private async Task<IReadOnlyList<BookSummaryProjection>> GetBookSummariesCoreAsync(
+        CatalogueFilter filter,
+        CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
@@ -108,13 +130,14 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
         var results = await projected.ToListAsync(cancellationToken).ConfigureAwait(false);
 
+        var summaries = new List<BookSummaryProjection>(results.Count);
         foreach (var item in results)
         {
             var fields = item.MetadataFields
                 .Select(f => new MetadataFieldProjection(f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden))
                 .ToList();
 
-            yield return new BookSummaryProjection(
+            summaries.Add(new BookSummaryProjection(
                 BookId: item.BookId,
                 Title: ResolveTitle(item.Title, fields),
                 Authors: ResolveAuthors(item.Authors, fields),
@@ -124,8 +147,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ShelfIds: item.ShelfIds,
                 ReadingProgressPct: item.Progress?.CompletionPct,
                 IsAvailable: item.HasPresentFile,
-                Year: item.Year);
+                Year: item.Year));
         }
+
+        return summaries;
     }
 
     /// <inheritdoc />
@@ -135,6 +160,15 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
+        return await RunWithSchemaRepairRetryAsync(
+            () => GetBookDetailCoreAsync(bookId, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<BookDetailProjection?> GetBookDetailCoreAsync(
+        string bookId,
+        CancellationToken cancellationToken)
+    {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
@@ -256,6 +290,18 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        IReadOnlyList<ShelfProjection> shelves = await RunWithSchemaRepairRetryAsync(
+            () => GetShelvesCoreAsync(cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+
+        foreach (ShelfProjection shelf in shelves)
+        {
+            yield return shelf;
+        }
+    }
+
+    private async Task<IReadOnlyList<ShelfProjection>> GetShelvesCoreAsync(CancellationToken cancellationToken)
+    {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
@@ -273,14 +319,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        foreach (var s in shelves)
-        {
-            yield return new ShelfProjection(
+        return shelves
+            .Select(s => new ShelfProjection(
                 ShelfId: s.ShelfId,
                 Name: s.Name,
                 IsSmart: s.ShelfType == 1,
-                BookCount: s.BookCount);
-        }
+                BookCount: s.BookCount))
+            .ToList();
     }
 
     /// <inheritdoc />
@@ -290,6 +335,15 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
+        return await RunWithSchemaRepairRetryAsync(
+            () => GetProgressCoreAsync(bookId, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<ReadingProgressProjection?> GetProgressCoreAsync(
+        string bookId,
+        CancellationToken cancellationToken)
+    {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
@@ -308,6 +362,36 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 CompletionPct: result.CompletionPct,
                 LastReadUtc: result.LastReadUtc,
                 Status: result.Status);
+    }
+
+    private async Task<T> RunWithSchemaRepairRetryAsync<T>(
+        Func<Task<T>> action,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await action().ConfigureAwait(false);
+        }
+        catch (Exception ex) when (_migrator is not null && IsMissingSqliteTable(ex))
+        {
+            await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
+            return await action().ConfigureAwait(false);
+        }
+    }
+
+    private static bool IsMissingSqliteTable(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is SqliteException sqlite &&
+                sqlite.SqliteErrorCode == 1 &&
+                sqlite.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
