@@ -38,6 +38,30 @@ public partial class IndexManagerPanelView : UserControl
         }
     }
 
+    private void EraseEmbeddings_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is IndexManagerViewModel vm)
+        {
+            vm.RequestEmbeddingErasureConfirmation();
+        }
+    }
+
+    private async void ConfirmEmbeddingErasure_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is IndexManagerViewModel vm)
+        {
+            await vm.ConfirmEmbeddingErasureAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void CancelEmbeddingErasure_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is IndexManagerViewModel vm)
+        {
+            vm.CancelEmbeddingErasureConfirmation();
+        }
+    }
+
     private void Cancel_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm)

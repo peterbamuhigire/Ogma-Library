@@ -126,6 +126,7 @@ public static class CompositionRoot
                 localization);
             var indexManagerVm = new IndexManagerViewModel(
                 sp.GetRequiredService<IIndexManagerService>(),
+                sp.GetRequiredService<IEmbeddingErasureService>(),
                 localization);
 
             shell = new MainShellViewModel(

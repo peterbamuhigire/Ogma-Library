@@ -14,15 +14,23 @@ namespace OgmaLibrary.App.ViewModels.Search;
 public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<IndexStatusUpdate>, IDisposable
 {
     private readonly IIndexManagerService _indexManager;
+    private readonly IEmbeddingErasureService _embeddingErasure;
     private readonly ILocalizationService _localization;
+    private readonly TimeSpan _erasureConfirmationDelay;
     private readonly IDisposable _subscription;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
     private readonly string _rebuildIconPath = IconCatalog.GetAvaresPath("ic_index_rebuild") ?? string.Empty;
     private readonly string _cancelIconPath = IconCatalog.GetAvaresPath("ic_index_rebuild_cancel") ?? string.Empty;
+    private readonly string _eraseEmbeddingsIconPath = IconCatalog.GetAvaresPath("ic_ai_privacy") ?? string.Empty;
     private readonly string _sizeIconPath = IconCatalog.GetAvaresPath("ic_index_size") ?? string.Empty;
     private CancellationTokenSource? _rebuildCts;
+    private CancellationTokenSource? _erasureCountdownCts;
     private bool _isRebuilding;
+    private bool _isErasingEmbeddings;
     private bool _isRebuildConfirmationOpen;
+    private bool _isEmbeddingErasureConfirmationOpen;
+    private bool _canConfirmEmbeddingErasure;
+    private int _embeddingErasureCountdownSeconds;
     private string? _statusText;
 
     /// <summary>
@@ -30,13 +38,18 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// </summary>
     public IndexManagerViewModel(
         IIndexManagerService indexManager,
-        ILocalizationService localization)
+        IEmbeddingErasureService embeddingErasure,
+        ILocalizationService localization,
+        TimeSpan? erasureConfirmationDelay = null)
     {
         ArgumentNullException.ThrowIfNull(indexManager);
+        ArgumentNullException.ThrowIfNull(embeddingErasure);
         ArgumentNullException.ThrowIfNull(localization);
 
         _indexManager = indexManager;
+        _embeddingErasure = embeddingErasure;
         _localization = localization;
+        _erasureConfirmationDelay = erasureConfirmationDelay ?? TimeSpan.FromSeconds(3);
         _statusText = _localization["IndexManager.Status.Ready"];
         _subscription = _indexManager.Events.Subscribe(this);
         _localization.CultureChanged += OnCultureChanged;
@@ -87,7 +100,24 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanRebuild));
                 OnPropertyChanged(nameof(CanCancelRebuild));
+                OnPropertyChanged(nameof(CanEraseEmbeddings));
                 OnPropertyChanged(nameof(IsRebuildProgressVisible));
+            }
+        }
+    }
+
+    /// <summary>True while embedding erasure is running.</summary>
+    public bool IsErasingEmbeddings
+    {
+        get => _isErasingEmbeddings;
+        private set
+        {
+            if (_isErasingEmbeddings != value)
+            {
+                _isErasingEmbeddings = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEraseEmbeddings));
+                OnPropertyChanged(nameof(CanConfirmEmbeddingErasure));
             }
         }
     }
@@ -102,6 +132,36 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             {
                 _isRebuildConfirmationOpen = value;
                 OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Whether embedding-erasure confirmation is visible.</summary>
+    public bool IsEmbeddingErasureConfirmationOpen
+    {
+        get => _isEmbeddingErasureConfirmationOpen;
+        private set
+        {
+            if (_isEmbeddingErasureConfirmationOpen != value)
+            {
+                _isEmbeddingErasureConfirmationOpen = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanConfirmEmbeddingErasure));
+            }
+        }
+    }
+
+    /// <summary>Seconds remaining before embedding erasure can be confirmed.</summary>
+    public int EmbeddingErasureCountdownSeconds
+    {
+        get => _embeddingErasureCountdownSeconds;
+        private set
+        {
+            if (_embeddingErasureCountdownSeconds != value)
+            {
+                _embeddingErasureCountdownSeconds = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EmbeddingErasureCountdownText));
             }
         }
     }
@@ -125,6 +185,15 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
 
     /// <summary>Cancel action availability.</summary>
     public bool CanCancelRebuild => IsRebuilding;
+
+    /// <summary>Embedding erasure action availability.</summary>
+    public bool CanEraseEmbeddings => !IsRebuilding && !IsErasingEmbeddings;
+
+    /// <summary>Embedding erasure confirmation availability.</summary>
+    public bool CanConfirmEmbeddingErasure =>
+        IsEmbeddingErasureConfirmationOpen &&
+        _canConfirmEmbeddingErasure &&
+        !IsErasingEmbeddings;
 
     /// <summary>Whether the rebuild progress indicator is visible.</summary>
     public bool IsRebuildProgressVisible => IsRebuilding;
@@ -150,6 +219,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Icon path for cancel rebuild action.</summary>
     public string CancelIconPath => _cancelIconPath;
 
+    /// <summary>Icon path for embedding erasure action.</summary>
+    public string EraseEmbeddingsIconPath => _eraseEmbeddingsIconPath;
+
     /// <summary>Icon path for index-size status.</summary>
     public string SizeIconPath => _sizeIconPath;
 
@@ -158,6 +230,23 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
 
     /// <summary>Localized confirmation action label.</summary>
     public string ConfirmRebuildLabel => _localization["IndexManager.Rebuild.Confirm"];
+
+    /// <summary>Localized embedding erasure action label.</summary>
+    public string EraseEmbeddingsLabel => _localization["IndexManager.Embeddings.Erase"];
+
+    /// <summary>Localized embedding erasure confirmation prompt.</summary>
+    public string EmbeddingErasureConfirmationText => _localization["IndexManager.Embeddings.ConfirmText"];
+
+    /// <summary>Localized embedding erasure confirmation action label.</summary>
+    public string ConfirmEmbeddingErasureLabel => _localization["IndexManager.Embeddings.Confirm"];
+
+    /// <summary>Localized countdown text for embedding erasure confirmation.</summary>
+    public string EmbeddingErasureCountdownText => EmbeddingErasureCountdownSeconds > 0
+        ? string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["IndexManager.Embeddings.CountdownFormat"],
+            EmbeddingErasureCountdownSeconds)
+        : _localization["IndexManager.Embeddings.ReadyToConfirm"];
 
     /// <summary>Localized index-size summary.</summary>
     public string SizeSummary => string.Format(
@@ -212,6 +301,32 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Dismisses rebuild confirmation.</summary>
     public void CancelRebuildConfirmation() => IsRebuildConfirmationOpen = false;
 
+    /// <summary>Opens embedding erasure confirmation and starts the countdown gate.</summary>
+    public void RequestEmbeddingErasureConfirmation()
+    {
+        if (!CanEraseEmbeddings)
+        {
+            return;
+        }
+
+        _erasureCountdownCts?.Cancel();
+        _erasureCountdownCts?.Dispose();
+        _erasureCountdownCts = new CancellationTokenSource();
+        _canConfirmEmbeddingErasure = false;
+        OnPropertyChanged(nameof(CanConfirmEmbeddingErasure));
+        IsEmbeddingErasureConfirmationOpen = true;
+        _ = RunEmbeddingErasureCountdownAsync(_erasureCountdownCts.Token);
+    }
+
+    /// <summary>Dismisses embedding erasure confirmation.</summary>
+    public void CancelEmbeddingErasureConfirmation()
+    {
+        _erasureCountdownCts?.Cancel();
+        IsEmbeddingErasureConfirmationOpen = false;
+        _canConfirmEmbeddingErasure = false;
+        OnPropertyChanged(nameof(CanConfirmEmbeddingErasure));
+    }
+
     /// <summary>Loads a fresh index status snapshot.</summary>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -261,6 +376,47 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Starts a rebuild without interactive confirmation.</summary>
     public Task RebuildAsync(CancellationToken cancellationToken = default) =>
         ConfirmRebuildAsync(cancellationToken);
+
+    /// <summary>Confirms and performs embedding erasure.</summary>
+    public async Task ConfirmEmbeddingErasureAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanConfirmEmbeddingErasure)
+        {
+            return;
+        }
+
+        _erasureCountdownCts?.Cancel();
+        IsEmbeddingErasureConfirmationOpen = false;
+        try
+        {
+            IsErasingEmbeddings = true;
+            EmbeddingErasureResult result = await _embeddingErasure
+                .EraseAllAsync(cancellationToken)
+                .ConfigureAwait(false);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                StatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["IndexManager.Embeddings.ErasedFormat"],
+                    result.VectorsErased,
+                    result.BooksReset);
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                StatusText = _localization["IndexManager.Embeddings.EraseFailed"];
+                ErrorItems.Add(ex.Message);
+                OnPropertyChanged(nameof(HasErrors));
+            });
+            throw;
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => IsErasingEmbeddings = false);
+        }
+    }
 
     /// <summary>Cancels a running rebuild.</summary>
     public void CancelRebuild() => _rebuildCts?.Cancel();
@@ -320,6 +476,8 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     {
         _rebuildCts?.Cancel();
         _rebuildCts?.Dispose();
+        _erasureCountdownCts?.Cancel();
+        _erasureCountdownCts?.Dispose();
         _subscription.Dispose();
         _localization.CultureChanged -= OnCultureChanged;
     }
@@ -377,9 +535,14 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(RebuildIconPath));
         OnPropertyChanged(nameof(CancelIconPath));
+        OnPropertyChanged(nameof(EraseEmbeddingsIconPath));
         OnPropertyChanged(nameof(SizeIconPath));
         OnPropertyChanged(nameof(RebuildConfirmationText));
         OnPropertyChanged(nameof(ConfirmRebuildLabel));
+        OnPropertyChanged(nameof(EraseEmbeddingsLabel));
+        OnPropertyChanged(nameof(EmbeddingErasureConfirmationText));
+        OnPropertyChanged(nameof(ConfirmEmbeddingErasureLabel));
+        OnPropertyChanged(nameof(EmbeddingErasureCountdownText));
         OnPropertyChanged(nameof(IndexedSummary));
         OnPropertyChanged(nameof(FailedSummary));
         OnPropertyChanged(nameof(PendingOcrSummary));
@@ -407,6 +570,38 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(FailedPagesSummary));
         OnPropertyChanged(nameof(IntegritySummary));
         OnPropertyChanged(nameof(HasErrors));
+    }
+
+    private async Task RunEmbeddingErasureCountdownAsync(CancellationToken cancellationToken)
+    {
+        int seconds = Math.Max(0, (int)Math.Ceiling(_erasureConfirmationDelay.TotalSeconds));
+        await Dispatcher.UIThread.InvokeAsync(() => EmbeddingErasureCountdownSeconds = seconds);
+
+        while (seconds > 0)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            seconds--;
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() => EmbeddingErasureCountdownSeconds = seconds);
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            _canConfirmEmbeddingErasure = true;
+            OnPropertyChanged(nameof(CanConfirmEmbeddingErasure));
+        });
     }
 
     private static string FormatBytes(long bytes)

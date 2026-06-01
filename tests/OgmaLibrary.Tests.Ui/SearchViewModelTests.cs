@@ -71,7 +71,8 @@ public sealed class SearchViewModelTests
     public async Task IndexManagerViewModel_LoadAndRebuildExposeStatus()
     {
         var service = new StubIndexManagerService();
-        using var vm = new IndexManagerViewModel(service, new InMemoryLocalizationService());
+        var erasure = new StubEmbeddingErasureService();
+        using var vm = new IndexManagerViewModel(service, erasure, new InMemoryLocalizationService());
 
         await vm.LoadAsync();
         Dispatcher.UIThread.RunJobs();
@@ -139,7 +140,10 @@ public sealed class SearchViewModelTests
     public async Task IndexManager_RebuildButton_ShowsProgress()
     {
         var service = new SlowIndexManagerService();
-        using var vm = new IndexManagerViewModel(service, new InMemoryLocalizationService());
+        using var vm = new IndexManagerViewModel(
+            service,
+            new StubEmbeddingErasureService(),
+            new InMemoryLocalizationService());
         var view = new OgmaLibrary.App.Views.Search.IndexManagerPanelView { DataContext = vm };
         var window = new Window
         {
@@ -171,13 +175,42 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task IndexManager_EmbeddingErasure_RequiresCountdownAndCallsService()
+    {
+        var erasure = new StubEmbeddingErasureService();
+        using var vm = new IndexManagerViewModel(
+            new StubIndexManagerService(),
+            erasure,
+            new InMemoryLocalizationService(),
+            TimeSpan.Zero);
+
+        vm.RequestEmbeddingErasureConfirmation();
+        await WaitForAsync(() => vm.CanConfirmEmbeddingErasure);
+
+        Assert.True(vm.IsEmbeddingErasureConfirmationOpen);
+        Assert.Contains("Ready", vm.EmbeddingErasureCountdownText, StringComparison.OrdinalIgnoreCase);
+
+        await vm.ConfirmEmbeddingErasureAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(1, erasure.EraseCalls);
+        Assert.False(vm.IsEmbeddingErasureConfirmationOpen);
+        Assert.False(vm.IsErasingEmbeddings);
+        Assert.Contains("12", vm.StatusText, StringComparison.Ordinal);
+        Assert.Contains("3", vm.StatusText, StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
     public async Task SearchIndexPanels_Pseudolocale_RenderWithoutBlankFrame()
     {
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("qps-ploc");
         var navigation = new RecordingReaderNavigation();
         using var searchVm = new SearchViewModel(new StubSemanticSearchService(), navigation, localization);
-        using var indexVm = new IndexManagerViewModel(new StubIndexManagerService(), localization);
+        using var indexVm = new IndexManagerViewModel(
+            new StubIndexManagerService(),
+            new StubEmbeddingErasureService(),
+            localization);
 
         searchVm.Query = "ogma";
         await WaitForAsync(() => searchVm.Results.Count == 1);
@@ -372,6 +405,17 @@ public sealed class SearchViewModelTests
         }
 
         public void Complete() => _completion.TrySetResult();
+    }
+
+    private sealed class StubEmbeddingErasureService : IEmbeddingErasureService
+    {
+        public int EraseCalls { get; private set; }
+
+        public Task<EmbeddingErasureResult> EraseAllAsync(CancellationToken cancellationToken)
+        {
+            EraseCalls++;
+            return Task.FromResult(new EmbeddingErasureResult(12, 3, DateTimeOffset.UtcNow));
+        }
     }
 
     private sealed class EmptyCatalogueReadModel : ICatalogueReadModel
