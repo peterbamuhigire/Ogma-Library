@@ -4,7 +4,7 @@ Date started: 2026-06-01
 
 ## Current Status
 
-The first Phase 14 foundation slice is implemented locally. It adds the shared
+The Phase 14 foundation is implemented locally. It adds the shared
 WebView bridge contracts, testable WebView host adapter, WebView2/WKWebView
 bridge facades, C# bridge message records, inbound parser, SI-3 inbound
 validator, strict TypeScript mirror types for the Three.js scene boundary, and
@@ -54,6 +54,9 @@ document.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 6 scheme/publisher tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 388 tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 23 tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 109 tests on third full run; first two full runs exposed unrelated existing timing flakes in search/reader perf tests |
 
 ## Implemented Locally
 
@@ -91,13 +94,15 @@ document.
 | WebView bootstrapper | `Shelf3DWebViewBootstrapper` initializes the adapter, registers `ogma://`, publishes local web assets, and navigates to `ogma://assets/js/index.html` |
 | Performance telemetry | `Shelf3DScene` posts a typed `PerformanceWarning` when sustained FPS drops below the warning threshold |
 | CI performance budget | `npm run perf:budget` benchmarks 500-book shelf/grid layout calculations against a 16.67 ms frame budget |
+| Benchmark baseline | `docs/benchmarks/phase-14/layout-baseline-20260601.json` records the 500-book layout budget result |
+| ADR note | `docs/adrs/0003-phase14-implementation-notes.md` records the Phase 14 ADR-0003 implementation notes |
 
 ## Remaining Phase 14 Work
 
-- WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter`; the shared bootstrap/navigation sequence is now implemented and tested.
-- WP2 native bridge registration of the `ogma://` handler is implemented at the shared bootstrapper level; platform adapters still need concrete scheme registration code.
+- WP1 native adapter binding: concrete WebView2/WKWebView package binding is deferred to Phase 22 packaging; the shared adapter contract and bootstrap/navigation sequence are implemented and tested.
+- WP2 native bridge registration of the `ogma://` handler is implemented at the shared bootstrapper level; concrete platform adapter registration remains behind `IWebViewHostAdapter`.
 - WP4 worker integration/cache invalidation remains: generated textures are tested but not yet wired into the ingestion/update pipeline.
 - WP5 texture atlas and visual smoke verification remain; layout-budget benchmark and FPS warning telemetry are implemented.
 - WP6 reader-open parity for double-click remains pending until the reader navigation command is integrated with the 3D shell.
 - WP3 full side-effect integration test against the ViewModel stack after WP6 exists.
-- WP4-WP9 spine textures, Three.js scene, view model/view, fallback, performance benchmarks, review, and remote CI evidence.
+- Remote CI evidence remains to be recorded after push.

@@ -101,3 +101,11 @@ results are recorded in `docs/benchmarks/phase-14/manual-test-<date>.md`:
   runs in `OgmaLibrary.ArchitectureTests` project on every PR.
 - SI-3 and path-traversal tests tagged `[Category("Security")]`; run in a
   dedicated CI step with zero-tolerance.
+
+## 9. Phase 14 implementation update
+
+The implemented CI performance gate is `npm run perf:budget`, a deterministic
+500-book layout benchmark with P95 < 5 ms and max < 16.67 ms budgets. Real
+WebGL2 FPS remains a hardware evidence gate because CI runners do not provide
+stable GPU/WebView timing. The scene emits typed `PerformanceWarning` telemetry
+when sustained FPS drops below the warning threshold.

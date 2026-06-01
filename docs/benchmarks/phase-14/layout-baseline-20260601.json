@@ -1,0 +1,30 @@
+{
+  "phase": "14",
+  "benchmark": "shelf3d-500-book-layout-budget",
+  "date": "2026-06-01",
+  "command": "npm run perf:budget",
+  "environment": {
+    "os": "Windows",
+    "node": "24.8.0",
+    "notes": "Deterministic layout budget; real WebGL2 FPS remains a hardware/manual gate."
+  },
+  "budgets": {
+    "targetFrameMs": 16.67,
+    "layoutP95BudgetMs": 5.0
+  },
+  "results": [
+    {
+      "layout": "shelf",
+      "bookCount": 500,
+      "p95Ms": 0.100,
+      "maxMs": 0.613
+    },
+    {
+      "layout": "grid3d",
+      "bookCount": 500,
+      "p95Ms": 0.089,
+      "maxMs": 0.295
+    }
+  ],
+  "status": "pass"
+}
