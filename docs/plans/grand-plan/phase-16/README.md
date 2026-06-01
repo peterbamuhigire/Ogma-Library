@@ -456,3 +456,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-01 | Implementation | Advanced WP1: replaced the no-op mDNS scaffold with `MdnsAdvertiser`, wrapping `Makaretu.Dns.Multicast` behind `IMdnsAdvertiser` with DNS-SD service/TXT validation and registration lifecycle tests. |
 | 2026-06-01 | Implementation | Advanced WP3/WP7: added `KestrelHostModeListener` for opt-in loopback HTTPS health, session issue, and authenticated catalogue projection endpoints; unauthenticated catalogue requests now return `401`. |
 | 2026-06-01 | Implementation | Advanced WP9: added `LanHostRequestServed` audit rows for Host requests, including unauthorized catalogue access and authenticated catalogue projection, without writing raw bearer tokens. |
+| 2026-06-01 | Implementation | Advanced WP4: added authenticated cover/spine/thumbnail sidecar asset endpoint with SHA-256 hash validation and malformed asset rejection before file I/O. |

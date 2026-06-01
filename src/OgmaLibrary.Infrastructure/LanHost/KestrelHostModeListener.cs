@@ -16,6 +16,7 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 internal sealed class KestrelHostModeListener : IHostModeListener
 {
     private readonly ICatalogueReadModel _catalogueReadModel;
+    private readonly ISidecarService _sidecarService;
     private readonly IClientSessionService _sessions;
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
@@ -23,11 +24,13 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
     public KestrelHostModeListener(
         ICatalogueReadModel catalogueReadModel,
+        ISidecarService sidecarService,
         IClientSessionService sessions,
         IHostServerCertificateProvider certificates,
         IAuditRepository audit)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
+        _sidecarService = sidecarService ?? throw new ArgumentNullException(nameof(sidecarService));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
@@ -153,6 +156,35 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
             return Results.Json(new LanCataloguePage(items, items.Count));
         });
+
+        app.MapGet("/api/v1/assets/{assetClass}/{contentHash}", (
+            string assetClass,
+            string contentHash,
+            string? variant) =>
+        {
+            if (!TryMapAssetClass(assetClass, out SidecarClass sidecarClass))
+            {
+                return Results.BadRequest(new LanHostError("invalid_asset_class", "Unknown LAN asset class."));
+            }
+
+            if (!IsSha256Hex(contentHash))
+            {
+                return Results.BadRequest(new LanHostError("invalid_content_hash", "Asset content hash must be 64 lowercase hex characters."));
+            }
+
+            if (!IsSafeVariant(variant))
+            {
+                return Results.BadRequest(new LanHostError("invalid_variant", "Asset variant is not valid."));
+            }
+
+            string path = _sidecarService.Resolve(contentHash, sidecarClass, variant);
+            if (!File.Exists(path))
+            {
+                return Results.NotFound(new LanHostError("asset_not_found", "The requested asset was not found."));
+            }
+
+            return Results.File(path, "image/jpeg", enableRangeProcessing: true);
+        });
     }
 
     private static bool IsPublicEndpoint(PathString path) =>
@@ -167,6 +199,26 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             ? value[prefix.Length..].Trim()
             : null;
     }
+
+    private static bool TryMapAssetClass(string value, out SidecarClass sidecarClass)
+    {
+        sidecarClass = value.ToLowerInvariant() switch
+        {
+            "cover" or "covers" => SidecarClass.Covers,
+            "spine" or "spines" => SidecarClass.Spines,
+            "thumb" or "thumbnail" or "thumbnails" => SidecarClass.Thumbnails,
+            _ => default,
+        };
+        return sidecarClass is SidecarClass.Covers or SidecarClass.Spines or SidecarClass.Thumbnails;
+    }
+
+    private static bool IsSha256Hex(string value) =>
+        value.Length == 64 && value.All(static ch => ch is >= '0' and <= '9' or >= 'a' and <= 'f');
+
+    private static bool IsSafeVariant(string? variant) =>
+        variant is null ||
+        (variant.Length <= 32 && variant.StartsWith('_') &&
+         variant.All(static ch => ch is '_' or '-' or >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z'));
 
     private async Task AppendAuditAsync(
         HttpContext context,

@@ -6,10 +6,12 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
+using OgmaLibrary.Infrastructure.Sidecar;
 
 namespace OgmaLibrary.Tests.LanHost;
 
@@ -26,6 +28,10 @@ public sealed class LanHostEndpointTests
         {
             await using ServiceProvider services = await CreateServicesAsync(dataDirectory);
             await SeedBookAsync(services);
+            string assetHash = new string('e', 64);
+            byte[] assetBytes = [0xFF, 0xD8, 0xFF, 0xD9];
+            string assetPath = new SidecarService(dataDirectory).Resolve(assetHash, SidecarClass.Covers);
+            await File.WriteAllBytesAsync(assetPath, assetBytes);
             await services.GetRequiredService<IHostModeSettingsRepository>()
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.PageRender, "Ogma Endpoint Test"));
 
@@ -42,6 +48,9 @@ public sealed class LanHostEndpointTests
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=10");
             string catalogueJson = await catalogue.Content.ReadAsStringAsync();
+            using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
+            byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
+            using HttpResponseMessage invalidAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('z', 64)}");
 
             await host.StopAsync();
             await using CatalogueDbContext verify = services.GetRequiredService<CatalogueDbContext>();
@@ -53,6 +62,9 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
+            Assert.Equal(assetBytes, servedAsset);
+            Assert.Equal(HttpStatusCode.BadRequest, invalidAsset.StatusCode);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
             Assert.True(auditEvents.Count >= 4);
