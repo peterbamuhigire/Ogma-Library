@@ -29,6 +29,7 @@ through one controllable, auditable, reversible surface.
 | Platforms | Windows (WebView2 not needed here) + macOS; fully cross-platform .NET 10 |
 | ADRs in scope | ADR-0007 (provider-neutral AI gateway + 4 tiers) |
 | Security/CTRL IDs | SI-1, CTRL-OGMA-016, 017, 018, 019, 020, 022 |
+| Status | WP1 domain/application contracts started locally: `AiPrivacyTier`, consent/audit/query-history domain records, provider-neutral request/completion/preview DTOs, expanded `IAiProvider`, advisor/privacy interfaces, and focused tests implemented; WP2+ pending |
 
 ---
 
@@ -440,3 +441,4 @@ Full detail in `skills.md`.
 | Date | Author | Change |
 | --- | --- | --- |
 | 2026-05-30 | Chwezi Core Systems | v1.0 baseline authored |
+| 2026-06-01 | Codex | WP1 contracts started: AI privacy tier, consent/audit/history records, gateway request/completion/preview DTOs, advisor/privacy interfaces, and focused contract tests |
