@@ -3,7 +3,8 @@
 Date: 2026-06-01
 
 Scope: Phase 09 closeout evidence through the active-layer, direct-PDF
-hardening, and delivered reader-icon rendering passes on 2026-06-01.
+hardening, delivered reader-icon rendering, and keyboard shortcut verification
+passes on 2026-06-01.
 
 ## Current Position
 
@@ -22,7 +23,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, and manual signoff documentation source-of-truth cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, and manual signoff documentation source-of-truth cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -31,6 +32,7 @@ owner-gated:
 | Active writable layer marker | `ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` covers the visible and announced active-layer marker |
 | Direct PDF open hardening | `DirectPdfOpen_FuzzyMatch_RegistersSelectedPdfAsNewBook`; `DirectPdfOpen_SameHashAtUnregisteredPath_RegistersSelectedPdfAsNewBook`; `DirectPdfOpen_ProductionDi_RepairsMissingBookFilesTableBeforeRegisteringSelectedPdf`; migration/direct-open/startup focused slice covers missing-table repair with production service registration and explicit selected-file registration behavior |
 | Delivered reader-icon rendering | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; `ReaderViewModel_NoteOverlay_ExposesAnchorMarker`; `IconCatalogPhase09Tests` cover rendered premium SVG paths for toolbar actions, selection actions, citation card actions, sidebar panel tabs, bookmark/layer panels, note anchors, highlight color, bookmark rename, and reading-memory disposition |
+| Reader keyboard shortcuts | `ReaderView_CtrlB_TogglesCurrentPageBookmark`, `ReaderView_CtrlShiftB_OpensBookmarkPanel`, and `ReaderView_CtrlShiftC_CapturesSelectedCitation` verify the planned Phase 09 bookmark and citation shortcuts against the Avalonia reader view |
 
 ## Remote CI Status Check
 
@@ -60,6 +62,8 @@ them:
 | Delivered Phase 09 premium SVG assets were registered but some reader surfaces still used text-only or placeholder controls. | Rendered delivered SVGs on note anchors, sidebar panel tabs, highlight color picker, bookmark rename affordance, and reading-memory disposition while preserving automation labels. |
 | `testing.md` duplicated stale unchecked manual checklist rows instead of pointing reviewers to the expanded manual signoff packet. | Replaced the duplicate checklist with a source-of-truth reference to `PHASE-09-MANUAL-SIGNOFF-PACKET.md` and `PHASE-09-A11Y-SIGNOFF.md`, including the expanded direct-PDF, enrichment, owner, and visual-review checks. |
 
+The final code-level pass also rechecked the planned Ctrl+B, Ctrl+Shift+B, and
+Ctrl+Shift+C shortcuts against `ReaderView.axaml.cs` and the focused UI tests.
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.
 Do not mark Phase 09 fully closed until the manual and owner-gated rows above

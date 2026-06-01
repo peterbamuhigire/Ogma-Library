@@ -385,6 +385,9 @@ Current implementation progress:
   selection actions, citation cards, sidebar tab headers, bookmark/layer
   panels, note anchors, highlight color picker, bookmark rename, and
   reading-memory disposition surfaces.
+- Phase 09 reader shortcut wiring has been rechecked against the Avalonia reader
+  view: Ctrl+B toggles the current-page bookmark, Ctrl+Shift+B opens the
+  bookmark panel, and Ctrl+Shift+C captures a citation from selected text.
 
 Next steps before final Phase 09 closure:
 
@@ -434,3 +437,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Rendered delivered Phase 09 reader icons across note anchors, panel tabs, highlight color, bookmark rename, and reading-memory disposition surfaces | Codex |
 | 2026-06-01 | Hardened production-DI direct PDF repair so missing `BookFiles` is rebuilt through fresh migrator contexts before selected PDFs are registered | Codex |
 | 2026-06-01 | Clarified the manual signoff packet as the authoritative Phase 09 manual-evidence source and refreshed CI-audit wording | Codex |
+| 2026-06-01 | Rechecked reader shortcut wiring and recorded Ctrl+B, Ctrl+Shift+B, and Ctrl+Shift+C coverage in the closeout evidence | Codex |
