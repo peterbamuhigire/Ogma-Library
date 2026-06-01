@@ -16,6 +16,7 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="ReadingProgressPct">Reading completion in [0.0, 100.0], or null if never opened.</param>
 /// <param name="IsAvailable">Whether the physical file is currently present on disk.</param>
 /// <param name="Year">Publication year, or null if unknown.</param>
+/// <param name="Sha256Hash">SHA-256 hex digest of the file content, or null if not available.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -26,7 +27,8 @@ public sealed record BookSummaryProjection(
     IReadOnlyList<string> ShelfIds,
     double? ReadingProgressPct,
     bool IsAvailable,
-    int? Year);
+    int? Year,
+    string? Sha256Hash = null);
 
 /// <summary>
 /// A full detail projection of a book across all five metadata groups, used by the

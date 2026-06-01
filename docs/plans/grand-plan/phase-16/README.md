@@ -474,3 +474,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-02 | Implementation | Advanced WP5/WP11: added a live HTTPS page-render load smoke covering 10 concurrent authenticated page renders with a local P95 guard under 2 seconds. |
 | 2026-06-02 | Implementation | Advanced WP1/WP7: aligned listener TLS leaf certificates with the selected LAN bind address by adding the advertised Host IP to the certificate SAN set while preserving loopback fallback SANs. |
 | 2026-06-02 | Implementation | Advanced WP7/WP8: added per-run in-memory enrollment codes for Host session bootstrap, required valid codes at `/api/v1/auth/session`, and embedded the code in the QR/manual sharing payload. |
+| 2026-06-02 | Implementation | Advanced WP3/WP4: replaced raw read-model LAN catalogue JSON with Host-specific DTOs that include asset URLs and omit local relative paths/file names. |

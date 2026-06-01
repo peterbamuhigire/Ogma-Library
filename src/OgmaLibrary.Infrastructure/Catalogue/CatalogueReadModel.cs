@@ -108,6 +108,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.Status,
                 b.Rating,
                 b.Year,
+                b.Sha256Hash,
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
                     .Select(ba => ba.Author!.NormalizedName)
@@ -147,7 +148,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ShelfIds: item.ShelfIds,
                 ReadingProgressPct: item.Progress?.CompletionPct,
                 IsAvailable: item.HasPresentFile,
-                Year: item.Year));
+                Year: item.Year,
+                Sha256Hash: item.Sha256Hash));
         }
 
         return summaries;

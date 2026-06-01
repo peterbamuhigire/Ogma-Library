@@ -212,7 +212,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 .ToList();
 
             return Results.Json(new LanCataloguePage(
-                Items: items,
+                Items: items.Select(MapSummary).ToList(),
                 Page: pageNumber,
                 PageSize: size,
                 ReturnedCount: items.Count,
@@ -243,7 +243,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 .ConfigureAwait(false);
             return book is null
                 ? Results.NotFound(new LanHostError("book_not_found", "The requested book was not found."))
-                : Results.Json(book);
+                : Results.Json(MapDetail(book));
         });
 
         app.MapGet("/api/v1/assets/{assetClass}/{contentHash}", (
@@ -396,6 +396,61 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         (variant.Length <= 32 && variant.StartsWith('_') &&
          variant.All(static ch => ch is '_' or '-' or >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z'));
 
+    private static LanCatalogueBook MapSummary(BookSummaryProjection book) =>
+        new(
+            BookId: book.BookId,
+            Title: book.Title,
+            Authors: book.Authors,
+            Status: book.Status,
+            Rating: book.Rating,
+            ShelfIds: book.ShelfIds,
+            ReadingProgressPct: book.ReadingProgressPct,
+            IsAvailable: book.IsAvailable,
+            Year: book.Year,
+            ContentHash: book.Sha256Hash,
+            Assets: BuildAssetLinks(book.Sha256Hash));
+
+    private static LanBookDetail MapDetail(BookDetailProjection book) =>
+        new(
+            BookId: book.BookId,
+            Title: book.Title,
+            Authors: book.Authors,
+            Year: book.Year,
+            Isbn: book.Isbn,
+            Doi: book.Doi,
+            Rating: book.Rating,
+            Status: book.Status,
+            ContentHash: book.Sha256Hash,
+            SizeBytes: book.SizeBytes,
+            ReadingProgress: book.ReadingProgress,
+            Annotations: book.Annotations,
+            MetadataFields: book.MetadataFields
+                .Where(static field => !IsLocalPathMetadataField(field.FieldName))
+                .ToList(),
+            ReadingMemory: book.ReadingMemory,
+            IsOcrDerived: book.IsOcrDerived,
+            IsPasswordProtected: book.IsPasswordProtected,
+            Assets: BuildAssetLinks(book.Sha256Hash));
+
+    private static bool IsLocalPathMetadataField(string fieldName) =>
+        string.Equals(fieldName, "RelativePath", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(fieldName, "FileName", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(fieldName, "Path", StringComparison.OrdinalIgnoreCase);
+
+    private static LanAssetLinks BuildAssetLinks(string? contentHash)
+    {
+        if (string.IsNullOrWhiteSpace(contentHash) || !IsSha256Hex(contentHash.ToLowerInvariant()))
+        {
+            return new LanAssetLinks(CoverUrl: null, SpineUrl: null, ThumbnailUrl: null);
+        }
+
+        string escapedHash = Uri.EscapeDataString(contentHash.ToLowerInvariant());
+        return new LanAssetLinks(
+            CoverUrl: $"/api/v1/assets/cover/{escapedHash}",
+            SpineUrl: $"/api/v1/assets/spine/{escapedHash}",
+            ThumbnailUrl: $"/api/v1/assets/thumb/{escapedHash}");
+    }
+
     private async Task AppendAuditAsync(
         HttpContext context,
         string? token,
@@ -450,7 +505,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         DateTimeOffset ExpiresUtc);
 
     private sealed record LanCataloguePage(
-        IReadOnlyList<BookSummaryProjection> Items,
+        IReadOnlyList<LanCatalogueBook> Items,
         int Page,
         int PageSize,
         int ReturnedCount,
@@ -461,6 +516,43 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IReadOnlyList<MetadataSearchResult> Items,
         int ReturnedCount,
         bool HasMore);
+
+    private sealed record LanCatalogueBook(
+        string BookId,
+        string? Title,
+        IReadOnlyList<string> Authors,
+        int Status,
+        int? Rating,
+        IReadOnlyList<string> ShelfIds,
+        double? ReadingProgressPct,
+        bool IsAvailable,
+        int? Year,
+        string? ContentHash,
+        LanAssetLinks Assets);
+
+    private sealed record LanBookDetail(
+        string BookId,
+        string? Title,
+        IReadOnlyList<string> Authors,
+        int? Year,
+        string? Isbn,
+        string? Doi,
+        int? Rating,
+        int Status,
+        string? ContentHash,
+        long? SizeBytes,
+        ReadingProgressProjection? ReadingProgress,
+        int Annotations,
+        IReadOnlyList<MetadataFieldProjection> MetadataFields,
+        ReadingMemorySummaryProjection? ReadingMemory,
+        bool IsOcrDerived,
+        bool IsPasswordProtected,
+        LanAssetLinks Assets);
+
+    private sealed record LanAssetLinks(
+        string? CoverUrl,
+        string? SpineUrl,
+        string? ThumbnailUrl);
 
     private sealed record LanHostError(
         string Code,

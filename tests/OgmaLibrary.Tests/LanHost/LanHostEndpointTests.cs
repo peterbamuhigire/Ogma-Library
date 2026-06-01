@@ -30,7 +30,7 @@ public sealed class LanHostEndpointTests
         {
             await using ServiceProvider services = await CreateServicesAsync(dataDirectory);
             await SeedBookAsync(services);
-            string assetHash = new string('e', 64);
+            string assetHash = new string('d', 64);
             byte[] assetBytes = [0xFF, 0xD8, 0xFF, 0xD9];
             string assetPath = new SidecarService(dataDirectory).Resolve(assetHash, SidecarClass.Covers);
             await File.WriteAllBytesAsync(assetPath, assetBytes);
@@ -101,6 +101,10 @@ public sealed class LanHostEndpointTests
             Assert.DoesNotContain("%PDF", fileStreamBody, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
+            Assert.Contains($"/api/v1/assets/cover/{assetHash}", catalogueJson, StringComparison.Ordinal);
+            Assert.Contains($"/api/v1/assets/spine/{assetHash}", catalogueJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("CoverRelativePath", catalogueJson, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("RelativePath", catalogueJson, StringComparison.OrdinalIgnoreCase);
             using (JsonDocument pagedDocument = JsonDocument.Parse(pagedCatalogueJson))
             {
                 JsonElement root = pagedDocument.RootElement;
@@ -112,6 +116,10 @@ public sealed class LanHostEndpointTests
 
             Assert.Contains("LAN Endpoint Book", bookDetailJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", bookDetailJson, StringComparison.Ordinal);
+            Assert.Contains($"/api/v1/assets/cover/{assetHash}", bookDetailJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("CoverRelativePath", bookDetailJson, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("RelativePath", bookDetailJson, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("lan-endpoint-book.pdf", bookDetailJson, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Second LAN Endpoint Book", searchJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000002", searchJson, StringComparison.Ordinal);
             Assert.True(auditEvents.Count >= 4);
