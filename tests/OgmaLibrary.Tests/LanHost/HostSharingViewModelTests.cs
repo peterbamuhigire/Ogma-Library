@@ -41,6 +41,48 @@ public sealed class HostSharingViewModelTests
     }
 
     [Fact]
+    public async Task HostSharingViewModel_RiskyActions_RequireExplicitConfirmation()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var viewModel = new HostSharingViewModel(host, settings);
+
+        viewModel.RequestStartConfirmation();
+
+        Assert.True(viewModel.IsStartConfirmationOpen);
+        Assert.False(viewModel.IsRunning);
+        Assert.False(viewModel.CanStart);
+
+        viewModel.CancelStartConfirmation();
+
+        Assert.False(viewModel.IsStartConfirmationOpen);
+        Assert.True(viewModel.CanStart);
+
+        viewModel.RequestStartConfirmation();
+        await viewModel.ConfirmStartAsync();
+
+        Assert.True(viewModel.IsRunning);
+        Assert.False(viewModel.IsStartConfirmationOpen);
+
+        await viewModel.StopAsync();
+        await viewModel.RequestContentModeChangeAsync();
+
+        Assert.True(viewModel.IsFileStreamConfirmationOpen);
+        Assert.Equal(HostContentDeliveryMode.PageRender, settings.Settings.ContentMode);
+
+        viewModel.CancelFileStreamConfirmation();
+
+        Assert.False(viewModel.IsFileStreamConfirmationOpen);
+        Assert.Equal(HostContentDeliveryMode.PageRender, settings.Settings.ContentMode);
+
+        await viewModel.RequestContentModeChangeAsync();
+        await viewModel.ConfirmFileStreamAsync();
+
+        Assert.False(viewModel.IsFileStreamConfirmationOpen);
+        Assert.Equal(HostContentDeliveryMode.FileStream, settings.Settings.ContentMode);
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_SharePanel_BuildsQrJoinPayloadAndCopyConfirmations()
     {
         var host = new FakeLibraryHostService();

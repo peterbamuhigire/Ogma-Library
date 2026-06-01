@@ -169,11 +169,27 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void HostStartButton_Click(object? sender, RoutedEventArgs e)
+    private void HostStartButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)
         {
-            await vm.HostSharing.StartAsync().ConfigureAwait(true);
+            vm.HostSharing.RequestStartConfirmation();
+        }
+    }
+
+    private async void HostConfirmStartButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            await vm.HostSharing.ConfirmStartAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void HostCancelStartConfirmationButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            vm.HostSharing.CancelStartConfirmation();
         }
     }
 
@@ -189,7 +205,23 @@ public partial class CatalogueShellView : UserControl
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)
         {
-            await vm.HostSharing.ToggleContentModeAsync().ConfigureAwait(true);
+            await vm.HostSharing.RequestContentModeChangeAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void HostConfirmFileStreamButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            await vm.HostSharing.ConfirmFileStreamAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void HostCancelFileStreamConfirmationButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            vm.HostSharing.CancelFileStreamConfirmation();
         }
     }
 

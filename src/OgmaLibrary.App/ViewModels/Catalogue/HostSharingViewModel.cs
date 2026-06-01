@@ -17,6 +17,13 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly string _copyJoinLinkText = "Copy join link";
     private readonly string _copyFingerprintText = "Copy fingerprint";
     private readonly string _closeSharePanelText = "Close";
+    private readonly string _startConfirmationText =
+        "Starting Host mode opens this library to authenticated devices on your local network.";
+    private readonly string _fileStreamConfirmationText =
+        "File Stream sends raw PDF files to clients. Page Render keeps PDF bytes on this computer.";
+    private readonly string _confirmStartText = "Start Host";
+    private readonly string _confirmFileStreamText = "Use File Stream";
+    private readonly string _cancelConfirmationText = "Cancel";
     private HostModeSettings _settings = new(
         IsEnabled: false,
         Port: 7473,
@@ -30,6 +37,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ErrorMessage: null);
     private bool _isBusy;
     private bool _isSharePanelOpen;
+    private bool _isStartConfirmationOpen;
+    private bool _isFileStreamConfirmationOpen;
     private string? _shareConfirmationText;
 
     public HostSharingViewModel(
@@ -102,6 +111,16 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ? "Use File Stream"
         : "Use Page Render";
 
+    public string StartConfirmationText => _startConfirmationText;
+
+    public string FileStreamConfirmationText => _fileStreamConfirmationText;
+
+    public string ConfirmStartText => _confirmStartText;
+
+    public string ConfirmFileStreamText => _confirmFileStreamText;
+
+    public string CancelConfirmationText => _cancelConfirmationText;
+
     public string PrimaryActionText => IsRunning ? "Stop" : "Start";
 
     public bool IsRunning => _status.State == LibraryHostState.Running;
@@ -117,15 +136,16 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanStart));
                 OnPropertyChanged(nameof(CanStop));
+                OnPropertyChanged(nameof(CanChangeContentMode));
             }
         }
     }
 
-    public bool CanStart => !IsBusy && !IsRunning;
+    public bool CanStart => !IsBusy && !IsRunning && !IsStartConfirmationOpen;
 
     public bool CanStop => !IsBusy && IsRunning;
 
-    public bool CanChangeContentMode => !IsBusy && !IsRunning;
+    public bool CanChangeContentMode => !IsBusy && !IsRunning && !IsFileStreamConfirmationOpen;
 
     public bool CanShare =>
         IsRunning &&
@@ -142,6 +162,34 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             {
                 _isSharePanelOpen = value;
                 OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool IsStartConfirmationOpen
+    {
+        get => _isStartConfirmationOpen;
+        private set
+        {
+            if (_isStartConfirmationOpen != value)
+            {
+                _isStartConfirmationOpen = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanStart));
+            }
+        }
+    }
+
+    public bool IsFileStreamConfirmationOpen
+    {
+        get => _isFileStreamConfirmationOpen;
+        private set
+        {
+            if (_isFileStreamConfirmationOpen != value)
+            {
+                _isFileStreamConfirmationOpen = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanChangeContentMode));
             }
         }
     }
@@ -179,6 +227,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
+            IsStartConfirmationOpen = false;
             _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
             _status = await _hostService.StartAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -199,6 +248,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
+            IsStartConfirmationOpen = false;
+            IsFileStreamConfirmationOpen = false;
             _status = await _hostService.StopAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -223,6 +274,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
+            IsFileStreamConfirmationOpen = false;
             _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
             HostContentDeliveryMode nextMode = _settings.ContentMode == HostContentDeliveryMode.PageRender
                 ? HostContentDeliveryMode.FileStream
@@ -235,6 +287,59 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             IsBusy = false;
             RaiseStatusChanged();
         }
+    }
+
+    public void RequestStartConfirmation()
+    {
+        if (!CanStart)
+        {
+            return;
+        }
+
+        IsStartConfirmationOpen = true;
+    }
+
+    public void CancelStartConfirmation() => IsStartConfirmationOpen = false;
+
+    public async Task ConfirmStartAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsStartConfirmationOpen)
+        {
+            return;
+        }
+
+        IsStartConfirmationOpen = false;
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task RequestContentModeChangeAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanChangeContentMode)
+        {
+            return;
+        }
+
+        _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (_settings.ContentMode == HostContentDeliveryMode.PageRender)
+        {
+            IsFileStreamConfirmationOpen = true;
+            return;
+        }
+
+        await ToggleContentModeAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public void CancelFileStreamConfirmation() => IsFileStreamConfirmationOpen = false;
+
+    public async Task ConfirmFileStreamAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsFileStreamConfirmationOpen)
+        {
+            return;
+        }
+
+        IsFileStreamConfirmationOpen = false;
+        await ToggleContentModeAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public void OpenSharePanel()
@@ -273,6 +378,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(EnrollmentCodeText));
         OnPropertyChanged(nameof(ContentModeText));
         OnPropertyChanged(nameof(ToggleContentModeText));
+        OnPropertyChanged(nameof(StartConfirmationText));
+        OnPropertyChanged(nameof(FileStreamConfirmationText));
         OnPropertyChanged(nameof(PrimaryActionText));
         OnPropertyChanged(nameof(IsRunning));
         OnPropertyChanged(nameof(CanStart));
