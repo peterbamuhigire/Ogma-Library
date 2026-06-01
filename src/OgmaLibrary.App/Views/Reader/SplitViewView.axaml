@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Reader"
+             x:Class="OgmaLibrary.App.Views.Reader.SplitViewView"
+             x:DataType="vm:SplitViewViewModel"
+             AutomationProperties.Name="{Binding AccessibleLabel}">
+
+  <Grid RowDefinitions="Auto,*"
+        Background="{DynamicResource Brush.Surface.Parchment}">
+    <Border Padding="14,10"
+            Background="{DynamicResource Brush.Surface.Footer}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="0,0,0,1">
+      <TextBlock Text="{Binding Title}"
+                 FontSize="{DynamicResource Type.Size.Subtitle}"
+                 FontWeight="SemiBold"
+                 Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+    </Border>
+
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,*"
+          MinHeight="320">
+      <Border Padding="16"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="0,0,1,0">
+        <StackPanel Spacing="8"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="360">
+          <TextBlock Text="{Binding LeftPaneText}"
+                     FontWeight="SemiBold"
+                     TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <TextBlock Text="{Binding PlaceholderText}"
+                     TextWrapping="Wrap"
+                     TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="1"
+              Padding="16">
+        <StackPanel Spacing="8"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="360">
+          <TextBlock Text="{Binding RightPaneText}"
+                     FontWeight="SemiBold"
+                     TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <TextBlock Text="{Binding PlaceholderText}"
+                     TextWrapping="Wrap"
+                     TextAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

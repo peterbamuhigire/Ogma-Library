@@ -21,6 +21,9 @@ public enum ShellView
 
     /// <summary>The PDF reader view (Phase 08).</summary>
     Reader = 1,
+
+    /// <summary>The V2 split-reader scaffold (Phase 15).</summary>
+    SplitView = 2,
 }
 
 /// <summary>
@@ -76,6 +79,7 @@ public sealed class MainShellViewModel :
     /// <param name="bookDetail">The book-detail view model.</param>
     /// <param name="shelfSidebar">The shelf sidebar view model.</param>
     /// <param name="reader">The reader view model.</param>
+    /// <param name="splitView">The Phase 15 split-view scaffold.</param>
     /// <param name="settingsService">The library settings service.</param>
     /// <param name="orchestrator">The ingestion orchestrator.</param>
     /// <param name="scanProgress">The scan progress service.</param>
@@ -93,7 +97,8 @@ public sealed class MainShellViewModel :
         IScanProgressService? scanProgress = null,
         IDirectPdfOpenService? directPdfOpenService = null,
         SearchViewModel? search = null,
-        IndexManagerViewModel? indexManager = null)
+        IndexManagerViewModel? indexManager = null,
+        SplitViewViewModel? splitView = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -105,6 +110,7 @@ public sealed class MainShellViewModel :
         BookDetail = bookDetail;
         ShelfSidebar = shelfSidebar;
         Reader = reader;
+        SplitView = splitView;
         Search = search;
         IndexManager = indexManager;
         _settingsService = settingsService;
@@ -137,6 +143,9 @@ public sealed class MainShellViewModel :
     /// <summary>The reader surface view model.</summary>
     public ReaderViewModel? Reader { get; }
 
+    /// <summary>The split-view scaffold view model.</summary>
+    public SplitViewViewModel? SplitView { get; }
+
     /// <summary>The global search panel view model.</summary>
     public SearchViewModel? Search { get; }
 
@@ -157,6 +166,7 @@ public sealed class MainShellViewModel :
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsCatalogueActive));
                 OnPropertyChanged(nameof(IsReaderActive));
+                OnPropertyChanged(nameof(IsSplitViewActive));
             }
         }
     }
@@ -166,6 +176,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the reader view is the active content area.</summary>
     public bool IsReaderActive => _activeView == ShellView.Reader;
+
+    /// <summary>True when the split-view scaffold is the active content area.</summary>
+    public bool IsSplitViewActive => _activeView == ShellView.SplitView;
 
     /// <summary>Whether the left sidebar (shelves) is open.</summary>
     public bool IsSidebarOpen
@@ -336,6 +349,9 @@ public sealed class MainShellViewModel :
     /// <summary>Index Manager panel toggle label.</summary>
     public string IndexManagerLabel => _localization["IndexManager.Panel.Label"];
 
+    /// <summary>Split-view scaffold route label.</summary>
+    public string SplitViewLabel => _localization["SplitView.Title"];
+
     /// <summary>Search panel toggle icon path.</summary>
     public string SearchIconPath => _searchIconPath;
 
@@ -372,6 +388,14 @@ public sealed class MainShellViewModel :
             BookDetail.IsVisible = false;
             OnPropertyChanged(nameof(IsReaderActive));
         });
+    }
+
+    /// <summary>Opens the Phase 15 split-view scaffold route.</summary>
+    public void OpenSplitViewScaffold()
+    {
+        ActiveView = ShellView.SplitView;
+        ReaderPlaceholderMessage = null;
+        BookDetail.IsVisible = false;
     }
 
     // ── Scan / folder actions ─────────────────────────────────────────────────
@@ -670,6 +694,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(FilterLabel));
         OnPropertyChanged(nameof(SearchLabel));
         OnPropertyChanged(nameof(IndexManagerLabel));
+        OnPropertyChanged(nameof(SplitViewLabel));
         OnPropertyChanged(nameof(SearchIconPath));
         OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(SortLabel));

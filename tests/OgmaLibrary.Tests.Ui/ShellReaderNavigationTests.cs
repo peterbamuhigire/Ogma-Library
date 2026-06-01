@@ -1,7 +1,9 @@
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
+using OgmaLibrary.App.Views.Reader;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
@@ -142,6 +144,50 @@ public sealed class ShellReaderNavigationTests
         Assert.Equal("Runtime Author", bookDetail.AuthorsDisplay);
 
         shell.Dispose();
+    }
+
+    [AvaloniaFact]
+    public void SplitView_Route_Exists_ShowsV2Placeholder()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization)
+        {
+            IsVisible = true,
+        };
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var splitView = new SplitViewViewModel(localization);
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            splitView: splitView);
+
+        shell.OpenSplitViewScaffold();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(ShellView.SplitView, shell.ActiveView);
+        Assert.True(shell.IsSplitViewActive);
+        Assert.False(shell.IsReaderActive);
+        Assert.False(shell.IsCatalogueActive);
+        Assert.False(shell.BookDetail.IsVisible);
+        Assert.Equal("Split view is coming in V2.", splitView.PlaceholderText);
+
+        var window = new Window
+        {
+            Width = 900,
+            Height = 520,
+            Content = new SplitViewView { DataContext = splitView },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotNull(window.Content);
+        window.Close();
     }
 
     private sealed class EmptyCatalogueReadModel : ICatalogueReadModel

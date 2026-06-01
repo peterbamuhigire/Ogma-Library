@@ -67,6 +67,7 @@ public static class CompositionRoot
         services.AddTransient<RecommendationPanelViewModel>();
         services.AddTransient<ReadingPlanViewModel>();
         services.AddTransient<Bookshelf3DViewModel>();
+        services.AddTransient<SplitViewViewModel>();
 
         // Phase 04 — Catalogue & Data Layer.
         // The data directory defaults to "Ogma Library Data" under OS app-data.
@@ -148,6 +149,7 @@ public static class CompositionRoot
                 sp.GetRequiredService<IIndexManagerService>(),
                 sp.GetRequiredService<IEmbeddingErasureService>(),
                 localization);
+            var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(
                 localization,
@@ -160,7 +162,8 @@ public static class CompositionRoot
                 sp.GetRequiredService<IScanProgressService>(),
                 sp.GetRequiredService<IDirectPdfOpenService>(),
                 searchVm,
-                indexManagerVm);
+                indexManagerVm,
+                splitViewVm);
 
             return shell;
         });

@@ -32,6 +32,7 @@ is supplied through `Tesseract.Data.English`, which copies
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrWorkerTests` | Passed: 1 hosted worker scheduling test |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` | Passed: 4 index-manager backend tests including OCR job status projection |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 8 UI/view-model tests including localized OCR job progress |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~ShellReaderNavigationTests` | Passed: 4 shell route tests including split-view V2 scaffold |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -53,6 +54,7 @@ is supplied through `Tesseract.Data.English`, which copies
 | English OCR data | `Tesseract.Data.English` supplies `tessdata/eng.traineddata` without committing the binary to git |
 | Hosted OCR worker | `OcrWorker` polls `IOcrJobProcessor` as a hosted service and backs off on idle/error states |
 | OCR status surface | `IndexManagerService` projects recent `OcrJob` progress from the Jobs table; `IndexManagerViewModel` localizes active job count, state, and page progress |
+| Split-view scaffold | `SplitViewViewModel`, `SplitViewView`, and `MainShellViewModel.OpenSplitViewScaffold()` provide the Phase 15 V2 route with localized placeholder copy |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work
@@ -60,7 +62,7 @@ is supplied through `Tesseract.Data.English`, which copies
 - WP2 OCR golden-corpus fixture.
 - WP3 OCR trigger/pause/cancel/retry controls.
 - WP4 password credential provider and reader unlock flow.
-- WP5 split-view scaffold.
+- WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment scale hardening.
 - WP7 smart-shelf performance optimization.
 - WP8 OCR extension point.

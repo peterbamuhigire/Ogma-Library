@@ -127,6 +127,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void SplitViewButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.OpenSplitViewScaffold();
+        }
+    }
+
     private async void ChooseFolderButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

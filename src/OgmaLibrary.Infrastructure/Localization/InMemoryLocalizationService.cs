@@ -293,6 +293,11 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Reader.Error.FileNotFound"] = "The PDF file could not be found.",
         ["Reader.Error.RenderFailed"] = "Page could not be rendered.",
         ["Reader.Panel.Title"] = "Reader",
+        ["SplitView.Title"] = "Split view",
+        ["SplitView.LeftPane"] = "Primary reader",
+        ["SplitView.RightPane"] = "Reference reader",
+        ["SplitView.Placeholder"] = "Split view is coming in V2.",
+        ["SplitView.AccessibleLabel"] = "Split-view scaffold",
 
         // Phase 09 — Annotations, Bookmarks & Reading Memory (en)
         ["Annotation.Highlight.Create"] = "Highlight",
@@ -714,6 +719,11 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Reader.Error.FileNotFound"] = "Le fichier PDF est introuvable.",
         ["Reader.Error.RenderFailed"] = "La page n'a pas pu être rendue.",
         ["Reader.Panel.Title"] = "Lecteur",
+        ["SplitView.Title"] = "Vue partagee",
+        ["SplitView.LeftPane"] = "Lecteur principal",
+        ["SplitView.RightPane"] = "Lecteur de reference",
+        ["SplitView.Placeholder"] = "La vue partagee arrive dans la V2.",
+        ["SplitView.AccessibleLabel"] = "Echafaudage de vue partagee",
 
         // Phase 09 — Annotations, Bookmarks & Reading Memory (fr)
         ["Annotation.Highlight.Create"] = "Surligner",

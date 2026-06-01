@@ -74,7 +74,7 @@
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
           <!-- Sidebar toggle -->
           <Button Grid.Column="0"
@@ -158,8 +158,21 @@
             </StackPanel>
           </Button>
 
-          <!-- Filter panel toggle -->
+          <!-- Split-view scaffold route -->
           <Button Grid.Column="4"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  AutomationProperties.Name="{Binding SplitViewLabel}"
+                  Click="SplitViewButton_Click">
+            <TextBlock Text="||"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
+
+          <!-- Filter panel toggle -->
+          <Button Grid.Column="5"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -168,7 +181,7 @@
             <TextBlock Text="⚗" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           </Button>
 
-          <Button Grid.Column="5"
+          <Button Grid.Column="6"
                   Background="{DynamicResource Brush.Accent.Oak}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -180,7 +193,7 @@
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
 
-          <Button Grid.Column="6"
+          <Button Grid.Column="7"
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -193,7 +206,7 @@
           </Button>
 
           <!-- Count badge -->
-          <TextBlock Grid.Column="7"
+          <TextBlock Grid.Column="8"
                      VerticalAlignment="Center"
                      Margin="8,0,4,0"
                      FontSize="{DynamicResource Type.Size.Caption}"
@@ -309,6 +322,10 @@
 
         <Panel IsVisible="{Binding IsReaderActive}">
           <reader:ReaderView DataContext="{Binding Reader}" />
+        </Panel>
+
+        <Panel IsVisible="{Binding IsSplitViewActive}">
+          <reader:SplitViewView DataContext="{Binding SplitView}" />
         </Panel>
 
       </Grid>
