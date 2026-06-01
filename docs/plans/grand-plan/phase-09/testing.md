@@ -1,6 +1,7 @@
 # Phase 09 — Test Plan
 
-All nine test layers applied to Annotations, Bookmarks & Reading Memory.
+Applicable test layers are applied to Annotations, Bookmarks & Reading Memory;
+out-of-scope layers are documented below.
 
 ---
 
