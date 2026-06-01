@@ -231,7 +231,7 @@ else {
     $lines.Add('| Command | Exit code | Duration seconds |')
     $lines.Add('| --- | ---: | ---: |')
     foreach ($result in $results) {
-        $lines.Add("| ``$($result.Command)`` | $($result.ExitCode) | $($result.DurationSeconds) |")
+        $lines.Add("| ``$(Escape-TableCell $result.Command)`` | $($result.ExitCode) | $($result.DurationSeconds) |")
     }
     foreach ($result in $results) {
         $lines.Add('')
