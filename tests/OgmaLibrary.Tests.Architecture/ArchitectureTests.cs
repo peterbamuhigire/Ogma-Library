@@ -5,6 +5,7 @@ using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Extensions;
+using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
@@ -12,6 +13,7 @@ using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.LanHost;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Navigation;
@@ -516,10 +518,103 @@ public sealed class ArchitectureTests
         Assert.True(pdfSharp.IsSuccessful, Describe(pdfSharp));
     }
 
+    [Fact]
+    public void ArchTests_LanHost_HasNoCredentialStoreOrWorkerDependency()
+    {
+        var security = Types.InAssembly(typeof(LanHostServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.LanHost")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.Security")
+            .GetResult();
+        var workers = Types.InAssembly(typeof(LanHostServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.LanHost")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Workers")
+            .GetResult();
+
+        Assert.True(security.IsSuccessful, Describe(security));
+        Assert.True(workers.IsSuccessful, Describe(workers));
+    }
+
+    [Fact]
+    public void ArchTests_LanHost_HasNoAiProviderDependency()
+    {
+        var infrastructureAi = Types.InAssembly(typeof(LanHostServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.LanHost")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.AI")
+            .GetResult();
+        var applicationAi = Types.InAssembly(typeof(LanHostServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.LanHost")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Application.Ai")
+            .GetResult();
+
+        Assert.True(infrastructureAi.IsSuccessful, Describe(infrastructureAi));
+        Assert.True(applicationAi.IsSuccessful, Describe(applicationAi));
+    }
+
+    [Fact]
+    public void ArchTests_StandaloneMode_HasNoOpenListener()
+    {
+        Type[] listenerTypes = typeof(CatalogueDbContext).Assembly.GetTypes()
+            .Where(type => !IsLanHostType(type))
+            .Where(type => ReferencesTypeName(type, "HttpListener") ||
+                ReferencesTypeName(type, "Kestrel"))
+            .ToArray();
+
+        Assert.Empty(listenerTypes);
+    }
+
     private static string Describe(TestResult result) =>
         result.IsSuccessful
             ? "ok"
             : "Offending types: " + string.Join(", ", result.FailingTypeNames ?? []);
+
+    private static bool IsLanHostType(Type type) =>
+        (type.Namespace ?? string.Empty).StartsWith("OgmaLibrary.Infrastructure.LanHost", StringComparison.Ordinal) ||
+        (type.Namespace ?? string.Empty).StartsWith("OgmaLibrary.Application.LanHost", StringComparison.Ordinal);
+
+    private static bool ReferencesTypeName(Type type, string name)
+    {
+        static IEnumerable<Type?> ReferencedTypes(Type inspected)
+        {
+            foreach (Type iface in inspected.GetInterfaces())
+            {
+                yield return iface;
+            }
+
+            yield return inspected.BaseType;
+
+            foreach (FieldInfo field in inspected.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                yield return field.FieldType;
+            }
+
+            foreach (PropertyInfo property in inspected.GetProperties(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                yield return property.PropertyType;
+            }
+
+            foreach (MethodInfo method in inspected.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                yield return method.ReturnType;
+                foreach (ParameterInfo parameter in method.GetParameters())
+                {
+                    yield return parameter.ParameterType;
+                }
+            }
+        }
+
+        return ReferencedTypes(type)
+            .Any(candidate =>
+                candidate?.FullName?.Contains(name, StringComparison.OrdinalIgnoreCase) == true ||
+                candidate?.Name.Contains(name, StringComparison.OrdinalIgnoreCase) == true);
+    }
 
     private static bool HasHttpClientDependency(Type type) =>
         type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)

@@ -23,6 +23,7 @@ using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
+using OgmaLibrary.Infrastructure.LanHost;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Ocr;
@@ -94,6 +95,9 @@ public static class CompositionRoot
 
         // Phase 07 — deterministic metadata enrichment and PDF DocInfo write-back.
         services.AddMetadataEnrichment(libraryRoot: dataDirectory);
+
+        // Phase 16 — opt-in LAN Library Host bounded-context scaffold.
+        services.AddLanHostServices();
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();
