@@ -117,6 +117,36 @@ public sealed class SearchViewModelTests
         Assert.Equal(1, vm.ActiveOcrJobs);
         Assert.Equal("Active OCR jobs: 1", vm.OcrJobsSummary);
         Assert.Contains(vm.OcrJobs, job => job.StateText == "Running" && job.ProgressText == "2/8 pages (25%)");
+        Assert.Contains(vm.OcrJobs, job => job.CanPause && job.CanCancel && !job.CanRetry);
+    }
+
+    [AvaloniaFact]
+    public async Task IndexManagerViewModel_OcrJobControls_CallService()
+    {
+        var service = new StubIndexManagerService();
+        using var vm = new IndexManagerViewModel(
+            service,
+            new StubEmbeddingErasureService(),
+            new InMemoryLocalizationService());
+
+        await vm.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+        OcrJobStatusDisplayItem running = Assert.Single(vm.OcrJobs);
+
+        await vm.PauseOcrJobAsync(running);
+        await vm.CancelOcrJobAsync(running);
+        var failed = running with
+        {
+            CanPause = false,
+            CanRetry = true,
+        };
+        await vm.RetryOcrJobAsync(failed);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(99, service.PausedJobId);
+        Assert.Equal(99, service.CancelledJobId);
+        Assert.Equal(99, service.RetriedJobId);
+        Assert.Contains("retry", vm.StatusText, StringComparison.OrdinalIgnoreCase);
     }
 
     [AvaloniaFact]
@@ -392,6 +422,12 @@ public sealed class SearchViewModelTests
 
         public int RebuildCalls { get; private set; }
 
+        public long? PausedJobId { get; private set; }
+
+        public long? CancelledJobId { get; private set; }
+
+        public long? RetriedJobId { get; private set; }
+
         public IObservable<IndexStatusUpdate> Events => _events;
 
         public Task<IndexManagerStatus> GetStatusAsync(CancellationToken cancellationToken)
@@ -408,6 +444,27 @@ public sealed class SearchViewModelTests
             var result = new IndexRebuildResult(true, 2, 2, 0, 4, true, null);
             _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
             return Task.FromResult(result);
+        }
+
+        public Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken)
+        {
+            PausedJobId = jobId;
+            _events.Publish(new IndexStatusUpdate.StatusChanged(BuildStatus()));
+            return Task.CompletedTask;
+        }
+
+        public Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken)
+        {
+            CancelledJobId = jobId;
+            _events.Publish(new IndexStatusUpdate.StatusChanged(BuildStatus()));
+            return Task.CompletedTask;
+        }
+
+        public Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken)
+        {
+            RetriedJobId = jobId;
+            _events.Publish(new IndexStatusUpdate.StatusChanged(BuildStatus()));
+            return Task.CompletedTask;
         }
 
         public static IndexManagerStatus BuildStatus() =>
@@ -463,6 +520,12 @@ public sealed class SearchViewModelTests
             _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
             return result;
         }
+
+        public Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public void Complete() => _completion.TrySetResult();
     }

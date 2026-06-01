@@ -91,6 +91,34 @@ public sealed class IndexManagerServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task OcrJobControls_PauseCancelRetry_UpdateJobStatesAndPublishStatus()
+    {
+        string bookId = SeedBook("P15OCRCONTROLS00000001", SearchBookIndexStatus.Indexed);
+        JobRow running = SeedOcrJob(bookId, "ocr-running", 1);
+        JobRow pending = SeedOcrJob(bookId, "ocr-pending", 0);
+        JobRow failed = SeedOcrJob(bookId, "ocr-failed", 3, "OCR failed");
+        var service = new IndexManagerService(
+            _context,
+            new NoOpExtractionPipeline(),
+            new FtsIndexService(_context));
+        var observer = new RecordingObserver();
+        using IDisposable subscription = service.Events.Subscribe(observer);
+
+        await service.PauseOcrJobAsync(running.JobId, CancellationToken.None);
+        await service.CancelOcrJobAsync(pending.JobId, CancellationToken.None);
+        await service.RetryOcrJobAsync(failed.JobId, CancellationToken.None);
+        _context.ChangeTracker.Clear();
+
+        Assert.Equal(5, _context.Jobs.Single(job => job.JobId == running.JobId).Status);
+        Assert.Equal(4, _context.Jobs.Single(job => job.JobId == pending.JobId).Status);
+        JobRow retried = _context.Jobs.Single(job => job.JobId == failed.JobId);
+        Assert.Equal(0, retried.Status);
+        Assert.Null(retried.ErrorMessage);
+        Assert.Equal(1, retried.RetryCount);
+        Assert.True(observer.Events.OfType<IndexStatusUpdate.StatusChanged>().Count() >= 3);
+    }
+
+    [Fact]
     public async Task IndexRebuild_CompletesWithoutDuplicatesOrCorruption()
     {
         const int bookCount = 100;
@@ -213,6 +241,24 @@ public sealed class IndexManagerServiceTests : IDisposable
         });
         _context.SaveChanges();
         return bookId;
+    }
+
+    private JobRow SeedOcrJob(string bookId, string key, int status, string? error = null)
+    {
+        var job = new JobRow
+        {
+            BookId = bookId,
+            JobType = "OcrJob",
+            IdempotencyKey = key,
+            Status = status,
+            Payload = """{"FilePath":"scan.pdf","Language":"eng","TotalPages":4,"ProcessedPages":1}""",
+            StartedUtc = status == 1 ? DateTimeOffset.UtcNow.AddMinutes(-1) : null,
+            CompletedUtc = status == 3 ? DateTimeOffset.UtcNow : null,
+            ErrorMessage = error,
+        };
+        _context.Jobs.Add(job);
+        _context.SaveChanges();
+        return job;
     }
 
     private sealed class RecordingObserver : IObserver<IndexStatusUpdate>

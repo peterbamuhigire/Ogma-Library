@@ -69,4 +69,31 @@ public partial class IndexManagerPanelView : UserControl
             vm.CancelRebuild();
         }
     }
+
+    private async void PauseOcr_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is IndexManagerViewModel vm &&
+            sender is Control { DataContext: OcrJobStatusDisplayItem job })
+        {
+            await vm.PauseOcrJobAsync(job).ConfigureAwait(true);
+        }
+    }
+
+    private async void CancelOcr_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is IndexManagerViewModel vm &&
+            sender is Control { DataContext: OcrJobStatusDisplayItem job })
+        {
+            await vm.CancelOcrJobAsync(job).ConfigureAwait(true);
+        }
+    }
+
+    private async void RetryOcr_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is IndexManagerViewModel vm &&
+            sender is Control { DataContext: OcrJobStatusDisplayItem job })
+        {
+            await vm.RetryOcrJobAsync(job).ConfigureAwait(true);
+        }
+    }
 }

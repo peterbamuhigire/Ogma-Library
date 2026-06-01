@@ -193,6 +193,47 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
         }
     }
 
+    /// <inheritdoc />
+    public Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken) =>
+        UpdateOcrJobAsync(
+            jobId,
+            allowedStates: [0, 1],
+            update: job =>
+            {
+                job.Status = 5;
+                job.StartedUtc = null;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken) =>
+        UpdateOcrJobAsync(
+            jobId,
+            allowedStates: [0, 1, 3, 5],
+            update: job =>
+            {
+                job.Status = 4;
+                job.StartedUtc = null;
+                job.CompletedUtc = DateTimeOffset.UtcNow;
+                job.ErrorMessage = "Cancelled by user.";
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken) =>
+        UpdateOcrJobAsync(
+            jobId,
+            allowedStates: [3, 4, 5],
+            update: job =>
+            {
+                job.Status = 0;
+                job.StartedUtc = null;
+                job.CompletedUtc = null;
+                job.ErrorMessage = null;
+                job.RetryCount += 1;
+            },
+            cancellationToken);
+
     private async Task ResetIndexAsync(CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -300,8 +341,30 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
             2 => OcrJobState.Completed,
             3 => OcrJobState.Failed,
             4 => OcrJobState.Cancelled,
+            5 => OcrJobState.Paused,
             _ => OcrJobState.Failed,
         };
+
+    private async Task UpdateOcrJobAsync(
+        long jobId,
+        IReadOnlyCollection<int> allowedStates,
+        Action<JobRow> update,
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        JobRow? job = await context.Jobs
+            .FirstOrDefaultAsync(row => row.JobId == jobId && row.JobType == OcrJobType, cancellationToken)
+            .ConfigureAwait(false);
+        if (job is null || !allowedStates.Contains(job.Status))
+        {
+            return;
+        }
+
+        update(job);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _ = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     private static (int ProcessedPages, int TotalPages) ReadOcrProgress(string? payload)
     {

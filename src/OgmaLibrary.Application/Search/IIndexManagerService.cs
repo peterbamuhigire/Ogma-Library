@@ -19,6 +19,15 @@ public interface IIndexManagerService
     /// Rebuilds the derived search index from source rows.
     /// </summary>
     Task<IndexRebuildResult> RebuildAsync(CancellationToken cancellationToken);
+
+    /// <summary>Pauses a queued or running OCR job.</summary>
+    Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken);
+
+    /// <summary>Cancels an OCR job and prevents future worker pickup.</summary>
+    Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken);
+
+    /// <summary>Retries a failed, cancelled, or paused OCR job.</summary>
+    Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken);
 }
 
 /// <summary>Current status summary for the Index Manager.</summary>
@@ -80,6 +89,9 @@ public enum OcrJobState
 
     /// <summary>Cancelled by the user or system.</summary>
     Cancelled = 4,
+
+    /// <summary>Paused by the user and resumable through retry.</summary>
+    Paused = 5,
 }
 
 /// <summary>Result of a rebuild attempt.</summary>

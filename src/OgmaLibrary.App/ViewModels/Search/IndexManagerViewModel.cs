@@ -299,6 +299,15 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         _localization["IndexManager.OcrJobs.ActiveFormat"],
         ActiveOcrJobs);
 
+    /// <summary>Localized pause OCR label.</summary>
+    public string PauseOcrLabel => _localization["IndexManager.OcrJobs.Pause"];
+
+    /// <summary>Localized cancel OCR label.</summary>
+    public string CancelOcrLabel => _localization["IndexManager.OcrJobs.Cancel"];
+
+    /// <summary>Localized retry OCR label.</summary>
+    public string RetryOcrLabel => _localization["IndexManager.OcrJobs.Retry"];
+
     /// <summary>Localized chunk count summary.</summary>
     public string ChunkSummary => string.Format(
         System.Globalization.CultureInfo.CurrentCulture,
@@ -437,6 +446,45 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Cancels a running rebuild.</summary>
     public void CancelRebuild() => _rebuildCts?.Cancel();
 
+    /// <summary>Pauses a queued or running OCR job.</summary>
+    public async Task PauseOcrJobAsync(OcrJobStatusDisplayItem job, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (!job.CanPause)
+        {
+            return;
+        }
+
+        await _indexManager.PauseOcrJobAsync(job.JobId, cancellationToken).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() => StatusText = _localization["IndexManager.OcrJobs.Paused"]);
+    }
+
+    /// <summary>Cancels an OCR job.</summary>
+    public async Task CancelOcrJobAsync(OcrJobStatusDisplayItem job, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (!job.CanCancel)
+        {
+            return;
+        }
+
+        await _indexManager.CancelOcrJobAsync(job.JobId, cancellationToken).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() => StatusText = _localization["IndexManager.OcrJobs.Cancelled"]);
+    }
+
+    /// <summary>Retries a paused, cancelled, or failed OCR job.</summary>
+    public async Task RetryOcrJobAsync(OcrJobStatusDisplayItem job, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (!job.CanRetry)
+        {
+            return;
+        }
+
+        await _indexManager.RetryOcrJobAsync(job.JobId, cancellationToken).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() => StatusText = _localization["IndexManager.OcrJobs.RetryQueued"]);
+    }
+
     /// <inheritdoc />
     public void OnCompleted()
     {
@@ -567,6 +615,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(FailedSummary));
         OnPropertyChanged(nameof(PendingOcrSummary));
         OnPropertyChanged(nameof(OcrJobsSummary));
+        OnPropertyChanged(nameof(PauseOcrLabel));
+        OnPropertyChanged(nameof(CancelOcrLabel));
+        OnPropertyChanged(nameof(RetryOcrLabel));
         OnPropertyChanged(nameof(ChunkSummary));
         OnPropertyChanged(nameof(SizeSummary));
         OnPropertyChanged(nameof(FailedPagesSummary));
@@ -608,7 +659,13 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
                 string.IsNullOrWhiteSpace(job.Title) ? job.BookId ?? _localization["IndexManager.OcrJobs.UnknownBook"] : job.Title,
                 _localization[$"IndexManager.OcrJobs.State.{job.State}"],
                 FormatOcrProgress(job),
-                job.ErrorMessage ?? string.Empty));
+                job.ErrorMessage ?? string.Empty,
+                job.State is OcrJobState.Pending or OcrJobState.Running,
+                job.State is OcrJobState.Pending or OcrJobState.Running or OcrJobState.Failed or OcrJobState.Paused,
+                job.State is OcrJobState.Failed or OcrJobState.Cancelled or OcrJobState.Paused,
+                PauseOcrLabel,
+                CancelOcrLabel,
+                RetryOcrLabel));
         }
 
         OnPropertyChanged(nameof(HasOcrJobs));
@@ -686,4 +743,10 @@ public sealed record OcrJobStatusDisplayItem(
     string Title,
     string StateText,
     string ProgressText,
-    string ErrorMessage);
+    string ErrorMessage,
+    bool CanPause,
+    bool CanCancel,
+    bool CanRetry,
+    string PauseLabel,
+    string CancelLabel,
+    string RetryLabel);

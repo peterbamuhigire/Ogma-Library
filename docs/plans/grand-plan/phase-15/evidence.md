@@ -36,6 +36,9 @@ budget and records their SQLite query plans.
 WP8 is now guarded by the Phase 13 extension pattern: `IOcrProvider` is marked
 `[ExtensionPoint]`, kept internal through friend assemblies, and covered by an
 architecture visibility test.
+WP3 OCR job controls are wired through the Index Manager: queued/running OCR jobs
+can be paused or cancelled, failed/paused/cancelled jobs can be retried, and the
+panel exposes localized action labels for each job row.
 
 ## Verified Locally
 
@@ -55,6 +58,8 @@ architecture visibility test.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger "console;verbosity=detailed"` | Passed: 3 smart-shelf index/query-plan/2,000-book benchmark tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobProcessorTests\|FullyQualifiedName~OcrWorkerTests"` | Passed: 3 OCR processor/worker tests after internal extension-point hardening |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrExtensionPoint_IsInternal_In_Phase15` | Passed: 1 OCR extension-point visibility test |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` | Passed: 5 Index Manager tests including OCR pause/cancel/retry state transitions |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 9 search/index-manager UI tests including OCR job actions |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -76,6 +81,7 @@ architecture visibility test.
 | English OCR data | `Tesseract.Data.English` supplies `tessdata/eng.traineddata` without committing the binary to git |
 | Hosted OCR worker | `OcrWorker` polls `IOcrJobProcessor` as a hosted service and backs off on idle/error states |
 | OCR status surface | `IndexManagerService` projects recent `OcrJob` progress from the Jobs table; `IndexManagerViewModel` localizes active job count, state, and page progress |
+| OCR job controls | `IIndexManagerService` exposes pause/cancel/retry for OCR jobs; `IndexManagerPanelView` surfaces per-job controls with localized labels |
 | Split-view scaffold | `SplitViewViewModel`, `SplitViewView`, and `MainShellViewModel.OpenSplitViewScaffold()` provide the Phase 15 V2 route with localized placeholder copy |
 | Password provider boundary | `IPasswordProvider`, `PasswordRequest`, and disposable `PasswordResult` define the no-catalogue-secret unlock contract |
 | Windows credential provider | `WindowsPasswordProvider` checks Windows Credential Manager and uses the OS credential prompt for missing passwords |
@@ -93,7 +99,7 @@ architecture visibility test.
 ## Remaining Phase 15 Work
 
 - WP2 OCR golden-corpus fixture.
-- WP3 OCR trigger/pause/cancel/retry controls.
+- WP3 OCR trigger button in book detail / Health Dashboard.
 - WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
