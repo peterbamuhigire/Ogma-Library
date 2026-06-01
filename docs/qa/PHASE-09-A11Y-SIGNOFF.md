@@ -22,7 +22,7 @@ owner-controlled release folder named in the row.
 | Requirement | Evidence |
 | --- | --- |
 | Annotation overlays expose a non-color label | `ReaderViewModel_AnnotationOverlayAccessibleLabel_IncludesPageAndLayer` |
-| Selection action menu opens from mouse drag with focusable named actions | `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions` |
+| Selection action menu opens from pointer drag with focusable named actions; touch and pen drags are eligible selection pointers | `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions`; `ReaderView_CanTrackSelectionPointer_AllowsTouchAndPenDrag` |
 | Core Phase 09 controls expose names and accept keyboard focus | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` |
 | Bookmark panel announces count | `ReaderViewModel_BookmarkPanelAccessibleLabel_IncludesCount` |
 | Bookmark panel sort selector is named and keyboard focusable | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames`; `ReaderViewModel_BookmarkSortOptions_ReorderByPageOrCreationDate` |
