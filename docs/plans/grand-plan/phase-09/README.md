@@ -455,14 +455,16 @@ Current implementation progress:
   the gate remains pending until manual, owner, and remote-CI evidence rows are
   completed or explicitly waived, and the generated report lists the exact
   pending rows still needing evidence.
-- The signoff gate now scopes preflight evidence to the current commit or to an
-  ancestor commit only when no product source, tests, workflow, solution,
-  project, props, targets, or `.editorconfig` files changed afterward.
+- The signoff gate now scopes preflight and passing remote-CI evidence to the
+  current commit or to an ancestor commit only when no verification-impacting
+  files changed afterward.
 - Remote GitHub Actions evidence can be collected with
   `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
-  available; the signoff gate accepts only a passing current-commit record.
+  available; the signoff gate accepts only a passing current-commit record or a
+  passing ancestor-commit record with no verification-impacting changes after
+  the run.
 - The latest remote-CI collection attempt is archived at
-  `docs/qa/evidence/phase09-remote-ci-20260601-073636.md`; GitHub Actions API
+  `docs/qa/evidence/phase09-remote-ci-20260601-074523.md`; GitHub Actions API
   access still returns 404 from this environment, so remote CI remains pending.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
@@ -548,3 +550,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Improved the Phase 09 signoff gate with row-level pending evidence details | Codex |
 | 2026-06-01 | Refreshed remote-CI evidence attempt for the current Phase 09 signoff-gate commit | Codex |
 | 2026-06-01 | Tightened the Phase 09 signoff gate so ancestor preflight evidence remains valid only when no product/test/build/workflow files changed afterward | Codex |
+| 2026-06-01 | Extended the same verification-impacting file scope check to passing remote-CI evidence and archived a fresh GitHub API 404 attempt | Codex |

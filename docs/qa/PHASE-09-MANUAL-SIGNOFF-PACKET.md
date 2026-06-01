@@ -105,7 +105,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 236, UI 93, Architecture 15 |
 | `.\scripts\Phase09-Preflight.ps1` | Generates a dated `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
 | `docs/qa/evidence/phase09-preflight-20260601-072040.md` | Current preflight evidence for commit `f4c09954bdeab37a59cdcc3350560eff133c919b`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
-| `docs/qa/evidence/phase09-remote-ci-20260601-073636.md` | Current remote-CI collection attempt for commit `8e82c9a60d4da88df65fa15a1874854f5b441571`: GitHub Actions API returned 404, so remote CI remains pending |
+| `docs/qa/evidence/phase09-remote-ci-20260601-074523.md` | Current remote-CI collection attempt for commit `45a1c633a427cb196b5901cb3d9ef17e1d7db637`: GitHub Actions API returned 404, so remote CI remains pending |
 
 ## Closure Rule
 
@@ -121,9 +121,12 @@ The gate exits `0` only when preflight evidence is valid and no manual,
 owner-decision, accessibility, visual-review, or remote-CI evidence remains
 pending. When it exits nonzero, the generated report includes a `Pending Detail
 Rows` section listing the exact table rows that still need evidence or waiver.
-Preflight evidence is accepted for the current commit, or for an ancestor commit
-when no product source, tests, workflow, solution, project, props, targets, or
-`.editorconfig` files changed after that preflight run.
+Preflight and passing remote-CI evidence are accepted for the current commit, or
+for an ancestor commit when no verification-impacting files changed after that
+evidence run. Verification-impacting files include product source, tests,
+workflow files, solution/project files, props/targets, `.editorconfig`,
+`global.json`, `NuGet.config`, and `Directory.Build.*` or
+`Directory.Packages.*` files.
 
 To collect remote CI evidence when GitHub Actions is readable from the
 workstation, run:
@@ -133,4 +136,5 @@ workstation, run:
 ```
 
 The signoff gate accepts the latest `docs/qa/evidence/phase09-remote-ci-*.md`
-only when it records `Status` as `Pass` for the current commit.
+only when it records `Status` as `Pass` for the current commit, or for an
+ancestor commit with no verification-impacting changes afterward.

@@ -72,56 +72,70 @@ function Get-TableValue {
     return $match.Groups['Value'].Value.Trim()
 }
 
-function Test-PreflightCommitCoverage {
+function Test-VerificationImpactingPath {
+    param([string]$Path)
+
+    return (
+        $Path -like 'src/*' -or
+        $Path -like 'tests/*' -or
+        $Path -like '.github/*' -or
+        $Path -like '*.sln' -or
+        $Path -like '*.slnx' -or
+        $Path -like '*.csproj' -or
+        $Path -like '*.props' -or
+        $Path -like '*.targets' -or
+        $Path -like '*.editorconfig' -or
+        $Path -eq 'global.json' -or
+        $Path -eq 'NuGet.config' -or
+        $Path -like 'Directory.Build.*' -or
+        $Path -like 'Directory.Packages.*'
+    )
+}
+
+function Test-EvidenceCommitCoverage {
     param(
-        [string]$PreflightCommit,
-        [string]$CurrentCommit
+        [string]$EvidenceName,
+        [string]$EvidenceCommit,
+        [string]$CurrentCommit,
+        [string]$CurrentReason,
+        [string]$CoveredReason
     )
 
-    if ([string]::IsNullOrWhiteSpace($PreflightCommit)) {
+    if ([string]::IsNullOrWhiteSpace($EvidenceCommit)) {
         return [PSCustomObject]@{
             IsCovered = $false
-            Reason = 'Preflight evidence does not record a commit.'
+            Reason = "$EvidenceName evidence does not record a commit."
         }
     }
 
-    if ($PreflightCommit -eq $CurrentCommit) {
+    if ($EvidenceCommit -eq $CurrentCommit) {
         return [PSCustomObject]@{
             IsCovered = $true
-            Reason = 'Preflight evidence was generated for the current commit.'
+            Reason = $CurrentReason
         }
     }
 
-    & git merge-base --is-ancestor $PreflightCommit $CurrentCommit 2>$null
+    & git merge-base --is-ancestor $EvidenceCommit $CurrentCommit 2>$null
     if ($LASTEXITCODE -ne 0) {
         return [PSCustomObject]@{
             IsCovered = $false
-            Reason = "Preflight commit $PreflightCommit is not an ancestor of current commit $CurrentCommit."
+            Reason = "$EvidenceName commit $EvidenceCommit is not an ancestor of current commit $CurrentCommit."
         }
     }
 
-    $changedFiles = @((& git diff --name-only $PreflightCommit $CurrentCommit) | ForEach-Object { $_.ToString() })
-    $requiresFreshPreflight = @($changedFiles | Where-Object {
-            $_ -like 'src/*' -or
-            $_ -like 'tests/*' -or
-            $_ -like '.github/*' -or
-            $_ -eq 'OgmaLibrary.sln' -or
-            $_ -like '*.csproj' -or
-            $_ -like '*.props' -or
-            $_ -like '*.targets' -or
-            $_ -like '*.editorconfig'
-        })
+    $changedFiles = @((& git diff --name-only $EvidenceCommit $CurrentCommit) | ForEach-Object { $_.ToString() })
+    $requiresFreshEvidence = @($changedFiles | Where-Object { Test-VerificationImpactingPath $_ })
 
-    if ($requiresFreshPreflight.Count -gt 0) {
+    if ($requiresFreshEvidence.Count -gt 0) {
         return [PSCustomObject]@{
             IsCovered = $false
-            Reason = "Fresh preflight required because production/test/build files changed after preflight: $($requiresFreshPreflight -join ', ')"
+            Reason = "Fresh $($EvidenceName.ToLowerInvariant()) evidence required because verification-impacting files changed afterward: $($requiresFreshEvidence -join ', ')"
         }
     }
 
     return [PSCustomObject]@{
         IsCovered = $true
-        Reason = "Preflight commit $PreflightCommit is an ancestor and no product, test, workflow, solution, project, props, targets, or editorconfig files changed afterward."
+        Reason = $CoveredReason
     }
 }
 
@@ -171,7 +185,12 @@ else {
             $preflightText.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -lt 0
         })
     $preflightCommit = Get-TableValue -Markdown $preflightText -Field 'Commit'
-    $coverage = Test-PreflightCommitCoverage -PreflightCommit $preflightCommit -CurrentCommit $currentCommit
+    $coverage = Test-EvidenceCommitCoverage `
+        -EvidenceName 'Preflight' `
+        -EvidenceCommit $preflightCommit `
+        -CurrentCommit $currentCommit `
+        -CurrentReason 'Preflight evidence was generated for the current commit.' `
+        -CoveredReason "Preflight commit $preflightCommit is an ancestor and no verification-impacting files changed afterward."
     if ($missing.Count -eq 0 -and $coverage.IsCovered) {
         Add-Result $results 'Automated preflight evidence' 'Pass' $preflight.FullName $coverage.Reason
     }
@@ -222,13 +241,26 @@ if ($null -eq $remoteEvidence) {
 }
 else {
     $remoteEvidenceText = Get-Content -Raw -Path $remoteEvidence.FullName
+    $remoteCommit = Get-TableValue -Markdown $remoteEvidenceText -Field 'Commit'
+    $remoteCoverage = Test-EvidenceCommitCoverage `
+        -EvidenceName 'Remote CI' `
+        -EvidenceCommit $remoteCommit `
+        -CurrentCommit $currentCommit `
+        -CurrentReason 'Remote CI evidence was collected for the current commit.' `
+        -CoveredReason "Remote CI commit $remoteCommit is an ancestor and no verification-impacting files changed afterward."
     if ($remoteEvidenceText -like '*| Status | Pass |*' -and
         $remoteEvidenceText -like '*| Conclusion | All completed workflow runs passed |*' -and
-        $remoteEvidenceText -like "*| Commit | $currentCommit |*") {
-        Add-Result $results 'Remote CI evidence' 'Pass' $remoteEvidence.FullName 'None'
+        $remoteCoverage.IsCovered) {
+        Add-Result $results 'Remote CI evidence' 'Pass' $remoteEvidence.FullName $remoteCoverage.Reason
     }
     else {
-        Add-Result $results 'Remote CI evidence' 'Pending' $remoteEvidence.FullName 'Attach a passing remote CI evidence file for the current commit.'
+        $remoteStatus = Get-TableValue -Markdown $remoteEvidenceText -Field 'Status'
+        $remoteConclusion = Get-TableValue -Markdown $remoteEvidenceText -Field 'Conclusion'
+        $reasons = @("latest remote CI status is $remoteStatus / $remoteConclusion")
+        if (-not $remoteCoverage.IsCovered) {
+            $reasons += $remoteCoverage.Reason
+        }
+        Add-Result $results 'Remote CI evidence' 'Pending' $remoteEvidence.FullName "Attach a passing remote CI evidence file for the current commit or an ancestor with no verification-impacting changes afterward; $($reasons -join '; ')"
     }
 }
 
