@@ -4,7 +4,7 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1-WP8 are implemented and verified locally. The slices add the structural
+WP1-WP9 are implemented and verified locally. The slices add the structural
 domain contracts plus the metadata-only recommendation pipeline that later
 advisor composition, UI, and evaluation work will consume. Hybrid ranking is
 integrated behind a default-off option. Reading-plan generation now has a
@@ -12,7 +12,9 @@ validated structured parser, embedded schema prompt, and retry-on-parse-failure
 pipeline. The typed advisor service is wired through DI, disabled by the Offline
 privacy tier, and answer mode is scaffolded for V2. Recommendation and
 reading-plan Avalonia surfaces are implemented with localized view models and a
-headless render test.
+headless render test. The offline structural evaluation harness now contains 20
+synthetic queries, a deterministic mock runner, and a committed benchmark result
+with a 100% structural pass rate.
 
 ## Verified Locally
 
@@ -25,6 +27,8 @@ headless render test.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~AdvisorServiceTests\|FullyQualifiedName~ReadingPlanPipelineTests\|FullyQualifiedName~RecommendationPipelineTests"` | Passed: 13 advisor service and pipeline tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorViewModelTests` | Passed: 2 advisor view-model tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorViewRenderTests` | Passed: 1 advisor render test |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tests\evaluation\phase-13\run-eval.ps1` | Passed: 20 mock structural evaluation queries; pass rate 1.0; result written to `docs\benchmarks\phase-13\eval-mock-20260601.json` |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase13EvaluationHarnessTests` | Passed: 2 evaluation artifact tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 362 core tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 21 architecture tests |
@@ -66,6 +70,9 @@ headless render test.
 | Reading-plan UI | `ReadingPlanViewModel` and `ReadingPlanView` show goal input, generated steps, localized difficulty labels, estimates, checkpoints, and open-book action |
 | Advisor UI localization | English and French strings cover recommendation labels, plan labels, status text, accessible labels, and error state |
 | Advisor render test | `AdvisorViewRenderTests` headless-renders loaded recommendation and reading-plan surfaces |
+| Evaluation queries | `tests/evaluation/phase-13/queries.json` defines 20 varied structural fixtures across education, research, fiction, and school-library workflows |
+| Evaluation runner | `tests/evaluation/phase-13/run-eval.ps1` executes CI-safe deterministic mock structural evaluation and fails unless pass rate is 1.0 |
+| Benchmark result | `docs/benchmarks/phase-13/eval-mock-20260601.json` records the 2026-06-01 mock run with pass rate, explanation-length average, confidence distribution, and per-query results |
 
 ## Verification Notes
 
@@ -79,5 +86,4 @@ headless render test.
 
 ## Remaining Phase 13 Work
 
-- WP9: offline structural evaluation harness and benchmark result.
 - WP10-WP11: extension SDK entry points, integration tests, golden-corpus gates, code review, remote CI, and manual accessibility evidence.

@@ -40,8 +40,8 @@ default-off advisor option. Structured reading-plan generation now has an
 embedded schema prompt, parser, retry-on-invalid-output, and gateway-backed
 pipeline. `IAiAdvisorService` is typed, DI-wired, disabled when the active tier
 is Offline, and answer mode is scaffolded as V2. Recommendation and reading-plan
-Avalonia surfaces are implemented and headless-rendered. WP9-WP11 remain
-pending.
+Avalonia surfaces are implemented and headless-rendered. The WP9 offline
+evaluation harness and benchmark are complete; WP10-WP11 remain pending.
 
 ---
 
@@ -320,7 +320,7 @@ Full task detail in `tasks.md`.
       (FR-AI-003 structural gate).
 - [ ] `ReadingPlan_StructuralOracle` test passes (FR-AI-007 structural gate).
 - [ ] `AdvisorDisabled_CatalogueBrowse_Unaffected` integration test passes (FR-AI-001).
-- [ ] Evaluation harness run produces ≥ 95% structural pass rate on the 20 synthetic
+- [x] Evaluation harness run produces ≥ 95% structural pass rate on the 20 synthetic
       queries; results committed to `docs/benchmarks/phase-13/`.
 - [ ] `IRecommendationSource` and `IAiCatalogueReader` defined with `[ExtensionPoint]`
       attribute and XML doc comments (Phase 23 readiness, SOURCE-SUMMARY delta #8).

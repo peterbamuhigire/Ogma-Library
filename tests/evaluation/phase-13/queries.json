@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "phase": "13",
+  "mode": "metadata-only",
+  "corpus": "phase-02 synthetic 500-book metadata corpus",
+  "queries": [
+    {
+      "id": "P13-EVAL-001",
+      "goal": "Find beginner-friendly books for understanding machine learning fundamentals.",
+      "persona": "upper-secondary student",
+      "expectedSignals": ["introductory", "machine learning", "education"]
+    },
+    {
+      "id": "P13-EVAL-002",
+      "goal": "Recommend a short path for learning systems thinking before a class project.",
+      "persona": "teacher",
+      "expectedSignals": ["systems", "project", "foundations"]
+    },
+    {
+      "id": "P13-EVAL-003",
+      "goal": "Suggest practical programming craft books for a new software club.",
+      "persona": "school librarian",
+      "expectedSignals": ["programming", "craft", "beginner"]
+    },
+    {
+      "id": "P13-EVAL-004",
+      "goal": "Build a reading list for students researching climate change and local action.",
+      "persona": "research group",
+      "expectedSignals": ["climate", "research", "policy"]
+    },
+    {
+      "id": "P13-EVAL-005",
+      "goal": "Find accessible fiction that encourages reluctant readers to keep going.",
+      "persona": "reading mentor",
+      "expectedSignals": ["fiction", "accessible", "engaging"]
+    },
+    {
+      "id": "P13-EVAL-006",
+      "goal": "Recommend historical novels that pair well with a lesson on colonial history.",
+      "persona": "history teacher",
+      "expectedSignals": ["history", "fiction", "curriculum"]
+    },
+    {
+      "id": "P13-EVAL-007",
+      "goal": "Create a survey list for a debate club learning argument and rhetoric.",
+      "persona": "club patron",
+      "expectedSignals": ["debate", "rhetoric", "communication"]
+    },
+    {
+      "id": "P13-EVAL-008",
+      "goal": "Find books that help students understand personal finance basics.",
+      "persona": "life-skills teacher",
+      "expectedSignals": ["finance", "budgeting", "introductory"]
+    },
+    {
+      "id": "P13-EVAL-009",
+      "goal": "Recommend biographies of scientists for a classroom inspiration shelf.",
+      "persona": "science teacher",
+      "expectedSignals": ["biography", "science", "inspiration"]
+    },
+    {
+      "id": "P13-EVAL-010",
+      "goal": "Build a reading path for learning data visualization from scratch.",
+      "persona": "student researcher",
+      "expectedSignals": ["data", "visualization", "introductory"]
+    },
+    {
+      "id": "P13-EVAL-011",
+      "goal": "Find books about entrepreneurship suitable for a school innovation fair.",
+      "persona": "innovation lead",
+      "expectedSignals": ["entrepreneurship", "projects", "business"]
+    },
+    {
+      "id": "P13-EVAL-012",
+      "goal": "Suggest books that support mental wellness and study habits for teens.",
+      "persona": "school counselor",
+      "expectedSignals": ["wellness", "study habits", "teen"]
+    },
+    {
+      "id": "P13-EVAL-013",
+      "goal": "Recommend local-culture and folklore books for a community reading week.",
+      "persona": "community librarian",
+      "expectedSignals": ["culture", "folklore", "community"]
+    },
+    {
+      "id": "P13-EVAL-014",
+      "goal": "Create a sequence for understanding databases before building an app.",
+      "persona": "coding club",
+      "expectedSignals": ["databases", "software", "sequence"]
+    },
+    {
+      "id": "P13-EVAL-015",
+      "goal": "Find research survey books for comparing renewable energy technologies.",
+      "persona": "advanced student",
+      "expectedSignals": ["renewable energy", "comparison", "research"]
+    },
+    {
+      "id": "P13-EVAL-016",
+      "goal": "Recommend poetry collections that work for oral reading practice.",
+      "persona": "language arts teacher",
+      "expectedSignals": ["poetry", "oral reading", "language"]
+    },
+    {
+      "id": "P13-EVAL-017",
+      "goal": "Build a beginner guide list for safe internet and digital citizenship.",
+      "persona": "ICT teacher",
+      "expectedSignals": ["digital citizenship", "safety", "beginner"]
+    },
+    {
+      "id": "P13-EVAL-018",
+      "goal": "Suggest books for students learning how governments and elections work.",
+      "persona": "civics teacher",
+      "expectedSignals": ["civics", "government", "elections"]
+    },
+    {
+      "id": "P13-EVAL-019",
+      "goal": "Find books that connect art, design, and creative problem solving.",
+      "persona": "arts department",
+      "expectedSignals": ["art", "design", "creativity"]
+    },
+    {
+      "id": "P13-EVAL-020",
+      "goal": "Recommend a mixed reading path for improving academic writing.",
+      "persona": "writing center",
+      "expectedSignals": ["writing", "academic", "practice"]
+    }
+  ]
+}

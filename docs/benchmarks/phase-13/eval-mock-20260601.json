@@ -1,0 +1,198 @@
+﻿{
+    "schemaVersion":  1,
+    "phase":  "13",
+    "runDate":  "2026-06-01",
+    "providerMode":  "mock",
+    "queryCount":  20,
+    "structuralPassRate":  1,
+    "avgExplanationLength":  95.3,
+    "confidenceDistribution":  {
+                                   "VeryHigh":  5,
+                                   "High":  10,
+                                   "Medium":  5,
+                                   "Low":  0
+                               },
+    "avgMockLatencyMs":  42.7,
+    "results":  [
+                    {
+                        "queryId":  "P13-EVAL-001",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "VeryHigh",
+                        "explanationLength":  78,
+                        "mockLatencyMs":  32
+                    },
+                    {
+                        "queryId":  "P13-EVAL-002",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  85,
+                        "mockLatencyMs":  37
+                    },
+                    {
+                        "queryId":  "P13-EVAL-003",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  92,
+                        "mockLatencyMs":  42
+                    },
+                    {
+                        "queryId":  "P13-EVAL-004",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "Medium",
+                        "explanationLength":  99,
+                        "mockLatencyMs":  47
+                    },
+                    {
+                        "queryId":  "P13-EVAL-005",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "VeryHigh",
+                        "explanationLength":  106,
+                        "mockLatencyMs":  52
+                    },
+                    {
+                        "queryId":  "P13-EVAL-006",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  113,
+                        "mockLatencyMs":  34
+                    },
+                    {
+                        "queryId":  "P13-EVAL-007",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  79,
+                        "mockLatencyMs":  39
+                    },
+                    {
+                        "queryId":  "P13-EVAL-008",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "Medium",
+                        "explanationLength":  86,
+                        "mockLatencyMs":  44
+                    },
+                    {
+                        "queryId":  "P13-EVAL-009",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "VeryHigh",
+                        "explanationLength":  93,
+                        "mockLatencyMs":  49
+                    },
+                    {
+                        "queryId":  "P13-EVAL-010",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  100,
+                        "mockLatencyMs":  54
+                    },
+                    {
+                        "queryId":  "P13-EVAL-011",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  107,
+                        "mockLatencyMs":  36
+                    },
+                    {
+                        "queryId":  "P13-EVAL-012",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "Medium",
+                        "explanationLength":  114,
+                        "mockLatencyMs":  41
+                    },
+                    {
+                        "queryId":  "P13-EVAL-013",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "VeryHigh",
+                        "explanationLength":  80,
+                        "mockLatencyMs":  46
+                    },
+                    {
+                        "queryId":  "P13-EVAL-014",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  87,
+                        "mockLatencyMs":  51
+                    },
+                    {
+                        "queryId":  "P13-EVAL-015",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  94,
+                        "mockLatencyMs":  33
+                    },
+                    {
+                        "queryId":  "P13-EVAL-016",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "Medium",
+                        "explanationLength":  101,
+                        "mockLatencyMs":  38
+                    },
+                    {
+                        "queryId":  "P13-EVAL-017",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "VeryHigh",
+                        "explanationLength":  108,
+                        "mockLatencyMs":  43
+                    },
+                    {
+                        "queryId":  "P13-EVAL-018",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  115,
+                        "mockLatencyMs":  48
+                    },
+                    {
+                        "queryId":  "P13-EVAL-019",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "High",
+                        "explanationLength":  81,
+                        "mockLatencyMs":  53
+                    },
+                    {
+                        "queryId":  "P13-EVAL-020",
+                        "structuralPass":  true,
+                        "recommendationCount":  3,
+                        "provenanceCount":  3,
+                        "confidenceLabel":  "Medium",
+                        "explanationLength":  88,
+                        "mockLatencyMs":  35
+                    }
+                ]
+}
