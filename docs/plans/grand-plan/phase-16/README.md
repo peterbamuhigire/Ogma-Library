@@ -25,7 +25,7 @@ compromising the local-first principles of every other installation.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | New (LAN classroom expansion, PRD §10 owner delta) |
 | **Platforms** | Windows 10/11 (WebView2) + macOS 13+ (WKWebView) |
-| **Status** | In progress — WP1/WP2 scaffold started 2026-06-01 |
+| **Status** | In progress — WP1/WP2/WP10 scaffold and persistence started 2026-06-01 |
 | **Depends on** | Phase 00 (ADR ratification, LAN transport spike), Phase 01 (LAN spike retired to ADR-0010), Phase 04-05 (catalogue + ingestion), Phase 08 (reader core), Phase 10-11 (search), Phase 12 (AI gateway) |
 | **ADRs introduced** | ADR-0010 (proposed — see §7) |
 
@@ -451,3 +451,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | --- | --- | --- |
 | 2026-05-30 | Planning agent | Initial v1.0 draft |
 | 2026-06-01 | Implementation | Started WP1/WP2: added LanHost application contracts, no-listener infrastructure scaffold, DI registration, session revocation behavior, and architecture guardrails for listener/credential/worker/AI isolation. |
+| 2026-06-01 | Implementation | Advanced WP2/WP10: added EF-backed Host-mode settings and client-session persistence, generated `20260601184330_Phase16LanHostTables`, persisted only session token hashes, and added migration/session/settings tests. |

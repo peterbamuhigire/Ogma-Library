@@ -106,6 +106,12 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Append-only local audit trail.</summary>
     public DbSet<AuditEventRow> AuditEvents => Set<AuditEventRow>();
 
+    /// <summary>Singleton LAN Host-mode settings.</summary>
+    public DbSet<HostModeSettingsRow> HostModeSettings => Set<HostModeSettingsRow>();
+
+    /// <summary>Issued LAN client sessions with hashed bearer tokens.</summary>
+    public DbSet<HostClientSessionRow> HostClientSessions => Set<HostClientSessionRow>();
+
     // ── Phase 09 — Annotations, Layers, Bookmarks, Reading Memory ────────────
 
     /// <summary>Named annotation layers for grouping highlights and notes.</summary>
@@ -152,6 +158,8 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new MetadataLookupConfiguration());
         modelBuilder.ApplyConfiguration(new JobConfiguration());
         modelBuilder.ApplyConfiguration(new AuditEventConfiguration());
+        modelBuilder.ApplyConfiguration(new HostModeSettingsConfiguration());
+        modelBuilder.ApplyConfiguration(new HostClientSessionConfiguration());
         modelBuilder.ApplyConfiguration(new WorkConfiguration());
         modelBuilder.ApplyConfiguration(new EditionConfiguration());
 

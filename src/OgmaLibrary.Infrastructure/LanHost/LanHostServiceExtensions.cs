@@ -11,8 +11,8 @@ public static class LanHostServiceExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IHostModeSettingsRepository, InMemoryHostModeSettingsRepository>();
-        services.AddSingleton<IClientSessionService, InMemoryClientSessionService>();
+        services.AddSingleton<IHostModeSettingsRepository, HostModeSettingsRepository>();
+        services.AddSingleton<IClientSessionService, ClientSessionService>();
         services.AddSingleton<ICertificateProvisioner, StubCertificateProvisioner>();
         services.AddSingleton<IMdnsAdvertiser, NoopMdnsAdvertiser>();
         services.AddSingleton<ILibraryHostService, LibraryHostService>();
