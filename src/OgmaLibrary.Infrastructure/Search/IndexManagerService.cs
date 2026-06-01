@@ -9,7 +9,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 /// <summary>
 /// Backend service for the Phase 10 Index Manager dashboard and rebuild flow.
 /// </summary>
-public sealed class IndexManagerService : IIndexManagerService
+public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
 {
     private const int ActiveBookStatus = 0;
     private const int RebuildBatchSize = 5;
@@ -18,7 +18,8 @@ public sealed class IndexManagerService : IIndexManagerService
     private readonly CatalogueDbContext? _context;
     private readonly IExtractionPipelineService _pipeline;
     private readonly IFtsIndexService _ftsIndex;
-    private readonly ObservableEvents _events = new();
+    private readonly ObservableEvents<IndexStatusUpdate> _events = new();
+    private readonly ObservableEvents<SearchIndexEvent> _searchEvents = new();
 
     /// <summary>
     /// Initializes a new instance of <see cref="IndexManagerService"/>.
@@ -58,6 +59,9 @@ public sealed class IndexManagerService : IIndexManagerService
 
     /// <inheritdoc />
     public IObservable<IndexStatusUpdate> Events => _events;
+
+    /// <inheritdoc />
+    IObservable<SearchIndexEvent> ISearchReadModel.Events => _searchEvents;
 
     /// <inheritdoc />
     public async Task<IndexManagerStatus> GetStatusAsync(CancellationToken cancellationToken)
@@ -123,6 +127,7 @@ public sealed class IndexManagerService : IIndexManagerService
     /// <inheritdoc />
     public async Task<IndexRebuildResult> RebuildAsync(CancellationToken cancellationToken)
     {
+        long startedTimestamp = TimeProvider.System.GetTimestamp();
         _events.Publish(new IndexStatusUpdate.RebuildStarted(DateTimeOffset.UtcNow));
         await ResetIndexAsync(cancellationToken).ConfigureAwait(false);
 
@@ -160,7 +165,12 @@ public sealed class IndexManagerService : IIndexManagerService
                 IntegrityHealthy: integrity.IsHealthy,
                 ErrorMessage: integrity.ErrorMessage);
             _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
-            await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+            IndexManagerStatus? status = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+            if (result.Completed && status is not null)
+            {
+                PublishSearchReadModelEvents(status, startedTimestamp);
+            }
+
             return result;
         }
         catch (OperationCanceledException)
@@ -199,11 +209,11 @@ public sealed class IndexManagerService : IIndexManagerService
         context.ChangeTracker.Clear();
     }
 
-    private async Task PublishStatusAsync(CancellationToken cancellationToken)
+    private async Task<IndexManagerStatus?> PublishStatusAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await GetStatusAsync(cancellationToken).ConfigureAwait(false);
+            return await GetStatusAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -212,7 +222,36 @@ public sealed class IndexManagerService : IIndexManagerService
         catch (Exception)
         {
             // Status publication must not mask a completed rebuild result.
+            return null;
         }
+    }
+
+    private void PublishSearchReadModelEvents(IndexManagerStatus status, long startedTimestamp)
+    {
+        DateTimeOffset publishedAtUtc = DateTimeOffset.UtcNow;
+        foreach (BookIndexStatusItem book in status.Books)
+        {
+            switch (book.Status)
+            {
+                case SearchBookIndexStatus.Indexed:
+                    _searchEvents.Publish(new SearchIndexEvent.BookIndexed(
+                        book.BookId,
+                        book.SearchChunkCount,
+                        publishedAtUtc));
+                    break;
+                case SearchBookIndexStatus.Failed:
+                    _searchEvents.Publish(new SearchIndexEvent.BookIndexFailed(
+                        book.BookId,
+                        "Indexing failed.",
+                        publishedAtUtc));
+                    break;
+            }
+        }
+
+        _searchEvents.Publish(new SearchIndexEvent.IndexRebuilt(
+            status.SearchChunkCount,
+            (long)TimeProvider.System.GetElapsedTime(startedTimestamp).TotalMilliseconds,
+            publishedAtUtc));
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
@@ -227,12 +266,12 @@ public sealed class IndexManagerService : IIndexManagerService
         return new ContextLease(context, ownsContext: true);
     }
 
-    private sealed class ObservableEvents : IObservable<IndexStatusUpdate>
+    private sealed class ObservableEvents<TEvent> : IObservable<TEvent>
     {
         private readonly object _gate = new();
-        private readonly List<IObserver<IndexStatusUpdate>> _observers = [];
+        private readonly List<IObserver<TEvent>> _observers = [];
 
-        public IDisposable Subscribe(IObserver<IndexStatusUpdate> observer)
+        public IDisposable Subscribe(IObserver<TEvent> observer)
         {
             ArgumentNullException.ThrowIfNull(observer);
             lock (_gate)
@@ -243,21 +282,21 @@ public sealed class IndexManagerService : IIndexManagerService
             return new Subscription(this, observer);
         }
 
-        public void Publish(IndexStatusUpdate update)
+        public void Publish(TEvent update)
         {
-            IObserver<IndexStatusUpdate>[] observers;
+            IObserver<TEvent>[] observers;
             lock (_gate)
             {
                 observers = _observers.ToArray();
             }
 
-            foreach (IObserver<IndexStatusUpdate> observer in observers)
+            foreach (IObserver<TEvent> observer in observers)
             {
                 observer.OnNext(update);
             }
         }
 
-        private void Unsubscribe(IObserver<IndexStatusUpdate> observer)
+        private void Unsubscribe(IObserver<TEvent> observer)
         {
             lock (_gate)
             {
@@ -267,10 +306,10 @@ public sealed class IndexManagerService : IIndexManagerService
 
         private sealed class Subscription : IDisposable
         {
-            private readonly ObservableEvents _owner;
-            private IObserver<IndexStatusUpdate>? _observer;
+            private readonly ObservableEvents<TEvent> _owner;
+            private IObserver<TEvent>? _observer;
 
-            public Subscription(ObservableEvents owner, IObserver<IndexStatusUpdate> observer)
+            public Subscription(ObservableEvents<TEvent> owner, IObserver<TEvent> observer)
             {
                 _owner = owner;
                 _observer = observer;
@@ -278,7 +317,7 @@ public sealed class IndexManagerService : IIndexManagerService
 
             public void Dispose()
             {
-                IObserver<IndexStatusUpdate>? observer = Interlocked.Exchange(ref _observer, null);
+                IObserver<TEvent>? observer = Interlocked.Exchange(ref _observer, null);
                 if (observer is not null)
                 {
                     _owner.Unsubscribe(observer);

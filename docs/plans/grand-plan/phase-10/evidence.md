@@ -24,7 +24,8 @@ P95 benchmark.
 WP5 now has an Application-layer Index Manager contract, status counts, event
 publication, transactional rebuild reset, pipeline-driven rebuild, FTS integrity
 gate, G7 rebuild reliability test, cancellation consistency, and extraction
-mid-book cancellation recovery.
+mid-book cancellation recovery. The Phase 10 `ISearchReadModel` contract is now
+published and backed by the Index Manager rebuild lifecycle for LAN projection.
 WP6 UI foundations now include a shell-mounted search panel, Index Manager
 panel, localized en/fr strings, selection/open actions, rebuild/cancel actions,
 rebuild confirmation/progress/status summaries, Ctrl+F/Ctrl+K/Escape/Enter
@@ -81,6 +82,9 @@ accessibility signoff, and final closeout remain pending.
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after generated-PDF extraction smoke |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~IndexManagerServiceTests\|FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~MetadataSearchServiceTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests"` | Passed: 25 focused Phase 10 backend/search tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 262, UI 102 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` | Passed: 4 Index Manager and `ISearchReadModel` lifecycle tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after `ISearchReadModel` closeout |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after `ISearchReadModel` closeout |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP6 UI foundations |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP6 UI foundations |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 16 architecture tests after WP6 UI foundations |
@@ -123,6 +127,7 @@ accessibility signoff, and final closeout remain pending.
 | FTS performance | `PerfBenchmark_FtsSearch_P95_LessThan500ms` seeds 2,000 books, warms the index, runs 50 queries, and asserts P95 <= 500 ms |
 | Index Manager contract | `IIndexManagerService`, `IndexManagerStatus`, `BookIndexStatusItem`, `IndexRebuildResult`, and `IndexStatusUpdate` under `src/OgmaLibrary.Application/Search/` |
 | Index Manager backend | `IndexManagerService` computes dashboard counts, approximate index size, per-book status rows, FTS integrity, and publishes status/rebuild events |
+| Search read-model contract | `ISearchReadModel` and `SearchIndexEvent` under `src/OgmaLibrary.Application/Search/`; `IndexManagerService` publishes LAN-ready indexed/rebuilt lifecycle events |
 | G7 rebuild gate | `IndexRebuild_CompletesWithoutDuplicatesOrCorruption` rebuilds a 100-book corpus, preserves chunk count, and verifies FTS integrity |
 | Rebuild cancellation consistency | `IndexRebuild_CancelledAfterReset_LeavesConsistentState` verifies reset leaves no chunks/pages and books recoverable as `NotIndexed` |
 | Extraction cancellation recovery | `ExtractionPipeline_CancelledMidBook_ResetsBookForRecovery` |

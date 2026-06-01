@@ -14,6 +14,8 @@ without external assets or human assistive-technology review:
   the shell, search panel, and Index Manager panel.
 - Pseudolocale render coverage exists for the search and Index Manager panels.
 - Generated-PDF smoke coverage runs through the real `PdfiumAdapterFactory`.
+- `ISearchReadModel` is published as a LAN-projection-ready event stream and
+  backed by `IndexManagerService` rebuild lifecycle events.
 
 Phase 10 is not public-beta signed off yet.
 
@@ -24,6 +26,7 @@ Phase 10 is not public-beta signed off yet.
 | Formatting | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` passed |
 | Release build | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed with 0 warnings and 0 errors |
 | Focused Phase 10 backend/search | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~IndexManagerServiceTests\|FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~MetadataSearchServiceTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests"` passed: 25 tests |
+| Search read-model closeout | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` passed: 4 tests |
 | Focused Phase 10 UI/icon/pseudolocale | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~SearchIndexPanels_Pseudolocale\|FullyQualifiedName~SearchViewModelTests\|FullyQualifiedName~IconCatalogPhase10Tests"` passed: 9 tests |
 | Full regression | `dotnet test OgmaLibrary.sln --configuration Release --no-build` passed: Architecture 16, Core 262, UI 102 |
 
@@ -40,6 +43,6 @@ Phase 10 is not public-beta signed off yet.
 
 Proceeding into Phase 11 locally is acceptable because the Phase 11 dependency
 surface (`SearchChunks`, `ExtractedPages`, FTS results, and Index Manager
-rebuild integrity) is implemented and green locally. Do not mark Phase 10
+rebuild integrity, plus `ISearchReadModel`) is implemented and green locally. Do not mark Phase 10
 complete or push it as a phase-complete milestone until the pending gates above
 are satisfied.

@@ -121,6 +121,31 @@ public sealed class IndexManagerServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchReadModel_RebuildPublishesLanReadyLifecycleEvents()
+    {
+        string bookId = SeedBook("P10READMODEL00000000001", SearchBookIndexStatus.Indexed);
+        await SaveChunksAsync(bookId, "before read model rebuild marker");
+        var service = new IndexManagerService(
+            _context,
+            new DeterministicRebuildPipeline(_context),
+            new FtsIndexService(_context));
+        var observer = new SearchReadModelObserver();
+        using IDisposable subscription = ((ISearchReadModel)service).Events.Subscribe(observer);
+
+        IndexRebuildResult result = await service.RebuildAsync(CancellationToken.None);
+
+        Assert.True(result.Completed, result.ErrorMessage);
+        Assert.Contains(observer.Events, update =>
+            update is SearchIndexEvent.BookIndexed indexed &&
+            indexed.BookId == bookId &&
+            indexed.ChunkCount == 1);
+        Assert.Contains(observer.Events, update =>
+            update is SearchIndexEvent.IndexRebuilt rebuilt &&
+            rebuilt.TotalChunks == 1 &&
+            rebuilt.DurationMs >= 0);
+    }
+
+    [Fact]
     public async Task IndexRebuild_CancelledAfterReset_LeavesConsistentState()
     {
         string bookId = SeedBook("P10CANCELBOOK0000000001", SearchBookIndexStatus.Indexed);
@@ -190,6 +215,22 @@ public sealed class IndexManagerServiceTests : IDisposable
         }
 
         public void OnNext(IndexStatusUpdate value) => Events.Add(value);
+    }
+
+    private sealed class SearchReadModelObserver : IObserver<SearchIndexEvent>
+    {
+        public List<SearchIndexEvent> Events { get; } = [];
+
+        public void OnCompleted()
+        {
+        }
+
+        public void OnError(Exception error)
+        {
+            throw error;
+        }
+
+        public void OnNext(SearchIndexEvent value) => Events.Add(value);
     }
 
     private sealed class NoOpExtractionPipeline : IExtractionPipelineService
