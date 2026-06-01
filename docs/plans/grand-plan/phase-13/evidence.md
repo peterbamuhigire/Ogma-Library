@@ -40,6 +40,8 @@ evidence, accessibility evidence, full local gates, and Release build all pass.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 22 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 105 UI tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+| `git push` | Succeeded: `6958209..6b2f2f4 main -> main` |
+| Remote CI lookup | `gh` unavailable; GitHub Actions REST lookup returned 404. Evidence recorded in `docs/qa/evidence/phase13-remote-ci-20260601.md` |
 
 ## Implemented Locally
 
@@ -99,4 +101,4 @@ evidence, accessibility evidence, full local gates, and Release build all pass.
 
 ## Remaining Phase 13 Work
 
-- Remote CI evidence after push.
+- Remote CI status remains unavailable from this environment; local gates and push evidence are complete.
