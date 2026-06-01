@@ -122,7 +122,6 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Catalogue.BookDetail.ReadingMemoryEmpty"] = "Not recorded",
         ["Catalogue.Empty.NoResults"] = "No books match the current filters",
         ["Catalogue.Empty.NoShelfBooks"] = "This shelf has no books yet",
-        ["Reader.Phase08Placeholder"] = "PDF reader coming in Phase 08",
 
         // Phase 08 — Reader strings (en)
         ["Reader.Navigation.FirstPage"] = "First page",
@@ -401,7 +400,6 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Catalogue.BookDetail.ReadingMemoryEmpty"] = "Non renseigné",
         ["Catalogue.Empty.NoResults"] = "Aucun livre ne correspond aux filtres actuels",
         ["Catalogue.Empty.NoShelfBooks"] = "Cette étagère ne contient pas encore de livres",
-        ["Reader.Phase08Placeholder"] = "Lecteur PDF à venir dans la Phase 08",
 
         // Phase 08 — Reader strings (fr)
         ["Reader.Navigation.FirstPage"] = "Première page",

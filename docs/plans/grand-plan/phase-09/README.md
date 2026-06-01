@@ -368,6 +368,9 @@ Current implementation progress:
 - Direct PDF open missing-table repair now uses the production DI path with
   fresh factory-created migration contexts, so damaged catalogues can be
   repaired before a user-selected PDF is registered and opened.
+- The Choose Library Folder scan path has production-DI regression coverage for
+  the same damaged-catalogue `BookFiles` repair path before discovered PDFs are
+  registered.
 - The annotation layer sidebar now marks the active writable layer and exposes
   an `Active annotation layer: <name>` automation label that follows the first
   visible layer.
@@ -453,3 +456,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added rendered note editor blur-save coverage and refreshed Phase 09 evidence counts | Codex |
 | 2026-06-01 | Cleaned Phase 09 French localization mojibake and added resource/runtime guard tests for mojibake and resource drift | Codex |
 | 2026-06-01 | Extracted explicit text-selection mapping service and added rotation-aware coverage | Codex |
+| 2026-06-01 | Added production-DI folder-scan coverage for missing `BookFiles` repair and refreshed Phase 09 evidence | Codex |

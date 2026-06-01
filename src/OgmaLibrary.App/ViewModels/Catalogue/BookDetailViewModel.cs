@@ -293,8 +293,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     // ── Actions ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Opens the PDF reader for the currently loaded book (routes to a
-    /// "coming in Phase 08" placeholder until Phase 08 is implemented).
+    /// Opens the PDF reader for the currently loaded book through the shell
+    /// navigation service.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task OpenReaderAsync(CancellationToken cancellationToken = default)
