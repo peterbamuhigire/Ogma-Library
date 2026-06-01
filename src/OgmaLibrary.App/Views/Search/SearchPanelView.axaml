@@ -11,7 +11,7 @@
           BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
           BorderThickness="0,0,0,1"
           Padding="12,10">
-    <Grid RowDefinitions="Auto,*" ColumnDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="Auto,*,Auto,Auto">
       <svg:Svg Grid.Row="0"
                Grid.Column="0"
                Width="18"
@@ -26,8 +26,21 @@
                Watermark="{Binding PlaceholderText}"
                AutomationProperties.Name="{Binding PlaceholderText}"
                MinWidth="260" />
-      <Button Grid.Row="0"
+      <Border Grid.Row="0"
               Grid.Column="2"
+              Margin="8,0,0,0"
+              Padding="8,4"
+              Background="{DynamicResource Brush.Surface.Card}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}"
+              AutomationProperties.Name="{Binding SearchModeText}">
+        <TextBlock Text="{Binding SearchModeText}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+      </Border>
+      <Button Grid.Row="0"
+              Grid.Column="3"
               Margin="8,0,0,0"
               Padding="10,5"
               Background="{DynamicResource Brush.Accent.Oak}"
@@ -42,7 +55,7 @@
 
       <ListBox x:Name="SearchResults"
                Grid.Row="1"
-               Grid.ColumnSpan="3"
+               Grid.ColumnSpan="4"
                Margin="0,10,0,0"
                MaxHeight="220"
                ItemsSource="{Binding Results}"
@@ -73,12 +86,31 @@
                          MaxLines="2"
                          FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-              <TextBlock Grid.Row="3"
-                         Grid.Column="1"
-                         Text="{Binding MatchLocations}"
-                         FontSize="{DynamicResource Type.Size.Caption}"
-                         Foreground="{DynamicResource Brush.Accent.Oak}"
-                         AutomationProperties.Name="{Binding MatchLocations}" />
+              <ItemsControl Grid.Row="3"
+                            Grid.Column="1"
+                            ItemsSource="{Binding MatchBadges}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SearchResultBadge">
+                    <Border Margin="0,4,6,0"
+                            Padding="6,2"
+                            Background="{DynamicResource Brush.Surface.Card}"
+                            BorderBrush="{DynamicResource Brush.Accent.Oak}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource Radius.S}"
+                            Focusable="True"
+                            AutomationProperties.Name="{Binding AutomationLabel}">
+                      <TextBlock Text="{Binding Label}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Accent.Oak}" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>

@@ -8,8 +8,8 @@ Embeddings.
 ## Current Position
 
 Phase 11 WP1, WP2 backend foundations, WP3 semantic-search foundations, the
-WP4 hybrid ranking formula, WP5 match-location backend/UI, and WP6 erasure/spike
-foundations have started locally. The embedding schema has been aligned with the Phase 11 model/version requirements,
+WP4 hybrid ranking formula, WP5 match-location backend/UI, WP6 erasure/spike
+foundations, and WP7 UI/i18n foundations have started locally. The embedding schema has been aligned with the Phase 11 model/version requirements,
 `Books.EmbeddingStatus` is in the EF model, a Phase 12-compatible `IAiProvider`
 stub exists in Application, the local Ollama embedding provider is registered
 behind Application contracts, and the embedding generation pipeline can process
@@ -30,7 +30,7 @@ float BLOBs keyed back to `SearchChunks`.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~HybridRankingServiceTests` | Passed: 7 hybrid ranking formula, fallback, tie-break, and 100-query determinism tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~MatchLocationServiceTests` | Passed: 10 match-location, confidence-label, and enrichment tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~EmbeddingErasureTests` | Passed: 2 embedding erasure, audit-event, status-reset, and requeue-oracle tests |
-| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 7 search/index UI tests, including semantic match-location/confidence metadata and embedding-erasure confirmation countdown |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 8 search/index UI tests, including semantic match-location/confidence metadata, degraded exact-fallback indicator, and embedding-erasure confirmation countdown |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 18 architecture tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | Document review: `docs/spikes/ANN-SQLite-Vec-Spike.md`, `docs/architecture/adr/ADR-0006-hybrid-search.md` | Added sqlite-vec/Vec1 spike plan, `IVectorIndex` proposed contract, ANN trigger thresholds, fallback criteria, and ADR-0006 ANN stub |
@@ -50,6 +50,7 @@ float BLOBs keyed back to `SearchChunks`.
 | Hybrid ranking formula | `IHybridRankingService` and `HybridRankingService` blend exact, semantic, recency, status, and rating signals with deterministic score/`BookId` ordering and no-embedding fallback |
 | Match-location backend | `MatchLocation`, `ConfidenceLabel`, `IMatchLocationService`, and `MatchLocationService` derive ordered explanation badges and confidence labels from exact, FTS, semantic, and hybrid ranking signals |
 | Search panel semantic metadata | `SearchViewModel` consumes `ISemanticSearchService`; result rows expose confidence and match-location metadata for the search panel |
+| Search panel badges/i18n | `SearchPanelView` renders localized semantic availability, localized confidence labels, and focusable match-location badges with automation names |
 | Embedding erasure backend | `IEmbeddingErasureService` and `EmbeddingErasureService` delete vectors, reset book embedding status, and write an `EmbeddingVectorsErased` audit event in one transaction |
 | Embedding erasure UI | `IndexManagerViewModel` and `IndexManagerPanelView` expose an "Erase embeddings" flow with a two-step confirmation, countdown gate, localized copy, progress state, and service-call test |
 | ANN spike/ADR | `docs/spikes/ANN-SQLite-Vec-Spike.md` and `docs/architecture/adr/ADR-0006-hybrid-search.md` document the sqlite-vec evaluation path and brute-force trigger thresholds |
@@ -62,4 +63,4 @@ float BLOBs keyed back to `SearchChunks`.
 - WP4: hybrid ranking formula, defaults, determinism, and graceful no-embedding fallback are implemented locally; persistence-backed weight settings remain.
 - WP5: backend match-location derivation, confidence labels, and search-panel metadata display are implemented locally; fuller badge styling, keyboard/SR behavior, and i18n remain.
 - WP6: embedding erasure service with audit event, Index Manager confirmation countdown, and ANN spike/ADR docs are implemented locally; broader privacy-center placement remains for Phase 12.
-- WP7/WP8: premium icons, fuller i18n/accessibility, full regression, manual checks, and remote CI evidence.
+- WP7/WP8: premium icons, manual screen-reader/accessibility checks, full regression evidence, and remote CI evidence.

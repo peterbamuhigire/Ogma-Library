@@ -23,6 +23,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private string? _query;
     private SearchResultItem? _selectedResult;
     private bool _isSearching;
+    private bool _isSemanticDegraded;
     private int _searchVersion;
     private string? _statusText;
 
@@ -95,6 +96,21 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Whether search is currently degraded to exact search.</summary>
+    public bool IsSemanticDegraded
+    {
+        get => _isSemanticDegraded;
+        private set
+        {
+            if (_isSemanticDegraded != value)
+            {
+                _isSemanticDegraded = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SearchModeText));
+            }
+        }
+    }
+
     /// <summary>Status text for screen readers and compact UI feedback.</summary>
     public string? StatusText
     {
@@ -120,6 +136,11 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Localized label for the open action.</summary>
     public string OpenSelectedLabel => _localization["Search.OpenSelected"];
+
+    /// <summary>Localized semantic-search mode indicator.</summary>
+    public string SearchModeText => IsSemanticDegraded
+        ? _localization["Search.Semantic.Unavailable"]
+        : _localization["Search.Semantic.Active"];
 
     /// <summary>Icon path for global search.</summary>
     public string SearchIconPath => _searchIconPath;
@@ -191,6 +212,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             {
                 Results.Clear();
                 SelectedResult = null;
+                IsSemanticDegraded = false;
                 StatusText = _localization["Search.Status.Ready"];
             });
             return;
@@ -211,6 +233,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Results.Clear();
+                IsSemanticDegraded = response.ProviderUnavailable || response.UsedExactFallback;
                 foreach (SearchResultItem item in response.Results.Select(MapResult))
                 {
                     Results.Add(item);
@@ -232,15 +255,17 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private static SearchResultItem MapResult(SemanticSearchResult result)
+    private SearchResultItem MapResult(SemanticSearchResult result)
     {
         string subtitle = result.ConfidenceLabel.HasValue
-            ? $"{result.ConfidenceLabel} confidence"
+            ? string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Search.Confidence.Format"],
+                LocalizeConfidence(result.ConfidenceLabel.Value))
             : string.Empty;
         string snippet = result.Snippet ?? string.Empty;
-        string matchLocations = result.MatchLocations is { Count: > 0 }
-            ? string.Join(" · ", result.MatchLocations)
-            : result.ExactFallback ? "Exact match" : "Semantic match";
+        SearchResultBadge[] matchBadges = CreateMatchBadges(result);
+        string matchLocations = string.Join(" · ", matchBadges.Select(badge => badge.Label));
         return new SearchResultItem(
             result.BookId,
             IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty,
@@ -248,15 +273,53 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             subtitle,
             snippet,
             matchLocations,
+            matchBadges,
             result.PageIndex,
             result.HybridScore ?? result.SemanticScore ?? 0);
     }
+
+    private SearchResultBadge[] CreateMatchBadges(SemanticSearchResult result)
+    {
+        if (result.MatchLocations is not { Count: > 0 })
+        {
+            string fallbackLabel = result.ExactFallback
+                ? _localization["Search.MatchLocation.Exact"]
+                : LocalizeLocation(MatchLocation.Semantic);
+            return
+            [
+                new SearchResultBadge(
+                    fallbackLabel,
+                    string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        _localization["Search.MatchLocation.AccessibleFormat"],
+                        fallbackLabel)),
+            ];
+        }
+
+        return result.MatchLocations
+            .Select(LocalizeLocation)
+            .Distinct(StringComparer.CurrentCulture)
+            .Select(label => new SearchResultBadge(
+                label,
+                string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Search.MatchLocation.AccessibleFormat"],
+                    label)))
+            .ToArray();
+    }
+
+    private string LocalizeLocation(MatchLocation location) =>
+        _localization[$"Search.MatchLocation.{location}"];
+
+    private string LocalizeConfidence(ConfidenceLabel label) =>
+        _localization[$"Search.Confidence.{label}"];
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(PlaceholderText));
         OnPropertyChanged(nameof(PanelLabel));
         OnPropertyChanged(nameof(OpenSelectedLabel));
+        OnPropertyChanged(nameof(SearchModeText));
         OnPropertyChanged(nameof(SearchIconPath));
         OnPropertyChanged(nameof(ResultBookIconPath));
         StatusText = Results.Count == 0
@@ -279,5 +342,11 @@ public sealed record SearchResultItem(
     string Subtitle,
     string Snippet,
     string MatchLocations,
+    IReadOnlyList<SearchResultBadge> MatchBadges,
     int? PageIndex,
     double Score);
+
+/// <summary>Localized match-location badge for a search result.</summary>
+public sealed record SearchResultBadge(
+    string Label,
+    string AutomationLabel);

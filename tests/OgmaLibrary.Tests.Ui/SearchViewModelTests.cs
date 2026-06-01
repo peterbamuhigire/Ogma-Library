@@ -43,8 +43,27 @@ public sealed class SearchViewModelTests
         Assert.Equal("ogma", search.LastQuery);
         Assert.Contains("Semantic", vm.Results[0].MatchLocations, StringComparison.Ordinal);
         Assert.Contains("High", vm.Results[0].Subtitle, StringComparison.Ordinal);
+        Assert.Equal("Semantic search active", vm.SearchModeText);
+        Assert.Contains(vm.Results[0].MatchBadges, badge => badge.AutomationLabel == "Match location: Semantic");
         Assert.Equal("BOOKSEARCH00000000000001", navigation.OpenedBookId);
         Assert.Equal(3, navigation.OpenedPageHint);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_ProviderUnavailable_ShowsExactFallbackMode()
+    {
+        var navigation = new RecordingReaderNavigation();
+        using var vm = new SearchViewModel(
+            new UnavailableSemanticSearchService(),
+            navigation,
+            new InMemoryLocalizationService());
+
+        vm.Query = "offline";
+        await WaitForAsync(() => vm.Results.Count == 1);
+
+        Assert.True(vm.IsSemanticDegraded);
+        Assert.Equal("Exact search fallback", vm.SearchModeText);
+        Assert.Equal("Exact match", vm.Results[0].MatchLocations);
     }
 
     [AvaloniaFact]
@@ -315,6 +334,27 @@ public sealed class SearchViewModelTests
                         MatchLocations: [MatchLocation.Title]),
                 ]);
         }
+    }
+
+    private sealed class UnavailableSemanticSearchService : ISemanticSearchService
+    {
+        public Task<SemanticSearchResponse> SearchAsync(
+            string queryText,
+            int maxResults,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new SemanticSearchResponse(
+                ProviderUnavailable: true,
+                UsedExactFallback: true,
+                [
+                    new SemanticSearchResult(
+                        "BOOK-OFFLINE",
+                        "Offline Result",
+                        ChunkId: null,
+                        Source: null,
+                        Snippet: string.Empty,
+                        SemanticScore: null,
+                        ExactFallback: true),
+                ]));
     }
 
     private sealed class RecordingReaderNavigation : IReaderNavigationService, IBookDetailNavigationService
