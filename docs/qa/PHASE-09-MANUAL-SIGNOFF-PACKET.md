@@ -104,6 +104,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~IngestionPipelineTests\|FullyQualifiedName~MigrationTests\|FullyQualifiedName~ApplicationStartupTests"` | Passed: 23 direct-PDF, folder-scan, migration repair, and startup tests including production-DI missing-`BookFiles` repair for direct open and Choose Library Folder, plus same-hash unregistered-path folder-scan registration |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 236, UI 93, Architecture 15 |
 | `.\scripts\Phase09-Preflight.ps1` | Generates a dated `docs/qa/evidence/phase09-preflight-*.md` record with commit, OS, worktree state, app process state, and preflight command output |
+| `docs/qa/evidence/phase09-preflight-20260601-072040.md` | Current preflight evidence for commit `f4c09954bdeab37a59cdcc3350560eff133c919b`: format passed, Release build passed with 0 warnings/errors, Release tests passed Core 236, UI 93, Architecture 15 |
 
 ## Closure Rule
 

@@ -448,6 +448,9 @@ Current implementation progress:
 - Manual review preflight is now scriptable with
   `scripts/Phase09-Preflight.ps1`, which emits a dated QA evidence record
   before the reviewer starts the Narrator/VoiceOver and visual checks.
+- The first preflight record is archived at
+  `docs/qa/evidence/phase09-preflight-20260601-072040.md` for commit
+  `f4c09954bdeab37a59cdcc3350560eff133c919b`.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -525,3 +528,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Refreshed the local Release full-suite gate after bookmark direct-control coverage: Architecture 15, Core 236, UI 93 | Codex |
 | 2026-06-01 | Refreshed developer-guide reader and scan screenshots from the current UI screenshot tests | Codex |
 | 2026-06-01 | Added a Phase 09 manual-review preflight collector for dated QA evidence records | Codex |
+| 2026-06-01 | Archived the first Phase 09 preflight evidence record with format, Release build, and full Release test output | Codex |
