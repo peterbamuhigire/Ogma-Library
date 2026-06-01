@@ -29,7 +29,7 @@ owner-controlled release folder named in the row.
 | Bookmark panel supports arrow selection and Enter navigation | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` |
 | Bookmark context flyout exposes rename/delete actions | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` |
 | Note editor supports Escape dismissal without navigation | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` |
-| Bookmark, layer, citation, and memory actions expose target-specific automation names | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; layer visibility, merge, and delete names include the layer name |
+| Bookmark, layer, citation, and memory actions expose action-specific automation names | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; layer visibility, merge, and delete names include the layer name; citation copy/export buttons are asserted as distinct `Copy citation` and `Export citation` actions |
 | Active writable annotation layer is visible and announced | `ReaderViewModel_ActiveWritableLayerMarker_FollowsFirstVisibleLayer`; `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames` |
 | Last-layer destructive controls are unavailable before data loss can occur | `ReaderView_LayerActions_DisabledWhenOnlyOneLayerRemains` |
 | Note overlays expose an anchor marker state | `ReaderViewModel_NoteOverlay_ExposesAnchorMarker` |
