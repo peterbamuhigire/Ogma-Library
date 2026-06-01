@@ -344,9 +344,57 @@
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,1,0,0"
             Padding="12,6">
-      <TextBlock Text="{Binding StatusText}"
-                 FontSize="{DynamicResource Type.Size.Caption}"
-                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding StatusText}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                   VerticalAlignment="Center" />
+
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding IsHostSharingVisible}">
+          <TextBlock Text="{Binding HostSharing.Title}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     VerticalAlignment="Center" />
+          <TextBlock Text="{Binding HostSharing.StatusText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     VerticalAlignment="Center" />
+          <TextBlock Text="{Binding HostSharing.ClientCountText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     VerticalAlignment="Center" />
+          <TextBlock Text="{Binding HostSharing.FingerprintText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Accent.Slate}"
+                     VerticalAlignment="Center" />
+          <Button Padding="8,3"
+                  Background="{DynamicResource Brush.Accent.Sage}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding HostSharing.CanStart}"
+                  AutomationProperties.Name="Start Library Host"
+                  Click="HostStartButton_Click">
+            <TextBlock Text="Start"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+          <Button Padding="8,3"
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding HostSharing.CanStop}"
+                  AutomationProperties.Name="Stop Library Host"
+                  Click="HostStopButton_Click">
+            <TextBlock Text="Stop"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </StackPanel>
+      </Grid>
     </Border>
 
   </Grid>

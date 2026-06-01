@@ -464,3 +464,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-01 | Implementation | Advanced WP5: added authenticated page-render endpoint that resolves catalogue PDFs, renders 1-based page requests to PNG bytes, clamps render width, and returns `403` when FileStream mode is active. |
 | 2026-06-01 | Implementation | Advanced WP7/network boundary: added LAN bind-address selection that prefers active RFC1918 IPv4 adapters, falls back to loopback, and publishes the selected address in the mDNS TXT record. |
 | 2026-06-01 | Implementation | Advanced WP5: added `LanPageRenderLimiter`, capping simultaneous page renders at 10 and returning `429` when the Host is saturated instead of queuing unbounded work. |
+| 2026-06-01 | Implementation | Advanced WP8 scaffold: added a catalogue-shell Host sharing control strip with status, connected-client count, fingerprint preview, and explicit start/stop controls backed by `HostSharingViewModel`. |

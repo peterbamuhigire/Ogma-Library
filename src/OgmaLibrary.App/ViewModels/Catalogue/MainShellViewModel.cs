@@ -86,6 +86,7 @@ public sealed class MainShellViewModel :
     /// <param name="directPdfOpenService">The direct single-PDF open service.</param>
     /// <param name="search">The Phase 10 search view model.</param>
     /// <param name="indexManager">The Phase 10 Index Manager view model.</param>
+    /// <param name="hostSharing">The Phase 16 Host sharing control view model.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -98,7 +99,8 @@ public sealed class MainShellViewModel :
         IDirectPdfOpenService? directPdfOpenService = null,
         SearchViewModel? search = null,
         IndexManagerViewModel? indexManager = null,
-        SplitViewViewModel? splitView = null)
+        SplitViewViewModel? splitView = null,
+        HostSharingViewModel? hostSharing = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -113,6 +115,7 @@ public sealed class MainShellViewModel :
         SplitView = splitView;
         Search = search;
         IndexManager = indexManager;
+        HostSharing = hostSharing;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
@@ -151,6 +154,12 @@ public sealed class MainShellViewModel :
 
     /// <summary>The Index Manager panel view model.</summary>
     public IndexManagerViewModel? IndexManager { get; }
+
+    /// <summary>The Phase 16 Host sharing control strip view model.</summary>
+    public HostSharingViewModel? HostSharing { get; }
+
+    /// <summary>True when the Host sharing control strip is available.</summary>
+    public bool IsHostSharingVisible => HostSharing is not null;
 
     // ── Layout state ──────────────────────────────────────────────────────────
 

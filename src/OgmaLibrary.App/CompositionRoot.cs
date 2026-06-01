@@ -11,6 +11,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Ocr;
@@ -163,6 +164,8 @@ public static class CompositionRoot
                 sp.GetRequiredService<IIndexManagerService>(),
                 sp.GetRequiredService<IEmbeddingErasureService>(),
                 localization);
+            var hostSharingVm = new HostSharingViewModel(
+                sp.GetRequiredService<ILibraryHostService>());
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(
@@ -177,7 +180,8 @@ public static class CompositionRoot
                 sp.GetRequiredService<IDirectPdfOpenService>(),
                 searchVm,
                 indexManagerVm,
-                splitViewVm);
+                splitViewVm,
+                hostSharingVm);
 
             return shell;
         });

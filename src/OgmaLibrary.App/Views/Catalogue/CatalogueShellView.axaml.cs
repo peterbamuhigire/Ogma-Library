@@ -169,6 +169,22 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private async void HostStartButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            await vm.HostSharing.StartAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void HostStopButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            await vm.HostSharing.StopAsync().ConfigureAwait(true);
+        }
+    }
+
     private TopLevel? ResolveTopLevel(object? sender)
     {
         if (sender is Control source && TopLevel.GetTopLevel(source) is { } senderTopLevel)
