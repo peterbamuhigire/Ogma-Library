@@ -28788,6 +28788,9 @@ void main() {
     layout = "shelf";
     focusedIndex = 0;
     hoveredBookId = null;
+    frameCount = 0;
+    fpsWindowStartedAt = 0;
+    lastPerformanceWarningAt = 0;
     handleMessage(message) {
       switch (message.type) {
         case "SetScene":
@@ -28814,7 +28817,8 @@ void main() {
       }
     }
     start() {
-      const tick = () => {
+      const tick = (timestamp) => {
+        this.recordFrame(timestamp);
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
         requestAnimationFrame(tick);
@@ -28958,6 +28962,24 @@ void main() {
     }
     postCameraChanged() {
       this.post({ type: "CameraChanged", camera: this.readCamera() });
+    }
+    recordFrame(timestamp) {
+      if (this.fpsWindowStartedAt === 0) {
+        this.fpsWindowStartedAt = timestamp;
+        return;
+      }
+      this.frameCount++;
+      const elapsedMs = timestamp - this.fpsWindowStartedAt;
+      if (elapsedMs < 2e3) {
+        return;
+      }
+      const averageFps = this.frameCount / elapsedMs * 1e3;
+      if (averageFps < 55 && timestamp - this.lastPerformanceWarningAt > 5e3) {
+        this.lastPerformanceWarningAt = timestamp;
+        this.post({ type: "PerformanceWarning", averageFps });
+      }
+      this.frameCount = 0;
+      this.fpsWindowStartedAt = timestamp;
     }
     post(message) {
       const serialized = JSON.stringify(message);

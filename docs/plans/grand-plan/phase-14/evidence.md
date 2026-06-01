@@ -50,6 +50,7 @@ document.
 | `npm install` in `src\shelf3d` | Passed: installed TypeScript, Three.js, and type declarations; 0 vulnerabilities |
 | `npm run typecheck` in `src\shelf3d` | Passed: strict TypeScript scene and message contract check |
 | `npm run build` in `src\shelf3d` | Passed: bundled local Three.js shelf to `src\OgmaLibrary.Bookshelf3D\Assets\Web\shelf3d.js` |
+| `npm run perf:budget` in `src\shelf3d` | Passed: 500-book layout budget; shelf p95 0.079 ms, max 0.571 ms; grid3d p95 0.081 ms, max 0.281 ms |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 6 scheme/publisher tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
@@ -88,13 +89,15 @@ document.
 | Three.js bundle | `npm run build` emits the offline bundle into the Bookshelf3D project for publish-time copy |
 | Asset publisher | `Shelf3DAssetPublisher` copies `index.html` and `shelf3d.js` into the `js` asset class served by `ogma://` |
 | WebView bootstrapper | `Shelf3DWebViewBootstrapper` initializes the adapter, registers `ogma://`, publishes local web assets, and navigates to `ogma://assets/js/index.html` |
+| Performance telemetry | `Shelf3DScene` posts a typed `PerformanceWarning` when sustained FPS drops below the warning threshold |
+| CI performance budget | `npm run perf:budget` benchmarks 500-book shelf/grid layout calculations against a 16.67 ms frame budget |
 
 ## Remaining Phase 14 Work
 
 - WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter`; the shared bootstrap/navigation sequence is now implemented and tested.
 - WP2 native bridge registration of the `ogma://` handler is implemented at the shared bootstrapper level; platform adapters still need concrete scheme registration code.
 - WP4 worker integration/cache invalidation remains: generated textures are tested but not yet wired into the ingestion/update pipeline.
-- WP5 texture atlas, FPS telemetry/baseline, and visual smoke verification remain.
+- WP5 texture atlas and visual smoke verification remain; layout-budget benchmark and FPS warning telemetry are implemented.
 - WP6 reader-open parity for double-click remains pending until the reader navigation command is integrated with the 3D shell.
 - WP3 full side-effect integration test against the ViewModel stack after WP6 exists.
 - WP4-WP9 spine textures, Three.js scene, view model/view, fallback, performance benchmarks, review, and remote CI evidence.

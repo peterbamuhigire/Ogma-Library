@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "esbuild src/main.ts --bundle --format=iife --global-name=OgmaShelf3D --target=es2022 --outfile=../OgmaLibrary.Bookshelf3D/Assets/Web/shelf3d.js"
+    "build": "esbuild src/main.ts --bundle --format=iife --global-name=OgmaShelf3D --target=es2022 --outfile=../OgmaLibrary.Bookshelf3D/Assets/Web/shelf3d.js",
+    "perf:budget": "node scripts/performance-budget.mjs"
   },
   "dependencies": {
     "three": "^0.181.2"

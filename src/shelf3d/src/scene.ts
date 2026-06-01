@@ -42,6 +42,9 @@ export class Shelf3DScene {
   private layout: "shelf" | "grid3d" = "shelf";
   private focusedIndex = 0;
   private hoveredBookId: string | null = null;
+  private frameCount = 0;
+  private fpsWindowStartedAt = 0;
+  private lastPerformanceWarningAt = 0;
 
   public constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
@@ -84,7 +87,8 @@ export class Shelf3DScene {
   }
 
   public start(): void {
-    const tick = (): void => {
+    const tick = (timestamp: number): void => {
+      this.recordFrame(timestamp);
       this.controls.update();
       this.renderer.render(this.scene, this.camera);
       requestAnimationFrame(tick);
@@ -256,6 +260,28 @@ export class Shelf3DScene {
 
   private postCameraChanged(): void {
     this.post({ type: "CameraChanged", camera: this.readCamera() });
+  }
+
+  private recordFrame(timestamp: number): void {
+    if (this.fpsWindowStartedAt === 0) {
+      this.fpsWindowStartedAt = timestamp;
+      return;
+    }
+
+    this.frameCount++;
+    const elapsedMs = timestamp - this.fpsWindowStartedAt;
+    if (elapsedMs < 2_000) {
+      return;
+    }
+
+    const averageFps = (this.frameCount / elapsedMs) * 1_000;
+    if (averageFps < 55 && timestamp - this.lastPerformanceWarningAt > 5_000) {
+      this.lastPerformanceWarningAt = timestamp;
+      this.post({ type: "PerformanceWarning", averageFps });
+    }
+
+    this.frameCount = 0;
+    this.fpsWindowStartedAt = timestamp;
   }
 
   private post(message: InboundMessage): void {
