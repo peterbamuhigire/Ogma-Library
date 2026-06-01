@@ -32,6 +32,31 @@ function Escape-TableCell {
     return ($Value -replace '\|', '\|').Replace("`r", ' ').Replace("`n", ' ')
 }
 
+function Get-PendingTableRows {
+    param(
+        [string]$Path,
+        [string]$Document,
+        [string]$StopAtHeading = ''
+    )
+
+    $rows = [System.Collections.Generic.List[object]]::new()
+    foreach ($line in Get-Content -Path $Path) {
+        if (-not [string]::IsNullOrWhiteSpace($StopAtHeading) -and $line.Trim() -eq $StopAtHeading) {
+            break
+        }
+
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith('|') -and $trimmed -match '\bPending\b') {
+            $rows.Add([PSCustomObject]@{
+                Document = $Document
+                Row = $trimmed
+            })
+        }
+    }
+
+    return @($rows)
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $repoRoot
 
@@ -43,6 +68,7 @@ $preflightDir = Join-Path $repoRoot 'docs/qa/evidence'
 $currentCommit = (& git rev-parse HEAD).Trim()
 
 $results = [System.Collections.Generic.List[object]]::new()
+$pendingDetails = [System.Collections.Generic.List[object]]::new()
 $requiredFiles = @($manualPacketPath, $a11yPath, $phaseEvidencePath, $workflowPath)
 foreach ($path in $requiredFiles) {
     if (Test-Path $path) {
@@ -88,20 +114,26 @@ $manualText = Get-Content -Raw -Path $manualPacketPath
 $a11yText = Get-Content -Raw -Path $a11yPath
 $phaseEvidenceText = Get-Content -Raw -Path $phaseEvidencePath
 
-$manualPending = [regex]::Matches($manualText, '\bPending\b').Count
-if ($manualPending -eq 0) {
-    Add-Result $results 'Manual signoff packet pending markers' 'Pass' $manualPacketPath 'None'
+$manualPendingRows = @(Get-PendingTableRows -Path $manualPacketPath -Document 'Manual signoff packet' -StopAtHeading '## Automated Evidence Snapshot')
+foreach ($row in $manualPendingRows) {
+    $pendingDetails.Add($row)
+}
+if ($manualPendingRows.Count -eq 0) {
+    Add-Result $results 'Manual signoff packet pending rows' 'Pass' $manualPacketPath 'None'
 }
 else {
-    Add-Result $results 'Manual signoff packet pending markers' 'Pending' $manualPacketPath "Complete or explicitly waive $manualPending Pending marker(s)."
+    Add-Result $results 'Manual signoff packet pending rows' 'Pending' $manualPacketPath "Complete or explicitly waive $($manualPendingRows.Count) pending table row(s); see Pending Detail Rows."
 }
 
-$a11yPending = [regex]::Matches($a11yText, '\bPending\b').Count
-if ($a11yPending -eq 0) {
-    Add-Result $results 'Accessibility signoff pending markers' 'Pass' $a11yPath 'None'
+$a11yPendingRows = @(Get-PendingTableRows -Path $a11yPath -Document 'Accessibility signoff')
+foreach ($row in $a11yPendingRows) {
+    $pendingDetails.Add($row)
+}
+if ($a11yPendingRows.Count -eq 0) {
+    Add-Result $results 'Accessibility signoff pending rows' 'Pass' $a11yPath 'None'
 }
 else {
-    Add-Result $results 'Accessibility signoff pending markers' 'Pending' $a11yPath "Complete or explicitly waive $a11yPending Pending marker(s)."
+    Add-Result $results 'Accessibility signoff pending rows' 'Pending' $a11yPath "Complete or explicitly waive $($a11yPendingRows.Count) pending table row(s); see Pending Detail Rows."
 }
 
 $remoteEvidence = Get-ChildItem -Path $preflightDir -Filter 'phase09-remote-ci-*.md' -ErrorAction SilentlyContinue |
@@ -162,6 +194,17 @@ if ($failCount -eq 0 -and $pendingCount -eq 0) {
 }
 else {
     $lines.Add('Phase 09 signoff gate is not complete.')
+}
+
+if ($pendingDetails.Count -gt 0) {
+    $lines.Add('')
+    $lines.Add('## Pending Detail Rows')
+    $lines.Add('')
+    $lines.Add('| Document | Row |')
+    $lines.Add('| --- | --- |')
+    foreach ($detail in $pendingDetails) {
+        $lines.Add("| $(Escape-TableCell $detail.Document) | $(Escape-TableCell $detail.Row) |")
+    }
 }
 
 Set-Content -Path $OutputPath -Value $lines -Encoding UTF8

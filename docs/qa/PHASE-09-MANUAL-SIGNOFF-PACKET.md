@@ -119,7 +119,8 @@ phase status:
 
 The gate exits `0` only when preflight evidence is valid and no manual,
 owner-decision, accessibility, visual-review, or remote-CI evidence remains
-pending.
+pending. When it exits nonzero, the generated report includes a `Pending Detail
+Rows` section listing the exact table rows that still need evidence or waiver.
 
 To collect remote CI evidence when GitHub Actions is readable from the
 workstation, run:

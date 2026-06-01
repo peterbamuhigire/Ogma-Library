@@ -453,7 +453,8 @@ Current implementation progress:
   `f4c09954bdeab37a59cdcc3350560eff133c919b`.
 - Final closure is now executable through `scripts/Test-Phase09Signoff.ps1`;
   the gate remains pending until manual, owner, and remote-CI evidence rows are
-  completed or explicitly waived.
+  completed or explicitly waived, and the generated report lists the exact
+  pending rows still needing evidence.
 - Remote GitHub Actions evidence can be collected with
   `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
   available; the signoff gate accepts only a passing current-commit record.
@@ -541,3 +542,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added an executable Phase 09 signoff gate for preflight, manual, owner, accessibility, visual, and remote-CI evidence | Codex |
 | 2026-06-01 | Added a GitHub Actions remote-CI evidence collector for the Phase 09 signoff gate | Codex |
 | 2026-06-01 | Archived a remote-CI collection attempt showing GitHub Actions API 404 for the current pushed commit | Codex |
+| 2026-06-01 | Improved the Phase 09 signoff gate with row-level pending evidence details | Codex |
