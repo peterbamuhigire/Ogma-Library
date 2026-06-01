@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
+using OgmaLibrary.App.Icons;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Search;
@@ -16,6 +17,8 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private readonly ICombinedSearchService _searchService;
     private readonly IReaderNavigationService _navigation;
     private readonly ILocalizationService _localization;
+    private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
+    private readonly string _resultBookIconPath = IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty;
     private CancellationTokenSource? _debounceCts;
     private string? _query;
     private SearchResultItem? _selectedResult;
@@ -117,6 +120,12 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Localized label for the open action.</summary>
     public string OpenSelectedLabel => _localization["Search.OpenSelected"];
+
+    /// <summary>Icon path for global search.</summary>
+    public string SearchIconPath => _searchIconPath;
+
+    /// <summary>Icon path for search-result book rows.</summary>
+    public string ResultBookIconPath => _resultBookIconPath;
 
     /// <summary>Runs search immediately using the current query.</summary>
     public async Task SearchNowAsync(CancellationToken cancellationToken = default)
@@ -230,6 +239,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         string snippet = firstHit?.Snippet ?? string.Join(", ", result.MatchedFields);
         return new SearchResultItem(
             result.BookId,
+            IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty,
             result.Title ?? "Untitled",
             subtitle,
             snippet,
@@ -242,6 +252,8 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(PlaceholderText));
         OnPropertyChanged(nameof(PanelLabel));
         OnPropertyChanged(nameof(OpenSelectedLabel));
+        OnPropertyChanged(nameof(SearchIconPath));
+        OnPropertyChanged(nameof(ResultBookIconPath));
         StatusText = Results.Count == 0
             ? _localization["Search.Status.Ready"]
             : string.Format(
@@ -257,6 +269,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
 /// <summary>Search result item for the Avalonia list.</summary>
 public sealed record SearchResultItem(
     string BookId,
+    string IconPath,
     string Title,
     string Subtitle,
     string Snippet,

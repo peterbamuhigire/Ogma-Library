@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
+using OgmaLibrary.App.Icons;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Search;
 
@@ -15,6 +16,10 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     private readonly IIndexManagerService _indexManager;
     private readonly ILocalizationService _localization;
     private readonly IDisposable _subscription;
+    private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
+    private readonly string _rebuildIconPath = IconCatalog.GetAvaresPath("ic_index_rebuild") ?? string.Empty;
+    private readonly string _cancelIconPath = IconCatalog.GetAvaresPath("ic_index_rebuild_cancel") ?? string.Empty;
+    private readonly string _sizeIconPath = IconCatalog.GetAvaresPath("ic_index_size") ?? string.Empty;
     private CancellationTokenSource? _rebuildCts;
     private bool _isRebuilding;
     private bool _isRebuildConfirmationOpen;
@@ -135,6 +140,18 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
 
     /// <summary>Localized cancel label.</summary>
     public string CancelLabel => _localization["IndexManager.Cancel"];
+
+    /// <summary>Icon path for the Index Manager identity.</summary>
+    public string IndexManagerIconPath => _indexManagerIconPath;
+
+    /// <summary>Icon path for rebuild action.</summary>
+    public string RebuildIconPath => _rebuildIconPath;
+
+    /// <summary>Icon path for cancel rebuild action.</summary>
+    public string CancelIconPath => _cancelIconPath;
+
+    /// <summary>Icon path for index-size status.</summary>
+    public string SizeIconPath => _sizeIconPath;
 
     /// <summary>Localized confirmation prompt.</summary>
     public string RebuildConfirmationText => _localization["IndexManager.Rebuild.ConfirmText"];
@@ -357,6 +374,10 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(PanelLabel));
         OnPropertyChanged(nameof(RebuildLabel));
         OnPropertyChanged(nameof(CancelLabel));
+        OnPropertyChanged(nameof(IndexManagerIconPath));
+        OnPropertyChanged(nameof(RebuildIconPath));
+        OnPropertyChanged(nameof(CancelIconPath));
+        OnPropertyChanged(nameof(SizeIconPath));
         OnPropertyChanged(nameof(RebuildConfirmationText));
         OnPropertyChanged(nameof(ConfirmRebuildLabel));
         OnPropertyChanged(nameof(IndexedSummary));

@@ -31,9 +31,9 @@ rebuild confirmation/progress/status summaries, Ctrl+F/Ctrl+K/Escape/Enter
 keyboard paths, stale-result protection, and automation names/status text on the
 panels.
 
-The phase is not complete. Premium icon asset procurement, pseudolocale visual
-evidence, golden-corpus/manual accessibility signoff, and final closeout remain
-pending.
+The phase is not complete. Phase 10 placeholder SVG icons are wired, but premium
+icon asset procurement, pseudolocale visual evidence, golden-corpus/manual
+accessibility signoff, and final closeout remain pending.
 
 ## Automated Verification
 
@@ -65,6 +65,12 @@ pending.
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 261, UI 93 |
 | `dotnet build tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release` | Passed: 0 warnings, 0 errors after WP6 UI foundations |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~SearchViewModelTests"` | Passed: 5 search debounce/open, stale-result, Index Manager load/rebuild, shell keyboard, and rebuild progress UI tests |
+| `dotnet build tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release` | Passed: 0 warnings, 0 errors after Phase 10 icon wiring |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~IconCatalogPhase10Tests\|FullyQualifiedName~SearchViewModelTests"` | Passed: 8 Phase 10 icon catalog and search/index UI tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after Phase 10 icon wiring |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after Phase 10 icon wiring |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 16 architecture tests after Phase 10 icon wiring |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 261, UI 101 |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP6 UI foundations |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP6 UI foundations |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 16 architecture tests after WP6 UI foundations |
@@ -113,6 +119,7 @@ pending.
 | Index Manager UI panel | `IndexManagerViewModel`, `IndexManagerPanelView`, shell toggle wiring, status load, rebuild confirmation, progress indicator, cancel action, size/integrity/failed-page summaries, error list, and event subscription |
 | Search/Index i18n | `InMemoryLocalizationService` adds en/fr keys for search and Index Manager panel labels, status text, confirmation text, and summaries |
 | UI view-model tests | `SearchViewModel_QueryDebouncesAndOpenSelectedNavigates`, `SearchViewModel_StaleResults_DoNotOverwriteLatestQuery`, `IndexManagerViewModel_LoadAndRebuildExposeStatus`, `SearchBar_CtrlK_Opens`, and `IndexManager_RebuildButton_ShowsProgress` |
+| Phase 10 icon catalog | 18 placeholder SVG assets under `src/OgmaLibrary.App/Assets/icons/search/`; `IconCatalog` registration; en/fr accessible labels; `IconCatalogPhase10Tests` |
 
 ## Remaining Phase 10 Work
 
@@ -120,5 +127,5 @@ pending.
 - WP3: larger golden-corpus PDF fixtures and true crash-injection resume test remain; core pipeline, chunking, failure isolation, and worker polling are implemented locally.
 - WP4: golden-corpus PDF fixtures remain; FTS service, snippets, integrity check, combined search, multi-source tests, and warm P95 benchmark are implemented locally.
 - WP5: backend status service, rebuild/cancel flow, G7 reliability, and shell-mounted Index Manager UI are implemented locally.
-- WP6: premium icon assets, full pseudolocale visual pass, and manual screen-reader signoff remain; keyboard paths, rebuild progress/confirmation, en/fr strings, and automation names are implemented locally.
+- WP6: premium replacement icon assets, full pseudolocale visual pass, and manual screen-reader signoff remain; placeholder SVGs, keyboard paths, rebuild progress/confirmation, en/fr strings, and automation names are implemented locally.
 - WP7: full phase test/benchmark/CI closeout.

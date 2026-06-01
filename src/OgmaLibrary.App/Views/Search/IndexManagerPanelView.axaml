@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Search"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Search.IndexManagerPanelView"
              x:DataType="vm:IndexManagerViewModel">
 
@@ -10,10 +11,15 @@
           Padding="12,10">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto,Auto">
-        <TextBlock Text="{Binding PanelLabel}"
-                   FontWeight="SemiBold"
-                   FontSize="{DynamicResource Type.Size.Subtitle}"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <svg:Svg Width="18"
+                   Height="18"
+                   Path="{Binding IndexManagerIconPath}" />
+          <TextBlock Text="{Binding PanelLabel}"
+                     FontWeight="SemiBold"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        </StackPanel>
         <Button Grid.Column="1"
                 Margin="8,0,0,0"
                 Padding="10,5"
@@ -23,8 +29,13 @@
                 IsEnabled="{Binding CanRebuild}"
                 AutomationProperties.Name="{Binding RebuildLabel}"
                 Click="Rebuild_Click">
-          <TextBlock Text="{Binding RebuildLabel}"
-                     FontSize="{DynamicResource Type.Size.Caption}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <svg:Svg Width="14"
+                     Height="14"
+                     Path="{Binding RebuildIconPath}" />
+            <TextBlock Text="{Binding RebuildLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </StackPanel>
         </Button>
         <Button Grid.Column="2"
                 Margin="8,0,0,0"
@@ -32,8 +43,13 @@
                 IsEnabled="{Binding CanCancelRebuild}"
                 AutomationProperties.Name="{Binding CancelLabel}"
                 Click="Cancel_Click">
-          <TextBlock Text="{Binding CancelLabel}"
-                     FontSize="{DynamicResource Type.Size.Caption}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <svg:Svg Width="14"
+                     Height="14"
+                     Path="{Binding CancelIconPath}" />
+            <TextBlock Text="{Binding CancelLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </StackPanel>
         </Button>
       </Grid>
 
@@ -90,7 +106,12 @@
                    Columns="3"
                    Margin="0,6,0,0">
         <TextBlock Text="{Binding FailedPagesSummary}" />
-        <TextBlock Text="{Binding SizeSummary}" />
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <svg:Svg Width="14"
+                   Height="14"
+                   Path="{Binding SizeIconPath}" />
+          <TextBlock Text="{Binding SizeSummary}" />
+        </StackPanel>
         <TextBlock Text="{Binding IntegritySummary}" />
       </UniformGrid>
 

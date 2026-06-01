@@ -37,6 +37,12 @@ Color family mapping:
 
 ---
 
+Implementation note (2026-06-01): all 18 Phase 10 icon keys now have registered
+SVG placeholder assets under `src/OgmaLibrary.App/Assets/icons/search/` and
+`src/OgmaLibrary.App/Assets/icons/search/index-manager/`, with en/fr accessible
+labels covered by `IconCatalogPhase10Tests`. Premium replacement assets remain a
+release blocker before public beta.
+
 ## Accessible label keys (en + fr required)
 
 | Icon key | Label resource key | en label | fr label |

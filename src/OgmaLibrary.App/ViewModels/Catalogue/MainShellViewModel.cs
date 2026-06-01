@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Platform.Storage;
+using OgmaLibrary.App.Icons;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.Application;
@@ -50,6 +51,8 @@ public sealed class MainShellViewModel :
     private readonly IIngestionOrchestrator? _orchestrator;
     private readonly IScanProgressService? _scanProgress;
     private readonly IDirectPdfOpenService? _directPdfOpenService;
+    private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
+    private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
 
     private ScanPhase _scanPhase = ScanPhase.Idle;
     private int _filesDiscovered;
@@ -332,6 +335,12 @@ public sealed class MainShellViewModel :
 
     /// <summary>Index Manager panel toggle label.</summary>
     public string IndexManagerLabel => _localization["IndexManager.Panel.Label"];
+
+    /// <summary>Search panel toggle icon path.</summary>
+    public string SearchIconPath => _searchIconPath;
+
+    /// <summary>Index Manager panel toggle icon path.</summary>
+    public string IndexManagerIconPath => _indexManagerIconPath;
 
     /// <summary>Sort label.</summary>
     public string SortLabel => _localization["Icon.ic_cat_sort.Label"];
@@ -661,6 +670,8 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(FilterLabel));
         OnPropertyChanged(nameof(SearchLabel));
         OnPropertyChanged(nameof(IndexManagerLabel));
+        OnPropertyChanged(nameof(SearchIconPath));
+        OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(SortLabel));
     }
 

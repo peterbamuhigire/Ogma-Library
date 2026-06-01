@@ -4,6 +4,7 @@
              xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
              xmlns:reader="using:OgmaLibrary.App.Views.Reader"
              xmlns:search="using:OgmaLibrary.App.Views.Search"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
              x:DataType="vm:MainShellViewModel"
              Focusable="True"
@@ -134,7 +135,12 @@
                   Padding="8,4"
                   AutomationProperties.Name="{Binding SearchLabel}"
                   Click="SearchToggle_Click">
-            <TextBlock Text="{Binding SearchLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <svg:Svg Width="16"
+                       Height="16"
+                       Path="{Binding SearchIconPath}" />
+              <TextBlock Text="{Binding SearchLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            </StackPanel>
           </Button>
 
           <!-- Index Manager panel toggle -->
@@ -144,7 +150,12 @@
                   Padding="8,4"
                   AutomationProperties.Name="{Binding IndexManagerLabel}"
                   Click="IndexManagerToggle_Click">
-            <TextBlock Text="{Binding IndexManagerLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <svg:Svg Width="16"
+                       Height="16"
+                       Path="{Binding IndexManagerIconPath}" />
+              <TextBlock Text="{Binding IndexManagerLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            </StackPanel>
           </Button>
 
           <!-- Filter panel toggle -->

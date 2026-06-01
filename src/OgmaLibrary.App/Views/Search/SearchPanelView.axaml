@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Search"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Search.SearchPanelView"
              x:DataType="vm:SearchViewModel"
              Focusable="True"
@@ -10,16 +11,23 @@
           BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
           BorderThickness="0,0,0,1"
           Padding="12,10">
-    <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="Auto,*,Auto">
+      <svg:Svg Grid.Row="0"
+               Grid.Column="0"
+               Width="18"
+               Height="18"
+               Margin="0,0,8,0"
+               VerticalAlignment="Center"
+               Path="{Binding SearchIconPath}" />
       <TextBox x:Name="SearchBox"
                Grid.Row="0"
-               Grid.Column="0"
+               Grid.Column="1"
                Text="{Binding Query, Mode=TwoWay}"
                Watermark="{Binding PlaceholderText}"
                AutomationProperties.Name="{Binding PlaceholderText}"
                MinWidth="260" />
       <Button Grid.Row="0"
-              Grid.Column="1"
+              Grid.Column="2"
               Margin="8,0,0,0"
               Padding="10,5"
               Background="{DynamicResource Brush.Accent.Oak}"
@@ -34,7 +42,7 @@
 
       <ListBox x:Name="SearchResults"
                Grid.Row="1"
-               Grid.ColumnSpan="2"
+               Grid.ColumnSpan="3"
                Margin="0,10,0,0"
                MaxHeight="220"
                ItemsSource="{Binding Results}"
@@ -42,16 +50,24 @@
                AutomationProperties.Name="{Binding StatusText}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:SearchResultItem">
-            <Grid RowDefinitions="Auto,Auto,Auto" Margin="0,4">
-              <TextBlock Text="{Binding Title}"
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
+              <svg:Svg Grid.RowSpan="3"
+                       Width="18"
+                       Height="18"
+                       Margin="0,2,8,0"
+                       Path="{Binding IconPath}" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding Title}"
                          FontWeight="SemiBold"
                          FontSize="{DynamicResource Type.Size.Body}"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
               <TextBlock Grid.Row="1"
+                         Grid.Column="1"
                          Text="{Binding Subtitle}"
                          FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
               <TextBlock Grid.Row="2"
+                         Grid.Column="1"
                          Text="{Binding Snippet}"
                          TextWrapping="Wrap"
                          MaxLines="2"
