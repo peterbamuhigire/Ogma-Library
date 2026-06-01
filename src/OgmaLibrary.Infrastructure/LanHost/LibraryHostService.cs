@@ -13,6 +13,7 @@ internal sealed class LibraryHostService : ILibraryHostService
     private readonly IMdnsAdvertiser _mdns;
     private readonly IClientSessionService _sessions;
     private readonly IHostModeListener _listener;
+    private readonly ILanBindAddressSelector _bindAddressSelector;
     private LibraryHostStatus _status = new(
         LibraryHostState.Stopped,
         Port: 7473,
@@ -25,19 +26,22 @@ internal sealed class LibraryHostService : ILibraryHostService
         ICertificateProvisioner certificates,
         IMdnsAdvertiser mdns,
         IClientSessionService sessions,
-        IHostModeListener listener)
+        IHostModeListener listener,
+        ILanBindAddressSelector bindAddressSelector)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(certificates);
         ArgumentNullException.ThrowIfNull(mdns);
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(listener);
+        ArgumentNullException.ThrowIfNull(bindAddressSelector);
 
         _settings = settings;
         _certificates = certificates;
         _mdns = mdns;
         _sessions = sessions;
         _listener = listener;
+        _bindAddressSelector = bindAddressSelector;
     }
 
     /// <inheritdoc />
@@ -49,6 +53,7 @@ internal sealed class LibraryHostService : ILibraryHostService
         CertificateProvisioningResult certificate = await _certificates
             .EnsureProvisionedAsync(cancellationToken)
             .ConfigureAwait(false);
+        string bindAddress = _bindAddressSelector.SelectBindAddress().ToString();
         await _listener.StartAsync(settings, certificate.Fingerprint, cancellationToken)
             .ConfigureAwait(false);
         await _mdns.StartAsync(
@@ -59,6 +64,7 @@ internal sealed class LibraryHostService : ILibraryHostService
                     new Dictionary<string, string>
                     {
                         ["fp"] = certificate.Fingerprint,
+                        ["addr"] = bindAddress,
                         ["requires-auth"] = "true",
                     }),
                 cancellationToken)

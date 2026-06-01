@@ -25,6 +25,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly IClientSessionService _sessions;
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
+    private readonly ILanBindAddressSelector _bindAddressSelector;
     private WebApplication? _app;
 
     public KestrelHostModeListener(
@@ -35,7 +36,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         ILanPageRenderer pageRenderer,
         IClientSessionService sessions,
         IHostServerCertificateProvider certificates,
-        IAuditRepository audit)
+        IAuditRepository audit,
+        ILanBindAddressSelector bindAddressSelector)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
@@ -45,6 +47,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _bindAddressSelector = bindAddressSelector ?? throw new ArgumentNullException(nameof(bindAddressSelector));
     }
 
     /// <inheritdoc />
@@ -56,13 +59,14 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentException.ThrowIfNullOrWhiteSpace(certificateFingerprint);
         await StopAsync(cancellationToken).ConfigureAwait(false);
+        IPAddress bindAddress = _bindAddressSelector.SelectBindAddress();
 
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.Listen(
-                IPAddress.Loopback,
+                bindAddress,
                 settings.Port,
                 listen => listen.UseHttps(_certificates.LoadOrCreateCertificateAsync(cancellationToken)
                     .GetAwaiter()
@@ -74,7 +78,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         });
 
         WebApplication app = builder.Build();
-        ConfigurePipeline(app, settings, certificateFingerprint);
+        ConfigurePipeline(app, settings, certificateFingerprint, bindAddress);
 
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
@@ -96,7 +100,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private void ConfigurePipeline(
         WebApplication app,
         HostModeSettings settings,
-        string certificateFingerprint)
+        string certificateFingerprint,
+        IPAddress bindAddress)
     {
         app.Use(async (context, next) =>
         {
@@ -129,6 +134,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         app.MapGet("/api/v1/health", () => Results.Json(new LanHostHealthResponse(
             State: "running",
             Port: settings.Port,
+            BindAddress: bindAddress.ToString(),
             CertificateFingerprint: certificateFingerprint,
             RequiresAuth: true)));
 
@@ -364,6 +370,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private sealed record LanHostHealthResponse(
         string State,
         int Port,
+        string BindAddress,
         string CertificateFingerprint,
         bool RequiresAuth);
 

@@ -18,6 +18,7 @@ public static class LanHostServiceExtensions
         services.AddSingleton<ICertificateProvisioner>(sp => sp.GetRequiredService<LocalCertificateProvisioner>());
         services.AddSingleton<IHostServerCertificateProvider>(sp => sp.GetRequiredService<LocalCertificateProvisioner>());
         services.AddSingleton<IMdnsAdvertiser, MdnsAdvertiser>();
+        services.AddSingleton<ILanBindAddressSelector, LanBindAddressSelector>();
         services.AddSingleton<ILanBookFileResolver>(sp => new LanBookFileResolver(
             sp.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<Catalogue.CatalogueDbContext>>(),
             dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));

@@ -150,6 +150,7 @@ public sealed class LanHostEndpointTests
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
+            .AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
             .BuildServiceProvider();
 
         await using CatalogueDbContext context = services.GetRequiredService<CatalogueDbContext>();
@@ -266,5 +267,10 @@ public sealed class LanHostEndpointTests
         {
             Directory.Delete(dataDirectory, recursive: true);
         }
+    }
+
+    private sealed class StaticLanBindAddressSelector(IPAddress address) : ILanBindAddressSelector
+    {
+        public IPAddress SelectBindAddress() => address;
     }
 }

@@ -29,8 +29,12 @@ listener endpoints:
 - `MdnsAdvertiser` wraps `Makaretu.Dns.Multicast` and validates DNS-SD service
   type, instance name, port, and TXT record sizes before advertising
   `_ogma-library._tcp`.
+- `LanBindAddressSelector` prefers active RFC1918 IPv4 LAN addresses and falls
+  back to loopback when no private LAN adapter is available. The selected address
+  is used by Kestrel and added to the mDNS TXT record as `addr`.
 - `KestrelHostModeListener` binds HTTPS on loopback only for the first endpoint
-  slice. It exposes `/api/v1/health`, `/api/v1/auth/session`, authenticated
+  fallback or on the selected private LAN address. It exposes `/api/v1/health`,
+  `/api/v1/auth/session`, authenticated
   `/api/v1/catalogue` with bounded page metadata, authenticated
   `/api/v1/catalogue/search` metadata search, and authenticated
   `/api/v1/catalogue/{bookId}` detail lookup; unauthenticated catalogue requests
@@ -68,7 +72,7 @@ listener endpoints:
 
 | Gate | Evidence |
 | --- | --- |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 17 scaffold/persistence/certificate/mDNS/resolver/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanBindAddressSelectorTests\|FullyQualifiedName~LanBookFileResolverTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 26 scaffold/persistence/certificate/mDNS/bind-selector/resolver/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, RFC1918 bind-address classification, catalogue-backed FileStream path resolution, traversal/rooted-path rejection, missing/unavailable file rejection, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, paged catalogue metadata, metadata search projection, authenticated book detail lookup, authenticated cover asset serving, malformed asset rejection, page-render-mode PNG serving, FileStream-mode page-render 403, page-render-mode file-stream 403, FileStream-mode PDF streaming, FileStream content-mode audit payloads, and LAN request audit rows |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
@@ -81,7 +85,8 @@ listener endpoints:
 | LanHost infrastructure scaffold | `src/OgmaLibrary.Infrastructure/LanHost/` |
 | LanHost certificate provisioner | `LocalCertificateProvisioner` creates/reloads the Host CA and exposes stable SHA-256 fingerprint |
 | LanHost mDNS advertiser | `MdnsAdvertiser` wraps `Makaretu.Dns.Multicast` behind `IMdnsAdvertiser` |
-| LanHost HTTPS listener | `KestrelHostModeListener` exposes loopback health/auth/catalogue endpoints behind bearer session validation |
+| LanHost bind-address selector | Prefers active RFC1918 IPv4 LAN addresses, falls back to loopback, and advertises the selected address in mDNS TXT |
+| LanHost HTTPS listener | `KestrelHostModeListener` exposes selected-address health/auth/catalogue endpoints behind bearer session validation |
 | LanHost catalogue contract | Authenticated catalogue list supports bounded `page`/`pageSize` metadata, metadata search projection, and single-book detail lookup |
 | LanHost asset endpoint | Authenticated cover/spine/thumbnail sidecar endpoint with SHA-256 hash validation |
 | LanHost page-render endpoint | Authenticated page-render endpoint returns PNG bytes in PageRender mode and rejects requests in FileStream mode |
@@ -96,5 +101,5 @@ listener endpoints:
 
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
-- WP3+ LAN-bound listener interface selection, render concurrency/rate controls,
-  UI, and load tests.
+- WP5+ render concurrency/rate controls, Host settings UI, same-subnet
+  verification, and load tests.
