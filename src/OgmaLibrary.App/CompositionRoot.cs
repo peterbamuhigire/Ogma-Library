@@ -105,7 +105,8 @@ public static class CompositionRoot
                 readModel,
                 navProxy,
                 localization,
-                sp.GetRequiredService<IBookMetadataEnrichmentService>());
+                sp.GetRequiredService<IBookMetadataEnrichmentService>(),
+                sp.GetRequiredService<IReadingMemoryService>());
             var readerVm = new ReaderViewModel(
                 sp.GetRequiredService<IReaderSessionService>(),
                 sp.GetRequiredService<IAnnotationService>(),

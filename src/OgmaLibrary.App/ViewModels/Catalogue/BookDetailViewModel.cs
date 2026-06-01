@@ -4,6 +4,8 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
@@ -18,12 +20,20 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IReaderNavigationService _reader;
     private readonly ILocalizationService _localization;
     private readonly IBookMetadataEnrichmentService? _metadataEnrichment;
+    private readonly IReadingMemoryService? _readingMemoryService;
 
     private BookDetailProjection? _book;
+    private ReadingMemory? _editableReadingMemory;
     private bool _isLoading;
     private bool _isEnriching;
+    private bool _isSavingReadingMemory;
     private bool _isVisible;
     private string? _enrichmentStatusText;
+    private string? _readingMemoryStatusText;
+    private string _readingMemoryOpenedBecause = string.Empty;
+    private string _readingMemoryKeyInsight = string.Empty;
+    private string _readingMemoryOpenQuestions = string.Empty;
+    private string _readingMemoryDispositionText = string.Empty;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookDetailViewModel"/>.
@@ -32,11 +42,13 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="reader">The reader navigation service.</param>
     /// <param name="localization">The localization service.</param>
     /// <param name="metadataEnrichment">The deterministic no-AI metadata enrichment service.</param>
+    /// <param name="readingMemoryService">The reading-memory persistence service.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
         ILocalizationService localization,
-        IBookMetadataEnrichmentService? metadataEnrichment = null)
+        IBookMetadataEnrichmentService? metadataEnrichment = null,
+        IReadingMemoryService? readingMemoryService = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -46,6 +58,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _reader = reader;
         _localization = localization;
         _metadataEnrichment = metadataEnrichment;
+        _readingMemoryService = readingMemoryService;
     }
 
     /// <inheritdoc />
@@ -150,9 +163,13 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ReadingMemorySummaryLabel));
             OnPropertyChanged(nameof(ReadingMemoryKeyInsightLabel));
             OnPropertyChanged(nameof(ReadingMemoryDispositionLabel));
+            OnPropertyChanged(nameof(ReadingMemoryOpenedBecauseLabel));
+            OnPropertyChanged(nameof(ReadingMemoryOpenQuestionsLabel));
             OnPropertyChanged(nameof(ReadingMemoryKeyInsightExcerpt));
             OnPropertyChanged(nameof(ReadingMemoryDispositionDisplay));
             OnPropertyChanged(nameof(HasReadingMemorySummary));
+            OnPropertyChanged(nameof(CanEditReadingMemory));
+            OnPropertyChanged(nameof(CanSaveReadingMemory));
             OnPropertyChanged(nameof(FileFields));
             OnPropertyChanged(nameof(BiblioFields));
             OnPropertyChanged(nameof(BiblioFieldDisplayRows));
@@ -225,6 +242,15 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>Localized reading-memory disposition label.</summary>
     public string ReadingMemoryDispositionLabel => _localization["Catalogue.BookDetail.ReadingMemoryDisposition"];
 
+    /// <summary>Localized reading-memory save button label.</summary>
+    public string ReadingMemorySaveLabel => _localization["ReadingMemory.Save"];
+
+    /// <summary>Localized reading-memory "opened because" label.</summary>
+    public string ReadingMemoryOpenedBecauseLabel => _localization["ReadingMemory.OpenedBecause"];
+
+    /// <summary>Localized reading-memory open-questions label.</summary>
+    public string ReadingMemoryOpenQuestionsLabel => _localization["ReadingMemory.OpenQuestions"];
+
     /// <summary>True when the loaded book has memory content worth summarizing.</summary>
     public bool HasReadingMemorySummary =>
         _book?.ReadingMemory is { } memory &&
@@ -243,6 +269,101 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                 _localization["Catalogue.BookDetail.ReadingMemoryDispositionFormat"],
                 disposition)
             : _localization["Catalogue.BookDetail.ReadingMemoryEmpty"];
+
+    /// <summary>True when the book-detail panel can edit reading-memory fields.</summary>
+    public bool CanEditReadingMemory => _book is not null && _readingMemoryService is not null;
+
+    /// <summary>True when the book-detail reading-memory save action is available.</summary>
+    public bool CanSaveReadingMemory => CanEditReadingMemory && !IsSavingReadingMemory;
+
+    /// <summary>True while a reading-memory save is running.</summary>
+    public bool IsSavingReadingMemory
+    {
+        get => _isSavingReadingMemory;
+        private set
+        {
+            if (_isSavingReadingMemory != value)
+            {
+                _isSavingReadingMemory = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanSaveReadingMemory));
+            }
+        }
+    }
+
+    /// <summary>Status text for book-detail reading-memory saves.</summary>
+    public string? ReadingMemoryStatusText
+    {
+        get => _readingMemoryStatusText;
+        private set
+        {
+            if (_readingMemoryStatusText != value)
+            {
+                _readingMemoryStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasReadingMemoryStatus));
+            }
+        }
+    }
+
+    /// <summary>True when there is reading-memory save status to display.</summary>
+    public bool HasReadingMemoryStatus => !string.IsNullOrWhiteSpace(ReadingMemoryStatusText);
+
+    /// <summary>Editable "opened because" value for the book-detail memory panel.</summary>
+    public string ReadingMemoryOpenedBecause
+    {
+        get => _readingMemoryOpenedBecause;
+        set
+        {
+            if (_readingMemoryOpenedBecause != value)
+            {
+                _readingMemoryOpenedBecause = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Editable key insight value for the book-detail memory panel.</summary>
+    public string ReadingMemoryKeyInsight
+    {
+        get => _readingMemoryKeyInsight;
+        set
+        {
+            if (_readingMemoryKeyInsight != value)
+            {
+                _readingMemoryKeyInsight = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Editable open questions value for the book-detail memory panel.</summary>
+    public string ReadingMemoryOpenQuestions
+    {
+        get => _readingMemoryOpenQuestions;
+        set
+        {
+            if (_readingMemoryOpenQuestions != value)
+            {
+                _readingMemoryOpenQuestions = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Editable disposition value for the book-detail memory panel.</summary>
+    public string ReadingMemoryDispositionText
+    {
+        get => _readingMemoryDispositionText;
+        set
+        {
+            if (_readingMemoryDispositionText != value)
+            {
+                _readingMemoryDispositionText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     // ── Five field groups for the detail panel tabs ───────────────────────────
 
@@ -369,6 +490,75 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Saves the book-detail reading-memory fields and refreshes the summary projection.</summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task SaveReadingMemoryAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null || _readingMemoryService is null || IsSavingReadingMemory)
+        {
+            return;
+        }
+
+        string bookId = _book.BookId;
+        int? disposition = null;
+        if (!string.IsNullOrWhiteSpace(ReadingMemoryDispositionText))
+        {
+            if (!int.TryParse(
+                    ReadingMemoryDispositionText,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    out int parsed) ||
+                parsed is < 1 or > 5)
+            {
+                ReadingMemoryStatusText = _localization["ReadingMemory.InvalidDisposition"];
+                return;
+            }
+
+            disposition = parsed;
+        }
+
+        DateTimeOffset createdAt = _editableReadingMemory?.CreatedAtUtc ?? DateTimeOffset.UtcNow;
+        var memory = new ReadingMemory
+        {
+            BookId = bookId,
+            OpenedBecause = NullIfWhiteSpace(ReadingMemoryOpenedBecause),
+            KeyInsight = NullIfWhiteSpace(ReadingMemoryKeyInsight),
+            OpenQuestions = NullIfWhiteSpace(ReadingMemoryOpenQuestions),
+            Disposition = disposition,
+            CreatedAtUtc = createdAt,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        };
+
+        IsSavingReadingMemory = true;
+        ReadingMemoryStatusText = null;
+
+        try
+        {
+            await _readingMemoryService.SaveAsync(memory, cancellationToken)
+                .ConfigureAwait(false);
+
+            BookDetailProjection? detail = await _readModel
+                .GetBookDetailAsync(bookId, cancellationToken)
+                .ConfigureAwait(false);
+
+            UpdateOnUiThread(() =>
+            {
+                _editableReadingMemory = memory;
+                Book = detail ?? _book;
+                ReadingMemoryStatusText = _localization["ReadingMemory.Saved"];
+                IsSavingReadingMemory = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                ReadingMemoryStatusText = ex.Message;
+                IsSavingReadingMemory = false;
+            });
+        }
+    }
+
     /// <summary>Closes the detail panel.</summary>
     public void Close()
     {
@@ -394,10 +584,13 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             BookDetailProjection? detail = await _readModel
                 .GetBookDetailAsync(bookId, cancellationToken)
                 .ConfigureAwait(false);
+            ReadingMemory? memory = await LoadEditableReadingMemoryAsync(detail, cancellationToken)
+                .ConfigureAwait(false);
 
             UpdateOnUiThread(() =>
             {
                 Book = detail;
+                SetEditableReadingMemory(memory);
                 IsLoading = false;
             });
         }
@@ -423,8 +616,14 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         BookDetailProjection? detail = await _readModel
             .GetBookDetailAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
+        ReadingMemory? memory = await LoadEditableReadingMemoryAsync(detail, cancellationToken)
+            .ConfigureAwait(false);
 
-        UpdateOnUiThread(() => Book = detail);
+        UpdateOnUiThread(() =>
+        {
+            Book = detail;
+            SetEditableReadingMemory(memory);
+        });
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
@@ -456,6 +655,33 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             ? trimmed
             : string.Concat(trimmed.AsSpan(0, maxLength - 3), "...");
     }
+
+    private async Task<ReadingMemory?> LoadEditableReadingMemoryAsync(
+        BookDetailProjection? detail,
+        CancellationToken cancellationToken)
+    {
+        if (detail is null || _readingMemoryService is null)
+        {
+            return null;
+        }
+
+        return await _readingMemoryService.LoadAsync(detail.BookId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private void SetEditableReadingMemory(ReadingMemory? memory)
+    {
+        _editableReadingMemory = memory;
+        ReadingMemoryOpenedBecause = memory?.OpenedBecause ?? string.Empty;
+        ReadingMemoryKeyInsight = memory?.KeyInsight ?? string.Empty;
+        ReadingMemoryOpenQuestions = memory?.OpenQuestions ?? string.Empty;
+        ReadingMemoryDispositionText = memory?.Disposition?.ToString(
+            System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+        ReadingMemoryStatusText = null;
+    }
+
+    private static string? NullIfWhiteSpace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string FormatField(MetadataFieldProjection field)
     {

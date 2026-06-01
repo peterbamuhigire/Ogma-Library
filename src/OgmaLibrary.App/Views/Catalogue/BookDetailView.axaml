@@ -190,6 +190,55 @@
                       </MultiBinding>
                     </TextBlock.Text>
                   </TextBlock>
+                  <StackPanel Spacing="5"
+                              Margin="0,8,0,0"
+                              IsVisible="{Binding CanEditReadingMemory}">
+                    <TextBlock Text="{Binding ReadingMemoryOpenedBecauseLabel}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBox Text="{Binding ReadingMemoryOpenedBecause}"
+                             AcceptsReturn="True"
+                             MinHeight="44"
+                             TextWrapping="Wrap"
+                             AutomationProperties.Name="{Binding ReadingMemoryOpenedBecauseLabel}"
+                             LostFocus="ReadingMemoryField_LostFocus" />
+                    <TextBlock Text="{Binding ReadingMemoryKeyInsightLabel}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBox Text="{Binding ReadingMemoryKeyInsight}"
+                             AcceptsReturn="True"
+                             MinHeight="44"
+                             TextWrapping="Wrap"
+                             AutomationProperties.Name="{Binding ReadingMemoryKeyInsightLabel}"
+                             LostFocus="ReadingMemoryField_LostFocus" />
+                    <TextBlock Text="{Binding ReadingMemoryOpenQuestionsLabel}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBox Text="{Binding ReadingMemoryOpenQuestions}"
+                             AcceptsReturn="True"
+                             MinHeight="44"
+                             TextWrapping="Wrap"
+                             AutomationProperties.Name="{Binding ReadingMemoryOpenQuestionsLabel}"
+                             LostFocus="ReadingMemoryField_LostFocus" />
+                    <TextBlock Text="{Binding ReadingMemoryDispositionLabel}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBox Text="{Binding ReadingMemoryDispositionText}"
+                             AutomationProperties.Name="{Binding ReadingMemoryDispositionLabel}"
+                             LostFocus="ReadingMemoryField_LostFocus" />
+                    <Button HorizontalAlignment="Left"
+                            Padding="10,4"
+                            IsEnabled="{Binding CanSaveReadingMemory}"
+                            AutomationProperties.Name="{Binding ReadingMemorySaveLabel}"
+                            Click="SaveReadingMemoryButton_Click">
+                      <TextBlock Text="{Binding ReadingMemorySaveLabel}" />
+                    </Button>
+                    <TextBlock Text="{Binding ReadingMemoryStatusText}"
+                               IsVisible="{Binding HasReadingMemoryStatus}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
                 </StackPanel>
               </StackPanel>
             </TabItem>

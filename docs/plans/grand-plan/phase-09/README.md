@@ -384,6 +384,9 @@ Current implementation progress:
 - The book-detail panel now exposes selected-book deterministic metadata
   enrichment using the existing no-AI provider pipeline, refreshes provider
   results into the detail projection, and displays provider provenance rows.
+- The book-detail Reading tab now exposes editable reading-memory fields backed
+  by `IReadingMemoryService`; saving opened-because, key-insight,
+  open-questions, or disposition refreshes the compact detail summary.
 - Direct PDF open now registers any selected PDF path that does not already
   have a present `BookFiles` row, even if hash or fuzzy identity matches an
   existing catalogue item.
@@ -403,6 +406,9 @@ Current implementation progress:
 - Text-selection mapping is now an explicit `TextSelectionService` helper, so
   the planned screen-space selection to normalized unrotated `AnnotationRegion`
   path is traceable outside the reader view-model and covered directly.
+- Reader text selection now accepts touch and pen drags without requiring the
+  mouse-left-button flag, while preserving primary-button gating for mouse
+  selection.
 
 Next steps before final Phase 09 closure:
 
@@ -457,3 +463,5 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Cleaned Phase 09 French localization mojibake and added resource/runtime guard tests for mojibake and resource drift | Codex |
 | 2026-06-01 | Extracted explicit text-selection mapping service and added rotation-aware coverage | Codex |
 | 2026-06-01 | Added production-DI folder-scan coverage for missing `BookFiles` repair and refreshed Phase 09 evidence | Codex |
+| 2026-06-01 | Added editable book-detail reading-memory fields and refreshed Phase 09 UI/full-suite evidence counts | Codex |
+| 2026-06-01 | Added touch/pen-capable reader text-selection eligibility and refreshed Phase 09 evidence counts | Codex |

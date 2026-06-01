@@ -36,4 +36,20 @@ public partial class BookDetailView : UserControl
             await vm.EnrichMetadataAsync().ConfigureAwait(true);
         }
     }
+
+    private async void ReadingMemoryField_LostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.SaveReadingMemoryAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void SaveReadingMemoryButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.SaveReadingMemoryAsync().ConfigureAwait(true);
+        }
+    }
 }

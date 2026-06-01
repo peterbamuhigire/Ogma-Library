@@ -491,6 +491,21 @@ public sealed class ReaderViewRenderTests
         }
     }
 
+    [Theory]
+    [InlineData(PointerType.Mouse, false, false)]
+    [InlineData(PointerType.Mouse, true, true)]
+    [InlineData(PointerType.Touch, false, true)]
+    [InlineData(PointerType.Pen, false, true)]
+    public void ReaderView_CanTrackSelectionPointer_AllowsTouchAndPenDrag(
+        PointerType pointerType,
+        bool isLeftButtonPressed,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            ReaderView.CanTrackSelectionPointer(pointerType, isLeftButtonPressed));
+    }
+
     [AvaloniaFact]
     public void ReaderViewModel_OverlayUsesSessionRotationAndFixedZoom()
     {

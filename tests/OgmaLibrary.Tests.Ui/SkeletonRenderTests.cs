@@ -6,6 +6,8 @@ using OgmaLibrary.App.Views;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
@@ -136,6 +138,56 @@ public sealed class SkeletonRenderTests
         Assert.Equal(3, viewModel.AnnotationCount);
     }
 
+    [AvaloniaFact]
+    public async Task BookDetailViewModel_ReadingMemoryEditor_SavesAndRefreshesSummary()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var detail = new BookDetailProjection(
+            "book-001",
+            "Phase 09 Book",
+            ["A. Reader"],
+            Year: 2026,
+            Isbn: null,
+            Doi: null,
+            Rating: null,
+            Status: 0,
+            CoverRelativePath: null,
+            RelativePath: "phase-09.pdf",
+            Sha256Hash: null,
+            SizeBytes: null,
+            ReadingProgress: null,
+            Annotations: 3,
+            MetadataFields: []);
+        var readModel = new EmptyCatalogueReadModel(detail);
+        var memoryService = new RecordingReadingMemoryService(readModel);
+        var viewModel = new BookDetailViewModel(
+            readModel,
+            new NullNavigation(),
+            localization,
+            readingMemoryService: memoryService);
+
+        await viewModel.LoadBookAsync("book-001", CancellationToken.None);
+        Dispatcher.UIThread.RunJobs();
+
+        viewModel.ReadingMemoryOpenedBecause = "Course preparation";
+        viewModel.ReadingMemoryKeyInsight = "The argument depends on durable annotations.";
+        viewModel.ReadingMemoryOpenQuestions = "Should this become searchable?";
+        viewModel.ReadingMemoryDispositionText = "5";
+
+        await viewModel.SaveReadingMemoryAsync(CancellationToken.None);
+        Dispatcher.UIThread.RunJobs();
+
+        ReadingMemory saved = Assert.Single(memoryService.Saved);
+        Assert.Equal("Course preparation", saved.OpenedBecause);
+        Assert.Equal("The argument depends on durable annotations.", saved.KeyInsight);
+        Assert.Equal("Should this become searchable?", saved.OpenQuestions);
+        Assert.Equal(5, saved.Disposition);
+        Assert.Equal("Reading memory saved", viewModel.ReadingMemoryStatusText);
+        Assert.Equal("5/5", viewModel.ReadingMemoryDispositionDisplay);
+        Assert.Equal("The argument depends on durable annotations.", viewModel.ReadingMemoryKeyInsightExcerpt);
+    }
+
     private static string RemoveDiacritics(string value)
     {
         string normalized = value.Normalize(System.Text.NormalizationForm.FormD);
@@ -185,7 +237,7 @@ public sealed class SkeletonRenderTests
 
     private sealed class EmptyCatalogueReadModel : ICatalogueReadModel
     {
-        private readonly BookDetailProjection? _detail;
+        private BookDetailProjection? _detail;
 
         public EmptyCatalogueReadModel(BookDetailProjection? detail = null)
         {
@@ -204,6 +256,22 @@ public sealed class SkeletonRenderTests
             string bookId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(_detail?.BookId == bookId ? _detail : null);
+
+        public void SetReadingMemory(ReadingMemory memory)
+        {
+            if (_detail?.BookId != memory.BookId)
+            {
+                return;
+            }
+
+            _detail = _detail with
+            {
+                ReadingMemory = new ReadingMemorySummaryProjection(
+                    memory.Disposition,
+                    memory.KeyInsight,
+                    memory.UpdatedAtUtc),
+            };
+        }
 
         public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -271,5 +339,27 @@ public sealed class SkeletonRenderTests
             int? pageHint = null,
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class RecordingReadingMemoryService : IReadingMemoryService
+    {
+        private readonly EmptyCatalogueReadModel _readModel;
+
+        public RecordingReadingMemoryService(EmptyCatalogueReadModel readModel)
+        {
+            _readModel = readModel;
+        }
+
+        public List<ReadingMemory> Saved { get; } = [];
+
+        public Task<ReadingMemory> LoadAsync(string bookId, CancellationToken cancellationToken) =>
+            Task.FromResult(new ReadingMemory { BookId = bookId });
+
+        public Task SaveAsync(ReadingMemory memory, CancellationToken cancellationToken)
+        {
+            Saved.Add(memory);
+            _readModel.SetReadingMemory(memory);
+            return Task.CompletedTask;
+        }
     }
 }

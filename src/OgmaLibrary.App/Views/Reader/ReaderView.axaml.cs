@@ -365,7 +365,9 @@ public partial class ReaderView : UserControl
     private void PageSurface_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is not ReaderViewModel vm ||
-            e.GetCurrentPoint(PageSurface).Properties.IsLeftButtonPressed is false)
+            CanTrackSelectionPointer(
+                e.Pointer.Type,
+                e.GetCurrentPoint(PageSurface).Properties.IsLeftButtonPressed) is false)
         {
             return;
         }
@@ -380,7 +382,9 @@ public partial class ReaderView : UserControl
     {
         if (!_isSelectingPageText ||
             DataContext is not ReaderViewModel vm ||
-            e.GetCurrentPoint(PageSurface).Properties.IsLeftButtonPressed is false)
+            CanTrackSelectionPointer(
+                e.Pointer.Type,
+                e.GetCurrentPoint(PageSurface).Properties.IsLeftButtonPressed) is false)
         {
             return;
         }
@@ -403,6 +407,21 @@ public partial class ReaderView : UserControl
         _isSelectingPageText = false;
         e.Handled = true;
     }
+
+    /// <summary>
+    /// Returns whether a pointer can drive text selection. Mouse selection must
+    /// use the primary button; touch and pen drags do not expose that mouse flag.
+    /// </summary>
+    /// <param name="pointerType">The Avalonia pointer device type.</param>
+    /// <param name="isLeftButtonPressed">Whether the mouse primary button is pressed.</param>
+    /// <returns><see langword="true"/> when the pointer should update selection.</returns>
+    public static bool CanTrackSelectionPointer(PointerType pointerType, bool isLeftButtonPressed) =>
+        pointerType switch
+        {
+            PointerType.Mouse => isLeftButtonPressed,
+            PointerType.Touch or PointerType.Pen => true,
+            _ => false,
+        };
 
     private async void ReaderView_KeyDown(object? sender, KeyEventArgs e)
     {

@@ -91,6 +91,7 @@ never a corrupt JSON region.
 | `CitationService_Export_UsesLocalizedFallbackStrings` | FR-READ-011, i18n | Citation sidecar export uses localized unknown title/author/page fallbacks |
 | `ReaderViewModel_AutoSaveReadingMemory_PersistsEditedFields` | World-class | Field edited; debounced auto-save updates the reading-memory row |
 | `ReaderView_ReadingMemoryFieldLostFocus_AutoSavesEditedField` | Avalonia headless | Rendered reading-memory field blur schedules auto-save and persists edited text |
+| `BookDetailViewModel_ReadingMemoryEditor_SavesAndRefreshesSummary` | Avalonia headless/view-model | Book-detail Reading tab saves opened-because, key-insight, open-questions, and disposition through `IReadingMemoryService`, then refreshes the compact detail summary |
 | `Phase09_EndToEndRestartSmoke_PersistsReaderArtifacts` | Global DoD | Bookmark, layer rename, highlight, note, memory, and citation export survive a real SQLite reopen |
 
 ---
@@ -113,6 +114,7 @@ BenchmarkDotNet, so the checks run in the normal local/CI test path.
 | Test | Tooling | Oracle |
 | --- | --- | --- |
 | `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions` | Avalonia headless pointer + keyboard focus harness | Mouse drag selects; action controls expose "Highlight", "Add note", "Capture citation" and accept keyboard focus |
+| `ReaderView_CanTrackSelectionPointer_AllowsTouchAndPenDrag` | Pointer eligibility unit test | Touch and pen drags can drive text selection without the mouse-left-button flag; mouse drags still require the primary button |
 | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` | Avalonia headless | Escape closes note editor and does not change the active page |
 | `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` | Avalonia headless focus harness | Phase 09 toolbar, note editor, bookmark, layer, citation copy/export, and reading-memory controls expose purpose-specific names and accept focus |
 | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` | Avalonia headless | Bookmark list takes focus; ArrowDown selects a bookmark without navigating; Enter navigates |
@@ -155,5 +157,6 @@ it includes the expanded closeout checks added during implementation:
 - bookmark, note, French-locale, layer-delete, and citation workflows;
 - direct external PDF open plus metadata/write-back inspection;
 - deterministic no-AI metadata enrichment from the book-detail panel;
+- book-detail reading-memory editing and refreshed summary display;
 - Narrator/VoiceOver, keyboard-only, color, and pseudolocale visual reviews;
 - owner decisions for palette, citation export scope, and reading-memory wording.

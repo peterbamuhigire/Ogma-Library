@@ -39,7 +39,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-build
 ```
 
 Expected result: format passes, Release build has 0 warnings and 0 errors, and
-Release tests pass 328 total tests: Core 233, UI 80, Architecture 15.
+Release tests pass 333 total tests: Core 233, UI 85, Architecture 15.
 
 ## Manual Reader Walkthrough
 
@@ -55,6 +55,7 @@ Use a PDF with selectable text and at least one rotated page.
 | Select text and press Ctrl+Shift+C, then copy/export citation. | Citation uses selected text, title, author, and page format. | Pending | Pending | Pasted citation text plus exported sidecar file path. |
 | Directly open a writable PDF outside the current library root, let metadata jobs run, then inspect its catalogue entry and PDF properties. | The book is registered without changing the library root, the shell reports metadata extraction/enrichment is queued, metadata/thumbnail jobs are queued for the selected file version, extracted PDF title/author are visible in the catalogue/detail surfaces, and permitted PDF metadata write-back updates DocInfo for the exact registered file. | Pending | Pending | Screenshot of catalogue entry, job state, status text, and PDF properties. |
 | Select a book in the catalogue and click Enrich in the book-detail panel. | The button runs deterministic no-AI provider lookup, refreshes the detail panel, displays provider-sourced fields with provenance, and reports provider/refresh failures in-panel. | Pending | Pending | Screenshot of before/after metadata fields and provenance rows. |
+| Select a book in the catalogue, edit reading-memory fields in the book-detail Reading tab, and save or move focus away. | Opened-because, key-insight, open-questions, and disposition save through the same reading-memory service and refresh the compact detail summary. | Pending | Pending | Screenshot of edited fields plus refreshed disposition/key-insight summary. |
 
 ## Assistive Technology Walkthrough
 
@@ -101,7 +102,7 @@ Latest recorded Release verification for this signoff packet:
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests"` | Passed: 3 shell reader/direct-PDF/background-refresh navigation tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests\|FullyQualifiedName~DirectPdfOpenServiceTests"` | Passed: 14 migration/direct-PDF regression tests including production-DI missing-`BookFiles` direct-open repair |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~DirectPdfOpenServiceTests\|FullyQualifiedName~IngestionPipelineTests\|FullyQualifiedName~MigrationTests\|FullyQualifiedName~ApplicationStartupTests"` | Passed: 22 direct-PDF, folder-scan, migration repair, and startup tests including production-DI missing-`BookFiles` repair for direct open and Choose Library Folder |
-| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 233, UI 80, Architecture 15 |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Core 233, UI 85, Architecture 15 |
 
 ## Closure Rule
 
