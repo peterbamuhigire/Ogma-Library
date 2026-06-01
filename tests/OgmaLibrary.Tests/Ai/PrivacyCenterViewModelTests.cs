@@ -27,6 +27,7 @@ public sealed class PrivacyCenterViewModelTests
 
         Assert.Equal(2, deleted);
         Assert.Single(viewModel.RecentCalls);
+        Assert.Equal("n/a", viewModel.RecentCalls[0].CostText);
         Assert.Single(audit.Events);
         Assert.Single(document.RootElement.EnumerateArray());
     }
@@ -66,6 +67,18 @@ public sealed class PrivacyCenterViewModelTests
         Assert.True(hasConsent);
     }
 
+    [Theory]
+    [InlineData("en-US", "USD 0.123456")]
+    [InlineData("fr-FR", "USD 0,123456")]
+    public void AiCostFormatter_FormatsUsdPerCulture(string cultureName, string expected)
+    {
+        var formatter = new AiCostFormatter();
+
+        string formatted = formatter.FormatUsd(0.123456m, System.Globalization.CultureInfo.GetCultureInfo(cultureName));
+
+        Assert.Equal(expected, formatted);
+    }
+
     private static PrivacyCenterViewModel CreateViewModel(
         IAiPrivacyService? privacy = null,
         FakeAuditRepository? audit = null,
@@ -75,6 +88,7 @@ public sealed class PrivacyCenterViewModelTests
             audit ?? new FakeAuditRepository(),
             history ?? new FakeHistoryRepository(),
             new FakeEmbeddingErasureService(),
+            new AiCostFormatter(),
             new InMemoryLocalizationService());
 
     private sealed class FakeConsentRepository : IAiConsentRepository

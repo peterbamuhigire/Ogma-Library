@@ -13,6 +13,7 @@ public static class AiServiceExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IAiPayloadBuilder, AiPayloadBuilder>();
         services.AddSingleton<IAiCostCalculator, AiCostCalculator>();
+        services.AddSingleton<IAiCostFormatter, AiCostFormatter>();
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
         services.AddHttpClient("ai:openai", client => client.BaseAddress = new Uri("https://api.openai.com/v1/"));

@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Ai"
-             xmlns:ai="using:OgmaLibrary.Domain.Ai"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Ai.PrivacyCenterView"
              x:DataType="vm:PrivacyCenterViewModel">
@@ -32,7 +31,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding RecentCalls}">
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="ai:AiAuditEvent">
+            <DataTemplate x:DataType="vm:PrivacyCenterAuditRow">
               <Border BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                       BorderThickness="0,0,0,1"
                       Padding="0,8">
@@ -43,7 +42,7 @@
                   <TextBlock Grid.Column="3" Text="{Binding Model}" />
                   <TextBlock Grid.Column="4" Text="{Binding PromptTokens}" />
                   <TextBlock Grid.Column="5" Text="{Binding CompletionTokens}" />
-                  <TextBlock Grid.Column="6" Text="{Binding EstimatedCostUsd}" />
+                  <TextBlock Grid.Column="6" Text="{Binding CostText}" />
                 </Grid>
               </Border>
             </DataTemplate>

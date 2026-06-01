@@ -16,6 +16,7 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
     private readonly IAiAuditRepository _audit;
     private readonly IAiQueryHistoryRepository _history;
     private readonly IEmbeddingErasureService _embeddings;
+    private readonly IAiCostFormatter _costFormatter;
     private readonly ILocalizationService _localization;
     private readonly string _privacyIconPath = IconCatalog.GetAvaresPath("ic_ai_privacy") ?? string.Empty;
     private AiPrivacyTier _activeTier;
@@ -27,17 +28,20 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
         IAiAuditRepository audit,
         IAiQueryHistoryRepository history,
         IEmbeddingErasureService embeddings,
+        IAiCostFormatter costFormatter,
         ILocalizationService localization)
     {
         ArgumentNullException.ThrowIfNull(privacy);
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(history);
         ArgumentNullException.ThrowIfNull(embeddings);
+        ArgumentNullException.ThrowIfNull(costFormatter);
         ArgumentNullException.ThrowIfNull(localization);
         _privacy = privacy;
         _audit = audit;
         _history = history;
         _embeddings = embeddings;
+        _costFormatter = costFormatter;
         _localization = localization;
         _activeTier = _privacy.GetActiveTier();
         _statusText = _localization["Ai.Privacy.Status.Ready"];
@@ -48,7 +52,7 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>Recent immutable audit events.</summary>
-    public ObservableCollection<AiAuditEvent> RecentCalls { get; } = [];
+    public ObservableCollection<PrivacyCenterAuditRow> RecentCalls { get; } = [];
 
     /// <summary>Available privacy tiers.</summary>
     public IReadOnlyList<AiPrivacyTier> Tiers { get; } =
@@ -120,7 +124,7 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
         RecentCalls.Clear();
         foreach (AiAuditEvent auditEvent in events)
         {
-            RecentCalls.Add(auditEvent);
+            RecentCalls.Add(ToRow(auditEvent));
         }
 
         StatusText = string.Format(
@@ -173,6 +177,13 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {
+        List<AiAuditEvent> events = RecentCalls.Select(row => row.AuditEvent).ToList();
+        RecentCalls.Clear();
+        foreach (AiAuditEvent auditEvent in events)
+        {
+            RecentCalls.Add(ToRow(auditEvent));
+        }
+
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(ActiveTierLabel));
         OnPropertyChanged(nameof(RecentCallsLabel));
@@ -183,4 +194,31 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private PrivacyCenterAuditRow ToRow(AiAuditEvent auditEvent) =>
+        new(
+            auditEvent,
+            _costFormatter.FormatUsd(auditEvent.EstimatedCostUsd, _localization.CurrentCulture));
+}
+
+/// <summary>Display row for one immutable AI audit event.</summary>
+public sealed record PrivacyCenterAuditRow(AiAuditEvent AuditEvent, string CostText)
+{
+    /// <summary>Timestamp of the AI call.</summary>
+    public DateTimeOffset OccurredAt => AuditEvent.OccurredAt;
+
+    /// <summary>Privacy tier of the AI call.</summary>
+    public AiPrivacyTier Tier => AuditEvent.Tier;
+
+    /// <summary>Provider key.</summary>
+    public string Provider => AuditEvent.Provider;
+
+    /// <summary>Provider model.</summary>
+    public string Model => AuditEvent.Model;
+
+    /// <summary>Prompt token count.</summary>
+    public int? PromptTokens => AuditEvent.PromptTokens;
+
+    /// <summary>Completion token count.</summary>
+    public int? CompletionTokens => AuditEvent.CompletionTokens;
 }

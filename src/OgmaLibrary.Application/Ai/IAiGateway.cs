@@ -1,3 +1,4 @@
+using System.Globalization;
 using OgmaLibrary.Domain.Ai;
 
 namespace OgmaLibrary.Application.Ai;
@@ -44,6 +45,13 @@ public interface IAiCostCalculator
 {
     /// <summary>Estimates the call cost in USD, if token data is available.</summary>
     decimal? EstimateCostUsd(AiRequest request, AiCompletion completion);
+}
+
+/// <summary>Formats AI cost estimates for UI display.</summary>
+public interface IAiCostFormatter
+{
+    /// <summary>Formats a USD cost estimate using the supplied culture's number formatting.</summary>
+    string FormatUsd(decimal? estimatedCostUsd, CultureInfo culture);
 }
 
 /// <summary>Thrown when AI is disabled by the active privacy tier.</summary>
