@@ -8,6 +8,7 @@ using OgmaLibrary.Application.Extensions;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -400,6 +401,18 @@ public sealed class ArchitectureTests
         Assert.Contains("OgmaLibrary.Infrastructure", friendAssemblies);
         Assert.Contains("OgmaLibrary.Tests", friendAssemblies);
         Assert.Contains("OgmaLibrary.Tests.Architecture", friendAssemblies);
+    }
+
+    /// <summary>The 3D shelf context must consume catalogue data through contracts only.</summary>
+    [Fact]
+    public void Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity()
+    {
+        var result = Types.InAssembly(typeof(IWebViewBridge).Assembly)
+            .ShouldNot()
+            .HaveDependencyOnAny("OgmaLibrary.Infrastructure.Catalogue", "OgmaLibrary.Domain.Catalogue")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
     }
 
     /// <summary>

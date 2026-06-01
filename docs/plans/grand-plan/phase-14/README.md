@@ -430,3 +430,4 @@ Full detail in `skills.md`.
 | Date | Author | Change |
 | --- | --- | --- |
 | 2026-05-30 | Chwezi Core Systems | v1.0 baseline authored |
+| 2026-06-01 | Implementation | Added bridge/message foundation: `IWebViewBridge`, host adapter seam, WebView2/WK facades, scheme contracts, C# and TypeScript message unions, SI-3 inbound validator, and focused bridge/architecture tests. |
