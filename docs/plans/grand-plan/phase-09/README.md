@@ -433,3 +433,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Tightened direct PDF registration so untracked selected paths become new books even on same-hash matches | Codex |
 | 2026-06-01 | Rendered delivered Phase 09 reader icons across note anchors, panel tabs, highlight color, bookmark rename, and reading-memory disposition surfaces | Codex |
 | 2026-06-01 | Hardened production-DI direct PDF repair so missing `BookFiles` is rebuilt through fresh migrator contexts before selected PDFs are registered | Codex |
+| 2026-06-01 | Clarified the manual signoff packet as the authoritative Phase 09 manual-evidence source and refreshed CI-audit wording | Codex |

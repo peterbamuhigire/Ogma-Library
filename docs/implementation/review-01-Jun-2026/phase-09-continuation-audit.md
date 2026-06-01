@@ -22,7 +22,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, and delivered reader-icon rendering |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, and manual signoff documentation source-of-truth cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -47,7 +47,7 @@ not claim a remote CI pass.
 
 ## Locally Actionable Findings
 
-The continuation pass found six locally actionable mismatches and fixed
+The continuation pass found seven locally actionable mismatches and fixed
 them:
 
 | Finding | Resolution |
@@ -58,6 +58,7 @@ them:
 | Direct PDF open could still surface `no such table: BookFiles` in damaged catalogues and selected-file identity matches could update an existing book that did not already own the selected path. | Forced direct-open DI to receive the catalogue migrator, retries repair on SQLite missing-table errors, and registers selected PDFs as new books unless the selected path already has a present `BookFiles` row. |
 | Production direct-PDF repair still depended on a long-lived migrator context, leaving a runtime-specific gap not covered by the single-context repair test. | Changed `CatalogueMigrator` to lease fresh factory-created contexts for each migration/repair pass and added production-DI coverage for missing-`BookFiles` direct-open repair. |
 | Delivered Phase 09 premium SVG assets were registered but some reader surfaces still used text-only or placeholder controls. | Rendered delivered SVGs on note anchors, sidebar panel tabs, highlight color picker, bookmark rename affordance, and reading-memory disposition while preserving automation labels. |
+| `testing.md` duplicated stale unchecked manual checklist rows instead of pointing reviewers to the expanded manual signoff packet. | Replaced the duplicate checklist with a source-of-truth reference to `PHASE-09-MANUAL-SIGNOFF-PACKET.md` and `PHASE-09-A11Y-SIGNOFF.md`, including the expanded direct-PDF, enrichment, owner, and visual-review checks. |
 
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.
