@@ -51,6 +51,13 @@ public abstract class WebViewBridgeBase : IWebViewBridge
         return RequireHost().RegisterSchemeHandlerAsync(scheme, handler, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task NavigateAsync(Uri uri, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(uri);
+        return RequireHost().NavigateAsync(uri, cancellationToken);
+    }
+
     private IWebViewHostAdapter RequireHost() =>
         _host ?? throw new InvalidOperationException("The WebView bridge has not been initialized.");
 

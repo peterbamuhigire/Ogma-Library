@@ -90,6 +90,9 @@ public sealed class Bookshelf3DViewModelTests
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
+        public Task NavigateAsync(Uri uri, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         public void Emit(InboundMessage message) => MessageReceived?.Invoke(this, message);
     }
 

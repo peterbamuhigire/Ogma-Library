@@ -22,4 +22,7 @@ public interface IWebViewHostAdapter
 
     /// <summary>Registers a local URI scheme handler with the native WebView.</summary>
     Task RegisterSchemeHandlerAsync(string scheme, ISchemeHandler handler, CancellationToken cancellationToken);
+
+    /// <summary>Navigates the native WebView to a local bootstrap document.</summary>
+    Task NavigateAsync(Uri uri, CancellationToken cancellationToken);
 }

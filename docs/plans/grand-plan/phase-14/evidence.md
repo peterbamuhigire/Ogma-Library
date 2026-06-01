@@ -27,12 +27,17 @@ The web asset path is now local-only: `src/shelf3d` bundles Three.js into the
 Bookshelf3D assembly asset folder, `index.html` uses a restrictive CSP, and
 `Shelf3DAssetPublisher` copies the bootstrap and bundle into `ogma://assets/js/`
 for runtime serving.
+The WebView startup contract now includes navigation and a
+`Shelf3DWebViewBootstrapper` that initializes the host adapter, registers the
+scheme handler, publishes local web assets, and navigates to the local bootstrap
+document.
 
 ## Verified Locally
 
 | Gate | Evidence |
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~BridgeMessageTests` | Passed: 6 bridge serialization and SI-3 validation tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~BridgeMessageTests\|FullyQualifiedName~Bookshelf3DViewModelTests"` | Passed: 11 bridge/bootstrap/view-model tests after rerun; earlier parallel attempt hit a transient Windows output-file lock |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 4 scheme-handler tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SpineTextureGeneratorTests` | Passed: 3 spine texture generator tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewModelTests` | Passed: 4 Bookshelf3D view-model tests |
@@ -78,11 +83,12 @@ for runtime serving.
 | Local web bootstrap | `Assets/Web/index.html` loads only local `shelf3d.js` under a restrictive CSP |
 | Three.js bundle | `npm run build` emits the offline bundle into the Bookshelf3D project for publish-time copy |
 | Asset publisher | `Shelf3DAssetPublisher` copies `index.html` and `shelf3d.js` into the `js` asset class served by `ogma://` |
+| WebView bootstrapper | `Shelf3DWebViewBootstrapper` initializes the adapter, registers `ogma://`, publishes local web assets, and navigates to `ogma://assets/js/index.html` |
 
 ## Remaining Phase 14 Work
 
-- WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter` and register platform DI.
-- WP2 native bridge registration of the `ogma://` handler remains for the WebView initialization slice; local JS assets are now publishable and scheme-served.
+- WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter`; the shared bootstrap/navigation sequence is now implemented and tested.
+- WP2 native bridge registration of the `ogma://` handler is implemented at the shared bootstrapper level; platform adapters still need concrete scheme registration code.
 - WP4 worker integration/cache invalidation remains: generated textures are tested but not yet wired into the ingestion/update pipeline.
 - WP5 texture atlas, FPS telemetry/baseline, and visual smoke verification remain.
 - WP6 reader-open parity for double-click remains pending until the reader navigation command is integrated with the 3D shell.

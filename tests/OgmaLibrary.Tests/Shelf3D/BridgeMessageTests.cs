@@ -86,13 +86,56 @@ public sealed class BridgeMessageTests
         Assert.Equal(ValidBookId, clicked.BookId);
     }
 
+    [Fact]
+    public async Task Shelf3DWebViewBootstrapper_PublishesAssets_RegistersScheme_AndNavigates()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-bootstrap-{Guid.NewGuid():N}");
+        string sourceRoot = Path.Combine(root, "source");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "index.html"), "<html></html>");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "shelf3d.js"), "window.ogmaShelf3D = {};");
+        var host = new FakeWebViewHostAdapter();
+        var bridge = new WebView2Bridge();
+        var bootstrapper = new Shelf3DWebViewBootstrapper(
+            bridge,
+            new OgmaSchemeHandler(root),
+            new Shelf3DAssetPublisher(sourceRoot),
+            root);
+
+        try
+        {
+            await bootstrapper.InitializeAsync(host, CancellationToken.None);
+
+            Assert.True(host.WasInitialized);
+            Assert.Equal("ogma", host.RegisteredScheme);
+            Assert.Equal("ogma://assets/js/index.html", host.NavigatedUri?.ToString());
+            Assert.True(File.Exists(Path.Combine(root, "js", "index.html")));
+            Assert.True(File.Exists(Path.Combine(root, "js", "shelf3d.js")));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+
     private sealed class FakeWebViewHostAdapter : IWebViewHostAdapter
     {
         public event EventHandler<string>? RawMessageReceived;
 
         public string? LastPostedJson { get; private set; }
+        public bool WasInitialized { get; private set; }
+        public string? RegisteredScheme { get; private set; }
+        public Uri? NavigatedUri { get; private set; }
 
-        public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task InitializeAsync(CancellationToken cancellationToken)
+        {
+            WasInitialized = true;
+            return Task.CompletedTask;
+        }
 
         public Task PostJsonAsync(string json, CancellationToken cancellationToken)
         {
@@ -106,8 +149,17 @@ public sealed class BridgeMessageTests
         public Task RegisterSchemeHandlerAsync(
             string scheme,
             ISchemeHandler handler,
-            CancellationToken cancellationToken) =>
-            Task.CompletedTask;
+            CancellationToken cancellationToken)
+        {
+            RegisteredScheme = scheme;
+            return Task.CompletedTask;
+        }
+
+        public Task NavigateAsync(Uri uri, CancellationToken cancellationToken)
+        {
+            NavigatedUri = uri;
+            return Task.CompletedTask;
+        }
 
         public void Emit(string json) => RawMessageReceived?.Invoke(this, json);
     }

@@ -20,4 +20,7 @@ public interface IWebViewBridge
 
     /// <summary>Registers a local asset scheme handler such as <c>ogma://</c>.</summary>
     Task RegisterSchemeHandlerAsync(string scheme, ISchemeHandler handler, CancellationToken cancellationToken = default);
+
+    /// <summary>Navigates the WebView to a local document served by the registered scheme.</summary>
+    Task NavigateAsync(Uri uri, CancellationToken cancellationToken = default);
 }
