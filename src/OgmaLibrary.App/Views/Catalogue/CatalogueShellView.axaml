@@ -3,8 +3,11 @@
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
              xmlns:reader="using:OgmaLibrary.App.Views.Reader"
+             xmlns:search="using:OgmaLibrary.App.Views.Search"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
-             x:DataType="vm:MainShellViewModel">
+             x:DataType="vm:MainShellViewModel"
+             Focusable="True"
+             KeyDown="CatalogueShellView_KeyDown">
 
   <!--
     The full catalogue shell (Phase 06): sidebar (shelves) + toolbar (view toggle,
@@ -63,14 +66,14 @@
     <!-- ─── Main content area ─────────────────────────────────────── -->
     <Grid Grid.Row="0"
           Grid.Column="1"
-          RowDefinitions="Auto,Auto,*">
+          RowDefinitions="Auto,Auto,Auto,Auto,*">
 
       <!-- Toolbar: view toggle + sort + filter -->
       <Border Grid.Row="0"
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
 
           <!-- Sidebar toggle -->
           <Button Grid.Column="0"
@@ -124,8 +127,28 @@
 
           </StackPanel>
 
-          <!-- Filter panel toggle -->
+          <!-- Search panel toggle -->
           <Button Grid.Column="2"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  AutomationProperties.Name="{Binding SearchLabel}"
+                  Click="SearchToggle_Click">
+            <TextBlock Text="{Binding SearchLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
+
+          <!-- Index Manager panel toggle -->
+          <Button Grid.Column="3"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  AutomationProperties.Name="{Binding IndexManagerLabel}"
+                  Click="IndexManagerToggle_Click">
+            <TextBlock Text="{Binding IndexManagerLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
+
+          <!-- Filter panel toggle -->
+          <Button Grid.Column="4"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -134,7 +157,7 @@
             <TextBlock Text="⚗" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           </Button>
 
-          <Button Grid.Column="3"
+          <Button Grid.Column="5"
                   Background="{DynamicResource Brush.Accent.Oak}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -146,7 +169,7 @@
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
 
-          <Button Grid.Column="4"
+          <Button Grid.Column="6"
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -159,7 +182,7 @@
           </Button>
 
           <!-- Count badge -->
-          <TextBlock Grid.Column="5"
+          <TextBlock Grid.Column="7"
                      VerticalAlignment="Center"
                      Margin="8,0,4,0"
                      FontSize="{DynamicResource Type.Size.Caption}"
@@ -174,8 +197,18 @@
         </Grid>
       </Border>
 
+      <Panel Grid.Row="1"
+             IsVisible="{Binding IsSearchPanelOpen}">
+        <search:SearchPanelView x:Name="SearchPanel" DataContext="{Binding Search}" />
+      </Panel>
+
+      <Panel Grid.Row="2"
+             IsVisible="{Binding IsIndexManagerOpen}">
+        <search:IndexManagerPanelView DataContext="{Binding IndexManager}" />
+      </Panel>
+
       <!-- Filter panel (inline, shown when open) -->
-      <Border Grid.Row="1"
+      <Border Grid.Row="3"
               IsVisible="{Binding IsFilterPanelOpen}"
               Background="{DynamicResource Brush.Surface.Footer}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
@@ -201,7 +234,7 @@
       </Border>
 
       <!-- Main catalogue content (grid/list views) -->
-      <Grid Grid.Row="2">
+      <Grid Grid.Row="4">
 
         <!-- Grid view wrapper controls visibility from MainShellViewModel; inner view has CatalogueViewModel DC -->
         <Grid IsVisible="{Binding IsCatalogueActive}">

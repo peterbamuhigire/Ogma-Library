@@ -25,9 +25,15 @@ WP5 now has an Application-layer Index Manager contract, status counts, event
 publication, transactional rebuild reset, pipeline-driven rebuild, FTS integrity
 gate, G7 rebuild reliability test, cancellation consistency, and extraction
 mid-book cancellation recovery.
+WP6 UI foundations now include a shell-mounted search panel, Index Manager
+panel, localized en/fr strings, selection/open actions, rebuild/cancel actions,
+rebuild confirmation/progress/status summaries, Ctrl+F/Ctrl+K/Escape/Enter
+keyboard paths, stale-result protection, and automation names/status text on the
+panels.
 
-The phase is not complete. Search UI debounce/results, Index Manager UI, icons,
-i18n, and manual accessibility signoff remain pending.
+The phase is not complete. Premium icon asset procurement, pseudolocale visual
+evidence, golden-corpus/manual accessibility signoff, and final closeout remain
+pending.
 
 ## Automated Verification
 
@@ -57,6 +63,13 @@ i18n, and manual accessibility signoff remain pending.
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP5 backend |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~IndexManagerServiceTests\|FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 25 WP1-WP5 search tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 261, UI 93 |
+| `dotnet build tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release` | Passed: 0 warnings, 0 errors after WP6 UI foundations |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~SearchViewModelTests"` | Passed: 5 search debounce/open, stale-result, Index Manager load/rebuild, shell keyboard, and rebuild progress UI tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP6 UI foundations |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP6 UI foundations |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 16 architecture tests after WP6 UI foundations |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~IndexManagerServiceTests\|FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 25 WP1-WP5 search tests after WP6 UI foundations |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 261, UI 98 |
 
 ## Evidence Map
 
@@ -96,12 +109,16 @@ i18n, and manual accessibility signoff remain pending.
 | G7 rebuild gate | `IndexRebuild_CompletesWithoutDuplicatesOrCorruption` rebuilds a 100-book corpus, preserves chunk count, and verifies FTS integrity |
 | Rebuild cancellation consistency | `IndexRebuild_CancelledAfterReset_LeavesConsistentState` verifies reset leaves no chunks/pages and books recoverable as `NotIndexed` |
 | Extraction cancellation recovery | `ExtractionPipeline_CancelledMidBook_ResetsBookForRecovery` |
+| Search UI panel | `SearchViewModel`, `SearchPanelView`, shell toggle wiring, debounced query execution, stale-result protection, result selection, reader open action, Ctrl+F/Ctrl+K open, Escape close, and Enter open-selected handling |
+| Index Manager UI panel | `IndexManagerViewModel`, `IndexManagerPanelView`, shell toggle wiring, status load, rebuild confirmation, progress indicator, cancel action, size/integrity/failed-page summaries, error list, and event subscription |
+| Search/Index i18n | `InMemoryLocalizationService` adds en/fr keys for search and Index Manager panel labels, status text, confirmation text, and summaries |
+| UI view-model tests | `SearchViewModel_QueryDebouncesAndOpenSelectedNavigates`, `SearchViewModel_StaleResults_DoNotOverwriteLatestQuery`, `IndexManagerViewModel_LoadAndRebuildExposeStatus`, `SearchBar_CtrlK_Opens`, and `IndexManager_RebuildButton_ShowsProgress` |
 
 ## Remaining Phase 10 Work
 
-- WP2: search view-model debounce, result-list interaction, and UI wiring.
+- WP2: core search view-model debounce, result-list interaction, and shell wiring are implemented locally.
 - WP3: larger golden-corpus PDF fixtures and true crash-injection resume test remain; core pipeline, chunking, failure isolation, and worker polling are implemented locally.
 - WP4: golden-corpus PDF fixtures remain; FTS service, snippets, integrity check, combined search, multi-source tests, and warm P95 benchmark are implemented locally.
-- WP5: Index Manager UI remains; backend status service, rebuild/cancel flow, and G7 reliability are implemented locally.
-- WP6: search icons, en/fr strings, keyboard and screen-reader coverage.
+- WP5: backend status service, rebuild/cancel flow, G7 reliability, and shell-mounted Index Manager UI are implemented locally.
+- WP6: premium icon assets, full pseudolocale visual pass, and manual screen-reader signoff remain; keyboard paths, rebuild progress/confirmation, en/fr strings, and automation names are implemented locally.
 - WP7: full phase test/benchmark/CI closeout.

@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Search"
+             x:Class="OgmaLibrary.App.Views.Search.IndexManagerPanelView"
+             x:DataType="vm:IndexManagerViewModel">
+
+  <Border Background="{DynamicResource Brush.Surface.Footer}"
+          BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+          BorderThickness="0,0,0,1"
+          Padding="12,10">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Text="{Binding PanelLabel}"
+                   FontWeight="SemiBold"
+                   FontSize="{DynamicResource Type.Size.Subtitle}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <Button Grid.Column="1"
+                Margin="8,0,0,0"
+                Padding="10,5"
+                Background="{DynamicResource Brush.Accent.Clay}"
+                Foreground="White"
+                CornerRadius="{DynamicResource Radius.S}"
+                IsEnabled="{Binding CanRebuild}"
+                AutomationProperties.Name="{Binding RebuildLabel}"
+                Click="Rebuild_Click">
+          <TextBlock Text="{Binding RebuildLabel}"
+                     FontSize="{DynamicResource Type.Size.Caption}" />
+        </Button>
+        <Button Grid.Column="2"
+                Margin="8,0,0,0"
+                Padding="10,5"
+                IsEnabled="{Binding CanCancelRebuild}"
+                AutomationProperties.Name="{Binding CancelLabel}"
+                Click="Cancel_Click">
+          <TextBlock Text="{Binding CancelLabel}"
+                     FontSize="{DynamicResource Type.Size.Caption}" />
+        </Button>
+      </Grid>
+
+      <Border Grid.Row="1"
+              IsVisible="{Binding IsRebuildConfirmationOpen}"
+              Margin="0,10,0,0"
+              Padding="10"
+              Background="{DynamicResource Brush.Surface.Card}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <Grid ColumnDefinitions="*,Auto,Auto">
+          <TextBlock Text="{Binding RebuildConfirmationText}"
+                     TextWrapping="Wrap"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <Button Grid.Column="1"
+                  Margin="8,0,0,0"
+                  Padding="10,5"
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="White"
+                  AutomationProperties.Name="{Binding ConfirmRebuildLabel}"
+                  Click="ConfirmRebuild_Click">
+            <TextBlock Text="{Binding ConfirmRebuildLabel}" />
+          </Button>
+          <Button Grid.Column="2"
+                  Margin="8,0,0,0"
+                  Padding="10,5"
+                  AutomationProperties.Name="{Binding CancelLabel}"
+                  Click="CancelConfirmation_Click">
+            <TextBlock Text="{Binding CancelLabel}" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <ProgressBar x:Name="RebuildProgress"
+                   Grid.Row="2"
+                   Margin="0,10,0,0"
+                   Height="8"
+                   IsVisible="{Binding IsRebuildProgressVisible}"
+                   IsIndeterminate="{Binding IsRebuilding}"
+                   AutomationProperties.Name="{Binding StatusText}" />
+
+      <UniformGrid Grid.Row="3"
+                   Columns="4"
+                   Margin="0,10,0,0">
+        <TextBlock Text="{Binding IndexedSummary}" />
+        <TextBlock Text="{Binding FailedSummary}" />
+        <TextBlock Text="{Binding PendingOcrSummary}" />
+        <TextBlock Text="{Binding ChunkSummary}" />
+      </UniformGrid>
+
+      <UniformGrid Grid.Row="4"
+                   Columns="3"
+                   Margin="0,6,0,0">
+        <TextBlock Text="{Binding FailedPagesSummary}" />
+        <TextBlock Text="{Binding SizeSummary}" />
+        <TextBlock Text="{Binding IntegritySummary}" />
+      </UniformGrid>
+
+      <Grid Grid.Row="5"
+            RowDefinitions="Auto,*"
+            Margin="0,10,0,0">
+        <ListBox IsVisible="{Binding HasErrors}"
+                 MaxHeight="82"
+                 ItemsSource="{Binding ErrorItems}"
+                 AutomationProperties.Name="{Binding StatusText}" />
+
+        <ListBox Grid.Row="1"
+               Margin="0,10,0,0"
+               MaxHeight="180"
+               ItemsSource="{Binding Books}"
+               AutomationProperties.Name="{Binding StatusText}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="2*,Auto,Auto,Auto" Margin="0,3">
+                <TextBlock Text="{Binding Title}" />
+                <TextBlock Grid.Column="1"
+                           Margin="8,0,0,0"
+                           Text="{Binding Status}" />
+                <TextBlock Grid.Column="2"
+                           Margin="8,0,0,0"
+                           Text="{Binding SearchChunkCount}" />
+                <TextBlock Grid.Column="3"
+                           Margin="8,0,0,0"
+                           Text="{Binding FailedPageCount}" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

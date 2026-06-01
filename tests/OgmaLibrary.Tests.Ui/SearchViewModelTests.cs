@@ -1,0 +1,423 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Threading;
+using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.ViewModels.Search;
+using OgmaLibrary.App.Views.Catalogue;
+using OgmaLibrary.Application;
+using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Search;
+using OgmaLibrary.Infrastructure.Localization;
+using Xunit;
+
+namespace OgmaLibrary.Tests.Ui;
+
+/// <summary>Phase 10 search and Index Manager view-model tests.</summary>
+public sealed class SearchViewModelTests
+{
+    [AvaloniaFact]
+    public async Task SearchViewModel_QueryDebouncesAndOpenSelectedNavigates()
+    {
+        var search = new StubCombinedSearchService();
+        var navigation = new RecordingReaderNavigation();
+        using var vm = new SearchViewModel(search, navigation, new InMemoryLocalizationService());
+
+        vm.Query = "ogma";
+        await WaitForAsync(() => vm.Results.Count == 1);
+        await vm.OpenSelectedAsync();
+
+        Assert.Equal("ogma", search.LastQuery);
+        Assert.Equal("BOOKSEARCH00000000000001", navigation.OpenedBookId);
+        Assert.Equal(3, navigation.OpenedPageHint);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_StaleResults_DoNotOverwriteLatestQuery()
+    {
+        var search = new OutOfOrderCombinedSearchService();
+        var navigation = new RecordingReaderNavigation();
+        using var vm = new SearchViewModel(search, navigation, new InMemoryLocalizationService());
+
+        vm.Query = "slow";
+        await WaitForAsync(() => search.Queries.Contains("slow"));
+
+        vm.Query = "fast";
+        await WaitForAsync(() => vm.Results.Count == 1 && vm.Results[0].Title == "Fast Result");
+
+        await Task.Delay(350);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("fast", vm.Query);
+        Assert.Equal("Fast Result", vm.Results[0].Title);
+    }
+
+    [AvaloniaFact]
+    public async Task IndexManagerViewModel_LoadAndRebuildExposeStatus()
+    {
+        var service = new StubIndexManagerService();
+        using var vm = new IndexManagerViewModel(service, new InMemoryLocalizationService());
+
+        await vm.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, vm.TotalBooks);
+        Assert.Equal(1, vm.IndexedBooks);
+        Assert.Single(vm.Books);
+
+        await vm.RebuildAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(1, service.RebuildCalls);
+        Assert.False(vm.IsRebuilding);
+        Assert.Contains("complete", vm.StatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Size: 256 B", vm.SizeSummary);
+        Assert.Equal("Integrity: healthy", vm.IntegritySummary);
+    }
+
+    [AvaloniaFact]
+    public void SearchBar_CtrlK_Opens()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var navigation = new RecordingReaderNavigation();
+        var catalogue = new CatalogueViewModel(readModel, navigation, localization);
+        var bookDetail = new BookDetailViewModel(readModel, navigation, localization);
+        var shelfSidebar = new ShelfSidebarViewModel(
+            readModel,
+            writeService,
+            localization,
+            new CatalogueFilterViewModel());
+        using var search = new SearchViewModel(new StubCombinedSearchService(), navigation, localization);
+        using var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            search: search);
+
+        var view = new CatalogueShellView { DataContext = shell };
+        var window = new Window
+        {
+            Width = 900,
+            Height = 650,
+            Content = view,
+        };
+        window.Show();
+        view.Focus();
+        Dispatcher.UIThread.RunJobs();
+
+        window.KeyPressQwerty(PhysicalKey.K, RawInputModifiers.Control);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shell.IsSearchPanelOpen);
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(shell.IsSearchPanelOpen);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task IndexManager_RebuildButton_ShowsProgress()
+    {
+        var service = new SlowIndexManagerService();
+        using var vm = new IndexManagerViewModel(service, new InMemoryLocalizationService());
+        var view = new OgmaLibrary.App.Views.Search.IndexManagerPanelView { DataContext = vm };
+        var window = new Window
+        {
+            Width = 700,
+            Height = 400,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        vm.RequestRebuildConfirmation();
+        Dispatcher.UIThread.RunJobs();
+
+        Task rebuild = vm.ConfirmRebuildAsync();
+        await WaitForAsync(() => vm.IsRebuilding);
+        Dispatcher.UIThread.RunJobs();
+
+        ProgressBar progress = view.FindControl<ProgressBar>("RebuildProgress")
+            ?? throw new InvalidOperationException("Rebuild progress bar was not found.");
+        Assert.True(progress.IsVisible);
+        Assert.True(vm.CanCancelRebuild);
+
+        service.Complete();
+        await rebuild;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(vm.IsRebuilding);
+        window.Close();
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!condition())
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(25, timeout.Token);
+        }
+    }
+
+    private sealed class StubCombinedSearchService : ICombinedSearchService
+    {
+        public string? LastQuery { get; private set; }
+
+        public Task<IReadOnlyList<CombinedSearchResult>> SearchAsync(
+            string? query,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            LastQuery = query;
+            IReadOnlyList<CombinedSearchResult> results =
+            [
+                new CombinedSearchResult(
+                    "BOOKSEARCH00000000000001",
+                    "Ogma Search",
+                    "Ada Reader",
+                    90,
+                    ["title"],
+                    [
+                        new FtsSearchResult(
+                            "BOOKSEARCH00000000000001",
+                            "Ogma Search",
+                            "Ada Reader",
+                            12,
+                            3,
+                            0,
+                            SearchChunkSource.Page,
+                            "<b>ogma</b> search",
+                            1.0),
+                    ]),
+            ];
+            return Task.FromResult(results);
+        }
+    }
+
+    private sealed class OutOfOrderCombinedSearchService : ICombinedSearchService
+    {
+        public List<string> Queries { get; } = [];
+
+        public async Task<IReadOnlyList<CombinedSearchResult>> SearchAsync(
+            string? query,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            string effectiveQuery = query ?? string.Empty;
+            Queries.Add(effectiveQuery);
+            await Task.Delay(effectiveQuery == "slow" ? 250 : 10, CancellationToken.None).ConfigureAwait(false);
+            string title = effectiveQuery == "slow" ? "Slow Result" : "Fast Result";
+            return
+            [
+                new CombinedSearchResult(
+                    $"BOOK-{effectiveQuery}",
+                    title,
+                    null,
+                    1,
+                    ["title"],
+                    []),
+            ];
+        }
+    }
+
+    private sealed class RecordingReaderNavigation : IReaderNavigationService, IBookDetailNavigationService
+    {
+        public string? OpenedBookId { get; private set; }
+
+        public int? OpenedPageHint { get; private set; }
+
+        public Task OpenDetailAsync(string bookId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task OpenReaderAsync(
+            string bookId,
+            int? pageHint = null,
+            CancellationToken cancellationToken = default)
+        {
+            OpenedBookId = bookId;
+            OpenedPageHint = pageHint;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubIndexManagerService : IIndexManagerService
+    {
+        private readonly EventStream _events = new();
+
+        public int RebuildCalls { get; private set; }
+
+        public IObservable<IndexStatusUpdate> Events => _events;
+
+        public Task<IndexManagerStatus> GetStatusAsync(CancellationToken cancellationToken)
+        {
+            IndexManagerStatus status = BuildStatus();
+            _events.Publish(new IndexStatusUpdate.StatusChanged(status));
+            return Task.FromResult(status);
+        }
+
+        public Task<IndexRebuildResult> RebuildAsync(CancellationToken cancellationToken)
+        {
+            RebuildCalls++;
+            _events.Publish(new IndexStatusUpdate.RebuildStarted(DateTimeOffset.UtcNow));
+            var result = new IndexRebuildResult(true, 2, 2, 0, 4, true, null);
+            _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
+            return Task.FromResult(result);
+        }
+
+        public static IndexManagerStatus BuildStatus() =>
+            new(
+                TotalBooks: 2,
+                IndexedBooks: 1,
+                ExtractingBooks: 0,
+                FailedBooks: 0,
+                PendingOcrPages: 1,
+                FailedExtractionPages: 0,
+                SearchChunkCount: 4,
+                IndexSizeBytes: 256,
+                Integrity: new FtsIntegrityResult(true, null),
+                Books:
+                [
+                    new BookIndexStatusItem(
+                        "BOOKSEARCH00000000000001",
+                        "Ogma Search",
+                        SearchBookIndexStatus.Indexed,
+                        3,
+                        4,
+                        0,
+                        1),
+                ]);
+    }
+
+    private sealed class SlowIndexManagerService : IIndexManagerService
+    {
+        private readonly EventStream _events = new();
+        private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public IObservable<IndexStatusUpdate> Events => _events;
+
+        public Task<IndexManagerStatus> GetStatusAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(StubIndexManagerService.BuildStatus());
+
+        public async Task<IndexRebuildResult> RebuildAsync(CancellationToken cancellationToken)
+        {
+            _events.Publish(new IndexStatusUpdate.RebuildStarted(DateTimeOffset.UtcNow));
+            await _completion.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            var result = new IndexRebuildResult(true, 2, 2, 0, 4, true, null);
+            _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
+            return result;
+        }
+
+        public void Complete() => _completion.TrySetResult();
+    }
+
+    private sealed class EmptyCatalogueReadModel : ICatalogueReadModel
+    {
+        public async IAsyncEnumerable<BookSummaryProjection> GetBookSummariesAsync(
+            CatalogueFilter filter,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public Task<BookDetailProjection?> GetBookDetailAsync(
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BookDetailProjection?>(null);
+
+        public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public Task<ReadingProgressProjection?> GetProgressAsync(
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<ReadingProgressProjection?>(null);
+    }
+
+    private sealed class NoOpCatalogueWriteService : ICatalogueWriteService
+    {
+        public Task<string> CreateShelfAsync(
+            string name,
+            bool isSmart = false,
+            string? query = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult("shelf-001");
+
+        public Task RenameShelfAsync(
+            string shelfId,
+            string newName,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task DeleteShelfAsync(string shelfId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task AddBookToShelfAsync(
+            string shelfId,
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task RemoveBookFromShelfAsync(
+            string shelfId,
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task UpdateMetadataFieldAsync(
+            string bookId,
+            string fieldName,
+            string? value,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task BulkEditAsync(BulkEditCommand command, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class EventStream : IObservable<IndexStatusUpdate>
+    {
+        private readonly List<IObserver<IndexStatusUpdate>> _observers = [];
+
+        public IDisposable Subscribe(IObserver<IndexStatusUpdate> observer)
+        {
+            _observers.Add(observer);
+            return new Subscription(_observers, observer);
+        }
+
+        public void Publish(IndexStatusUpdate update)
+        {
+            foreach (IObserver<IndexStatusUpdate> observer in _observers.ToArray())
+            {
+                observer.OnNext(update);
+            }
+        }
+
+        private sealed class Subscription : IDisposable
+        {
+            private readonly List<IObserver<IndexStatusUpdate>> _observers;
+            private readonly IObserver<IndexStatusUpdate> _observer;
+
+            public Subscription(List<IObserver<IndexStatusUpdate>> observers, IObserver<IndexStatusUpdate> observer)
+            {
+                _observers = observers;
+                _observer = observer;
+            }
+
+            public void Dispose() => _observers.Remove(_observer);
+        }
+    }
+}

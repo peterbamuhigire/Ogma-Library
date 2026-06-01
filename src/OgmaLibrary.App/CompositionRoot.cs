@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
+using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
@@ -10,6 +11,7 @@ using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -117,6 +119,13 @@ public static class CompositionRoot
                 sp.GetRequiredService<IReadingMemoryService>(),
                 localization,
                 sp.GetRequiredService<ITextLayerService>());
+            var searchVm = new SearchViewModel(
+                sp.GetRequiredService<ICombinedSearchService>(),
+                navProxy,
+                localization);
+            var indexManagerVm = new IndexManagerViewModel(
+                sp.GetRequiredService<IIndexManagerService>(),
+                localization);
 
             shell = new MainShellViewModel(
                 localization,
@@ -127,7 +136,9 @@ public static class CompositionRoot
                 sp.GetRequiredService<ILibrarySettingsService>(),
                 sp.GetRequiredService<IIngestionOrchestrator>(),
                 sp.GetRequiredService<IScanProgressService>(),
-                sp.GetRequiredService<IDirectPdfOpenService>());
+                sp.GetRequiredService<IDirectPdfOpenService>(),
+                searchVm,
+                indexManagerVm);
 
             return shell;
         });

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Platform.Storage;
 using OgmaLibrary.App.ViewModels.Reader;
+using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
@@ -58,6 +59,8 @@ public sealed class MainShellViewModel :
     private CancellationTokenSource? _catalogueRefreshCts;
     private bool _isSidebarOpen = true;
     private bool _isFilterPanelOpen;
+    private bool _isSearchPanelOpen;
+    private bool _isIndexManagerOpen;
     private string? _statusOverride;
     private string? _readerPlaceholderMessage;
     private ShellView _activeView = ShellView.Catalogue;
@@ -74,6 +77,8 @@ public sealed class MainShellViewModel :
     /// <param name="orchestrator">The ingestion orchestrator.</param>
     /// <param name="scanProgress">The scan progress service.</param>
     /// <param name="directPdfOpenService">The direct single-PDF open service.</param>
+    /// <param name="search">The Phase 10 search view model.</param>
+    /// <param name="indexManager">The Phase 10 Index Manager view model.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -83,7 +88,9 @@ public sealed class MainShellViewModel :
         ILibrarySettingsService? settingsService = null,
         IIngestionOrchestrator? orchestrator = null,
         IScanProgressService? scanProgress = null,
-        IDirectPdfOpenService? directPdfOpenService = null)
+        IDirectPdfOpenService? directPdfOpenService = null,
+        SearchViewModel? search = null,
+        IndexManagerViewModel? indexManager = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -95,6 +102,8 @@ public sealed class MainShellViewModel :
         BookDetail = bookDetail;
         ShelfSidebar = shelfSidebar;
         Reader = reader;
+        Search = search;
+        IndexManager = indexManager;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
@@ -124,6 +133,12 @@ public sealed class MainShellViewModel :
 
     /// <summary>The reader surface view model.</summary>
     public ReaderViewModel? Reader { get; }
+
+    /// <summary>The global search panel view model.</summary>
+    public SearchViewModel? Search { get; }
+
+    /// <summary>The Index Manager panel view model.</summary>
+    public IndexManagerViewModel? IndexManager { get; }
 
     // ── Layout state ──────────────────────────────────────────────────────────
 
@@ -172,6 +187,34 @@ public sealed class MainShellViewModel :
             if (_isFilterPanelOpen != value)
             {
                 _isFilterPanelOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Whether the search panel is open.</summary>
+    public bool IsSearchPanelOpen
+    {
+        get => _isSearchPanelOpen;
+        set
+        {
+            if (_isSearchPanelOpen != value)
+            {
+                _isSearchPanelOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Whether the Index Manager panel is open.</summary>
+    public bool IsIndexManagerOpen
+    {
+        get => _isIndexManagerOpen;
+        set
+        {
+            if (_isIndexManagerOpen != value)
+            {
+                _isIndexManagerOpen = value;
                 OnPropertyChanged();
             }
         }
@@ -283,6 +326,12 @@ public sealed class MainShellViewModel :
 
     /// <summary>Filter panel toggle label.</summary>
     public string FilterLabel => _localization["Icon.ic_cat_filter.Label"];
+
+    /// <summary>Search panel toggle label.</summary>
+    public string SearchLabel => _localization["Icon.ic_search.Label"];
+
+    /// <summary>Index Manager panel toggle label.</summary>
+    public string IndexManagerLabel => _localization["IndexManager.Panel.Label"];
 
     /// <summary>Sort label.</summary>
     public string SortLabel => _localization["Icon.ic_cat_sort.Label"];
@@ -520,12 +569,27 @@ public sealed class MainShellViewModel :
     /// <summary>Toggles the filter panel open/closed.</summary>
     public void ToggleFilterPanel() => IsFilterPanelOpen = !IsFilterPanelOpen;
 
+    /// <summary>Toggles the search panel open/closed.</summary>
+    public void ToggleSearchPanel() => IsSearchPanelOpen = !IsSearchPanelOpen;
+
+    /// <summary>Toggles the Index Manager panel open/closed.</summary>
+    public async Task ToggleIndexManagerAsync(CancellationToken cancellationToken = default)
+    {
+        IsIndexManagerOpen = !IsIndexManagerOpen;
+        if (IsIndexManagerOpen && IndexManager is not null)
+        {
+            await IndexManager.LoadAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {
         _catalogueRefreshCts?.Cancel();
         _catalogueRefreshCts?.Dispose();
         _scanCts.Dispose();
+        Search?.Dispose();
+        IndexManager?.Dispose();
     }
 
     private void OnProgressChanged(object? sender, ScanProgressSnapshot snapshot)
@@ -595,6 +659,8 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(DirectoryViewLabel));
         OnPropertyChanged(nameof(Shelf3DViewLabel));
         OnPropertyChanged(nameof(FilterLabel));
+        OnPropertyChanged(nameof(SearchLabel));
+        OnPropertyChanged(nameof(IndexManagerLabel));
         OnPropertyChanged(nameof(SortLabel));
     }
 

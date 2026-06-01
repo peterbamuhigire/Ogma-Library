@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
 namespace OgmaLibrary.App.Views.Catalogue;
@@ -30,6 +32,68 @@ public partial class CatalogueShellView : UserControl
             vm.ToggleFilterPanel();
         }
     }
+
+    private void SearchToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.ToggleSearchPanel();
+            if (vm.IsSearchPanelOpen)
+            {
+                FocusSearchPanel();
+            }
+        }
+    }
+
+    private async void IndexManagerToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            await vm.ToggleIndexManagerAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void CatalogueShellView_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainShellViewModel vm)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            if (vm.IsSearchPanelOpen)
+            {
+                vm.IsSearchPanelOpen = false;
+                e.Handled = true;
+                return;
+            }
+
+            if (vm.IsIndexManagerOpen)
+            {
+                vm.IsIndexManagerOpen = false;
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Key is not (Key.F or Key.K))
+        {
+            return;
+        }
+
+        if (!vm.IsSearchPanelOpen)
+        {
+            vm.ToggleSearchPanel();
+        }
+
+        FocusSearchPanel();
+        e.Handled = true;
+    }
+
+    private void FocusSearchPanel() =>
+        Dispatcher.UIThread.Post(() => SearchPanel.FocusSearchBox());
 
     private void ClearFilters_Click(object? sender, RoutedEventArgs e)
     {
