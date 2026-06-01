@@ -193,6 +193,62 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void HostShareButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            vm.HostSharing.OpenSharePanel();
+        }
+    }
+
+    private void HostCloseSharePanelButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            vm.HostSharing.CloseSharePanel();
+        }
+    }
+
+    private async void HostCopyJoinLinkButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            if (await CopyHostShareTextAsync(sender, vm.HostSharing.ManualJoinUri).ConfigureAwait(true))
+            {
+                vm.HostSharing.MarkJoinLinkCopied();
+            }
+        }
+    }
+
+    private async void HostCopyFingerprintButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
+        {
+            if (await CopyHostShareTextAsync(sender, vm.HostSharing.FullFingerprintText).ConfigureAwait(true))
+            {
+                vm.HostSharing.MarkFingerprintCopied();
+            }
+        }
+    }
+
+    private async Task<bool> CopyHostShareTextAsync(object? sender, string text)
+    {
+        if (DataContext is not MainShellViewModel { HostSharing: not null } vm)
+        {
+            return false;
+        }
+
+        var topLevel = ResolveTopLevel(sender);
+        if (topLevel?.Clipboard is null)
+        {
+            vm.HostSharing.ReportClipboardUnavailable();
+            return false;
+        }
+
+        await topLevel.Clipboard.SetTextAsync(text).ConfigureAwait(true);
+        return true;
+    }
+
     private TopLevel? ResolveTopLevel(object? sender)
     {
         if (sender is Control source && TopLevel.GetTopLevel(source) is { } senderTopLevel)

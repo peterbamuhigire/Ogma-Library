@@ -24,6 +24,7 @@ public sealed class HostSharingViewModelTests
         Assert.False(viewModel.CanStart);
         Assert.True(viewModel.CanStop);
         Assert.False(viewModel.CanChangeContentMode);
+        Assert.True(viewModel.CanShare);
         Assert.Equal("Running on :7473", viewModel.StatusText);
         Assert.Equal("0123456789ab", viewModel.FingerprintText);
 
@@ -37,6 +38,41 @@ public sealed class HostSharingViewModelTests
         Assert.True(viewModel.CanStart);
         Assert.False(viewModel.CanStop);
         Assert.Equal("Stopped", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task HostSharingViewModel_SharePanel_BuildsQrJoinPayloadAndCopyConfirmations()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var viewModel = new HostSharingViewModel(host, settings);
+
+        Assert.False(viewModel.CanShare);
+        Assert.False(viewModel.IsSharePanelOpen);
+
+        await viewModel.StartAsync();
+        viewModel.OpenSharePanel();
+
+        Assert.True(viewModel.IsSharePanelOpen);
+        Assert.Contains("ogma-lan://127.0.0.1:7473/join", viewModel.ManualJoinUri, StringComparison.Ordinal);
+        Assert.Contains("name=Ogma%20Test%20Host", viewModel.ManualJoinUri, StringComparison.Ordinal);
+        Assert.Contains("fp=0123456789abcdef", viewModel.ManualJoinUri, StringComparison.Ordinal);
+        Assert.Contains("\u2588", viewModel.QrCodeText, StringComparison.Ordinal);
+        Assert.Contains("0123 4567 89AB CDEF", viewModel.FullFingerprintText, StringComparison.Ordinal);
+
+        viewModel.MarkJoinLinkCopied();
+
+        Assert.True(viewModel.HasShareConfirmation);
+        Assert.Equal("Join link copied to clipboard", viewModel.ShareConfirmationText);
+
+        viewModel.MarkFingerprintCopied();
+
+        Assert.Equal("Fingerprint copied to clipboard", viewModel.ShareConfirmationText);
+
+        await viewModel.StopAsync();
+
+        Assert.False(viewModel.CanShare);
+        Assert.False(viewModel.IsSharePanelOpen);
     }
 
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
@@ -78,7 +114,8 @@ public sealed class HostSharingViewModelTests
                 Port: 7473,
                 ConnectedClientCount: 0,
                 CertificateFingerprint: string.Concat(Enumerable.Repeat("0123456789abcdef", 4)),
-                ErrorMessage: null);
+                ErrorMessage: null,
+                HostAddress: "127.0.0.1");
             return Task.FromResult(_status);
         }
 
@@ -89,6 +126,7 @@ public sealed class HostSharingViewModelTests
             {
                 State = LibraryHostState.Stopped,
                 CertificateFingerprint = null,
+                HostAddress = null,
             };
             return Task.FromResult(_status);
         }

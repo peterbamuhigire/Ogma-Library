@@ -39,7 +39,8 @@ public sealed record LibraryHostStatus(
     int Port,
     int ConnectedClientCount,
     string? CertificateFingerprint,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    string? HostAddress = null);
 
 /// <summary>Result of provisioning or loading the Host certificate authority.</summary>
 public sealed record CertificateProvisioningResult(

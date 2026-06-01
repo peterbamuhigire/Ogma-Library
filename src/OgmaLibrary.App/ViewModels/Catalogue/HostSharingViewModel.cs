@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text;
 using OgmaLibrary.Application.LanHost;
+using QRCoder;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
@@ -10,6 +12,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly ILibraryHostService _hostService;
     private readonly IHostModeSettingsRepository _settingsRepository;
     private readonly string _title = "Host";
+    private readonly string _sharePanelTitle = "Share Library Host";
+    private readonly string _shareButtonText = "Share";
+    private readonly string _copyJoinLinkText = "Copy join link";
+    private readonly string _copyFingerprintText = "Copy fingerprint";
+    private readonly string _closeSharePanelText = "Close";
     private HostModeSettings _settings = new(
         IsEnabled: false,
         Port: 7473,
@@ -22,6 +29,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         CertificateFingerprint: null,
         ErrorMessage: null);
     private bool _isBusy;
+    private bool _isSharePanelOpen;
+    private string? _shareConfirmationText;
 
     public HostSharingViewModel(
         ILibraryHostService hostService,
@@ -50,6 +59,31 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         string.IsNullOrWhiteSpace(_status.CertificateFingerprint)
             ? "No fingerprint"
             : _status.CertificateFingerprint[..Math.Min(12, _status.CertificateFingerprint.Length)];
+
+    public string FullFingerprintText =>
+        string.IsNullOrWhiteSpace(_status.CertificateFingerprint)
+            ? "No fingerprint available"
+            : FormatFingerprint(_status.CertificateFingerprint);
+
+    public string ManualJoinUri => CanShare
+        ? BuildJoinUri(_settings.DisplayName, _status.HostAddress!, _status.Port, _status.CertificateFingerprint!)
+        : string.Empty;
+
+    public string QrCodeText => CanShare ? BuildQrCodeText(ManualJoinUri) : string.Empty;
+
+    public string SharePanelTitle => _sharePanelTitle;
+
+    public string SharePanelSubtitle => CanShare
+        ? $"Scan or copy the join link for {_settings.DisplayName}."
+        : "Start the Host before sharing.";
+
+    public string ShareButtonText => _shareButtonText;
+
+    public string CopyJoinLinkText => _copyJoinLinkText;
+
+    public string CopyFingerprintText => _copyFingerprintText;
+
+    public string CloseSharePanelText => _closeSharePanelText;
 
     public string ContentModeText => _settings.ContentMode == HostContentDeliveryMode.PageRender
         ? "Page Render"
@@ -83,6 +117,40 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public bool CanStop => !IsBusy && IsRunning;
 
     public bool CanChangeContentMode => !IsBusy && !IsRunning;
+
+    public bool CanShare =>
+        IsRunning &&
+        !string.IsNullOrWhiteSpace(_status.HostAddress) &&
+        !string.IsNullOrWhiteSpace(_status.CertificateFingerprint);
+
+    public bool IsSharePanelOpen
+    {
+        get => _isSharePanelOpen;
+        private set
+        {
+            if (_isSharePanelOpen != value)
+            {
+                _isSharePanelOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string? ShareConfirmationText
+    {
+        get => _shareConfirmationText;
+        private set
+        {
+            if (_shareConfirmationText != value)
+            {
+                _shareConfirmationText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasShareConfirmation));
+            }
+        }
+    }
+
+    public bool HasShareConfirmation => !string.IsNullOrWhiteSpace(ShareConfirmationText);
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
@@ -126,6 +194,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
+            if (!CanShare)
+            {
+                IsSharePanelOpen = false;
+            }
+
             RaiseStatusChanged();
         }
     }
@@ -154,11 +227,39 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
     }
 
+    public void OpenSharePanel()
+    {
+        if (!CanShare)
+        {
+            return;
+        }
+
+        ShareConfirmationText = null;
+        IsSharePanelOpen = true;
+        RaiseShareChanged();
+    }
+
+    public void CloseSharePanel()
+    {
+        IsSharePanelOpen = false;
+        ShareConfirmationText = null;
+    }
+
+    public void MarkJoinLinkCopied() => ShareConfirmationText = "Join link copied to clipboard";
+
+    public void MarkFingerprintCopied() => ShareConfirmationText = "Fingerprint copied to clipboard";
+
+    public void ReportClipboardUnavailable() => ShareConfirmationText = "Clipboard is unavailable";
+
     private void RaiseStatusChanged()
     {
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(ClientCountText));
         OnPropertyChanged(nameof(FingerprintText));
+        OnPropertyChanged(nameof(FullFingerprintText));
+        OnPropertyChanged(nameof(ManualJoinUri));
+        OnPropertyChanged(nameof(QrCodeText));
+        OnPropertyChanged(nameof(SharePanelSubtitle));
         OnPropertyChanged(nameof(ContentModeText));
         OnPropertyChanged(nameof(ToggleContentModeText));
         OnPropertyChanged(nameof(PrimaryActionText));
@@ -166,6 +267,70 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(CanStop));
         OnPropertyChanged(nameof(CanChangeContentMode));
+        OnPropertyChanged(nameof(CanShare));
+    }
+
+    private void RaiseShareChanged()
+    {
+        OnPropertyChanged(nameof(ManualJoinUri));
+        OnPropertyChanged(nameof(QrCodeText));
+        OnPropertyChanged(nameof(SharePanelSubtitle));
+        OnPropertyChanged(nameof(FullFingerprintText));
+    }
+
+    private static string BuildJoinUri(string displayName, string hostAddress, int port, string fingerprint)
+    {
+        var builder = new UriBuilder("ogma-lan", hostAddress, port)
+        {
+            Path = "join",
+            Query =
+                $"name={Uri.EscapeDataString(displayName)}" +
+                $"&fp={Uri.EscapeDataString(fingerprint)}" +
+                "&auth=bearer",
+        };
+        return builder.Uri.AbsoluteUri;
+    }
+
+    private static string FormatFingerprint(string fingerprint)
+    {
+        var builder = new StringBuilder(fingerprint.Length + (fingerprint.Length / 4));
+        for (int i = 0; i < fingerprint.Length; i++)
+        {
+            if (i > 0 && i % 4 == 0)
+            {
+                builder.Append(' ');
+            }
+
+            builder.Append(char.ToUpperInvariant(fingerprint[i]));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string BuildQrCodeText(string payload)
+    {
+        using var generator = new QRCodeGenerator();
+        using QRCodeData data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q);
+        var builder = new StringBuilder();
+        const int quietZone = 2;
+        int size = data.ModuleMatrix.Count;
+
+        for (int y = -quietZone; y < size + quietZone; y++)
+        {
+            for (int x = -quietZone; x < size + quietZone; x++)
+            {
+                bool isDark = y >= 0 &&
+                              y < size &&
+                              x >= 0 &&
+                              x < data.ModuleMatrix[y].Count &&
+                              data.ModuleMatrix[y][x];
+                builder.Append(isDark ? "\u2588\u2588" : "  ");
+            }
+
+            builder.AppendLine();
+        }
+
+        return builder.ToString();
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>

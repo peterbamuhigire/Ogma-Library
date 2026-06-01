@@ -386,6 +386,7 @@ Ogma Library is built on the shoulders of excellent open-source projects:
 | [Three.js](https://threejs.org/) | MIT | 3D graphics for the bookshelf scene |
 | [PdfPig](https://uglytoad.github.io/PdfPig/) | Apache 2.0 | In-PDF text and metadata extraction |
 | [PdfSharp](https://www.pdfsharp.net/) | MIT | PDF metadata write-back |
+| [QRCoder](https://github.com/codebude/QRCoder) | MIT | LAN Host QR join-code generation |
 | [SkiaSharp](https://github.com/mono/SkiaSharp) | MIT | Thumbnail and spine texture generation |
 | [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | MIT | MVVM framework |
 | [Entity Framework Core](https://github.com/dotnet/efcore) | MIT | SQLite ORM |

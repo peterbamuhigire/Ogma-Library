@@ -332,6 +332,99 @@
     </Grid>
 
     <!-- ─── Book detail panel ─────────────────────────────────────── -->
+    <Border Grid.Row="0"
+            Grid.Column="1"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Width="360"
+            Margin="0,0,16,16"
+            Padding="14"
+            Background="{DynamicResource Brush.Surface.Parchment}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource Radius.S}"
+            DataContext="{Binding HostSharing}"
+            IsVisible="{Binding IsSharePanelOpen}"
+            x:CompileBindings="False">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="{Binding SharePanelTitle}"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Padding="8,4"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  AutomationProperties.Name="{Binding CloseSharePanelText}"
+                  Click="HostCloseSharePanelButton_Click">
+            <TextBlock Text="x"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </Button>
+        </Grid>
+
+        <TextBlock Text="{Binding SharePanelSubtitle}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                   TextWrapping="Wrap" />
+
+        <Border HorizontalAlignment="Center"
+                Background="White"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1"
+                Padding="8">
+          <TextBlock Text="{Binding QrCodeText}"
+                     FontFamily="Consolas, Menlo, monospace"
+                     FontSize="3"
+                     LineHeight="3"
+                     Foreground="Black" />
+        </Border>
+
+        <TextBox Text="{Binding ManualJoinUri, Mode=OneWay}"
+                 IsReadOnly="True"
+                 FontSize="{DynamicResource Type.Size.Caption}"
+                 TextWrapping="NoWrap"
+                 AutomationProperties.Name="LAN Host join link" />
+
+        <TextBlock Text="{Binding FullFingerprintText}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Accent.Slate}"
+                   TextWrapping="Wrap" />
+
+        <TextBlock Text="{Binding ShareConfirmationText}"
+                   IsVisible="{Binding HasShareConfirmation}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Accent.Sage}"
+                   TextWrapping="Wrap" />
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+          <Button Padding="10,5"
+                  Background="{DynamicResource Brush.Accent.Slate}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding CopyJoinLinkText}"
+                  Click="HostCopyJoinLinkButton_Click">
+            <TextBlock Text="{Binding CopyJoinLinkText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+          <Button Padding="10,5"
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding CopyFingerprintText}"
+                  Click="HostCopyFingerprintButton_Click">
+            <TextBlock Text="{Binding CopyFingerprintText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <cat:BookDetailView Grid.Row="0"
                         Grid.Column="2"
                         DataContext="{Binding BookDetail}"
@@ -377,6 +470,16 @@
                      FontSize="{DynamicResource Type.Size.Caption}"
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                      VerticalAlignment="Center" />
+          <Button Padding="8,3"
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding HostSharing.CanShare}"
+                  AutomationProperties.Name="{Binding HostSharing.ShareButtonText}"
+                  Click="HostShareButton_Click">
+            <TextBlock Text="{Binding HostSharing.ShareButtonText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
           <Button Padding="8,3"
                   Background="{DynamicResource Brush.Accent.Slate}"
                   Foreground="White"

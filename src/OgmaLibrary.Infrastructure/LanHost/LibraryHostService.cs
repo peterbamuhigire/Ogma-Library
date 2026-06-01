@@ -74,6 +74,7 @@ internal sealed class LibraryHostService : ILibraryHostService
         {
             State = LibraryHostState.Running,
             CertificateFingerprint = certificate.Fingerprint,
+            HostAddress = bindAddress,
         };
         return _status;
     }
@@ -84,7 +85,7 @@ internal sealed class LibraryHostService : ILibraryHostService
         await _listener.StopAsync(cancellationToken).ConfigureAwait(false);
         await _sessions.RevokeAllAsync(cancellationToken).ConfigureAwait(false);
         await _mdns.StopAsync(cancellationToken).ConfigureAwait(false);
-        _status = _status with { State = LibraryHostState.Stopped, ConnectedClientCount = 0 };
+        _status = _status with { State = LibraryHostState.Stopped, ConnectedClientCount = 0, HostAddress = null };
         return _status;
     }
 
