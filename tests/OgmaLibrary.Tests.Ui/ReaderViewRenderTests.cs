@@ -1748,6 +1748,121 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public async Task ReaderView_LayerPanelMutatingControls_InvokeRenderedHandlers()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var annotationService = new FakeAnnotationService();
+        var layerService = new FakeLayerService(annotationService);
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            annotationService,
+            new FakeBookmarkService(),
+            layerService,
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            tabControl.SelectedIndex = 2;
+            Dispatcher.UIThread.RunJobs();
+
+            Button addLayerButton = AssertFocusableControl<Button>(window, "New layer");
+            InvokeReaderViewHandler(view, "AddLayerButton_Click", addLayerButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            InvokeReaderViewHandler(view, "AddLayerButton_Click", addLayerButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(3, viewModel.Layers.Count);
+            LayerListItem firstLayer = viewModel.Layers.Single(layer => layer.Id == "layer-1");
+            LayerListItem secondLayer = viewModel.Layers.Single(layer => layer.Id == "layer-2");
+            LayerListItem thirdLayer = viewModel.Layers.Single(layer => layer.Id == "layer-3");
+
+            annotationService.CreatedAnnotations.Add(new AnnotationV2
+            {
+                Id = "annotation-layer-1",
+                BookId = "book-001",
+                LayerId = firstLayer.Id,
+                Kind = AnnotationKind.Highlight,
+                Regions = [new AnnotationRegion(0, 0.18, 0.20, 0.24, 0.05)],
+                HighlightColor = firstLayer.Color,
+                QuoteText = "First layer highlight",
+                CreatedUtc = DateTimeOffset.UtcNow,
+                ModifiedUtc = DateTimeOffset.UtcNow,
+            });
+            annotationService.CreatedAnnotations.Add(new AnnotationV2
+            {
+                Id = "annotation-layer-2",
+                BookId = "book-001",
+                LayerId = secondLayer.Id,
+                Kind = AnnotationKind.Highlight,
+                Regions = [new AnnotationRegion(0, 0.52, 0.26, 0.24, 0.05)],
+                HighlightColor = secondLayer.Color,
+                QuoteText = "Second layer highlight",
+                CreatedUtc = DateTimeOffset.UtcNow,
+                ModifiedUtc = DateTimeOffset.UtcNow,
+            });
+
+            var layerFilter = AssertFocusableControl<ComboBox>(window, "Show annotations from");
+            layerFilter.SelectedItem = viewModel.LayerFilterOptions.Single(option => option.Id == secondLayer.Id);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            AnnotationListItem filtered = Assert.Single(viewModel.Annotations);
+            Assert.Equal(secondLayer.Id, filtered.LayerId);
+            Assert.Equal("annotation-layer-2", Assert.Single(viewModel.AnnotationOverlays).AnnotationId);
+
+            TextBox secondLayerName = LayerControl<TextBox>(window, secondLayer);
+            secondLayerName.Text = "Questions";
+            InvokeReaderViewHandler(view, "LayerName_LostFocus", secondLayerName);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            secondLayer = viewModel.Layers.Single(layer => layer.Id == "layer-2");
+            Assert.Equal("Questions", secondLayer.Name);
+            Assert.Equal("Layer renamed", viewModel.StatusMessage);
+
+            Button mergeSecondLayer = LayerControl<Button>(
+                window,
+                secondLayer,
+                button => GetAutomationName(button) == "Merge layer Questions");
+            InvokeReaderViewHandler(view, "MergeLayerButton_Click", mergeSecondLayer);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(viewModel.Layers, layer => layer.Id == "layer-2");
+            Assert.Equal(firstLayer.Id, annotationService.CreatedAnnotations.Single(a => a.Id == "annotation-layer-2").LayerId);
+            Assert.Equal("Layer merged", viewModel.StatusMessage);
+
+            thirdLayer = viewModel.Layers.Single(layer => layer.Id == "layer-3");
+            Button deleteThirdLayer = LayerControl<Button>(
+                window,
+                thirdLayer,
+                button => GetAutomationName(button) == "Delete layer Layer 3");
+            InvokeReaderViewHandler(view, "DeleteLayerButton_Click", deleteThirdLayer);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(viewModel.Layers, layer => layer.Id == "layer-3");
+            Assert.Single(viewModel.Layers);
+            Assert.Equal("Layer deleted", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_LayerFilter_ShowsOnlySelectedLayerAnnotationsAndOverlays()
     {
         var localization = new InMemoryLocalizationService();
@@ -2717,6 +2832,19 @@ public sealed class ReaderViewRenderTests
             .FirstOrDefault(button => GetAutomationName(button) == automationName)
             ?? throw new InvalidOperationException(
                 $"Could not find selection action button '{automationName}'.");
+
+    private static T LayerControl<T>(
+        Window window,
+        LayerListItem layer,
+        Func<T, bool>? predicate = null)
+        where T : Control =>
+        window.GetVisualDescendants()
+            .OfType<T>()
+            .FirstOrDefault(control =>
+                ReferenceEquals(control.DataContext, layer) &&
+                (predicate is null || predicate(control)))
+            ?? throw new InvalidOperationException(
+                $"Could not find {typeof(T).Name} for layer '{layer.Name}'.");
 
     private static void InvokeReaderViewHandler(ReaderView view, string methodName, object sender)
     {

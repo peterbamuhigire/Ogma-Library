@@ -1016,7 +1016,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             ? layer.Name
             : newName.Trim();
 
-        if (string.Equals(layer.Name, effectiveName, StringComparison.Ordinal))
+        if (string.Equals(layer.PersistedName, effectiveName, StringComparison.Ordinal))
         {
             return;
         }
@@ -1026,6 +1026,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             .ConfigureAwait(true);
 
         layer.Name = effectiveName;
+        layer.MarkPersistedName(effectiveName);
         await RefreshLayersAsync(cancellationToken).ConfigureAwait(true);
         await RefreshAnnotationsAsync(cancellationToken).ConfigureAwait(true);
         StatusMessage = _localization["Layer.Renamed"];
@@ -1957,6 +1958,7 @@ public sealed class LayerListItem : INotifyPropertyChanged
     {
         Id = id;
         _name = name;
+        PersistedName = name;
         Color = color;
         IsVisible = isVisible;
         IsActiveWritableLayer = isActiveWritableLayer;
@@ -1974,6 +1976,9 @@ public sealed class LayerListItem : INotifyPropertyChanged
 
     /// <summary>The stable layer identifier.</summary>
     public string Id { get; }
+
+    /// <summary>The last name confirmed by the layer service.</summary>
+    public string PersistedName { get; private set; }
 
     /// <summary>The editable layer name.</summary>
     public string Name
@@ -2026,6 +2031,9 @@ public sealed class LayerListItem : INotifyPropertyChanged
 
     private string FormatLayerLabel(string format) =>
         string.Format(System.Globalization.CultureInfo.CurrentCulture, format, Name);
+
+    /// <summary>Marks the current editable name as persisted after a successful save.</summary>
+    public void MarkPersistedName(string name) => PersistedName = name;
 }
 
 /// <summary>A display option for filtering annotations by layer.</summary>
