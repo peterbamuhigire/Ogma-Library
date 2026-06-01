@@ -35,6 +35,10 @@ The first WP6 scale-hardening slice adds provider-specific rate limiting and
 429/503 retry handling to the Google Books and Open Library HTTP clients.
 Batch enrichment jobs are now tagged with recoverable 50-book chunk metadata
 while preserving the existing per-book job isolation and older file-path payloads.
+The health service now summarizes batch enrichment runs, pauses pending/running
+jobs by batch id, resumes paused/failed jobs, and exports failed jobs as CSV for
+operator review. A 2,000-book simulation verifies chunking, retry recovery, and
+completion within the local performance gate.
 WP7 smart-shelf scale work is in place: the catalogue migration adds composite
 indexes for status/year, shelf membership, and metadata field/value filters; the
 2,000-book benchmark verifies five common query shapes under the 2,000 ms P95
@@ -70,6 +74,7 @@ indexes.
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SkeletonRenderTests` | Passed: 5 UI skeleton tests after adding the book-detail protected-PDF action |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RateLimitedHttpClientTests` | Passed: 3 provider rate-limit/retry tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~HealthDashboardTests\|FullyQualifiedName~RateLimitedHttpClientTests"` | Passed: 10 health/batch/rate-limit tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~HealthDashboardTests --logger "console;verbosity=detailed"` | Passed: 9 health-dashboard tests including batch pause/resume, failed CSV export, chunk grouping, and 2,000-book retry simulation |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15SmartShelfPerformanceTests --logger "console;verbosity=detailed"` | Passed: 3 smart-shelf index/query-plan/2,000-book benchmark tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobProcessorTests\|FullyQualifiedName~OcrWorkerTests"` | Passed: 3 OCR processor/worker tests after internal extension-point hardening |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~OcrJobProcessorTests\|FullyQualifiedName~OcrGoldenCorpusTests" --logger "console;verbosity=detailed"` | Passed: 4 OCR searchability, recovery, FTS/embedding handoff, and 1,000-page synthetic memory-profile tests |
@@ -114,6 +119,8 @@ indexes.
 | PDFium password render path | `PdfiumAdapter` detects required passwords, opens protected PDFs with supplied credentials, and clears its session password buffer on dispose |
 | Provider HTTP resilience | `RateLimitedHttpClientHandler` spaces Google Books/Open Library requests and retries 429/503 responses with bounded exponential backoff |
 | Batch chunk recovery metadata | `BatchEnrichmentOrchestrator` writes `BatchEnrichmentJobPayload` with 50-book chunk indexes so large runs resume from remaining per-book jobs |
+| Batch operator controls | `ILibraryHealthService` exposes batch summaries, pause, resume, and failed-job CSV export for Health Dashboard wiring |
+| Batch 2,000-book evidence | `BatchEnrichment_2000Books_CompletesWithRetry` creates 2,000 chunked jobs, simulates every-fifth provider retry, resumes failed jobs, and verifies completion |
 | Smart-shelf composite indexes | `Phase15SmartShelfIndexes` adds `IX_Books_Status_Year`, `IX_ShelfBooks_ShelfId_BookId`, and `IX_BookMetadataFields_FieldName_Value` |
 | Smart-shelf query evidence | `docs/benchmarks/phase-15/query-plans.md` records `EXPLAIN QUERY PLAN` output for five common smart-shelf filters |
 | Smart-shelf baseline | `docs/benchmarks/phase-15/smart-shelf-baseline.json` records the 2,000-book P95 timing baseline |
@@ -127,5 +134,5 @@ indexes.
 - WP3 Health Dashboard OCR trigger discovery, if separate from the Index Manager job surface.
 - WP4 real macOS Keychain CI evidence and password golden-corpus fixture.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
-- WP6 batch enrichment chunk recovery, pause/resume UI, failed CSV export, and 2,000-book integration benchmark.
+- WP6 visual Health Dashboard wiring for the batch controls; backend contracts and 2,000-book benchmark are in place.
 - WP9 golden-corpus, security review, and full remote CI evidence.

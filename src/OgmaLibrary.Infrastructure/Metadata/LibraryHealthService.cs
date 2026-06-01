@@ -1,6 +1,9 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 
@@ -11,6 +14,9 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class LibraryHealthService : ILibraryHealthService
 {
+    private static readonly int[] PausableBatchStatuses = [0, 1];
+    private static readonly int[] ResumableBatchStatuses = [3, 5];
+
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -45,7 +51,8 @@ public sealed class LibraryHealthService : ILibraryHealthService
                 MissingIsbns: await LoadMissingIsbnsAsync(cancellationToken).ConfigureAwait(false),
                 UnavailableFiles: await LoadUnavailableFilesAsync(cancellationToken).ConfigureAwait(false),
                 FailedJobs: await LoadFailedJobsAsync(cancellationToken).ConfigureAwait(false),
-                LoadedUtc: DateTimeOffset.UtcNow);
+                LoadedUtc: DateTimeOffset.UtcNow,
+                BatchEnrichmentRuns: await LoadBatchRunsAsync(cancellationToken).ConfigureAwait(false));
         }
 
         // Run all five queries concurrently for maximum throughput.
@@ -54,9 +61,10 @@ public sealed class LibraryHealthService : ILibraryHealthService
         var missingIsbnsTask = LoadMissingIsbnsAsync(cancellationToken);
         var unavailableTask = LoadUnavailableFilesAsync(cancellationToken);
         var failedJobsTask = LoadFailedJobsAsync(cancellationToken);
+        var batchRunsTask = LoadBatchRunsAsync(cancellationToken);
 
         await Task.WhenAll(duplicatesTask, missingCoversTask, missingIsbnsTask,
-            unavailableTask, failedJobsTask).ConfigureAwait(false);
+            unavailableTask, failedJobsTask, batchRunsTask).ConfigureAwait(false);
 
         return new LibraryHealthSnapshot(
             Duplicates: await duplicatesTask.ConfigureAwait(false),
@@ -64,7 +72,8 @@ public sealed class LibraryHealthService : ILibraryHealthService
             MissingIsbns: await missingIsbnsTask.ConfigureAwait(false),
             UnavailableFiles: await unavailableTask.ConfigureAwait(false),
             FailedJobs: await failedJobsTask.ConfigureAwait(false),
-            LoadedUtc: DateTimeOffset.UtcNow);
+            LoadedUtc: DateTimeOffset.UtcNow,
+            BatchEnrichmentRuns: await batchRunsTask.ConfigureAwait(false));
     }
 
     /// <inheritdoc />
@@ -90,6 +99,58 @@ public sealed class LibraryHealthService : ILibraryHealthService
         job.RetryCount++;
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task PauseBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default) =>
+        UpdateBatchJobsAsync(
+            batchId,
+            statuses: PausableBatchStatuses,
+            update: job =>
+            {
+                job.Status = 5;
+                job.StartedUtc = null;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task ResumeBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default) =>
+        UpdateBatchJobsAsync(
+            batchId,
+            statuses: ResumableBatchStatuses,
+            update: job =>
+            {
+                if (job.Status == 3)
+                {
+                    job.RetryCount++;
+                }
+
+                job.Status = 0;
+                job.StartedUtc = null;
+                job.CompletedUtc = null;
+                job.ErrorMessage = null;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<string> ExportFailedJobsCsvAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<FailedJobEntry> failedJobs = await LoadFailedJobsAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var csv = new StringBuilder();
+        csv.AppendLine("JobId,JobType,BookId,ErrorMessage,FailedUtc");
+        foreach (FailedJobEntry job in failedJobs)
+        {
+            csv
+                .Append(job.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',')
+                .Append(EscapeCsv(job.JobType)).Append(',')
+                .Append(EscapeCsv(job.BookId)).Append(',')
+                .Append(EscapeCsv(job.ErrorMessage)).Append(',')
+                .Append(EscapeCsv(job.FailedUtc?.ToString("O", System.Globalization.CultureInfo.InvariantCulture)))
+                .AppendLine();
+        }
+
+        return csv.ToString();
     }
 
     private async Task<IReadOnlyList<DuplicateBookEntry>> LoadDuplicatesAsync(
@@ -243,4 +304,109 @@ public sealed class LibraryHealthService : ILibraryHealthService
             f.ErrorMessage,
             f.CompletedUtc)).ToList();
     }
+
+    private async Task<IReadOnlyList<BatchEnrichmentRunEntry>> LoadBatchRunsAsync(
+        CancellationToken cancellationToken)
+    {
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<BatchJobSnapshot> jobs = await LoadBatchJobSnapshotsAsync(context, cancellationToken)
+            .ConfigureAwait(false);
+        return jobs
+            .GroupBy(job => job.BatchId, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group => new BatchEnrichmentRunEntry(
+                group.Key,
+                TotalJobs: group.Count(),
+                PendingJobs: group.Count(job => job.Status == 0),
+                RunningJobs: group.Count(job => job.Status == 1),
+                CompletedJobs: group.Count(job => job.Status == 2),
+                FailedJobs: group.Count(job => job.Status == 3),
+                PausedJobs: group.Count(job => job.Status == 5)))
+            .ToList();
+    }
+
+    private async Task UpdateBatchJobsAsync(
+        string batchId,
+        IReadOnlyCollection<int> statuses,
+        Action<JobRow> update,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(batchId);
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        List<JobRow> jobs = await context.Jobs
+            .Where(job => job.JobType == "Enrich" && statuses.Contains(job.Status))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (JobRow job in jobs.Where(job => string.Equals(TryReadBatchId(job.Payload), batchId, StringComparison.Ordinal)))
+        {
+            update(job);
+        }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<List<BatchJobSnapshot>> LoadBatchJobSnapshotsAsync(
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var rows = await context.Jobs
+            .AsNoTracking()
+            .Where(job => job.JobType == "Enrich" && job.Payload != null && EF.Functions.Like(job.Payload, "{%"))
+            .Select(job => new { job.JobId, job.Status, job.Payload })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var jobs = new List<BatchJobSnapshot>();
+        foreach (var row in rows)
+        {
+            string? batchId = TryReadBatchId(row.Payload);
+            if (!string.IsNullOrWhiteSpace(batchId))
+            {
+                jobs.Add(new BatchJobSnapshot(row.JobId, batchId, row.Status));
+            }
+        }
+
+        return jobs;
+    }
+
+    private static string? TryReadBatchId(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload) || !payload.TrimStart().StartsWith('{'))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<BatchEnrichmentJobPayload>(payload)?.BatchId;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Any(ch => ch is ',' or '"' or '\r' or '\n')
+            ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\""
+            : value;
+    }
+
+    private sealed record BatchJobSnapshot(long JobId, string BatchId, int Status);
 }

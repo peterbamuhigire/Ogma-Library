@@ -51,6 +51,18 @@ public sealed record FailedJobEntry(
     DateTimeOffset? FailedUtc);
 
 /// <summary>
+/// Aggregated state for one batch enrichment run.
+/// </summary>
+public sealed record BatchEnrichmentRunEntry(
+    string BatchId,
+    int TotalJobs,
+    int PendingJobs,
+    int RunningJobs,
+    int CompletedJobs,
+    int FailedJobs,
+    int PausedJobs);
+
+/// <summary>
 /// An aggregated snapshot of library health across all five sections
 /// (FR-META-007, power-librarian persona).
 /// </summary>
@@ -60,13 +72,15 @@ public sealed record FailedJobEntry(
 /// <param name="UnavailableFiles">Books whose file is no longer present.</param>
 /// <param name="FailedJobs">Background jobs with Status = Failed.</param>
 /// <param name="LoadedUtc">UTC timestamp when the snapshot was loaded.</param>
+/// <param name="BatchEnrichmentRuns">Recoverable batch enrichment run summaries.</param>
 public sealed record LibraryHealthSnapshot(
     IReadOnlyList<DuplicateBookEntry> Duplicates,
     IReadOnlyList<MissingCoverEntry> MissingCovers,
     IReadOnlyList<MissingIsbnEntry> MissingIsbns,
     IReadOnlyList<UnavailableFileEntry> UnavailableFiles,
     IReadOnlyList<FailedJobEntry> FailedJobs,
-    DateTimeOffset LoadedUtc);
+    DateTimeOffset LoadedUtc,
+    IReadOnlyList<BatchEnrichmentRunEntry>? BatchEnrichmentRuns = null);
 
 /// <summary>
 /// Aggregates library health data across five health sections for the power-librarian
@@ -90,4 +104,13 @@ public interface ILibraryHealthService
     /// <param name="jobId">The failed job to retry.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task RetryJobAsync(long jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>Pauses pending or running jobs for a recoverable batch enrichment run.</summary>
+    Task PauseBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default);
+
+    /// <summary>Resumes paused or failed jobs for a recoverable batch enrichment run.</summary>
+    Task ResumeBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default);
+
+    /// <summary>Exports failed background jobs as CSV for operator review.</summary>
+    Task<string> ExportFailedJobsCsvAsync(CancellationToken cancellationToken = default);
 }

@@ -250,5 +250,119 @@ public sealed class HealthDashboardTests
         Assert.Equal(20, payloads.Count(p => p!.ChunkIndex == 2));
         Assert.All(payloads.Where(p => p!.ChunkIndex == 2), p => Assert.Equal(20, p!.ChunkSize));
     }
+
+    [Fact]
+    public async Task HealthDashboard_BatchEnrichmentPauseResumeAndFailedCsv_AreOperatorVisible()
+    {
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        const string batchId = "batch-operator";
+        SeedBatchJob(context, batchId, "BE_OP_1", status: 0);
+        SeedBatchJob(context, batchId, "BE_OP_2", status: 1);
+        SeedBatchJob(context, batchId, "BE_OP_3", status: 3, error: "Provider, timeout");
+        await context.SaveChangesAsync();
+
+        var service = new LibraryHealthService(context);
+
+        LibraryHealthSnapshot initial = await service.GetHealthSnapshotAsync();
+        BatchEnrichmentRunEntry run = Assert.Single(initial.BatchEnrichmentRuns!);
+        Assert.Equal(3, run.TotalJobs);
+        Assert.Equal(1, run.PendingJobs);
+        Assert.Equal(1, run.RunningJobs);
+        Assert.Equal(1, run.FailedJobs);
+
+        string csv = await service.ExportFailedJobsCsvAsync();
+        Assert.Contains("JobId,JobType,BookId,ErrorMessage,FailedUtc", csv, StringComparison.Ordinal);
+        Assert.Contains("\"Provider, timeout\"", csv, StringComparison.Ordinal);
+
+        await service.PauseBatchEnrichmentAsync(batchId);
+        Assert.Equal(2, context.Jobs.Count(job => job.Status == 5));
+
+        await service.ResumeBatchEnrichmentAsync(batchId);
+        Assert.Equal(3, context.Jobs.Count(job => job.Status == 0));
+        Assert.DoesNotContain(context.Jobs, job => job.ErrorMessage != null);
+        Assert.Contains(context.Jobs, job => job.BookId == "BE_OP_3" && job.RetryCount == 1);
+    }
+
+    [Fact]
+    public async Task BatchEnrichment_2000Books_CompletesWithRetry()
+    {
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+
+        string[] bookIds = Enumerable.Range(1, 2_000)
+            .Select(i => $"BE_2000_{i:0000}")
+            .ToArray();
+        foreach (string bookId in bookIds)
+        {
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = bookId,
+                Status = 0,
+            });
+        }
+
+        await context.SaveChangesAsync();
+        var orchestrator = new BatchEnrichmentOrchestrator(context);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        int created = await orchestrator.StartAsync(bookIds);
+        string batchId = context.Jobs
+            .Where(job => job.JobType == "Enrich")
+            .Select(job => JsonSerializer.Deserialize<BatchEnrichmentJobPayload>(job.Payload!)!.BatchId)
+            .First();
+        int ordinal = 0;
+        foreach (var job in context.Jobs.Where(job => job.JobType == "Enrich").OrderBy(job => job.JobId))
+        {
+            ordinal++;
+            job.Status = ordinal % 5 == 0 ? 3 : 2;
+            job.CompletedUtc = DateTimeOffset.UtcNow;
+            job.ErrorMessage = job.Status == 3 ? "Synthetic 429 retry" : null;
+        }
+
+        await context.SaveChangesAsync();
+        var service = new LibraryHealthService(context);
+        await service.ResumeBatchEnrichmentAsync(batchId);
+        foreach (var job in context.Jobs.Where(job => job.JobType == "Enrich" && job.Status == 0))
+        {
+            job.Status = 2;
+            job.CompletedUtc = DateTimeOffset.UtcNow;
+        }
+
+        await context.SaveChangesAsync();
+        stopwatch.Stop();
+
+        Assert.Equal(2_000, created);
+        int chunkCount = context.Jobs
+            .Where(job => job.JobType == "Enrich")
+            .AsEnumerable()
+            .Select(job => JsonSerializer.Deserialize<BatchEnrichmentJobPayload>(job.Payload!)!.ChunkIndex)
+            .Distinct()
+            .Count();
+        Assert.Equal(40, chunkCount);
+        Assert.Equal(2_000, context.Jobs.Count(job => job.JobType == "Enrich" && job.Status == 2));
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"2,000-book batch simulation took {stopwatch.Elapsed}.");
+    }
+
+    private static void SeedBatchJob(
+        Infrastructure.Catalogue.CatalogueDbContext context,
+        string batchId,
+        string bookId,
+        int status,
+        string? error = null)
+    {
+        context.Jobs.Add(new Infrastructure.Catalogue.Entities.JobRow
+        {
+            JobType = "Enrich",
+            BookId = bookId,
+            IdempotencyKey = $"{batchId}-{bookId}",
+            Status = status,
+            Payload = JsonSerializer.Serialize(new BatchEnrichmentJobPayload(
+                batchId,
+                ChunkIndex: 0,
+                ChunkSize: 3,
+                OrdinalInChunk: 0)),
+            ErrorMessage = error,
+            CompletedUtc = status == 3 ? DateTimeOffset.UtcNow : null,
+        });
+    }
 }
 
