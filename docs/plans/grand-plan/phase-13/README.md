@@ -42,7 +42,8 @@ pipeline. `IAiAdvisorService` is typed, DI-wired, disabled when the active tier
 is Offline, and answer mode is scaffolded as V2. Recommendation and reading-plan
 Avalonia surfaces are implemented and headless-rendered. The WP9 offline
 evaluation harness and benchmark are complete, and WP10 extension markers are
-seeded as internal surfaces for Phase 23; WP11 remains pending.
+seeded as internal surfaces for Phase 23. WP11 closeout tests, review evidence,
+accessibility evidence, and full local gates are complete.
 
 ---
 
@@ -317,15 +318,15 @@ Full task detail in `tasks.md`.
 - [ ] Recommendation cards, plan steps, and explain/confidence badges have icons and
       accessible labels; keyboard + SR walkthrough passes; `icons.md` complete.
 - [ ] ADR-0007 updated with advisor service implementation notes; HLD §7 updated.
-- [ ] `RecommendationCard_HasExplanation_And_Confidence` structural test passes
+- [x] `RecommendationCard_HasExplanation_And_Confidence` structural test passes
       (FR-AI-003 structural gate).
-- [ ] `ReadingPlan_StructuralOracle` test passes (FR-AI-007 structural gate).
-- [ ] `AdvisorDisabled_CatalogueBrowse_Unaffected` integration test passes (FR-AI-001).
+- [x] `ReadingPlan_StructuralOracle` test passes (FR-AI-007 structural gate).
+- [x] `AdvisorDisabled_CatalogueBrowse_Unaffected` integration test passes (FR-AI-001).
 - [x] Evaluation harness run produces ≥ 95% structural pass rate on the 20 synthetic
       queries; results committed to `docs/benchmarks/phase-13/`.
 - [x] `IRecommendationSource` and `IAiCatalogueReader` defined with `[ExtensionPoint]`
       attribute and XML doc comments (Phase 23 readiness, SOURCE-SUMMARY delta #8).
-- [ ] `/code-review` completed; findings resolved.
+- [x] `/code-review` completed; findings resolved.
 
 ---
 

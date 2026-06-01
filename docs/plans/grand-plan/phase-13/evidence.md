@@ -4,7 +4,7 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1-WP10 are implemented and verified locally. The slices add the structural
+WP1-WP11 are implemented and verified locally. The slices add the structural
 domain contracts plus the metadata-only recommendation pipeline that later
 advisor composition, UI, and evaluation work will consume. Hybrid ranking is
 integrated behind a default-off option. Reading-plan generation now has a
@@ -16,7 +16,8 @@ headless render test. The offline structural evaluation harness now contains 20
 synthetic queries, a deterministic mock runner, and a committed benchmark result
 with a 100% structural pass rate. Internal Phase 23 extension markers now exist
 for recommendation sources and AI catalogue reads, with architecture tests
-holding them internal for Phase 13.
+holding them internal for Phase 13. WP11 structural closeout tests, code-review
+evidence, accessibility evidence, full local gates, and Release build all pass.
 
 ## Verified Locally
 
@@ -33,9 +34,10 @@ holding them internal for Phase 13.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase13EvaluationHarnessTests` | Passed: 2 evaluation artifact tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorExtensionPointTests` | Passed: 1 extension DI/source test |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~ExtensionPoints_AreInternal_In_Phase13` | Passed: 1 extension visibility architecture test |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~RecommendationCard_HasExplanation_And_Confidence\|FullyQualifiedName~AdvisorDisabled_CatalogueBrowse_Unaffected_InUiLayer\|FullyQualifiedName~ReadingPlan_StructuralOracle"` | Passed: 4 WP11 structural closeout tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 362 core tests |
-| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 21 architecture tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 367 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 22 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 105 UI tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 
@@ -81,6 +83,9 @@ holding them internal for Phase 13.
 | Recommendation source | Internal `IRecommendationSource` is registered through DI with `CatalogueRecommendationSource` as the local default |
 | AI catalogue reader | Internal `IAiCatalogueReader` exposes `GetByIdAsync` and `GetByShelfAsync`; `AdvisorCatalogueReader` implements it without publishing the interface |
 | Extension architecture gate | `ExtensionPoints_AreInternal_In_Phase13` asserts the marker interfaces are internal and marked `[ExtensionPoint]` |
+| WP11 structural tests | `RecommendationCard_HasExplanation_And_Confidence`, `ReadingPlan_StructuralOracle`, `AdvisorDisabled_CatalogueBrowse_Unaffected`, and UI disabled-state tests pass |
+| Code review evidence | `docs/qa/evidence/phase13-code-review-20260601.md` records the closeout review with no blocking findings |
+| Accessibility evidence | `docs/qa/evidence/phase13-accessibility-20260601.md` records automation-name and renderability checks plus the remaining public-release screen-reader walkthrough note |
 
 ## Verification Notes
 
@@ -94,4 +99,4 @@ holding them internal for Phase 13.
 
 ## Remaining Phase 13 Work
 
-- WP11: integration tests, golden-corpus gates, code review, remote CI, and manual accessibility evidence.
+- Remote CI evidence after push.

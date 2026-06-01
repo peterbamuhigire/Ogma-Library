@@ -102,6 +102,55 @@ public sealed class RecommendationPipelineTests
     }
 
     [Fact]
+    public async Task RecommendationCard_HasExplanation_And_Confidence()
+    {
+        BookMetadataDto[] candidates =
+        [
+            Candidate("BOOK-P13-GOLDEN-001", "Simple Text Systems", ["simple-text", "systems"]),
+            Candidate("BOOK-P13-GOLDEN-002", "Bad Metadata Recovery", ["bad-metadata", "resilience"]),
+        ];
+        var gateway = new FakeAiGateway(
+            """
+            [
+              {
+                "book_id": "BOOK-P13-GOLDEN-001",
+                "rank": 1,
+                "confidence": 0.84,
+                "explanation": "Uses the simple-text fixture to ground a systems recommendation.",
+                "provenance": [
+                  { "book_id": "BOOK-P13-GOLDEN-001", "field": "Tags", "field_value": "simple-text" }
+                ]
+              },
+              {
+                "book_id": "BOOK-P13-GOLDEN-002",
+                "rank": 2,
+                "confidence": 0.68,
+                "explanation": "Uses the bad-metadata fixture to confirm graceful fallback still explains the choice.",
+                "provenance": [
+                  { "book_id": "BOOK-P13-GOLDEN-002", "field": "Tags", "field_value": "bad-metadata" }
+                ]
+              }
+            ]
+            """);
+        RecommendationPipeline pipeline = CreatePipeline(candidates, gateway);
+
+        IReadOnlyList<RecommendationCard> cards = await pipeline.GetRecommendationsAsync(
+            new RecommendationQuery("systems with incomplete metadata", maxResults: 2),
+            new RecommendationGenerationOptions(AiPrivacyTier.MetadataOnly, "openai", "gpt-test"),
+            CancellationToken.None);
+
+        AdvisorValidationResult validation = new RecommendationStructuralValidator().Validate(cards);
+
+        Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Errors));
+        Assert.All(cards, card =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(card.Explanation.Summary));
+            Assert.InRange(card.Confidence.Value, 0.0, 1.0);
+            Assert.NotEmpty(card.Explanation.ProvenanceItems);
+        });
+    }
+
+    [Fact]
     public void ProvenanceValidator_Strips_HallucinatedIds()
     {
         BookMetadataDto[] candidates =

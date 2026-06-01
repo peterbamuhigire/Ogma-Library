@@ -13,10 +13,12 @@
     <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
       <TextBox Text="{Binding Query}"
                Watermark="{Binding QueryWatermark}"
-               MinWidth="280" />
+               MinWidth="280"
+               AutomationProperties.Name="{Binding QueryWatermark}" />
       <Button Grid.Column="1"
               IsEnabled="{Binding CanLoad}"
               Content="{Binding LoadLabel}"
+              AutomationProperties.Name="{Binding LoadLabel}"
               Click="Load_Click" />
     </Grid>
 
@@ -45,6 +47,7 @@
                   </Border>
                   <Button Grid.Column="3"
                           Content="{Binding $parent[UserControl].DataContext.OpenBookLabel}"
+                          AutomationProperties.Name="{Binding $parent[UserControl].DataContext.OpenBookLabel}"
                           Click="OpenBook_Click" />
                 </Grid>
 

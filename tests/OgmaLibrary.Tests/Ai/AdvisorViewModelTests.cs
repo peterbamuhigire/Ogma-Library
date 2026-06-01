@@ -56,6 +56,25 @@ public sealed class AdvisorViewModelTests
         Assert.Single(viewModel.Checkpoints);
     }
 
+    [Fact]
+    public async Task AdvisorDisabled_CatalogueBrowse_Unaffected_InUiLayer()
+    {
+        using var viewModel = new RecommendationPanelViewModel(
+            new DisabledAdvisorService(),
+            new RecordingNavigation(),
+            new InMemoryLocalizationService())
+        {
+            Query = "systems",
+        };
+
+        await viewModel.LoadAsync();
+
+        Assert.Empty(viewModel.Recommendations);
+        Assert.True(viewModel.HasError);
+        Assert.Contains("AI features are disabled", viewModel.ErrorText, StringComparison.Ordinal);
+        Assert.True(viewModel.CanLoad);
+    }
+
     private static RecommendationCard Recommendation(string bookId) =>
         new(
             new BookId(bookId),
@@ -98,6 +117,26 @@ public sealed class AdvisorViewModelTests
             OpenedBookId = bookId;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class DisabledAdvisorService : IAiAdvisorService
+    {
+        public bool IsEnabled => false;
+
+        public Task<IReadOnlyList<RecommendationCard>> GetRecommendationsAsync(
+            RecommendationQuery query,
+            RecommendationGenerationOptions options,
+            CancellationToken cancellationToken) =>
+            throw new AiDisabledException();
+
+        public Task<ReadingPlan> GetReadingPlanAsync(
+            ReadingPlanRequest request,
+            RecommendationGenerationOptions options,
+            CancellationToken cancellationToken) =>
+            throw new AiDisabledException();
+
+        public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
     }
 
     private sealed class FakeCatalogueReadModel : ICatalogueReadModel
