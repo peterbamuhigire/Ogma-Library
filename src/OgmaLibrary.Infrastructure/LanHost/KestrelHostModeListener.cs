@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
 
@@ -16,16 +18,19 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly ICatalogueReadModel _catalogueReadModel;
     private readonly IClientSessionService _sessions;
     private readonly IHostServerCertificateProvider _certificates;
+    private readonly IAuditRepository _audit;
     private WebApplication? _app;
 
     public KestrelHostModeListener(
         ICatalogueReadModel catalogueReadModel,
         IClientSessionService sessions,
-        IHostServerCertificateProvider certificates)
+        IHostServerCertificateProvider certificates,
+        IAuditRepository audit)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     /// <inheritdoc />
@@ -81,23 +86,30 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     {
         app.Use(async (context, next) =>
         {
+            long started = Environment.TickCount64;
+            string? token = ReadBearerToken(context.Request);
+            bool authenticated = false;
+
             if (IsPublicEndpoint(context.Request.Path))
             {
                 await next(context).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, authenticated, started).ConfigureAwait(false);
                 return;
             }
 
-            string? token = ReadBearerToken(context.Request);
             if (token is null || !await _sessions.IsValidAsync(token, context.RequestAborted).ConfigureAwait(false))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsJsonAsync(
                     new LanHostError("unauthorized", "A valid LAN Host session token is required."),
                     context.RequestAborted).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, authenticated, started).ConfigureAwait(false);
                 return;
             }
 
+            authenticated = true;
             await next(context).ConfigureAwait(false);
+            await AppendAuditAsync(context, token, authenticated, started).ConfigureAwait(false);
         });
 
         app.MapGet("/api/v1/health", () => Results.Json(new LanHostHealthResponse(
@@ -154,6 +166,40 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         return value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             ? value[prefix.Length..].Trim()
             : null;
+    }
+
+    private async Task AppendAuditAsync(
+        HttpContext context,
+        string? token,
+        bool authenticated,
+        long started)
+    {
+        string path = context.Request.Path.Value ?? "/";
+        string? actorId = string.IsNullOrWhiteSpace(token)
+            ? null
+            : $"session:{ClientSessionService.HashToken(token)[..16]}";
+        var payload = new
+        {
+            method = context.Request.Method,
+            path,
+            statusCode = context.Response.StatusCode,
+            remoteIpAddress = context.Connection.RemoteIpAddress?.ToString(),
+            elapsedMs = Math.Max(0, Environment.TickCount64 - started),
+            authenticated,
+        };
+
+        await _audit.AppendAsync(
+                new AuditEvent
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    EventType = "LanHostRequestServed",
+                    EntityId = path,
+                    ActorId = actorId,
+                    TimestampUtc = DateTimeOffset.UtcNow,
+                    Payload = JsonSerializer.Serialize(payload),
+                },
+                context.RequestAborted)
+            .ConfigureAwait(false);
     }
 
     private sealed record LanHostHealthResponse(

@@ -44,6 +44,10 @@ public sealed class LanHostEndpointTests
             string catalogueJson = await catalogue.Content.ReadAsStringAsync();
 
             await host.StopAsync();
+            await using CatalogueDbContext verify = services.GetRequiredService<CatalogueDbContext>();
+            List<AuditEventRow> auditEvents = await verify.AuditEvents
+                .Where(x => x.EventType == "LanHostRequestServed")
+                .ToListAsync();
 
             Assert.Equal(HttpStatusCode.OK, health.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
@@ -51,6 +55,10 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
+            Assert.True(auditEvents.Count >= 4);
+            Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.AfterJson?.Contains("\"statusCode\":401", StringComparison.Ordinal) == true);
+            Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.ActorId?.StartsWith("session:", StringComparison.Ordinal) == true);
+            Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
         }
         finally
         {
