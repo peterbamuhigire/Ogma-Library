@@ -33,7 +33,9 @@ float BLOBs keyed back to `SearchChunks`.
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 8 search/index UI tests, including semantic match-location/confidence metadata, degraded exact-fallback indicator, and embedding-erasure confirmation countdown |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 18 architecture tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-restore` | Passed: Architecture 18, Core 300, UI 104 |
 | Document review: `docs/spikes/ANN-SQLite-Vec-Spike.md`, `docs/architecture/adr/ADR-0006-hybrid-search.md` | Added sqlite-vec/Vec1 spike plan, `IVectorIndex` proposed contract, ANN trigger thresholds, fallback criteria, and ADR-0006 ANN stub |
+| Closeout evidence | `docs/qa/evidence/phase11-closeout-20260601.md` records local implementation scope, verification, and remaining non-local gates |
 
 ## Evidence Map
 
