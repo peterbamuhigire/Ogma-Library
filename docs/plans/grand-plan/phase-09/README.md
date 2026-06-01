@@ -407,6 +407,9 @@ Current implementation progress:
 - Citation copy now has rendered-view regression coverage proving the card's
   copy action writes the formatted plain-text citation to the Avalonia clipboard
   and reports the copied status.
+- Citation export now has rendered-view regression coverage proving the export
+  button keeps the documented clipboard side effect while exporting the captured
+  domain citation card to sidecar storage.
 - Note editor focus-out now has rendered-view regression coverage proving the
   planned blur-save route persists edited note text and closes the editor.
 - Phase 09 French resource and runtime labels are cleaned of mojibake in the
@@ -486,3 +489,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Aligned Phase 09 task-exit wording with current green fault tests and pending manual screen-reader signoff | Codex |
 | 2026-06-01 | Hardened reader file location against missing `BookFiles` errors after direct PDF open and verified selected PDFs are immediately locatable | Codex |
 | 2026-06-01 | Added rendered citation clipboard regression coverage for the copy action | Codex |
+| 2026-06-01 | Added rendered citation export coverage for the clipboard side effect plus sidecar export | Codex |

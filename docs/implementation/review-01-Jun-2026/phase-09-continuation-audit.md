@@ -10,7 +10,7 @@ reading-memory editing, note editor blur-save, Phase 09 French localization
 cleanup, text-selection service traceability, Choose Library Folder
 missing-`BookFiles` scan repair and same-hash unregistered-path registration
 coverage, reader file-locator missing-`BookFiles` retry repair, citation
-clipboard behavior coverage, plus follow-up evidence-count, test-name,
+clipboard/export behavior coverage, plus follow-up evidence-count, test-name,
 filter-token, and task-exit documentation sweeps on 2026-06-01.
 
 ## Current Position
@@ -30,7 +30,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open, reader file location, and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, reader keyboard shortcuts, citation clipboard copy behavior, touch-capable selection, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, manual signoff documentation source-of-truth cleanup, current evidence-count/test-name reconciliation, stale metadata filter cleanup, and task-exit/manual-gate wording cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair for direct open, reader file location, and Choose Library Folder scans, same-hash unregistered-path folder-scan registration, delivered reader-icon rendering, reader keyboard shortcuts, citation clipboard copy/export behavior, touch-capable selection, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, book-detail reading-memory editing, note editor blur-save, French Phase 09 mojibake cleanup, explicit text-selection mapping service, manual signoff documentation source-of-truth cleanup, current evidence-count/test-name reconciliation, stale metadata filter cleanup, and task-exit/manual-gate wording cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -41,7 +41,7 @@ owner-gated:
 | Direct PDF open and folder scan hardening | `DirectPdfOpen_FuzzyMatch_RegistersSelectedPdfAsNewBook`; `DirectPdfOpen_SameHashAtUnregisteredPath_RegistersSelectedPdfAsNewBook`; `DirectPdfOpen_ProductionDi_RepairsMissingBookFilesTableBeforeRegisteringSelectedPdf`; `BookFileLocator_ProductionDi_RepairsMissingBookFilesTableBeforeQuerying`; `IngestionPipeline_ProductionDi_RepairsMissingBookFilesTableBeforeScanning`; `IngestionPipeline_SameHashAtUnregisteredPresentPath_RegistersNewBook`; migration/direct-open/startup/ingestion/reader-locator focused slices cover missing-table repair with production service registration, explicit selected-file registration behavior, immediate reader file location after selected-PDF registration, Choose Library Folder scan registration, and coexisting same-hash path registration without breaking move/rename rematches |
 | Delivered reader-icon rendering | `ReaderView_Phase09ControlsExposeActionSpecificAutomationNames`; `ReaderViewModel_NoteOverlay_ExposesAnchorMarker`; `IconCatalogPhase09Tests` cover rendered premium SVG paths for toolbar actions, selection actions, citation card actions, sidebar panel tabs, bookmark/layer panels, note anchors, highlight color, bookmark rename, and reading-memory disposition |
 | Reader keyboard shortcuts | `ReaderView_CtrlB_TogglesCurrentPageBookmark`, `ReaderView_CtrlShiftB_OpensBookmarkPanel`, and `ReaderView_CtrlShiftC_CapturesSelectedCitation` verify the planned Phase 09 bookmark and citation shortcuts against the Avalonia reader view |
-| Citation clipboard copy | `ReaderView_CopyCitation_WritesPlainTextToClipboardAndReportsCopied` verifies the rendered citation copy route writes `CitationPlainText` to the Avalonia clipboard and reports `Citation copied to clipboard`; `ReaderViewModel_ExportCitation_UsesCapturedDomainCard` continues to cover sidecar export from the captured domain card |
+| Citation clipboard and export behavior | `ReaderView_CopyCitation_WritesPlainTextToClipboardAndReportsCopied` verifies the rendered citation copy route writes `CitationPlainText` to the Avalonia clipboard and reports `Citation copied to clipboard`; `ReaderView_ExportCitation_WritesClipboardAndExportsCapturedCard` verifies the rendered export route keeps the clipboard side effect and exports the captured domain card; `ReaderViewModel_ExportCitation_UsesCapturedDomainCard` continues to cover view-model sidecar export from the captured domain card |
 | Touch-capable selection | `ReaderView_CanTrackSelectionPointer_AllowsTouchAndPenDrag` verifies touch and pen drags can drive text selection without the mouse-left-button flag, while mouse selection still requires the primary button |
 | Performance gates | `AnnotationOverlay_RenderOverhead_100Annotations_Under10msP95`, `AnnotationWrite_P95_Under200ms`, `CachedPageTurn_P95_With100Annotations_Under100ms`, and `ReaderViewModel_PageTurnP95_With100AnnotationsPerPage_Under100ms` verify the documented overlay, write, and page-turn budgets |
 | Annotation delete workflow | `ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation` verifies the annotation row context-flyout delete path opens the same confirmation flow as the explicit delete button before any repository delete occurs |
@@ -93,6 +93,7 @@ actionable mismatches and fixed them:
 | Phase 09 evidence contained a stale `BookMetadataEnrichment` filter token that no longer matched a test-name slice. | Re-ran the current metadata/direct-PDF/write-back filter without the stale token and kept the verified 76-test result. |
 | `tasks.md` still described WP1 as an early TDD red-test state and WP8 as if manual screen-reader walkthrough had passed. | Updated WP1 to the current green durable-write/WAL/rollback/recovery state and WP8 to automated accessibility complete with manual SR signoff pending. |
 | WP6 copy-to-clipboard had implementation but only indirect automation-name/focus evidence. | Added `ReaderView_CopyCitation_WritesPlainTextToClipboardAndReportsCopied`, which invokes the rendered reader copy path, reads the headless clipboard, and verifies the copied status message. |
+| WP6 rendered export had sidecar coverage at the view-model layer but not the button route that copies to clipboard before exporting. | Added `ReaderView_ExportCitation_WritesClipboardAndExportsCapturedCard`, which invokes the rendered export handler, verifies clipboard content, verifies the captured domain card was exported, and checks the exported status. |
 
 The final code-level pass also rechecked the planned Ctrl+B, Ctrl+Shift+B, and
 Ctrl+Shift+C shortcuts against `ReaderView.axaml.cs` and the focused UI tests.
@@ -122,7 +123,7 @@ The text-selection pass extracted the planned selection-region mapping helper
 so screen-space drag rectangles have an explicit tested service before
 annotation persistence.
 No further locally actionable Phase 09 implementation gaps were found in this
-pass beyond the reader file-locator and citation clipboard hardening recorded
-above.
+pass beyond the reader file-locator and citation clipboard/export hardening
+recorded above.
 Do not mark Phase 09 fully closed until the manual and owner-gated rows above
 have dated evidence or explicit waivers.

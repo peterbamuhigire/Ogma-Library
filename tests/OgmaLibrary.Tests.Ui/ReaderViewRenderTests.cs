@@ -1937,6 +1937,46 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public async Task ReaderView_ExportCitation_WritesClipboardAndExportsCapturedCard()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var citationService = new FakeCitationService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            citationService,
+            new FakeReadingMemoryService(),
+            localization);
+
+        await viewModel.OpenAsync("book-001", null, CancellationToken.None);
+        viewModel.SelectedCitationText = "Export and copy this passage";
+        await viewModel.CaptureCitationAsync(CancellationToken.None);
+        string expectedPlainText = viewModel.CitationPlainText;
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            InvokeReaderViewHandler(view, "ExportCitationButton_Click", new Button());
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            string? clipboardText = window.Clipboard?.TryGetTextAsync().GetAwaiter().GetResult();
+            Assert.Equal(expectedPlainText, clipboardText);
+            Assert.NotNull(citationService.ExportedCard);
+            Assert.Equal("Export and copy this passage", citationService.ExportedCard.SelectedText);
+            Assert.Equal("Citation exported", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_ToggleBookmark_AddsAndRemovesCurrentPageBookmark()
     {
         var localization = new InMemoryLocalizationService();
