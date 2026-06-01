@@ -651,6 +651,8 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Icon.ic_close_panel.Label"] = "Fermer le panneau",
     };
 
+    private static readonly IReadOnlyDictionary<string, string> Pseudo = BuildPseudoDictionary();
+
     private IReadOnlyDictionary<string, string> _active = English;
 
     /// <inheritdoc />
@@ -673,9 +675,26 @@ public sealed class InMemoryLocalizationService : ILocalizationService
     public void SetCulture(string cultureName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
+        if (string.Equals(cultureName, "qps-ploc", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(cultureName, "pseudo", StringComparison.OrdinalIgnoreCase))
+        {
+            _active = Pseudo;
+            CurrentCulture = CultureInfo.GetCultureInfo("en");
+            CultureChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         string twoLetter = CultureInfo.GetCultureInfo(cultureName).TwoLetterISOLanguageName;
         _active = twoLetter == "fr" ? French : English;
         CurrentCulture = CultureInfo.GetCultureInfo(twoLetter);
         CultureChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    private static Dictionary<string, string> BuildPseudoDictionary() =>
+        English.ToDictionary(
+            pair => pair.Key,
+            pair => string.Create(
+                CultureInfo.InvariantCulture,
+                $"[!! {pair.Value} {pair.Value} !!]"),
+            StringComparer.Ordinal);
 }

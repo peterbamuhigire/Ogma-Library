@@ -28,7 +28,7 @@ ready read-models for Phase 16.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 5 (Search) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both |
-| **Status** | WP1 complete locally; WP2 metadata/search UI implemented locally; WP3 core extraction pipeline implemented locally; WP4 FTS search implemented locally; WP5 Index Manager backend/UI implemented locally; WP6 keyboard/i18n/a11y/icon placeholders implemented locally; premium replacement icons, pseudolocale/golden-corpus/manual accessibility signoff, and final closeout pending |
+| **Status** | WP1 complete locally; WP2 metadata/search UI implemented locally; WP3 core extraction pipeline implemented locally; WP4 FTS search implemented locally; WP5 Index Manager backend/UI implemented locally; WP6 keyboard/i18n/a11y/icon placeholders/pseudolocale implemented locally; premium replacement icons, golden-corpus/manual accessibility signoff, and final closeout pending |
 | **Depends on** | Phase 04 (Catalogue schema; `Books`, `ExtractedPages`, `SearchChunks`), Phase 05 (book identity / content hash), Phase 08 (`TextLayerService`, `ExtractionQuality` flag), Phase 09 (annotation text available for indexing) |
 | **Unblocks** | Phase 11 (Semantic Search — uses the same `SearchChunks` + `ExtractedPages` schema), Phase 13 (AI advisor reads index), Phase 16 (LAN host serves search read-model) |
 

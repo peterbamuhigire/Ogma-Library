@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.App.Views.Catalogue;
+using OgmaLibrary.App.Views.Search;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
@@ -18,6 +19,16 @@ namespace OgmaLibrary.Tests.Ui;
 /// <summary>Phase 10 search and Index Manager view-model tests.</summary>
 public sealed class SearchViewModelTests
 {
+    private static string ArtifactsDir
+    {
+        get
+        {
+            string dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "screenshots");
+            Directory.CreateDirectory(dir);
+            return Path.GetFullPath(dir);
+        }
+    }
+
     [AvaloniaFact]
     public async Task SearchViewModel_QueryDebouncesAndOpenSelectedNavigates()
     {
@@ -154,6 +165,49 @@ public sealed class SearchViewModelTests
         Dispatcher.UIThread.RunJobs();
 
         Assert.False(vm.IsRebuilding);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task SearchIndexPanels_Pseudolocale_RenderWithoutBlankFrame()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("qps-ploc");
+        var navigation = new RecordingReaderNavigation();
+        using var searchVm = new SearchViewModel(new StubCombinedSearchService(), navigation, localization);
+        using var indexVm = new IndexManagerViewModel(new StubIndexManagerService(), localization);
+
+        searchVm.Query = "ogma";
+        await WaitForAsync(() => searchVm.Results.Count == 1);
+        await indexVm.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        var content = new StackPanel
+        {
+            Children =
+            {
+                new SearchPanelView { DataContext = searchVm },
+                new IndexManagerPanelView { DataContext = indexVm },
+            },
+        };
+        var window = new Window
+        {
+            Width = 1100,
+            Height = 700,
+            Content = content,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var frame = window.CaptureRenderedFrame();
+        Assert.NotNull(frame);
+        string screenshotPath = Path.Combine(ArtifactsDir, "search-index-pseudo.png");
+        frame!.Save(screenshotPath);
+
+        Assert.True(frame.Size.Width > 100);
+        Assert.True(frame.Size.Height > 100);
+        Assert.Contains("[!!", searchVm.PlaceholderText, StringComparison.Ordinal);
+        Assert.Contains("[!!", indexVm.PanelLabel, StringComparison.Ordinal);
         window.Close();
     }
 
