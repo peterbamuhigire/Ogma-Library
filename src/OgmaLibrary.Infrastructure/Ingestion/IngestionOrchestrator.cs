@@ -223,19 +223,70 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
                 break;
 
             case BookMatchResult.ExactMatch exact:
-                await _registration.UpdateFilePathAsync(exact.BookId, file, contentHash, cancellationToken)
-                    .ConfigureAwait(false);
+                if (await ShouldRegisterMatchedFileAsNewBookAsync(
+                    exact.BookId, file.RelativePath, root, context, cancellationToken).ConfigureAwait(false))
+                {
+                    await _registration.RegisterAsync(file, contentHash, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    await _registration.UpdateFilePathAsync(exact.BookId, file, contentHash, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
                 break;
 
             case BookMatchResult.FuzzyMatch fuzzy:
-                await _registration.UpdateFilePathAsync(fuzzy.BookId, file, contentHash, cancellationToken)
-                    .ConfigureAwait(false);
+                if (await ShouldRegisterMatchedFileAsNewBookAsync(
+                    fuzzy.BookId, file.RelativePath, root, context, cancellationToken).ConfigureAwait(false))
+                {
+                    await _registration.RegisterAsync(file, contentHash, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    await _registration.UpdateFilePathAsync(fuzzy.BookId, file, contentHash, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
                 break;
 
             case BookMatchResult.Unresolvable unresolvable:
                 throw new InvalidOperationException(
                     $"Cannot resolve identity for {file.RelativePath}: {unresolvable.Reason}");
         }
+    }
+
+    private static async Task<bool> ShouldRegisterMatchedFileAsNewBookAsync(
+        string matchedBookId,
+        string discoveredRelativePath,
+        string root,
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        List<string> presentPaths = await context.BookFiles
+            .AsNoTracking()
+            .Where(f =>
+                f.BookId == matchedBookId &&
+                f.FileStatus == 0 &&
+                f.RelativePath != discoveredRelativePath)
+            .Select(f => f.RelativePath)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return presentPaths.Any(path => File.Exists(ResolveStoredPath(root, path)));
+    }
+
+    private static string ResolveStoredPath(string root, string storedPath)
+    {
+        string nativePath = storedPath
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        return Path.IsPathFullyQualified(nativePath)
+            ? Path.GetFullPath(nativePath)
+            : Path.GetFullPath(Path.Combine(root, nativePath));
     }
 
     private async Task RecordFailureAsync(

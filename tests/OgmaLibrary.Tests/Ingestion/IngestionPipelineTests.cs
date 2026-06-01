@@ -93,6 +93,39 @@ public sealed class IngestionPipelineTests : IDisposable
     }
 
     [Fact]
+    public async Task IngestionPipeline_SameHashAtUnregisteredPresentPath_RegistersNewBook()
+    {
+        await _fx.Orchestrator.ScanAsync();
+
+        BookFileRow originalFile = await _fx.Context.BookFiles
+            .AsNoTracking()
+            .OrderBy(f => f.RelativePath)
+            .FirstAsync();
+        int countBefore = await _fx.Context.Books.CountAsync();
+
+        string originalPath = Path.Combine(
+            _fx.RootDir,
+            originalFile.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+        string duplicateRelativePath = "books/duplicate-copy.pdf";
+        string duplicatePath = Path.Combine(_fx.RootDir, "books", "duplicate-copy.pdf");
+        File.Copy(originalPath, duplicatePath);
+
+        await _fx.Orchestrator.ScanAsync();
+
+        int countAfter = await _fx.Context.Books.CountAsync();
+        BookFileRow duplicateFile = await _fx.Context.BookFiles
+            .AsNoTracking()
+            .SingleAsync(f => f.RelativePath == duplicateRelativePath);
+
+        Assert.Equal(countBefore + 1, countAfter);
+        Assert.NotEqual(originalFile.BookId, duplicateFile.BookId);
+        Assert.Contains(await _fx.Context.BookFiles.AsNoTracking().ToListAsync(), f =>
+            f.BookId == originalFile.BookId &&
+            f.RelativePath == originalFile.RelativePath &&
+            f.FileStatus == 0);
+    }
+
+    [Fact]
     public async Task IngestionPipeline_RematuresRenamedFile()
     {
         // First scan — register original file.

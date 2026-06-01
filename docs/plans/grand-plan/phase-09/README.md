@@ -465,3 +465,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added production-DI folder-scan coverage for missing `BookFiles` repair and refreshed Phase 09 evidence | Codex |
 | 2026-06-01 | Added editable book-detail reading-memory fields and refreshed Phase 09 UI/full-suite evidence counts | Codex |
 | 2026-06-01 | Added touch/pen-capable reader text-selection eligibility and refreshed Phase 09 evidence counts | Codex |
+| 2026-06-01 | Tightened folder scans so coexisting same-hash unregistered paths register as new books while true moves/renames still rematch | Codex |
