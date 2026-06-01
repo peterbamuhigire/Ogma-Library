@@ -467,6 +467,10 @@ Current implementation progress:
   clean in `HEAD`; it evaluates all candidate evidence files and chooses the
   newest valid passing candidate instead of letting a newer draft shadow older
   valid evidence.
+- Phase 09 evidence tooling now has a local smoke test at
+  `scripts/Test-Phase09EvidenceTooling.ps1`, covering temp preflight evidence,
+  manual evidence-package row coverage, and protection against newer untracked
+  draft preflight files shadowing committed evidence.
 - Remote GitHub Actions evidence can be collected with
   `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
   available; the signoff gate accepts only a passing current-commit record or a
@@ -562,3 +566,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Extended the same verification-impacting file scope check to passing remote-CI evidence and archived a fresh GitHub API 404 attempt | Codex |
 | 2026-06-01 | Hardened the Phase 09 signoff gate so untracked, staged-only, or locally edited evidence files cannot satisfy release evidence checks | Codex |
 | 2026-06-01 | Made Phase 09 preflight cross-platform, added a manual evidence package helper, and hardened signoff evidence selection against newer invalid drafts | Codex |
+| 2026-06-01 | Added a local Phase 09 evidence-tooling smoke test covering preflight, manual evidence package generation, and draft-evidence shadow protection | Codex |
