@@ -4,12 +4,13 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1 domain/Application contracts, WP2 persistence, WP3 gateway core, and WP4 provider adapters are implemented locally.
+WP1 domain/Application contracts, WP2 persistence, WP3 gateway core, WP4 provider adapters, and WP5 payload preview are implemented locally.
 This slice keeps the existing Phase 11 embedding provider compatible while
 expanding `IAiProvider` toward the Phase 12 gateway contract, and adds durable
 consent, immutable audit, erasable AI query-history persistence, payload-preview
 gating, consent enforcement, provider dispatch, cost-attributed audit writes,
-OpenAI-compatible/DeepSeek-compatible, Anthropic, and local Ollama chat adapters.
+OpenAI-compatible/DeepSeek-compatible, Anthropic, local Ollama chat adapters,
+and a localized Avalonia payload-preview dialog shell.
 
 ## Verified Locally
 
@@ -19,6 +20,7 @@ OpenAI-compatible/DeepSeek-compatible, Anthropic, and local Ollama chat adapters
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~AiContractTests\|FullyQualifiedName~AiPersistenceTests"` | Passed: 9 AI contract/persistence tests, including Phase 12 migration backfill from Phase 11 schema |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~AiContractTests\|FullyQualifiedName~AiPersistenceTests\|FullyQualifiedName~AiGatewayTests"` | Passed: 16 AI contract/persistence/gateway tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~AiProviderAdapterTests\|FullyQualifiedName~AiGatewayTests\|FullyQualifiedName~AiContractTests\|FullyQualifiedName~AiPersistenceTests"` | Passed: 21 AI provider/gateway/contract/persistence tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~PayloadPreviewViewModelTests\|FullyQualifiedName~AiProviderAdapterTests\|FullyQualifiedName~AiGatewayTests\|FullyQualifiedName~AiContractTests\|FullyQualifiedName~AiPersistenceTests"` | Passed: 24 AI payload/provider/gateway/contract/persistence tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 18 architecture tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-restore` | Architecture passed 18; core passed 309; UI had one timeout in `SearchIndexPanels_Pseudolocale_RenderWithoutBlankFrame` during full parallel solution run |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests.SearchIndexPanels_Pseudolocale_RenderWithoutBlankFrame` | Passed: 1 targeted UI retry |
@@ -47,9 +49,11 @@ OpenAI-compatible/DeepSeek-compatible, Anthropic, and local Ollama chat adapters
 | Cost attribution | `AiCostCalculator` estimates per-call USD cost from provider/model token pricing |
 | Provider adapters | `OpenAiCompatProvider`, `AnthropicProvider`, and `OllamaChatProvider` translate normalized requests and map token usage |
 | Provider factory | `AiProviderFactory` creates OpenAI-compatible, DeepSeek-compatible, Anthropic, Ollama, and disabled providers from settings bindings |
+| Payload preview UI | `PayloadPreviewViewModel`, `PayloadPreviewDialog`, and `AvaloniaPreviewGate` show exact payload fields with Send, Cancel, and Remember-for-session decisions |
+| Payload preview i18n | English and French payload-preview labels are added to `InMemoryLocalizationService` |
 
 ## Remaining Phase 12 Work
 
-- WP5/WP6: payload preview and Privacy Center UI.
+- WP6: Privacy Center UI.
 - WP7: cost calculator/formatter.
 - WP8/WP9: chokepoint architecture tests, full integration, security review, and remote CI evidence.

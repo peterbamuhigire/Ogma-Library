@@ -121,6 +121,15 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Icon.ic_status_available.Label"] = "Available",
         ["Icon.ic_status_unavailable.Label"] = "Unavailable",
         ["Icon.ic_status_loading.Label"] = "Loading",
+        ["Ai.Preview.Title"] = "Review AI payload",
+        ["Ai.Preview.Explanation"] = "Ogma will send only the fields shown below after you choose Send.",
+        ["Ai.Preview.ProviderFormat"] = "Provider: {0} / {1}",
+        ["Ai.Preview.TierFormat"] = "Privacy tier: {0}",
+        ["Ai.Preview.SizeFormat"] = "Payload size: {0} characters",
+        ["Ai.Preview.Send"] = "Send",
+        ["Ai.Preview.Cancel"] = "Cancel",
+        ["Ai.Preview.RememberSession"] = "Remember for this session",
+        ["Ai.Preview.AccessibleFormat"] = "AI payload preview for {0} {1}, {2} characters",
 
         // Phase 05 — Scan progress and status strings (en)
         ["Scan.Phase.Idle"] = "Ready",
@@ -464,6 +473,15 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Icon.ic_status_available.Label"] = "Disponible",
         ["Icon.ic_status_unavailable.Label"] = "Indisponible",
         ["Icon.ic_status_loading.Label"] = "Chargement",
+        ["Ai.Preview.Title"] = "Verifier la charge utile IA",
+        ["Ai.Preview.Explanation"] = "Ogma enverra uniquement les champs affiches ci-dessous apres votre choix d'envoi.",
+        ["Ai.Preview.ProviderFormat"] = "Fournisseur : {0} / {1}",
+        ["Ai.Preview.TierFormat"] = "Niveau de confidentialite : {0}",
+        ["Ai.Preview.SizeFormat"] = "Taille de la charge utile : {0} caracteres",
+        ["Ai.Preview.Send"] = "Envoyer",
+        ["Ai.Preview.Cancel"] = "Annuler",
+        ["Ai.Preview.RememberSession"] = "Memoriser pour cette session",
+        ["Ai.Preview.AccessibleFormat"] = "Apercu de la charge utile IA pour {0} {1}, {2} caracteres",
 
         // Phase 05 — Scan progress and status strings (fr)
         ["Scan.Phase.Idle"] = "Prêt",

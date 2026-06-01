@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels.Ai"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        x:Class="OgmaLibrary.App.Views.Ai.PayloadPreviewDialog"
+        x:DataType="vm:PayloadPreviewViewModel"
+        Width="720"
+        MinWidth="520"
+        MinHeight="520"
+        SizeToContent="Height"
+        CanResize="True"
+        Title="{Binding Title}"
+        AutomationProperties.Name="{Binding AccessibleLabel}">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" Margin="20">
+    <StackPanel Orientation="Horizontal" Spacing="10">
+      <svg:Svg Width="28" Height="28" Path="{Binding PrivacyIconPath}" />
+      <StackPanel>
+        <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" MaxWidth="620" Opacity="0.84" />
+      </StackPanel>
+    </StackPanel>
+
+    <UniformGrid Grid.Row="1" Columns="3">
+      <TextBlock Text="{Binding ProviderSummary}" />
+      <TextBlock Text="{Binding TierSummary}" />
+      <TextBlock Text="{Binding PayloadSizeSummary}" />
+    </UniformGrid>
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Items}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:PayloadPreviewItem">
+            <Border BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="0,8">
+              <Grid ColumnDefinitions="160,*" ColumnSpacing="12">
+                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Click="Cancel_Click">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <svg:Svg Width="16" Height="16" Path="{Binding CancelIconPath}" />
+          <TextBlock Text="{Binding CancelLabel}" />
+        </StackPanel>
+      </Button>
+      <Button Click="Remember_Click">
+        <TextBlock Text="{Binding RememberLabel}" />
+      </Button>
+      <Button Click="Send_Click">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <svg:Svg Width="16" Height="16" Path="{Binding SendIconPath}" />
+          <TextBlock Text="{Binding SendLabel}" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+  </Grid>
+</Window>
