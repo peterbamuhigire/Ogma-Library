@@ -75,6 +75,7 @@ internal sealed class LibraryHostService : ILibraryHostService
             State = LibraryHostState.Running,
             CertificateFingerprint = certificate.Fingerprint,
             HostAddress = bindAddress,
+            ConnectedClientCount = await _sessions.CountActiveAsync(cancellationToken).ConfigureAwait(false),
         };
         return _status;
     }
@@ -90,10 +91,18 @@ internal sealed class LibraryHostService : ILibraryHostService
     }
 
     /// <inheritdoc />
-    public Task<LibraryHostStatus> GetStatusAsync(CancellationToken cancellationToken = default)
+    public async Task<LibraryHostStatus> GetStatusAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(_status);
+        if (_status.State == LibraryHostState.Running)
+        {
+            _status = _status with
+            {
+                ConnectedClientCount = await _sessions.CountActiveAsync(cancellationToken).ConfigureAwait(false),
+            };
+        }
+
+        return _status;
     }
 }
 

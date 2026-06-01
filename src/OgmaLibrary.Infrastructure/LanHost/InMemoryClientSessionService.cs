@@ -33,6 +33,14 @@ internal sealed class InMemoryClientSessionService : IClientSessionService
     }
 
     /// <inheritdoc />
+    public Task<int> CountActiveAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        return Task.FromResult(_sessions.Values.Count(expires => expires > now));
+    }
+
+    /// <inheritdoc />
     public Task RevokeAllAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -78,6 +78,25 @@ internal sealed class ClientSessionService : IClientSessionService
     }
 
     /// <inheritdoc />
+    public async Task<int> CountActiveAsync(CancellationToken cancellationToken = default)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+
+        List<DateTimeOffset> unrevokedExpiryTimes = await lease.Context.HostClientSessions
+            .AsNoTracking()
+            .Where(x => x.RevokedUtc == null)
+            .Select(x => x.ExpiresUtc)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return unrevokedExpiryTimes.Count(expires => expires > now);
+    }
+
+    /// <inheritdoc />
     public async Task RevokeAllAsync(CancellationToken cancellationToken = default)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;

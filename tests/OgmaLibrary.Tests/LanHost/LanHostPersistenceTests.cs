@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
 
 namespace OgmaLibrary.Tests.LanHost;
@@ -69,6 +70,50 @@ public sealed class LanHostPersistenceTests
             Assert.NotNull(row.RevokedUtc);
             Assert.DoesNotContain(issued.Token, row.ClientId, StringComparison.Ordinal);
             Assert.DoesNotContain(issued.Token, row.Role, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ClientSessionService_CountActive_IgnoresExpiredAndRevokedSessions()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            await using ServiceProvider services = await CreateServicesAsync(dataDirectory);
+            var sessions = services.GetRequiredService<IClientSessionService>();
+
+            ClientSessionResult active = await sessions.IssueAsync(
+                new ClientSessionRequest("student-tablet-1", "Student", TimeSpan.FromMinutes(20)),
+                CancellationToken.None);
+            ClientSessionResult revoked = await sessions.IssueAsync(
+                new ClientSessionRequest("student-tablet-2", "Student", TimeSpan.FromMinutes(20)),
+                CancellationToken.None);
+
+            await using (CatalogueDbContext context = services.GetRequiredService<CatalogueDbContext>())
+            {
+                HostClientSessionRow revokedRow = await context.HostClientSessions
+                    .SingleAsync(x => x.TokenHash == ClientSessionService.HashToken(revoked.Token));
+                revokedRow.RevokedUtc = DateTimeOffset.UtcNow;
+                context.HostClientSessions.Add(new HostClientSessionRow
+                {
+                    TokenHash = new string('a', 64),
+                    ClientId = "expired-tablet",
+                    Role = "Student",
+                    IssuedUtc = DateTimeOffset.UtcNow.AddHours(-2),
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(-1),
+                });
+                await context.SaveChangesAsync();
+            }
+
+            int activeCount = await sessions.CountActiveAsync(CancellationToken.None);
+
+            Assert.True(await sessions.IsValidAsync(active.Token, CancellationToken.None));
+            Assert.Equal(1, activeCount);
         }
         finally
         {

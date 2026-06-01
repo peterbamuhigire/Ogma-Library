@@ -11,6 +11,9 @@ public interface IClientSessionService
     /// <summary>Returns whether a session token is currently valid.</summary>
     Task<bool> IsValidAsync(string token, CancellationToken cancellationToken = default);
 
+    /// <summary>Counts active, unexpired, non-revoked client sessions.</summary>
+    Task<int> CountActiveAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Revokes every active session, used when Host mode stops.</summary>
     Task RevokeAllAsync(CancellationToken cancellationToken = default);
 }

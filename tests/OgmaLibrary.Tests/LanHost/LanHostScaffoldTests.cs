@@ -62,8 +62,10 @@ public sealed class LanHostScaffoldTests
             Assert.Equal(LibraryHostState.Running, started.State);
             Assert.Equal(64, started.CertificateFingerprint?.Length);
             Assert.False(string.IsNullOrWhiteSpace(started.HostAddress));
+            Assert.Equal(1, started.ConnectedClientCount);
             Assert.True(sessionValidBeforeStop);
             Assert.Equal(LibraryHostState.Stopped, stopped.State);
+            Assert.Equal(0, stopped.ConnectedClientCount);
             Assert.Null(stopped.HostAddress);
             Assert.False(sessionValidAfterStop);
         }

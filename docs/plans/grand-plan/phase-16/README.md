@@ -470,3 +470,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-01 | Implementation | Advanced WP7/network boundary: added `LanClientAddressPolicy`, allowing loopback fallback and RFC1918 private IPv4 clients while rejecting public/APIPA/IPv6 internet addresses before auth. |
 | 2026-06-01 | Implementation | Hardened catalogue model repair by making the seeded `HostModeSettings` default row idempotent when generated create scripts are replayed for missing-table recovery. |
 | 2026-06-02 | Implementation | Advanced WP8: added Host share panel with QRCoder-backed join QR payload, manual `ogma-lan://` join URI, grouped fingerprint display, clipboard confirmation states, and Host address exposure in runtime status. |
+| 2026-06-02 | Implementation | Advanced WP8/WP9: connected Host status client counts to active unexpired, non-revoked LAN sessions instead of a fixed placeholder value. |
