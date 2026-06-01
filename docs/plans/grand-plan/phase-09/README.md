@@ -454,6 +454,12 @@ Current implementation progress:
 - Final closure is now executable through `scripts/Test-Phase09Signoff.ps1`;
   the gate remains pending until manual, owner, and remote-CI evidence rows are
   completed or explicitly waived.
+- Remote GitHub Actions evidence can be collected with
+  `scripts/Get-Phase09RemoteCiEvidence.ps1` when Actions read access is
+  available; the signoff gate accepts only a passing current-commit record.
+- The latest remote-CI collection attempt is archived at
+  `docs/qa/evidence/phase09-remote-ci-20260601-073039.md`; GitHub Actions API
+  access still returns 404 from this environment, so remote CI remains pending.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -533,3 +539,5 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added a Phase 09 manual-review preflight collector for dated QA evidence records | Codex |
 | 2026-06-01 | Archived the first Phase 09 preflight evidence record with format, Release build, and full Release test output | Codex |
 | 2026-06-01 | Added an executable Phase 09 signoff gate for preflight, manual, owner, accessibility, visual, and remote-CI evidence | Codex |
+| 2026-06-01 | Added a GitHub Actions remote-CI evidence collector for the Phase 09 signoff gate | Codex |
+| 2026-06-01 | Archived a remote-CI collection attempt showing GitHub Actions API 404 for the current pushed commit | Codex |

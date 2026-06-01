@@ -40,6 +40,7 @@ $a11yPath = Join-Path $repoRoot 'docs/qa/PHASE-09-A11Y-SIGNOFF.md'
 $phaseEvidencePath = Join-Path $repoRoot 'docs/plans/grand-plan/phase-09/evidence.md'
 $workflowPath = Join-Path $repoRoot '.github/workflows/ci.yml'
 $preflightDir = Join-Path $repoRoot 'docs/qa/evidence'
+$currentCommit = (& git rev-parse HEAD).Trim()
 
 $results = [System.Collections.Generic.List[object]]::new()
 $requiredFiles = @($manualPacketPath, $a11yPath, $phaseEvidencePath, $workflowPath)
@@ -103,17 +104,23 @@ else {
     Add-Result $results 'Accessibility signoff pending markers' 'Pending' $a11yPath "Complete or explicitly waive $a11yPending Pending marker(s)."
 }
 
-$remoteMarkers = @(
-    'remote run result unavailable',
-    'remote CI result not available',
-    'Workflow configured; remote run result unavailable'
-)
-$remotePending = @($remoteMarkers | Where-Object { $phaseEvidenceText -like "*$_*" })
-if ($remotePending.Count -eq 0) {
-    Add-Result $results 'Remote CI evidence' 'Pass' $phaseEvidencePath 'None'
+$remoteEvidence = Get-ChildItem -Path $preflightDir -Filter 'phase09-remote-ci-*.md' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+
+if ($null -eq $remoteEvidence) {
+    Add-Result $results 'Remote CI evidence' 'Pending' $preflightDir 'Run scripts/Get-Phase09RemoteCiEvidence.ps1 with GitHub Actions read access, or attach a dated Actions result manually.'
 }
 else {
-    Add-Result $results 'Remote CI evidence' 'Pending' $phaseEvidencePath 'Attach a dated GitHub Actions run result for the pushed Phase 09 commit.'
+    $remoteEvidenceText = Get-Content -Raw -Path $remoteEvidence.FullName
+    if ($remoteEvidenceText -like '*| Status | Pass |*' -and
+        $remoteEvidenceText -like '*| Conclusion | All completed workflow runs passed |*' -and
+        $remoteEvidenceText -like "*| Commit | $currentCommit |*") {
+        Add-Result $results 'Remote CI evidence' 'Pass' $remoteEvidence.FullName 'None'
+    }
+    else {
+        Add-Result $results 'Remote CI evidence' 'Pending' $remoteEvidence.FullName 'Attach a passing remote CI evidence file for the current commit.'
+    }
 }
 
 $workflowText = Get-Content -Raw -Path $workflowPath
@@ -136,7 +143,7 @@ $lines.Add('')
 $lines.Add("| Field | Value |")
 $lines.Add("| --- | --- |")
 $lines.Add("| Generated UTC | $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss')) |")
-$lines.Add("| Commit | $((& git rev-parse HEAD).Trim()) |")
+$lines.Add("| Commit | $currentCommit |")
 $lines.Add("| Branch | $((& git branch --show-current).Trim()) |")
 $lines.Add('')
 $lines.Add('| Gate | Status | Evidence | Next action |')
