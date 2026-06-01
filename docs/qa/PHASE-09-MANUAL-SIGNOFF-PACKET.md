@@ -62,25 +62,17 @@ Use a PDF with selectable text and at least one rotated page.
 
 ## Assistive Technology Walkthrough
 
-Update `docs/qa/PHASE-09-A11Y-SIGNOFF.md` with the dated result.
-
-| Check | Windows Narrator | macOS VoiceOver | Reviewer/date | Evidence reference |
-| --- | --- | --- | --- | --- |
-| Annotation overlay announces type, layer, and page. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Note anchor announces a note-specific label. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Bookmark panel announces list count and item labels. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Layer visibility, active marker, and delete controls announce action-specific labels. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Citation card copy/export buttons announce distinct actions. | Pending | Pending | Pending | Audio note or reviewer note. |
-| Reading-memory fields announce field purpose. | Pending | Pending | Pending | Reviewer note. Expected disposition label: `Disposition (1-5)`. |
-| Keyboard-only walkthrough reaches every Phase 09 control. | Pending | Pending | Pending | Reviewer note. |
+Record the dated Narrator, VoiceOver, and keyboard-only results in
+`docs/qa/PHASE-09-A11Y-SIGNOFF.md`. That file is the authoritative table for
+assistive-technology evidence; this packet intentionally does not duplicate its
+pending rows.
 
 ## Visual Accessibility Review
 
-| Check | Expected result | Result | Reviewer/date | Evidence reference |
-| --- | --- | --- | --- | --- |
-| Highlight colors are not the only signal. | Annotation labels and note anchors remain visible/understandable without relying on color alone. | Pending | Pending | Reviewer note. |
-| Highlight contrast matches automated gate in real rendering. | Highlights remain legible over page content in the target platform renderer. | Pending | Pending | Screenshot set. |
-| Pseudolocale screenshot polish. | `artifacts/screenshots/reader-qps-ploc.png` has no unacceptable clipping or overlapping text. | Pending | Pending | Reviewer note. |
+Record the dated color, contrast, and pseudolocale visual review in
+`docs/qa/PHASE-09-A11Y-SIGNOFF.md`. That file is the authoritative table for
+visual accessibility evidence; this packet intentionally does not duplicate its
+pending rows.
 
 ## Owner Decisions
 

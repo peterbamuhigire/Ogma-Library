@@ -454,6 +454,9 @@ Current implementation progress:
   `scripts/New-Phase09ManualEvidencePackage.ps1`, which creates a dated
   reviewer folder with screenshot/audio/export/note locations and per-row note
   templates for every pending manual and accessibility row.
+- The manual signoff packet now links to `docs/qa/PHASE-09-A11Y-SIGNOFF.md` as
+  the authoritative accessibility/visual review table instead of duplicating
+  those pending rows.
 - The first preflight record is archived at
   `docs/qa/evidence/phase09-preflight-20260601-072040.md` for commit
   `f4c09954bdeab37a59cdcc3350560eff133c919b`.
@@ -575,3 +578,4 @@ wording should be treated as post-Phase 09 scope.
 | 2026-06-01 | Made Phase 09 preflight cross-platform, added a manual evidence package helper, and hardened signoff evidence selection against newer invalid drafts | Codex |
 | 2026-06-01 | Added a local Phase 09 evidence-tooling smoke test covering preflight, manual evidence package generation, and draft-evidence shadow protection | Codex |
 | 2026-06-01 | Closed remaining owner-decision rows as implemented Phase 09 V1 defaults for palette, citation export scope, and reading-memory disposition wording | Codex |
+| 2026-06-01 | Removed duplicate accessibility/visual pending rows from the manual packet and made the A11Y signoff file the authoritative table for those checks | Codex |
