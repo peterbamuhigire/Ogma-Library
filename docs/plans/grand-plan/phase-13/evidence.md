@@ -4,13 +4,15 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1-WP6 are implemented and verified locally. The slices add the structural
+WP1-WP8 are implemented and verified locally. The slices add the structural
 domain contracts plus the metadata-only recommendation pipeline that later
 advisor composition, UI, and evaluation work will consume. Hybrid ranking is
 integrated behind a default-off option. Reading-plan generation now has a
 validated structured parser, embedded schema prompt, and retry-on-parse-failure
 pipeline. The typed advisor service is wired through DI, disabled by the Offline
-privacy tier, and answer mode is scaffolded for V2.
+privacy tier, and answer mode is scaffolded for V2. Recommendation and
+reading-plan Avalonia surfaces are implemented with localized view models and a
+headless render test.
 
 ## Verified Locally
 
@@ -21,10 +23,12 @@ privacy tier, and answer mode is scaffolded for V2.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RecommendationPipelineTests` | Passed: 5 recommendation pipeline tests including hybrid merge |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ReadingPlanPipelineTests\|FullyQualifiedName~RecommendationPipelineTests"` | Passed: 9 recommendation and reading-plan pipeline tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~AdvisorServiceTests\|FullyQualifiedName~ReadingPlanPipelineTests\|FullyQualifiedName~RecommendationPipelineTests"` | Passed: 13 advisor service and pipeline tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorViewModelTests` | Passed: 2 advisor view-model tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorViewRenderTests` | Passed: 1 advisor render test |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 360 core tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 362 core tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 21 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 104 UI tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 105 UI tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 
 ## Implemented Locally
@@ -58,6 +62,10 @@ privacy tier, and answer mode is scaffolded for V2.
 | Advisor service | `AdvisorService` composes recommendation and reading-plan pipelines, exposes `IsEnabled`, and fails closed with `AiDisabledException` when tier is Offline |
 | DI | `AddAiGatewayCore` registers `IAiAdvisorService`, recommendation pipeline services, hybrid services, and reading-plan services |
 | Architecture | `Architecture_AdvisorService_UsesOnlyAiGateway` guards the advisor application boundary from provider adapters |
+| Recommendation UI | `RecommendationPanelViewModel` and `RecommendationPanelView` show query, loading/error state, recommendation cards, text confidence bands, explanations, provenance chips, and open-book action |
+| Reading-plan UI | `ReadingPlanViewModel` and `ReadingPlanView` show goal input, generated steps, localized difficulty labels, estimates, checkpoints, and open-book action |
+| Advisor UI localization | English and French strings cover recommendation labels, plan labels, status text, accessible labels, and error state |
+| Advisor render test | `AdvisorViewRenderTests` headless-renders loaded recommendation and reading-plan surfaces |
 
 ## Verification Notes
 
@@ -71,6 +79,5 @@ privacy tier, and answer mode is scaffolded for V2.
 
 ## Remaining Phase 13 Work
 
-- WP7-WP8: recommendation and reading-plan UI.
 - WP9: offline structural evaluation harness and benchmark result.
 - WP10-WP11: extension SDK entry points, integration tests, golden-corpus gates, code review, remote CI, and manual accessibility evidence.

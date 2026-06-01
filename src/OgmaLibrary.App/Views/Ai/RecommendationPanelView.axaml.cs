@@ -1,0 +1,29 @@
+using Avalonia.Controls;
+using OgmaLibrary.App.ViewModels.Ai;
+
+namespace OgmaLibrary.App.Views.Ai;
+
+/// <summary>Recommendation panel view.</summary>
+public sealed partial class RecommendationPanelView : UserControl
+{
+    /// <summary>Initializes a new instance of <see cref="RecommendationPanelView"/>.</summary>
+    public RecommendationPanelView() => InitializeComponent();
+
+    private RecommendationPanelViewModel? ViewModel => DataContext as RecommendationPanelViewModel;
+
+    private async void Load_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.LoadAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void OpenBook_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel is not null && sender is Control { DataContext: RecommendationCardViewModel card })
+        {
+            await ViewModel.OpenBookAsync(card).ConfigureAwait(true);
+        }
+    }
+}

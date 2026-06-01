@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OgmaLibrary.App.ViewModels;
+using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
@@ -57,6 +58,8 @@ public static class CompositionRoot
 
         // View models — registered after ingestion pipeline so DI resolves all deps.
         services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<RecommendationPanelViewModel>();
+        services.AddTransient<ReadingPlanViewModel>();
 
         // Phase 04 — Catalogue & Data Layer.
         // The data directory defaults to "Ogma Library Data" under OS app-data.

@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Ai"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+             x:Class="OgmaLibrary.App.Views.Ai.RecommendationPanelView"
+             x:DataType="vm:RecommendationPanelViewModel">
+  <Grid RowDefinitions="Auto,Auto,* ,Auto" RowSpacing="12" Margin="16">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <svg:Svg Width="22" Height="22" Path="{Binding IconPath}" />
+      <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Text="{Binding Query}"
+               Watermark="{Binding QueryWatermark}"
+               MinWidth="280" />
+      <Button Grid.Column="1"
+              IsEnabled="{Binding CanLoad}"
+              Content="{Binding LoadLabel}"
+              Click="Load_Click" />
+    </Grid>
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Recommendations}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:RecommendationCardViewModel">
+            <Border BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10"
+                    Margin="0,0,0,8"
+                    AutomationProperties.Name="{Binding AccessibleLabel}">
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                  <TextBlock Text="{Binding RankText}" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding BookId}"
+                             TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="2"
+                          BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          Padding="6,2">
+                    <TextBlock Text="{Binding ConfidenceText}" FontSize="12" />
+                  </Border>
+                  <Button Grid.Column="3"
+                          Content="{Binding $parent[UserControl].DataContext.OpenBookLabel}"
+                          Click="OpenBook_Click" />
+                </Grid>
+
+                <TextBlock Grid.Row="1"
+                           Text="{Binding ExplanationSummary}"
+                           TextWrapping="Wrap" />
+                <ToggleButton Grid.Row="2"
+                              IsChecked="{Binding IsExplanationExpanded}"
+                              Content="{Binding WhyLabel}" />
+                <ItemsControl Grid.Row="3"
+                              IsVisible="{Binding IsExplanationExpanded}"
+                              ItemsSource="{Binding ProvenanceItems}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProvenanceChipViewModel">
+                      <Border BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                              BorderThickness="1"
+                              CornerRadius="4"
+                              Padding="6,2"
+                              Margin="0,0,6,6">
+                        <TextBlock Text="{Binding Text}" FontSize="12" />
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="3" Spacing="4">
+      <TextBlock Text="{Binding ErrorText}"
+                 IsVisible="{Binding HasError}"
+                 Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+      <TextBlock Text="{Binding StatusText}" />
+    </StackPanel>
+  </Grid>
+</UserControl>
