@@ -483,7 +483,7 @@ Current implementation progress:
   passing ancestor-commit record with no verification-impacting changes after
   the run.
 - The latest remote-CI collection attempt is archived at
-  `docs/qa/evidence/phase09-remote-ci-20260601-074523.md`; GitHub Actions API
+  `docs/qa/evidence/phase09-remote-ci-20260601-081542.md`; GitHub Actions API
   access still returns 404 from this environment, so remote CI remains pending.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
