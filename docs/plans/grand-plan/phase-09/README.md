@@ -474,3 +474,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added touch/pen-capable reader text-selection eligibility and refreshed Phase 09 evidence counts | Codex |
 | 2026-06-01 | Tightened folder scans so coexisting same-hash unregistered paths register as new books while true moves/renames still rematch | Codex |
 | 2026-06-01 | Rebuilt and relaunched the Release desktop app after rerunning direct-PDF/schema repair evidence, and refreshed stale startup/direct-PDF counts | Codex |
+| 2026-06-01 | Refreshed broader Phase 09 evidence counts and aligned the test plan with current implemented test names | Codex |

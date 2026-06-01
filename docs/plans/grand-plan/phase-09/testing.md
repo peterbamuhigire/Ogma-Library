@@ -37,22 +37,22 @@ All nine test layers applied to Annotations, Bookmarks & Reading Memory.
 
 | Test | Oracle |
 | --- | --- |
-| `ToScreenRect_NoRotation_IsIdentity` | `normalizedLeft=0.1, normalizedTop=0.2, w=0.3, h=0.1` at zoom 1.0, page 1000×1414 → `Rect(100, 283, 300, 141)` |
-| `ToScreenRect_90DegRotation_CorrectlyTransposed` | After 90° CW rotation, x and y swap and y origin inverts |
-| `ToScreenRect_180DegRotation_BothAxisInvert` | At 180°, left+width → right-anchored; top+height → bottom-anchored |
-| `ToScreenRect_AtZoom2_DoublesDimensions` | All coordinate components × 2 |
+| `AnnotationRenderHelper_NoRotation_IsIdentity` | `normalizedLeft=0.1, normalizedTop=0.2, w=0.3, h=0.1` at zoom 1.0, page 1000×1414 → `Rect(100, 283, 300, 141)` |
+| `AnnotationRenderHelper_90DegRotation_TransposesRegion` | After 90° CW rotation, x and y swap and y origin inverts |
+| `AnnotationRenderHelper_180DegRotation_InvertsBothAxes` | At 180°, left+width → right-anchored; top+height → bottom-anchored |
+| `AnnotationRenderHelper_ZoomFactor_DoublesDimensionsAndPosition` | All coordinate components × 2 |
 
 ### 3.2 Repositories — durable write
 
 | Test | Oracle |
 | --- | --- |
-| `AnnotationRepository_Create_PersistsBeforeReturn` | Row present in DB immediately after `CreateAsync` returns |
-| `AnnotationRepository_TransactionAbort_LeavesNoRow` | Simulate exception in `SaveChangesAsync`; row absent |
-| `BookmarkRepository_Create_PersistsBeforeReturn` | Row present |
-| `BookmarkRepository_Delete_RemovesRow` | Row absent after `DeleteAsync` |
+| `AnnotationRepository_CommittedAnnotation_SurvivesFreshContextReopen` | Row present in DB immediately after `CreateAsync` returns and after reopening a fresh context |
+| `AnnotationRepository_InvalidBook_RollsBackAnnotationAndBody` | Simulate invalid-book FK failure; annotation and body rows are absent and the context recovers |
+| `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete` | Create, rename, delete, and book-scoped delete event behavior round-trip |
+| `BookmarkService_CreateRenameDelete_RoundTripsAndEmitsBookScopedDelete` | Row is absent after `DeleteAsync` and a book-scoped delete event is emitted |
 | `AnnotationLayerService_Delete_MovesAnnotationsToDefaultLayer` | Annotations in deleted layer now have `LayerId = defaultLayerId` |
 | `AnnotationLayerService_Delete_IgnoresLayerFromDifferentBook` | Cross-book layer delete request leaves the other book's layer intact and emits no wrong-book event |
-| `ReadingMemoryRepository_Upsert_UpdatesExistingRow` | Second save updates, does not insert duplicate |
+| `ReadingMemoryService_Save_UpsertsAndValidatesDisposition` | Second save updates, does not insert duplicate; disposition rejects non-range values |
 
 ---
 
@@ -103,9 +103,9 @@ BenchmarkDotNet, so the checks run in the normal local/CI test path.
 
 | Benchmark | Gate | Method |
 | --- | --- | --- |
-| `AnnotationOverlay_RenderOverhead` | ≤ 10 ms additional per page-turn | Measure render time with 0 vs. 100 annotations on `simple-text` page |
-| `PageTurn_P95_With100Annotations` | ≤ 100 ms P95 (NFR-OGMA-005) | Extends Phase 08 benchmark with 100 highlights on each page |
-| `AnnotationWrite_P95` | ≤ 200 ms P95 | 50 sequential `CreateHighlightAsync` calls; measure wall time |
+| `AnnotationOverlay_RenderOverhead_100Annotations_Under10msP95` | ≤ 10 ms additional per page-turn | Measure render time with 0 vs. 100 annotations on `simple-text` page |
+| `CachedPageTurn_P95_With100Annotations_Under100ms` and `ReaderViewModel_PageTurnP95_With100AnnotationsPerPage_Under100ms` | ≤ 100 ms P95 (NFR-OGMA-005) | Extends Phase 08 benchmark with 100 highlights on each page |
+| `AnnotationWrite_P95_Under200ms` | ≤ 200 ms P95 | 50 sequential `CreateHighlightAsync` calls; measure wall time |
 
 ---
 
