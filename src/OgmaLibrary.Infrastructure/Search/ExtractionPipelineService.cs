@@ -166,6 +166,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
                     cancellationToken)
                 .ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            await SetBookStatusAsync(bookId, SearchBookIndexStatus.NotIndexed, CancellationToken.None)
+                .ConfigureAwait(false);
+            throw;
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             await RecordBookFailureAsync(bookId, book.ContentHash, ex.Message, cancellationToken)

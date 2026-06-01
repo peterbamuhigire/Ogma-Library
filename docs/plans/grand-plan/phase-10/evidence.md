@@ -7,8 +7,8 @@ This file tracks implementation evidence for Phase 10 Search & Indexing.
 ## Current Position
 
 Phase 10 has started with WP1, the backend portion of WP2, WP3 extraction
-pipeline foundations, and WP4 full-text search foundations. The schema and
-repository foundation is in place:
+pipeline foundations, WP4 full-text search foundations, and WP5 backend Index
+Manager foundations. The schema and repository foundation is in place:
 `Books.IndexStatus`, Phase 10 extraction/chunk columns, the FTS5
 external-content virtual table, trigger maintenance, Application-layer search
 contracts, Infrastructure repositories, migration repair for non-model FTS5
@@ -21,10 +21,13 @@ WP4 now has an Application-layer FTS contract, raw-SQL Infrastructure
 implementation with snippets and bm25 ranking, combined metadata/FTS
 deduplication, FTS integrity check, multi-source tests, and a warm 2,000-book
 P95 benchmark.
+WP5 now has an Application-layer Index Manager contract, status counts, event
+publication, transactional rebuild reset, pipeline-driven rebuild, FTS integrity
+gate, G7 rebuild reliability test, cancellation consistency, and extraction
+mid-book cancellation recovery.
 
-The phase is not complete. Search UI debounce/results, Index Manager UI, G7
-rebuild reliability, icons, i18n, and manual accessibility signoff remain
-pending.
+The phase is not complete. Search UI debounce/results, Index Manager UI, icons,
+i18n, and manual accessibility signoff remain pending.
 
 ## Automated Verification
 
@@ -39,7 +42,7 @@ pending.
 | `dotnet build tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release` | Passed: 0 warnings, 0 errors after metadata-search implementation |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 6 metadata-search service, scoring, special-character, field/shelf, and optimized 2,000-book P95 tests |
 | `dotnet build tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release` | Passed: 0 warnings, 0 errors after WP3 extraction pipeline implementation |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 16 WP1/WP2/WP3 search and worker tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 17 WP1/WP2/WP3 search and worker tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release` | Passed: 16 architecture tests after WP3 |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP3 formatting |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP3 |
@@ -49,6 +52,11 @@ pending.
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP4 |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 21 WP1-WP4 search tests |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 257, UI 93 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --filter "FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~IndexManagerServiceTests"` | Passed: 9 extraction cancellation and Index Manager backend tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP5 backend |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP5 backend |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~IndexManagerServiceTests\|FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~SearchExtractionWorkerTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests\|FullyQualifiedName~MetadataSearchServiceTests"` | Passed: 25 WP1-WP5 search tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 261, UI 93 |
 
 ## Evidence Map
 
@@ -83,12 +91,17 @@ pending.
 | FTS multi-source coverage | `FtsIndex_Search_MatchesDiacriticsAndMultipleSources` verifies page, note, tag, and description source hits |
 | FTS integrity check | `FtsIndex_Search_SanitizesInvalidInputAndIntegrityCheckPasses` |
 | FTS performance | `PerfBenchmark_FtsSearch_P95_LessThan500ms` seeds 2,000 books, warms the index, runs 50 queries, and asserts P95 <= 500 ms |
+| Index Manager contract | `IIndexManagerService`, `IndexManagerStatus`, `BookIndexStatusItem`, `IndexRebuildResult`, and `IndexStatusUpdate` under `src/OgmaLibrary.Application/Search/` |
+| Index Manager backend | `IndexManagerService` computes dashboard counts, approximate index size, per-book status rows, FTS integrity, and publishes status/rebuild events |
+| G7 rebuild gate | `IndexRebuild_CompletesWithoutDuplicatesOrCorruption` rebuilds a 100-book corpus, preserves chunk count, and verifies FTS integrity |
+| Rebuild cancellation consistency | `IndexRebuild_CancelledAfterReset_LeavesConsistentState` verifies reset leaves no chunks/pages and books recoverable as `NotIndexed` |
+| Extraction cancellation recovery | `ExtractionPipeline_CancelledMidBook_ResetsBookForRecovery` |
 
 ## Remaining Phase 10 Work
 
 - WP2: search view-model debounce, result-list interaction, and UI wiring.
 - WP3: larger golden-corpus PDF fixtures and true crash-injection resume test remain; core pipeline, chunking, failure isolation, and worker polling are implemented locally.
 - WP4: golden-corpus PDF fixtures remain; FTS service, snippets, integrity check, combined search, multi-source tests, and warm P95 benchmark are implemented locally.
-- WP5: Index Manager service/UI, rebuild/cancel flow, G7 reliability.
+- WP5: Index Manager UI remains; backend status service, rebuild/cancel flow, and G7 reliability are implemented locally.
 - WP6: search icons, en/fr strings, keyboard and screen-reader coverage.
 - WP7: full phase test/benchmark/CI closeout.

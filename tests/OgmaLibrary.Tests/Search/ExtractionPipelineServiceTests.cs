@@ -136,6 +136,24 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExtractionPipeline_CancelledMidBook_ResetsBookForRecovery()
+    {
+        string bookId = SeedBookWithSearchSources();
+        var rendererFactory = new FakeRendererFactory(
+            [
+                new TextLayer(0, [Word("before"), Word("cancel")], ExtractionQuality.Full),
+                new TextLayer(1, [Word("unused")], ExtractionQuality.Full),
+            ],
+            cancellingPages: [1]);
+        ExtractionPipelineService service = CreateService(rendererFactory);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            service.IndexBookAsync(bookId, CancellationToken.None));
+
+        Assert.Equal((int)SearchBookIndexStatus.NotIndexed, _context.Books.Single(b => b.BookId == bookId).IndexStatus);
+    }
+
+    [Fact]
     public async Task ExtractionPipeline_IndexNextBatch_FindsStaleAndPendingBooks()
     {
         string firstBook = SeedBook("P10BATCHBOOK00000000001", "hash-a");
@@ -264,10 +282,16 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
         private readonly IReadOnlyList<TextLayer> _pages;
         private readonly HashSet<int> _failingPages;
 
-        public FakeRendererFactory(IReadOnlyList<TextLayer> pages, IReadOnlyCollection<int>? failingPages = null)
+        private readonly HashSet<int> _cancellingPages;
+
+        public FakeRendererFactory(
+            IReadOnlyList<TextLayer> pages,
+            IReadOnlyCollection<int>? failingPages = null,
+            IReadOnlyCollection<int>? cancellingPages = null)
         {
             _pages = pages;
             _failingPages = failingPages?.ToHashSet() ?? [];
+            _cancellingPages = cancellingPages?.ToHashSet() ?? [];
         }
 
         public int ExtractCalls { get; private set; }
@@ -300,6 +324,11 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
                 if (_factory._failingPages.Contains(pageIndex))
                 {
                     throw new InvalidOperationException("fixture extraction failure");
+                }
+
+                if (_factory._cancellingPages.Contains(pageIndex))
+                {
+                    throw new OperationCanceledException();
                 }
 
                 return _factory._pages[pageIndex];

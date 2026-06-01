@@ -81,6 +81,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
         services.AddSingleton<IFtsIndexService, FtsIndexService>();
         services.AddSingleton<ICombinedSearchService, CombinedSearchService>();
+        services.AddSingleton<IIndexManagerService, IndexManagerService>();
 
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));

@@ -70,6 +70,26 @@ set, deduplicated by `BookId`. FTS integrity checks use SQLite's standard:
 INSERT INTO SearchFts5(SearchFts5) VALUES ('integrity-check');
 ```
 
+## Index Manager
+
+`IIndexManagerService` exposes backend data for the Index Manager dashboard:
+book counts by indexing state, pending OCR pages, failed extraction pages,
+chunk count, approximate text index size, FTS integrity, and per-book index
+status rows.
+
+`RebuildAsync` performs the destructive reset in one transaction:
+
+1. Delete `SearchChunks`.
+2. Delete `ExtractedPages`.
+3. Reset active books to `IndexStatus = NotIndexed`.
+4. Drive `IExtractionPipelineService.IndexNextBatchAsync` until no pending
+   books remain.
+5. Run the FTS integrity check.
+
+The service publishes `IndexStatusUpdate` events for status changes and rebuild
+lifecycle changes. If extraction is cancelled mid-book, the extraction pipeline
+resets that book to `NotIndexed` so a later worker pass or rebuild can recover.
+
 ## Rationale
 
 The external-content design avoids storing text twice in the catalogue while
