@@ -60,6 +60,38 @@ public sealed class OgmaSchemeHandlerTests : IDisposable
         Assert.Equal(expected, response.Body);
     }
 
+    [Fact]
+    public async Task SchemeHandlerTest_HtmlBootstrap_ReturnsTextHtml()
+    {
+        byte[] expected = "<!doctype html>"u8.ToArray();
+        string js = Path.Combine(_assetRoot, "js");
+        Directory.CreateDirectory(js);
+        await File.WriteAllBytesAsync(Path.Combine(js, "index.html"), expected);
+        var handler = new OgmaSchemeHandler(_assetRoot);
+
+        SchemeResponse response = await handler.HandleAsync(new Uri("ogma://assets/js/index.html"));
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal("text/html; charset=utf-8", response.ContentType);
+        Assert.Equal(expected, response.Body);
+    }
+
+    [Fact]
+    public async Task Shelf3DAssetPublisher_CopiesBuiltAssetsToOgmaJsRoot()
+    {
+        string sourceRoot = Path.Combine(_assetRoot, "source");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "index.html"), "<html></html>");
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "shelf3d.js"), "window.ogmaShelf3D = {};");
+        var publisher = new Shelf3DAssetPublisher(sourceRoot);
+
+        Uri bootstrapUri = await publisher.PublishAsync(_assetRoot);
+
+        Assert.Equal("ogma://assets/js/index.html", bootstrapUri.ToString());
+        Assert.True(File.Exists(Path.Combine(_assetRoot, "js", "index.html")));
+        Assert.True(File.Exists(Path.Combine(_assetRoot, "js", "shelf3d.js")));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_assetRoot))

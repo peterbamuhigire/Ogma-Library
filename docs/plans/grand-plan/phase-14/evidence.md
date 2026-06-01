@@ -23,6 +23,10 @@ area and renders an accessible fallback bookshelf list when WebGL2 is absent.
 
 The platform-specific native WebView packages are not wired yet; the bridge is
 ready for those adapters through `IWebViewHostAdapter`.
+The web asset path is now local-only: `src/shelf3d` bundles Three.js into the
+Bookshelf3D assembly asset folder, `index.html` uses a restrictive CSP, and
+`Shelf3DAssetPublisher` copies the bootstrap and bundle into `ogma://assets/js/`
+for runtime serving.
 
 ## Verified Locally
 
@@ -38,6 +42,10 @@ ready for those adapters through `IWebViewHostAdapter`.
 | `npx --yes -p typescript tsc --noEmit -p src\shelf3d\tsconfig.json` | Passed: strict TypeScript message contract check |
 | `npm install` in `src\shelf3d` | Passed: installed TypeScript, Three.js, and type declarations; 0 vulnerabilities |
 | `npm run typecheck` in `src\shelf3d` | Passed: strict TypeScript scene and message contract check |
+| `npm run build` in `src\shelf3d` | Passed: bundled local Three.js shelf to `src\OgmaLibrary.Bookshelf3D\Assets\Web\shelf3d.js` |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 6 scheme/publisher tests |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
 ## Implemented Locally
 
@@ -67,13 +75,16 @@ ready for those adapters through `IWebViewHostAdapter`.
 | Composition root | `IWebViewBridge` is registered per platform facade and `Bookshelf3DViewModel` is registered as transient |
 | Bookshelf3D view | `Bookshelf3DView` defines the toolbar, native host placeholder, and accessible fallback list |
 | Bookshelf3D render test | `Bookshelf3DViewRenderTests` headless-renders the fallback catalogue path |
+| Local web bootstrap | `Assets/Web/index.html` loads only local `shelf3d.js` under a restrictive CSP |
+| Three.js bundle | `npm run build` emits the offline bundle into the Bookshelf3D project for publish-time copy |
+| Asset publisher | `Shelf3DAssetPublisher` copies `index.html` and `shelf3d.js` into the `js` asset class served by `ogma://` |
 
 ## Remaining Phase 14 Work
 
 - WP1 native adapter binding: plug real WebView2/WKWebView controls into `IWebViewHostAdapter` and register platform DI.
-- WP2 native bridge registration of the `ogma://` handler remains for the WebView initialization slice.
+- WP2 native bridge registration of the `ogma://` handler remains for the WebView initialization slice; local JS assets are now publishable and scheme-served.
 - WP4 worker integration/cache invalidation remains: generated textures are tested but not yet wired into the ingestion/update pipeline.
-- WP5 texture atlas, bundled output, FPS telemetry/baseline, and visual smoke verification remain.
+- WP5 texture atlas, FPS telemetry/baseline, and visual smoke verification remain.
 - WP6 reader-open parity for double-click remains pending until the reader navigation command is integrated with the 3D shell.
 - WP3 full side-effect integration test against the ViewModel stack after WP6 exists.
 - WP4-WP9 spine textures, Three.js scene, view model/view, fallback, performance benchmarks, review, and remote CI evidence.

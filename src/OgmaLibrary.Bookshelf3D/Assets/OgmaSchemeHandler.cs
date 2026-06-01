@@ -116,6 +116,7 @@ public sealed class OgmaSchemeHandler : ISchemeHandler
         {
             ".png" => "image/png",
             ".jpg" or ".jpeg" => "image/jpeg",
+            ".html" or ".htm" => "text/html; charset=utf-8",
             ".js" => "application/javascript",
             ".json" => "application/json",
             _ => "application/octet-stream",
