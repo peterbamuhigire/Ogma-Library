@@ -55,7 +55,7 @@ Latest full UI release command:
 dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build
 ```
 
-Result: passed, 85 tests.
+Result: passed, 93 tests.
 
 ## Assistive Technology Walkthrough
 

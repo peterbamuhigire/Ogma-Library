@@ -441,6 +441,8 @@ Current implementation progress:
   controls now have rendered-view coverage; inline bookmark rename also
   compares against the persisted bookmark label so two-way text binding cannot
   bypass the save route.
+- The latest local Release full-suite gate after the rendered bookmark pass is
+  green: Architecture 15, Core 236, and UI 93 tests.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -515,3 +517,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added rendered selection action button coverage for highlight, note, and citation routes | Codex |
 | 2026-06-01 | Added rendered layer lifecycle coverage and fixed inline layer rename after two-way binding | Codex |
 | 2026-06-01 | Added rendered bookmark direct-control coverage and fixed inline bookmark rename after two-way binding | Codex |
+| 2026-06-01 | Refreshed the local Release full-suite gate after bookmark direct-control coverage: Architecture 15, Core 236, UI 93 | Codex |
