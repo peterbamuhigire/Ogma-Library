@@ -1,11 +1,14 @@
 using System.Data.Common;
+using System.Security.Cryptography;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
+using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Tests.Catalogue;
+using OgmaLibrary.Tests.Reader;
 
 namespace OgmaLibrary.Tests.Search;
 
@@ -184,6 +187,38 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
             Assert.Equal((int)SearchBookIndexStatus.Indexed, _context.Books.Single(b => b.BookId == bookId).IndexStatus));
     }
 
+    [Fact]
+    public async Task ExtractionPipeline_GeneratedPdfGoldenCorpus_IndexesRealAdapterText()
+    {
+        string corpusPath = ReaderTestPdfFixture.PdfPath;
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["P10GOLDENSIMPLE0000001"] = corpusPath,
+        };
+        foreach ((string bookId, string path) in paths)
+        {
+            SeedBook(bookId, ComputeSha256(path));
+        }
+
+        var service = new ExtractionPipelineService(
+            _context,
+            new FakeBookFileLocator(paths),
+            new PdfiumAdapterFactory(),
+            new ExtractedTextStore(_context),
+            new SearchChunkRepository(_context),
+            new SearchChunker());
+
+        ExtractionBookResult result = await service.IndexBookAsync("P10GOLDENSIMPLE0000001", CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(ReaderTestPdfFixture.PageCount, result.PagesProcessed);
+        Assert.Equal(1, _context.Books.Count(book => book.IndexStatus == (int)SearchBookIndexStatus.Indexed));
+        Assert.True(_context.ExtractedPages.Any(page =>
+            page.ExtractionQuality == (int)SearchExtractionQuality.Full ||
+            page.ExtractionQuality == (int)SearchExtractionQuality.Partial));
+        Assert.Equal(1, CountFtsMatches("SEARCHABLE"));
+    }
+
     private ExtractionPipelineService CreateService(FakeRendererFactory rendererFactory)
     {
         var chunker = new SearchChunker();
@@ -271,10 +306,30 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
 
     private static TextWord Word(string text) => new(text, 0, 0, 0.1, 0.1);
 
+    private static string ComputeSha256(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
+
     private sealed class FakeBookFileLocator : IBookFileLocator
     {
-        public Task<string?> LocateAsync(string bookId, CancellationToken ct) =>
-            Task.FromResult<string?>($"C:\\fake\\{bookId}.pdf");
+        private readonly IReadOnlyDictionary<string, string>? _paths;
+
+        public FakeBookFileLocator(IReadOnlyDictionary<string, string>? paths = null)
+        {
+            _paths = paths;
+        }
+
+        public Task<string?> LocateAsync(string bookId, CancellationToken ct)
+        {
+            if (_paths is not null && _paths.TryGetValue(bookId, out string? path))
+            {
+                return Task.FromResult<string?>(path);
+            }
+
+            return Task.FromResult<string?>($"C:\\fake\\{bookId}.pdf");
+        }
     }
 
     private sealed class FakeRendererFactory : IPdfRendererFactory

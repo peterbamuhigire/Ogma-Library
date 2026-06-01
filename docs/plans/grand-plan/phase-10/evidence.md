@@ -31,9 +31,10 @@ rebuild confirmation/progress/status summaries, Ctrl+F/Ctrl+K/Escape/Enter
 keyboard paths, stale-result protection, and automation names/status text on the
 panels.
 
-The phase is not complete. Phase 10 placeholder SVG icons and pseudolocale
-render evidence are wired, but premium icon asset procurement, golden-corpus/
-manual accessibility signoff, and final closeout remain pending.
+The phase is not complete. Phase 10 placeholder SVG icons, pseudolocale render
+evidence, and generated-PDF extraction smoke coverage are wired, but premium
+icon asset procurement, external TOC/scanned golden-corpus fixtures, manual
+accessibility signoff, and final closeout remain pending.
 
 ## Automated Verification
 
@@ -75,6 +76,11 @@ manual accessibility signoff, and final closeout remain pending.
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after pseudolocale render coverage |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after pseudolocale render coverage |
 | `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 261, UI 102 |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --filter "FullyQualifiedName~ExtractionPipeline_GeneratedPdfGoldenCorpus_IndexesRealAdapterText"` | Passed: generated QuestPDF fixture through real `PdfiumAdapterFactory` indexed and FTS matched |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after generated-PDF extraction smoke |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after generated-PDF extraction smoke |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ExtractionPipelineServiceTests\|FullyQualifiedName~IndexManagerServiceTests\|FullyQualifiedName~FtsIndexServiceTests\|FullyQualifiedName~MetadataSearchServiceTests\|FullyQualifiedName~Phase10SearchIndexSchemaTests"` | Passed: 25 focused Phase 10 backend/search tests |
+| `dotnet test OgmaLibrary.sln --configuration Release --no-build` | Passed: Architecture 16, Core 262, UI 102 |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after WP6 UI foundations |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors after WP6 UI foundations |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build` | Passed: 16 architecture tests after WP6 UI foundations |
@@ -106,6 +112,7 @@ manual accessibility signoff, and final closeout remain pending.
 | Idempotent/resumable rerun | `ExtractionPipeline_RerunWithSameHash_SkipsPagesAndAvoidsDuplicateChunks` |
 | Page failure isolation | `ExtractionPipeline_PageFailure_RecordsFailedPageAndJobThenContinues` records `ExtractionFailed` jobs and continues indexing healthy pages |
 | Pending/stale batch selection | `ExtractionPipeline_IndexNextBatch_FindsStaleAndPendingBooks` |
+| Generated-PDF extraction smoke | `ExtractionPipeline_GeneratedPdfGoldenCorpus_IndexesRealAdapterText` runs a QuestPDF-generated PDF through `PdfiumAdapterFactory`, persists extracted page quality, writes page chunks, and verifies FTS match |
 | Background scheduling | `SearchExtractionWorker_StartAsync_PollsExtractionPipeline` verifies hosted worker polling |
 | UI test determinism | `tests/OgmaLibrary.Tests.Ui/TestAppBuilder.cs` disables UI-test parallelization because the shared Avalonia headless app is not parallel-safe |
 | FTS search contract | `IFtsIndexService`, `FtsSearchResult`, and `FtsIntegrityResult` under `src/OgmaLibrary.Application/Search/` |
@@ -129,8 +136,8 @@ manual accessibility signoff, and final closeout remain pending.
 ## Remaining Phase 10 Work
 
 - WP2: core search view-model debounce, result-list interaction, and shell wiring are implemented locally.
-- WP3: larger golden-corpus PDF fixtures and true crash-injection resume test remain; core pipeline, chunking, failure isolation, and worker polling are implemented locally.
-- WP4: golden-corpus PDF fixtures remain; FTS service, snippets, integrity check, combined search, multi-source tests, and warm P95 benchmark are implemented locally.
+- WP3: external TOC/scanned golden-corpus PDF fixtures and true crash-injection resume test remain; generated-PDF extraction smoke, core pipeline, chunking, failure isolation, and worker polling are implemented locally.
+- WP4: external TOC/scanned golden-corpus PDF fixtures remain; generated-PDF FTS smoke, FTS service, snippets, integrity check, combined search, multi-source tests, and warm P95 benchmark are implemented locally.
 - WP5: backend status service, rebuild/cancel flow, G7 reliability, and shell-mounted Index Manager UI are implemented locally.
 - WP6: premium replacement icon assets and manual screen-reader signoff remain; placeholder SVGs, pseudolocale render coverage, keyboard paths, rebuild progress/confirmation, en/fr strings, and automation names are implemented locally.
 - WP7: full phase test/benchmark/CI closeout.
