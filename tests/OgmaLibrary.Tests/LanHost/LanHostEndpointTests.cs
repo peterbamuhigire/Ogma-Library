@@ -52,6 +52,8 @@ public sealed class LanHostEndpointTests
             string catalogueJson = await catalogue.Content.ReadAsStringAsync();
             using HttpResponseMessage pagedCatalogue = await http.GetAsync("/api/v1/catalogue?page=1&pageSize=1");
             string pagedCatalogueJson = await pagedCatalogue.Content.ReadAsStringAsync();
+            using HttpResponseMessage search = await http.GetAsync("/api/v1/catalogue/search?q=Second&pageSize=1");
+            string searchJson = await search.Content.ReadAsStringAsync();
             using HttpResponseMessage bookDetail = await http.GetAsync("/api/v1/catalogue/01LANENDPOINT000000000001");
             string bookDetailJson = await bookDetail.Content.ReadAsStringAsync();
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
@@ -71,6 +73,7 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             Assert.Equal(HttpStatusCode.OK, bookDetail.StatusCode);
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
             Assert.Equal(assetBytes, servedAsset);
@@ -90,6 +93,8 @@ public sealed class LanHostEndpointTests
 
             Assert.Contains("LAN Endpoint Book", bookDetailJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", bookDetailJson, StringComparison.Ordinal);
+            Assert.Contains("Second LAN Endpoint Book", searchJson, StringComparison.Ordinal);
+            Assert.Contains("01LANENDPOINT000000000002", searchJson, StringComparison.Ordinal);
             Assert.True(auditEvents.Count >= 4);
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.AfterJson?.Contains("\"statusCode\":401", StringComparison.Ordinal) == true);
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.ActorId?.StartsWith("session:", StringComparison.Ordinal) == true);

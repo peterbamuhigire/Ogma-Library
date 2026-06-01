@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
@@ -16,6 +17,7 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 internal sealed class KestrelHostModeListener : IHostModeListener
 {
     private readonly ICatalogueReadModel _catalogueReadModel;
+    private readonly IMetadataSearchService _metadataSearch;
     private readonly ISidecarService _sidecarService;
     private readonly ILanBookFileResolver _fileResolver;
     private readonly IClientSessionService _sessions;
@@ -25,6 +27,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
     public KestrelHostModeListener(
         ICatalogueReadModel catalogueReadModel,
+        IMetadataSearchService metadataSearch,
         ISidecarService sidecarService,
         ILanBookFileResolver fileResolver,
         IClientSessionService sessions,
@@ -32,6 +35,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IAuditRepository audit)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
+        _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
         _sidecarService = sidecarService ?? throw new ArgumentNullException(nameof(sidecarService));
         _fileResolver = fileResolver ?? throw new ArgumentNullException(nameof(fileResolver));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
@@ -173,6 +177,19 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 PageSize: size,
                 ReturnedCount: items.Count,
                 HasMore: fetched.Count > pageNumber * size));
+        });
+
+        app.MapGet("/api/v1/catalogue/search", async (string? q, int? pageSize, CancellationToken ct) =>
+        {
+            int size = Math.Clamp(pageSize ?? 20, 1, 50);
+            IReadOnlyList<MetadataSearchResult> results = await _metadataSearch.SearchAsync(q, ct)
+                .ConfigureAwait(false);
+            List<MetadataSearchResult> items = results.Take(size).ToList();
+            return Results.Json(new LanCatalogueSearchPage(
+                Query: q?.Trim() ?? string.Empty,
+                Items: items,
+                ReturnedCount: items.Count,
+                HasMore: results.Count > size));
         });
 
         app.MapGet("/api/v1/catalogue/{bookId}", async (string bookId, CancellationToken ct) =>
@@ -327,6 +344,12 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IReadOnlyList<BookSummaryProjection> Items,
         int Page,
         int PageSize,
+        int ReturnedCount,
+        bool HasMore);
+
+    private sealed record LanCatalogueSearchPage(
+        string Query,
+        IReadOnlyList<MetadataSearchResult> Items,
         int ReturnedCount,
         bool HasMore);
 
