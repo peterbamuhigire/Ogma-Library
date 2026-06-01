@@ -4,9 +4,10 @@ Date started: 2026-06-01
 
 ## Current Status
 
-WP1-WP2 are implemented and verified locally. The slices add the structural
+WP1-WP3 are implemented and verified locally. The slices add the structural
 domain contracts plus the metadata-only recommendation pipeline that later
-advisor composition, UI, and evaluation work will consume.
+advisor composition, UI, and evaluation work will consume. Hybrid ranking is
+integrated behind a default-off option.
 
 ## Verified Locally
 
@@ -14,8 +15,9 @@ advisor composition, UI, and evaluation work will consume.
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~AdvisorDomainTests` | Passed: 17 Phase 13 advisor domain and localization tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~RecommendationPipelineTests\|FullyQualifiedName~AdvisorDomainTests"` | Passed: 21 advisor domain and metadata pipeline tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RecommendationPipelineTests` | Passed: 5 recommendation pipeline tests including hybrid merge |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 351 core tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore` | Passed: 352 core tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 20 architecture tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore` | Passed: 104 UI tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
@@ -40,18 +42,23 @@ advisor composition, UI, and evaluation work will consume.
 | Provenance validator | `RecommendationProvenanceValidator` strips hallucinated provenance and falls back to deterministic local ranking when most ids are invalid |
 | Structural oracle | `RecommendationStructuralValidator` checks sequential rank, confidence bounds, explanation, and provenance |
 | Pipeline | `RecommendationPipeline` routes recommendation calls through `IAiGateway` and validates local-only output before returning cards |
+| Advisor options | `AdvisorOptions` keeps hybrid ranking disabled by default and exposes AI/semantic merge weights |
+| Hybrid adapter | `HybridRankerConsumer` consumes Phase 11 `ISemanticSearchService` scores without coupling advisor code to search internals |
+| Hybrid merger | `HybridRecommendationMerger` combines provider recommendation order and Phase 11 ranking scores, then re-ranks cards structurally |
 
 ## Verification Notes
 
 - One parallel architecture run collided with a core test build output lock on
   `OgmaLibrary.Application.dll`; the architecture suite passed when rerun alone.
+- A later parallel core/architecture run hit the same build-output lock; both
+  suites passed when run sequentially.
 - Two full UI runs exposed different existing timing-sensitive tests; both failed
   cases passed when rerun in isolation, and the third full UI run passed all 104
   tests.
 
 ## Remaining Phase 13 Work
 
-- WP3-WP6: hybrid ranking, reading-plan service, answer-mode scaffold, and advisor composition.
+- WP4-WP6: reading-plan service, answer-mode scaffold, and advisor composition.
 - WP7-WP8: recommendation and reading-plan UI.
 - WP9: offline structural evaluation harness and benchmark result.
 - WP10-WP11: extension SDK entry points, integration tests, golden-corpus gates, code review, remote CI, and manual accessibility evidence.

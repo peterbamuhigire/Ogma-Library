@@ -22,6 +22,8 @@ public static class AiServiceExtensions
         services.AddSingleton<IRecommendationResponseParser, RecommendationResponseParser>();
         services.AddSingleton<IRecommendationProvenanceValidator, RecommendationProvenanceValidator>();
         services.AddSingleton<IRecommendationStructuralValidator, RecommendationStructuralValidator>();
+        services.AddSingleton<IHybridRankerConsumer, HybridRankerConsumer>();
+        services.AddSingleton<IHybridRecommendationMerger, HybridRecommendationMerger>();
         services.AddSingleton<IRecommendationPipeline, RecommendationPipeline>();
         services.AddHttpClient("ai:openai", client => client.BaseAddress = new Uri("https://api.openai.com/v1/"));
         services.AddHttpClient("ai:deepseek", client => client.BaseAddress = new Uri("https://api.deepseek.com/v1/"));

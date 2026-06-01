@@ -12,6 +12,8 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
     private readonly IRecommendationResponseParser _parser;
     private readonly IRecommendationProvenanceValidator _provenanceValidator;
     private readonly IRecommendationStructuralValidator _structuralValidator;
+    private readonly IHybridRankerConsumer _hybridRanker;
+    private readonly IHybridRecommendationMerger _hybridMerger;
 
     /// <summary>Initializes a new instance of <see cref="RecommendationPipeline"/>.</summary>
     public RecommendationPipeline(
@@ -20,7 +22,9 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         IAiGateway gateway,
         IRecommendationResponseParser parser,
         IRecommendationProvenanceValidator provenanceValidator,
-        IRecommendationStructuralValidator structuralValidator)
+        IRecommendationStructuralValidator structuralValidator,
+        IHybridRankerConsumer hybridRanker,
+        IHybridRecommendationMerger hybridMerger)
     {
         ArgumentNullException.ThrowIfNull(catalogueReader);
         ArgumentNullException.ThrowIfNull(payloadEnricher);
@@ -28,6 +32,8 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         ArgumentNullException.ThrowIfNull(parser);
         ArgumentNullException.ThrowIfNull(provenanceValidator);
         ArgumentNullException.ThrowIfNull(structuralValidator);
+        ArgumentNullException.ThrowIfNull(hybridRanker);
+        ArgumentNullException.ThrowIfNull(hybridMerger);
 
         _catalogueReader = catalogueReader;
         _payloadEnricher = payloadEnricher;
@@ -35,6 +41,8 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         _parser = parser;
         _provenanceValidator = provenanceValidator;
         _structuralValidator = structuralValidator;
+        _hybridRanker = hybridRanker;
+        _hybridMerger = hybridMerger;
     }
 
     /// <inheritdoc />
@@ -75,6 +83,13 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             query.MaxResults,
             options.Model,
             options.Tier);
+        if (options.AdvisorOptions.UseHybridRanking)
+        {
+            IReadOnlyList<RankedCandidate> rankedCandidates = await _hybridRanker
+                .RankAsync(query, payload.Candidates, cancellationToken)
+                .ConfigureAwait(false);
+            localOnly = _hybridMerger.Merge(localOnly, rankedCandidates, options.AdvisorOptions, query.MaxResults);
+        }
 
         AdvisorValidationResult validation = _structuralValidator.Validate(localOnly);
         if (!validation.IsValid)

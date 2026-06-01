@@ -63,6 +63,46 @@ public sealed record MetadataPayload(
     IReadOnlyDictionary<string, string> MetadataFields,
     int EstimatedCharacters);
 
+/// <summary>Advisor recommendation feature options.</summary>
+public sealed record AdvisorOptions
+{
+    /// <summary>Creates advisor recommendation options.</summary>
+    /// <param name="useHybridRanking">Whether to merge Phase 11 ranking signals into AI recommendations.</param>
+    /// <param name="aiWeight">Weight assigned to the provider recommendation order.</param>
+    /// <param name="semanticWeight">Weight assigned to Phase 11 semantic/hybrid score.</param>
+    public AdvisorOptions(
+        bool useHybridRanking = false,
+        double aiWeight = 0.6,
+        double semanticWeight = 0.4)
+    {
+        if (!double.IsFinite(aiWeight) || aiWeight < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(aiWeight), aiWeight, "AI recommendation weight cannot be negative.");
+        }
+
+        if (!double.IsFinite(semanticWeight) || semanticWeight < 0.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(semanticWeight), semanticWeight, "Semantic recommendation weight cannot be negative.");
+        }
+
+        UseHybridRanking = useHybridRanking;
+        AiWeight = aiWeight;
+        SemanticWeight = semanticWeight;
+    }
+
+    /// <summary>Default advisor options; hybrid ranking is disabled until performance is proven.</summary>
+    public static AdvisorOptions Default { get; } = new();
+
+    /// <summary>Whether to merge Phase 11 ranking signals into AI recommendations.</summary>
+    public bool UseHybridRanking { get; }
+
+    /// <summary>Weight assigned to the provider recommendation order.</summary>
+    public double AiWeight { get; }
+
+    /// <summary>Weight assigned to Phase 11 semantic/hybrid score.</summary>
+    public double SemanticWeight { get; }
+}
+
 /// <summary>Provider/model/tier settings for a recommendation gateway call.</summary>
 public sealed record RecommendationGenerationOptions
 {
@@ -70,7 +110,12 @@ public sealed record RecommendationGenerationOptions
     /// <param name="tier">Requested AI privacy tier.</param>
     /// <param name="provider">Provider key, for example openai, anthropic, or ollama.</param>
     /// <param name="model">Provider model identifier.</param>
-    public RecommendationGenerationOptions(AiPrivacyTier tier, string provider, string model)
+    /// <param name="advisorOptions">Advisor feature options.</param>
+    public RecommendationGenerationOptions(
+        AiPrivacyTier tier,
+        string provider,
+        string model,
+        AdvisorOptions? advisorOptions = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
@@ -78,6 +123,7 @@ public sealed record RecommendationGenerationOptions
         Tier = tier;
         Provider = provider;
         Model = model;
+        AdvisorOptions = advisorOptions ?? AdvisorOptions.Default;
     }
 
     /// <summary>Requested AI privacy tier.</summary>
@@ -88,6 +134,9 @@ public sealed record RecommendationGenerationOptions
 
     /// <summary>Provider model identifier.</summary>
     public string Model { get; }
+
+    /// <summary>Advisor feature options.</summary>
+    public AdvisorOptions AdvisorOptions { get; }
 }
 
 /// <summary>Reads local catalogue metadata for recommendation candidates.</summary>
@@ -142,6 +191,36 @@ public interface IRecommendationStructuralValidator
 {
     /// <summary>Validates card shape, confidence bounds, provenance, and sequential rank.</summary>
     AdvisorValidationResult Validate(IReadOnlyList<RecommendationCard> cards);
+}
+
+/// <summary>Candidate enriched with Phase 11 semantic/hybrid ranking signals.</summary>
+/// <param name="Candidate">The local metadata candidate.</param>
+/// <param name="HybridScore">Normalized Phase 11 hybrid score in [0,1].</param>
+/// <param name="SemanticScore">Optional normalized semantic score in [0,1].</param>
+public sealed record RankedCandidate(
+    BookMetadataDto Candidate,
+    double HybridScore,
+    double? SemanticScore);
+
+/// <summary>Consumes Phase 11 ranking without leaking search implementation details into the advisor pipeline.</summary>
+public interface IHybridRankerConsumer
+{
+    /// <summary>Ranks local recommendation candidates with Phase 11 signals.</summary>
+    Task<IReadOnlyList<RankedCandidate>> RankAsync(
+        RecommendationQuery query,
+        IReadOnlyList<BookMetadataDto> candidates,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>Merges provider recommendation order with Phase 11 semantic/hybrid ranking signals.</summary>
+public interface IHybridRecommendationMerger
+{
+    /// <summary>Returns a re-ranked recommendation list.</summary>
+    IReadOnlyList<RecommendationCard> Merge(
+        IReadOnlyList<RecommendationCard> aiCards,
+        IReadOnlyList<RankedCandidate> rankedCandidates,
+        AdvisorOptions options,
+        int maxResults);
 }
 
 /// <summary>Metadata-only recommendation pipeline.</summary>

@@ -48,6 +48,60 @@ public sealed class RecommendationPipelineTests
     }
 
     [Fact]
+    public async Task HybridPath_MergesSemanticAndAiScores()
+    {
+        BookMetadataDto[] candidates =
+        [
+            Candidate("BOOK-P13-HYBRID-001", "AI First", ["general"]),
+            Candidate("BOOK-P13-HYBRID-002", "Semantic First", ["systems"]),
+        ];
+        var gateway = new FakeAiGateway(
+            """
+            [
+              {
+                "book_id": "BOOK-P13-HYBRID-001",
+                "rank": 1,
+                "confidence": 0.90,
+                "explanation": "The provider ranked this first.",
+                "provenance": [
+                  { "book_id": "BOOK-P13-HYBRID-001", "field": "Title", "field_value": "AI First" }
+                ]
+              },
+              {
+                "book_id": "BOOK-P13-HYBRID-002",
+                "rank": 2,
+                "confidence": 0.70,
+                "explanation": "The provider ranked this second.",
+                "provenance": [
+                  { "book_id": "BOOK-P13-HYBRID-002", "field": "Tags", "field_value": "systems" }
+                ]
+              }
+            ]
+            """);
+        RecommendationPipeline pipeline = CreatePipeline(
+            candidates,
+            gateway,
+            new FakeHybridRanker(
+                [
+                    new RankedCandidate(candidates[0], 0.05, 0.05),
+                    new RankedCandidate(candidates[1], 1.0, 1.0),
+                ]));
+
+        IReadOnlyList<RecommendationCard> cards = await pipeline.GetRecommendationsAsync(
+            new RecommendationQuery("systems", maxResults: 2),
+            new RecommendationGenerationOptions(
+                AiPrivacyTier.MetadataOnly,
+                "openai",
+                "gpt-test",
+                new AdvisorOptions(useHybridRanking: true, aiWeight: 0.4, semanticWeight: 0.6)),
+            CancellationToken.None);
+
+        Assert.Equal("BOOK-P13-HYBRID-002", cards[0].BookId.Value);
+        Assert.Equal(1, cards[0].Rank);
+        Assert.Contains(cards[0].Explanation.ProvenanceItems, item => item.MatchField == RecommendationMatchField.SemanticScore);
+    }
+
+    [Fact]
     public void ProvenanceValidator_Strips_HallucinatedIds()
     {
         BookMetadataDto[] candidates =
@@ -134,14 +188,17 @@ public sealed class RecommendationPipelineTests
 
     private static RecommendationPipeline CreatePipeline(
         IReadOnlyList<BookMetadataDto> candidates,
-        IAiGateway gateway) =>
+        IAiGateway gateway,
+        IHybridRankerConsumer? hybridRanker = null) =>
         new(
             new FakeCatalogueReader(candidates),
             new MetadataPayloadEnricher(),
             gateway,
             new RecommendationResponseParser(),
             new RecommendationProvenanceValidator(),
-            new RecommendationStructuralValidator());
+            new RecommendationStructuralValidator(),
+            hybridRanker ?? new FakeHybridRanker([]),
+            new HybridRecommendationMerger());
 
     private static BookMetadataDto Candidate(string bookId, string title, IReadOnlyList<string> tags) =>
         new(
@@ -173,5 +230,14 @@ public sealed class RecommendationPipelineTests
             LastRequest = request;
             return Task.FromResult(new AiCompletion(responseText, 100, 50));
         }
+    }
+
+    private sealed class FakeHybridRanker(IReadOnlyList<RankedCandidate> rankedCandidates) : IHybridRankerConsumer
+    {
+        public Task<IReadOnlyList<RankedCandidate>> RankAsync(
+            RecommendationQuery query,
+            IReadOnlyList<BookMetadataDto> candidates,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(rankedCandidates);
     }
 }
