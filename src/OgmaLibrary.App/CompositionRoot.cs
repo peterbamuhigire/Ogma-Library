@@ -22,6 +22,7 @@ using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.ClassroomClient;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.LanHost;
@@ -99,6 +100,9 @@ public static class CompositionRoot
 
         // Phase 16 — opt-in LAN Library Host bounded-context scaffold.
         services.AddLanHostServices(dataDirectory);
+
+        // Phase 17 — inactive Client/Classroom bounded-context scaffold.
+        services.AddClassroomClientServices(dataDirectory);
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();

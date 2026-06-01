@@ -33,7 +33,7 @@ The same Avalonia / .NET 10 binary runs in one of three runtime modes: Standalon
 
 ### Option A — Opt-in Host mode scoping CI-2, with isolation and trust-pinned transport
 
-- **Pros:** CI-2 is preserved as the default; the listener is bounded to a dedicated bounded context isolated from credentials and workers; the transport is authenticated and encrypted (no plaintext on the wire); discovery is zero-config via mDNS so students do not need to type IP addresses; the design is extensible to the school-admin and managed-AI tracks (ADR-0011, ADR-0012) without structural revision.
+- **Pros:** CI-2 is preserved as the default; the listener is bounded to a dedicated bounded context isolated from credentials and workers; the transport is authenticated and encrypted (no plaintext on the wire); discovery is zero-config via mDNS so students do not need to type IP addresses; the design is extensible to the classroom identity and school-admin / managed-AI tracks (ADR-0012 and successor ADRs) without structural revision.
 - **Cons:** the Host's inbound surface becomes the highest-risk new asset in the application and requires a full STRIDE threat model and attack-tree analysis in Phase 19; managing a self-signed root or mutual-auth scheme adds an admin step at setup; two packaging and signing targets are unaffected but the Host process must be explicitly tested for LAN exposure.
 
 ### Option B — A separate Host binary / separate product
@@ -73,7 +73,7 @@ The Phase 01 LAN spike is the gate: no Phase 16 Host implementation begins until
 - The classroom use-case is realised in a single codebase without a separate product, keeping all catalogue, reader, PDF, and AI logic shared.
 - PDF corpus remains on the Host machine; students read without raw PDF files being distributed across the network.
 - Student privacy is structurally enforced: per-student state is client-private and never passively visible to the Host or to other students.
-- The architecture is extensible to classroom identity (ADR-0011) and school-managed AI (ADR-0012) without structural revision.
+- The architecture is extensible to classroom identity (ADR-0012) and school-managed AI (future ADR) without structural revision.
 
 ### Negative
 
@@ -84,7 +84,7 @@ The Phase 01 LAN spike is the gate: no Phase 16 Host implementation begins until
 
 ### Affects
 
-- SRS CI-2 (scoped, not deleted; the standalone constraint remains intact); CTRL-OGMA-005 (worker isolation pattern reused for the Host boundary); CTRL-OGMA-016 (AI egress chokepoint moves to the Host in classroom mode); ADR-0007 (the IAiProvider gateway operates on the Host on behalf of the class); ADR-0011 and ADR-0012 (depend on this Host-mode foundation); the Phase 01 LAN spike backlog; the Phase 19 threat model; the DPIA for minors' data.
+- SRS CI-2 (scoped, not deleted; the standalone constraint remains intact); CTRL-OGMA-005 (worker isolation pattern reused for the Host boundary); CTRL-OGMA-016 (AI egress chokepoint moves to the Host in classroom mode); ADR-0007 (the IAiProvider gateway operates on the Host on behalf of the class); ADR-0012 and future classroom-track ADRs (depend on this Host-mode foundation); the Phase 01 LAN spike backlog; the Phase 19 threat model; the DPIA for minors' data.
 
 ---
 

@@ -1,4 +1,4 @@
-# Phase 17 — Skills & Slash Commands
+# Phase 17 â€” Skills & Slash Commands
 
 Phase-scoped guidance. Every entry states which task it informs and what
 artifact it must produce.
@@ -9,9 +9,9 @@ artifact it must produce.
 
 | Skill / command | Used in | Produces |
 | --- | --- | --- |
-| `superpowers:brainstorming` | Before WP1 (ADR-0011 design) and WP9 (multi-user UI flows) | Structured options for identity model; enrollment UX options |
+| `superpowers:brainstorming` | Before WP1 (ADR-0012 design) and WP9 (multi-user UI flows) | Structured options for identity model; enrollment UX options |
 | `superpowers:writing-plans` | Phase start | Executable plan from `tasks.md` |
-| `superpowers:test-driven-development` | Every WP — especially WP6 (private DB isolation) and WP8 (sync) | Tests written before implementation |
+| `superpowers:test-driven-development` | Every WP â€” especially WP6 (private DB isolation) and WP8 (sync) | Tests written before implementation |
 | `superpowers:verification-before-completion` | Phase DoD | Standalone regression + Client mode integration verification on Win + macOS |
 | `superpowers:requesting-code-review` + `/code-review` | P17-WP10-T7 | Resolved findings |
 | `superpowers:systematic-debugging` | Any failing test | Diagnosis before fix |
@@ -31,7 +31,7 @@ artifact it must produce.
   projections. For page renders, apply cache-then-network (serve cache
   immediately; refresh in background if online). The cache key must include
   `eTag` so a Host-side book update invalidates cached renders. Do not cache
-  the student's private DB in the same store — keep them strictly separate.
+  the student's private DB in the same store â€” keep them strictly separate.
 
 ### `security:dual-auth-rbac` / `mobile-rbac`
 
@@ -51,17 +51,17 @@ artifact it must produce.
 - **Produces:** `ISyncService` event model; `ConflictDetectedEvent` type; the
   observable `SyncState` stream that drives the settings badge.
 - **Guidance:** Sync is a pull-on-trigger model (not push from Host). Design
-  the sync state machine: `Idle → Syncing → Conflict → Resolved → Idle`.
+  the sync state machine: `Idle â†’ Syncing â†’ Conflict â†’ Resolved â†’ Idle`.
   `ConflictDetectedEvent` carries a list of `AnnotationConflict` records for
   the UI to render.
 
 ### `documentation-generation:architecture-decision-records`
 
-- **When:** P17-WP1-T1 (ADR-0011).
-- **Produces:** `docs/architecture/adr-0011-classroom-identity-roles-private-state.md`.
+- **When:** P17-WP1-T1 (ADR-0012).
+- **Produces:** `docs/adrs/0012-classroom-identity-roles-private-state.md`.
 - **Guidance:** The ADR must be precise on the student-data boundary: what the
   Host knows (profileId, display name, role, opaque sync blob) vs. what the
-  Host never sees (annotation content, AI history, reading progress — unless
+  Host never sees (annotation content, AI history, reading progress â€” unless
   sync opted in). This boundary is the anchor for the Phase 18 DPIA.
 
 ### `frontend-ux:enterprise-ux-process`
@@ -78,7 +78,7 @@ artifact it must produce.
 ### `saas:saas-tenant-onboarding-automation`
 
 - **When:** WP3 (profile creation flow), WP9 (enrollment UI).
-- **Produces:** `StudentOnboardingFlow` — the sequence from TOFU accept to
+- **Produces:** `StudentOnboardingFlow` â€” the sequence from TOFU accept to
   first catalogue view; wizard-style or single-screen (brainstorm in WP1).
 - **Guidance:** Apply onboarding principles: minimal friction, one decision per
   screen, recoverable choices. Profile creation is one decision (name + role);

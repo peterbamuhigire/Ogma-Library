@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.Extensions;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Metadata;
@@ -13,6 +15,7 @@ using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.ClassroomClient;
 using OgmaLibrary.Infrastructure.LanHost;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Reader.Annotations;
@@ -568,6 +571,52 @@ public sealed class ArchitectureTests
             .ToArray();
 
         Assert.Empty(listenerTypes);
+    }
+
+    [Fact]
+    public void ArchTests_ClassroomClient_HasNoLanHostServerDependency()
+    {
+        var application = Types.InAssembly(typeof(IClassroomModeService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.ClassroomClient")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Application.LanHost")
+            .GetResult();
+        var infrastructure = Types.InAssembly(typeof(ClassroomClientServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.ClassroomClient")
+            .ShouldNot()
+            .HaveDependencyOnAny("OgmaLibrary.Application.LanHost", "OgmaLibrary.Infrastructure.LanHost")
+            .GetResult();
+
+        Assert.True(application.IsSuccessful, Describe(application));
+        Assert.True(infrastructure.IsSuccessful, Describe(infrastructure));
+    }
+
+    [Fact]
+    public void ArchTests_ClassroomClient_HasNoDirectCatalogueWriteDependency()
+    {
+        var result = Types.InAssembly(typeof(ClassroomClientServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.ClassroomClient")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.Catalogue")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    [Fact]
+    public async Task ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault()
+    {
+        using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddClassroomClientServices(Path.Combine(Path.GetTempPath(), $"ogma-classroom-arch-{Guid.NewGuid():N}"))
+            .BuildServiceProvider();
+
+        var modeService = services.GetRequiredService<IClassroomModeService>();
+        ClassroomModeSettings settings = await modeService.GetModeAsync();
+
+        Assert.Equal(LibraryRuntimeMode.Standalone, settings.Mode);
     }
 
     private static string Describe(TestResult result) =>

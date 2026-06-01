@@ -17,6 +17,8 @@ ADRs are written in [MADR](https://adr.github.io/madr/) style.
 | [0008](0008-database-first-annotations-pdf-writeback-later.md) | Store Annotations and Metadata Database-First, Write Back to PDF Later | Accepted | 2026-05-30 |
 | [0009](0009-velopack-msix-dmg.md) | Distribute with Velopack for Direct Channels and MSIX for Store and Enterprise | Accepted | 2026-05-30 |
 | [0010](0010-optin-library-host-mode.md) | Opt-In Library Host Mode Amends CI-2 for the Classroom Track | Proposed | 2026-05-30 |
+| [0011](0011-local-tesseract-ocr.md) | Run OCR Locally with Tesseract, Never Through AI Providers | Proposed | 2026-06-01 |
+| [0012](0012-classroom-identity-roles-private-state.md) | Classroom Identity, Roles, and Private State | Proposed | 2026-06-02 |
 
 ## MADR Conventions
 
