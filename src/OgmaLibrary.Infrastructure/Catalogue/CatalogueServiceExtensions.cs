@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
@@ -67,6 +68,9 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IAnnotationRepository, AnnotationRepository>();
         services.AddSingleton<IReadingProgressRepository, ReadingProgressRepository>();
         services.AddSingleton<IAuditRepository, AuditRepository>();
+        services.AddSingleton<IAiConsentRepository, AiConsentRepository>();
+        services.AddSingleton<IAiAuditRepository, AiAuditRepository>();
+        services.AddSingleton<IAiQueryHistoryRepository, AiQueryHistoryRepository>();
 
         // Phase 09 — Annotations, Bookmarks, Layers, Reading Memory.
         services.AddSingleton<IBookmarkRepository, BookmarkRepository>();

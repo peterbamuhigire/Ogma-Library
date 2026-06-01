@@ -10,6 +10,12 @@ public sealed class AiQueryHistoryRow
     /// <summary>The stable query identifier.</summary>
     public long QueryId { get; set; }
 
+    /// <summary>Stable external history identifier used by the AI gateway.</summary>
+    public string HistoryId { get; set; } = string.Empty;
+
+    /// <summary>Query type, for example recommendation, reading-plan, or answer.</summary>
+    public string QueryType { get; set; } = string.Empty;
+
     /// <summary>The natural-language query text.</summary>
     public string? QueryText { get; set; }
 

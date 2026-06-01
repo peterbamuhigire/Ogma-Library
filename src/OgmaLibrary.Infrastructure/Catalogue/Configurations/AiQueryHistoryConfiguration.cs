@@ -19,6 +19,8 @@ public sealed class AiQueryHistoryConfiguration : IEntityTypeConfiguration<AiQue
         builder.ToTable("AiQueryHistory");
         builder.HasKey(q => q.QueryId);
         builder.Property(q => q.QueryId).ValueGeneratedOnAdd();
+        builder.Property(q => q.HistoryId).HasMaxLength(64).IsRequired();
+        builder.Property(q => q.QueryType).HasMaxLength(64).IsRequired();
         builder.Property(q => q.QueryText).HasMaxLength(8192);
         builder.Property(q => q.ProviderKey).HasMaxLength(64);
         builder.Property(q => q.ModelId).HasMaxLength(128);
@@ -34,5 +36,8 @@ public sealed class AiQueryHistoryConfiguration : IEntityTypeConfiguration<AiQue
         // Descending timestamp index for recent-history queries.
         builder.HasIndex(q => q.CreatedUtc)
             .HasDatabaseName("IX_AiQueryHistory_CreatedUtc");
+        builder.HasIndex(q => q.HistoryId)
+            .IsUnique()
+            .HasDatabaseName("UX_AiQueryHistory_HistoryId");
     }
 }

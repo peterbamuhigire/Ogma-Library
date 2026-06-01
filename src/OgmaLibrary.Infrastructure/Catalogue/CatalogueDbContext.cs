@@ -89,6 +89,12 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Local AI query history with soft-delete support.</summary>
     public DbSet<AiQueryHistoryRow> AiQueryHistory => Set<AiQueryHistoryRow>();
 
+    /// <summary>AI consent records by tier/provider/scope.</summary>
+    public DbSet<AiConsentRecordRow> AiConsentRecords => Set<AiConsentRecordRow>();
+
+    /// <summary>Immutable AI gateway audit events.</summary>
+    public DbSet<AiAuditEventRow> AiAuditEvents => Set<AiAuditEventRow>();
+
     /// <summary>Metadata lookup results from external providers.</summary>
     public DbSet<MetadataLookupRow> MetadataLookups => Set<MetadataLookupRow>();
 
@@ -141,6 +147,8 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SearchChunkConfiguration());
         modelBuilder.ApplyConfiguration(new EmbeddingVectorConfiguration());
         modelBuilder.ApplyConfiguration(new AiQueryHistoryConfiguration());
+        modelBuilder.ApplyConfiguration(new AiConsentRecordConfiguration());
+        modelBuilder.ApplyConfiguration(new AiAuditEventConfiguration());
         modelBuilder.ApplyConfiguration(new MetadataLookupConfiguration());
         modelBuilder.ApplyConfiguration(new JobConfiguration());
         modelBuilder.ApplyConfiguration(new AuditEventConfiguration());

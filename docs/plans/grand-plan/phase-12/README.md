@@ -29,7 +29,7 @@ through one controllable, auditable, reversible surface.
 | Platforms | Windows (WebView2 not needed here) + macOS; fully cross-platform .NET 10 |
 | ADRs in scope | ADR-0007 (provider-neutral AI gateway + 4 tiers) |
 | Security/CTRL IDs | SI-1, CTRL-OGMA-016, 017, 018, 019, 020, 022 |
-| Status | WP1 domain/application contracts started locally: `AiPrivacyTier`, consent/audit/query-history domain records, provider-neutral request/completion/preview DTOs, expanded `IAiProvider`, advisor/privacy interfaces, and focused tests implemented; WP2+ pending |
+| Status | WP1 contracts and WP2 persistence implemented locally: AI privacy/consent/audit/history contracts, provider-neutral DTOs, repository interfaces, EF migration, SQLite repositories, and focused contract/persistence tests; WP3+ pending |
 
 ---
 
@@ -271,14 +271,11 @@ CREATE TABLE AiAuditEvents (
   QueryHistoryEntryId TEXT    -- FK to AiQueryHistoryEntries (nullable)
 );
 
-CREATE TABLE AiQueryHistoryEntries (
-  Id TEXT PRIMARY KEY,
-  OccurredAt TEXT NOT NULL,
-  QueryType TEXT NOT NULL,   -- 'recommendation' | 'reading-plan' | 'answer'
-  QueryText TEXT,
-  ResponseSummary TEXT,
-  Deleted INTEGER NOT NULL DEFAULT 0  -- soft-delete; purge job removes hard
-);
+ALTER TABLE AiQueryHistory ADD COLUMN HistoryId TEXT NOT NULL DEFAULT '';
+ALTER TABLE AiQueryHistory ADD COLUMN QueryType TEXT NOT NULL DEFAULT '';
+UPDATE AiQueryHistory SET HistoryId = 'legacy-' || QueryId WHERE HistoryId = '';
+UPDATE AiQueryHistory SET QueryType = 'legacy' WHERE QueryType = '';
+CREATE UNIQUE INDEX UX_AiQueryHistory_HistoryId ON AiQueryHistory (HistoryId);
 ```
 
 All migration scripts are reversible (down() method present and tested).
