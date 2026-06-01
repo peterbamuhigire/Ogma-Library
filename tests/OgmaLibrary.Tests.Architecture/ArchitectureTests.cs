@@ -1,10 +1,13 @@
+using System.Reflection;
 using NetArchTest.Rules;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Reader.Annotations;
@@ -309,6 +312,49 @@ public sealed class ArchitectureTests
     }
 
     /// <summary>
+    /// Phase 12 AI provider HTTP clients must remain in infrastructure adapter
+    /// namespaces, never in feature, UI, domain, or application code.
+    /// </summary>
+    [Fact]
+    public void Architecture_AiProviderHttpClients_StayInAdapterNamespaces()
+    {
+        Type[] httpClientTypes = typeof(CatalogueDbContext).Assembly.GetTypes()
+            .Where(type => HasHttpClientDependency(type) || HasHttpRequestDependency(type))
+            .ToArray();
+
+        Assert.All(httpClientTypes, type =>
+        {
+            string ns = type.Namespace ?? string.Empty;
+            Assert.True(
+                ns.StartsWith("OgmaLibrary.Infrastructure.AI.Providers", StringComparison.Ordinal) ||
+                ns.StartsWith("OgmaLibrary.Infrastructure.AI.Ollama", StringComparison.Ordinal) ||
+                ns.StartsWith("OgmaLibrary.Infrastructure.Metadata.Providers", StringComparison.Ordinal),
+                $"{type.FullName} must not own provider HTTP egress outside adapter namespaces.");
+        });
+    }
+
+    /// <summary>The AI bounded context must not depend directly on Reader types.</summary>
+    [Fact]
+    public void Architecture_AiContext_DoesNotDependOnReader()
+    {
+        var application = Types.InAssembly(typeof(IAiGateway).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.Ai")
+            .ShouldNot()
+            .HaveDependencyOn(Reader)
+            .GetResult();
+        var infrastructure = Types.InAssembly(typeof(AiGateway).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.AI")
+            .ShouldNot()
+            .HaveDependencyOn(Reader)
+            .GetResult();
+
+        Assert.True(application.IsSuccessful, Describe(application));
+        Assert.True(infrastructure.IsSuccessful, Describe(infrastructure));
+    }
+
+    /// <summary>
     /// Phase 09 annotation services are part of Reader and must remain independent
     /// from future Search infrastructure.
     /// </summary>
@@ -399,4 +445,17 @@ public sealed class ArchitectureTests
         result.IsSuccessful
             ? "ok"
             : "Offending types: " + string.Join(", ", result.FailingTypeNames ?? []);
+
+    private static bool HasHttpClientDependency(Type type) =>
+        type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            .Any(field => field.FieldType == typeof(HttpClient)) ||
+        type.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            .SelectMany(ctor => ctor.GetParameters())
+            .Any(parameter => parameter.ParameterType == typeof(HttpClient) || parameter.ParameterType == typeof(IHttpClientFactory));
+
+    private static bool HasHttpRequestDependency(Type type) =>
+        type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+            .Any(method =>
+                method.ReturnType == typeof(HttpRequestMessage) ||
+                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(HttpRequestMessage)));
 }
