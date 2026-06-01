@@ -30,7 +30,7 @@ recommendation can be inspected, not just accepted.
 | ADRs in scope | ADR-0007 (AI gateway); ADR-0006 (hybrid search — Phase 13 consumes Phase 11 ranking) |
 | Skills cross-reference | `ai:ai-rag-patterns`, `ai:ai-evaluation`, `ai:ux-for-ai`, `ai:ai-output-design`, `claude-api` |
 
-**Current implementation status (2026-06-01):** WP1-WP4 are implemented and
+**Current implementation status (2026-06-01):** WP1-WP6 are implemented and
 locally verified. This includes advisor confidence labels, recommendation
 provenance/explanation/card models, reading-plan models, V2 answer-citation
 model, en/fr resource keys for advisor confidence and difficulty labels, and the
@@ -38,7 +38,8 @@ metadata-only recommendation pipeline with local-catalogue provenance validation
 The Phase 11 hybrid-ranking adapter and weighted merger are wired behind a
 default-off advisor option. Structured reading-plan generation now has an
 embedded schema prompt, parser, retry-on-invalid-output, and gateway-backed
-pipeline. WP5-WP11 remain pending.
+pipeline. `IAiAdvisorService` is typed, DI-wired, disabled when the active tier
+is Offline, and answer mode is scaffolded as V2. WP7-WP11 remain pending.
 
 ---
 
@@ -398,3 +399,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Codex | WP2 metadata-only recommendation pipeline implemented and locally verified. |
 | 2026-06-01 | Codex | WP3 hybrid ranking adapter and weighted merger implemented behind default-off option. |
 | 2026-06-01 | Codex | WP4 structured reading-plan parser and gateway-backed pipeline implemented. |
+| 2026-06-01 | Codex | WP5-WP6 answer-mode scaffold and typed advisor service composition implemented. |

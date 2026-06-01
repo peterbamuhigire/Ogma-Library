@@ -1,3 +1,5 @@
+using OgmaLibrary.Domain.Ai;
+
 namespace OgmaLibrary.Application.Ai;
 
 /// <summary>
@@ -9,11 +11,17 @@ public interface IAiAdvisorService
     bool IsEnabled { get; }
 
     /// <summary>Gets book recommendations for the current library context.</summary>
-    Task<AiCompletion> GetRecommendationsAsync(AiRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<RecommendationCard>> GetRecommendationsAsync(
+        RecommendationQuery query,
+        RecommendationGenerationOptions options,
+        CancellationToken cancellationToken);
 
     /// <summary>Gets a reading plan for the current library context.</summary>
-    Task<AiCompletion> GetReadingPlanAsync(AiRequest request, CancellationToken cancellationToken);
+    Task<ReadingPlan> GetReadingPlanAsync(
+        ReadingPlanRequest request,
+        RecommendationGenerationOptions options,
+        CancellationToken cancellationToken);
 
     /// <summary>Gets an answer to a user question.</summary>
-    Task<AiCompletion> GetAnswerAsync(AiRequest request, CancellationToken cancellationToken);
+    Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken);
 }

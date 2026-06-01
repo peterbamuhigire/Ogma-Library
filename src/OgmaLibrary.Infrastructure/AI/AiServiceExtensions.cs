@@ -17,6 +17,7 @@ public static class AiServiceExtensions
         services.AddSingleton<IAiCostFormatter, AiCostFormatter>();
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
+        services.AddSingleton<IAiAdvisorService, AdvisorService>();
         services.AddSingleton<IAdvisorCatalogueReader, AdvisorCatalogueReader>();
         services.AddSingleton<IMetadataPayloadEnricher, MetadataPayloadEnricher>();
         services.AddSingleton<IRecommendationResponseParser, RecommendationResponseParser>();

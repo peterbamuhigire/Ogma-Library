@@ -247,6 +247,45 @@ public sealed record ReadingPlanRequest
     public IReadOnlyList<string> SeedBookIds { get; }
 }
 
+/// <summary>Answer-mode request scaffold for the V2 local-evidence implementation.</summary>
+public sealed record AnswerRequest
+{
+    /// <summary>Creates an answer request.</summary>
+    /// <param name="question">The user's local-evidence question.</param>
+    /// <param name="maxCitations">Maximum citations to return.</param>
+    /// <param name="allowContentAwareTier">Whether V2 may use content-aware local evidence.</param>
+    public AnswerRequest(string question, int maxCitations = 5, bool allowContentAwareTier = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(question);
+        if (maxCitations is < 1 or > 25)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxCitations), maxCitations, "Answer citation count must be between 1 and 25.");
+        }
+
+        Question = question;
+        MaxCitations = maxCitations;
+        AllowContentAwareTier = allowContentAwareTier;
+    }
+
+    /// <summary>The user's local-evidence question.</summary>
+    public string Question { get; }
+
+    /// <summary>Maximum citations to return.</summary>
+    public int MaxCitations { get; }
+
+    /// <summary>Whether V2 may use content-aware local evidence.</summary>
+    public bool AllowContentAwareTier { get; }
+}
+
+/// <summary>Answer-mode response scaffold for the V2 local-evidence implementation.</summary>
+/// <param name="Answer">Generated answer text.</param>
+/// <param name="Citations">Local evidence citations.</param>
+/// <param name="IsV2">Whether the full V2 answer mode produced this response.</param>
+public sealed record AnswerResponse(
+    string Answer,
+    IReadOnlyList<AnswerCitation> Citations,
+    bool IsV2);
+
 /// <summary>Consumes Phase 11 ranking without leaking search implementation details into the advisor pipeline.</summary>
 public interface IHybridRankerConsumer
 {

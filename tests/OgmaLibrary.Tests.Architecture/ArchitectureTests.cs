@@ -354,6 +354,20 @@ public sealed class ArchitectureTests
         Assert.True(infrastructure.IsSuccessful, Describe(infrastructure));
     }
 
+    /// <summary>Advisor application code must consume gateway/pipeline contracts only, never provider adapters.</summary>
+    [Fact]
+    public void Architecture_AdvisorService_UsesOnlyAiGateway()
+    {
+        var result = Types.InAssembly(typeof(AdvisorService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.Ai")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.AI.Providers")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
     /// <summary>
     /// Phase 09 annotation services are part of Reader and must remain independent
     /// from future Search infrastructure.
