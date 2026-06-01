@@ -114,7 +114,7 @@ BenchmarkDotNet, so the checks run in the normal local/CI test path.
 | --- | --- | --- |
 | `ReaderView_PageSurfaceDrag_OpensSelectionActionMenuWithFocusableActions` | Avalonia headless pointer + keyboard focus harness | Mouse drag selects; action controls expose "Highlight", "Add note", "Capture citation" and accept keyboard focus |
 | `ReaderView_NoteEditorEscape_ClosesEditorWithoutNavigating` | Avalonia headless | Escape closes note editor and does not change the active page |
-| `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` | Avalonia headless focus harness | Phase 09 toolbar, note editor, bookmark, layer, and reading-memory controls expose purpose-specific names and accept focus |
+| `ReaderView_Phase09InteractiveControls_AcceptKeyboardFocusAndNames` | Avalonia headless focus harness | Phase 09 toolbar, note editor, bookmark, layer, citation copy/export, and reading-memory controls expose purpose-specific names and accept focus |
 | `ReaderView_BookmarkPanelKeyboard_ArrowSelectsAndEnterNavigates` | Avalonia headless | Bookmark list takes focus; ArrowDown selects a bookmark without navigating; Enter navigates |
 | `ReaderView_BookmarkContextFlyout_RenameFocusesEditorAndDeleteRemovesBookmark` | Avalonia headless | Bookmark row context flyout exposes rename/delete; rename focuses inline editor; delete removes bookmark |
 | `ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation` | Avalonia headless | Annotation row context flyout delete opens the confirmation prompt and does not delete before confirmation |
