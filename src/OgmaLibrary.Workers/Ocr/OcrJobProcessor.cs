@@ -10,8 +10,16 @@ using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Workers.Ocr;
 
+/// <summary>Processes queued OCR jobs from the shared job table.</summary>
+public interface IOcrJobProcessor
+{
+    /// <summary>Processes one pending or interrupted OCR job, if present.</summary>
+    /// <returns><see langword="true"/> when a job was processed.</returns>
+    Task<bool> ProcessNextAsync(CancellationToken cancellationToken = default);
+}
+
 /// <summary>Processes resumable Phase 15 OCR jobs from the shared Jobs table.</summary>
-public sealed class OcrJobProcessor
+public sealed class OcrJobProcessor : IOcrJobProcessor
 {
     /// <summary>Jobs table type for OCR work.</summary>
     public const string JobType = "OcrJob";
@@ -40,8 +48,7 @@ public sealed class OcrJobProcessor
         _textStore = textStore;
     }
 
-    /// <summary>Processes one pending or interrupted OCR job, if present.</summary>
-    /// <returns><see langword="true"/> when a job was processed.</returns>
+    /// <inheritdoc />
     public async Task<bool> ProcessNextAsync(CancellationToken cancellationToken = default)
     {
         using CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)

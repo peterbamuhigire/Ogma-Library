@@ -20,6 +20,8 @@
     <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.2" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
     <!-- PdfPig for metadata extraction -->
     <PackageReference Include="PdfPig" Version="0.1.9" />
+    <PackageReference Include="Tesseract" Version="5.2.0" />
+    <PackageReference Include="Tesseract.Data.English" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>

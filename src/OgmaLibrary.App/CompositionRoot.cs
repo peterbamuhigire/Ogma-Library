@@ -13,6 +13,7 @@ using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Bookshelf3D.Bridge;
@@ -24,6 +25,7 @@ using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Metadata;
+using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Cache;
@@ -31,6 +33,7 @@ using OgmaLibrary.Reader.Progress;
 using OgmaLibrary.Reader.Session;
 using OgmaLibrary.Reader.TextLayer;
 using OgmaLibrary.Workers;
+using OgmaLibrary.Workers.Ocr;
 
 namespace OgmaLibrary.App;
 
@@ -85,9 +88,13 @@ public static class CompositionRoot
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();
+        services.AddSingleton<IOcrProvider, TesseractOcrProvider>();
+        services.AddSingleton<OcrJobProcessor>();
+        services.AddSingleton<IOcrJobProcessor>(sp => sp.GetRequiredService<OcrJobProcessor>());
         services.AddHostedService<BookIngestionWorker>();
         services.AddHostedService<SearchExtractionWorker>();
         services.AddHostedService<EmbeddingGenerationWorker>();
+        services.AddHostedService<OcrWorker>();
 
         // Phase 06 — Catalogue Browsing.
 

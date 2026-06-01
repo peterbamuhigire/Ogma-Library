@@ -17,7 +17,11 @@ text and password-protected PDFs:
 The first WP2 reliability slice is also in place: `IOcrProvider`,
 `OcrJobPayload`, and `OcrJobProcessor` process pending/interrupted OCR jobs,
 persist OCR text as `ExtractedPages.Source = "OCR"`, mark books as OCR-derived,
-and enqueue a follow-up FTS reindex job.
+and enqueue a follow-up FTS reindex job. The native Tesseract provider and
+hosted `OcrWorker` are registered through the composition root without loading
+native OCR binaries until a queued OCR job actually runs. English language data
+is supplied through `Tesseract.Data.English`, which copies
+`tessdata/eng.traineddata` to the app output.
 
 ## Verified Locally
 
@@ -25,8 +29,10 @@ and enqueue a follow-up FTS reindex job.
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase15OcrSchemaTests` | Passed: 3 schema/source/migration tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrJobProcessorTests` | Passed: 2 OCR processor reliability tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OcrWorkerTests` | Passed: 1 hosted worker scheduling test |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+| `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
 
 ## Implemented Locally
 
@@ -41,10 +47,14 @@ and enqueue a follow-up FTS reindex job.
 | OCR job payload | `OcrJobPayload` records file path, language, total pages, and processed pages in the existing Jobs payload |
 | OCR job processor | `OcrJobProcessor` renders pages through `IPdfRenderer`, calls `IOcrProvider`, writes source-tagged OCR pages, and resumes interrupted jobs by skipping persisted OCR pages |
 | FTS reindex handoff | Completed OCR jobs enqueue `FtsReindexJob` idempotently for the affected book |
+| Native OCR adapter | `TesseractOcrProvider` wraps the local Tesseract engine behind `IOcrProvider` |
+| English OCR data | `Tesseract.Data.English` supplies `tessdata/eng.traineddata` without committing the binary to git |
+| Hosted OCR worker | `OcrWorker` polls `IOcrJobProcessor` as a hosted service and backs off on idle/error states |
+| OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work
 
-- WP2 OCR provider/worker/resume pipeline.
+- WP2 OCR golden-corpus fixture.
 - WP3 OCR status UI.
 - WP4 password credential provider and reader unlock flow.
 - WP5 split-view scaffold.
