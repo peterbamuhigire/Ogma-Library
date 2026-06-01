@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Tests.Catalogue;
@@ -210,6 +211,44 @@ public sealed class HealthDashboardTests
 
         var jobs = context.Jobs.Where(j => j.JobType == "Enrich" && j.BookId == "BE_IDEM1").ToList();
         Assert.Single(jobs);
+    }
+
+    [Fact]
+    public async Task BatchEnrichment_ChunksJobsInRecoverableGroupsOf50()
+    {
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+
+        string[] bookIds = Enumerable.Range(1, 120)
+            .Select(i => $"BE_SCALE_{i:0000}")
+            .ToArray();
+        foreach (string bookId in bookIds)
+        {
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = bookId,
+                Status = 0,
+            });
+        }
+
+        await context.SaveChangesAsync();
+
+        var orchestrator = new BatchEnrichmentOrchestrator(context);
+        int created = await orchestrator.StartAsync(bookIds);
+
+        Assert.Equal(120, created);
+
+        var payloads = context.Jobs
+            .Where(j => j.JobType == "Enrich")
+            .OrderBy(j => j.BookId)
+            .Select(j => JsonSerializer.Deserialize<BatchEnrichmentJobPayload>(j.Payload!))
+            .ToList();
+
+        Assert.All(payloads, Assert.NotNull);
+        Assert.Equal(3, payloads.Select(p => p!.ChunkIndex).Distinct().Count());
+        Assert.Equal(50, payloads.Count(p => p!.ChunkIndex == 0));
+        Assert.Equal(50, payloads.Count(p => p!.ChunkIndex == 1));
+        Assert.Equal(20, payloads.Count(p => p!.ChunkIndex == 2));
+        Assert.All(payloads.Where(p => p!.ChunkIndex == 2), p => Assert.Equal(20, p!.ChunkSize));
     }
 }
 

@@ -27,6 +27,8 @@ passes the password to the PDFium adapter, clears provider-owned password
 buffers after open, and covers the known-password PDF render path.
 The first WP6 scale-hardening slice adds provider-specific rate limiting and
 429/503 retry handling to the Google Books and Open Library HTTP clients.
+Batch enrichment jobs are now tagged with recoverable 50-book chunk metadata
+while preserving the existing per-book job isolation and older file-path payloads.
 
 ## Verified Locally
 
@@ -42,6 +44,7 @@ The first WP6 scale-hardening slice adds provider-specific rate limiting and
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~PasswordProviderTests\|FullyQualifiedName~ReaderSessionServiceTests\|FullyQualifiedName~PdfiumAdapterPasswordTests"` | Passed: 16 password/session/PDFium handoff tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PdfiumAdapterPasswordTests` | Passed: 1 real PDFium password-protected render test |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~RateLimitedHttpClientTests` | Passed: 3 provider rate-limit/retry tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~HealthDashboardTests\|FullyQualifiedName~RateLimitedHttpClientTests"` | Passed: 10 health/batch/rate-limit tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -70,6 +73,7 @@ The first WP6 scale-hardening slice adds provider-specific rate limiting and
 | Protected reader handoff | `IReaderSessionService.OpenProtectedAsync` and `IPdfRendererFactory.Open(filePath, password)` carry OS-supplied passwords to the renderer boundary |
 | PDFium password render path | `PdfiumAdapter` detects required passwords, opens protected PDFs with supplied credentials, and clears its session password buffer on dispose |
 | Provider HTTP resilience | `RateLimitedHttpClientHandler` spaces Google Books/Open Library requests and retries 429/503 responses with bounded exponential backoff |
+| Batch chunk recovery metadata | `BatchEnrichmentOrchestrator` writes `BatchEnrichmentJobPayload` with 50-book chunk indexes so large runs resume from remaining per-book jobs |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work

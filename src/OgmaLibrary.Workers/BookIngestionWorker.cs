@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using OgmaLibrary.Application.Ingestion;
@@ -122,7 +123,7 @@ public sealed class BookIngestionWorker : BackgroundService
                 .FirstOrDefaultAsync(stoppingToken)
                 .ConfigureAwait(false);
 
-            string filePath = job.Payload ?? string.Empty;
+            string filePath = ResolvePayloadFilePath(job.Payload);
             bool success;
             string? errorMessage;
 
@@ -197,6 +198,30 @@ public sealed class BookIngestionWorker : BackgroundService
             {
                 // Swallow to prevent worker crash on DB save issues.
             }
+        }
+    }
+
+    private static string ResolvePayloadFilePath(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return string.Empty;
+        }
+
+        if (!payload.TrimStart().StartsWith('{'))
+        {
+            return payload;
+        }
+
+        try
+        {
+            BatchEnrichmentJobPayload? batchPayload =
+                JsonSerializer.Deserialize<BatchEnrichmentJobPayload>(payload);
+            return batchPayload?.FilePath ?? string.Empty;
+        }
+        catch (JsonException)
+        {
+            return string.Empty;
         }
     }
 

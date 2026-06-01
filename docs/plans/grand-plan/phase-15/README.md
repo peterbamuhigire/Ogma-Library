@@ -406,3 +406,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Started WP4 password flow: provider contract, Windows Credential Manager provider, unlock view model, and no-plaintext-catalogue tests. |
 | 2026-06-01 | Implementation | Added WP4 protected-reader handoff: password-aware session open, PDFium adapter password support, known-password render test, and buffer-clearing checks. |
 | 2026-06-01 | Implementation | Started WP6 batch enrichment scale hardening with provider-specific rate limiting and bounded 429/503 retry handling for metadata HTTP clients. |
+| 2026-06-01 | Implementation | Added WP6 batch chunk metadata: enrichment jobs are tagged in recoverable 50-book chunks while retaining per-book retry isolation. |

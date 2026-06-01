@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -13,6 +14,9 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
 {
+    /// <summary>Recoverable chunk size for large batch enrichment runs.</summary>
+    public const int ChunkSize = 50;
+
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -48,8 +52,9 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
         CatalogueDbContext context = lease.Context;
 
         int created = 0;
+        string batchId = Guid.NewGuid().ToString("N");
 
-        foreach (string bookId in bookIds)
+        foreach ((string bookId, int index) in bookIds.Select((bookId, index) => (bookId, index)))
         {
             if (string.IsNullOrWhiteSpace(bookId))
             {
@@ -77,6 +82,11 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
                 IdempotencyKey = idempotencyKey,
                 Status = 0, // Pending
                 BookId = bookId,
+                Payload = JsonSerializer.Serialize(new BatchEnrichmentJobPayload(
+                    batchId,
+                    ChunkIndex: index / ChunkSize,
+                    ChunkSize: Math.Min(ChunkSize, bookIds.Count - (index / ChunkSize * ChunkSize)),
+                    OrdinalInChunk: index % ChunkSize)),
             });
 
             created++;
