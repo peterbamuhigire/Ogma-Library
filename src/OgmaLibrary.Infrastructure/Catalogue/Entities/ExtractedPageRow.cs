@@ -2,8 +2,8 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 /// <summary>
 /// The EF Core persistence row for extracted text from a single page
-/// (HLD §3 — ExtractedPages table, FR-SEARCH-002). Populated by the ingestion
-/// pipeline in Phase 05.
+/// (HLD §3 — ExtractedPages table, FR-SEARCH-002). Populated by the search
+/// extraction pipeline in Phase 10.
 /// </summary>
 public sealed class ExtractedPageRow
 {
@@ -18,6 +18,15 @@ public sealed class ExtractedPageRow
 
     /// <summary>The extracted plain text for this page.</summary>
     public string? TextContent { get; set; }
+
+    /// <summary>Extraction quality (0=Full, 1=Partial, 2=Empty, 3=Scanned, 4=Failed).</summary>
+    public int ExtractionQuality { get; set; }
+
+    /// <summary>Number of words in <see cref="TextContent"/>.</summary>
+    public int WordCount { get; set; }
+
+    /// <summary>Book content hash used to detect stale extracted text.</summary>
+    public string? ContentHash { get; set; }
 
     /// <summary>Method used to extract the text (e.g. "PdfPig", "Tesseract").</summary>
     public string? ExtractionMethod { get; set; }

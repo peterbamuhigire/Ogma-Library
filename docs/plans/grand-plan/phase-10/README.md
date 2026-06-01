@@ -28,7 +28,7 @@ ready read-models for Phase 16.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | PRD original Phase 5 (Search) |
 | **Platforms** | Windows 10+ + macOS 12+; CI on both |
-| **Status** | Planned — not started |
+| **Status** | WP1 in progress — schema/contracts/repositories implemented locally; metadata search, extraction pipeline, FTS service, Index Manager, benchmarks, UI/i18n/icons, G7, and manual closeout pending |
 | **Depends on** | Phase 04 (Catalogue schema; `Books`, `ExtractedPages`, `SearchChunks`), Phase 05 (book identity / content hash), Phase 08 (`TextLayerService`, `ExtractionQuality` flag), Phase 09 (annotation text available for indexing) |
 | **Unblocks** | Phase 11 (Semantic Search — uses the same `SearchChunks` + `ExtractedPages` schema), Phase 13 (AI advisor reads index), Phase 16 (LAN host serves search read-model) |
 
@@ -370,3 +370,4 @@ See `skills.md` for full guidance. Summary:
 | Date | Change | Author |
 | --- | --- | --- |
 | 2026-05-30 | Initial v1.0 baseline authored | Grand-plan agent |
+| 2026-06-01 | WP1 started: Phase 10 schema columns, FTS5 virtual table/triggers, Application search contracts, EF repositories, migration repair, focused tests, and developer schema note added | Codex |

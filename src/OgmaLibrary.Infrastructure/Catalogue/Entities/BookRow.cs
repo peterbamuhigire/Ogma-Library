@@ -44,6 +44,9 @@ public sealed class BookRow
     /// <summary>The reader's rating 1–5, when set.</summary>
     public int? Rating { get; set; }
 
+    /// <summary>Search indexing status (0=NotIndexed, 1=Extracting, 2=Indexed, 3=Failed).</summary>
+    public int IndexStatus { get; set; }
+
     /// <summary>Publication year, when known.</summary>
     public int? Year { get; set; }
 

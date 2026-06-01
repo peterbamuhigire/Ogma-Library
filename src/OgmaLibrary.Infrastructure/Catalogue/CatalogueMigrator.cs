@@ -60,6 +60,7 @@ public sealed class CatalogueMigrator
         {
             await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
+            await EnsureNonModelDatabaseObjectsAsync(context, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -71,6 +72,7 @@ public sealed class CatalogueMigrator
         if (!pending.Any())
         {
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
+            await EnsureNonModelDatabaseObjectsAsync(context, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -82,6 +84,7 @@ public sealed class CatalogueMigrator
         {
             await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
+            await EnsureNonModelDatabaseObjectsAsync(context, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -100,6 +103,58 @@ public sealed class CatalogueMigrator
 
             throw;
         }
+    }
+
+    private static async Task EnsureNonModelDatabaseObjectsAsync(
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE VIRTUAL TABLE IF NOT EXISTS SearchFts5
+            USING fts5(
+                ChunkText,
+                content='SearchChunks',
+                content_rowid='ChunkId',
+                tokenize='unicode61 remove_diacritics 1'
+            );
+            """,
+            cancellationToken).ConfigureAwait(false);
+
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TRIGGER IF NOT EXISTS SearchChunks_Fts_Insert
+            AFTER INSERT ON SearchChunks
+            BEGIN
+                INSERT INTO SearchFts5(rowid, ChunkText)
+                VALUES (new.ChunkId, new.ChunkText);
+            END;
+            """,
+            cancellationToken).ConfigureAwait(false);
+
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TRIGGER IF NOT EXISTS SearchChunks_Fts_Delete
+            AFTER DELETE ON SearchChunks
+            BEGIN
+                INSERT INTO SearchFts5(SearchFts5, rowid, ChunkText)
+                VALUES ('delete', old.ChunkId, old.ChunkText);
+            END;
+            """,
+            cancellationToken).ConfigureAwait(false);
+
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TRIGGER IF NOT EXISTS SearchChunks_Fts_Update
+            AFTER UPDATE ON SearchChunks
+            BEGIN
+                INSERT INTO SearchFts5(SearchFts5, rowid, ChunkText)
+                VALUES ('delete', old.ChunkId, old.ChunkText);
+                INSERT INTO SearchFts5(rowid, ChunkText)
+                VALUES (new.ChunkId, new.ChunkText);
+            END;
+            """,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task EnsureModelTablesExistAsync(

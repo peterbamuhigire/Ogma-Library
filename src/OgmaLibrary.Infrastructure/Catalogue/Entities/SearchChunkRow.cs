@@ -22,8 +22,14 @@ public sealed class SearchChunkRow
     /// <summary>The text of this chunk.</summary>
     public string? ChunkText { get; set; }
 
+    /// <summary>Source category (0=page, 1=note, 2=tag, 3=description, 4=toc).</summary>
+    public int Source { get; set; }
+
     /// <summary>Token count for this chunk.</summary>
     public int TokenCount { get; set; }
+
+    /// <summary>UTC timestamp when this chunk was created.</summary>
+    public DateTimeOffset CreatedAtUtc { get; set; }
 
     /// <summary>Navigation: the source extracted page.</summary>
     public ExtractedPageRow? ExtractedPage { get; set; }

@@ -44,6 +44,9 @@ Three test projects:
   screenshots under `artifacts/screenshots/` and verifies the en↔fr culture
   switch.
 
+Search indexing details are in [search-index.md](search-index.md), including
+the Phase 10 FTS5 external-content table and trigger maintenance rules.
+
 ## Solution structure
 
 ```

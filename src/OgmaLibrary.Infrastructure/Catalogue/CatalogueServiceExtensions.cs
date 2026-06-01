@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Sidecar;
@@ -70,6 +71,10 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IAnnotationV2Repository, AnnotationV2Repository>();
         services.AddSingleton<IAnnotationLayerRepository, AnnotationLayerRepository>();
         services.AddSingleton<IReadingMemoryRepository, ReadingMemoryRepository>();
+
+        // Phase 10 — Search & indexing.
+        services.AddSingleton<IExtractedTextStore, ExtractedTextStore>();
+        services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
 
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));

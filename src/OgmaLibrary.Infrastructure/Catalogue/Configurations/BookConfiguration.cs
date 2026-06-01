@@ -27,6 +27,7 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.Property(b => b.PdfFingerprint).HasMaxLength(512);
         builder.Property(b => b.Status).HasDefaultValue(0);
         builder.Property(b => b.Rating);
+        builder.Property(b => b.IndexStatus).HasDefaultValue(0);
         builder.Property(b => b.Year);
         builder.Property(b => b.SizeBytes);
         builder.Property(b => b.MtimeTicks);
@@ -41,6 +42,8 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.HasIndex(b => b.IsbnNormalized).HasDatabaseName("IX_Books_IsbnNormalized");
         // Status filter index.
         builder.HasIndex(b => b.Status).HasDatabaseName("IX_Books_Status");
+        // Search indexing status filter.
+        builder.HasIndex(b => b.IndexStatus).HasDatabaseName("IX_Books_IndexStatus");
 
         // Relationships
         builder.HasMany(b => b.BookFiles)

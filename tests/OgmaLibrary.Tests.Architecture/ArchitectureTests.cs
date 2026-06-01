@@ -3,6 +3,7 @@ using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Metadata;
@@ -239,6 +240,41 @@ public sealed class ArchitectureTests
             .GetResult();
 
         Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// Phase 10 Search application contracts must stay independent from Reader,
+    /// AI, Infrastructure, and EF Core so extraction/search can remain a
+    /// LAN-projectable bounded context.
+    /// </summary>
+    [Fact]
+    public void Architecture_Search_ApplicationContracts_StayBounded()
+    {
+        var searchContracts = Types.InAssembly(typeof(IExtractedTextStore).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.Search");
+
+        var reader = searchContracts
+            .ShouldNot()
+            .HaveDependencyOn(Reader)
+            .GetResult();
+        var ai = searchContracts
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.AI")
+            .GetResult();
+        var infrastructure = searchContracts
+            .ShouldNot()
+            .HaveDependencyOn(Infrastructure)
+            .GetResult();
+        var efCore = searchContracts
+            .ShouldNot()
+            .HaveDependencyOn(EntityFrameworkCore)
+            .GetResult();
+
+        Assert.True(reader.IsSuccessful, Describe(reader));
+        Assert.True(ai.IsSuccessful, Describe(ai));
+        Assert.True(infrastructure.IsSuccessful, Describe(infrastructure));
+        Assert.True(efCore.IsSuccessful, Describe(efCore));
     }
 
     /// <summary>
