@@ -50,7 +50,7 @@ Remote CI result evidence is not available from this local environment:
 
 | Check | Result |
 | --- | --- |
-| GitHub Actions REST API for pushed `main` evidence commit `918bd93` | `GET /repos/peterbamuhigire/Ogma-Library/actions/runs?branch=main&per_page=5` returned `404 Not Found` |
+| GitHub Actions REST API for pushed `main` Actions runs | `GET /repos/peterbamuhigire/Ogma-Library/actions/runs?branch=main&per_page=5` returned `404 Not Found` when checked unauthenticated from this environment |
 | GitHub CLI | `gh` is not installed in this environment |
 | Public Actions URL / unauthenticated status | No usable Actions run result was available from this environment |
 
