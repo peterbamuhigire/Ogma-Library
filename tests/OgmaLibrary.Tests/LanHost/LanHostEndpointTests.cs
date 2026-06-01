@@ -50,6 +50,10 @@ public sealed class LanHostEndpointTests
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=10");
             string catalogueJson = await catalogue.Content.ReadAsStringAsync();
+            using HttpResponseMessage pagedCatalogue = await http.GetAsync("/api/v1/catalogue?page=1&pageSize=1");
+            string pagedCatalogueJson = await pagedCatalogue.Content.ReadAsStringAsync();
+            using HttpResponseMessage bookDetail = await http.GetAsync("/api/v1/catalogue/01LANENDPOINT000000000001");
+            string bookDetailJson = await bookDetail.Content.ReadAsStringAsync();
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
             byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage invalidAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('z', 64)}");
@@ -66,6 +70,8 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, bookDetail.StatusCode);
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
             Assert.Equal(assetBytes, servedAsset);
             Assert.Equal(HttpStatusCode.BadRequest, invalidAsset.StatusCode);
@@ -73,6 +79,17 @@ public sealed class LanHostEndpointTests
             Assert.DoesNotContain("%PDF", fileStreamBody, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
+            using (JsonDocument pagedDocument = JsonDocument.Parse(pagedCatalogueJson))
+            {
+                JsonElement root = pagedDocument.RootElement;
+                Assert.Equal(1, GetJsonProperty(root, "page").GetInt32());
+                Assert.Equal(1, GetJsonProperty(root, "pageSize").GetInt32());
+                Assert.Equal(1, GetJsonProperty(root, "returnedCount").GetInt32());
+                Assert.True(GetJsonProperty(root, "hasMore").GetBoolean());
+            }
+
+            Assert.Contains("LAN Endpoint Book", bookDetailJson, StringComparison.Ordinal);
+            Assert.Contains("01LANENDPOINT000000000001", bookDetailJson, StringComparison.Ordinal);
             Assert.True(auditEvents.Count >= 4);
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.AfterJson?.Contains("\"statusCode\":401", StringComparison.Ordinal) == true);
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.ActorId?.StartsWith("session:", StringComparison.Ordinal) == true);
@@ -127,30 +144,55 @@ public sealed class LanHostEndpointTests
     private static async Task SeedBookAsync(ServiceProvider services)
     {
         await using CatalogueDbContext context = services.GetRequiredService<CatalogueDbContext>();
-        context.Books.Add(new BookRow
-        {
-            BookId = "01LANENDPOINT000000000001",
-            Title = "LAN Endpoint Book",
-            RelativePath = "lan-endpoint-book.pdf",
-            Sha256Hash = new string('d', 64),
-            SizeBytes = 128,
-            MtimeTicks = DateTimeOffset.UtcNow.UtcTicks,
-            Status = 0,
-            IndexStatus = 0,
-            EmbeddingStatus = 0,
-            IsOcrDerived = false,
-            IsPasswordProtected = false,
-            Year = 2026,
-            BookFiles =
-            [
-                new BookFileRow
-                {
-                    RelativePath = "lan-endpoint-book.pdf",
-                    FileStatus = 0,
-                    LastSeenUtc = DateTimeOffset.UtcNow,
-                },
-            ],
-        });
+        context.Books.AddRange(
+            new BookRow
+            {
+                BookId = "01LANENDPOINT000000000001",
+                Title = "LAN Endpoint Book",
+                RelativePath = "lan-endpoint-book.pdf",
+                Sha256Hash = new string('d', 64),
+                SizeBytes = 128,
+                MtimeTicks = DateTimeOffset.UtcNow.UtcTicks,
+                Status = 0,
+                IndexStatus = 0,
+                EmbeddingStatus = 0,
+                IsOcrDerived = false,
+                IsPasswordProtected = false,
+                Year = 2026,
+                BookFiles =
+                [
+                    new BookFileRow
+                    {
+                        RelativePath = "lan-endpoint-book.pdf",
+                        FileStatus = 0,
+                        LastSeenUtc = DateTimeOffset.UtcNow,
+                    },
+                ],
+            },
+            new BookRow
+            {
+                BookId = "01LANENDPOINT000000000002",
+                Title = "Second LAN Endpoint Book",
+                RelativePath = "second-lan-endpoint-book.pdf",
+                Sha256Hash = new string('c', 64),
+                SizeBytes = 256,
+                MtimeTicks = DateTimeOffset.UtcNow.UtcTicks,
+                Status = 0,
+                IndexStatus = 0,
+                EmbeddingStatus = 0,
+                IsOcrDerived = false,
+                IsPasswordProtected = false,
+                Year = 2026,
+                BookFiles =
+                [
+                    new BookFileRow
+                    {
+                        RelativePath = "second-lan-endpoint-book.pdf",
+                        FileStatus = 0,
+                        LastSeenUtc = DateTimeOffset.UtcNow,
+                    },
+                ],
+            });
         await context.SaveChangesAsync();
     }
 
@@ -172,6 +214,17 @@ public sealed class LanHostEndpointTests
         string json = await response.Content.ReadAsStringAsync();
         using JsonDocument document = JsonDocument.Parse(json);
         return document.RootElement.GetProperty(propertyName).GetString() ?? string.Empty;
+    }
+
+    private static JsonElement GetJsonProperty(JsonElement element, string camelName)
+    {
+        if (element.TryGetProperty(camelName, out JsonElement camelValue))
+        {
+            return camelValue;
+        }
+
+        string pascalName = char.ToUpperInvariant(camelName[0]) + camelName[1..];
+        return element.GetProperty(pascalName);
     }
 
     private static int GetFreeTcpPort()

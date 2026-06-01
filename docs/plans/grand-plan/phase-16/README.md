@@ -459,3 +459,4 @@ Full guidance in `skills.md`. Key skills for this phase:
 | 2026-06-01 | Implementation | Advanced WP4: added authenticated cover/spine/thumbnail sidecar asset endpoint with SHA-256 hash validation and malformed asset rejection before file I/O. |
 | 2026-06-01 | Implementation | Advanced WP6 guardrail: added `/api/v1/books/{bookId}/file` default `403` behavior in page-render mode so raw PDF bytes do not leave the Host unless file-stream mode is explicitly implemented and enabled. |
 | 2026-06-01 | Implementation | Advanced WP6: implemented explicit FileStream-mode PDF streaming with catalogue-backed path resolution, traversal/rooted-path protection, missing/unavailable file rejection, range-enabled responses, and resolver/endpoint tests. |
+| 2026-06-01 | Implementation | Advanced WP3: hardened the catalogue projection contract with bounded `page`/`pageSize` response metadata, `hasMore`, optional shelf filtering, and authenticated single-book detail lookup. |

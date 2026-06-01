@@ -139,25 +139,54 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         app.MapGet("/api/v1/catalogue", async (
             string? title,
             string? author,
+            string? shelfId,
             int? status,
+            int? page,
             int? pageSize,
             CancellationToken ct) =>
         {
+            int pageNumber = Math.Clamp(page ?? 1, 1, 10_000);
             int size = Math.Clamp(pageSize ?? 50, 1, 100);
-            var items = new List<BookSummaryProjection>(size);
+            int requested = checked((pageNumber * size) + 1);
+            var fetched = new List<BookSummaryProjection>(requested);
             var filter = new CatalogueFilter(
                 TitleContains: title,
                 AuthorContains: author,
+                ShelfId: shelfId,
                 Status: status,
-                MaxResults: size);
+                MaxResults: requested);
 
             await foreach (BookSummaryProjection book in _catalogueReadModel.GetBookSummariesAsync(filter, ct)
                 .ConfigureAwait(false))
             {
-                items.Add(book);
+                fetched.Add(book);
             }
 
-            return Results.Json(new LanCataloguePage(items, items.Count));
+            List<BookSummaryProjection> items = fetched
+                .Skip((pageNumber - 1) * size)
+                .Take(size)
+                .ToList();
+
+            return Results.Json(new LanCataloguePage(
+                Items: items,
+                Page: pageNumber,
+                PageSize: size,
+                ReturnedCount: items.Count,
+                HasMore: fetched.Count > pageNumber * size));
+        });
+
+        app.MapGet("/api/v1/catalogue/{bookId}", async (string bookId, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(bookId))
+            {
+                return Results.BadRequest(new LanHostError("invalid_book_id", "Book ID is required."));
+            }
+
+            BookDetailProjection? book = await _catalogueReadModel.GetBookDetailAsync(bookId, ct)
+                .ConfigureAwait(false);
+            return book is null
+                ? Results.NotFound(new LanHostError("book_not_found", "The requested book was not found."))
+                : Results.Json(book);
         });
 
         app.MapGet("/api/v1/assets/{assetClass}/{contentHash}", (
@@ -296,7 +325,10 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
     private sealed record LanCataloguePage(
         IReadOnlyList<BookSummaryProjection> Items,
-        int Count);
+        int Page,
+        int PageSize,
+        int ReturnedCount,
+        bool HasMore);
 
     private sealed record LanHostError(
         string Code,
