@@ -1,5 +1,10 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Tests.Ingestion;
 
@@ -20,6 +25,57 @@ public sealed class IngestionPipelineTests : IDisposable
 
         int bookCount = await _fx.Context.Books.CountAsync();
         Assert.True(bookCount >= 3, $"Expected at least 3 books, got {bookCount}");
+    }
+
+    [Fact]
+    public async Task IngestionPipeline_ProductionDi_RepairsMissingBookFilesTableBeforeScanning()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"ogma-scan-repair-{Guid.NewGuid():N}");
+        string dataDirectory = Path.Combine(tempRoot, "app-data");
+        string libraryRoot = Path.Combine(tempRoot, "library");
+
+        try
+        {
+            Directory.CreateDirectory(libraryRoot);
+            IngestionTestFixture.WriteSyntheticPdf(
+                Path.Combine(libraryRoot, "folder-open.pdf"),
+                "Folder Open",
+                "Scan Author");
+
+            await using ServiceProvider services = new ServiceCollection()
+                .AddCatalogueContext(dataDirectory, dataDirectory)
+                .AddIngestionPipeline(dataDirectory)
+                .BuildServiceProvider();
+
+            await using (var setup = services.GetRequiredService<CatalogueDbContext>())
+            {
+                await setup.Database.MigrateAsync();
+                await setup.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
+                await setup.Database.ExecuteSqlRawAsync("DROP TABLE BookFiles;");
+                await setup.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await services.GetRequiredService<ILibrarySettingsService>()
+                .SetLibraryRootAsync(libraryRoot);
+
+            await services.GetRequiredService<IIngestionOrchestrator>()
+                .ScanAsync();
+
+            await using var verification = services.GetRequiredService<CatalogueDbContext>();
+            BookFileRow file = await verification.BookFiles.SingleAsync();
+            Assert.Equal("folder-open.pdf", file.RelativePath);
+            Assert.Equal(1, await verification.Books.CountAsync());
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     [Fact]
