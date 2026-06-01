@@ -51,6 +51,8 @@ public sealed class LanHostEndpointTests
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
             byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage invalidAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('z', 64)}");
+            using HttpResponseMessage fileStream = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/file");
+            string fileStreamBody = await fileStream.Content.ReadAsStringAsync();
 
             await host.StopAsync();
             await using CatalogueDbContext verify = services.GetRequiredService<CatalogueDbContext>();
@@ -65,6 +67,8 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
             Assert.Equal(assetBytes, servedAsset);
             Assert.Equal(HttpStatusCode.BadRequest, invalidAsset.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, fileStream.StatusCode);
+            Assert.DoesNotContain("%PDF", fileStreamBody, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
             Assert.True(auditEvents.Count >= 4);

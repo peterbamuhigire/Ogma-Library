@@ -42,6 +42,9 @@ listener endpoints:
   `/api/v1/assets/{cover|spine|thumb}/{sha256}` with optional safe variant
   suffixes. The endpoint serves only cover, spine, and thumbnail sidecars, uses
   SHA-256 hash validation, and rejects malformed asset IDs before file I/O.
+- `/api/v1/books/{bookId}/file` is present but returns `403` while the Host is
+  in the default page-render mode, ensuring raw PDF bytes do not leave the Host
+  by default.
 - The scaffold can start/stop its coordinator, advertise the planned mDNS record
   shape, and revoke persisted sessions on stop without binding a network port.
 - Architecture tests guard the LanHost boundary from credential-store,
@@ -52,7 +55,7 @@ listener endpoints:
 
 | Gate | Evidence |
 | --- | --- |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 13 scaffold/persistence/certificate/mDNS/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, authenticated cover asset serving, malformed asset rejection, and LAN request audit rows |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~LanHostScaffoldTests\|FullyQualifiedName~LanHostPersistenceTests\|FullyQualifiedName~LanHostCertificateProvisionerTests\|FullyQualifiedName~MdnsAdvertiserTests\|FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal"` | Passed: 13 scaffold/persistence/certificate/mDNS/listener tests for standalone-safe defaults, migration creation, settings round-trip, token hashing, session revocation, valid X.509 root generation, stable fingerprint reload, no certificate material in catalogue DB, mDNS registration lifecycle, TXT fingerprint, DNS-SD size validation, HTTPS health, session issue, catalogue 401, authenticated catalogue projection, authenticated cover asset serving, malformed asset rejection, page-render-mode file-stream 403, and LAN request audit rows |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ArchTests_LanHost\|FullyQualifiedName~ArchTests_StandaloneMode" --logger "console;verbosity=detailed"` | Passed: 3 architecture tests for credential/worker/AI isolation and no standalone listener references |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after migration and formatting: 10 projects, 0 warnings, 0 errors |
@@ -67,6 +70,7 @@ listener endpoints:
 | LanHost mDNS advertiser | `MdnsAdvertiser` wraps `Makaretu.Dns.Multicast` behind `IMdnsAdvertiser` |
 | LanHost HTTPS listener | `KestrelHostModeListener` exposes loopback health/auth/catalogue endpoints behind bearer session validation |
 | LanHost asset endpoint | Authenticated cover/spine/thumbnail sidecar endpoint with SHA-256 hash validation |
+| LanHost file-stream guard | Default page-render mode returns `403` for raw PDF file endpoint |
 | LanHost request audit | `LanHostRequestServed` rows in `AuditEvents` for health, session, unauthorized, and authenticated catalogue requests |
 | LanHost EF entities/configurations | `HostModeSettingsRow`, `HostClientSessionRow`, and matching EF configurations |
 | LanHost persistence migration | `src/OgmaLibrary.Infrastructure/Persistence/Migrations/20260601184330_Phase16LanHostTables.cs` |
@@ -78,4 +82,4 @@ listener endpoints:
 - WP1 macOS Keychain-specific CA private-key storage and real same-subnet
   mDNS discovery verification on macOS/Windows runners.
 - WP3+ LAN-bound listener interface selection, catalogue pagination contract
-  hardening, page-render/file-stream endpoints, UI, and load tests.
+  hardening, page-render endpoint, file-stream implementation, UI, and load tests.

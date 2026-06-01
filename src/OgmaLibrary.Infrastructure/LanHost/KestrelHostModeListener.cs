@@ -185,6 +185,24 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
             return Results.File(path, "image/jpeg", enableRangeProcessing: true);
         });
+
+        app.MapGet("/api/v1/books/{bookId}/file", (string bookId) =>
+        {
+            if (settings.ContentMode != HostContentDeliveryMode.FileStream)
+            {
+                return Results.Json(
+                    new LanHostError(
+                        "file_stream_disabled",
+                        "Raw PDF file streaming is disabled for this Host. Page-render mode keeps PDF bytes on the Host."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            return Results.Json(
+                new LanHostError(
+                    "file_stream_not_implemented",
+                    "File-stream mode is gated but raw PDF streaming is not enabled in this slice."),
+                statusCode: StatusCodes.Status501NotImplemented);
+        });
     }
 
     private static bool IsPublicEndpoint(PathString path) =>
