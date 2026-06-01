@@ -5,7 +5,7 @@ Date: 2026-06-01
 Scope: Phase 09 closeout evidence through the active-layer, direct-PDF
 hardening, delivered reader-icon rendering, keyboard shortcut verification,
 performance gate review, annotation delete workflow, and layer visibility UI
-passes on 2026-06-01.
+passes, and reading-memory blur auto-save passes on 2026-06-01.
 
 ## Current Position
 
@@ -24,7 +24,7 @@ owner-gated:
 
 | Area | Evidence |
 | --- | --- |
-| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, and manual signoff documentation source-of-truth cleanup |
+| Latest reviewed implementation scope | Bookmark sorting, reading-memory disposition label, active writable layer marker, strict direct-PDF selected-path registration, production-DI missing-`BookFiles` repair, delivered reader-icon rendering, reader keyboard shortcuts, performance gates, annotation context-flyout delete confirmation, layer visibility checkbox filtering, reading-memory blur auto-save, and manual signoff documentation source-of-truth cleanup |
 | Worktree | Expected to remain clean after this pass except unrelated/generated `docs/developer-guide/images/scan-en.png` and `docs/developer-guide/images/reader-en.png` |
 | CI workflow definition | `.github/workflows/ci.yml` includes Windows and macOS matrix jobs for restore, format, Release build, and Release tests |
 | Phase 09 evidence | `docs/plans/grand-plan/phase-09/evidence.md` dated 2026-06-01 with current focused and full-suite local test counts |
@@ -37,6 +37,7 @@ owner-gated:
 | Performance gates | `AnnotationOverlay_RenderOverhead_100Annotations_Under10msP95`, `AnnotationWrite_P95_Under200ms`, `CachedPageTurn_P95_With100Annotations_Under100ms`, and `ReaderViewModel_PageTurnP95_With100AnnotationsPerPage_Under100ms` verify the documented overlay, write, and page-turn budgets |
 | Annotation delete workflow | `ReaderView_AnnotationContextFlyout_DeleteOpensConfirmation` verifies the annotation row context-flyout delete path opens the same confirmation flow as the explicit delete button before any repository delete occurs |
 | Layer visibility UI | `ReaderView_LayerVisibilityCheckbox_FiltersAnnotationsAndOverlays` verifies the rendered layer checkbox route persists visibility changes and refreshes annotation rows/overlays |
+| Reading-memory blur auto-save | `ReaderView_ReadingMemoryFieldLostFocus_AutoSavesEditedField` verifies the rendered reader field blur route schedules and persists edited reading-memory text |
 
 ## Remote CI Status Check
 
@@ -77,6 +78,8 @@ by view-model confirmation tests.
 The layer UI pass rechecked a stale agent finding against current code, then
 added rendered-checkbox coverage so layer filtering is proven through the
 Avalonia handler path as well as the view-model method.
+The reading-memory pass added rendered-view coverage for `ReadingMemoryField_LostFocus`,
+so the planned focus-out auto-save route is proven beyond direct view-model calls.
 No further locally actionable Phase 09 implementation gaps were found in this
 pass.
 Do not mark Phase 09 fully closed until the manual and owner-gated rows above

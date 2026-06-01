@@ -2160,6 +2160,52 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public async Task ReaderView_ReadingMemoryFieldLostFocus_AutoSavesEditedField()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var readingMemory = new FakeReadingMemoryService();
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            readingMemory,
+            localization);
+
+        await viewModel.OpenAsync("book-001", null, CancellationToken.None);
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            tabControl.SelectedIndex = 3;
+            Dispatcher.UIThread.RunJobs();
+
+            TextBox openedBecause = window.GetVisualDescendants()
+                .OfType<TextBox>()
+                .First(textBox => GetAutomationName(textBox) == "Why I opened this");
+
+            openedBecause.Text = "Manual review prep";
+            Dispatcher.UIThread.RunJobs();
+
+            InvokeReaderViewHandler(view, "ReadingMemoryField_LostFocus", openedBecause);
+            await Task.Delay(TimeSpan.FromMilliseconds(1200));
+            Dispatcher.UIThread.RunJobs();
+
+            ReadingMemory saved = Assert.Single(readingMemory.SavedMemories);
+            Assert.Equal("Manual review prep", saved.OpenedBecause);
+            Assert.Equal("Reading memory saved", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ReaderViewModel_AutoSaveReadingMemory_ReportsInvalidDisposition()
     {
         var localization = new InMemoryLocalizationService();

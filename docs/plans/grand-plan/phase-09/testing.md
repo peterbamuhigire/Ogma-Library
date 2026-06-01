@@ -89,6 +89,7 @@ never a corrupt JSON region.
 | `CitationService_CaptureAndExport_UsesCatalogueMetadata` | FR-READ-011 | Card title/author/page/selection match catalogue metadata and selected text |
 | `CitationService_Export_UsesLocalizedFallbackStrings` | FR-READ-011, i18n | Citation sidecar export uses localized unknown title/author/page fallbacks |
 | `ReaderViewModel_AutoSaveReadingMemory_PersistsEditedFields` | World-class | Field edited; debounced auto-save updates the reading-memory row |
+| `ReaderView_ReadingMemoryFieldLostFocus_AutoSavesEditedField` | Avalonia headless | Rendered reading-memory field blur schedules auto-save and persists edited text |
 | `Phase09_EndToEndRestartSmoke_PersistsReaderArtifacts` | Global DoD | Bookmark, layer rename, highlight, note, memory, and citation export survive a real SQLite reopen |
 
 ---
