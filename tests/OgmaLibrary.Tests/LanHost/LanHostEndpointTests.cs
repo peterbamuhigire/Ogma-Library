@@ -32,6 +32,8 @@ public sealed class LanHostEndpointTests
             byte[] assetBytes = [0xFF, 0xD8, 0xFF, 0xD9];
             string assetPath = new SidecarService(dataDirectory).Resolve(assetHash, SidecarClass.Covers);
             await File.WriteAllBytesAsync(assetPath, assetBytes);
+            byte[] pdfBytes = "%PDF-1.7\n% Ogma LAN fixture\n"u8.ToArray();
+            await File.WriteAllBytesAsync(Path.Combine(dataDirectory, "lan-endpoint-book.pdf"), pdfBytes);
             await services.GetRequiredService<IHostModeSettingsRepository>()
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.PageRender, "Ogma Endpoint Test"));
 
@@ -75,6 +77,34 @@ public sealed class LanHostEndpointTests
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.AfterJson?.Contains("\"statusCode\":401", StringComparison.Ordinal) == true);
             Assert.Contains(auditEvents, e => e.EntityId == "/api/v1/catalogue" && e.ActorId?.StartsWith("session:", StringComparison.Ordinal) == true);
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
+
+            await services.GetRequiredService<IHostModeSettingsRepository>()
+                .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.FileStream, "Ogma Endpoint Test"));
+            await host.StartAsync();
+            using HttpClient fileStreamHttp = CreatePinnedTestClient(port);
+            using HttpResponseMessage fileStreamSession = await fileStreamHttp.PostAsJsonAsync(
+                "/api/v1/auth/session",
+                new { clientId = "teacher-1", role = "Teacher", lifetimeMinutes = 5 });
+            string fileStreamToken = await ReadJsonStringAsync(fileStreamSession, "token");
+            fileStreamHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fileStreamToken);
+            using HttpResponseMessage enabledFileStream = await fileStreamHttp.GetAsync("/api/v1/books/01LANENDPOINT000000000001/file");
+            byte[] streamedPdf = await enabledFileStream.Content.ReadAsByteArrayAsync();
+            await host.StopAsync();
+
+            Assert.Equal(HttpStatusCode.OK, enabledFileStream.StatusCode);
+            Assert.Equal("application/pdf", enabledFileStream.Content.Headers.ContentType?.MediaType);
+            Assert.Equal(pdfBytes, streamedPdf);
+
+            await using CatalogueDbContext verifyFileStream = services.GetRequiredService<CatalogueDbContext>();
+            List<AuditEventRow> fileStreamAuditEvents = await verifyFileStream.AuditEvents
+                .Where(x => x.EventType == "LanHostRequestServed")
+                .ToListAsync();
+
+            Assert.Contains(
+                fileStreamAuditEvents,
+                e => e.EntityId == "/api/v1/books/01LANENDPOINT000000000001/file" &&
+                     e.AfterJson?.Contains("\"statusCode\":200", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"contentMode\":\"FileStream\"", StringComparison.Ordinal));
         }
         finally
         {

@@ -17,6 +17,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 {
     private readonly ICatalogueReadModel _catalogueReadModel;
     private readonly ISidecarService _sidecarService;
+    private readonly ILanBookFileResolver _fileResolver;
     private readonly IClientSessionService _sessions;
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
@@ -25,12 +26,14 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     public KestrelHostModeListener(
         ICatalogueReadModel catalogueReadModel,
         ISidecarService sidecarService,
+        ILanBookFileResolver fileResolver,
         IClientSessionService sessions,
         IHostServerCertificateProvider certificates,
         IAuditRepository audit)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _sidecarService = sidecarService ?? throw new ArgumentNullException(nameof(sidecarService));
+        _fileResolver = fileResolver ?? throw new ArgumentNullException(nameof(fileResolver));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
@@ -96,7 +99,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             if (IsPublicEndpoint(context.Request.Path))
             {
                 await next(context).ConfigureAwait(false);
-                await AppendAuditAsync(context, token, authenticated, started).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
                 return;
             }
 
@@ -106,13 +109,13 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 await context.Response.WriteAsJsonAsync(
                     new LanHostError("unauthorized", "A valid LAN Host session token is required."),
                     context.RequestAborted).ConfigureAwait(false);
-                await AppendAuditAsync(context, token, authenticated, started).ConfigureAwait(false);
+                await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
                 return;
             }
 
             authenticated = true;
             await next(context).ConfigureAwait(false);
-            await AppendAuditAsync(context, token, authenticated, started).ConfigureAwait(false);
+            await AppendAuditAsync(context, token, authenticated, settings.ContentMode, started).ConfigureAwait(false);
         });
 
         app.MapGet("/api/v1/health", () => Results.Json(new LanHostHealthResponse(
@@ -186,7 +189,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             return Results.File(path, "image/jpeg", enableRangeProcessing: true);
         });
 
-        app.MapGet("/api/v1/books/{bookId}/file", (string bookId) =>
+        app.MapGet("/api/v1/books/{bookId}/file", async (string bookId, CancellationToken ct) =>
         {
             if (settings.ContentMode != HostContentDeliveryMode.FileStream)
             {
@@ -197,11 +200,13 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
-            return Results.Json(
-                new LanHostError(
-                    "file_stream_not_implemented",
-                    "File-stream mode is gated but raw PDF streaming is not enabled in this slice."),
-                statusCode: StatusCodes.Status501NotImplemented);
+            string? path = await _fileResolver.ResolveAsync(bookId, ct).ConfigureAwait(false);
+            if (path is null)
+            {
+                return Results.NotFound(new LanHostError("book_file_not_found", "No streamable PDF file was found for this book."));
+            }
+
+            return Results.File(path, "application/pdf", enableRangeProcessing: true);
         });
     }
 
@@ -242,6 +247,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         HttpContext context,
         string? token,
         bool authenticated,
+        HostContentDeliveryMode contentMode,
         long started)
     {
         string path = context.Request.Path.Value ?? "/";
@@ -256,6 +262,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             remoteIpAddress = context.Connection.RemoteIpAddress?.ToString(),
             elapsedMs = Math.Max(0, Environment.TickCount64 - started),
             authenticated,
+            contentMode = contentMode.ToString(),
         };
 
         await _audit.AppendAsync(
