@@ -31,7 +31,8 @@ internal static class HostCaStoreFactory
         {
             return new MacOsKeychainHostCaStore(
                 new DefaultMacOsSecurityTool(),
-                fallbackPath);
+                fallbackPath,
+                MacOsKeychainHostCaStore.CreateAccountName(certificateDirectory));
         }
 
         return new FileHostCaStore(fallbackPath);
@@ -86,12 +87,30 @@ internal sealed class MacOsKeychainHostCaStore : IHostCaStore
     internal const string ServiceName = "OgmaLibrary.LanHost.HostCA";
     private readonly IMacOsSecurityTool _securityTool;
     private readonly string _fallbackPath;
+    private readonly string _accountName;
 
-    public MacOsKeychainHostCaStore(IMacOsSecurityTool securityTool, string fallbackPath)
+    public MacOsKeychainHostCaStore(
+        IMacOsSecurityTool securityTool,
+        string fallbackPath,
+        string? accountName = null)
     {
         _securityTool = securityTool ?? throw new ArgumentNullException(nameof(securityTool));
         ArgumentException.ThrowIfNullOrWhiteSpace(fallbackPath);
         _fallbackPath = fallbackPath;
+        _accountName = string.IsNullOrWhiteSpace(accountName)
+            ? CreateAccountName(Path.GetDirectoryName(fallbackPath) ?? fallbackPath)
+            : accountName;
+    }
+
+    public static string CreateAccountName(string certificateDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(certificateDirectory);
+        string fullPath = Path.GetFullPath(certificateDirectory);
+        string normalized = OperatingSystem.IsWindows()
+            ? fullPath.ToUpperInvariant()
+            : fullPath;
+        byte[] digest = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(normalized));
+        return Environment.UserName + ":" + Convert.ToHexStringLower(digest[..12]);
     }
 
     public async Task<byte[]?> LoadAsync(CancellationToken cancellationToken)
@@ -99,7 +118,7 @@ internal sealed class MacOsKeychainHostCaStore : IHostCaStore
         cancellationToken.ThrowIfCancellationRequested();
 
         MacOsSecurityToolResult result = await _securityTool.RunAsync(
-                ["find-generic-password", "-a", Environment.UserName, "-s", ServiceName, "-w"],
+                ["find-generic-password", "-a", _accountName, "-s", ServiceName, "-w"],
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -134,7 +153,7 @@ internal sealed class MacOsKeychainHostCaStore : IHostCaStore
 
         string encodedPfx = Convert.ToBase64String(pfxBytes);
         MacOsSecurityToolResult result = await _securityTool.RunAsync(
-                ["add-generic-password", "-a", Environment.UserName, "-s", ServiceName, "-w", encodedPfx, "-U"],
+                ["add-generic-password", "-a", _accountName, "-s", ServiceName, "-w", encodedPfx, "-U"],
                 cancellationToken)
             .ConfigureAwait(false);
 

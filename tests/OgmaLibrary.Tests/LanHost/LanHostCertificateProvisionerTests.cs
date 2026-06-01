@@ -167,6 +167,17 @@ public sealed class LanHostCertificateProvisionerTests
     }
 
     [Fact]
+    public void MacOsKeychainHostCaStore_AccountName_IsScopedToCertificateDirectory()
+    {
+        string first = MacOsKeychainHostCaStore.CreateAccountName(Path.Combine("one", "LanHost"));
+        string second = MacOsKeychainHostCaStore.CreateAccountName(Path.Combine("two", "LanHost"));
+
+        Assert.StartsWith(Environment.UserName + ":", first, StringComparison.Ordinal);
+        Assert.StartsWith(Environment.UserName + ":", second, StringComparison.Ordinal);
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
     public async Task MacOsKeychainHostCaStore_MigratesLegacyFallbackPfx()
     {
         string dataDirectory = CreateTempDirectory();
