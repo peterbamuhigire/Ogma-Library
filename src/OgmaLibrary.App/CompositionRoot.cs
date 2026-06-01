@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OgmaLibrary.App.ViewModels;
@@ -5,6 +6,7 @@ using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
+using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
@@ -13,6 +15,7 @@ using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.AI;
@@ -60,6 +63,7 @@ public static class CompositionRoot
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<RecommendationPanelViewModel>();
         services.AddTransient<ReadingPlanViewModel>();
+        services.AddTransient<Bookshelf3DViewModel>();
 
         // Phase 04 — Catalogue & Data Layer.
         // The data directory defaults to "Ogma Library Data" under OS app-data.
@@ -68,6 +72,10 @@ public static class CompositionRoot
             dataDirectory: dataDirectory,
             libraryRoot: dataDirectory);
         services.AddAiGatewayCore();
+        services.AddSingleton<IWebViewBridge>(_ =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? new WKWebViewBridge()
+                : new WebView2Bridge());
 
         // Phase 05 — Ingestion Pipeline (Infrastructure services).
         services.AddIngestionPipeline(dataDirectory: dataDirectory);

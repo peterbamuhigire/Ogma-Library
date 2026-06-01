@@ -15,6 +15,10 @@ Three.js scene controller now handles the bridge message union, creates an
 instanced book mesh, posts WebGL2 status and interaction messages, and supports
 shelf/grid layouts, theme changes, camera updates, pointer picking, and keyboard
 selection.
+`Bookshelf3DViewModel` now projects catalogue summaries into scene items, posts
+`SetScene` and `SetLayout` bridge messages, reacts to WebGL2 fallback messages,
+and navigates through the same book-detail navigation contract used by the
+catalogue grid.
 
 The platform-specific native WebView packages are not wired yet; the bridge is
 ready for those adapters through `IWebViewHostAdapter`.
@@ -26,6 +30,8 @@ ready for those adapters through `IWebViewHostAdapter`.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~BridgeMessageTests` | Passed: 6 bridge serialization and SI-3 validation tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~OgmaSchemeHandlerTests` | Passed: 4 scheme-handler tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~SpineTextureGeneratorTests` | Passed: 3 spine texture generator tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3DViewModelTests` | Passed: 4 Bookshelf3D view-model tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~ApplicationStartupTests` | Passed: 3 startup/DI tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore --filter FullyQualifiedName~Bookshelf3D_HasNo_DirectDependency_On_CatalogueIdentity` | Passed: 1 Bookshelf3D bounded-context architecture test |
 | `npx --yes -p typescript tsc --noEmit -p src\shelf3d\tsconfig.json` | Passed: strict TypeScript message contract check |
 | `npm install` in `src\shelf3d` | Passed: installed TypeScript, Three.js, and type declarations; 0 vulnerabilities |
@@ -53,6 +59,10 @@ ready for those adapters through `IWebViewHostAdapter`.
 | Three.js scene controller | `src/shelf3d/src/scene.ts` initializes renderer/camera/orbit controls, reports WebGL2 status, and handles typed C# messages |
 | Instanced book mesh | `Shelf3DScene` uses `THREE.InstancedMesh` with shared book geometry for the 500-book performance path |
 | Interaction bridge | Pointer click, double-click, hover, camera changes, and keyboard Enter post typed inbound messages back to C# |
+| Bookshelf3D view model | `Bookshelf3DViewModel` loads up to 500 active catalogue summaries and posts a `SetSceneMessage` to JavaScript |
+| Navigation parity | Validated `BookClicked` / `BookDoubleClicked` inbound messages call `IBookDetailNavigationService.OpenDetailAsync` |
+| Fallback state | `WebGl2Status(false)` flips `IsWebGl2Supported` and exposes `IsFallbackVisible` for the upcoming Avalonia fallback view |
+| Composition root | `IWebViewBridge` is registered per platform facade and `Bookshelf3DViewModel` is registered as transient |
 
 ## Remaining Phase 14 Work
 
@@ -60,5 +70,6 @@ ready for those adapters through `IWebViewHostAdapter`.
 - WP2 native bridge registration of the `ogma://` handler remains for the WebView initialization slice.
 - WP4 worker integration/cache invalidation remains: generated textures are tested but not yet wired into the ingestion/update pipeline.
 - WP5 texture atlas, bundled output, FPS telemetry/baseline, and visual smoke verification remain.
+- WP6 reader-open parity for double-click remains pending until the reader navigation command is integrated with the 3D shell.
 - WP3 full side-effect integration test against the ViewModel stack after WP6 exists.
 - WP4-WP9 spine textures, Three.js scene, view model/view, fallback, performance benchmarks, review, and remote CI evidence.
