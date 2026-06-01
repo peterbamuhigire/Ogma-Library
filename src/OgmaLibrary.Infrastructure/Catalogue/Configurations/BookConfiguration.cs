@@ -29,6 +29,8 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.Property(b => b.Rating);
         builder.Property(b => b.IndexStatus).HasDefaultValue(0);
         builder.Property(b => b.EmbeddingStatus).HasDefaultValue(0);
+        builder.Property(b => b.IsOcrDerived).HasDefaultValue(false);
+        builder.Property(b => b.IsPasswordProtected).HasDefaultValue(false);
         builder.Property(b => b.Year);
         builder.Property(b => b.SizeBytes);
         builder.Property(b => b.MtimeTicks);
@@ -50,6 +52,9 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.HasIndex(b => b.IndexStatus).HasDatabaseName("IX_Books_IndexStatus");
         // Semantic embedding status filter.
         builder.HasIndex(b => b.EmbeddingStatus).HasDatabaseName("IX_Books_EmbeddingStatus");
+        // Phase 15 power-reader filters.
+        builder.HasIndex(b => b.IsOcrDerived).HasDatabaseName("IX_Books_IsOcrDerived");
+        builder.HasIndex(b => b.IsPasswordProtected).HasDatabaseName("IX_Books_IsPasswordProtected");
 
         // Relationships
         builder.HasMany(b => b.BookFiles)

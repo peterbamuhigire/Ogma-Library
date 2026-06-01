@@ -399,3 +399,4 @@ Full detail in `skills.md`.
 | Date | Author | Change |
 | --- | --- | --- |
 | 2026-05-30 | Chwezi Core Systems | v1.0 baseline authored |
+| 2026-06-01 | Implementation | Started WP1 data model: OCR/password flags, extracted-page source tracking, source-aware OCR indexing, reversible migration, and focused schema tests. |

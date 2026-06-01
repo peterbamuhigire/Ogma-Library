@@ -28,6 +28,9 @@ public sealed class ExtractedPageRow
     /// <summary>Book content hash used to detect stale extracted text.</summary>
     public string? ContentHash { get; set; }
 
+    /// <summary>Source of the page text, such as "Extraction" or "OCR".</summary>
+    public string Source { get; set; } = "Extraction";
+
     /// <summary>Method used to extract the text (e.g. "PdfPig", "Tesseract").</summary>
     public string? ExtractionMethod { get; set; }
 

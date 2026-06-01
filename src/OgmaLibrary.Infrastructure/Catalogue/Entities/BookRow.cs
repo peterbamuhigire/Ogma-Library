@@ -50,6 +50,12 @@ public sealed class BookRow
     /// <summary>Semantic embedding status (0=NotEmbedded, 1=Embedding, 2=Embedded, 3=Failed).</summary>
     public int EmbeddingStatus { get; set; }
 
+    /// <summary>Whether searchable text for this book includes OCR-derived content.</summary>
+    public bool IsOcrDerived { get; set; }
+
+    /// <summary>Whether this book's source PDF was detected as password-protected.</summary>
+    public bool IsPasswordProtected { get; set; }
+
     /// <summary>Publication year, when known.</summary>
     public int? Year { get; set; }
 

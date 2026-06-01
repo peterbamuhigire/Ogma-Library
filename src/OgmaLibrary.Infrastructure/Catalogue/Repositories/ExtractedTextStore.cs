@@ -49,7 +49,7 @@ public sealed class ExtractedTextStore : IExtractedTextStore
         ExtractedPageRow? row = await context.ExtractedPages
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                p => p.BookId == bookId && p.PageNumber == pageIndex,
+                p => p.BookId == bookId && p.PageNumber == pageIndex && p.Source == "Extraction",
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -86,10 +86,11 @@ public sealed class ExtractedTextStore : IExtractedTextStore
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
+        string source = NormalizeSource(page.Source);
 
         ExtractedPageRow? existing = await context.ExtractedPages
             .FirstOrDefaultAsync(
-                p => p.BookId == page.BookId && p.PageNumber == page.PageIndex,
+                p => p.BookId == page.BookId && p.PageNumber == page.PageIndex && p.Source == source,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -147,7 +148,8 @@ public sealed class ExtractedTextStore : IExtractedTextStore
             (SearchExtractionQuality)row.ExtractionQuality,
             row.WordCount,
             row.ContentHash,
-            row.ExtractionUtc ?? DateTimeOffset.MinValue);
+            row.ExtractionUtc ?? DateTimeOffset.MinValue,
+            row.Source);
 
     private static ExtractedPageRow MapToRow(ExtractedPageRecord page)
     {
@@ -164,9 +166,13 @@ public sealed class ExtractedTextStore : IExtractedTextStore
         row.ExtractionQuality = (int)page.Quality;
         row.WordCount = page.WordCount;
         row.ContentHash = page.ContentHash;
+        row.Source = NormalizeSource(page.Source);
         row.ExtractionMethod = "PdfPig";
         row.ExtractionUtc = page.ExtractedAtUtc;
     }
+
+    private static string NormalizeSource(string? source) =>
+        string.IsNullOrWhiteSpace(source) ? "Extraction" : source;
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

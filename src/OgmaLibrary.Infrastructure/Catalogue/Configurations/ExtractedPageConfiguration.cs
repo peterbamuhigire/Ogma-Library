@@ -24,17 +24,22 @@ public sealed class ExtractedPageConfiguration : IEntityTypeConfiguration<Extrac
         builder.Property(p => p.ExtractionQuality).HasDefaultValue(2);
         builder.Property(p => p.WordCount).HasDefaultValue(0);
         builder.Property(p => p.ContentHash).HasMaxLength(64).IsFixedLength();
+        builder.Property(p => p.Source).IsRequired().HasMaxLength(32).HasDefaultValue("Extraction");
         builder.Property(p => p.ExtractionMethod).HasMaxLength(64);
         builder.Property(p => p.ExtractionUtc);
 
         // Index for page-number lookup per book.
         builder.HasIndex(p => new { p.BookId, p.PageNumber })
-            .IsUnique()
             .HasDatabaseName("IX_ExtractedPages_BookId_PageNumber");
 
         // Staleness lookup for extraction resume/cache checks.
         builder.HasIndex(p => new { p.BookId, p.ContentHash })
             .HasDatabaseName("IX_ExtractedPages_BookId_ContentHash");
+
+        // Resume lookup for Phase 15 OCR jobs.
+        builder.HasIndex(p => new { p.BookId, p.Source, p.PageNumber })
+            .IsUnique()
+            .HasDatabaseName("IX_ExtractedPages_BookId_Source_PageNumber");
 
         builder.HasMany(p => p.SearchChunks)
             .WithOne(c => c.ExtractedPage)

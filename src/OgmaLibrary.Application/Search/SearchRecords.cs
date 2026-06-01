@@ -133,6 +133,7 @@ public enum ConfidenceLabel
 /// <param name="WordCount">Word count derived from <paramref name="Text"/>.</param>
 /// <param name="ContentHash">Book content hash used for extraction staleness checks.</param>
 /// <param name="ExtractedAtUtc">UTC timestamp of the extraction.</param>
+/// <param name="Source">Source of the page text, such as "Extraction" or "OCR".</param>
 public sealed record ExtractedPageRecord(
     long Id,
     string BookId,
@@ -141,7 +142,8 @@ public sealed record ExtractedPageRecord(
     SearchExtractionQuality Quality,
     int WordCount,
     string? ContentHash,
-    DateTimeOffset ExtractedAtUtc);
+    DateTimeOffset ExtractedAtUtc,
+    string Source = "Extraction");
 
 /// <summary>
 /// A token-bounded search chunk that feeds SQLite FTS5 and future embeddings.
