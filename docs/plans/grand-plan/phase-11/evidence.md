@@ -7,8 +7,8 @@ Embeddings.
 
 ## Current Position
 
-Phase 11 WP1 and WP2 backend foundations have started locally. The embedding
-schema has been aligned with the Phase 11 model/version requirements,
+Phase 11 WP1, WP2 backend foundations, and the first WP3 cosine-similarity
+slice have started locally. The embedding schema has been aligned with the Phase 11 model/version requirements,
 `Books.EmbeddingStatus` is in the EF model, a Phase 12-compatible `IAiProvider`
 stub exists in Application, the local Ollama embedding provider is registered
 behind Application contracts, and the embedding generation pipeline can process
@@ -24,6 +24,7 @@ float BLOBs keyed back to `SearchChunks`.
 | --- | --- |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase11EmbeddingSchemaTests` | Passed: 4 Phase 11 schema, repository, and Ollama adapter tests |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~EmbeddingGenerationServiceTests\|FullyQualifiedName~EmbeddingGenerationWorkerTests"` | Passed: 4 embedding generation service and worker tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~CosineSimilarityServiceTests` | Passed: 6 cosine arithmetic, zero-vector, SIMD-width, and deterministic top-K tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 18 architecture tests |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 
@@ -37,12 +38,13 @@ float BLOBs keyed back to `SearchChunks`.
 | Embedding schema | `20260601104115_Phase11EmbeddingSchema` adds `Books.EmbeddingStatus`, `EmbeddingVectors.ModelName`, `ModelVersion`, `GeneratedAtUtc`, non-null vector BLOBs, and unique `(ChunkId, ModelName, ModelVersion)` index |
 | Vector repository | `IEmbeddingVectorRepository` and `EmbeddingVectorRepository` round-trip float arrays through SQLite BLOBs and support per-book reads plus full erasure |
 | Embedding generation pipeline | `IEmbeddingGenerationService`, `ISemanticSearchReadModel`, `EmbeddingGenerationService`, and `EmbeddingGenerationWorker`; tests cover idempotency, unavailable Ollama degradation, failure jobs, progress events, and worker polling |
+| Cosine similarity | `CosineSimilarityService` computes SIMD-backed cosine scores with deterministic top-K ordering |
 | Architecture guard | Architecture tests verify Application semantic search does not depend on Infrastructure AI and the Ollama adapter remains an internal Infrastructure detail |
 
 ## Remaining Phase 11 Work
 
 - WP2: backend generation service and worker are implemented locally; remaining work is broader batching/rate-limit tuning, model-change configuration, and UI surfacing of unavailable-Ollama events.
-- WP3: cosine similarity, brute-force top-K, semantic search service, and P95 benchmark.
+- WP3: cosine similarity and deterministic top-K are implemented locally; semantic search service and P95 benchmark remain.
 - WP4: hybrid ranking defaults, determinism, and graceful no-embedding fallback.
 - WP5: match-location explanation and result enrichment.
 - WP6: embedding erasure service with audit event plus ANN spike/ADR stub.
