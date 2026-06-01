@@ -155,6 +155,16 @@ public readonly record struct ConfidenceScore
     /// <summary>The score in the range [0.0, 1.0].</summary>
     public double Value { get; }
 
+    /// <summary>The human-readable confidence band for this score.</summary>
+    public ConfidenceLabel Label =>
+        Value switch
+        {
+            < 0.5 => ConfidenceLabel.Low,
+            < 0.75 => ConfidenceLabel.Medium,
+            < 0.9 => ConfidenceLabel.High,
+            _ => ConfidenceLabel.VeryHigh,
+        };
+
     /// <summary>Creates a confidence score, clamping is rejected in favour of validation.</summary>
     /// <param name="value">A value between 0.0 and 1.0 inclusive.</param>
     /// <exception cref="ArgumentOutOfRangeException">The value is outside [0.0, 1.0].</exception>
@@ -170,4 +180,20 @@ public readonly record struct ConfidenceScore
 
     /// <summary>Returns the score formatted with invariant culture.</summary>
     public override string ToString() => Value.ToString("0.00", CultureInfo.InvariantCulture);
+}
+
+/// <summary>Human-readable confidence band for calibrated recommendation signals.</summary>
+public enum ConfidenceLabel
+{
+    /// <summary>The score is below 0.5.</summary>
+    Low = 0,
+
+    /// <summary>The score is at least 0.5 and below 0.75.</summary>
+    Medium = 1,
+
+    /// <summary>The score is at least 0.75 and below 0.9.</summary>
+    High = 2,
+
+    /// <summary>The score is at least 0.9.</summary>
+    VeryHigh = 3,
 }

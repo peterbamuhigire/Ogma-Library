@@ -141,6 +141,15 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Ai.Privacy.Status.HistoryDeletedFormat"] = "Deleted {0} AI history rows",
         ["Ai.Privacy.Status.EmbeddingsErasedFormat"] = "Erased {0} embedding vectors and reset {1} books",
         ["Ai.Privacy.Status.AuditExported"] = "Audit exported",
+        ["Ai.Advisor.Confidence.Low"] = "Low",
+        ["Ai.Advisor.Confidence.Medium"] = "Medium",
+        ["Ai.Advisor.Confidence.High"] = "High",
+        ["Ai.Advisor.Confidence.VeryHigh"] = "Very high",
+        ["Ai.Advisor.Difficulty.Introductory"] = "Introductory",
+        ["Ai.Advisor.Difficulty.Foundational"] = "Foundational",
+        ["Ai.Advisor.Difficulty.Intermediate"] = "Intermediate",
+        ["Ai.Advisor.Difficulty.Advanced"] = "Advanced",
+        ["Ai.Advisor.Difficulty.Expert"] = "Expert",
 
         // Phase 05 — Scan progress and status strings (en)
         ["Scan.Phase.Idle"] = "Ready",
@@ -504,6 +513,15 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Ai.Privacy.Status.HistoryDeletedFormat"] = "{0} lignes d'historique IA supprimees",
         ["Ai.Privacy.Status.EmbeddingsErasedFormat"] = "{0} vecteurs d'embedding effaces et {1} livres reinitialises",
         ["Ai.Privacy.Status.AuditExported"] = "Audit exporte",
+        ["Ai.Advisor.Confidence.Low"] = "Faible",
+        ["Ai.Advisor.Confidence.Medium"] = "Moyenne",
+        ["Ai.Advisor.Confidence.High"] = "Elevee",
+        ["Ai.Advisor.Confidence.VeryHigh"] = "Tres elevee",
+        ["Ai.Advisor.Difficulty.Introductory"] = "Debutant",
+        ["Ai.Advisor.Difficulty.Foundational"] = "Fondamental",
+        ["Ai.Advisor.Difficulty.Intermediate"] = "Intermediaire",
+        ["Ai.Advisor.Difficulty.Advanced"] = "Avance",
+        ["Ai.Advisor.Difficulty.Expert"] = "Expert",
 
         // Phase 05 — Scan progress and status strings (fr)
         ["Scan.Phase.Idle"] = "Prêt",
