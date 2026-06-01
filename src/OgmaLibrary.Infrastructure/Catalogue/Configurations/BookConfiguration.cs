@@ -28,6 +28,7 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.Property(b => b.Status).HasDefaultValue(0);
         builder.Property(b => b.Rating);
         builder.Property(b => b.IndexStatus).HasDefaultValue(0);
+        builder.Property(b => b.EmbeddingStatus).HasDefaultValue(0);
         builder.Property(b => b.Year);
         builder.Property(b => b.SizeBytes);
         builder.Property(b => b.MtimeTicks);
@@ -47,6 +48,8 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.HasIndex(b => b.Status).HasDatabaseName("IX_Books_Status");
         // Search indexing status filter.
         builder.HasIndex(b => b.IndexStatus).HasDatabaseName("IX_Books_IndexStatus");
+        // Semantic embedding status filter.
+        builder.HasIndex(b => b.EmbeddingStatus).HasDatabaseName("IX_Books_EmbeddingStatus");
 
         // Relationships
         builder.HasMany(b => b.BookFiles)

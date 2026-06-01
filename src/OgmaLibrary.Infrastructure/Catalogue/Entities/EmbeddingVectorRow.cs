@@ -12,8 +12,11 @@ public sealed class EmbeddingVectorRow
     /// <summary>FK to the source search chunk.</summary>
     public long ChunkId { get; set; }
 
-    /// <summary>Identifier of the model that produced this embedding.</summary>
-    public string ModelId { get; set; } = string.Empty;
+    /// <summary>Name of the model that produced this embedding.</summary>
+    public string ModelName { get; set; } = string.Empty;
+
+    /// <summary>Version or local digest of the model that produced this embedding.</summary>
+    public string ModelVersion { get; set; } = string.Empty;
 
     /// <summary>Number of dimensions in the vector.</summary>
     public int DimensionCount { get; set; }
@@ -21,8 +24,8 @@ public sealed class EmbeddingVectorRow
     /// <summary>The raw vector data as a BLOB (float array, little-endian).</summary>
     public byte[]? VectorBlob { get; set; }
 
-    /// <summary>UTC timestamp when this vector was created.</summary>
-    public DateTimeOffset CreatedUtc { get; set; }
+    /// <summary>UTC timestamp when this vector was generated.</summary>
+    public DateTimeOffset GeneratedAtUtc { get; set; }
 
     /// <summary>Navigation: the source chunk.</summary>
     public SearchChunkRow? Chunk { get; set; }

@@ -20,6 +20,24 @@ public enum SearchBookIndexStatus
 }
 
 /// <summary>
+/// Embedding-generation state for a catalogue book in the semantic search layer.
+/// </summary>
+public enum SearchEmbeddingStatus
+{
+    /// <summary>No embeddings have been generated for this book.</summary>
+    NotEmbedded = 0,
+
+    /// <summary>Embedding generation is currently in progress.</summary>
+    Embedding = 1,
+
+    /// <summary>All current search chunks have model-current embeddings.</summary>
+    Embedded = 2,
+
+    /// <summary>The latest embedding attempt failed.</summary>
+    Failed = 3,
+}
+
+/// <summary>
 /// Per-page text extraction quality used by Phase 10 indexing without depending
 /// on the Reader bounded context.
 /// </summary>

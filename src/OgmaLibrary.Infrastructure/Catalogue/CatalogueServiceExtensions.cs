@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.AI.Ollama;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Infrastructure.Sidecar;
@@ -77,6 +78,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<SearchChunker>();
         services.AddSingleton<IExtractedTextStore, ExtractedTextStore>();
         services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
+        services.AddSingleton<IEmbeddingVectorRepository, EmbeddingVectorRepository>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
         services.AddSingleton<IFtsIndexService, FtsIndexService>();
@@ -84,6 +86,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IndexManagerService>();
         services.AddSingleton<IIndexManagerService>(sp => sp.GetRequiredService<IndexManagerService>());
         services.AddSingleton<ISearchReadModel>(sp => sp.GetRequiredService<IndexManagerService>());
+        services.AddHttpClient<IOllamaEmbeddingProvider, OllamaEmbeddingAdapter>();
 
         // Sidecar service.
         services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));

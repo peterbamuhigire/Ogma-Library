@@ -1,0 +1,45 @@
+# Phase 11 Verification Evidence
+
+Last updated: 2026-06-01
+
+This file tracks implementation evidence for Phase 11 Semantic Search &
+Embeddings.
+
+## Current Position
+
+Phase 11 WP1 has started locally. The embedding schema has been aligned with
+the Phase 11 model/version requirements, `Books.EmbeddingStatus` is in the EF
+model, a Phase 12-compatible `IAiProvider` stub exists in Application, and the
+local Ollama embedding provider is registered behind Application contracts.
+
+The implementation deliberately keeps embeddings as a rebuildable local index:
+SQLite remains the source of truth, and vectors are stored as little-endian
+float BLOBs keyed back to `SearchChunks`.
+
+## Automated Verification
+
+| Command | Result |
+| --- | --- |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase11EmbeddingSchemaTests` | Passed: 4 Phase 11 schema, repository, and Ollama adapter tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-restore` | Passed: 18 architecture tests |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
+
+## Evidence Map
+
+| Area | Evidence |
+| --- | --- |
+| AI provider gateway stub | `IAiProvider` under `src/OgmaLibrary.Application/Ai/` |
+| Ollama embedding contract | `IOllamaEmbeddingProvider` and `OllamaEmbeddingResult` under `src/OgmaLibrary.Application/Search/` |
+| Local-only Ollama adapter | `OllamaEmbeddingAdapter` under `src/OgmaLibrary.Infrastructure/AI/Ollama/`; tests assert loopback `/api/embeddings` use and unavailable-service degradation |
+| Embedding schema | `20260601104115_Phase11EmbeddingSchema` adds `Books.EmbeddingStatus`, `EmbeddingVectors.ModelName`, `ModelVersion`, `GeneratedAtUtc`, non-null vector BLOBs, and unique `(ChunkId, ModelName, ModelVersion)` index |
+| Vector repository | `IEmbeddingVectorRepository` and `EmbeddingVectorRepository` round-trip float arrays through SQLite BLOBs and support per-book reads plus full erasure |
+| Architecture guard | Architecture tests verify Application semantic search does not depend on Infrastructure AI and the Ollama adapter remains an internal Infrastructure detail |
+
+## Remaining Phase 11 Work
+
+- WP2: embedding generation service, worker, idempotency, unavailable Ollama event, and semantic read-model progress.
+- WP3: cosine similarity, brute-force top-K, semantic search service, and P95 benchmark.
+- WP4: hybrid ranking defaults, determinism, and graceful no-embedding fallback.
+- WP5: match-location explanation and result enrichment.
+- WP6: embedding erasure service with audit event plus ANN spike/ADR stub.
+- WP7/WP8: UI, icons, i18n, accessibility, full regression, manual checks, and remote CI evidence.

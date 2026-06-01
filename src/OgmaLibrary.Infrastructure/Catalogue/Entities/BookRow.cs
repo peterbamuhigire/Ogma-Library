@@ -47,6 +47,9 @@ public sealed class BookRow
     /// <summary>Search indexing status (0=NotIndexed, 1=Extracting, 2=Indexed, 3=Failed).</summary>
     public int IndexStatus { get; set; }
 
+    /// <summary>Semantic embedding status (0=NotEmbedded, 1=Embedding, 2=Embedded, 3=Failed).</summary>
+    public int EmbeddingStatus { get; set; }
+
     /// <summary>Publication year, when known.</summary>
     public int? Year { get; set; }
 

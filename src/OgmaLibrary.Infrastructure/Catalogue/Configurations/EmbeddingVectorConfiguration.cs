@@ -20,13 +20,16 @@ public sealed class EmbeddingVectorConfiguration : IEntityTypeConfiguration<Embe
         builder.HasKey(v => v.VectorId);
         builder.Property(v => v.VectorId).ValueGeneratedOnAdd();
         builder.Property(v => v.ChunkId).IsRequired();
-        builder.Property(v => v.ModelId).IsRequired().HasMaxLength(128);
+        builder.Property(v => v.ModelName).IsRequired().HasMaxLength(128);
+        builder.Property(v => v.ModelVersion).IsRequired().HasMaxLength(128);
         builder.Property(v => v.DimensionCount).IsRequired();
-        builder.Property(v => v.VectorBlob);
-        builder.Property(v => v.CreatedUtc);
+        builder.Property(v => v.VectorBlob).IsRequired();
+        builder.Property(v => v.GeneratedAtUtc);
 
-        // Index for model-scoped lookup per chunk.
-        builder.HasIndex(v => new { v.ChunkId, v.ModelId })
-            .HasDatabaseName("IX_EmbeddingVectors_ChunkId_ModelId");
+        // Unique model-scoped lookup per chunk. Re-embedding with a new model
+        // version creates a second durable row until erasure or cleanup.
+        builder.HasIndex(v => new { v.ChunkId, v.ModelName, v.ModelVersion })
+            .IsUnique()
+            .HasDatabaseName("UX_EmbeddingVectors_ChunkId_ModelName_ModelVersion");
     }
 }

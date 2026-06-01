@@ -278,6 +278,37 @@ public sealed class ArchitectureTests
     }
 
     /// <summary>
+    /// Phase 11 semantic search may depend on the Application AI gateway
+    /// contract, but it must not call the Infrastructure Ollama adapter directly.
+    /// </summary>
+    [Fact]
+    public void Architecture_SemanticSearch_DoesNotDependOnInfrastructureAi()
+    {
+        var result = Types.InAssembly(typeof(IOllamaEmbeddingProvider).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.Search")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.AI")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    /// <summary>
+    /// The local Ollama adapter must remain internal to Infrastructure.AI so
+    /// feature code consumes only Application contracts.
+    /// </summary>
+    [Fact]
+    public void Architecture_OllamaAdapter_IsInternalInfrastructureDetail()
+    {
+        Type? adapter = typeof(CatalogueDbContext).Assembly
+            .GetType("OgmaLibrary.Infrastructure.AI.Ollama.OllamaEmbeddingAdapter");
+
+        Assert.NotNull(adapter);
+        Assert.False(adapter!.IsPublic);
+    }
+
+    /// <summary>
     /// Phase 09 annotation services are part of Reader and must remain independent
     /// from future Search infrastructure.
     /// </summary>
