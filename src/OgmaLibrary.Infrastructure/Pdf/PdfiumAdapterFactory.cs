@@ -15,4 +15,12 @@ public sealed class PdfiumAdapterFactory : IPdfRendererFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         return new PdfiumAdapter(filePath);
     }
+
+    /// <inheritdoc />
+    public IPdfRenderer Open(string filePath, char[] password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(password);
+        return new PdfiumAdapter(filePath, password);
+    }
 }

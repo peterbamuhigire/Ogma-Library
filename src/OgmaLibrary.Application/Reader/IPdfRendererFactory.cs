@@ -17,4 +17,17 @@ public interface IPdfRendererFactory
     /// <param name="filePath">The absolute path to the PDF file.</param>
     /// <returns>A document-scoped renderer. The caller must dispose it.</returns>
     IPdfRenderer Open(string filePath);
+
+    /// <summary>
+    /// Opens a password-protected PDF file at the specified path and returns a renderer for it.
+    /// </summary>
+    /// <param name="filePath">The absolute path to the PDF file.</param>
+    /// <param name="password">The password characters. Implementations must not persist this value.</param>
+    /// <returns>A document-scoped renderer. The caller must dispose it.</returns>
+    IPdfRenderer Open(string filePath, char[] password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(password);
+        throw new NotSupportedException("This PDF renderer does not support password-protected documents.");
+    }
 }

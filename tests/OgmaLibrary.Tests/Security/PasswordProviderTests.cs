@@ -70,6 +70,41 @@ public sealed class PasswordProviderTests
         }
     }
 
+    [Fact]
+    public async Task PasswordUnlock_OpenProtectedAsync_ClearsProviderBuffer()
+    {
+        char[] buffer = "ogma-test-password".ToCharArray();
+        var provider = new CapturingPasswordProvider(buffer);
+        var sessions = new CapturingReaderSessionService();
+        var viewModel = new PasswordUnlockViewModel(provider, new InMemoryLocalizationService(), sessions);
+
+        ReaderSession? session = await viewModel.RequestAndOpenAsync(
+            "BOOK-PASSWORD-000000002",
+            new string('c', 64),
+            "Protected fixture");
+
+        Assert.NotNull(session);
+        Assert.Equal("ogma-test-password", new string(sessions.LastPassword!));
+        Assert.All(buffer, ch => Assert.Equal('\0', ch));
+    }
+
+    [Fact]
+    public async Task PasswordUnlock_IncorrectPassword_ForgetsStoredCredential()
+    {
+        var provider = new CapturingPasswordProvider("wrong-password".ToCharArray());
+        var sessions = new CapturingReaderSessionService { ThrowIncorrectPassword = true };
+        var viewModel = new PasswordUnlockViewModel(provider, new InMemoryLocalizationService(), sessions);
+
+        ReaderSession? session = await viewModel.RequestAndOpenAsync(
+            "BOOK-PASSWORD-000000003",
+            new string('d', 64),
+            "Protected fixture");
+
+        Assert.Null(session);
+        Assert.True(provider.ForgetCalled);
+        Assert.Equal("Password incorrect. Try again.", viewModel.StatusText);
+    }
+
     private static int CountCatalogueSecretOccurrences(string dbPath, string secret)
     {
         using var connection = new SqliteConnection($"Data Source={dbPath}");
@@ -132,5 +167,71 @@ public sealed class PasswordProviderTests
 
         public Task ForgetPasswordAsync(PasswordRequest request, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class CapturingPasswordProvider : IPasswordProvider
+    {
+        private readonly char[] _password;
+
+        public CapturingPasswordProvider(char[] password) => _password = password;
+
+        public bool ForgetCalled { get; private set; }
+
+        public Task<PasswordResult> GetPasswordAsync(
+            PasswordRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(PasswordResult.Success(_password, wasStored: false));
+
+        public Task ForgetPasswordAsync(PasswordRequest request, CancellationToken cancellationToken = default)
+        {
+            ForgetCalled = true;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CapturingReaderSessionService : IReaderSessionService
+    {
+        public ReaderSession? CurrentSession { get; private set; }
+
+        public IPdfRenderer? CurrentRenderer => null;
+
+        public char[]? LastPassword { get; private set; }
+
+        public bool ThrowIncorrectPassword { get; init; }
+
+        public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct) =>
+            OpenProtectedAsync(bookId, pageHint, [], ct);
+
+        public Task<ReaderSession> OpenProtectedAsync(
+            string bookId,
+            int? pageHint,
+            char[] password,
+            CancellationToken ct)
+        {
+            if (ThrowIncorrectPassword)
+            {
+                throw new PdfPasswordIncorrectException("protected.pdf");
+            }
+
+            LastPassword = password.ToArray();
+            CurrentSession = new ReaderSession(
+                bookId,
+                "protected.pdf",
+                PageCount: 1,
+                CurrentPageIndex: pageHint ?? 0,
+                ScrollOffset: 0,
+                ZoomMode.FitWidth,
+                ZoomPercent: 100,
+                DisplayMode.SinglePage);
+            return Task.FromResult(CurrentSession);
+        }
+
+        public Task CloseAsync(CancellationToken ct) => Task.CompletedTask;
+
+        public Task NavigateToAsync(int pageIndex, double scrollOffset = 0) => Task.CompletedTask;
+
+        public void UpdateScrollOffset(double scrollOffset)
+        {
+        }
     }
 }

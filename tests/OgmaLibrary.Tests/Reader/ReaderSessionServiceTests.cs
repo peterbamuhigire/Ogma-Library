@@ -79,6 +79,17 @@ public sealed class ReaderSessionServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task OpenProtectedAsync_PassesPasswordToRendererFactory()
+    {
+        char[] password = "ogma-test-password".ToCharArray();
+
+        var session = await _sessionService.OpenProtectedAsync(TestBookId, 2, password, CancellationToken.None);
+
+        Assert.Equal(2, session.CurrentPageIndex);
+        Assert.Equal("ogma-test-password", new string(_rendererFactory.LastPassword!));
+    }
+
+    [Fact]
     public async Task NavigateToAsync_ChangesCurrentPage()
     {
         await _sessionService.OpenAsync(TestBookId, null, CancellationToken.None);

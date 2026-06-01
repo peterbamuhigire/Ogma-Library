@@ -22,6 +22,9 @@ hosted `OcrWorker` are registered through the composition root without loading
 native OCR binaries until a queued OCR job actually runs. English language data
 is supplied through `Tesseract.Data.English`, which copies
 `tessdata/eng.traineddata` to the app output.
+The WP4 reader handoff now opens protected PDFs through `OpenProtectedAsync`,
+passes the password to the PDFium adapter, clears provider-owned password
+buffers after open, and covers the known-password PDF render path.
 
 ## Verified Locally
 
@@ -33,7 +36,9 @@ is supplied through `Tesseract.Data.English`, which copies
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~IndexManagerServiceTests` | Passed: 4 index-manager backend tests including OCR job status projection |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~SearchViewModelTests` | Passed: 8 UI/view-model tests including localized OCR job progress |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~ShellReaderNavigationTests` | Passed: 4 shell route tests including split-view V2 scaffold |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PasswordProviderTests` | Passed: 3 password-provider security tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PasswordProviderTests` | Passed: 5 password-provider security/handoff tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~PasswordProviderTests\|FullyQualifiedName~ReaderSessionServiceTests\|FullyQualifiedName~PdfiumAdapterPasswordTests"` | Passed: 16 password/session/PDFium handoff tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PdfiumAdapterPasswordTests` | Passed: 1 real PDFium password-protected render test |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 0 warnings, 0 errors |
 | `Test-Path src\OgmaLibrary.Infrastructure\bin\Release\net10.0\tessdata\eng.traineddata` | Passed: English tessdata copied to Release output |
@@ -59,13 +64,15 @@ is supplied through `Tesseract.Data.English`, which copies
 | Password provider boundary | `IPasswordProvider`, `PasswordRequest`, and disposable `PasswordResult` define the no-catalogue-secret unlock contract |
 | Windows credential provider | `WindowsPasswordProvider` checks Windows Credential Manager and uses the OS credential prompt for missing passwords |
 | Password unlock view model | `PasswordUnlockViewModel` requests passwords without writing secret values to EF rows or sidecars |
+| Protected reader handoff | `IReaderSessionService.OpenProtectedAsync` and `IPdfRendererFactory.Open(filePath, password)` carry OS-supplied passwords to the renderer boundary |
+| PDFium password render path | `PdfiumAdapter` detects required passwords, opens protected PDFs with supplied credentials, and clears its session password buffer on dispose |
 | OCR ADR | `docs/adrs/0011-local-tesseract-ocr.md` records the local Tesseract decision and packaging consequences |
 
 ## Remaining Phase 15 Work
 
 - WP2 OCR golden-corpus fixture.
 - WP3 OCR trigger/pause/cancel/retry controls.
-- WP4 PDF renderer password handoff and macOS Keychain provider.
+- WP4 macOS Keychain provider and book-detail forget-password UI.
 - WP5 split-view scaffold is complete; V2 implementation remains out of Phase 15 scope.
 - WP6 batch enrichment scale hardening.
 - WP7 smart-shelf performance optimization.

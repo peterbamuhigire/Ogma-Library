@@ -54,10 +54,27 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
     public IObservable<ReaderEvent> Events => _events;
 
     /// <inheritdoc />
-    public async Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct)
+    public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct) =>
+        OpenCoreAsync(bookId, pageHint, password: null, ct);
+
+    /// <inheritdoc />
+    public Task<ReaderSession> OpenProtectedAsync(
+        string bookId,
+        int? pageHint,
+        char[] password,
+        CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentNullException.ThrowIfNull(password);
+        return OpenCoreAsync(bookId, pageHint, password, ct);
+    }
 
+    private async Task<ReaderSession> OpenCoreAsync(
+        string bookId,
+        int? pageHint,
+        char[]? password,
+        CancellationToken ct)
+    {
         // Close any existing session first.
         if (_currentSession is not null)
         {
@@ -75,7 +92,9 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
         ReaderProgress progress = await _progressService.LoadAsync(bookId, ct).ConfigureAwait(false);
 
         // Open the native renderer.
-        IPdfRenderer renderer = _rendererFactory.Open(filePath);
+        IPdfRenderer renderer = password is null
+            ? _rendererFactory.Open(filePath)
+            : _rendererFactory.Open(filePath, password);
         _currentRenderer = renderer;
 
         // Register renderer with the cache.

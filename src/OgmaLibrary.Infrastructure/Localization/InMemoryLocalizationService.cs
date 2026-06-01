@@ -301,6 +301,7 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["PasswordUnlock.Status.Locked"] = "Book is locked",
         ["PasswordUnlock.Status.Cancelled"] = "Password unlock cancelled",
         ["PasswordUnlock.Status.Unlocked"] = "Book unlocked",
+        ["PasswordUnlock.Status.Incorrect"] = "Password incorrect. Try again.",
 
         // Phase 09 — Annotations, Bookmarks & Reading Memory (en)
         ["Annotation.Highlight.Create"] = "Highlight",
@@ -730,6 +731,7 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["PasswordUnlock.Status.Locked"] = "Le livre est verrouille",
         ["PasswordUnlock.Status.Cancelled"] = "Deverrouillage annule",
         ["PasswordUnlock.Status.Unlocked"] = "Livre deverrouille",
+        ["PasswordUnlock.Status.Incorrect"] = "Mot de passe incorrect. Reessayez.",
 
         // Phase 09 — Annotations, Bookmarks & Reading Memory (fr)
         ["Annotation.Highlight.Create"] = "Surligner",

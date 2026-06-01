@@ -1,5 +1,6 @@
 using OgmaLibrary.Application.Reader;
 using PDFtoImage;
+using PDFtoImage.Exceptions;
 using SkiaSharp;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
@@ -22,6 +23,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
 {
     private readonly string _filePath;
     private readonly byte[] _fileBytes;
+    private readonly char[]? _password;
     private bool _disposed;
 
     /// <summary>
@@ -29,10 +31,26 @@ public sealed class PdfiumAdapter : IPdfRenderer
     /// </summary>
     /// <param name="filePath">The absolute path to the PDF file.</param>
     public PdfiumAdapter(string filePath)
+        : this(filePath, password: null, copyPassword: false)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new adapter for the specified password-protected PDF file.
+    /// </summary>
+    /// <param name="filePath">The absolute path to the PDF file.</param>
+    /// <param name="password">The password characters for this document session.</param>
+    public PdfiumAdapter(string filePath, char[] password)
+        : this(filePath, password ?? throw new ArgumentNullException(nameof(password)), copyPassword: true)
+    {
+    }
+
+    private PdfiumAdapter(string filePath, char[]? password, bool copyPassword)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         _filePath = filePath;
         _fileBytes = File.ReadAllBytes(filePath);
+        _password = password is null ? null : copyPassword ? password.ToArray() : password;
         PageCount = DetectPageCount();
     }
 
@@ -75,7 +93,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         try
         {
-            using var doc = PdfDocument.Open(_fileBytes);
+            using var doc = OpenPdfPigDocument();
             var pages = doc.GetPages().ToList();
             if (pageIndex >= pages.Count)
             {
@@ -99,7 +117,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         try
         {
-            using var doc = PdfDocument.Open(_fileBytes);
+            using var doc = OpenPdfPigDocument();
             var pages = doc.GetPages().ToList();
             if (pageIndex >= pages.Count)
             {
@@ -158,6 +176,11 @@ public sealed class PdfiumAdapter : IPdfRenderer
     /// <inheritdoc />
     public void Dispose()
     {
+        if (_password is not null)
+        {
+            Array.Clear(_password);
+        }
+
         _disposed = true;
     }
 
@@ -166,7 +189,6 @@ public sealed class PdfiumAdapter : IPdfRenderer
         ct.ThrowIfCancellationRequested();
 
         // PDFtoImage renders to an SKBitmap; we encode it to PNG bytes.
-        using var stream = new MemoryStream(_fileBytes);
         var options = new RenderOptions(
             Dpi: (int)(72 * scale),
             Width: targetWidth,
@@ -186,7 +208,11 @@ public sealed class PdfiumAdapter : IPdfRenderer
         // Ogma platforms per ADR-0004). CA1416 is suppressed because all three are
         // in the supported set; other platforms are excluded by packaging.
 #pragma warning disable CA1416
-        using SKBitmap bitmap = PDFtoImage.Conversion.ToImage(stream, options: options, page: pageIndex);
+        using SKBitmap bitmap = Conversion.ToImage(
+            _fileBytes,
+            page: pageIndex,
+            password: CreatePasswordString(),
+            options: options);
 #pragma warning restore CA1416
 
         ct.ThrowIfCancellationRequested();
@@ -200,8 +226,17 @@ public sealed class PdfiumAdapter : IPdfRenderer
     {
         try
         {
-            using var doc = PdfDocument.Open(_fileBytes);
-            return doc.NumberOfPages;
+#pragma warning disable CA1416
+            return Conversion.GetPageCount(_fileBytes, CreatePasswordString());
+#pragma warning restore CA1416
+        }
+        catch (PdfPasswordProtectedException) when (_password is null)
+        {
+            throw new PdfPasswordRequiredException(_filePath);
+        }
+        catch (PdfPasswordProtectedException)
+        {
+            throw new PdfPasswordIncorrectException(_filePath);
         }
         catch
         {
@@ -213,7 +248,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
     {
         try
         {
-            using var doc = PdfDocument.Open(_fileBytes);
+            using var doc = OpenPdfPigDocument();
             var pages = doc.GetPages().ToList();
             if (pageIndex >= pages.Count)
             {
@@ -231,4 +266,19 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
     private static int NormalizeRotation(int rotation) =>
         ((rotation % 360) + 360) % 360;
+
+    private PdfDocument OpenPdfPigDocument()
+    {
+        var options = new ParsingOptions { UseLenientParsing = true };
+        string? password = CreatePasswordString();
+        if (password is not null)
+        {
+            options.Password = password;
+        }
+
+        return PdfDocument.Open(_fileBytes, options);
+    }
+
+    private string? CreatePasswordString() =>
+        _password is null ? null : new string(_password);
 }

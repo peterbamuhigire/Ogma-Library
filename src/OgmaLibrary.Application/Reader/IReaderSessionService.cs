@@ -27,6 +27,27 @@ public interface IReaderSessionService
     Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct);
 
     /// <summary>
+    /// Opens a password-protected PDF document for the specified book.
+    /// </summary>
+    /// <param name="bookId">The stable book identity.</param>
+    /// <param name="pageHint">
+    /// Optional page override. When <see langword="null"/> the last saved page is used.
+    /// </param>
+    /// <param name="password">Password characters supplied by the OS credential flow.</param>
+    /// <param name="ct">A token to cancel the operation.</param>
+    /// <returns>The new reader session.</returns>
+    Task<ReaderSession> OpenProtectedAsync(
+        string bookId,
+        int? pageHint,
+        char[] password,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentNullException.ThrowIfNull(password);
+        return OpenAsync(bookId, pageHint, ct);
+    }
+
+    /// <summary>
     /// Closes the current session, flushing any pending progress write synchronously
     /// to ensure durability even if the application exits abnormally (NFR-OGMA-008).
     /// </summary>

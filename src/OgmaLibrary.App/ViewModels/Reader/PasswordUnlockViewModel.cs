@@ -10,17 +10,22 @@ public sealed class PasswordUnlockViewModel : INotifyPropertyChanged
 {
     private readonly IPasswordProvider _passwordProvider;
     private readonly ILocalizationService _localization;
+    private readonly IReaderSessionService? _readerSessionService;
     private string _statusText;
     private bool _isUnlocking;
 
     /// <summary>Initializes a new instance of <see cref="PasswordUnlockViewModel"/>.</summary>
-    public PasswordUnlockViewModel(IPasswordProvider passwordProvider, ILocalizationService localization)
+    public PasswordUnlockViewModel(
+        IPasswordProvider passwordProvider,
+        ILocalizationService localization,
+        IReaderSessionService? readerSessionService = null)
     {
         ArgumentNullException.ThrowIfNull(passwordProvider);
         ArgumentNullException.ThrowIfNull(localization);
 
         _passwordProvider = passwordProvider;
         _localization = localization;
+        _readerSessionService = readerSessionService;
         _statusText = _localization["PasswordUnlock.Status.Locked"];
     }
 
@@ -81,6 +86,42 @@ public sealed class PasswordUnlockViewModel : INotifyPropertyChanged
         finally
         {
             IsUnlocking = false;
+        }
+    }
+
+    /// <summary>Requests a password and opens the protected reader session.</summary>
+    public async Task<ReaderSession?> RequestAndOpenAsync(
+        string bookId,
+        string contentHash,
+        string? title = null,
+        int? pageHint = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (_readerSessionService is null)
+        {
+            throw new InvalidOperationException("No reader session service is available for protected open.");
+        }
+
+        using PasswordResult result = await RequestUnlockAsync(bookId, contentHash, title, cancellationToken)
+            .ConfigureAwait(false);
+        if (result.Password is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _readerSessionService
+                .OpenProtectedAsync(bookId, pageHint, result.Password, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (PdfPasswordIncorrectException)
+        {
+            await _passwordProvider
+                .ForgetPasswordAsync(new PasswordRequest(bookId, contentHash, title), cancellationToken)
+                .ConfigureAwait(false);
+            StatusText = _localization["PasswordUnlock.Status.Incorrect"];
+            return null;
         }
     }
 

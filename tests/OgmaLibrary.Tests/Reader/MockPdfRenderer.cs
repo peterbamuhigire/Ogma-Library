@@ -108,6 +108,9 @@ public sealed class MockPdfRendererFactory : IPdfRendererFactory
     /// <summary>All renderers created by this factory.</summary>
     public List<MockPdfRenderer> CreatedRenderers { get; } = new();
 
+    /// <summary>The last password supplied to the password-aware open path.</summary>
+    public char[]? LastPassword { get; private set; }
+
     /// <summary>
     /// Creates a factory that returns renderers with the given page count.
     /// </summary>
@@ -133,5 +136,13 @@ public sealed class MockPdfRendererFactory : IPdfRendererFactory
         var renderer = _factory(filePath);
         CreatedRenderers.Add(renderer);
         return renderer;
+    }
+
+    /// <inheritdoc />
+    public IPdfRenderer Open(string filePath, char[] password)
+    {
+        ArgumentNullException.ThrowIfNull(password);
+        LastPassword = password.ToArray();
+        return Open(filePath);
     }
 }

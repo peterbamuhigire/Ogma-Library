@@ -404,3 +404,4 @@ Full detail in `skills.md`.
 | 2026-06-01 | Implementation | Added WP3 OCR job status projection in Index Manager with localized active-job and page-progress display. |
 | 2026-06-01 | Implementation | Added WP5 split-view V2 scaffold route, view model, view, localized placeholder, and shell navigation test. |
 | 2026-06-01 | Implementation | Started WP4 password flow: provider contract, Windows Credential Manager provider, unlock view model, and no-plaintext-catalogue tests. |
+| 2026-06-01 | Implementation | Added WP4 protected-reader handoff: password-aware session open, PDFium adapter password support, known-password render test, and buffer-clearing checks. |
