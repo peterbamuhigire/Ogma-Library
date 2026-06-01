@@ -689,7 +689,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 bookmark.PageIndex + 1)
             : newLabel.Trim();
 
-        if (string.Equals(bookmark.Label, effectiveLabel, StringComparison.Ordinal))
+        if (string.Equals(bookmark.PersistedLabel, effectiveLabel, StringComparison.Ordinal))
         {
             return;
         }
@@ -699,6 +699,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             .ConfigureAwait(true);
 
         bookmark.Label = effectiveLabel;
+        bookmark.MarkPersistedLabel(effectiveLabel);
         await RefreshBookmarksAsync(cancellationToken).ConfigureAwait(true);
         StatusMessage = _localization["Bookmark.Renamed"];
     }
@@ -1880,6 +1881,7 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
         Id = id;
         PageIndex = pageIndex;
         _label = label;
+        PersistedLabel = label;
         CreatedUtc = createdUtc;
         AccessibleLabelFormat = accessibleLabelFormat;
     }
@@ -1911,6 +1913,9 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
         }
     }
 
+    /// <summary>The last label confirmed by the bookmark service.</summary>
+    public string PersistedLabel { get; private set; }
+
     /// <summary>Human-readable page number.</summary>
     public int PageNumber => PageIndex + 1;
 
@@ -1922,6 +1927,9 @@ public sealed class BookmarkListItem : INotifyPropertyChanged
         PageNumber);
 
     private string AccessibleLabelFormat { get; }
+
+    /// <summary>Marks the current editable label as persisted after a successful save.</summary>
+    public void MarkPersistedLabel(string label) => PersistedLabel = label;
 }
 
 /// <summary>A bookmark panel sort option.</summary>

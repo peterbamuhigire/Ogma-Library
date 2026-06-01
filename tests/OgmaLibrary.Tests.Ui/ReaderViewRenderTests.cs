@@ -2493,6 +2493,77 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public async Task ReaderView_BookmarkDirectControls_InvokeRenderedHandlers()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Window window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+
+            Button addBookmarkButton = AssertFocusableControl<Button>(window, "Add bookmark");
+            InvokeReaderViewHandler(view, "AddBookmarkButton_Click", addBookmarkButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(viewModel.IsCurrentPageBookmarked);
+            Assert.Contains(viewModel.Bookmarks, bookmark => bookmark.PageIndex == 0 && bookmark.Label == "Page 1");
+            Assert.Equal("Bookmark saved", viewModel.StatusMessage);
+
+            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            tabControl.SelectedIndex = 1;
+            Dispatcher.UIThread.RunJobs();
+
+            BookmarkListItem important = viewModel.Bookmarks.Single(bookmark => bookmark.Label == "Important page");
+            Button navigateButton = BookmarkControl<Button>(
+                window,
+                important,
+                button => GetAutomationName(button) == "Important page, page 3");
+            InvokeReaderViewHandler(view, "BookmarkNavigateButton_Click", navigateButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(2, viewModel.CurrentPageIndex);
+
+            TextBox renameEditor = BookmarkControl<TextBox>(window, important);
+            renameEditor.Text = "Chapter marker";
+            InvokeReaderViewHandler(view, "BookmarkLabel_LostFocus", renameEditor);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            BookmarkListItem renamed = viewModel.Bookmarks.Single(bookmark => bookmark.Label == "Chapter marker");
+            Assert.Equal("Bookmark renamed", viewModel.StatusMessage);
+
+            Button removeButton = BookmarkControl<Button>(
+                window,
+                renamed,
+                button => GetAutomationName(button) == "Remove bookmark");
+            InvokeReaderViewHandler(view, "DeleteBookmarkButton_Click", removeButton);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(viewModel.Bookmarks, bookmark => bookmark.Label == "Chapter marker");
+            Assert.Contains(viewModel.Bookmarks, bookmark => bookmark.PageIndex == 0 && bookmark.Label == "Page 1");
+            Assert.Equal("Bookmark removed", viewModel.StatusMessage);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void ReaderView_CtrlShiftC_CapturesSelectedCitation()
     {
         var localization = new InMemoryLocalizationService();
@@ -2845,6 +2916,19 @@ public sealed class ReaderViewRenderTests
                 (predicate is null || predicate(control)))
             ?? throw new InvalidOperationException(
                 $"Could not find {typeof(T).Name} for layer '{layer.Name}'.");
+
+    private static T BookmarkControl<T>(
+        Window window,
+        BookmarkListItem bookmark,
+        Func<T, bool>? predicate = null)
+        where T : Control =>
+        window.GetVisualDescendants()
+            .OfType<T>()
+            .FirstOrDefault(control =>
+                ReferenceEquals(control.DataContext, bookmark) &&
+                (predicate is null || predicate(control)))
+            ?? throw new InvalidOperationException(
+                $"Could not find {typeof(T).Name} for bookmark '{bookmark.Label}'.");
 
     private static void InvokeReaderViewHandler(ReaderView view, string methodName, object sender)
     {

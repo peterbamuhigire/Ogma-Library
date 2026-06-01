@@ -437,6 +437,10 @@ Current implementation progress:
 - Layer panel add, filter, rename, merge, and delete controls now have
   rendered-view coverage; inline layer rename also compares against the
   persisted layer name so two-way text binding cannot bypass the save route.
+- Bookmark toolbar add plus direct row navigate, rename-on-blur, and delete
+  controls now have rendered-view coverage; inline bookmark rename also
+  compares against the persisted bookmark label so two-way text binding cannot
+  bypass the save route.
 - The Release desktop app was rebuilt and relaunched after the direct-PDF
   missing-`BookFiles` repair and selected-PDF registration tests were rerun, so
   the running app is using the current direct-open path instead of a stale
@@ -510,3 +514,4 @@ Next steps before final Phase 09 closure:
 | 2026-06-01 | Added rendered annotation delete confirmation coverage for Confirm and Cancel button routes | Codex |
 | 2026-06-01 | Added rendered selection action button coverage for highlight, note, and citation routes | Codex |
 | 2026-06-01 | Added rendered layer lifecycle coverage and fixed inline layer rename after two-way binding | Codex |
+| 2026-06-01 | Added rendered bookmark direct-control coverage and fixed inline bookmark rename after two-way binding | Codex |
