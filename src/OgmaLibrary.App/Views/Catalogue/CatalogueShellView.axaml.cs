@@ -135,6 +135,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private async void SharingSettingsButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            await vm.OpenSharingSettingsAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void ChooseFolderButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

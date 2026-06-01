@@ -4,6 +4,7 @@
              xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
              xmlns:reader="using:OgmaLibrary.App.Views.Reader"
              xmlns:search="using:OgmaLibrary.App.Views.Search"
+             xmlns:settings="using:OgmaLibrary.App.Views.Settings"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
              x:DataType="vm:MainShellViewModel"
@@ -74,7 +75,7 @@
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
           <!-- Sidebar toggle -->
           <Button Grid.Column="0"
@@ -182,6 +183,17 @@
           </Button>
 
           <Button Grid.Column="6"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  AutomationProperties.Name="{Binding SharingSettingsLabel}"
+                  Click="SharingSettingsButton_Click">
+            <TextBlock Text="{Binding SharingSettingsLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
+
+          <Button Grid.Column="7"
                   Background="{DynamicResource Brush.Accent.Oak}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -193,7 +205,7 @@
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
 
-          <Button Grid.Column="7"
+          <Button Grid.Column="8"
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -206,7 +218,7 @@
           </Button>
 
           <!-- Count badge -->
-          <TextBlock Grid.Column="8"
+          <TextBlock Grid.Column="9"
                      VerticalAlignment="Center"
                      Margin="8,0,4,0"
                      FontSize="{DynamicResource Type.Size.Caption}"
@@ -326,6 +338,10 @@
 
         <Panel IsVisible="{Binding IsSplitViewActive}">
           <reader:SplitViewView DataContext="{Binding SplitView}" />
+        </Panel>
+
+        <Panel IsVisible="{Binding IsSharingSettingsActive}">
+          <settings:SharingSettingsView DataContext="{Binding HostSharing}" />
         </Panel>
 
       </Grid>

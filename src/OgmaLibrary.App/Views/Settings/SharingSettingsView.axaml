@@ -1,0 +1,248 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Settings.SharingSettingsView"
+             x:DataType="vm:HostSharingViewModel">
+
+  <ScrollViewer>
+    <Grid RowDefinitions="Auto,Auto,Auto,*"
+          RowSpacing="18"
+          Margin="28"
+          MaxWidth="960"
+          HorizontalAlignment="Left">
+
+      <Grid Grid.Row="0"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="16">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Text="Sharing"
+                     FontSize="{DynamicResource Type.Size.Title}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <TextBlock Text="Library Host"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </StackPanel>
+
+        <Border Grid.Column="1"
+                MinWidth="132"
+                Padding="12,8"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.S}"
+                VerticalAlignment="Top">
+          <StackPanel Spacing="2">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <TextBlock Text="{Binding ClientCountText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid Grid.Row="1"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="16">
+        <StackPanel Grid.Column="0" Spacing="6">
+          <TextBlock Text="Content delivery"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <TextBlock Text="{Binding ContentModeText}"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Accent.Slate}" />
+          <TextBlock Text="{Binding FingerprintText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Top">
+          <Button Padding="12,7"
+                  Background="{DynamicResource Brush.Accent.Slate}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding CanChangeContentMode}"
+                  AutomationProperties.Name="{Binding ToggleContentModeText}"
+                  Click="ContentModeButton_Click">
+            <TextBlock Text="{Binding ToggleContentModeText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+          <Button Padding="12,7"
+                  Background="{DynamicResource Brush.Accent.Sage}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding CanStart}"
+                  AutomationProperties.Name="{Binding ConfirmStartText}"
+                  Click="StartButton_Click">
+            <TextBlock Text="Start"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+          <Button Padding="12,7"
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding CanStop}"
+                  AutomationProperties.Name="Stop Library Host"
+                  Click="StopButton_Click">
+            <TextBlock Text="Stop"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="2"
+            RowDefinitions="Auto,Auto"
+            RowSpacing="10">
+        <Border Grid.Row="0"
+                IsVisible="{Binding IsStartConfirmationOpen}"
+                Padding="14"
+                BorderBrush="{DynamicResource Brush.Accent.Sage}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.S}">
+          <Grid ColumnDefinitions="*,Auto"
+                ColumnSpacing="16">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding StartConfirmationText}"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="8">
+              <Button Padding="10,6"
+                      Background="Transparent"
+                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.Name="{Binding CancelConfirmationText}"
+                      Click="CancelStartButton_Click">
+                <TextBlock Text="{Binding CancelConfirmationText}"
+                           FontSize="{DynamicResource Type.Size.Caption}" />
+              </Button>
+              <Button Padding="10,6"
+                      Background="{DynamicResource Brush.Accent.Sage}"
+                      Foreground="White"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.Name="{Binding ConfirmStartText}"
+                      Click="ConfirmStartButton_Click">
+                <TextBlock Text="{Binding ConfirmStartText}"
+                           FontSize="{DynamicResource Type.Size.Caption}" />
+              </Button>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                IsVisible="{Binding IsFileStreamConfirmationOpen}"
+                Padding="14"
+                BorderBrush="{DynamicResource Brush.Accent.Clay}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.S}">
+          <Grid ColumnDefinitions="*,Auto"
+                ColumnSpacing="16">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding FileStreamConfirmationText}"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="8">
+              <Button Padding="10,6"
+                      Background="Transparent"
+                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.Name="{Binding CancelConfirmationText}"
+                      Click="CancelFileStreamButton_Click">
+                <TextBlock Text="{Binding CancelConfirmationText}"
+                           FontSize="{DynamicResource Type.Size.Caption}" />
+              </Button>
+              <Button Padding="10,6"
+                      Background="{DynamicResource Brush.Accent.Clay}"
+                      Foreground="White"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.Name="{Binding ConfirmFileStreamText}"
+                      Click="ConfirmFileStreamButton_Click">
+                <TextBlock Text="{Binding ConfirmFileStreamText}"
+                           FontSize="{DynamicResource Type.Size.Caption}" />
+              </Button>
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <Grid Grid.Row="3"
+            ColumnDefinitions="Auto,*"
+            ColumnSpacing="20"
+            IsVisible="{Binding CanShare}">
+        <Border Grid.Column="0"
+                Background="White"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1"
+                Padding="10"
+                VerticalAlignment="Top">
+          <TextBlock Text="{Binding QrCodeText}"
+                     FontFamily="Consolas, Menlo, monospace"
+                     FontSize="4"
+                     LineHeight="4"
+                     Foreground="Black" />
+        </Border>
+
+        <StackPanel Grid.Column="1" Spacing="10">
+          <TextBlock Text="{Binding SharePanelSubtitle}"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     TextWrapping="Wrap" />
+          <TextBox Text="{Binding ManualJoinUri, Mode=OneWay}"
+                   IsReadOnly="True"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   TextWrapping="NoWrap"
+                   AutomationProperties.Name="LAN Host join link" />
+          <TextBlock Text="{Binding EnrollmentCodeText}"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Accent.Slate}"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding FullFingerprintText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding ShareConfirmationText}"
+                     IsVisible="{Binding HasShareConfirmation}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Accent.Sage}"
+                     TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Slate}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    AutomationProperties.Name="{Binding CopyJoinLinkText}"
+                    Click="CopyJoinLinkButton_Click">
+              <TextBlock Text="{Binding CopyJoinLinkText}"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+            <Button Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Oak}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    AutomationProperties.Name="{Binding CopyFingerprintText}"
+                    Click="CopyFingerprintButton_Click">
+              <TextBlock Text="{Binding CopyFingerprintText}"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

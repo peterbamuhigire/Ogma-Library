@@ -4,8 +4,10 @@ using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.Views.Reader;
+using OgmaLibrary.App.Views.Settings;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
@@ -95,6 +97,69 @@ public sealed class ShellReaderNavigationTests
         Assert.Equal(ShellView.Reader, shell.ActiveView);
         Assert.Equal("book-direct", sessionService.OpenedBookId);
         Assert.Equal("PDF opened in reader. Metadata extraction and enrichment are queued.", shell.StatusText);
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_OpenSharingSettingsAsync_RefreshesHostAndActivatesSettingsRoute()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization)
+        {
+            IsVisible = true,
+        };
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var hostSharing = new HostSharingViewModel(host, settings);
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            hostSharing: hostSharing);
+
+        await shell.OpenSharingSettingsAsync();
+
+        Assert.Equal(ShellView.SharingSettings, shell.ActiveView);
+        Assert.True(shell.IsSharingSettingsActive);
+        Assert.False(shell.BookDetail.IsVisible);
+        Assert.Equal(1, host.StatusRequests);
+        Assert.Equal("Running on :7473", hostSharing.StatusText);
+        Assert.True(hostSharing.CanShare);
+    }
+
+    [AvaloniaFact]
+    public async Task SharingSettingsView_RendersHostControls()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var hostSharing = new HostSharingViewModel(host, settings);
+        await hostSharing.RefreshAsync();
+
+        var window = new Window
+        {
+            Width = 980,
+            Height = 720,
+            Content = new SharingSettingsView { DataContext = hostSharing },
+        };
+
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("Running on :7473", hostSharing.StatusText);
+            Assert.Contains("ogma-lan://", hostSharing.ManualJoinUri, StringComparison.Ordinal);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -426,6 +491,60 @@ public sealed class ShellReaderNavigationTests
         {
             CurrentSnapshot = new ScanProgressSnapshot(ScanPhase.Idle, 0, 0, 0, IsCancellable: false);
             ProgressChanged?.Invoke(this, CurrentSnapshot);
+        }
+    }
+
+    private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
+    {
+        public HostModeSettings Settings { get; private set; } = new(
+            IsEnabled: true,
+            Port: 7473,
+            ContentMode: HostContentDeliveryMode.PageRender,
+            DisplayName: "Ogma Test Library");
+
+        public Task<HostModeSettings> GetAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Settings);
+
+        public Task SaveAsync(HostModeSettings settings, CancellationToken cancellationToken = default)
+        {
+            Settings = settings;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeLibraryHostService : ILibraryHostService
+    {
+        private LibraryHostStatus _status = new(
+            LibraryHostState.Running,
+            Port: 7473,
+            ConnectedClientCount: 3,
+            CertificateFingerprint: new string('a', 64),
+            ErrorMessage: null,
+            HostAddress: "127.0.0.1",
+            EnrollmentCode: "ABC12345");
+
+        public int StatusRequests { get; private set; }
+
+        public Task<LibraryHostStatus> GetStatusAsync(CancellationToken cancellationToken = default)
+        {
+            StatusRequests++;
+            return Task.FromResult(_status);
+        }
+
+        public Task<LibraryHostStatus> StartAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(_status);
+
+        public Task<LibraryHostStatus> StopAsync(CancellationToken cancellationToken = default)
+        {
+            _status = _status with
+            {
+                State = LibraryHostState.Stopped,
+                HostAddress = null,
+                CertificateFingerprint = null,
+                EnrollmentCode = null,
+                ConnectedClientCount = 0,
+            };
+            return Task.FromResult(_status);
         }
     }
 

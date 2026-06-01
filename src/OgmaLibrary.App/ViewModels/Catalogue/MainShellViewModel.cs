@@ -24,6 +24,9 @@ public enum ShellView
 
     /// <summary>The V2 split-reader scaffold (Phase 15).</summary>
     SplitView = 2,
+
+    /// <summary>The LAN Host sharing settings surface (Phase 16).</summary>
+    SharingSettings = 3,
 }
 
 /// <summary>
@@ -176,6 +179,7 @@ public sealed class MainShellViewModel :
                 OnPropertyChanged(nameof(IsCatalogueActive));
                 OnPropertyChanged(nameof(IsReaderActive));
                 OnPropertyChanged(nameof(IsSplitViewActive));
+                OnPropertyChanged(nameof(IsSharingSettingsActive));
             }
         }
     }
@@ -188,6 +192,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the split-view scaffold is the active content area.</summary>
     public bool IsSplitViewActive => _activeView == ShellView.SplitView;
+
+    /// <summary>True when the Sharing settings surface is the active content area.</summary>
+    public bool IsSharingSettingsActive => _activeView == ShellView.SharingSettings;
 
     /// <summary>Whether the left sidebar (shelves) is open.</summary>
     public bool IsSidebarOpen
@@ -361,6 +368,9 @@ public sealed class MainShellViewModel :
     /// <summary>Split-view scaffold route label.</summary>
     public string SplitViewLabel => _localization["SplitView.Title"];
 
+    /// <summary>Sharing settings route label.</summary>
+    public string SharingSettingsLabel => _localization["SharingSettings.Title"];
+
     /// <summary>Search panel toggle icon path.</summary>
     public string SearchIconPath => _searchIconPath;
 
@@ -403,6 +413,19 @@ public sealed class MainShellViewModel :
     public void OpenSplitViewScaffold()
     {
         ActiveView = ShellView.SplitView;
+        ReaderPlaceholderMessage = null;
+        BookDetail.IsVisible = false;
+    }
+
+    /// <summary>Opens the Phase 16 Sharing settings surface.</summary>
+    public async Task OpenSharingSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        if (HostSharing is not null)
+        {
+            await HostSharing.RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        ActiveView = ShellView.SharingSettings;
         ReaderPlaceholderMessage = null;
         BookDetail.IsVisible = false;
     }
@@ -704,6 +727,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(SearchLabel));
         OnPropertyChanged(nameof(IndexManagerLabel));
         OnPropertyChanged(nameof(SplitViewLabel));
+        OnPropertyChanged(nameof(SharingSettingsLabel));
         OnPropertyChanged(nameof(SearchIconPath));
         OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(SortLabel));
