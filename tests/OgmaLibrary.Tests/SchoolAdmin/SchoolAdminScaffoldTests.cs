@@ -44,7 +44,7 @@ public sealed class SchoolAdminScaffoldTests
             Assert.Empty(await publishing.ListAsync());
             Assert.Equal(OgmaLibrary.Domain.Ai.AiPrivacyTier.MetadataOnly, currentPolicy.DefaultTier);
             Assert.False(currentPolicy.ContentAwareEnabled);
-            Assert.Equal(DpiaScreeningDecision.Disqualified, dpiaResult.Decision);
+            Assert.Equal(DpiaScreeningDecision.Approved, dpiaResult.Decision);
             Assert.Empty(usage);
         }
         finally

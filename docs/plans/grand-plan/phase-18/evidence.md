@@ -38,6 +38,7 @@ on.
 | School AI quota reservation | `SchoolAiPolicyService.CheckAndReserveQuotaAsync()` transactionally writes `AiUsageLedger` rows, blocks student/class daily token exhaustion, and serializes in-process reservations to prevent budget overrun |
 | Conservative tier policy | `SchoolAiPolicyService.SavePolicyAsync()` rejects ContentAware and answer-mode elevation until the Phase 18 AI proxy/tier persistence path is implemented |
 | Usage dashboard service | `SchoolUsageDashboardService.GetSummaryAsync()` aggregates `AiUsageLedger` by enrolled profile, filters UTC date ranges, includes zero-usage enrolled profiles, and reports quota percentage and last activity |
+| DPIA screening service | `SchoolDpiaScreeningService` approves no-egress and metadata-only tiers, blocks ContentAware requests until explicit school DPIA approval exists, treats unknown-age profiles conservatively, and writes local audit events |
 
 ## Verified Locally
 
@@ -104,13 +105,21 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after usage dashboard service: 35 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after usage dashboard service |
 | `git diff --check` | Passed after usage dashboard service: no whitespace errors |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after DPIA screening service: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolDpiaScreeningServiceTests" --logger "console;verbosity=minimal"` | Passed: 6 DPIA tests covering metadata-only minor approval, ContentAware minor/unknown-age blocking, no-egress tier approval, audit writing, and invalid payload-scope rejection |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminScaffoldTests" --logger "console;verbosity=minimal"` | Passed after DPIA registration: 11 SchoolAdmin scaffold/key tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_SchoolAdminScaffold" --logger "console;verbosity=minimal"` | Passed after DPIA registration: 1 architecture smoke test |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after DPIA screening service: 610 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after DPIA screening service: 35 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after DPIA screening service |
+| `git diff --check` | Passed after DPIA screening service: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- Enrollment-token exchange with Host sessions; AI key panel UI, DPIA, rate-limit enforcement,
+- Enrollment-token exchange with Host sessions; AI key panel UI, rate-limit enforcement,
   AI-proxy, dashboard UI, audit viewer, and student smart-search implementation.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

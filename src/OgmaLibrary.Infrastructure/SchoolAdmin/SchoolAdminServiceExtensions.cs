@@ -23,6 +23,7 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<SchoolProfileEnrollmentService>();
         services.AddSingleton<SchoolAiPolicyService>();
         services.AddSingleton<SchoolUsageDashboardService>();
+        services.AddSingleton<SchoolDpiaScreeningService>();
         services.AddSingleton<UnavailableSchoolAdminService>();
         services.AddSingleton<ILibraryPublishingService>(provider =>
             provider.GetRequiredService<SchoolAdminCatalogueService>());
@@ -44,7 +45,7 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<IUsageDashboardService>(provider =>
             provider.GetRequiredService<SchoolUsageDashboardService>());
         services.AddSingleton<IDpiaScreeningService>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            provider.GetRequiredService<SchoolDpiaScreeningService>());
         return services;
     }
 }

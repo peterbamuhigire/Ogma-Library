@@ -688,7 +688,7 @@ public sealed class ArchitectureTests
         Assert.Equal("admin", SchoolAdminAuthorization.AdminRole);
         Assert.Equal(OgmaLibrary.Domain.Ai.AiPrivacyTier.MetadataOnly, currentPolicy.DefaultTier);
         Assert.False(currentPolicy.ContentAwareEnabled);
-        Assert.Equal(DpiaScreeningDecision.Disqualified, result.Decision);
+        Assert.Equal(DpiaScreeningDecision.Approved, result.Decision);
     }
 
     [Fact]
