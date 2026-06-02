@@ -20,6 +20,8 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 internal sealed class KestrelHostModeListener : IHostModeListener
 {
     private const string IssuedSessionItemKey = "Ogma.LanHost.IssuedSession";
+    private const string AuthenticatedSessionItemKey = "Ogma.LanHost.AuthenticatedSession";
+    private const int MaxProfileSyncBlobBytes = 5 * 1024 * 1024;
 
     private readonly ICatalogueReadModel _catalogueReadModel;
     private readonly IMetadataSearchService _metadataSearch;
@@ -28,6 +30,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly ILanPageRenderer _pageRenderer;
     private readonly ILanPageRenderLimiter _pageRenderLimiter;
     private readonly IClientSessionService _sessions;
+    private readonly IProfileSyncBlobStore _profileSyncBlobs;
     private readonly IHostServerCertificateProvider _certificates;
     private readonly IAuditRepository _audit;
     private readonly ILanBindAddressSelector _bindAddressSelector;
@@ -42,6 +45,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         ILanPageRenderer pageRenderer,
         ILanPageRenderLimiter pageRenderLimiter,
         IClientSessionService sessions,
+        IProfileSyncBlobStore profileSyncBlobs,
         IHostServerCertificateProvider certificates,
         IAuditRepository audit,
         ILanBindAddressSelector bindAddressSelector,
@@ -54,6 +58,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _pageRenderer = pageRenderer ?? throw new ArgumentNullException(nameof(pageRenderer));
         _pageRenderLimiter = pageRenderLimiter ?? throw new ArgumentNullException(nameof(pageRenderLimiter));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
+        _profileSyncBlobs = profileSyncBlobs ?? throw new ArgumentNullException(nameof(profileSyncBlobs));
         _certificates = certificates ?? throw new ArgumentNullException(nameof(certificates));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _bindAddressSelector = bindAddressSelector ?? throw new ArgumentNullException(nameof(bindAddressSelector));
@@ -155,6 +160,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             }
 
             authenticated = true;
+            context.Items[AuthenticatedSessionItemKey] = session;
             await next(context).ConfigureAwait(false);
             await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
         });
@@ -256,6 +262,53 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             return book is null
                 ? Results.NotFound(new LanHostError("book_not_found", "The requested book was not found."))
                 : Results.Json(MapDetail(book));
+        });
+
+        app.MapPut("/api/v1/profile/sync", async (HttpContext context, CancellationToken ct) =>
+        {
+            ClientSessionSnapshot session = GetAuthenticatedSession(context);
+            if (context.Request.ContentLength is > MaxProfileSyncBlobBytes)
+            {
+                return Results.Json(
+                    new LanHostError("sync_blob_too_large", "Profile sync blob exceeds the LAN Host size limit."),
+                    statusCode: StatusCodes.Status413PayloadTooLarge);
+            }
+
+            using var output = new MemoryStream();
+            await context.Request.Body.CopyToAsync(output, ct).ConfigureAwait(false);
+            if (output.Length == 0)
+            {
+                return Results.BadRequest(new LanHostError("empty_sync_blob", "Profile sync blob content is required."));
+            }
+
+            if (output.Length > MaxProfileSyncBlobBytes)
+            {
+                return Results.Json(
+                    new LanHostError("sync_blob_too_large", "Profile sync blob exceeds the LAN Host size limit."),
+                    statusCode: StatusCodes.Status413PayloadTooLarge);
+            }
+
+            await _profileSyncBlobs
+                .SaveAsync(
+                    session.ClientId,
+                    new HostProfileSyncBlob(
+                        context.Request.ContentType ?? "application/octet-stream",
+                        output.ToArray(),
+                        DateTimeOffset.UtcNow),
+                    ct)
+                .ConfigureAwait(false);
+            return Results.NoContent();
+        });
+
+        app.MapGet("/api/v1/profile/sync", async (HttpContext context, CancellationToken ct) =>
+        {
+            ClientSessionSnapshot session = GetAuthenticatedSession(context);
+            HostProfileSyncBlob? blob = await _profileSyncBlobs
+                .LoadAsync(session.ClientId, ct)
+                .ConfigureAwait(false);
+            return blob is null
+                ? Results.NotFound(new LanHostError("sync_blob_not_found", "No profile sync blob has been stored for this client."))
+                : Results.Bytes(blob.Content, blob.ContentType);
         });
 
         app.MapGet("/api/v1/assets/{assetClass}/{contentHash}", (
@@ -362,6 +415,12 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         context.Items.TryGetValue(IssuedSessionItemKey, out object? value)
             ? value as ClientSessionSnapshot
             : null;
+
+    private static ClientSessionSnapshot GetAuthenticatedSession(HttpContext context) =>
+        context.Items.TryGetValue(AuthenticatedSessionItemKey, out object? value) &&
+        value is ClientSessionSnapshot session
+            ? session
+            : throw new InvalidOperationException("Authenticated LAN Host session was not available.");
 
     private static bool IsEnrollmentCodeValid(string? suppliedCode, string expectedCode)
     {
@@ -506,6 +565,14 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 new LanAuditRouteInfo("SearchCatalogue", "CatalogueSearch", null),
             "catalogue" when segments.Length >= 4 =>
                 new LanAuditRouteInfo("GetBookDetail", "Book", segments[3]),
+            "profile" when segments.Length >= 4 &&
+                           string.Equals(segments[3], "sync", StringComparison.OrdinalIgnoreCase) =>
+                new LanAuditRouteInfo(
+                    context.Request.Method.Equals("PUT", StringComparison.OrdinalIgnoreCase)
+                        ? "UploadProfileSync"
+                        : "DownloadProfileSync",
+                    "ProfileSync",
+                    GetAuditClientId(context)),
             "assets" when segments.Length >= 5 =>
                 new LanAuditRouteInfo("ServeAsset", "Asset", $"{segments[3]}:{segments[4]}"),
             "books" when segments.Length >= 6 &&
@@ -521,6 +588,12 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             ? route
             : route with { Action = actionPrefix };
     }
+
+    private static string? GetAuditClientId(HttpContext context) =>
+        context.Items.TryGetValue(AuthenticatedSessionItemKey, out object? value) &&
+        value is ClientSessionSnapshot session
+            ? session.ClientId
+            : null;
 
     private async Task AppendAuditAsync(
         HttpContext context,

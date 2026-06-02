@@ -73,3 +73,9 @@ public sealed record ClientSessionSnapshot(
     string Role,
     DateTimeOffset ExpiresUtc);
 
+/// <summary>Opaque private-state sync blob stored by the LAN Host.</summary>
+public sealed record HostProfileSyncBlob(
+    string ContentType,
+    byte[] Content,
+    DateTimeOffset UpdatedUtc);
+

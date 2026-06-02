@@ -13,17 +13,20 @@ public static class LanHostServiceExtensions
 
         services.AddSingleton<IHostModeSettingsRepository, HostModeSettingsRepository>();
         services.AddSingleton<IClientSessionService, ClientSessionService>();
-        services.AddSingleton(_ => new LocalCertificateProvisioner(
-            dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));
+        string rootDirectory = dataDirectory ??
+            OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory();
+
+        services.AddSingleton(_ => new LocalCertificateProvisioner(rootDirectory));
         services.AddSingleton<ICertificateProvisioner>(sp => sp.GetRequiredService<LocalCertificateProvisioner>());
         services.AddSingleton<IHostServerCertificateProvider>(sp => sp.GetRequiredService<LocalCertificateProvisioner>());
+        services.AddSingleton<IProfileSyncBlobStore>(_ => new FileProfileSyncBlobStore(rootDirectory));
         services.AddSingleton<IMdnsAdvertiser, MdnsAdvertiser>();
         services.AddSingleton<ILanBindAddressSelector, LanBindAddressSelector>();
         services.AddSingleton<ILanClientAddressPolicy, LanClientAddressPolicy>();
         services.AddSingleton<ILanPageRenderLimiter, LanPageRenderLimiter>();
         services.AddSingleton<ILanBookFileResolver>(sp => new LanBookFileResolver(
             sp.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<Catalogue.CatalogueDbContext>>(),
-            dataDirectory ?? OgmaLibrary.Infrastructure.Catalogue.CatalogueServiceExtensions.GetDefaultDataDirectory()));
+            rootDirectory));
         services.AddSingleton<ILanPageRenderer>(sp =>
         {
             var rendererFactory = sp.GetService<OgmaLibrary.Application.Reader.IPdfRendererFactory>();

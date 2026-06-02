@@ -46,6 +46,9 @@ public sealed class LanHostEndpointTests
             using HttpClient http = CreatePinnedTestClient(port);
             using HttpResponseMessage health = await http.GetAsync("/api/v1/health");
             using HttpResponseMessage unauthorized = await http.GetAsync("/api/v1/catalogue?pageSize=10");
+            using HttpResponseMessage unauthorizedSync = await http.PutAsync(
+                "/api/v1/profile/sync",
+                new ByteArrayContent([1, 2, 3]));
             using HttpResponseMessage invalidSession = await http.PostAsJsonAsync(
                 "/api/v1/auth/session",
                 new
@@ -68,6 +71,12 @@ public sealed class LanHostEndpointTests
             string searchJson = await search.Content.ReadAsStringAsync();
             using HttpResponseMessage bookDetail = await http.GetAsync("/api/v1/catalogue/01LANENDPOINT000000000001");
             string bookDetailJson = await bookDetail.Content.ReadAsStringAsync();
+            byte[] syncBlob = [0x4F, 0x47, 0x4D, 0x41, 0x01, 0x02, 0x03, 0x04];
+            using var syncContent = new ByteArrayContent(syncBlob);
+            syncContent.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.ogma.classroom-sync+binary");
+            using HttpResponseMessage uploadSync = await http.PutAsync("/api/v1/profile/sync", syncContent);
+            using HttpResponseMessage downloadSync = await http.GetAsync("/api/v1/profile/sync");
+            byte[] downloadedSyncBlob = await downloadSync.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
             byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage page = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/page/1?widthPx=800");
@@ -84,15 +93,22 @@ public sealed class LanHostEndpointTests
 
             Assert.Equal(HttpStatusCode.OK, health.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedSync.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, invalidSession.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             Assert.Equal(HttpStatusCode.OK, bookDetail.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, uploadSync.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, downloadSync.StatusCode);
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
             Assert.Equal(HttpStatusCode.OK, page.StatusCode);
             Assert.Equal(assetBytes, servedAsset);
+            Assert.Equal(syncBlob, downloadedSyncBlob);
+            Assert.Equal(
+                "application/vnd.ogma.classroom-sync+binary",
+                downloadSync.Content.Headers.ContentType?.MediaType);
             Assert.Equal("image/png", page.Content.Headers.ContentType?.MediaType);
             Assert.True(renderedPage.Length >= 8);
             Assert.Equal([0x89, 0x50, 0x4E, 0x47], renderedPage[..4]);
@@ -138,6 +154,12 @@ public sealed class LanHostEndpointTests
                      e.AfterJson?.Contains("\"action\":\"ListCatalogue\"", StringComparison.Ordinal) == true &&
                      e.AfterJson.Contains("\"resourceType\":\"Catalogue\"", StringComparison.Ordinal) &&
                      e.AfterJson.Contains("\"sessionFingerprint\":", StringComparison.Ordinal));
+            Assert.Contains(
+                auditEvents,
+                e => e.EntityId == "/api/v1/profile/sync" &&
+                     e.ActorId == "client:student-1" &&
+                     e.AfterJson?.Contains("\"action\":\"UploadProfileSync\"", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"resourceType\":\"ProfileSync\"", StringComparison.Ordinal));
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
 
             await services.GetRequiredService<IHostModeSettingsRepository>()
