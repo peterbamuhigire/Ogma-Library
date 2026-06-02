@@ -1,5 +1,7 @@
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Infrastructure.ClassroomClient;
 
 namespace OgmaLibrary.Tests.LanHost;
 
@@ -120,6 +122,57 @@ public sealed class HostSharingViewModelTests
         Assert.False(viewModel.IsSharePanelOpen);
     }
 
+    [Fact]
+    public async Task HostSharingViewModel_ConnectToHost_ParsesJoinLinkAndCallsConnectionService()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var connection = new RecordingConnectionService();
+        var viewModel = new HostSharingViewModel(
+            host,
+            settings,
+            new ClassroomJoinParser(),
+            connection)
+        {
+            JoinLink = $"ogma-lan://127.0.0.1:7473/join?name=School&fp={FakeLibraryHostService.Fingerprint}&code=ABCD2345",
+            ProfileDisplayName = "  Amina  ",
+            AcceptFirstUseTrust = true,
+        };
+
+        await viewModel.ConnectToHostAsync();
+
+        Assert.Equal(1, connection.ConnectCalls);
+        Assert.True(connection.Request!.AcceptFirstUseTrust);
+        Assert.Equal("Amina", connection.Request.ProfileDisplayName);
+        Assert.False(connection.Request.UseGuestProfile);
+        Assert.Equal("127.0.0.1", connection.Request.JoinRequest.Address);
+        Assert.Equal("ABCD2345", connection.Request.JoinRequest.EnrollmentCode);
+        Assert.Equal("Connected to School", viewModel.ClientConnectionStatusText);
+    }
+
+    [Fact]
+    public async Task HostSharingViewModel_ConnectToHost_InvalidJoinLinkShowsStatus()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var connection = new RecordingConnectionService();
+        var viewModel = new HostSharingViewModel(
+            host,
+            settings,
+            new ClassroomJoinParser(),
+            connection)
+        {
+            JoinLink = "not-a-join-link",
+            ProfileDisplayName = "Amina",
+        };
+
+        await viewModel.ConnectToHostAsync();
+
+        Assert.Equal(0, connection.ConnectCalls);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.ClientConnectionStatusText));
+        Assert.NotEqual("Not connected", viewModel.ClientConnectionStatusText);
+    }
+
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
     {
         public HostModeSettings Settings { get; private set; } = new(
@@ -144,6 +197,8 @@ public sealed class HostSharingViewModelTests
 
     private sealed class FakeLibraryHostService : ILibraryHostService
     {
+        public const string Fingerprint = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
         private LibraryHostStatus _status = new(
             LibraryHostState.Stopped,
             Port: 7473,
@@ -158,7 +213,7 @@ public sealed class HostSharingViewModelTests
                 LibraryHostState.Running,
                 Port: 7473,
                 ConnectedClientCount: 0,
-                CertificateFingerprint: string.Concat(Enumerable.Repeat("0123456789abcdef", 4)),
+                CertificateFingerprint: Fingerprint,
                 ErrorMessage: null,
                 HostAddress: "127.0.0.1",
                 EnrollmentCode: "ABCD2345");
@@ -182,6 +237,35 @@ public sealed class HostSharingViewModelTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(_status);
+        }
+    }
+
+    private sealed class RecordingConnectionService : IClassroomConnectionService
+    {
+        public int ConnectCalls { get; private set; }
+
+        public ClassroomConnectionRequest? Request { get; private set; }
+
+        public Task<ClassroomConnectionResult> ConnectAsync(
+            ClassroomConnectionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ConnectCalls++;
+            Request = request;
+            var connection = new ClassroomHostConnection(
+                request.JoinRequest,
+                "session-token",
+                new DateTimeOffset(2026, 6, 2, 12, 0, 0, TimeSpan.Zero));
+            var profile = new ClassroomProfile(
+                Guid.NewGuid(),
+                request.ProfileDisplayName ?? "Guest",
+                request.UseGuestProfile ? ClassroomRole.Guest : request.Role,
+                request.UseGuestProfile);
+            return Task.FromResult(new ClassroomConnectionResult(
+                IsConnected: true,
+                HostTrustState.Trusted,
+                profile,
+                connection));
         }
     }
 }

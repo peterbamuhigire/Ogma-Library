@@ -5,7 +5,7 @@
              x:DataType="vm:HostSharingViewModel">
 
   <ScrollViewer>
-    <Grid RowDefinitions="Auto,Auto,Auto,*"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
           RowSpacing="18"
           Margin="28"
           MaxWidth="960"
@@ -181,6 +181,63 @@
       </Grid>
 
       <Grid Grid.Row="3"
+            RowDefinitions="Auto,Auto,Auto"
+            RowSpacing="10">
+        <TextBlock Grid.Row="0"
+                   Text="{Binding ClientTitle}"
+                   FontSize="{DynamicResource Type.Size.Subtitle}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="2*,*,Auto"
+              ColumnSpacing="10">
+          <TextBox Grid.Column="0"
+                   Text="{Binding JoinLink, Mode=TwoWay}"
+                   Watermark="{Binding JoinLinkLabel}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   TextWrapping="NoWrap"
+                   AutomationProperties.Name="{Binding JoinLinkLabel}" />
+          <TextBox Grid.Column="1"
+                   Text="{Binding ProfileDisplayName, Mode=TwoWay}"
+                   Watermark="{Binding ProfileDisplayNameLabel}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   TextWrapping="NoWrap"
+                   AutomationProperties.Name="{Binding ProfileDisplayNameLabel}" />
+          <Button Grid.Column="2"
+                  Padding="12,7"
+                  Background="{DynamicResource Brush.Accent.Sage}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding CanConnectToHost}"
+                  AutomationProperties.Name="{Binding ConnectToHostText}"
+                  Click="ConnectToHostButton_Click">
+            <TextBlock Text="{Binding ConnectToHostText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </Grid>
+
+        <Grid Grid.Row="2"
+              ColumnDefinitions="Auto,Auto,*"
+              ColumnSpacing="14">
+          <CheckBox Grid.Column="0"
+                    Content="{Binding GuestProfileText}"
+                    IsChecked="{Binding UseGuestProfile, Mode=TwoWay}"
+                    FontSize="{DynamicResource Type.Size.Caption}" />
+          <CheckBox Grid.Column="1"
+                    Content="{Binding AcceptTrustText}"
+                    IsChecked="{Binding AcceptFirstUseTrust, Mode=TwoWay}"
+                    FontSize="{DynamicResource Type.Size.Caption}" />
+          <TextBlock Grid.Column="2"
+                     Text="{Binding ClientConnectionStatusText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Grid>
+
+      <Grid Grid.Row="4"
             ColumnDefinitions="Auto,*"
             ColumnSpacing="20"
             IsVisible="{Binding CanShare}">

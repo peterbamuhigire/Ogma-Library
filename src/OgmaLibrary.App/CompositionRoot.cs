@@ -178,7 +178,9 @@ public static class CompositionRoot
                 localization);
             var hostSharingVm = new HostSharingViewModel(
                 sp.GetRequiredService<ILibraryHostService>(),
-                sp.GetRequiredService<IHostModeSettingsRepository>());
+                sp.GetRequiredService<IHostModeSettingsRepository>(),
+                sp.GetRequiredService<IClassroomJoinParser>(),
+                sp.GetRequiredService<IClassroomConnectionService>());
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(

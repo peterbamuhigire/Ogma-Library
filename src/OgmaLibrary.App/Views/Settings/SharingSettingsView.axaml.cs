@@ -56,6 +56,14 @@ public partial class SharingSettingsView : UserControl
     private void CancelFileStreamButton_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.CancelFileStreamConfirmation();
 
+    private async void ConnectToHostButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.ConnectToHostAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void CopyJoinLinkButton_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null &&

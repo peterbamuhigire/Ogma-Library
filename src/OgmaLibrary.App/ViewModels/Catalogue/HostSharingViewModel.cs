@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
 using QRCoder;
 
@@ -11,7 +12,15 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 {
     private readonly ILibraryHostService _hostService;
     private readonly IHostModeSettingsRepository _settingsRepository;
+    private readonly IClassroomJoinParser? _joinParser;
+    private readonly IClassroomConnectionService? _connectionService;
     private readonly string _title = "Host";
+    private readonly string _clientTitle = "Connect to Host";
+    private readonly string _joinLinkLabel = "Join link";
+    private readonly string _profileDisplayNameLabel = "Student name";
+    private readonly string _guestProfileText = "Guest";
+    private readonly string _acceptTrustText = "Trust this Host fingerprint";
+    private readonly string _connectToHostText = "Connect";
     private readonly string _sharePanelTitle = "Share Library Host";
     private readonly string _shareButtonText = "Share";
     private readonly string _copyJoinLinkText = "Copy join link";
@@ -39,20 +48,111 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private bool _isSharePanelOpen;
     private bool _isStartConfirmationOpen;
     private bool _isFileStreamConfirmationOpen;
+    private bool _acceptFirstUseTrust;
+    private bool _useGuestProfile;
+    private string _joinLink = string.Empty;
+    private string _profileDisplayName = string.Empty;
+    private string _clientConnectionStatusText = "Not connected";
     private string? _shareConfirmationText;
 
     public HostSharingViewModel(
         ILibraryHostService hostService,
-        IHostModeSettingsRepository settingsRepository)
+        IHostModeSettingsRepository settingsRepository,
+        IClassroomJoinParser? joinParser = null,
+        IClassroomConnectionService? connectionService = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
+        _joinParser = joinParser;
+        _connectionService = connectionService;
     }
 
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string Title => _title;
+
+    public string ClientTitle => _clientTitle;
+
+    public string JoinLinkLabel => _joinLinkLabel;
+
+    public string ProfileDisplayNameLabel => _profileDisplayNameLabel;
+
+    public string GuestProfileText => _guestProfileText;
+
+    public string AcceptTrustText => _acceptTrustText;
+
+    public string ConnectToHostText => _connectToHostText;
+
+    public string ClientConnectionStatusText
+    {
+        get => _clientConnectionStatusText;
+        private set
+        {
+            if (_clientConnectionStatusText != value)
+            {
+                _clientConnectionStatusText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string JoinLink
+    {
+        get => _joinLink;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (_joinLink != next)
+            {
+                _joinLink = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanConnectToHost));
+            }
+        }
+    }
+
+    public string ProfileDisplayName
+    {
+        get => _profileDisplayName;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (_profileDisplayName != next)
+            {
+                _profileDisplayName = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanConnectToHost));
+            }
+        }
+    }
+
+    public bool AcceptFirstUseTrust
+    {
+        get => _acceptFirstUseTrust;
+        set
+        {
+            if (_acceptFirstUseTrust != value)
+            {
+                _acceptFirstUseTrust = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool UseGuestProfile
+    {
+        get => _useGuestProfile;
+        set
+        {
+            if (_useGuestProfile != value)
+            {
+                _useGuestProfile = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanConnectToHost));
+            }
+        }
+    }
 
     public string StatusText => _status.State switch
     {
@@ -137,6 +237,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanStart));
                 OnPropertyChanged(nameof(CanStop));
                 OnPropertyChanged(nameof(CanChangeContentMode));
+                OnPropertyChanged(nameof(CanConnectToHost));
             }
         }
     }
@@ -146,6 +247,13 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public bool CanStop => !IsBusy && IsRunning;
 
     public bool CanChangeContentMode => !IsBusy && !IsRunning && !IsFileStreamConfirmationOpen;
+
+    public bool CanConnectToHost =>
+        !IsBusy &&
+        _joinParser is not null &&
+        _connectionService is not null &&
+        !string.IsNullOrWhiteSpace(JoinLink) &&
+        (UseGuestProfile || !string.IsNullOrWhiteSpace(ProfileDisplayName));
 
     public bool CanShare =>
         IsRunning &&
@@ -215,6 +323,59 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
         _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(false);
         RaiseStatusChanged();
+    }
+
+    public async Task ConnectToHostAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanConnectToHost || _joinParser is null || _connectionService is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            if (!_joinParser.TryParse(JoinLink, out ClassroomJoinRequest? joinRequest, out string? errorMessage) ||
+                joinRequest is null)
+            {
+                ClientConnectionStatusText = errorMessage ?? "Join link is invalid.";
+                return;
+            }
+
+            ClassroomConnectionResult result = await _connectionService
+                .ConnectAsync(
+                    new ClassroomConnectionRequest(
+                        joinRequest,
+                        AcceptFirstUseTrust,
+                        ProfileDisplayName: UseGuestProfile ? null : ProfileDisplayName.Trim(),
+                        UseGuestProfile: UseGuestProfile),
+                    cancellationToken)
+                .ConfigureAwait(true);
+
+            if (result.IsConnected)
+            {
+                ClientConnectionStatusText = joinRequest.DisplayName is { Length: > 0 } displayName
+                    ? $"Connected to {displayName}"
+                    : "Connected to classroom Host";
+                return;
+            }
+
+            ClientConnectionStatusText = result.ErrorMessage ?? result.TrustState switch
+            {
+                HostTrustState.FirstUse => "Trust this Host fingerprint before connecting.",
+                HostTrustState.Mismatch => "Host fingerprint does not match the trusted pin.",
+                _ => "Could not connect to classroom Host.",
+            };
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
+        {
+            ClientConnectionStatusText = $"Connection failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanConnectToHost));
+        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
