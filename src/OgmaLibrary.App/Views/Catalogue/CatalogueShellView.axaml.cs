@@ -111,11 +111,11 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private void LibraryButton_Click(object? sender, RoutedEventArgs e)
+    private async void LibraryButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
-            vm.OpenCatalogue();
+            await vm.ReturnToLibraryAsync().ConfigureAwait(true);
         }
     }
 

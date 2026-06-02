@@ -162,12 +162,21 @@
               Background="White"
               PointerPressed="PageSurface_PointerPressed"
               PointerMoved="PageSurface_PointerMoved"
-              PointerReleased="PageSurface_PointerReleased">
+              PointerReleased="PageSurface_PointerReleased"
+              PointerWheelChanged="PageSurface_PointerWheelChanged">
         <Grid RowDefinitions="*,Auto" ClipToBounds="True">
+          <Image Grid.Row="0"
+                 Source="{Binding PageImage}"
+                 Stretch="Uniform"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 IsVisible="{Binding HasPageImage}" />
+
           <TextBlock Grid.Row="0"
                      Text="{Binding PageStatusText}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"
+                     IsVisible="{Binding !HasPageImage}"
                      FontSize="{DynamicResource Type.Size.Display}"
                      Foreground="{DynamicResource Brush.Surface.OnParchment}" />
 

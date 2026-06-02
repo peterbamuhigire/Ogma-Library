@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Reader;
@@ -32,6 +34,15 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private const string LayerDefaultColorOptionId = "layer-default";
     private const double BasePageSurfaceWidth = 720.0;
     private const double BasePageSurfaceHeight = 960.0;
+
+    /// <summary>
+    /// Supersampling factor applied to the page-surface width when rendering so the
+    /// rasterized page stays crisp at the displayed logical size and on HiDPI screens.
+    /// </summary>
+    private const double PageRenderSupersample = 2.0;
+
+    /// <summary>Upper bound on render width in pixels, guarding memory on extreme zoom.</summary>
+    private const int MaxPageRenderWidthPx = 3000;
     private readonly Dictionary<string, AnnotationV2> _annotationsById = new(StringComparer.Ordinal);
 
     private string? _bookId;
@@ -63,6 +74,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private SelectionOverlayItem? _selectionOverlay;
     private double _selectionStartX;
     private double _selectionStartY;
+    private Bitmap? _pageImage;
+    private CancellationTokenSource? _renderCts;
 
     /// <summary>Creates a new reader view model.</summary>
     public ReaderViewModel(
@@ -216,6 +229,34 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             }
         }
     }
+
+    /// <summary>
+    /// The rendered bitmap for the current page, or <see langword="null"/> while a
+    /// render is in flight, when the document is closed, or when no renderer is
+    /// available (e.g. headless tests). Bound to the reader page surface.
+    /// </summary>
+    public Bitmap? PageImage
+    {
+        get => _pageImage;
+        private set
+        {
+            if (ReferenceEquals(_pageImage, value))
+            {
+                return;
+            }
+
+            Bitmap? previous = _pageImage;
+            _pageImage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasPageImage));
+
+            // Release the superseded bitmap after the binding has switched sources.
+            previous?.Dispose();
+        }
+    }
+
+    /// <summary>True when a rendered page bitmap is available for display.</summary>
+    public bool HasPageImage => _pageImage is not null;
 
     /// <summary>True while opening or refreshing reader-side data.</summary>
     public bool IsBusy
@@ -608,6 +649,43 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Closes the active reader session: cancels any in-flight render, flushes reading
+    /// progress, and releases the PDF renderer and rendered page bitmap. Safe to call
+    /// when no document is open.
+    /// </summary>
+    public async Task CloseAsync(CancellationToken cancellationToken = default)
+    {
+        _renderCts?.Cancel();
+        _renderCts?.Dispose();
+        _renderCts = null;
+
+        if (!IsOpen)
+        {
+            PageImage = null;
+            return;
+        }
+
+        try
+        {
+            await _sessions.CloseAsync(cancellationToken).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+#pragma warning disable CA1031 // A failed flush must not block returning to the library.
+        catch (Exception)
+        {
+            // Best-effort close; the shell still returns to the catalogue.
+        }
+#pragma warning restore CA1031
+
+        IsOpen = false;
+        PageImage = null;
+        StatusMessage = null;
     }
 
     /// <summary>Navigates to the previous page, if available.</summary>
@@ -1297,6 +1375,87 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         ZoomMode = session.ZoomMode;
         ZoomPercent = session.ZoomPercent;
         IsOpen = true;
+        RequestPageRender();
+    }
+
+    /// <summary>
+    /// Renders the current page to a bitmap off the UI thread and publishes it to
+    /// <see cref="PageImage"/> when complete. Any in-flight render for a previous page
+    /// is cancelled. No-op when no renderer is available (FR-READ-001 display).
+    /// </summary>
+    private void RequestPageRender()
+    {
+        _renderCts?.Cancel();
+        _renderCts?.Dispose();
+        _renderCts = null;
+
+        IPdfRenderer? renderer = _sessions.CurrentRenderer;
+        if (!IsOpen || BookId is null || renderer is null)
+        {
+            PageImage = null;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _renderCts = cts;
+
+        int pageIndex = CurrentPageIndex;
+        int widthPx = Math.Clamp(
+            (int)Math.Round(BasePageSurfaceWidth * Math.Max(1.0, OverlayZoomFactor) * PageRenderSupersample),
+            1,
+            MaxPageRenderWidthPx);
+
+        _ = RenderCurrentPageAsync(renderer, pageIndex, widthPx, cts);
+    }
+
+    private async Task RenderCurrentPageAsync(
+        IPdfRenderer renderer,
+        int pageIndex,
+        int widthPx,
+        CancellationTokenSource cts)
+    {
+        try
+        {
+            RenderResult result = await renderer
+                .RenderPageAsync(pageIndex, new RenderRequest(widthPx), cts.Token)
+                .ConfigureAwait(false);
+
+            cts.Token.ThrowIfCancellationRequested();
+
+            Bitmap bitmap = await Task.Run(
+                () =>
+                {
+                    using var stream = new MemoryStream(result.PngBytes, writable: false);
+                    return new Bitmap(stream);
+                },
+                cts.Token).ConfigureAwait(false);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                // Discard the result if we navigated away or the render was cancelled.
+                if (cts.Token.IsCancellationRequested || CurrentPageIndex != pageIndex)
+                {
+                    bitmap.Dispose();
+                    return;
+                }
+
+                PageImage = bitmap;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer navigation; nothing to publish.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The renderer was disposed as the document closed mid-render.
+        }
+#pragma warning disable CA1031 // A failed render must not crash the reader; keep the placeholder.
+        catch (Exception)
+        {
+            // Leave PageImage unchanged so the page-number placeholder remains visible.
+        }
+#pragma warning restore CA1031
     }
 
     private async Task EnsureDefaultLayerAsync(CancellationToken cancellationToken)

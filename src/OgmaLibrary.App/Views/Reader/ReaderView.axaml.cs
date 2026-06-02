@@ -418,6 +418,26 @@ public partial class ReaderView : UserControl
         e.Handled = true;
     }
 
+    private async void PageSurface_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (DataContext is not ReaderViewModel vm)
+        {
+            return;
+        }
+
+        // Scroll down (negative delta) turns to the next page; scroll up the previous.
+        if (e.Delta.Y < 0)
+        {
+            e.Handled = true;
+            await vm.GoNextAsync().ConfigureAwait(true);
+        }
+        else if (e.Delta.Y > 0)
+        {
+            e.Handled = true;
+            await vm.GoPreviousAsync().ConfigureAwait(true);
+        }
+    }
+
     /// <summary>
     /// Returns whether a pointer can drive text selection. Mouse selection must
     /// use the primary button; touch and pen drags do not expose that mouse flag.
@@ -435,8 +455,34 @@ public partial class ReaderView : UserControl
 
     private async void ReaderView_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (DataContext is not ReaderViewModel vm ||
-            !e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        if (DataContext is not ReaderViewModel vm)
+        {
+            return;
+        }
+
+        // Page navigation (no modifier). Text-input controls handle these keys
+        // themselves, so focus inside an editor never reaches this bubbling handler.
+        if (e.KeyModifiers == KeyModifiers.None)
+        {
+            switch (e.Key)
+            {
+                case Key.PageDown:
+                case Key.Down:
+                case Key.Right:
+                case Key.Space:
+                    e.Handled = true;
+                    await vm.GoNextAsync().ConfigureAwait(true);
+                    return;
+                case Key.PageUp:
+                case Key.Up:
+                case Key.Left:
+                    e.Handled = true;
+                    await vm.GoPreviousAsync().ConfigureAwait(true);
+                    return;
+            }
+        }
+
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             return;
         }

@@ -33,6 +33,25 @@ release.
   seed-deterministic `SyntheticCorpusGenerator`) and a GitHub Actions CI matrix
   on Windows + macOS (format, build, test, screenshot artifacts).
 
+### Fixed
+
+- **Reader now displays rendered PDF pages.** The page-render pipeline
+  (`PdfiumAdapter` → PNG, `PageRenderCache`, `ReaderSessionService.CurrentRenderer`)
+  existed but was never surfaced in the UI — the reader showed only a "Page X of N"
+  placeholder. `ReaderViewModel` now renders the current page off the UI thread
+  (2× supersampled, stale renders cancelled) into a `PageImage` bitmap, and
+  `ReaderView` binds it to an `Image`; the page-number text is now a fallback shown
+  only until the bitmap is ready. Rendering refreshes on open and on every page
+  change. (FR-READ-001)
+- **Page navigation by mouse wheel and keyboard.** Scrolling the wheel over the page
+  turns pages (down = next, up = previous), as do PageDown/PageUp, the arrow keys,
+  and Space — previously navigation was only possible via the toolbar buttons.
+- **"Back to Library" now closes the open document.** Returning to the catalogue
+  previously only switched views, leaving the PDF renderer and file handle open and
+  reading progress unflushed. `ReaderViewModel.CloseAsync` /
+  `MainShellViewModel.ReturnToLibraryAsync` now flush progress and release the
+  renderer and rendered bitmap before returning. (NFR-OGMA-008)
+
 ### Notes
 
 - Tracked follow-ups within Phase 02: the OGMA0001 hard-coded-string Roslyn

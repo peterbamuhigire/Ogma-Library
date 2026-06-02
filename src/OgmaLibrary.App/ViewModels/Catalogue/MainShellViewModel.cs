@@ -501,6 +501,20 @@ public sealed class MainShellViewModel :
         ReaderPlaceholderMessage = null;
     }
 
+    /// <summary>
+    /// Closes the open document (flushing progress and releasing the PDF) and returns
+    /// to the catalogue browsing surface.
+    /// </summary>
+    public async Task ReturnToLibraryAsync(CancellationToken cancellationToken = default)
+    {
+        if (Reader is not null)
+        {
+            await Reader.CloseAsync(cancellationToken).ConfigureAwait(true);
+        }
+
+        OpenCatalogue();
+    }
+
     /// <summary>Opens the Phase 15 split-view scaffold route.</summary>
     public void OpenSplitViewScaffold()
     {
