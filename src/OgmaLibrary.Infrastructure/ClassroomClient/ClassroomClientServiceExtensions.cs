@@ -15,6 +15,7 @@ public static class ClassroomClientServiceExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
         services.AddSingleton<IClassroomModeService>(_ => new FileClassroomModeService(dataDirectory));
+        services.AddSingleton<IClassroomHostConnectionService, InMemoryClassroomHostConnectionService>();
         services.AddSingleton<IClassroomCredentialStore, InMemoryClassroomCredentialStore>();
         services.AddSingleton<IProfileService>(provider => new FileClassroomProfileService(
             dataDirectory,

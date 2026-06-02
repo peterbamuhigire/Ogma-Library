@@ -32,6 +32,12 @@ public sealed record ClassroomConnectivityStatus(
     DateTimeOffset UpdatedUtc,
     string? Message = null);
 
+/// <summary>Runtime active Host connection used by Client-mode reader and catalogue calls.</summary>
+public sealed record ClassroomHostConnection(
+    ClassroomJoinRequest Request,
+    string SessionToken,
+    DateTimeOffset ConnectedUtc);
+
 /// <summary>Local classroom profile metadata.</summary>
 public sealed record ClassroomProfile(
     Guid ProfileId,

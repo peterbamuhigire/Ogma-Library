@@ -36,6 +36,10 @@ bridge:
 - `IClassroomModeService` now exposes runtime online/offline connectivity state
   and an observable status stream for future offline chips and fallback
   orchestration.
+- `IClassroomHostConnectionService` stores the active runtime Host connection
+  for Client mode, and `ClassroomBookFileLocator` switches the existing reader
+  file-location boundary from local catalogue files to materialized Host PDFs
+  when the runtime mode is `ConnectToHost`.
 - `StudentPrivateRepository` derives per-profile private database paths under
   `classroom/profiles/<profileId>/private.db`, creates the private SQLite
   schema in code, and persists isolated reading progress, annotations,
@@ -65,10 +69,10 @@ bridge:
 | Gate | Evidence |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 10 projects, 0 warnings, 0 errors |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests\|FullyQualifiedName~ClassroomBookFileMaterializerTests" --logger "console;verbosity=minimal"` | Passed: 56 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, online/offline status defaults, observable connectivity emissions, connectivity unsubscribe, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, cached Host-client DI registration, Host PDF materialization to local reader paths, stable file reuse, non-PDF rejection, and materializer DI registration |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests\|FullyQualifiedName~ClassroomBookFileMaterializerTests\|FullyQualifiedName~ClassroomBookFileLocatorTests" --logger "console;verbosity=minimal"` | Passed: 61 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, online/offline status defaults, observable connectivity emissions, connectivity unsubscribe, active Host connection registration, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, cached Host-client DI registration, Host PDF materialization to local reader paths, stable file reuse, non-PDF rejection, materializer DI registration, Standalone-vs-Client reader file-location switching, no-active-Host null resolution, and existing reader-session open through the classroom locator |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_ClassroomClient\|FullyQualifiedName~ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault" --logger "console;verbosity=minimal"` | Passed: 3 Classroom Client architecture/default-mode guardrails |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 30 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 527 tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 532 tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
 ## Implemented Locally
@@ -92,6 +96,9 @@ bridge:
 | Runtime mode tests | `ClassroomModeServiceTests` |
 | Online/offline state signalling | `IClassroomModeService.Connectivity`, `GetConnectivityAsync`, `SetConnectivityAsync` |
 | Online/offline state tests | `ClassroomModeServiceTests` |
+| Active Host connection runtime store | `IClassroomHostConnectionService` and `InMemoryClassroomHostConnectionService` |
+| Client-mode reader file locator | `ClassroomBookFileLocator` |
+| Client-mode reader locator tests | `ClassroomBookFileLocatorTests` |
 | Private student DB schema/CRUD | `StudentDbContext` and `StudentPrivateRepository` |
 | Private student DB tests | `StudentPrivateRepositoryTests` |
 | Offline cache foundation | `DiskOfflineCacheService` |
@@ -108,6 +115,7 @@ bridge:
 
 - Owner ratification for ADR-0012.
 - OS-backed credential storage for Host trust pins and session tokens, live
-  certificate fetch integration, reader navigation integration, catalogue UI
+  certificate fetch integration, onboarding UI wiring for active Host
+  connection, catalogue UI
   source integration, sync, UI, offline chip wiring, profile-management polish,
   and cross-platform real-LAN verification.

@@ -483,3 +483,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Advanced WP7/WP5: added cache-aside Host resource client integration for page-render, file-stream, and asset reads, including cache-hit network bypass tests. |
 | 2026-06-02 | Implementation | Advanced WP7: added runtime online/offline connectivity status and observable state-change stream with tests for future offline fallback UI. |
 | 2026-06-02 | Implementation | Advanced WP5: added Host PDF file-stream materialization into stable local reader paths with atomic writes, metadata, validation, and DI/tests. |
+| 2026-06-02 | Implementation | Advanced WP5: wired Client-mode reader file location through active Host connection state so `ReaderSessionService.OpenAsync` can open materialized Host PDFs. |

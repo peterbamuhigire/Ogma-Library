@@ -9,6 +9,7 @@ using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.LanHost;
@@ -199,7 +200,12 @@ public static class CompositionRoot
 
         // Phase 08 — Reader bounded context.
         services.AddSingleton<IPdfRendererFactory, PdfiumAdapterFactory>();
-        services.AddSingleton<IBookFileLocator, BookFileLocator>();
+        services.AddSingleton<BookFileLocator>();
+        services.AddSingleton<IBookFileLocator>(sp => new ClassroomBookFileLocator(
+            sp.GetRequiredService<BookFileLocator>(),
+            sp.GetRequiredService<IClassroomModeService>(),
+            sp.GetRequiredService<IClassroomHostConnectionService>(),
+            sp.GetRequiredService<IClassroomBookFileMaterializer>()));
         services.AddSingleton<IReadingProgressService, ReadingProgressService>();
         services.AddSingleton<PageRenderCache>(sp =>
             new PageRenderCache(
