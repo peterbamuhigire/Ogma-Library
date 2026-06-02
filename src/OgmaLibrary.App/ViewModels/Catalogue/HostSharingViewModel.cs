@@ -328,6 +328,9 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public bool CanSyncNow =>
         !IsBusy &&
+        CanSyncWhenIdle;
+
+    private bool CanSyncWhenIdle =>
         _syncService is not null &&
         _isSyncEnabled &&
         (_classroomModeService is null || IsSyncOptInEnabled);
@@ -441,6 +444,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                     ? $"Connected to {displayName}"
                     : "Connected to classroom Host";
                 await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(true);
+                if (SyncOnReconnect && CanSyncWhenIdle)
+                {
+                    await RunSyncNowAsync(cancellationToken).ConfigureAwait(true);
+                }
+
                 HostConnectionSucceeded?.Invoke(this, result);
                 return;
             }
@@ -474,13 +482,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            SyncStatusText = "Syncing";
-            ClassroomSyncStatus status = await _syncService.SyncNowAsync(cancellationToken).ConfigureAwait(true);
-            ApplySyncStatus(status);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
-        {
-            SyncStatusText = $"Sync failed: {ex.Message}";
+            await RunSyncNowAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
         {
@@ -660,6 +662,25 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public void MarkFingerprintCopied() => ShareConfirmationText = "Fingerprint copied to clipboard";
 
     public void ReportClipboardUnavailable() => ShareConfirmationText = "Clipboard is unavailable";
+
+    private async Task RunSyncNowAsync(CancellationToken cancellationToken)
+    {
+        if (_syncService is null)
+        {
+            return;
+        }
+
+        try
+        {
+            SyncStatusText = "Syncing";
+            ClassroomSyncStatus status = await _syncService.SyncNowAsync(cancellationToken).ConfigureAwait(true);
+            ApplySyncStatus(status);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
+        {
+            SyncStatusText = $"Sync failed: {ex.Message}";
+        }
+    }
 
     private async Task RefreshSyncStatusAsync(CancellationToken cancellationToken)
     {

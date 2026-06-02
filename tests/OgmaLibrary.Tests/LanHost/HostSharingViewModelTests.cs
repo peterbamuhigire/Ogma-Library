@@ -174,6 +174,51 @@ public sealed class HostSharingViewModelTests
     }
 
     [Fact]
+    public async Task HostSharingViewModel_ConnectToHost_SyncOnReconnectRunsAfterSuccessfulConnection()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var connection = new RecordingConnectionService();
+        var sync = new RecordingSyncService
+        {
+            Status = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: null,
+                ConflictCount: 0,
+                ErrorMessage: null),
+            NextStatus = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: new DateTimeOffset(2026, 6, 2, 16, 0, 0, TimeSpan.Zero),
+                ConflictCount: 0,
+                ErrorMessage: null),
+        };
+        var mode = new RecordingClassroomModeService();
+        await mode.SaveSyncSettingsAsync(new ClassroomSyncSettings(
+            IsEnabled: true,
+            SyncOnReconnect: true));
+        var viewModel = new HostSharingViewModel(
+            host,
+            settings,
+            new ClassroomJoinParser(),
+            connection,
+            sync,
+            mode)
+        {
+            JoinLink = $"ogma-lan://127.0.0.1:7473/join?name=School&fp={FakeLibraryHostService.Fingerprint}&code=ABCD2345",
+            ProfileDisplayName = "Amina",
+        };
+
+        await viewModel.ConnectToHostAsync();
+
+        Assert.Equal(1, connection.ConnectCalls);
+        Assert.Equal(1, sync.SyncCalls);
+        Assert.Equal("Connected to School", viewModel.ClientConnectionStatusText);
+        Assert.Equal("Last synced 2026-06-02 16:00 UTC, 0 conflicts", viewModel.SyncStatusText);
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_SyncNow_ReportsStatusAndCallsSyncService()
     {
         var host = new FakeLibraryHostService();
