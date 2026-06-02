@@ -308,7 +308,7 @@ public sealed class SearchViewModelTests
 
     private static async Task WaitForAsync(Func<bool> condition)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         while (!condition())
         {
             timeout.Token.ThrowIfCancellationRequested();

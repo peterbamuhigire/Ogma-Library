@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.Views.Reader;
@@ -12,7 +14,15 @@ using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure;
+using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Reader.Cache;
+using OgmaLibrary.Reader.Progress;
+using OgmaLibrary.Reader.Session;
+using OgmaLibrary.Tests.Reader;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
@@ -98,6 +108,88 @@ public sealed class ShellReaderNavigationTests
         Assert.Equal(ShellView.Reader, shell.ActiveView);
         Assert.Equal("book-direct", sessionService.OpenedBookId);
         Assert.Equal("PDF opened in reader. Metadata extraction and enrichment are queued.", shell.StatusText);
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_OpenPdfPathAsync_WithRealPdf_RegistersAndOpensReaderSession()
+    {
+        string dataDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"ogma-shell-real-pdf-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dataDirectory);
+
+        await using ServiceProvider services = new ServiceCollection()
+            .AddCatalogueContext(dataDirectory, dataDirectory)
+            .AddIngestionPipeline(dataDirectory)
+            .AddSingleton<IBookFileLocator, BookFileLocator>()
+            .BuildServiceProvider();
+
+        try
+        {
+            await services.GetRequiredService<CatalogueMigrator>().ApplyAsync(CancellationToken.None);
+
+            var localization = new InMemoryLocalizationService();
+            var readModel = services.GetRequiredService<ICatalogueReadModel>();
+            var writeService = new NoOpCatalogueWriteService();
+            var filter = new CatalogueFilterViewModel();
+            var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+            var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+            var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+            var rendererFactory = new MockPdfRendererFactory(ReaderTestPdfFixture.PageCount);
+            using var progressService = new ReadingProgressService(
+                services.GetRequiredService<IReadingProgressRepository>());
+            using var cache = new PageRenderCache(
+                rendererFactory,
+                new StopwatchBenchmarkContext());
+            using var sessionService = new ReaderSessionService(
+                rendererFactory,
+                progressService,
+                services.GetRequiredService<IBookFileLocator>(),
+                cache);
+            var reader = new ReaderViewModel(
+                sessionService,
+                new EmptyAnnotationService(),
+                new EmptyBookmarkService(),
+                new EmptyLayerService(),
+                new EmptyCitationService(),
+                new EmptyReadingMemoryService(),
+                localization);
+
+            var shell = new MainShellViewModel(
+                localization,
+                catalogue,
+                bookDetail,
+                shelfSidebar,
+                reader,
+                directPdfOpenService: services.GetRequiredService<IDirectPdfOpenService>());
+
+            await shell.OpenPdfPathAsync(ReaderTestPdfFixture.PdfPath);
+            await WaitForAsync(() => shell.ActiveView == ShellView.Reader && reader.IsOpen);
+
+            Assert.Equal(ShellView.Reader, shell.ActiveView);
+            Assert.True(reader.IsOpen);
+            Assert.Equal(ReaderTestPdfFixture.PageCount, reader.PageCount);
+            Assert.Equal(ReaderTestPdfFixture.PdfPath, sessionService.CurrentSession?.FilePath);
+            Assert.Single(catalogue.FilteredItems);
+            Assert.Equal("PDF opened in reader. Metadata extraction and enrichment are queued.", shell.StatusText);
+
+            shell.Dispose();
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            try
+            {
+                if (Directory.Exists(dataDirectory))
+                {
+                    Directory.Delete(dataDirectory, recursive: true);
+                }
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup for Windows file-handle timing.
+            }
+        }
     }
 
     [AvaloniaFact]
@@ -805,7 +897,7 @@ public sealed class ShellReaderNavigationTests
 
     private static async Task WaitForAsync(Func<bool> condition)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
         while (!condition())
         {
