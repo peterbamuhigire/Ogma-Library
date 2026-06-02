@@ -42,6 +42,17 @@ internal sealed class InMemoryProfileService : IProfileService
         return Task.FromResult(_active);
     }
 
+    public Task ClearGuestSessionAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_active is { IsGuest: true })
+        {
+            _active = null;
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyList<ClassroomProfile>> ListAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -72,5 +83,23 @@ internal sealed class InMemoryProfileService : IProfileService
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task StoreSessionTokenAsync(
+        Guid profileId,
+        string sessionToken,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Session tokens require a credential store.");
+    }
+
+    public Task<string?> GetSessionTokenAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Session tokens require a credential store.");
+    }
+
+    public Task ClearSessionTokenAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Session tokens require a credential store.");
     }
 }

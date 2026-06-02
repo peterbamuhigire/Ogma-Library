@@ -24,6 +24,10 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 - `HostTrustService` evaluates Client-mode TOFU trust decisions: first use
   requires explicit acceptance, matching pins are trusted, and mismatched
   presented fingerprints are rejected before persistence.
+- `FileClassroomProfileService` persists student/teacher profile metadata and
+  active selection, keeps guest sessions transient, creates/deletes per-profile
+  private-state folders, and stores Host session tokens behind the classroom
+  credential-store seam.
 - `StudentPrivateRepository` derives per-profile private database paths under
   `classroom/profiles/<profileId>/private.db` without touching the standalone
   catalogue database.
@@ -36,10 +40,10 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Gate | Evidence |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 10 projects, 0 warnings, 0 errors |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests" --logger "console;verbosity=minimal"` | Passed: 22 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, and trust-service DI registration |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests" --logger "console;verbosity=minimal"` | Passed: 26 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, and delete cleanup |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_ClassroomClient\|FullyQualifiedName~ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault" --logger "console;verbosity=minimal"` | Passed: 3 Classroom Client architecture/default-mode guardrails |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 30 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 493 tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 497 tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
 ## Implemented Locally
@@ -57,12 +61,14 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | mDNS resolver tests | `MdnsResolverTests` |
 | TOFU trust-pin logic | `IHostTrustService`, `IHostTrustStore`, `HostTrustService`, and `InMemoryHostTrustStore` |
 | TOFU trust-pin tests | `HostTrustServiceTests` |
+| Profile/session management | `FileClassroomProfileService` and `IClassroomCredentialStore` |
+| Profile/session tests | `ProfileServiceTests` |
 | Architecture guardrails | `ArchTests_ClassroomClient_*` and default-Standalone guard |
 
 ## Remaining Phase 17 Work
 
 - Owner ratification for ADR-0012.
-- Durable mode/profile/private database persistence.
+- Durable mode settings persistence and private database schema/CRUD.
 - OS-backed credential storage for Host trust pins and session tokens, live
   certificate fetch integration, Host API client, reader/cache integration,
-  sync, UI, and cross-platform real-LAN verification.
+  sync, UI, profile-management polish, and cross-platform real-LAN verification.
