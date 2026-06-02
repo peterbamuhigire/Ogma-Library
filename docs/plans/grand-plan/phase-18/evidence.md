@@ -9,7 +9,7 @@ on.
 
 | Area | Evidence |
 | --- | --- |
-| School-managed AI ADR | `docs/adrs/0013-school-managed-ai-host-gateway.md` |
+| School-managed AI ADR | `docs/adrs/0013-school-managed-ai-host-gateway.md` is accepted by owner direction during Phase 18 completion work |
 | ADR index update | `docs/adrs/README.md` |
 | Phase 18 plan ADR renumbering | `docs/plans/grand-plan/phase-18/README.md`, `tasks.md`, and `skills.md` |
 | Source summary FR-ADMIN requirements | `docs/plans/grand-plan/SOURCE-SUMMARY.md` |
@@ -160,7 +160,6 @@ on.
 
 ## Remaining Phase 18 Work
 
-- Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
 - Student smart-search localization/accessibility polish and richer classroom AI

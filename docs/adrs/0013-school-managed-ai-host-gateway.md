@@ -2,10 +2,9 @@
 
 ## Status
 
-Proposed
+Accepted
 
-> Drafted at the start of Phase 18. Owner ratification is still required before
-> school-managed AI or admin controls are exposed outside development builds.
+> Ratified by owner direction during Phase 18 completion work on 2026-06-02.
 
 ## Date
 
@@ -131,3 +130,4 @@ security/DPIA tests.
 | Date | Change |
 | --- | --- |
 | 2026-06-02 | Initial Phase 18 draft. |
+| 2026-06-02 | Accepted by owner direction during Phase 18 completion work. |
