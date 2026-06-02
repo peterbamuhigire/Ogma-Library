@@ -120,6 +120,13 @@ public sealed record LibraryHostAssetLinks(
     string? SpineUrl,
     string? ThumbnailUrl);
 
+/// <summary>Binary resource returned by a classroom Host.</summary>
+public sealed record LibraryHostResource(
+    string ResourceKey,
+    string ContentType,
+    string? ETag,
+    byte[] Content);
+
 /// <summary>TOFU trust state for a Host certificate fingerprint.</summary>
 public enum HostTrustState
 {

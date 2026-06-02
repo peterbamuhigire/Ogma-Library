@@ -22,4 +22,27 @@ public interface ILibraryHostClient
         string sessionToken,
         LibraryHostCatalogueQuery query,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Gets one rendered page PNG from a Host in page-render mode.</summary>
+    Task<LibraryHostResource> GetPageRenderAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        int pageNumber,
+        int widthPx,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Gets a raw PDF stream from a Host in file-stream mode.</summary>
+    Task<LibraryHostResource> GetFileStreamAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Gets a Host sidecar asset from a projected asset URL.</summary>
+    Task<LibraryHostResource> GetAssetAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string assetUrl,
+        CancellationToken cancellationToken = default);
 }

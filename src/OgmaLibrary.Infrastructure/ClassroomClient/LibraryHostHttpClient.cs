@@ -89,7 +89,85 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
             dto.HasMore);
     }
 
+    public Task<LibraryHostResource> GetPageRenderAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        int pageNumber,
+        int widthPx,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(widthPx);
+        string escapedBookId = Uri.EscapeDataString(bookId);
+        int width = Math.Clamp(widthPx, 320, 2400);
+        string resourceKey = $"books/{escapedBookId}/page/{pageNumber}?widthPx={width}";
+        return GetResourceAsync(
+            sessionToken,
+            BuildUri(request, $"/api/v1/{resourceKey}"),
+            resourceKey,
+            cancellationToken);
+    }
+
+    public Task<LibraryHostResource> GetFileStreamAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        string escapedBookId = Uri.EscapeDataString(bookId);
+        string resourceKey = $"books/{escapedBookId}/file";
+        return GetResourceAsync(
+            sessionToken,
+            BuildUri(request, $"/api/v1/{resourceKey}"),
+            resourceKey,
+            cancellationToken);
+    }
+
+    public Task<LibraryHostResource> GetAssetAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string assetUrl,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(assetUrl);
+        if (!Uri.TryCreate(assetUrl, UriKind.Relative, out Uri? relativeUri) ||
+            !assetUrl.StartsWith("/api/v1/assets/", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Asset URL must be a Host asset URL.", nameof(assetUrl));
+        }
+
+        string resourceKey = assetUrl.TrimStart('/');
+        return GetResourceAsync(
+            sessionToken,
+            BuildUri(request, assetUrl),
+            resourceKey,
+            cancellationToken);
+    }
+
     public void Dispose() => _httpClient.Dispose();
+
+    private async Task<LibraryHostResource> GetResourceAsync(
+        string sessionToken,
+        Uri uri,
+        string resourceKey,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+        using var message = new HttpRequestMessage(HttpMethod.Get, uri);
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        byte[] content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+        string contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        string? eTag = response.Headers.ETag?.Tag;
+        return new LibraryHostResource(resourceKey, contentType, eTag, content);
+    }
 
     private static Uri BuildCatalogueUri(ClassroomJoinRequest request, LibraryHostCatalogueQuery query)
     {

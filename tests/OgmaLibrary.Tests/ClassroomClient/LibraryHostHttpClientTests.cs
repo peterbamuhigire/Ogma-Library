@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Infrastructure.ClassroomClient;
@@ -120,6 +121,80 @@ public sealed class LibraryHostHttpClientTests
             handler.Requests[0].RequestUri!.AbsoluteUri);
     }
 
+    [Fact]
+    public async Task LibraryHostHttpClient_GetsPageRenderResource()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueBytes([137, 80, 78, 71], "image/png", "\"page-etag\"");
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        LibraryHostResource resource = await client.GetPageRenderAsync(
+            request,
+            "session-token",
+            "book 1",
+            pageNumber: 3,
+            widthPx: 1200);
+
+        Assert.Equal("books/book%201/page/3?widthPx=1200", resource.ResourceKey);
+        Assert.Equal("image/png", resource.ContentType);
+        Assert.Equal("\"page-etag\"", resource.ETag);
+        Assert.Equal([137, 80, 78, 71], resource.Content);
+        Assert.Equal(
+            "https://192.168.1.13:7473/api/v1/books/book%201/page/3?widthPx=1200",
+            handler.Requests[0].RequestUri!.AbsoluteUri);
+        Assert.Equal("session-token", handler.Requests[0].Headers.Authorization!.Parameter);
+    }
+
+    [Fact]
+    public async Task LibraryHostHttpClient_GetsFileStreamResource()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueBytes([37, 80, 68, 70], "application/pdf", null);
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        LibraryHostResource resource = await client.GetFileStreamAsync(request, "session-token", "book-1");
+
+        Assert.Equal("books/book-1/file", resource.ResourceKey);
+        Assert.Equal("application/pdf", resource.ContentType);
+        Assert.Equal([37, 80, 68, 70], resource.Content);
+        Assert.Equal(
+            "https://192.168.1.13:7473/api/v1/books/book-1/file",
+            handler.Requests[0].RequestUri!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task LibraryHostHttpClient_GetsAssetResourceFromProjectedUrl()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueBytes([255, 216], "image/jpeg", "\"asset-etag\"");
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        LibraryHostResource resource = await client.GetAssetAsync(
+            request,
+            "session-token",
+            "/api/v1/assets/cover/0123456789abcdef");
+
+        Assert.Equal("api/v1/assets/cover/0123456789abcdef", resource.ResourceKey);
+        Assert.Equal("image/jpeg", resource.ContentType);
+        Assert.Equal("\"asset-etag\"", resource.ETag);
+        Assert.Equal([255, 216], resource.Content);
+    }
+
+    [Fact]
+    public async Task LibraryHostHttpClient_RejectsNonHostAssetUrl()
+    {
+        using var client = new LibraryHostHttpClient(new HttpClient(new QueueHttpHandler()));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => client.GetAssetAsync(
+            request,
+            "session-token",
+            "https://example.com/cover.jpg"));
+    }
+
     private sealed class QueueHttpHandler : HttpMessageHandler
     {
         private readonly Queue<HttpResponseMessage> _responses = new();
@@ -133,6 +208,21 @@ public sealed class LibraryHostHttpClientTests
             {
                 Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
             });
+        }
+
+        public void EnqueueBytes(byte[] content, string contentType, string? eTag)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(content),
+            };
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            if (eTag is not null)
+            {
+                response.Headers.ETag = new EntityTagHeaderValue(eTag);
+            }
+
+            _responses.Enqueue(response);
         }
 
         protected override Task<HttpResponseMessage> SendAsync(

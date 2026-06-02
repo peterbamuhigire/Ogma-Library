@@ -37,4 +37,39 @@ internal sealed class UnavailableLibraryHostClient : ILibraryHostClient
         cancellationToken.ThrowIfCancellationRequested();
         throw new InvalidOperationException("Classroom Host client is not active yet.");
     }
+
+    public Task<LibraryHostResource> GetPageRenderAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        int pageNumber,
+        int widthPx,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Classroom Host client is not active yet.");
+    }
+
+    public Task<LibraryHostResource> GetFileStreamAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Classroom Host client is not active yet.");
+    }
+
+    public Task<LibraryHostResource> GetAssetAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string assetUrl,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Classroom Host client is not active yet.");
+    }
 }
