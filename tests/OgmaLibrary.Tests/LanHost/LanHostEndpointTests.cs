@@ -12,6 +12,7 @@ using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
+using OgmaLibrary.Infrastructure.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Sidecar;
 using OgmaLibrary.Tests.Reader;
 
@@ -58,11 +59,21 @@ public sealed class LanHostEndpointTests
                     lifetimeMinutes = 5,
                     enrollmentCode = "WRONG123",
                 });
+            using HttpResponseMessage rejectedAdminSession = await http.PostAsJsonAsync(
+                "/api/v1/auth/session",
+                new
+                {
+                    clientId = "student-1",
+                    role = "Admin",
+                    lifetimeMinutes = 5,
+                    enrollmentCode,
+                });
             using HttpResponseMessage session = await http.PostAsJsonAsync(
                 "/api/v1/auth/session",
                 new { clientId = "student-1", role = "Student", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            using HttpResponseMessage studentAdminRoute = await http.PostAsync("/admin/ai/test-connection?providerId=openai", null);
             using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=10");
             string catalogueJson = await catalogue.Content.ReadAsStringAsync();
             using HttpResponseMessage pagedCatalogue = await http.GetAsync("/api/v1/catalogue?page=1&pageSize=1");
@@ -84,6 +95,14 @@ public sealed class LanHostEndpointTests
             using HttpResponseMessage invalidAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('z', 64)}");
             using HttpResponseMessage fileStream = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/file");
             string fileStreamBody = await fileStream.Content.ReadAsStringAsync();
+            ClientSessionResult adminSession = await services.GetRequiredService<IClientSessionService>()
+                .IssueAsync(new ClientSessionRequest("host-local-admin", "admin", TimeSpan.FromMinutes(5)));
+            using HttpClient adminHttp = CreatePinnedTestClient(port);
+            adminHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminSession.Token);
+            using HttpResponseMessage adminTestConnection = await adminHttp.PostAsync(
+                "/admin/ai/test-connection?providerId=openai",
+                null);
+            string adminTestConnectionJson = await adminTestConnection.Content.ReadAsStringAsync();
 
             await host.StopAsync();
             await using CatalogueDbContext verify = services.GetRequiredService<CatalogueDbContext>();
@@ -95,7 +114,9 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedSync.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, invalidSession.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, rejectedAdminSession.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, studentAdminRoute.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
@@ -114,7 +135,10 @@ public sealed class LanHostEndpointTests
             Assert.Equal([0x89, 0x50, 0x4E, 0x47], renderedPage[..4]);
             Assert.Equal(HttpStatusCode.BadRequest, invalidAsset.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, fileStream.StatusCode);
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, adminTestConnection.StatusCode);
             Assert.DoesNotContain("%PDF", fileStreamBody, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("key_not_configured", adminTestConnectionJson, StringComparison.Ordinal);
+            Assert.DoesNotContain(adminSession.Token, adminTestConnectionJson, StringComparison.Ordinal);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
             Assert.Contains($"/api/v1/assets/cover/{assetHash}", catalogueJson, StringComparison.Ordinal);
@@ -149,6 +173,25 @@ public sealed class LanHostEndpointTests
                      e.AfterJson.Contains("\"role\":\"Student\"", StringComparison.Ordinal));
             Assert.Contains(
                 auditEvents,
+                e => e.EntityId == "/api/v1/auth/session" &&
+                     e.AfterJson?.Contains("\"statusCode\":403", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"action\":\"IssueSession\"", StringComparison.Ordinal));
+            Assert.Contains(
+                auditEvents,
+                e => e.EntityId == "/admin/ai/test-connection" &&
+                     e.ActorId == "client:student-1" &&
+                     e.AfterJson?.Contains("\"statusCode\":403", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"action\":\"TestSchoolAiConnection\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"role\":\"Student\"", StringComparison.Ordinal));
+            Assert.Contains(
+                auditEvents,
+                e => e.EntityId == "/admin/ai/test-connection" &&
+                     e.ActorId == "client:host-local-admin" &&
+                     e.AfterJson?.Contains("\"statusCode\":503", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"action\":\"TestSchoolAiConnection\"", StringComparison.Ordinal) &&
+                     e.AfterJson.Contains("\"role\":\"admin\"", StringComparison.Ordinal));
+            Assert.Contains(
+                auditEvents,
                 e => e.EntityId == "/api/v1/catalogue" &&
                      e.ActorId == "client:student-1" &&
                      e.AfterJson?.Contains("\"action\":\"ListCatalogue\"", StringComparison.Ordinal) == true &&
@@ -161,6 +204,7 @@ public sealed class LanHostEndpointTests
                      e.AfterJson?.Contains("\"action\":\"UploadProfileSync\"", StringComparison.Ordinal) == true &&
                      e.AfterJson.Contains("\"resourceType\":\"ProfileSync\"", StringComparison.Ordinal));
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
+            Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(adminSession.Token, StringComparison.Ordinal) == true);
 
             await services.GetRequiredService<IHostModeSettingsRepository>()
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.FileStream, "Ogma Endpoint Test"));
@@ -217,6 +261,7 @@ public sealed class LanHostEndpointTests
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
+            .AddSchoolAdminServices(dataDirectory)
             .AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
             .BuildServiceProvider();
 

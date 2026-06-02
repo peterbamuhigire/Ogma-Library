@@ -7,6 +7,10 @@ public static class SchoolAdminAuthorization
 {
     /// <summary>The only role allowed to mutate school administration state.</summary>
     public const string AdminRole = "admin";
+
+    /// <summary>Returns whether a LAN Host session role is the school administrator role.</summary>
+    public static bool IsAdminRole(string? role) =>
+        string.Equals(role?.Trim(), AdminRole, StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Visibility scope for a shared classroom shelf.</summary>

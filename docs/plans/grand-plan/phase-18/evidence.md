@@ -19,6 +19,10 @@ on.
 | DI registration | `SchoolAdminServiceExtensions.AddSchoolAdminServices()` and `CompositionRoot.AddOgmaLibrary()` |
 | Scaffold tests | `SchoolAdminScaffoldTests` |
 | Architecture guardrails | `ArchTests_SchoolAdmin_*` |
+| Host-local admin route guard | `KestrelHostModeListener` blocks `/admin/*` unless the request is loopback and the active session role is `admin` |
+| Admin enrollment hardening | `/api/v1/auth/session` refuses LAN enrollment requests that ask for `admin` role |
+| Disabled admin AI test endpoint | `POST /admin/ai/test-connection` is guarded and returns key status without exposing token or secret material |
+| Admin route tests | `LanHostEndpointTests` covers rejected admin enrollment, student 403, Host-minted admin access, and audit redaction |
 
 ## Verified Locally
 
@@ -32,11 +36,20 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 33 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after repository formatting normalized new C# file endings |
 | `git diff --check` | Passed: no whitespace errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminScaffoldTests" --logger "console;verbosity=minimal"` | Passed: 8 SchoolAdmin scaffold/authorization tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 1 real HTTPS Host endpoint test with admin route enforcement |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_AdminRoutes" --logger "console;verbosity=minimal"` | Passed: 1 admin route architecture guard |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after admin route guard: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after admin route guard: 585 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after admin route guard: 34 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after admin route guard |
+| `git diff --check` | Passed after admin route guard: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
-- Host-local admin authentication and admin-route enforcement.
+- Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
+  session path; admin-route enforcement is implemented and tested.
 - Library publishing, shared shelves, enrollment, key storage, DPIA, quota,
   AI-proxy, dashboard, audit viewer, and student smart-search implementation.
 - Windows/macOS live credential-store verification for school AI key storage.

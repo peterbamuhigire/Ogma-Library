@@ -45,6 +45,18 @@ public sealed class SchoolAdminScaffoldTests
         }
     }
 
+    [Theory]
+    [InlineData("admin", true)]
+    [InlineData("Admin", true)]
+    [InlineData(" ADMIN ", true)]
+    [InlineData("teacher", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void SchoolAdminAuthorization_RecognizesOnlyAdminRole(string? role, bool expected)
+    {
+        Assert.Equal(expected, SchoolAdminAuthorization.IsAdminRole(role));
+    }
+
     [Fact]
     public async Task SchoolAiKeyProvider_SaveKey_ClearsInputBufferEvenWhenDisabled()
     {

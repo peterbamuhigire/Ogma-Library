@@ -677,6 +677,22 @@ public sealed class ArchitectureTests
         Assert.Equal(DpiaScreeningDecision.Disqualified, result.Decision);
     }
 
+    [Fact]
+    public void ArchTests_AdminRoutes_UseSchoolAdminRoleAndKeyStatusContract()
+    {
+        Type listener = typeof(LanHostServiceExtensions).Assembly
+            .GetType("OgmaLibrary.Infrastructure.LanHost.KestrelHostModeListener")
+            ?? throw new InvalidOperationException("Kestrel Host listener type was not found.");
+        ParameterInfo[] constructorParameters = listener
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .SelectMany(constructor => constructor.GetParameters())
+            .ToArray();
+
+        Assert.Contains(constructorParameters, parameter => parameter.ParameterType == typeof(ISchoolAiKeyProvider));
+        Assert.True(SchoolAdminAuthorization.IsAdminRole(" ADMIN "));
+        Assert.False(SchoolAdminAuthorization.IsAdminRole("Student"));
+    }
+
     private static string Describe(TestResult result) =>
         result.IsSuccessful
             ? "ok"

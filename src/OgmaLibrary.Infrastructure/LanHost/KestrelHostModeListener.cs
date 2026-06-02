@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 
@@ -35,6 +36,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly IAuditRepository _audit;
     private readonly ILanBindAddressSelector _bindAddressSelector;
     private readonly ILanClientAddressPolicy _clientAddressPolicy;
+    private readonly ISchoolAiKeyProvider? _schoolAiKeys;
     private WebApplication? _app;
 
     public KestrelHostModeListener(
@@ -49,7 +51,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IHostServerCertificateProvider certificates,
         IAuditRepository audit,
         ILanBindAddressSelector bindAddressSelector,
-        ILanClientAddressPolicy clientAddressPolicy)
+        ILanClientAddressPolicy clientAddressPolicy,
+        ISchoolAiKeyProvider? schoolAiKeys = null)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
@@ -63,6 +66,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _bindAddressSelector = bindAddressSelector ?? throw new ArgumentNullException(nameof(bindAddressSelector));
         _clientAddressPolicy = clientAddressPolicy ?? throw new ArgumentNullException(nameof(clientAddressPolicy));
+        _schoolAiKeys = schoolAiKeys;
     }
 
     /// <inheritdoc />
@@ -161,6 +165,29 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
             authenticated = true;
             context.Items[AuthenticatedSessionItemKey] = session;
+            if (IsAdminEndpoint(context.Request.Path))
+            {
+                if (!IsLoopback(context.Connection.RemoteIpAddress))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(
+                        new LanHostError("admin_loopback_required", "School administration routes are Host-local only."),
+                        context.RequestAborted).ConfigureAwait(false);
+                    await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+                    return;
+                }
+
+                if (!SchoolAdminAuthorization.IsAdminRole(session.Role))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(
+                        new LanHostError("admin_role_required", "School administration requires an administrator session."),
+                        context.RequestAborted).ConfigureAwait(false);
+                    await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
+                    return;
+                }
+            }
+
             await next(context).ConfigureAwait(false);
             await AppendAuditAsync(context, token, session, authenticated, settings.ContentMode, started).ConfigureAwait(false);
         });
@@ -185,6 +212,15 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
             string clientId = string.IsNullOrWhiteSpace(request.ClientId) ? "manual-client" : request.ClientId;
             string role = string.IsNullOrWhiteSpace(request.Role) ? "Reader" : request.Role;
+            if (SchoolAdminAuthorization.IsAdminRole(role))
+            {
+                return Results.Json(
+                    new LanHostError(
+                        "admin_role_not_enrollable",
+                        "Administrator sessions must be created on the Host, not through LAN enrollment."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
             TimeSpan lifetime = TimeSpan.FromMinutes(Math.Clamp(request.LifetimeMinutes ?? 30, 1, 480));
             ClientSessionResult result = await _sessions.IssueAsync(
                     new ClientSessionRequest(clientId, role, lifetime),
@@ -405,11 +441,37 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
             return Results.File(path, "application/pdf", enableRangeProcessing: true);
         });
+
+        app.MapPost("/admin/ai/test-connection", async (string? providerId, CancellationToken ct) =>
+        {
+            string normalizedProviderId = string.IsNullOrWhiteSpace(providerId) ? "default" : providerId.Trim();
+            if (_schoolAiKeys is null)
+            {
+                return Results.Json(
+                    new LanHostError("school_admin_unavailable", "School administration services are not registered."),
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            SchoolAiKeyStatus status = await _schoolAiKeys
+                .GetStatusAsync(normalizedProviderId, ct)
+                .ConfigureAwait(false);
+            return status.IsConfigured
+                ? Results.Json(new AdminAiTestConnectionResponse(status.ProviderId, "ready", status.IsConfigured))
+                : Results.Json(
+                    new AdminAiTestConnectionResponse(status.ProviderId, "key_not_configured", status.IsConfigured),
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+        });
     }
 
     private static bool IsPublicEndpoint(PathString path) =>
         path.StartsWithSegments("/api/v1/health", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWithSegments("/api/v1/auth/session", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAdminEndpoint(PathString path) =>
+        path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsLoopback(IPAddress? address) =>
+        address is not null && IPAddress.IsLoopback(address);
 
     private static ClientSessionSnapshot? GetIssuedSession(HttpContext context) =>
         context.Items.TryGetValue(IssuedSessionItemKey, out object? value)
@@ -541,6 +603,17 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                               !IsPublicEndpoint(context.Request.Path)
             ? "RejectUnauthorized"
             : string.Empty;
+
+        if (segments.Length >= 3 &&
+            string.Equals(segments[0], "admin", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(segments[1], "ai", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(segments[2], "test-connection", StringComparison.OrdinalIgnoreCase))
+        {
+            var adminRoute = new LanAuditRouteInfo("TestSchoolAiConnection", "SchoolAiKey", null);
+            return string.IsNullOrEmpty(actionPrefix)
+                ? adminRoute
+                : adminRoute with { Action = actionPrefix };
+        }
 
         if (segments.Length < 3 ||
             !string.Equals(segments[0], "api", StringComparison.OrdinalIgnoreCase) ||
@@ -716,4 +789,9 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private sealed record LanHostError(
         string Code,
         string Message);
+
+    private sealed record AdminAiTestConnectionResponse(
+        string ProviderId,
+        string Status,
+        bool IsConfigured);
 }
