@@ -6,6 +6,7 @@ using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.Views.Reader;
 using OgmaLibrary.App.Views.Settings;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Navigation;
@@ -131,6 +132,64 @@ public sealed class ShellReaderNavigationTests
         Assert.Equal(1, host.StatusRequests);
         Assert.Equal("Running on :7473", hostSharing.StatusText);
         Assert.True(hostSharing.CanShare);
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_HostConnectionSucceeded_ReloadsCatalogueAndReturnsToCatalogue()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new MutableCatalogueReadModel
+        {
+            Summary = new BookSummaryProjection(
+                BookId: "host-book-1",
+                Title: "Classroom Algebra",
+                Authors: ["A. Teacher"],
+                CoverRelativePath: null,
+                Status: 0,
+                Rating: null,
+                ShelfIds: [],
+                ReadingProgressPct: null,
+                IsAvailable: true,
+                Year: 2026),
+        };
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization)
+        {
+            IsVisible = true,
+        };
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var hostSharing = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            new AcceptingJoinParser(),
+            new SuccessfulConnectionService())
+        {
+            JoinLink = "ogma-lan://classroom/join",
+            ProfileDisplayName = "Amina",
+            AcceptFirstUseTrust = true,
+        };
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            hostSharing: hostSharing);
+        await shell.OpenSharingSettingsAsync();
+
+        await hostSharing.ConnectToHostAsync();
+        await WaitForAsync(() =>
+            shell.ActiveView == ShellView.Catalogue &&
+            catalogue.FilteredItems.Count == 1 &&
+            catalogue.FilteredItems[0].Title == "Classroom Algebra");
+
+        Assert.True(shell.IsCatalogueActive);
+        Assert.False(shell.BookDetail.IsVisible);
+        Assert.Equal("Connected to Classroom Host", hostSharing.ClientConnectionStatusText);
+
+        shell.Dispose();
     }
 
     [AvaloniaFact]
@@ -409,6 +468,48 @@ public sealed class ShellReaderNavigationTests
         {
             OpenedPath = absoluteFilePath;
             return Task.FromResult(_bookId);
+        }
+    }
+
+    private sealed class AcceptingJoinParser : IClassroomJoinParser
+    {
+        private static readonly ClassroomJoinRequest Request = new(
+            "127.0.0.1",
+            7473,
+            new string('b', 64),
+            DisplayName: "Classroom Host",
+            EnrollmentCode: "ABC12345");
+
+        public ClassroomJoinRequest Parse(string payload) => Request;
+
+        public bool TryParse(string payload, out ClassroomJoinRequest? request, out string? errorMessage)
+        {
+            request = Request;
+            errorMessage = null;
+            return true;
+        }
+    }
+
+    private sealed class SuccessfulConnectionService : IClassroomConnectionService
+    {
+        public Task<ClassroomConnectionResult> ConnectAsync(
+            ClassroomConnectionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var connection = new ClassroomHostConnection(
+                request.JoinRequest,
+                "session-token",
+                new DateTimeOffset(2026, 6, 2, 12, 0, 0, TimeSpan.Zero));
+            var profile = new ClassroomProfile(
+                Guid.NewGuid(),
+                request.ProfileDisplayName ?? "Guest",
+                request.UseGuestProfile ? ClassroomRole.Guest : ClassroomRole.Student,
+                request.UseGuestProfile);
+            return Task.FromResult(new ClassroomConnectionResult(
+                IsConnected: true,
+                HostTrustState.Trusted,
+                profile,
+                connection));
         }
     }
 

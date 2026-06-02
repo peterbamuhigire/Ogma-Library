@@ -487,3 +487,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Advanced WP2/WP5/WP7: added connection orchestration that accepts trusted Hosts, resolves profiles, issues sessions, switches to Client mode, marks online, and sets the active Host connection used by the reader. |
 | 2026-06-02 | Implementation | Advanced WP4/WP5: added a mode-aware catalogue read model so existing catalogue/detail/progress UI can source Host projections in Client mode while Standalone stays local. |
 | 2026-06-02 | Implementation | Advanced WP9/WP2: added Sharing settings Connect-to-Host controls that parse join links, collect profile/guest/trust choices, and invoke the classroom connection service with tests. |
+| 2026-06-02 | Implementation | Advanced WP4/WP9: connected successful Host onboarding to a shell catalogue refresh so students return from Sharing settings to a freshly loaded Host catalogue. |

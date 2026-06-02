@@ -6,6 +6,7 @@ using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
 
@@ -129,6 +130,11 @@ public sealed class MainShellViewModel :
         if (_scanProgress is not null)
         {
             _scanProgress.ProgressChanged += OnProgressChanged;
+        }
+
+        if (HostSharing is not null)
+        {
+            HostSharing.HostConnectionSucceeded += OnHostConnectionSucceeded;
         }
     }
 
@@ -650,6 +656,11 @@ public sealed class MainShellViewModel :
     /// <inheritdoc />
     public void Dispose()
     {
+        if (HostSharing is not null)
+        {
+            HostSharing.HostConnectionSucceeded -= OnHostConnectionSucceeded;
+        }
+
         _catalogueRefreshCts?.Cancel();
         _catalogueRefreshCts?.Dispose();
         _scanCts.Dispose();
@@ -696,6 +707,32 @@ public sealed class MainShellViewModel :
                 // A newer refresh superseded this one.
             }
         }, token);
+    }
+
+    private void OnHostConnectionSucceeded(object? sender, ClassroomConnectionResult result)
+    {
+        _ = RefreshCatalogueAfterHostConnectionAsync();
+    }
+
+    private async Task RefreshCatalogueAfterHostConnectionAsync()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            ActiveView = ShellView.Catalogue;
+            ReaderPlaceholderMessage = null;
+            BookDetail.Close();
+        });
+
+        try
+        {
+            await Catalogue.LoadAsync(CancellationToken.None).ConfigureAwait(false);
+            await ShelfSidebar.LoadAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                SetStatusOverride($"Connected, but catalogue refresh failed: {ex.Message}"));
+        }
     }
 
     private void SetStatusOverride(string? value)

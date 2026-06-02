@@ -70,6 +70,9 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>Raised after the Client-mode Host connection completes successfully.</summary>
+    public event EventHandler<ClassroomConnectionResult>? HostConnectionSucceeded;
+
     public string Title => _title;
 
     public string ClientTitle => _clientTitle;
@@ -357,6 +360,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 ClientConnectionStatusText = joinRequest.DisplayName is { Length: > 0 } displayName
                     ? $"Connected to {displayName}"
                     : "Connected to classroom Host";
+                HostConnectionSucceeded?.Invoke(this, result);
                 return;
             }
 
