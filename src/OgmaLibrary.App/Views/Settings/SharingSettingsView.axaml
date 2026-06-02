@@ -181,7 +181,7 @@
       </Grid>
 
       <Grid Grid.Row="3"
-            RowDefinitions="Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto"
             RowSpacing="10">
         <TextBlock Grid.Row="0"
                    Text="{Binding ClientTitle}"
@@ -234,6 +234,28 @@
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                      TextWrapping="Wrap"
                      VerticalAlignment="Center" />
+        </Grid>
+
+        <Grid Grid.Row="3"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="10">
+          <TextBlock Grid.Column="0"
+                     Text="{Binding SyncStatusText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Padding="12,7"
+                  Background="{DynamicResource Brush.Accent.Ink}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding CanSyncNow}"
+                  AutomationProperties.Name="{Binding SyncNowText}"
+                  Click="SyncNowButton_Click">
+            <TextBlock Text="{Binding SyncNowText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
         </Grid>
       </Grid>
 

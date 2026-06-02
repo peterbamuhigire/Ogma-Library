@@ -180,7 +180,8 @@ public static class CompositionRoot
                 sp.GetRequiredService<ILibraryHostService>(),
                 sp.GetRequiredService<IHostModeSettingsRepository>(),
                 sp.GetRequiredService<IClassroomJoinParser>(),
-                sp.GetRequiredService<IClassroomConnectionService>());
+                sp.GetRequiredService<IClassroomConnectionService>(),
+                sp.GetRequiredService<ISyncService>());
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(

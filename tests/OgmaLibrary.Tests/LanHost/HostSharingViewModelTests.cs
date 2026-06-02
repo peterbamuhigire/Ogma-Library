@@ -173,6 +173,40 @@ public sealed class HostSharingViewModelTests
         Assert.NotEqual("Not connected", viewModel.ClientConnectionStatusText);
     }
 
+    [Fact]
+    public async Task HostSharingViewModel_SyncNow_ReportsStatusAndCallsSyncService()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var sync = new RecordingSyncService
+        {
+            Status = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: null,
+                ConflictCount: 1,
+                ErrorMessage: null),
+            NextStatus = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: new DateTimeOffset(2026, 6, 2, 15, 30, 0, TimeSpan.Zero),
+                ConflictCount: 0,
+                ErrorMessage: null),
+        };
+        var viewModel = new HostSharingViewModel(host, settings, syncService: sync);
+
+        await viewModel.RefreshAsync();
+
+        Assert.True(viewModel.CanSyncNow);
+        Assert.Equal("Ready to sync, 1 conflict", viewModel.SyncStatusText);
+
+        await viewModel.SyncNowAsync();
+
+        Assert.Equal(1, sync.SyncCalls);
+        Assert.True(viewModel.CanSyncNow);
+        Assert.Equal("Last synced 2026-06-02 15:30 UTC, 0 conflicts", viewModel.SyncStatusText);
+    }
+
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
     {
         public HostModeSettings Settings { get; private set; } = new(
@@ -266,6 +300,38 @@ public sealed class HostSharingViewModelTests
                 HostTrustState.Trusted,
                 profile,
                 connection));
+        }
+    }
+
+    private sealed class RecordingSyncService : ISyncService
+    {
+        public ClassroomSyncStatus Status { get; init; } = new(
+            IsEnabled: false,
+            IsRunning: false,
+            LastSyncedUtc: null,
+            ConflictCount: 0,
+            ErrorMessage: null);
+
+        public ClassroomSyncStatus NextStatus { get; init; } = new(
+            IsEnabled: true,
+            IsRunning: false,
+            LastSyncedUtc: null,
+            ConflictCount: 0,
+            ErrorMessage: null);
+
+        public int SyncCalls { get; private set; }
+
+        public Task<ClassroomSyncStatus> GetStatusAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Status);
+        }
+
+        public Task<ClassroomSyncStatus> SyncNowAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SyncCalls++;
+            return Task.FromResult(NextStatus);
         }
     }
 }

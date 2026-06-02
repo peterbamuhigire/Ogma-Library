@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using OgmaLibrary.Application.ClassroomClient;
@@ -14,8 +15,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly IHostModeSettingsRepository _settingsRepository;
     private readonly IClassroomJoinParser? _joinParser;
     private readonly IClassroomConnectionService? _connectionService;
+    private readonly ISyncService? _syncService;
     private readonly string _title = "Host";
     private readonly string _clientTitle = "Connect to Host";
+    private readonly string _syncNowText = "Sync now";
     private readonly string _joinLinkLabel = "Join link";
     private readonly string _profileDisplayNameLabel = "Student name";
     private readonly string _guestProfileText = "Guest";
@@ -50,21 +53,25 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private bool _isFileStreamConfirmationOpen;
     private bool _acceptFirstUseTrust;
     private bool _useGuestProfile;
+    private bool _isSyncEnabled;
     private string _joinLink = string.Empty;
     private string _profileDisplayName = string.Empty;
     private string _clientConnectionStatusText = "Not connected";
+    private string _syncStatusText = "Sync unavailable";
     private string? _shareConfirmationText;
 
     public HostSharingViewModel(
         ILibraryHostService hostService,
         IHostModeSettingsRepository settingsRepository,
         IClassroomJoinParser? joinParser = null,
-        IClassroomConnectionService? connectionService = null)
+        IClassroomConnectionService? connectionService = null,
+        ISyncService? syncService = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
         _joinParser = joinParser;
         _connectionService = connectionService;
+        _syncService = syncService;
     }
 
     /// <inheritdoc />
@@ -76,6 +83,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public string Title => _title;
 
     public string ClientTitle => _clientTitle;
+
+    public string SyncNowText => _syncNowText;
 
     public string JoinLinkLabel => _joinLinkLabel;
 
@@ -95,6 +104,19 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             if (_clientConnectionStatusText != value)
             {
                 _clientConnectionStatusText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string SyncStatusText
+    {
+        get => _syncStatusText;
+        private set
+        {
+            if (_syncStatusText != value)
+            {
+                _syncStatusText = value;
                 OnPropertyChanged();
             }
         }
@@ -241,6 +263,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanStop));
                 OnPropertyChanged(nameof(CanChangeContentMode));
                 OnPropertyChanged(nameof(CanConnectToHost));
+                OnPropertyChanged(nameof(CanSyncNow));
             }
         }
     }
@@ -257,6 +280,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _connectionService is not null &&
         !string.IsNullOrWhiteSpace(JoinLink) &&
         (UseGuestProfile || !string.IsNullOrWhiteSpace(ProfileDisplayName));
+
+    public bool CanSyncNow => !IsBusy && _syncService is not null && _isSyncEnabled;
 
     public bool CanShare =>
         IsRunning &&
@@ -325,6 +350,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     {
         _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
         _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(false);
         RaiseStatusChanged();
     }
 
@@ -360,6 +386,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 ClientConnectionStatusText = joinRequest.DisplayName is { Length: > 0 } displayName
                     ? $"Connected to {displayName}"
                     : "Connected to classroom Host";
+                await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(true);
                 HostConnectionSucceeded?.Invoke(this, result);
                 return;
             }
@@ -379,6 +406,32 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
             OnPropertyChanged(nameof(CanConnectToHost));
+            OnPropertyChanged(nameof(CanSyncNow));
+        }
+    }
+
+    public async Task SyncNowAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanSyncNow || _syncService is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            SyncStatusText = "Syncing";
+            ClassroomSyncStatus status = await _syncService.SyncNowAsync(cancellationToken).ConfigureAwait(true);
+            ApplySyncStatus(status);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
+        {
+            SyncStatusText = $"Sync failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanSyncNow));
         }
     }
 
@@ -530,6 +583,53 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public void MarkFingerprintCopied() => ShareConfirmationText = "Fingerprint copied to clipboard";
 
     public void ReportClipboardUnavailable() => ShareConfirmationText = "Clipboard is unavailable";
+
+    private async Task RefreshSyncStatusAsync(CancellationToken cancellationToken)
+    {
+        if (_syncService is null)
+        {
+            SyncStatusText = "Sync unavailable";
+            OnPropertyChanged(nameof(CanSyncNow));
+            return;
+        }
+
+        ClassroomSyncStatus status = await _syncService.GetStatusAsync(cancellationToken).ConfigureAwait(true);
+        ApplySyncStatus(status);
+        OnPropertyChanged(nameof(CanSyncNow));
+    }
+
+    private void ApplySyncStatus(ClassroomSyncStatus status)
+    {
+        if (!status.IsEnabled)
+        {
+            _isSyncEnabled = false;
+            SyncStatusText = string.IsNullOrWhiteSpace(status.ErrorMessage)
+                ? "Sync unavailable"
+                : $"Sync unavailable: {status.ErrorMessage}";
+            OnPropertyChanged(nameof(CanSyncNow));
+            return;
+        }
+
+        _isSyncEnabled = true;
+        if (status.IsRunning)
+        {
+            SyncStatusText = "Syncing";
+            OnPropertyChanged(nameof(CanSyncNow));
+            return;
+        }
+
+        string conflictText = status.ConflictCount == 1
+            ? "1 conflict"
+            : $"{status.ConflictCount} conflicts";
+        SyncStatusText = status.LastSyncedUtc is null
+            ? $"Ready to sync, {conflictText}"
+            : string.Format(
+                CultureInfo.InvariantCulture,
+                "Last synced {0:yyyy-MM-dd HH:mm} UTC, {1}",
+                status.LastSyncedUtc.Value.UtcDateTime,
+                conflictText);
+        OnPropertyChanged(nameof(CanSyncNow));
+    }
 
     private void RaiseStatusChanged()
     {

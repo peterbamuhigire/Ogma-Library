@@ -64,6 +64,14 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void SyncNowButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.SyncNowAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void CopyJoinLinkButton_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null &&
