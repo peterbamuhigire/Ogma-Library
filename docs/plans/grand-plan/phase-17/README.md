@@ -476,3 +476,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Started WP3: added file-backed profile persistence, active profile selection, transient guest sessions, credential-store session token keys, private-state cleanup on delete, and focused tests. |
 | 2026-06-02 | Implementation | Advanced FR-CLIENT-001: added file-backed Standalone/Connect-to-Host mode persistence with restart tests. |
 | 2026-06-02 | Implementation | Advanced WP6: added the per-student private SQLite schema and repository CRUD for progress, annotations, bookmarks, AI history, sync state, tombstones, and cross-profile isolation tests. |
+| 2026-06-02 | Implementation | Started WP7: added disk-backed offline cache persistence, per-Host clearing, eTag metadata, and LRU size-limit eviction tests. |

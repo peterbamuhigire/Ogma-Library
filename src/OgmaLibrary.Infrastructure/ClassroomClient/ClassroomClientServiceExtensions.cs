@@ -21,7 +21,7 @@ public static class ClassroomClientServiceExtensions
             provider.GetRequiredService<IStudentPrivateRepository>(),
             provider.GetRequiredService<IClassroomCredentialStore>()));
         services.AddSingleton<ISyncService, UnavailableSyncService>();
-        services.AddSingleton<IOfflineCacheService, InMemoryOfflineCacheService>();
+        services.AddSingleton<IOfflineCacheService>(_ => new DiskOfflineCacheService(dataDirectory));
         services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
         services.AddSingleton<ILibraryHostClient, UnavailableLibraryHostClient>();
         services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
