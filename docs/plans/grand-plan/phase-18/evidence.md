@@ -50,6 +50,7 @@ on.
 | Student AI history deletion | `IStudentPrivateRepository.DeleteAiHistoryAsync()` and `StudentSmartSearchViewModel.DeleteHistoryAsync()` clear private smart-search history for the active profile/Host while preserving other Host/profile state |
 | Admin institution AI history purge | `ISchoolAiHistoryManagementService.PurgeInstitutionHistoryAsync()` and Host Sharing admin controls purge Host `AiQueryHistory` plus `AiUsageLedger` rows behind a typed confirmation while preserving immutable audit rows |
 | Admin audit filtering and CSV export | `HostSharingViewModel.SchoolAuditFilterText` filters recent school audit rows by actor/action/resource/payload, and `ExportSchoolAuditCsvAsync()` exports the filtered rows as CSV |
+| Phase 18 safety scan report | `docs/security/phase-18-safety-scan-2026-06-02.md` records dependency, secret-pattern, admin-auth, architecture, core, and UI verification evidence plus residual release gaps |
 
 ## Verified Locally
 
@@ -148,6 +149,13 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~StudentSmartSearchViewModelTests\|FullyQualifiedName~SchoolAdminPanelRenderTests" --logger "console;verbosity=minimal"` | Passed: 4 UI tests covering smart-search history save/delete and school-admin purge control rendering |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 14 Host Sharing tests including audit filtering and filtered CSV export |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminPanelRenderTests" --logger "console;verbosity=minimal"` | Passed: school-admin render test covering audit export control visibility |
+| `dotnet list OgmaLibrary.sln package --vulnerable --include-transitive` | Passed: no vulnerable packages reported across all 10 projects |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 35 architecture tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 628 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 125 UI tests |
+| `rg -n "(sk_live\|sk_test\|pk_live\|STRIPE\|SUPABASE\|service_role\|api[_-]?key\|secret\|token\\s*=\|password\\s*=\|Authorization:\\s*Bearer\|AWS_\|BEGIN (RSA\|OPENSSH\|PRIVATE) KEY)" src tests docs` | Reviewed: hits are test fixtures, generated token variables, password buffers, credential-store abstractions, or documentation; no production hardcoded provider key found |
+| `git log --all --oneline -- "*.pem" "*.p12" "*.pfx" "*.key" "*.env"` | Passed: no historical key/certificate/env-file entries returned |
+| `gitleaks version`; `trufflehog --version` | Not run: neither external scanner is installed locally |
 
 ## Remaining Phase 18 Work
 
@@ -160,4 +168,5 @@ on.
   the key, quota, dashboard, audit filter/export, and purge surface now in Host
   Sharing settings.
 - Windows/macOS live credential-store verification for school AI key storage.
-- Red-team, security review, code review, and secret-scan gates.
+- External `gitleaks`/`trufflehog` secret scan on a machine with those tools
+  installed; local regex secret scan and package/security review are complete.
