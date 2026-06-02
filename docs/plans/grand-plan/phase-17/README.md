@@ -484,3 +484,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Advanced WP7: added runtime online/offline connectivity status and observable state-change stream with tests for future offline fallback UI. |
 | 2026-06-02 | Implementation | Advanced WP5: added Host PDF file-stream materialization into stable local reader paths with atomic writes, metadata, validation, and DI/tests. |
 | 2026-06-02 | Implementation | Advanced WP5: wired Client-mode reader file location through active Host connection state so `ReaderSessionService.OpenAsync` can open materialized Host PDFs. |
+| 2026-06-02 | Implementation | Advanced WP2/WP5/WP7: added connection orchestration that accepts trusted Hosts, resolves profiles, issues sessions, switches to Client mode, marks online, and sets the active Host connection used by the reader. |

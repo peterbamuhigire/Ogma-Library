@@ -35,6 +35,7 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<IMdnsResolver, MdnsResolver>();
         services.AddSingleton<IHostTrustStore, InMemoryHostTrustStore>();
         services.AddSingleton<IHostTrustService, HostTrustService>();
+        services.AddSingleton<IClassroomConnectionService, ClassroomConnectionService>();
         return services;
     }
 }

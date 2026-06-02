@@ -38,6 +38,25 @@ public sealed record ClassroomHostConnection(
     string SessionToken,
     DateTimeOffset ConnectedUtc);
 
+/// <summary>Request to connect this installation to a classroom Host.</summary>
+public sealed record ClassroomConnectionRequest(
+    ClassroomJoinRequest JoinRequest,
+    bool AcceptFirstUseTrust = false,
+    string? PresentedFingerprint = null,
+    Guid? ProfileId = null,
+    string? ProfileDisplayName = null,
+    ClassroomRole Role = ClassroomRole.Student,
+    bool UseGuestProfile = false,
+    TimeSpan? SessionLifetime = null);
+
+/// <summary>Outcome of a Client-mode Host connection attempt.</summary>
+public sealed record ClassroomConnectionResult(
+    bool IsConnected,
+    HostTrustState TrustState,
+    ClassroomProfile? Profile,
+    ClassroomHostConnection? Connection,
+    string? ErrorMessage = null);
+
 /// <summary>Local classroom profile metadata.</summary>
 public sealed record ClassroomProfile(
     Guid ProfileId,
