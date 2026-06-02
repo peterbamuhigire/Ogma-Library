@@ -22,6 +22,7 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<SchoolAdminCatalogueService>();
         services.AddSingleton<SchoolProfileEnrollmentService>();
         services.AddSingleton<SchoolAiPolicyService>();
+        services.AddSingleton<SchoolUsageDashboardService>();
         services.AddSingleton<UnavailableSchoolAdminService>();
         services.AddSingleton<ILibraryPublishingService>(provider =>
             provider.GetRequiredService<SchoolAdminCatalogueService>());
@@ -41,7 +42,7 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<IAiProxyEndpointHandler>(provider =>
             provider.GetRequiredService<UnavailableSchoolAdminService>());
         services.AddSingleton<IUsageDashboardService>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            provider.GetRequiredService<SchoolUsageDashboardService>());
         services.AddSingleton<IDpiaScreeningService>(provider =>
             provider.GetRequiredService<UnavailableSchoolAdminService>());
         return services;
