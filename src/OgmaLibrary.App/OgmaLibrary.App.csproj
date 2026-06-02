@@ -37,8 +37,6 @@
     <AvaloniaResource Include="Assets\icons\**\*.svg" />
     <!-- Application window icon (titlebar/dock). -->
     <AvaloniaResource Include="Assets\app.png" />
-    <!-- Design tokens resource dictionary. -->
-    <AvaloniaResource Include="Themes\Tokens.axaml" />
   </ItemGroup>
 
 </Project>
