@@ -111,6 +111,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void LibraryButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.OpenCatalogue();
+        }
+    }
+
     private void ListViewButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.ViewModels.Catalogue;
@@ -71,6 +72,89 @@ public sealed class ShellReaderNavigationTests
         Assert.True(shell.Reader?.IsOpen);
         Assert.Equal("book-001", sessionService.OpenedBookId);
         Assert.Equal(4, shell.Reader?.CurrentPageIndex);
+    }
+
+    [AvaloniaFact]
+    public async Task CatalogueShellView_ReaderRoute_ShowsLibraryEscapeAndNamedPageControls()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var reader = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new EmptyAnnotationService(),
+            new EmptyBookmarkService(),
+            new EmptyLayerService(),
+            new EmptyCitationService(),
+            new EmptyReadingMemoryService(),
+            localization);
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            reader);
+
+        await shell.OpenReaderAsync("book-001", pageHint: 4, CancellationToken.None);
+        Dispatcher.UIThread.RunJobs();
+
+        var view = new CatalogueShellView { DataContext = shell };
+        var window = new Window
+        {
+            Width = 1280,
+            Height = 760,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        List<string?> visibleText = window.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Select(block => block.Text)
+            .ToList();
+
+        Assert.Contains("Back to Library", visibleText);
+        Assert.Contains("Previous page", visibleText);
+        Assert.Contains("Next page", visibleText);
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_OpenCatalogue_ReturnsFromReaderToLibrary()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var reader = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new EmptyAnnotationService(),
+            new EmptyBookmarkService(),
+            new EmptyLayerService(),
+            new EmptyCitationService(),
+            new EmptyReadingMemoryService(),
+            localization);
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            reader);
+
+        await shell.OpenReaderAsync("book-001", pageHint: 4, CancellationToken.None);
+        Dispatcher.UIThread.RunJobs();
+
+        shell.OpenCatalogue();
+
+        Assert.Equal(ShellView.Catalogue, shell.ActiveView);
+        Assert.True(shell.IsCatalogueActive);
+        Assert.False(shell.IsReaderActive);
     }
 
     [AvaloniaFact]

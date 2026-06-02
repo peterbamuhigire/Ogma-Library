@@ -408,6 +408,12 @@ public sealed class MainShellViewModel :
     /// <summary>Directory view button accessible label.</summary>
     public string DirectoryViewLabel => _localization["Icon.ic_cat_view_directory.Label"];
 
+    /// <summary>Catalogue route label.</summary>
+    public string LibraryLabel => _localization["Navigation.Library"];
+
+    /// <summary>Reader escape-hatch button label.</summary>
+    public string BackToLibraryLabel => _localization["Navigation.BackToLibrary"];
+
     /// <summary>3D shelf view button accessible label (placeholder).</summary>
     public string Shelf3DViewLabel => _localization["Icon.ic_cat_view_shelf3d.Label"];
 
@@ -462,6 +468,13 @@ public sealed class MainShellViewModel :
             BookDetail.IsVisible = false;
             OnPropertyChanged(nameof(IsReaderActive));
         });
+    }
+
+    /// <summary>Returns to the catalogue browsing surface.</summary>
+    public void OpenCatalogue()
+    {
+        ActiveView = ShellView.Catalogue;
+        ReaderPlaceholderMessage = null;
     }
 
     /// <summary>Opens the Phase 15 split-view scaffold route.</summary>

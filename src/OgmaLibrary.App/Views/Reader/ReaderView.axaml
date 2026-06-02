@@ -34,17 +34,23 @@
                     Orientation="Horizontal"
                     Spacing="6"
                     VerticalAlignment="Center">
-          <Button Padding="10,6"
+          <Button Padding="12,6"
                   IsEnabled="{Binding CanGoPrevious}"
-                  AutomationProperties.Name="{Binding PageStatusText}"
+                  AutomationProperties.Name="{Binding PreviousPageLabel}"
                   Click="PreviousButton_Click">
-            <TextBlock Text="&lt;" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="&lt;" />
+              <TextBlock Text="{Binding PreviousPageLabel}" />
+            </StackPanel>
           </Button>
-          <Button Padding="10,6"
+          <Button Padding="12,6"
                   IsEnabled="{Binding CanGoNext}"
-                  AutomationProperties.Name="{Binding PageStatusText}"
+                  AutomationProperties.Name="{Binding NextPageLabel}"
                   Click="NextButton_Click">
-            <TextBlock Text="&gt;" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding NextPageLabel}" />
+              <TextBlock Text="&gt;" />
+            </StackPanel>
           </Button>
         </StackPanel>
 

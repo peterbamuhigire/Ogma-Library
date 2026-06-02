@@ -19,6 +19,8 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.EmptyState.Body"] = "Choose a folder of PDFs to begin. Ogma will scan it, recognise your books, and let you browse them as covers and spines.",
         ["MainWindow.Action.ChooseFolder"] = "Choose library folder",
         ["MainWindow.Action.OpenPdf"] = "Open PDF",
+        ["Navigation.Library"] = "Library",
+        ["Navigation.BackToLibrary"] = "Back to Library",
         ["MainWindow.Status.Skeleton"] = "Skeleton build — Phase 02",
 
         // Phase 03 icon accessible labels (en)
@@ -473,6 +475,8 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.EmptyState.Body"] = "Choisissez un dossier de PDF pour commencer. Ogma l'analysera, reconnaîtra vos livres et vous laissera les parcourir sous forme de couvertures et de tranches.",
         ["MainWindow.Action.ChooseFolder"] = "Choisir le dossier de la bibliothèque",
         ["MainWindow.Action.OpenPdf"] = "Ouvrir un PDF",
+        ["Navigation.Library"] = "Bibliotheque",
+        ["Navigation.BackToLibrary"] = "Retour a la bibliotheque",
         ["MainWindow.Status.Skeleton"] = "Version squelette — Phase 02",
 
         // Phase 03 icon accessible labels (fr)

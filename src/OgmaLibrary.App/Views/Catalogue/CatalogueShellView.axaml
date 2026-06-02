@@ -75,7 +75,7 @@
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
           <!-- Sidebar toggle -->
           <Button Grid.Column="0"
@@ -87,8 +87,22 @@
             <TextBlock Text="☰" FontSize="18" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
+          <Button Grid.Column="1"
+                  Background="{DynamicResource Brush.Surface.Footer}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Padding="10,5"
+                  Margin="8,0,4,0"
+                  AutomationProperties.Name="{Binding LibraryLabel}"
+                  Click="LibraryButton_Click">
+            <TextBlock Text="{Binding LibraryLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
+
           <!-- View toggle buttons -->
-          <StackPanel Grid.Column="1"
+          <StackPanel Grid.Column="2"
                       Orientation="Horizontal"
                       Spacing="2"
                       VerticalAlignment="Center"
@@ -130,7 +144,7 @@
           </StackPanel>
 
           <!-- Search panel toggle -->
-          <Button Grid.Column="2"
+          <Button Grid.Column="3"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -145,7 +159,7 @@
           </Button>
 
           <!-- Index Manager panel toggle -->
-          <Button Grid.Column="3"
+          <Button Grid.Column="4"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -160,7 +174,7 @@
           </Button>
 
           <!-- Split-view scaffold route -->
-          <Button Grid.Column="4"
+          <Button Grid.Column="5"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -173,7 +187,7 @@
           </Button>
 
           <!-- Filter panel toggle -->
-          <Button Grid.Column="5"
+          <Button Grid.Column="6"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -182,7 +196,7 @@
             <TextBlock Text="⚗" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           </Button>
 
-          <Button Grid.Column="6"
+          <Button Grid.Column="7"
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -193,7 +207,7 @@
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
-          <Button Grid.Column="7"
+          <Button Grid.Column="8"
                   Background="{DynamicResource Brush.Accent.Oak}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -205,7 +219,7 @@
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
 
-          <Button Grid.Column="8"
+          <Button Grid.Column="9"
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -218,7 +232,7 @@
           </Button>
 
           <!-- Count badge -->
-          <TextBlock Grid.Column="9"
+          <TextBlock Grid.Column="10"
                      VerticalAlignment="Center"
                      Margin="8,0,4,0"
                      FontSize="{DynamicResource Type.Size.Caption}"
@@ -333,7 +347,26 @@
         </Grid>
 
         <Panel IsVisible="{Binding IsReaderActive}">
-          <reader:ReaderView DataContext="{Binding Reader}" />
+          <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0"
+                    Background="{DynamicResource Brush.Surface.Footer}"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="0,0,0,1"
+                    Padding="12,8">
+              <Button Padding="12,6"
+                      HorizontalAlignment="Left"
+                      Background="{DynamicResource Brush.Accent.Oak}"
+                      Foreground="White"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.Name="{Binding BackToLibraryLabel}"
+                      Click="LibraryButton_Click">
+                <TextBlock Text="{Binding BackToLibraryLabel}"
+                           FontSize="{DynamicResource Type.Size.Caption}" />
+              </Button>
+            </Border>
+
+            <reader:ReaderView Grid.Row="1" DataContext="{Binding Reader}" />
+          </Grid>
         </Panel>
 
         <Panel IsVisible="{Binding IsSplitViewActive}">

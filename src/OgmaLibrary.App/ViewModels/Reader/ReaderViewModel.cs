@@ -449,6 +449,12 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// <summary>True when the reader can navigate to the next page.</summary>
     public bool CanGoNext => IsOpen && CurrentPageIndex < PageCount - 1;
 
+    /// <summary>Localized label for moving to the previous page.</summary>
+    public string PreviousPageLabel => _localization["Reader.Navigation.PreviousPage"];
+
+    /// <summary>Localized label for moving to the next page.</summary>
+    public string NextPageLabel => _localization["Reader.Navigation.NextPage"];
+
     /// <summary>The page-surface width after rotation and fixed zoom are applied.</summary>
     public double PageSurfaceWidth =>
         (PageRotationDegrees is 90 or 270 ? BasePageSurfaceHeight : BasePageSurfaceWidth) * OverlayZoomFactor;
