@@ -19,6 +19,7 @@ ADRs are written in [MADR](https://adr.github.io/madr/) style.
 | [0010](0010-optin-library-host-mode.md) | Opt-In Library Host Mode Amends CI-2 for the Classroom Track | Proposed | 2026-05-30 |
 | [0011](0011-local-tesseract-ocr.md) | Run OCR Locally with Tesseract, Never Through AI Providers | Proposed | 2026-06-01 |
 | [0012](0012-classroom-identity-roles-private-state.md) | Classroom Identity, Roles, and Private State | Proposed | 2026-06-02 |
+| [0013](0013-school-managed-ai-host-gateway.md) | School-Managed AI Through the Host Gateway | Proposed | 2026-06-02 |
 
 ## MADR Conventions
 

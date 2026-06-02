@@ -10,6 +10,7 @@ using OgmaLibrary.Application.Extensions;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
@@ -18,6 +19,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 using OgmaLibrary.Infrastructure.LanHost;
 using OgmaLibrary.Infrastructure.Metadata;
+using OgmaLibrary.Infrastructure.SchoolAdmin;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Navigation;
 using OgmaLibrary.Workers;
@@ -618,6 +620,61 @@ public sealed class ArchitectureTests
         ClassroomModeSettings settings = await modeService.GetModeAsync();
 
         Assert.Equal(LibraryRuntimeMode.Standalone, settings.Mode);
+    }
+
+    [Fact]
+    public void ArchTests_SchoolAdmin_HasNoClassroomClientInternalDependency()
+    {
+        var application = Types.InAssembly(typeof(ILibraryPublishingService).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Application.SchoolAdmin")
+            .ShouldNot()
+            .HaveDependencyOnAny("OgmaLibrary.Application.ClassroomClient", "OgmaLibrary.Infrastructure.ClassroomClient")
+            .GetResult();
+        var infrastructure = Types.InAssembly(typeof(SchoolAdminServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.SchoolAdmin")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.ClassroomClient")
+            .GetResult();
+
+        Assert.True(application.IsSuccessful, Describe(application));
+        Assert.True(infrastructure.IsSuccessful, Describe(infrastructure));
+    }
+
+    [Fact]
+    public void ArchTests_SchoolAiKeyProvider_HasNoDirectProviderDependency_ExceptViaGatewayContracts()
+    {
+        var result = Types.InAssembly(typeof(SchoolAdminServiceExtensions).Assembly)
+            .That()
+            .ResideInNamespace("OgmaLibrary.Infrastructure.SchoolAdmin")
+            .ShouldNot()
+            .HaveDependencyOn("OgmaLibrary.Infrastructure.AI")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result));
+    }
+
+    [Fact]
+    public async Task ArchTests_SchoolAdminScaffold_IsDisabledAndAdminRoleScoped()
+    {
+        using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddSchoolAdminServices(Path.Combine(Path.GetTempPath(), $"ogma-school-admin-arch-{Guid.NewGuid():N}"))
+            .BuildServiceProvider();
+
+        var policy = services.GetRequiredService<ISchoolAiPolicyService>();
+        var dpia = services.GetRequiredService<IDpiaScreeningService>();
+        SchoolAiPolicy currentPolicy = await policy.GetPolicyAsync();
+        DpiaScreeningResult result = await dpia.CheckAsync(new DpiaScreeningRequest(
+            Guid.NewGuid(),
+            OgmaLibrary.Domain.Ai.AiPrivacyTier.MetadataOnly,
+            "metadata",
+            BirthYear: null));
+
+        Assert.Equal("admin", SchoolAdminAuthorization.AdminRole);
+        Assert.Equal(OgmaLibrary.Domain.Ai.AiPrivacyTier.MetadataOnly, currentPolicy.DefaultTier);
+        Assert.False(currentPolicy.ContentAwareEnabled);
+        Assert.Equal(DpiaScreeningDecision.Disqualified, result.Decision);
     }
 
     private static string Describe(TestResult result) =>

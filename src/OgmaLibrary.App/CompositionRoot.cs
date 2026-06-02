@@ -31,6 +31,7 @@ using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Infrastructure.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Security;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Cache;
@@ -111,6 +112,9 @@ public static class CompositionRoot
             sp.GetRequiredService<ILibraryHostClient>()));
         services.AddSingleton<ICatalogueReadModel>(sp =>
             sp.GetRequiredService<ClassroomCatalogueReadModel>());
+
+        // Phase 18 — disabled School Administration scaffold; activation is Host-local/admin-gated.
+        services.AddSchoolAdminServices(dataDirectory);
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();

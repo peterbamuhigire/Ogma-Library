@@ -5,12 +5,12 @@ Task IDs: `P18-WP{n}-T{m}`.
 
 ---
 
-## Work Package 1 — ADR-0012 & Admin Context Scaffold
+## Work Package 1 — ADR-0013 & Admin Context Scaffold
 
 | ID | Task | Dependencies | Est. | Satisfies |
 | --- | --- | --- | --- | --- |
-| P18-WP1-T1 | Author `docs/architecture/adr-0012-school-managed-ai.md` covering: key storage model, class-level gateway, privacy-tier enforcement, entitlements, DPIA service, minors' data boundary | Phase 17 DoD | 1 d | ADR-0012 |
-| P18-WP1-T2 | Owner sign-off on ADR-0012 (Owner ask §14.1) | P18-WP1-T1 | 0 d (gate) | ADR-0012 |
+| P18-WP1-T1 | Author `docs/adrs/0013-school-managed-ai-host-gateway.md` covering: key storage model, class-level gateway, privacy-tier enforcement, entitlements, DPIA service, minors' data boundary | Phase 17 DoD | 1 d | ADR-0013 |
+| P18-WP1-T2 | Owner sign-off on ADR-0013 (Owner ask §14.1) | P18-WP1-T1 | 0 d (gate) | ADR-0013 |
 | P18-WP1-T3 | Create `Application/SchoolAdmin/` interface files: `ILibraryPublishingService`, `ISharedShelfService`, `IProfileEnrollmentService`, `ISchoolAiPolicyService`, `ISchoolAiKeyProvider`, `IAiProxyEndpointHandler`, `IUsageDashboardService`, `IDpiaScreeningService` — all with XML doc comments | P18-WP1-T2 | 0.5 d | All FR-ADMIN-* |
 | P18-WP1-T4 | Create `Infrastructure/SchoolAdmin/` namespace; stub implementations; DI registration (active only in Host mode + admin role) | P18-WP1-T3 | 0.5 d | FR-ADMIN-001..013 |
 | P18-WP1-T5 | Architecture tests: `ArchTests_SchoolAdmin_HasNoClassroomClientInternalDependency`, `ArchTests_SchoolAiKeyProvider_HasNoDirectProviderDependency_ExceptViaIAiProvider`, `ArchTests_AdminRoutes_Require_AdminRole` | P18-WP1-T4 | 0.5 d | FR-ADMIN-004..005, bounded-context |

@@ -28,9 +28,9 @@ see or hold API keys.
 | **Owner** | Peter Bamuhigire / Chwezi Core Systems |
 | **PRD build-phase mapping** | New (LAN classroom expansion + school AI) |
 | **Platforms** | Windows 10/11 + macOS 13+ (Host runs both; admin console is on the Host machine) |
-| **Status** | Planned — not started |
+| **Status** | Implementation started locally |
 | **Depends on** | Phase 16 (Host infrastructure, audit), Phase 17 (profile/role model, ADR-0011), Phase 12 (IAiProvider gateway, privacy tiers, cost metering) |
-| **ADRs introduced** | ADR-0012 (proposed — see §7) |
+| **ADRs introduced** | ADR-0013 (proposed — see §7) |
 
 ---
 
@@ -56,7 +56,7 @@ When this phase is done, all of the following are true:
 7. Every AI call produces a local audit entry (CTRL-OGMA-018); DPIA screening is
    applied per off-device feature (CTRL-OGMA-024) — this is critical because
    students are minors.
-8. ADR-0012 is authored, covering the school-managed-AI model, key storage,
+8. ADR-0013 is authored, covering the school-managed-AI model, key storage,
    class-level gateway, entitlements, and minors'-data handling.
 
 ---
@@ -112,7 +112,7 @@ When this phase is done, all of the following are true:
   - AI query history for students stored on the Host (per-profile, per-session)
     and on the client's private DB; student can delete own history; admin can
     purge all history for their institution.
-- ADR-0012: school-managed AI model.
+- ADR-0013: school-managed AI model.
 - i18n: all admin console and student AI search strings in en + fr.
 
 ### Explicitly out of scope
@@ -148,7 +148,7 @@ When this phase is done, all of the following are true:
 | CTRL-OGMA-024 | V2 | DPIA screening per off-device feature; minors' data | Architecture test: AI proxy endpoint calls `IDpiaScreeningService.CheckAsync()` before forwarding to `IAiProvider`; test that a disqualified DPIA check blocks the call |
 | FR-AI-008 (classroom) | V2 | Answer mode cites local evidence only (classroom context) | Integration test with golden corpus: answer cites only books in Host catalogue |
 | FR-AI-010 | V1 | Per-call model usage + estimated cost visible in admin dashboard | Integration test: admin dashboard `UsageEntry.EstimatedCostUsd` matches metering model |
-| ADR-0012 | V2 | School-managed AI model documented and ratified | ADR-0012 authored; owner sign-off |
+| ADR-0013 | V2 | School-managed AI model documented and ratified | ADR-0013 authored; owner sign-off |
 
 ---
 
@@ -174,7 +174,7 @@ When this phase is done, all of the following are true:
 
 ## 7. Architecture & approach
 
-### ADR-0012 (proposed)
+### ADR-0013 (proposed)
 
 **Title:** School-managed AI — keys on Host, class-level gateway, entitlements
 and quotas, minors' data handling.
@@ -336,7 +336,7 @@ Full task detail in `tasks.md`.
 
 | Work package | Key tasks | Est. |
 | --- | --- | --- |
-| **WP1 — ADR-0012 & admin context scaffold** | Author ADR-0012; SchoolAdmin bounded context; interfaces; DI wiring; architecture tests | 2 d |
+| **WP1 — ADR-0013 & admin context scaffold** | Author ADR-0013; SchoolAdmin bounded context; interfaces; DI wiring; architecture tests | 2 d |
 | **WP2 — Library publishing & curation** | Publish/unpublish folders; AI tier per library; shared shelf CRUD; book assignment | 3 d |
 | **WP3 — Profile enrollment** | Enroll/edit/revoke profiles; enrollment token flow; role assignment; `EnrolledProfiles` table | 2 d |
 | **WP4 — School AI key management** | Key entry UI; `ISchoolAiKeyProvider`; credential store integration; architecture isolation test | 2 d |
@@ -379,7 +379,7 @@ Full task detail in `tasks.md`.
 - [x] **Bounded-context tests**: `SchoolAdmin` has no dependency on `ClassroomClient`
   internals; `SchoolAiKeyProvider` has no direct dependency on any concrete AI
   provider (only `IAiProvider` interface).
-- [x] **Documentation**: ADR-0012 authored; `IDpiaScreeningService` documented
+- [x] **Documentation**: ADR-0013 authored; `IDpiaScreeningService` documented
   with jurisdiction notes; `SOURCE-SUMMARY.md` §D updated to include FR-ADMIN-
   prefix requirements.
 
@@ -402,7 +402,7 @@ Full task detail in `tasks.md`.
 
 ### Phase-18-specific exit criteria
 
-- [ ] ADR-0012 authored and owner-ratified.
+- [ ] ADR-0013 authored and owner-ratified.
 - [ ] School API key retrievable from `ICredentialStore` on Host; not present in
       any HTTP response body or log file (verified by secret-scan tool in CI).
 - [ ] `POST /api/v1/ai/search` routes through `IAiProvider` on Host; integration
@@ -440,7 +440,7 @@ Full guidance in `skills.md`. Key skills:
 - `security:dpia-generator` + `security:uganda-dppa-compliance` — DPIA screening
   service; jurisdiction configuration (WP5, WP12).
 - `frontend-ux:data-visualization` — usage dashboard charts (WP7).
-- `documentation-generation:architecture-decision-records` — ADR-0012 (WP1).
+- `documentation-generation:architecture-decision-records` — ADR-0013 (WP1).
 - `/security-review` — WP4 (AI key storage), WP5 (AI proxy), DPIA service.
 
 ---
@@ -449,7 +449,7 @@ Full guidance in `skills.md`. Key skills:
 
 | Artifact | Location |
 | --- | --- |
-| ADR-0012 | `docs/architecture/adr-0012-school-managed-ai.md` |
+| ADR-0013 | `docs/adrs/0013-school-managed-ai-host-gateway.md` |
 | `OgmaLibrary.Infrastructure.SchoolAdmin` namespace | `src/OgmaLibrary.Infrastructure/SchoolAdmin/` |
 | `ILibraryPublishingService`, `ISharedShelfService`, `IProfileEnrollmentService`, `ISchoolAiPolicyService`, `ISchoolAiKeyProvider`, `IAiProxyEndpointHandler`, `IUsageDashboardService`, `IDpiaScreeningService` | `src/OgmaLibrary.Application/SchoolAdmin/` |
 | `SchoolAiKeyProvider` (implements `IAiProvider`) | `src/OgmaLibrary.Infrastructure/SchoolAdmin/Ai/SchoolAiKeyProvider.cs` |
@@ -478,7 +478,7 @@ Full guidance in `skills.md`. Key skills:
 
 ## 14. Owner asks
 
-1. **ADR-0012 sign-off**: ratify the school-managed AI model, especially the
+1. **ADR-0013 sign-off**: ratify the school-managed AI model, especially the
    DPIA and jurisdiction configuration step, before Phase 18 build begins.
 2. **Jurisdiction configuration**: which jurisdictions (Uganda DPPA, EU GDPR,
    UK GDPR, other) should the admin console offer as choices for "legal basis"

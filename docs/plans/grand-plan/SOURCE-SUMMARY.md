@@ -132,6 +132,28 @@ Stable ID prefixes (from `_context/features.md`). Tier in brackets.
 - FR‑AI‑009 [V1] local query history; delete + disable retention.
 - FR‑AI‑010 [V1] per‑cloud‑call model usage + estimated cost.
 
+### ADMIN — School administration & managed AI (V2 classroom)
+- FR‑ADMIN‑001 [V2] admin can publish/unpublish folders to the shared Host
+  library.
+- FR‑ADMIN‑002 [V2] admin can create/edit/delete shared shelves and assign
+  books.
+- FR‑ADMIN‑003 [V2] admin can enroll, edit, and revoke student/teacher
+  profiles.
+- FR‑ADMIN‑004 [V2] school AI API key stored in the Host OS credential store;
+  never transmitted to clients.
+- FR‑ADMIN‑005 [V2] all student AI queries route through the Host AI gateway.
+- FR‑ADMIN‑006 [V2] class default privacy tier is metadata‑only; content‑aware
+  requires admin opt‑in.
+- FR‑ADMIN‑007 [V2] student sees privacy tier label and payload preview before
+  any off‑device AI call.
+- FR‑ADMIN‑008 [V2] per‑student and per‑class AI quotas enforced.
+- FR‑ADMIN‑009 [V2] per‑student rate limits enforced.
+- FR‑ADMIN‑010 [V2] admin dashboard shows AI usage, cost, and quota
+  utilization.
+- FR‑ADMIN‑011 [V2] classroom answer mode cites only Host catalogue evidence.
+- FR‑ADMIN‑012 [V2] student can delete own AI query history.
+- FR‑ADMIN‑013 [V2] admin can purge all student AI history for the institution.
+
 ## E. Non‑functional budgets
 
 **NFR‑OGMA (product‑specific, reference hardware):**

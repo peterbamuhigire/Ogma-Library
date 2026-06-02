@@ -9,7 +9,7 @@ artifact it must produce.
 
 | Skill / command | Used in | Produces |
 | --- | --- | --- |
-| `superpowers:brainstorming` | Before WP1 (ADR-0012), WP5 (AI proxy pipeline), WP7 (dashboard design) | Structured options for DPIA model, pipeline sequencing, dashboard layout |
+| `superpowers:brainstorming` | Before WP1 (ADR-0013), WP5 (AI proxy pipeline), WP7 (dashboard design) | Structured options for DPIA model, pipeline sequencing, dashboard layout |
 | `superpowers:test-driven-development` | Every WP — especially WP5 (AI proxy) and WP6 (quota) | Tests written before implementation; mock `IAiProvider` wired in all AI proxy tests |
 | `superpowers:verification-before-completion` | Phase DoD | Secret-scan, DPIA coverage, quota-race verification on Win + macOS |
 | `superpowers:requesting-code-review` + `/code-review` | P18-WP12-T7 | Resolved findings |
