@@ -1,0 +1,242 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+             x:Class="OgmaLibrary.App.Views.Classroom.StudentSmartSearchView"
+             x:DataType="vm:StudentSmartSearchViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto"
+        Margin="18"
+        RowSpacing="14">
+
+    <Grid Grid.Row="0"
+          ColumnDefinitions="Auto,*"
+          ColumnSpacing="12">
+      <Border Grid.Column="0"
+              Width="40"
+              Height="40"
+              Background="{DynamicResource Brush.Surface.Footer}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <svg:Svg Width="22"
+                 Height="22"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Path="{Binding IconPath}" />
+      </Border>
+      <StackPanel Grid.Column="1"
+                  Spacing="3">
+        <TextBlock Text="{Binding Title}"
+                   FontSize="{DynamicResource Type.Size.Title}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <TextBlock Text="{Binding Subtitle}"
+                   FontSize="{DynamicResource Type.Size.Body}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,Auto"
+          ColumnSpacing="10">
+      <TextBox Grid.Column="0"
+               Text="{Binding Query, Mode=TwoWay}"
+               Watermark="Ask about a book, topic, author, or reading goal"
+               MinHeight="42"
+               AcceptsReturn="True"
+               TextWrapping="Wrap"
+               AutomationProperties.Name="AI Smart Search question" />
+      <Button Grid.Column="1"
+              MinWidth="120"
+              Padding="14,8"
+              Background="{DynamicResource Brush.Accent.Oak}"
+              Foreground="White"
+              CornerRadius="{DynamicResource Radius.S}"
+              IsEnabled="{Binding CanRequestPreview}"
+              Click="PreviewButton_Click"
+              AutomationProperties.Name="Preview AI payload">
+        <TextBlock Text="Preview" />
+      </Button>
+    </Grid>
+
+    <Grid Grid.Row="2"
+          ColumnDefinitions="1.05*,1.25*"
+          ColumnSpacing="16">
+
+      <StackPanel Grid.Column="0"
+                  Spacing="12">
+        <Border Padding="12"
+                Background="{DynamicResource Brush.Surface.Footer}"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.S}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding PrivacyTierText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Accent.Slate}" />
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+            <ProgressBar Minimum="0"
+                         Maximum="100"
+                         Value="{Binding QuotaPercent}"
+                         Height="8"
+                         AutomationProperties.Name="{Binding QuotaText}" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0"
+                         Text="{Binding QuotaText}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding EstimatedCostText}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Padding="12"
+                Background="{DynamicResource Brush.Surface.Parchment}"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.S}"
+                IsVisible="{Binding HasPreview}">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Payload preview"
+                       FontSize="{DynamicResource Type.Size.Subtitle}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <TextBlock Text="{Binding PreviewSummary}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding MetadataPreviewRows}"
+                          x:CompileBindings="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="120,*"
+                        Margin="0,2">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Key}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Value}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextWrapping="Wrap" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+              <Button Padding="10,6"
+                      Background="Transparent"
+                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      IsEnabled="{Binding CanCancelPreview}"
+                      Click="CancelPreviewButton_Click"
+                      AutomationProperties.Name="Cancel AI payload preview">
+                <TextBlock Text="Cancel" />
+              </Button>
+              <Button Padding="12,6"
+                      Background="{DynamicResource Brush.Accent.Sage}"
+                      Foreground="White"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      IsEnabled="{Binding CanConfirmSearch}"
+                      Click="ConfirmSearchButton_Click"
+                      AutomationProperties.Name="Confirm and search with AI">
+                <TextBlock Text="Confirm and search" />
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <Border Grid.Column="1"
+              Padding="14"
+              Background="{DynamicResource Brush.Surface.Parchment}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <Grid Grid.Row="0"
+                ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="Answer"
+                       FontSize="{DynamicResource Type.Size.Subtitle}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <Button Grid.Column="1"
+                    Padding="8,4"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Click="ClearAnswerButton_Click"
+                    AutomationProperties.Name="Clear AI answer">
+              <TextBlock Text="Clear"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            </Button>
+          </Grid>
+
+          <ScrollViewer Grid.Row="1"
+                        Margin="0,10,0,10">
+            <TextBlock Text="{Binding Answer}"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                       TextWrapping="Wrap" />
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="2"
+                      Spacing="6"
+                      IsVisible="{Binding HasCitations}">
+            <TextBlock Text="Citations"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <ItemsControl ItemsSource="{Binding Citations}"
+                          x:CompileBindings="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Padding="8"
+                          Margin="0,2"
+                          Background="{DynamicResource Brush.Surface.Footer}"
+                          BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                          BorderThickness="1"
+                          CornerRadius="{DynamicResource Radius.S}">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                      <TextBlock Grid.Column="0"
+                                 Text="{Binding Title}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                                 TextWrapping="Wrap" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Location}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Accent.Slate}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <TextBlock Grid.Row="3"
+               Text="AI answers are grounded in the Host catalogue. Treat uncited text as a starting point, not a source."
+               FontSize="{DynamicResource Type.Size.Caption}"
+               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+               TextWrapping="Wrap" />
+  </Grid>
+</UserControl>

@@ -28,6 +28,9 @@ public enum ShellView
 
     /// <summary>The LAN Host sharing settings surface (Phase 16).</summary>
     SharingSettings = 3,
+
+    /// <summary>The classroom student AI smart-search surface (Phase 18).</summary>
+    StudentSmartSearch = 4,
 }
 
 /// <summary>
@@ -61,6 +64,8 @@ public sealed class MainShellViewModel :
     private readonly IClassroomModeService? _classroomModeService;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
+    private readonly string _studentSmartSearchIconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
+    private readonly string _studentSmartSearchLabel = "AI Smart Search";
     private readonly string _classroomOfflineIconPath = IconCatalog.GetAvaresPath("ic_status_unavailable") ?? string.Empty;
 
     private ScanPhase _scanPhase = ScanPhase.Idle;
@@ -98,6 +103,7 @@ public sealed class MainShellViewModel :
     /// <param name="directPdfOpenService">The direct single-PDF open service.</param>
     /// <param name="search">The Phase 10 search view model.</param>
     /// <param name="indexManager">The Phase 10 Index Manager view model.</param>
+    /// <param name="studentSmartSearch">The Phase 18 student AI smart-search view model.</param>
     /// <param name="hostSharing">The Phase 16 Host sharing control view model.</param>
     /// <param name="classroomModeService">The Phase 17 classroom mode/connectivity service.</param>
     public MainShellViewModel(
@@ -112,6 +118,7 @@ public sealed class MainShellViewModel :
         IDirectPdfOpenService? directPdfOpenService = null,
         SearchViewModel? search = null,
         IndexManagerViewModel? indexManager = null,
+        StudentSmartSearchViewModel? studentSmartSearch = null,
         SplitViewViewModel? splitView = null,
         HostSharingViewModel? hostSharing = null,
         IClassroomModeService? classroomModeService = null)
@@ -129,6 +136,7 @@ public sealed class MainShellViewModel :
         SplitView = splitView;
         Search = search;
         IndexManager = indexManager;
+        StudentSmartSearch = studentSmartSearch;
         HostSharing = hostSharing;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
@@ -200,11 +208,17 @@ public sealed class MainShellViewModel :
     /// <summary>The Index Manager panel view model.</summary>
     public IndexManagerViewModel? IndexManager { get; }
 
+    /// <summary>The Phase 18 classroom student smart-search view model.</summary>
+    public StudentSmartSearchViewModel? StudentSmartSearch { get; }
+
     /// <summary>The Phase 16 Host sharing control strip view model.</summary>
     public HostSharingViewModel? HostSharing { get; }
 
     /// <summary>True when the Host sharing control strip is available.</summary>
     public bool IsHostSharingVisible => HostSharing is not null;
+
+    /// <summary>True when the student smart-search route is available.</summary>
+    public bool IsStudentSmartSearchVisible => StudentSmartSearch is not null;
 
     /// <summary>True when Client mode is disconnected and the shell should show the offline chip.</summary>
     public bool IsClassroomOfflineVisible => _isClassroomClientMode && !_classroomConnectivityStatus.IsOnline;
@@ -235,6 +249,7 @@ public sealed class MainShellViewModel :
                 OnPropertyChanged(nameof(IsReaderActive));
                 OnPropertyChanged(nameof(IsSplitViewActive));
                 OnPropertyChanged(nameof(IsSharingSettingsActive));
+                OnPropertyChanged(nameof(IsStudentSmartSearchActive));
             }
         }
     }
@@ -250,6 +265,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the Sharing settings surface is the active content area.</summary>
     public bool IsSharingSettingsActive => _activeView == ShellView.SharingSettings;
+
+    /// <summary>True when the student AI smart-search surface is the active content area.</summary>
+    public bool IsStudentSmartSearchActive => _activeView == ShellView.StudentSmartSearch;
 
     /// <summary>Whether the left sidebar (shelves) is open.</summary>
     public bool IsSidebarOpen
@@ -432,11 +450,17 @@ public sealed class MainShellViewModel :
     /// <summary>Sharing settings route label.</summary>
     public string SharingSettingsLabel => _localization["SharingSettings.Title"];
 
+    /// <summary>Student smart-search route label.</summary>
+    public string StudentSmartSearchLabel => _studentSmartSearchLabel;
+
     /// <summary>Search panel toggle icon path.</summary>
     public string SearchIconPath => _searchIconPath;
 
     /// <summary>Index Manager panel toggle icon path.</summary>
     public string IndexManagerIconPath => _indexManagerIconPath;
+
+    /// <summary>Student smart-search route icon path.</summary>
+    public string StudentSmartSearchIconPath => _studentSmartSearchIconPath;
 
     /// <summary>Sort label.</summary>
     public string SortLabel => _localization["Icon.ic_cat_sort.Label"];
@@ -499,6 +523,14 @@ public sealed class MainShellViewModel :
     }
 
     // ── Scan / folder actions ─────────────────────────────────────────────────
+
+    /// <summary>Opens the Phase 18 classroom student smart-search route.</summary>
+    public void OpenStudentSmartSearch()
+    {
+        ActiveView = ShellView.StudentSmartSearch;
+        ReaderPlaceholderMessage = null;
+        BookDetail.IsVisible = false;
+    }
 
     /// <summary>
     /// Opens an OS folder picker, persists the chosen root path, and starts a
@@ -894,12 +926,14 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(IndexManagerLabel));
         OnPropertyChanged(nameof(SplitViewLabel));
         OnPropertyChanged(nameof(SharingSettingsLabel));
+        OnPropertyChanged(nameof(StudentSmartSearchLabel));
         OnPropertyChanged(nameof(IsClassroomOfflineVisible));
         OnPropertyChanged(nameof(ClassroomOfflineText));
         OnPropertyChanged(nameof(ClassroomOfflineAutomationName));
         OnPropertyChanged(nameof(ClassroomOfflineIconPath));
         OnPropertyChanged(nameof(SearchIconPath));
         OnPropertyChanged(nameof(IndexManagerIconPath));
+        OnPropertyChanged(nameof(StudentSmartSearchIconPath));
         OnPropertyChanged(nameof(SortLabel));
     }
 

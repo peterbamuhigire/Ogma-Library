@@ -376,6 +376,20 @@ public sealed class ClassroomCatalogueReadModelTests
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<LibraryHostAiPayloadPreview> PreviewAiSearchAsync(
+            ClassroomJoinRequest request,
+            string sessionToken,
+            LibraryHostAiSearchRequest query,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<LibraryHostAiSearchResult> SearchAiAsync(
+            ClassroomJoinRequest request,
+            string sessionToken,
+            LibraryHostAiSearchRequest query,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<LibraryHostResource> GetPageRenderAsync(
             ClassroomJoinRequest request,
             string sessionToken,

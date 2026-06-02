@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using OgmaLibrary.Application.ClassroomClient;
+using OgmaLibrary.Domain.Ai;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 
 namespace OgmaLibrary.Tests.ClassroomClient;
@@ -282,6 +283,68 @@ public sealed class LibraryHostHttpClientTests
     }
 
     [Fact]
+    public async Task LibraryHostHttpClient_AiPreviewAndSearch_UseBearerTokenAndMapResponses()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueJson(new
+        {
+            tier = AiPrivacyTier.MetadataOnly,
+            metadataFields = new Dictionary<string, string>
+            {
+                ["books.0.title"] = "Algebra I",
+            },
+            estimatedCharacters = 128,
+            requiresConfirmation = true,
+        });
+        handler.EnqueueJson(new
+        {
+            answer = "Use Algebra I for linear equations.",
+            citations = new[]
+            {
+                new
+                {
+                    bookId = "book-1",
+                    title = "Algebra I",
+                    pageNumber = 12,
+                },
+            },
+            tokensUsed = 42,
+            estimatedCostUsd = 0.0125m,
+            wasProviderCalled = true,
+        });
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+        var profileId = Guid.Parse("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
+        var query = new LibraryHostAiSearchRequest(
+            profileId,
+            "linear equations",
+            "default",
+            AiPrivacyTier.MetadataOnly,
+            ConfirmedPayloadPreview: true);
+
+        LibraryHostAiPayloadPreview preview = await client.PreviewAiSearchAsync(request, "session-token", query);
+        LibraryHostAiSearchResult result = await client.SearchAiAsync(request, "session-token", query);
+
+        Assert.Equal(AiPrivacyTier.MetadataOnly, preview.Tier);
+        Assert.Equal("Algebra I", preview.MetadataFields["books.0.title"]);
+        LibraryHostAiCitation citation = Assert.Single(result.Citations);
+        Assert.Equal("book-1", citation.BookId);
+        Assert.Equal(42, result.TokensUsed);
+        Assert.Equal("session-token", handler.Requests[0].Headers.Authorization!.Parameter);
+        Assert.Equal("session-token", handler.Requests[1].Headers.Authorization!.Parameter);
+        Assert.Equal("https://192.168.1.13:7473/api/v1/ai/search/preview", handler.Requests[0].RequestUri!.AbsoluteUri);
+        Assert.Equal("https://192.168.1.13:7473/api/v1/ai/search", handler.Requests[1].RequestUri!.AbsoluteUri);
+
+        string previewBody = handler.RequestBodies[0]!;
+        string searchBody = handler.RequestBodies[1]!;
+        using JsonDocument previewPayload = JsonDocument.Parse(previewBody);
+        using JsonDocument searchPayload = JsonDocument.Parse(searchBody);
+        Assert.False(previewPayload.RootElement.GetProperty("confirmedPayloadPreview").GetBoolean());
+        Assert.True(searchPayload.RootElement.GetProperty("confirmedPayloadPreview").GetBoolean());
+        Assert.Equal(profileId, searchPayload.RootElement.GetProperty("profileId").GetGuid());
+    }
+
+    [Fact]
     public async Task LibraryHostHttpClient_GetsPageRenderResource()
     {
         var handler = new QueueHttpHandler();
@@ -390,6 +453,8 @@ public sealed class LibraryHostHttpClientTests
 
         public List<HttpRequestMessage> Requests { get; } = [];
 
+        public List<string?> RequestBodies { get; } = [];
+
         public void EnqueueJson(object payload)
         {
             string json = JsonSerializer.Serialize(payload);
@@ -426,12 +491,15 @@ public sealed class LibraryHostHttpClientTests
             _responses.Enqueue(response);
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             Requests.Add(request);
-            return Task.FromResult(_responses.Dequeue());
+            RequestBodies.Add(request.Content is null
+                ? null
+                : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+            return _responses.Dequeue();
         }
     }
 

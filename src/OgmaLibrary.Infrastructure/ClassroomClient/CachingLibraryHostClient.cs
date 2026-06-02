@@ -48,6 +48,20 @@ internal sealed class CachingLibraryHostClient : ILibraryHostClient
         CancellationToken cancellationToken = default) =>
         _inner.SearchCatalogueAsync(request, sessionToken, query, cancellationToken);
 
+    public Task<LibraryHostAiPayloadPreview> PreviewAiSearchAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostAiSearchRequest query,
+        CancellationToken cancellationToken = default) =>
+        _inner.PreviewAiSearchAsync(request, sessionToken, query, cancellationToken);
+
+    public Task<LibraryHostAiSearchResult> SearchAiAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostAiSearchRequest query,
+        CancellationToken cancellationToken = default) =>
+        _inner.SearchAiAsync(request, sessionToken, query, cancellationToken);
+
     public Task<LibraryHostResource> GetPageRenderAsync(
         ClassroomJoinRequest request,
         string sessionToken,

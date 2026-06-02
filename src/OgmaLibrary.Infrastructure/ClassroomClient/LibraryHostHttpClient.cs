@@ -143,6 +143,59 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
             dto.HasMore);
     }
 
+    public async Task<LibraryHostAiPayloadPreview> PreviewAiSearchAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostAiSearchRequest query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+        ArgumentNullException.ThrowIfNull(query);
+
+        using var message = new HttpRequestMessage(HttpMethod.Post, BuildUri(request, "/api/v1/ai/search/preview"));
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        message.Content = JsonContent.Create(Map(query with { ConfirmedPayloadPreview = false }));
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        await EnsureAiSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        AiPayloadPreviewDto dto = await response.Content
+            .ReadFromJsonAsync<AiPayloadPreviewDto>(cancellationToken)
+            .ConfigureAwait(false) ?? throw new InvalidOperationException("Host AI preview response was empty.");
+
+        return new LibraryHostAiPayloadPreview(
+            dto.Tier,
+            dto.MetadataFields,
+            dto.EstimatedCharacters,
+            dto.RequiresConfirmation);
+    }
+
+    public async Task<LibraryHostAiSearchResult> SearchAiAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostAiSearchRequest query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+        ArgumentNullException.ThrowIfNull(query);
+
+        using var message = new HttpRequestMessage(HttpMethod.Post, BuildUri(request, "/api/v1/ai/search"));
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        message.Content = JsonContent.Create(Map(query));
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        await EnsureAiSuccessAsync(response, cancellationToken).ConfigureAwait(false);
+        AiSearchResultDto dto = await response.Content
+            .ReadFromJsonAsync<AiSearchResultDto>(cancellationToken)
+            .ConfigureAwait(false) ?? throw new InvalidOperationException("Host AI search response was empty.");
+
+        return new LibraryHostAiSearchResult(
+            dto.Answer,
+            dto.Citations.Select(Map).ToArray(),
+            dto.TokensUsed,
+            dto.EstimatedCostUsd,
+            dto.WasProviderCalled);
+    }
+
     public Task<LibraryHostResource> GetPageRenderAsync(
         ClassroomJoinRequest request,
         string sessionToken,
@@ -397,6 +450,46 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
     private static LibraryHostSearchResult Map(SearchResultDto dto) =>
         new(dto.BookId, dto.Title, dto.Author, dto.Score, dto.MatchedFields);
 
+    private static AiSearchRequestDto Map(LibraryHostAiSearchRequest query) =>
+        new(
+            query.ProfileId,
+            query.Query,
+            query.LibraryId,
+            query.RequestedTier,
+            query.ConfirmedPayloadPreview);
+
+    private static LibraryHostAiCitation Map(AiCitationDto dto) =>
+        new(dto.BookId, dto.Title, dto.PageNumber);
+
+    private static async Task EnsureAiSuccessAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        LanHostErrorDto? error = null;
+        try
+        {
+            error = await response.Content
+                .ReadFromJsonAsync<LanHostErrorDto>(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException)
+        {
+        }
+        catch (System.Text.Json.JsonException)
+        {
+        }
+
+        string message = error is null
+            ? $"Host AI search failed with HTTP {(int)response.StatusCode}."
+            : $"{error.Code}: {error.Message}";
+        throw new InvalidOperationException(message);
+    }
+
     private sealed record HostHealthDto(
         string? State,
         int Port,
@@ -490,4 +583,33 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
         string? Author,
         int Score,
         IReadOnlyList<string> MatchedFields);
+
+    private sealed record AiSearchRequestDto(
+        Guid ProfileId,
+        string Query,
+        string LibraryId,
+        OgmaLibrary.Domain.Ai.AiPrivacyTier RequestedTier,
+        bool ConfirmedPayloadPreview);
+
+    private sealed record AiPayloadPreviewDto(
+        OgmaLibrary.Domain.Ai.AiPrivacyTier Tier,
+        IReadOnlyDictionary<string, string> MetadataFields,
+        int EstimatedCharacters,
+        bool RequiresConfirmation);
+
+    private sealed record AiSearchResultDto(
+        string Answer,
+        IReadOnlyList<AiCitationDto> Citations,
+        int TokensUsed,
+        decimal EstimatedCostUsd,
+        bool WasProviderCalled);
+
+    private sealed record AiCitationDto(
+        string BookId,
+        string? Title,
+        int? PageNumber);
+
+    private sealed record LanHostErrorDto(
+        string Code,
+        string Message);
 }

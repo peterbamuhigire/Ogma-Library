@@ -143,6 +143,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void StudentSmartSearchButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.OpenStudentSmartSearch();
+        }
+    }
+
     private async void SharingSettingsButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

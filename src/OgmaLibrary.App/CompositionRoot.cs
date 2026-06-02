@@ -181,6 +181,10 @@ public static class CompositionRoot
                 sp.GetRequiredService<IIndexManagerService>(),
                 sp.GetRequiredService<IEmbeddingErasureService>(),
                 localization);
+            var studentSmartSearchVm = new StudentSmartSearchViewModel(
+                sp.GetRequiredService<IClassroomHostConnectionService>(),
+                sp.GetRequiredService<ILibraryHostClient>(),
+                sp.GetRequiredService<IProfileService>());
             var hostSharingVm = new HostSharingViewModel(
                 sp.GetRequiredService<ILibraryHostService>(),
                 sp.GetRequiredService<IHostModeSettingsRepository>(),
@@ -198,20 +202,21 @@ public static class CompositionRoot
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(
-                localization,
-                catalogueVm,
-                bookDetailVm,
-                shelfSidebar,
-                readerVm,
-                sp.GetRequiredService<ILibrarySettingsService>(),
-                sp.GetRequiredService<IIngestionOrchestrator>(),
-                sp.GetRequiredService<IScanProgressService>(),
-                sp.GetRequiredService<IDirectPdfOpenService>(),
-                searchVm,
-                indexManagerVm,
-                splitViewVm,
-                hostSharingVm,
-                sp.GetRequiredService<IClassroomModeService>());
+                localization: localization,
+                catalogue: catalogueVm,
+                bookDetail: bookDetailVm,
+                shelfSidebar: shelfSidebar,
+                reader: readerVm,
+                settingsService: sp.GetRequiredService<ILibrarySettingsService>(),
+                orchestrator: sp.GetRequiredService<IIngestionOrchestrator>(),
+                scanProgress: sp.GetRequiredService<IScanProgressService>(),
+                directPdfOpenService: sp.GetRequiredService<IDirectPdfOpenService>(),
+                search: searchVm,
+                indexManager: indexManagerVm,
+                studentSmartSearch: studentSmartSearchVm,
+                splitView: splitViewVm,
+                hostSharing: hostSharingVm,
+                classroomModeService: sp.GetRequiredService<IClassroomModeService>());
 
             return shell;
         });

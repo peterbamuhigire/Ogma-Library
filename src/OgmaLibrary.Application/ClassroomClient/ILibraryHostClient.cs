@@ -37,6 +37,20 @@ public interface ILibraryHostClient
         LibraryHostSearchQuery query,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Builds a Host-side classroom AI payload preview for student confirmation.</summary>
+    Task<LibraryHostAiPayloadPreview> PreviewAiSearchAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostAiSearchRequest query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Executes a confirmed classroom AI smart-search through the Host gateway.</summary>
+    Task<LibraryHostAiSearchResult> SearchAiAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostAiSearchRequest query,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Gets one rendered page PNG from a Host in page-render mode.</summary>
     Task<LibraryHostResource> GetPageRenderAsync(
         ClassroomJoinRequest request,

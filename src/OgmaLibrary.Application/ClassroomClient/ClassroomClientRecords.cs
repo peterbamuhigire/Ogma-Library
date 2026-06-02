@@ -1,3 +1,5 @@
+using OgmaLibrary.Domain.Ai;
+
 namespace OgmaLibrary.Application.ClassroomClient;
 
 /// <summary>Runtime library mode for an Ogma installation.</summary>
@@ -222,6 +224,35 @@ public sealed record LibraryHostSearchResult(
     string? Author,
     int Score,
     IReadOnlyList<string> MatchedFields);
+
+/// <summary>Student smart-search request sent to a classroom Host AI proxy.</summary>
+public sealed record LibraryHostAiSearchRequest(
+    Guid ProfileId,
+    string Query,
+    string LibraryId,
+    AiPrivacyTier RequestedTier,
+    bool ConfirmedPayloadPreview);
+
+/// <summary>Host AI payload preview that must be confirmed before provider egress.</summary>
+public sealed record LibraryHostAiPayloadPreview(
+    AiPrivacyTier Tier,
+    IReadOnlyDictionary<string, string> MetadataFields,
+    int EstimatedCharacters,
+    bool RequiresConfirmation);
+
+/// <summary>Grounded classroom AI search result returned by the Host.</summary>
+public sealed record LibraryHostAiSearchResult(
+    string Answer,
+    IReadOnlyList<LibraryHostAiCitation> Citations,
+    int TokensUsed,
+    decimal EstimatedCostUsd,
+    bool WasProviderCalled);
+
+/// <summary>Host-verified citation for one classroom AI answer.</summary>
+public sealed record LibraryHostAiCitation(
+    string BookId,
+    string? Title,
+    int? PageNumber);
 
 /// <summary>Asset links projected by a classroom Host.</summary>
 public sealed record LibraryHostAssetLinks(
