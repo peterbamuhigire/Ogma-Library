@@ -10,6 +10,66 @@ namespace OgmaLibrary.Tests.Catalogue;
 public sealed class CatalogueReadModelTests
 {
     [Fact]
+    public async Task GetBookSummaries_UsesPrimaryFileName_WhenTitleMetadataIsMissing()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "UNTITLED-PDF",
+            Status = 0,
+        });
+        context.BookFiles.Add(new BookFileRow
+        {
+            BookId = "UNTITLED-PDF",
+            RelativePath = "Ugandan Books, Laws, History/Hackers and Painters.pdf",
+            FileStatus = 0,
+            LastSeenUtc = DateTimeOffset.UtcNow,
+        });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+
+        var summaries = new List<BookSummaryProjection>();
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(
+            new CatalogueFilter(TitleContains: "Hackers")))
+        {
+            summaries.Add(summary);
+        }
+
+        BookSummaryProjection visible = Assert.Single(summaries);
+        Assert.Equal("UNTITLED-PDF", visible.BookId);
+        Assert.Equal("Hackers and Painters", visible.Title);
+        Assert.True(visible.IsAvailable);
+    }
+
+    [Fact]
+    public async Task GetBookDetail_UsesPrimaryFileNameAndPath_WhenBookRelativePathIsMissing()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "DETAIL-PDF",
+            Status = 0,
+        });
+        context.BookFiles.Add(new BookFileRow
+        {
+            BookId = "DETAIL-PDF",
+            RelativePath = "C:/Users/Peter/Documents/Interns Speech.pdf",
+            FileStatus = 0,
+            LastSeenUtc = DateTimeOffset.UtcNow,
+        });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+
+        BookDetailProjection? detail = await readModel.GetBookDetailAsync("DETAIL-PDF");
+
+        Assert.NotNull(detail);
+        Assert.Equal("Interns Speech", detail.Title);
+        Assert.Equal("C:/Users/Peter/Documents/Interns Speech.pdf", detail.RelativePath);
+    }
+
+    [Fact]
     public async Task GetBookSummaries_RepairsMissingBookFilesTableBeforeProjectingAvailability()
     {
         string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-readmodel-repair-{Guid.NewGuid():N}.db");

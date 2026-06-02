@@ -11,6 +11,30 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// </summary>
 public sealed class CatalogueMigrator
 {
+    private const string Phase18SchoolAdminMigration = "20260602072445_Phase18SchoolAdminTables";
+
+    private static readonly string[] Phase18SchoolAdminTables =
+    [
+        "LibraryPublishSettings",
+        "SharedShelves",
+        "SharedShelfBooks",
+        "EnrolledProfiles",
+        "SchoolAiEntitlements",
+        "AiUsageLedger",
+    ];
+
+    private static readonly string[] Phase18SchoolAdminIndexes =
+    [
+        "IX_LibraryPublishSettings_IsPublished",
+        "UX_LibraryPublishSettings_SourcePath",
+        "IX_SharedShelves_Visibility_IsDeleted",
+        "IX_SharedShelfBooks_BookId",
+        "UX_EnrolledProfiles_EnrollmentToken",
+        "IX_EnrolledProfiles_Role_RevokedUtc",
+        "UX_AiUsageLedger_ProfileId_Date",
+        "IX_AiUsageLedger_Date",
+    ];
+
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -69,6 +93,13 @@ public sealed class CatalogueMigrator
             .GetPendingMigrationsAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        await RepairKnownPrecreatedMigrationsAsync(context, pending, cancellationToken)
+            .ConfigureAwait(false);
+
+        pending = await context.Database
+            .GetPendingMigrationsAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         if (!pending.Any())
         {
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
@@ -103,6 +134,40 @@ public sealed class CatalogueMigrator
 
             throw;
         }
+    }
+
+    private static async Task RepairKnownPrecreatedMigrationsAsync(
+        CatalogueDbContext context,
+        IEnumerable<string> pendingMigrations,
+        CancellationToken cancellationToken)
+    {
+        if (!pendingMigrations.Contains(Phase18SchoolAdminMigration, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        foreach (string table in Phase18SchoolAdminTables)
+        {
+            if (!await ObjectExistsAsync(context, "table", table, cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+        }
+
+        foreach (string index in Phase18SchoolAdminIndexes)
+        {
+            if (!await ObjectExistsAsync(context, "index", index, cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+        }
+
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT OR IGNORE INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+            VALUES ({Phase18SchoolAdminMigration}, {GetEfProductVersion()});
+            """,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task EnsureNonModelDatabaseObjectsAsync(
@@ -212,6 +277,16 @@ public sealed class CatalogueMigrator
         string tableName,
         CancellationToken cancellationToken)
     {
+        return await ObjectExistsAsync(context, "table", tableName, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static async Task<bool> ObjectExistsAsync(
+        CatalogueDbContext context,
+        string objectType,
+        string objectName,
+        CancellationToken cancellationToken)
+    {
         await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
         try
@@ -221,12 +296,17 @@ public sealed class CatalogueMigrator
             command.CommandText = """
                 SELECT COUNT(1)
                 FROM sqlite_master
-                WHERE type = 'table' AND name = $tableName
+                WHERE type = $objectType AND name = $objectName
                 """;
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = "$tableName";
-            parameter.Value = tableName;
-            command.Parameters.Add(parameter);
+            var typeParameter = command.CreateParameter();
+            typeParameter.ParameterName = "$objectType";
+            typeParameter.Value = objectType;
+            command.Parameters.Add(typeParameter);
+
+            var nameParameter = command.CreateParameter();
+            nameParameter.ParameterName = "$objectName";
+            nameParameter.Value = objectName;
+            command.Parameters.Add(nameParameter);
 
             object? result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             return Convert.ToInt32(result, System.Globalization.CultureInfo.InvariantCulture) > 0;
@@ -235,6 +315,14 @@ public sealed class CatalogueMigrator
         {
             await context.Database.CloseConnectionAsync().ConfigureAwait(false);
         }
+    }
+
+    private static string GetEfProductVersion()
+    {
+        Version? version = typeof(DbContext).Assembly.GetName().Version;
+        return version is null
+            ? "unknown"
+            : $"{version.Major}.{version.Minor}.{version.Build}";
     }
 
     private static string? BackupDatabase(string dbPath)

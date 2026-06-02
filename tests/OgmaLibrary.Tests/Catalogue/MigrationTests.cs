@@ -214,6 +214,58 @@ public sealed class MigrationTests
     }
 
     [Fact]
+    public async Task Migration_RepairsPrecreatedPhase18Tables_WhenHistoryRowMissing()
+    {
+        string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-p18-history-repair-{Guid.NewGuid():N}.db");
+        const string phase18Migration = "20260602072445_Phase18SchoolAdminTables";
+
+        try
+        {
+            var options = new DbContextOptionsBuilder<CatalogueDbContext>()
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
+                .Options;
+
+            await using (var setup = new CatalogueDbContext(options))
+            {
+                await setup.Database.MigrateAsync();
+                await setup.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM __EFMigrationsHistory WHERE MigrationId = {0};",
+                    phase18Migration);
+                Assert.Equal(0, await setup.Database.SqlQueryRaw<int>(
+                    "SELECT COUNT(*) AS Value FROM __EFMigrationsHistory WHERE MigrationId = '20260602072445_Phase18SchoolAdminTables'")
+                    .SingleAsync());
+                Assert.Equal(1, await setup.Database.SqlQueryRaw<int>(
+                    "SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'AiUsageLedger'")
+                    .SingleAsync());
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await using (var repaired = new CatalogueDbContext(options))
+            {
+                var migrator = new CatalogueMigrator(repaired);
+                await migrator.ApplyAsync();
+
+                Assert.Equal(1, await repaired.Database.SqlQueryRaw<int>(
+                    "SELECT COUNT(*) AS Value FROM __EFMigrationsHistory WHERE MigrationId = '20260602072445_Phase18SchoolAdminTables'")
+                    .SingleAsync());
+                Assert.Equal(0, await repaired.Books.CountAsync());
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            CatalogueTestHelper.DeleteTempDb(dbPath);
+            foreach (string bak in Directory.GetFiles(
+                Path.GetTempPath(),
+                Path.GetFileName(dbPath) + "*.bak"))
+            {
+                File.Delete(bak);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Phase18Migration_AddsSchoolAdminTablesAndRoundTrips()
     {
         string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-p18-schema-{Guid.NewGuid():N}.db");

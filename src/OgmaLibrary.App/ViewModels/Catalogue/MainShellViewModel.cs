@@ -156,6 +156,24 @@ public sealed class MainShellViewModel :
         }
     }
 
+    /// <summary>
+    /// Loads the initial catalogue and shelf sidebar so the library is visible on first launch.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the startup load.</param>
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await Catalogue.LoadAsync(cancellationToken).ConfigureAwait(false);
+            await ShelfSidebar.LoadAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                SetStatusOverride($"Catalogue load failed: {ex.Message}"));
+        }
+    }
+
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 

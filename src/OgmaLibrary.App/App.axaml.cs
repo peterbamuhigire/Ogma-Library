@@ -27,10 +27,13 @@ public sealed class App : Avalonia.Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var shell = _services.GetRequiredService<MainShellViewModel>();
+            shell.InitializeAsync().GetAwaiter().GetResult();
+
             desktop.Exit += (_, _) => StopApplicationServices();
             desktop.MainWindow = new MainWindow
             {
-                DataContext = _services.GetRequiredService<MainShellViewModel>(),
+                DataContext = shell,
             };
         }
 

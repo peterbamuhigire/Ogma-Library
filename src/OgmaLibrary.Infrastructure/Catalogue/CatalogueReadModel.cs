@@ -72,6 +72,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             string titleContains = filter.TitleContains;
             query = query.Where(b =>
                 (b.Title != null && b.Title.Contains(titleContains)) ||
+                b.BookFiles.Any(f => f.RelativePath.Contains(titleContains)) ||
                 b.MetadataFields.Any(f =>
                     f.FieldName == "Title" &&
                     f.Value != null &&
@@ -118,6 +119,11 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .ToList(),
                 Progress = b.ReadingProgress,
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
+                PrimaryRelativePath = b.BookFiles
+                    .OrderBy(f => f.FileStatus)
+                    .ThenBy(f => f.BookFileId)
+                    .Select(f => f.RelativePath)
+                    .FirstOrDefault(),
                 MetadataFields = b.MetadataFields
                     .Where(f => f.FieldName == "Title" || f.FieldName == "Author")
                     .Select(f => new { f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden })
@@ -140,7 +146,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
             summaries.Add(new BookSummaryProjection(
                 BookId: item.BookId,
-                Title: ResolveTitle(item.Title, fields),
+                Title: ResolveTitle(item.Title, fields, item.PrimaryRelativePath, item.BookId),
                 Authors: ResolveAuthors(item.Authors, fields),
                 CoverRelativePath: null, // Phase 05 populates covers
                 Status: item.Status,
@@ -187,6 +193,11 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.Rating,
                 b.Status,
                 b.RelativePath,
+                PrimaryRelativePath = b.BookFiles
+                    .OrderBy(f => f.FileStatus)
+                    .ThenBy(f => f.BookFileId)
+                    .Select(f => f.RelativePath)
+                    .FirstOrDefault(),
                 b.Sha256Hash,
                 b.SizeBytes,
                 b.IsOcrDerived,
@@ -232,7 +243,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
         return new BookDetailProjection(
             BookId: result.BookId,
-            Title: ResolveTitle(result.Title, fields),
+            Title: ResolveTitle(result.Title, fields, result.PrimaryRelativePath ?? result.RelativePath, result.BookId),
             Authors: ResolveAuthors(result.Authors, fields),
             Year: result.Year,
             Isbn: result.IsbnNormalized,
@@ -240,7 +251,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             Rating: result.Rating,
             Status: result.Status,
             CoverRelativePath: null,
-            RelativePath: result.RelativePath,
+            RelativePath: result.RelativePath ?? result.PrimaryRelativePath,
             Sha256Hash: result.Sha256Hash,
             SizeBytes: result.SizeBytes,
             ReadingProgress: progress,
@@ -251,12 +262,46 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             IsPasswordProtected: result.IsPasswordProtected);
     }
 
-    private static string? ResolveTitle(
+    private static string ResolveTitle(
         string? title,
-        IReadOnlyList<MetadataFieldProjection> fields) =>
-        !string.IsNullOrWhiteSpace(title)
-            ? title
-            : SelectBestMetadataValue(fields, "Title");
+        IReadOnlyList<MetadataFieldProjection> fields,
+        string? relativePath,
+        string bookId)
+    {
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            return title.Trim();
+        }
+
+        string? metadataTitle = SelectBestMetadataValue(fields, "Title");
+        if (!string.IsNullOrWhiteSpace(metadataTitle))
+        {
+            return metadataTitle.Trim();
+        }
+
+        string? fileTitle = ResolveFileTitle(relativePath);
+        return string.IsNullOrWhiteSpace(fileTitle) ? bookId : fileTitle;
+    }
+
+    private static string? ResolveFileTitle(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return null;
+        }
+
+        string normalized = relativePath.Replace('\\', '/');
+        string? fileName = normalized
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .LastOrDefault();
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        string withoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        return string.IsNullOrWhiteSpace(withoutExtension) ? fileName : withoutExtension;
+    }
 
     private static List<string> ResolveAuthors(
         List<string> authors,

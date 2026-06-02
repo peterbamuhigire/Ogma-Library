@@ -112,6 +112,45 @@ public sealed class ShellReaderNavigationTests
     }
 
     [AvaloniaFact]
+    public async Task MainShell_InitializeAsync_LoadsCatalogueForFirstScreen()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new MutableCatalogueReadModel
+        {
+            Summary = new BookSummaryProjection(
+                BookId: "startup-book",
+                Title: "Startup Visible Book",
+                Authors: [],
+                CoverRelativePath: null,
+                Status: 0,
+                Rating: null,
+                ShelfIds: [],
+                ReadingProgressPct: null,
+                IsAvailable: true,
+                Year: null),
+        };
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar);
+
+        await shell.InitializeAsync();
+        await WaitForAsync(() =>
+            catalogue.TotalCount == 1 &&
+            catalogue.FilteredItems.Count == 1);
+
+        Assert.Equal("Startup Visible Book", catalogue.FilteredItems[0].Title);
+        Assert.False(catalogue.IsEmpty);
+    }
+
+    [AvaloniaFact]
     public async Task MainShell_OpenPdfPathAsync_WithRealPdf_RegistersAndOpensReaderSession()
     {
         string dataDirectory = Path.Combine(
