@@ -21,6 +21,7 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
         services.AddSingleton<ILibraryHostClient, UnavailableLibraryHostClient>();
         services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
+        services.AddSingleton<IMdnsResolver, MdnsResolver>();
         return services;
     }
 }
