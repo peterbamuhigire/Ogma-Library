@@ -27,6 +27,9 @@ on.
 | Phase 18 table configurations | `LibraryPublishSettingsConfiguration`, `SharedShelfConfiguration`, `SharedShelfBookConfiguration`, `EnrolledProfileConfiguration`, `SchoolAiEntitlementConfiguration`, `AiUsageLedgerConfiguration` |
 | Phase 18 migration | `20260602072445_Phase18SchoolAdminTables` creates six additive Host catalogue tables and reverses to Phase 16 |
 | Migration isolation test | `Phase18Migration_AddsSchoolAdminTablesAndRoundTrips` verifies UP, DOWN to `20260601184330_Phase16LanHostTables`, and re-UP |
+| Library publishing service | `SchoolAdminCatalogueService` implements `ILibraryPublishingService` with publish, unpublish, and list persistence |
+| Shared shelf service | `SchoolAdminCatalogueService` implements `ISharedShelfService` with save, list, soft-delete, book assignment, and group visibility persistence |
+| Service registration | `AddSchoolAdminServices()` registers data-backed publishing/shared-shelf services while non-implemented AI/enrollment services remain fail-closed |
 
 ## Verified Locally
 
@@ -57,6 +60,13 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after Phase 18 schema: 34 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after Phase 18 schema |
 | `git diff --check` | Passed after Phase 18 schema: no whitespace errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminCatalogueServiceTests" --logger "console;verbosity=minimal"` | Passed: 2 data-backed publishing/shared-shelf tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminScaffoldTests" --logger "console;verbosity=minimal"` | Passed after data-backed service registration: 8 scaffold/authorization tests |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after publishing/shared-shelf services: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after publishing/shared-shelf services: 588 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after publishing/shared-shelf services: 34 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after publishing/shared-shelf services |
+| `git diff --check` | Passed after publishing/shared-shelf services: no whitespace errors |
 
 ## Remaining Phase 18 Work
 

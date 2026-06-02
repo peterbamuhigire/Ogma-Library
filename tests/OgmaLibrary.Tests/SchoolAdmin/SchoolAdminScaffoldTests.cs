@@ -1,5 +1,8 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.SchoolAdmin;
+using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.SchoolAdmin;
 
 namespace OgmaLibrary.Tests.SchoolAdmin;
@@ -17,6 +20,10 @@ public sealed class SchoolAdminScaffoldTests
             using ServiceProvider provider = new ServiceCollection()
                 .AddSchoolAdminServices(dataDirectory)
                 .BuildServiceProvider();
+            await using (CatalogueDbContext context = provider.GetRequiredService<CatalogueDbContext>())
+            {
+                await context.Database.MigrateAsync();
+            }
 
             var publishing = provider.GetRequiredService<ILibraryPublishingService>();
             var policy = provider.GetRequiredService<ISchoolAiPolicyService>();
@@ -93,6 +100,7 @@ public sealed class SchoolAdminScaffoldTests
 
     private static void CleanupTempDirectory(string dataDirectory)
     {
+        SqliteConnection.ClearAllPools();
         if (Directory.Exists(dataDirectory))
         {
             Directory.Delete(dataDirectory, recursive: true);

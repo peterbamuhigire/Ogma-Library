@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.SchoolAdmin;
+using OgmaLibrary.Infrastructure.Catalogue;
 
 namespace OgmaLibrary.Infrastructure.SchoolAdmin;
 
@@ -12,11 +13,17 @@ public static class SchoolAdminServiceExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
+        if (!services.Any(descriptor => descriptor.ServiceType == typeof(Microsoft.EntityFrameworkCore.IDbContextFactory<CatalogueDbContext>)))
+        {
+            services.AddCatalogueContext(dataDirectory, dataDirectory);
+        }
+
+        services.AddSingleton<SchoolAdminCatalogueService>();
         services.AddSingleton<UnavailableSchoolAdminService>();
         services.AddSingleton<ILibraryPublishingService>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            provider.GetRequiredService<SchoolAdminCatalogueService>());
         services.AddSingleton<ISharedShelfService>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            provider.GetRequiredService<SchoolAdminCatalogueService>());
         services.AddSingleton<IProfileEnrollmentService>(provider =>
             provider.GetRequiredService<UnavailableSchoolAdminService>());
         services.AddSingleton<ISchoolAiPolicyService>(provider =>
