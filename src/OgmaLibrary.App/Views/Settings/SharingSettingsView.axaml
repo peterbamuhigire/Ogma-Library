@@ -181,7 +181,7 @@
       </Grid>
 
       <Grid Grid.Row="3"
-            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
             RowSpacing="10">
         <TextBlock Grid.Row="0"
                    Text="{Binding ClientTitle}"
@@ -225,6 +225,36 @@
         </Grid>
 
         <Grid Grid.Row="2"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="10"
+              IsVisible="{Binding HasProfileManagement}">
+          <ComboBox Grid.Column="0"
+                    ItemsSource="{Binding ClassroomProfiles}"
+                    SelectedItem="{Binding SelectedClassroomProfile, Mode=TwoWay}"
+                    AutomationProperties.Name="{Binding SavedProfileLabel}"
+                    IsEnabled="{Binding HasClassroomProfiles}"
+                    FontSize="{DynamicResource Type.Size.Caption}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding DisplayName}"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                  <TextBlock Text="{Binding Role}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                </StackPanel>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Column="1"
+                     Text="{Binding ProfileDisplayName}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap"
+                     VerticalAlignment="Center" />
+        </Grid>
+
+        <Grid Grid.Row="3"
               ColumnDefinitions="2*,*,Auto"
               ColumnSpacing="10">
           <TextBox Grid.Column="0"
@@ -252,7 +282,7 @@
           </Button>
         </Grid>
 
-        <Grid Grid.Row="3"
+        <Grid Grid.Row="4"
               ColumnDefinitions="Auto,Auto,*"
               ColumnSpacing="14">
           <CheckBox Grid.Column="0"
@@ -271,7 +301,7 @@
                      VerticalAlignment="Center" />
         </Grid>
 
-        <Grid Grid.Row="4"
+        <Grid Grid.Row="5"
               ColumnDefinitions="Auto,Auto,*"
               ColumnSpacing="14">
           <CheckBox Grid.Column="0"
@@ -289,7 +319,7 @@
                     Click="SyncSettingsCheckBox_Click" />
         </Grid>
 
-        <Grid Grid.Row="5"
+        <Grid Grid.Row="6"
               ColumnDefinitions="*,Auto"
               ColumnSpacing="10">
           <TextBlock Grid.Column="0"

@@ -151,6 +151,41 @@ public sealed class HostSharingViewModelTests
     }
 
     [Fact]
+    public async Task HostSharingViewModel_ProfilePicker_UsesSelectedPersistentProfile()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var connection = new RecordingConnectionService();
+        var profile = new ClassroomProfile(
+            Guid.Parse("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"),
+            "Amina",
+            ClassroomRole.Student,
+            IsGuest: false);
+        var profileService = new RecordingProfileService(profile);
+        var viewModel = new HostSharingViewModel(
+            host,
+            settings,
+            new ClassroomJoinParser(),
+            connection,
+            profileService: profileService)
+        {
+            JoinLink = $"ogma-lan://127.0.0.1:7473/join?name=School&fp={FakeLibraryHostService.Fingerprint}&code=ABCD2345",
+            AcceptFirstUseTrust = true,
+        };
+
+        await viewModel.RefreshAsync();
+        await viewModel.ConnectToHostAsync();
+
+        Assert.True(viewModel.HasProfileManagement);
+        Assert.True(viewModel.HasClassroomProfiles);
+        Assert.Equal(profile, viewModel.SelectedClassroomProfile);
+        Assert.Equal("Amina", viewModel.ProfileDisplayName);
+        Assert.Equal(profile.ProfileId, connection.Request!.ProfileId);
+        Assert.Equal("Amina", connection.Request.ProfileDisplayName);
+        Assert.False(connection.Request.UseGuestProfile);
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_ConnectToHost_InvalidJoinLinkShowsStatus()
     {
         var host = new FakeLibraryHostService();
@@ -554,6 +589,99 @@ public sealed class HostSharingViewModelTests
             cancellationToken.ThrowIfCancellationRequested();
             DiscoverCalls++;
             return Task.FromResult(_hosts);
+        }
+    }
+
+    private sealed class RecordingProfileService : IProfileService
+    {
+        private readonly List<ClassroomProfile> _profiles;
+        private ClassroomProfile? _active;
+
+        public RecordingProfileService(params ClassroomProfile[] profiles)
+        {
+            _profiles = profiles.ToList();
+            _active = profiles.FirstOrDefault();
+        }
+
+        public Task<ClassroomProfile> CreateAsync(
+            CreateClassroomProfileRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var profile = new ClassroomProfile(Guid.NewGuid(), request.DisplayName, request.Role, IsGuest: false);
+            _profiles.Add(profile);
+            _active = profile;
+            return Task.FromResult(profile);
+        }
+
+        public Task<ClassroomProfile> CreateGuestSessionAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _active = new ClassroomProfile(Guid.NewGuid(), "Guest", ClassroomRole.Guest, IsGuest: true);
+            return Task.FromResult(_active);
+        }
+
+        public Task ClearGuestSessionAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_active is { IsGuest: true })
+            {
+                _active = null;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<ClassroomProfile>> ListAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyList<ClassroomProfile>>(_profiles.ToArray());
+        }
+
+        public Task SelectAsync(Guid profileId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _active = _profiles.Single(profile => profile.ProfileId == profileId);
+            return Task.CompletedTask;
+        }
+
+        public Task<ClassroomProfile?> GetActiveAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_active);
+        }
+
+        public Task DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _profiles.RemoveAll(profile => profile.ProfileId == profileId);
+            if (_active?.ProfileId == profileId)
+            {
+                _active = null;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task StoreSessionTokenAsync(
+            Guid profileId,
+            string sessionToken,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
+
+        public Task<string?> GetSessionTokenAsync(Guid profileId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<string?>(null);
+        }
+
+        public Task ClearSessionTokenAsync(Guid profileId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
         }
     }
 }

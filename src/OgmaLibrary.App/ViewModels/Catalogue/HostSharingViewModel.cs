@@ -18,6 +18,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly ISyncService? _syncService;
     private readonly IClassroomModeService? _classroomModeService;
     private readonly IMdnsResolver? _mdnsResolver;
+    private readonly IProfileService? _profileService;
     private readonly string _title = "Host";
     private readonly string _clientTitle = "Connect to Host";
     private readonly string _discoveredHostsLabel = "LAN Hosts";
@@ -26,6 +27,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly string _syncOptInText = "Enable private sync";
     private readonly string _syncOnReconnectText = "Sync on reconnect";
     private readonly string _joinLinkLabel = "Join link";
+    private readonly string _savedProfileLabel = "Saved profile";
     private readonly string _profileDisplayNameLabel = "Student name";
     private readonly string _guestProfileText = "Guest";
     private readonly string _acceptTrustText = "Trust this Host fingerprint";
@@ -64,6 +66,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private bool _syncOnReconnect;
     private IReadOnlyList<DiscoveredClassroomHost> _discoveredHosts = [];
     private DiscoveredClassroomHost? _selectedDiscoveredHost;
+    private IReadOnlyList<ClassroomProfile> _classroomProfiles = [];
+    private ClassroomProfile? _selectedClassroomProfile;
     private string _joinLink = string.Empty;
     private string _profileDisplayName = string.Empty;
     private string _clientConnectionStatusText = "Not connected";
@@ -77,7 +81,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IClassroomConnectionService? connectionService = null,
         ISyncService? syncService = null,
         IClassroomModeService? classroomModeService = null,
-        IMdnsResolver? mdnsResolver = null)
+        IMdnsResolver? mdnsResolver = null,
+        IProfileService? profileService = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
@@ -86,6 +91,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _syncService = syncService;
         _classroomModeService = classroomModeService;
         _mdnsResolver = mdnsResolver;
+        _profileService = profileService;
     }
 
     /// <inheritdoc />
@@ -109,6 +115,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public string SyncOnReconnectText => _syncOnReconnectText;
 
     public string JoinLinkLabel => _joinLinkLabel;
+
+    public string SavedProfileLabel => _savedProfileLabel;
 
     public string ProfileDisplayNameLabel => _profileDisplayNameLabel;
 
@@ -192,6 +200,40 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                         ResolveEnrollmentCode(value));
                     ClientConnectionStatusText = $"Selected {value.DisplayName}";
                 }
+            }
+        }
+    }
+
+    public IReadOnlyList<ClassroomProfile> ClassroomProfiles
+    {
+        get => _classroomProfiles;
+        private set
+        {
+            if (!ReferenceEquals(_classroomProfiles, value))
+            {
+                _classroomProfiles = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasClassroomProfiles));
+            }
+        }
+    }
+
+    public ClassroomProfile? SelectedClassroomProfile
+    {
+        get => _selectedClassroomProfile;
+        set
+        {
+            if (_selectedClassroomProfile != value)
+            {
+                _selectedClassroomProfile = value;
+                OnPropertyChanged();
+                if (value is not null)
+                {
+                    UseGuestProfile = false;
+                    ProfileDisplayName = value.DisplayName;
+                }
+
+                OnPropertyChanged(nameof(CanConnectToHost));
             }
         }
     }
@@ -381,6 +423,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public bool HasDiscoveredHosts => DiscoveredHosts.Count > 0;
 
+    public bool HasProfileManagement => _profileService is not null;
+
+    public bool HasClassroomProfiles => ClassroomProfiles.Count > 0;
+
     public bool CanSyncNow =>
         !IsBusy &&
         CanSyncWhenIdle;
@@ -393,7 +439,6 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public bool CanSyncOnReconnect => _classroomModeService is not null && IsSyncOptInEnabled;
 
     public bool HasPersistentSyncSettings => _classroomModeService is not null;
-
 
     public bool CanShare =>
         IsRunning &&
@@ -462,6 +507,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     {
         _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
         _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfilesAsync(cancellationToken).ConfigureAwait(false);
         await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(false);
         RaiseStatusChanged();
     }
@@ -488,6 +534,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                     new ClassroomConnectionRequest(
                         joinRequest,
                         AcceptFirstUseTrust,
+                        ProfileId: UseGuestProfile ? null : SelectedClassroomProfile?.ProfileId,
                         ProfileDisplayName: UseGuestProfile ? null : ProfileDisplayName.Trim(),
                         UseGuestProfile: UseGuestProfile),
                     cancellationToken)
@@ -800,6 +847,26 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ClassroomSyncStatus status = await _syncService.GetStatusAsync(cancellationToken).ConfigureAwait(true);
         ApplySyncStatus(status);
         OnPropertyChanged(nameof(CanSyncNow));
+    }
+
+    private async Task RefreshProfilesAsync(CancellationToken cancellationToken)
+    {
+        if (_profileService is null)
+        {
+            return;
+        }
+
+        IReadOnlyList<ClassroomProfile> profiles = await _profileService.ListAsync(cancellationToken).ConfigureAwait(true);
+        ClassroomProfiles = profiles;
+        ClassroomProfile? active = await _profileService.GetActiveAsync(cancellationToken).ConfigureAwait(true);
+        if (active is { IsGuest: false })
+        {
+            SelectedClassroomProfile = profiles.FirstOrDefault(profile => profile.ProfileId == active.ProfileId);
+        }
+        else if (active is { IsGuest: true })
+        {
+            UseGuestProfile = true;
+        }
     }
 
     private void ApplySyncSettings(ClassroomSyncSettings settings)
