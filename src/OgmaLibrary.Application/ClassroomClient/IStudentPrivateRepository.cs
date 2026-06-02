@@ -116,6 +116,12 @@ public interface IStudentPrivateRepository
         StudentAiHistoryEntry entry,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Hard-deletes private AI history rows for one Host without deleting audit or sync rows.</summary>
+    Task<int> DeleteAiHistoryAsync(
+        Guid profileId,
+        string hostId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Gets sync state for one Host.</summary>
     Task<StudentSyncState?> GetSyncStateAsync(
         Guid profileId,

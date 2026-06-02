@@ -35,4 +35,12 @@ public partial class StudentSmartSearchView : UserControl
 
     private void ClearAnswerButton_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.ClearAnswer();
+
+    private async void DeleteHistoryButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.DeleteHistoryAsync().ConfigureAwait(true);
+        }
+    }
 }

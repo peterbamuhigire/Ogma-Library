@@ -96,6 +96,18 @@
                          FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
             </Grid>
+            <Button Padding="10,6"
+                    HorizontalAlignment="Left"
+                    Background="Transparent"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanDeleteHistory}"
+                    Click="DeleteHistoryButton_Click"
+                    AutomationProperties.Name="Delete AI Smart Search history">
+              <TextBlock Text="Delete history"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
           </StackPanel>
         </Border>
 

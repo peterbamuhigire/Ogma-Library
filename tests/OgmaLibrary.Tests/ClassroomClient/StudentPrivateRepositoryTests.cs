@@ -140,6 +140,39 @@ public sealed class StudentPrivateRepositoryTests
     }
 
     [Fact]
+    public async Task StudentPrivateRepository_DeleteAiHistory_ClearsOwnHostHistoryOnly()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var repository = new StudentPrivateRepository(dataDirectory);
+            Guid profileId = Guid.NewGuid();
+            Guid otherProfileId = Guid.NewGuid();
+            await repository.SaveAiHistoryAsync(
+                profileId,
+                new StudentAiHistoryEntry("ai-1", "host-1", "Ask one", "Answer one", "metadata", Now));
+            await repository.SaveAiHistoryAsync(
+                profileId,
+                new StudentAiHistoryEntry("ai-2", "host-2", "Ask two", "Answer two", "metadata", Now));
+            await repository.SaveAiHistoryAsync(
+                otherProfileId,
+                new StudentAiHistoryEntry("ai-3", "host-1", "Ask three", "Answer three", "metadata", Now));
+
+            int deleted = await repository.DeleteAiHistoryAsync(profileId, "host-1");
+
+            Assert.Equal(1, deleted);
+            Assert.Empty(await repository.ListAiHistoryAsync(profileId, "host-1", includeDeleted: true));
+            Assert.Equal("ai-2", Assert.Single(await repository.ListAiHistoryAsync(profileId, "host-2")).Id);
+            Assert.Equal("ai-3", Assert.Single(await repository.ListAiHistoryAsync(otherProfileId, "host-1")).Id);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task StudentPrivateRepository_PersistsAnnotationConflicts()
     {
         string dataDirectory = CreateTempDirectory();

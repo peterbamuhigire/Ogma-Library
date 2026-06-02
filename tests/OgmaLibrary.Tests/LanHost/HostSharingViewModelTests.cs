@@ -465,6 +465,7 @@ public sealed class HostSharingViewModelTests
         var enrollment = new RecordingProfileEnrollmentService();
         var keys = new RecordingSchoolAiKeyProvider(isConfigured: false);
         var policy = new RecordingSchoolAiPolicyService();
+        var history = new RecordingSchoolAiHistoryManagementService();
         var viewModel = new HostSharingViewModel(
             new FakeLibraryHostService(),
             new FakeHostModeSettingsRepository(),
@@ -472,6 +473,7 @@ public sealed class HostSharingViewModelTests
             schoolAiKeyProvider: keys,
             schoolAiPolicyService: policy,
             usageDashboardService: new RecordingUsageDashboardService(),
+            schoolAiHistoryManagementService: history,
             auditRepository: new RecordingAuditRepository())
         {
             EnrollmentDisplayName = "Okello Reader",
@@ -488,6 +490,9 @@ public sealed class HostSharingViewModelTests
         await viewModel.EnrollProfileAsync();
         viewModel.SelectedEnrolledProfile = viewModel.EnrolledProfiles.Single(profile => profile.DisplayName == "Okello Reader");
         await viewModel.RevokeSelectedProfileAsync();
+        await viewModel.PurgeAiHistoryAsync();
+        viewModel.AiHistoryPurgeConfirmationText = "PURGE AI HISTORY";
+        await viewModel.PurgeAiHistoryAsync();
 
         Assert.True(key.All(ch => ch == '\0'));
         Assert.True(keys.IsConfigured);
@@ -499,6 +504,9 @@ public sealed class HostSharingViewModelTests
         Assert.Contains(viewModel.EnrolledProfiles, profile =>
             profile.DisplayName == "Okello Reader" &&
             profile.Status == EnrollmentStatus.Revoked);
+        Assert.Equal(1, history.PurgeCalls);
+        Assert.Contains("Purged 2", viewModel.SchoolAdminStatusText, StringComparison.Ordinal);
+        Assert.False(viewModel.CanPurgeAiHistory);
     }
 
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
@@ -993,6 +1001,22 @@ public sealed class HostSharingViewModelTests
                     QuotaPercent: 12,
                     LastQueryUtc: DateTimeOffset.UtcNow),
             ]);
+        }
+    }
+
+    private sealed class RecordingSchoolAiHistoryManagementService : ISchoolAiHistoryManagementService
+    {
+        public int PurgeCalls { get; private set; }
+
+        public Task<SchoolAiHistoryPurgeResult> PurgeInstitutionHistoryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PurgeCalls++;
+            return Task.FromResult(new SchoolAiHistoryPurgeResult(
+                QueryHistoryRowsDeleted: 2,
+                UsageLedgerRowsDeleted: 1,
+                PurgedUtc: DateTimeOffset.UtcNow));
         }
     }
 

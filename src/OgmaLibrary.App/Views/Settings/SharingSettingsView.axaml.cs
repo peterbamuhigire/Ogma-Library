@@ -132,6 +132,14 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void PurgeAiHistoryButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.PurgeAiHistoryAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void SyncSettingsCheckBox_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)

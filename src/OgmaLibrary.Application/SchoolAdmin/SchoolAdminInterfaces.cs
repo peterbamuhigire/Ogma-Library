@@ -104,6 +104,14 @@ public interface IUsageDashboardService
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>Deletes erasable classroom AI history under administrator control.</summary>
+public interface ISchoolAiHistoryManagementService
+{
+    /// <summary>Purges institution-wide AI query history and usage-ledger rows without deleting immutable audit rows.</summary>
+    Task<SchoolAiHistoryPurgeResult> PurgeInstitutionHistoryAsync(
+        CancellationToken cancellationToken = default);
+}
+
 /// <summary>Performs DPIA gating before off-device classroom AI calls.</summary>
 public interface IDpiaScreeningService
 {

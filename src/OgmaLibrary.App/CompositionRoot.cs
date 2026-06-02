@@ -184,7 +184,8 @@ public static class CompositionRoot
             var studentSmartSearchVm = new StudentSmartSearchViewModel(
                 sp.GetRequiredService<IClassroomHostConnectionService>(),
                 sp.GetRequiredService<ILibraryHostClient>(),
-                sp.GetRequiredService<IProfileService>());
+                sp.GetRequiredService<IProfileService>(),
+                sp.GetRequiredService<IStudentPrivateRepository>());
             var hostSharingVm = new HostSharingViewModel(
                 sp.GetRequiredService<ILibraryHostService>(),
                 sp.GetRequiredService<IHostModeSettingsRepository>(),
@@ -198,6 +199,7 @@ public static class CompositionRoot
                 sp.GetRequiredService<ISchoolAiKeyProvider>(),
                 sp.GetRequiredService<ISchoolAiPolicyService>(),
                 sp.GetRequiredService<IUsageDashboardService>(),
+                sp.GetRequiredService<ISchoolAiHistoryManagementService>(),
                 sp.GetRequiredService<IAuditRepository>());
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 

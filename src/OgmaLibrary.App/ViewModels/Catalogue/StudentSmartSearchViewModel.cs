@@ -14,6 +14,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     private readonly IClassroomHostConnectionService _connections;
     private readonly ILibraryHostClient _hostClient;
     private readonly IProfileService _profiles;
+    private readonly IStudentPrivateRepository _privateRepository;
     private readonly string _iconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
     private readonly string _title = "AI Smart Search";
     private readonly string _subtitle = "Ask a question about the classroom library. Ogma shows the payload before anything leaves the Host.";
@@ -32,11 +33,13 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     public StudentSmartSearchViewModel(
         IClassroomHostConnectionService connections,
         ILibraryHostClient hostClient,
-        IProfileService profiles)
+        IProfileService profiles,
+        IStudentPrivateRepository privateRepository)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _hostClient = hostClient ?? throw new ArgumentNullException(nameof(hostClient));
         _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
+        _privateRepository = privateRepository ?? throw new ArgumentNullException(nameof(privateRepository));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -201,6 +204,8 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
 
     public bool CanCancelPreview => !IsBusy && HasPreview;
 
+    public bool CanDeleteHistory => !IsBusy;
+
     public async Task RequestPreviewAsync(CancellationToken cancellationToken = default)
     {
         if (!CanRequestPreview)
@@ -250,6 +255,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
                 .ConfigureAwait(true);
 
             ApplyResult(result);
+            await SaveHistoryAsync(connection, profile, result, cancellationToken).ConfigureAwait(true);
             ClearPreview();
             StatusText = result.WasProviderCalled
                 ? "AI Smart Search answer is ready."
@@ -271,6 +277,21 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         LastEstimatedCostUsd = 0m;
         OnPropertyChanged(nameof(HasCitations));
         StatusText = "AI Smart Search cleared.";
+    }
+
+    public async Task DeleteHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        await RunAsync(async () =>
+        {
+            (ClassroomHostConnection connection, ClassroomProfile profile) =
+                await ResolveContextAsync(cancellationToken).ConfigureAwait(true);
+            int deleted = await _privateRepository
+                .DeleteAiHistoryAsync(profile.ProfileId, CreateHostHistoryScope(connection), cancellationToken)
+                .ConfigureAwait(true);
+            StatusText = deleted == 1
+                ? "Deleted 1 AI Smart Search history item for this Host."
+                : $"Deleted {deleted.ToString("N0", CultureInfo.CurrentCulture)} AI Smart Search history items for this Host.";
+        }).ConfigureAwait(true);
     }
 
     private async Task RunAsync(Func<Task> action)
@@ -311,6 +332,37 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
 
         return (connection, profile);
     }
+
+    private async Task SaveHistoryAsync(
+        ClassroomHostConnection connection,
+        ClassroomProfile profile,
+        LibraryHostAiSearchResult result,
+        CancellationToken cancellationToken)
+    {
+        string summary = string.IsNullOrWhiteSpace(result.Answer)
+            ? "No local evidence found."
+            : result.Answer.Trim();
+        if (summary.Length > 512)
+        {
+            summary = summary[..512];
+        }
+
+        await _privateRepository
+            .SaveAiHistoryAsync(
+                profile.ProfileId,
+                new StudentAiHistoryEntry(
+                    $"smart-search-{Guid.NewGuid():N}",
+                    CreateHostHistoryScope(connection),
+                    Query.Trim(),
+                    summary,
+                    RequestedTier.ToString(),
+                    DateTimeOffset.UtcNow),
+                cancellationToken)
+            .ConfigureAwait(true);
+    }
+
+    private static string CreateHostHistoryScope(ClassroomHostConnection connection) =>
+        $"{connection.Request.Address.Trim()}:{connection.Request.Port.ToString(CultureInfo.InvariantCulture)}:{connection.Request.CertificateFingerprint.Trim()}";
 
     private LibraryHostAiSearchRequest CreateRequest(Guid profileId, bool confirmed) =>
         new(
@@ -370,6 +422,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanRequestPreview));
         OnPropertyChanged(nameof(CanConfirmSearch));
         OnPropertyChanged(nameof(CanCancelPreview));
+        OnPropertyChanged(nameof(CanDeleteHistory));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>

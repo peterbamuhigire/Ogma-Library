@@ -23,10 +23,12 @@ public sealed class StudentSmartSearchViewModelTests
     public async Task StudentSmartSearchViewModel_PreviewAndConfirm_UpdatesAnswerCitationsAndUsage()
     {
         var host = new RecordingLibraryHostClient();
+        var privateRepository = new RecordingStudentPrivateRepository();
         var vm = new StudentSmartSearchViewModel(
             new FixedConnectionService(new ClassroomHostConnection(JoinRequest, "session-token", DateTimeOffset.UtcNow)),
             host,
-            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)))
+            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
+            privateRepository)
         {
             Query = "How do I learn linear equations?",
         };
@@ -50,6 +52,10 @@ public sealed class StudentSmartSearchViewModelTests
         Assert.Equal(42, vm.SessionTokensUsed);
         Assert.Equal("$0.0125", vm.EstimatedCostText.Replace("Estimated cost: ", string.Empty, StringComparison.Ordinal));
         Assert.True(host.SearchRequest!.ConfirmedPayloadPreview);
+        StudentAiHistoryEntry history = Assert.Single(privateRepository.SavedHistory);
+        Assert.Equal(ProfileId, privateRepository.SavedProfileId);
+        Assert.Equal(vm.Query, history.Query);
+        Assert.Contains("Algebra I", history.ResponseSummary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,7 +64,8 @@ public sealed class StudentSmartSearchViewModelTests
         var vm = new StudentSmartSearchViewModel(
             new FixedConnectionService(null),
             new RecordingLibraryHostClient(),
-            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)))
+            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
+            new RecordingStudentPrivateRepository())
         {
             Query = "What should I read?",
         };
@@ -69,13 +76,31 @@ public sealed class StudentSmartSearchViewModelTests
         Assert.False(vm.HasPreview);
     }
 
+    [Fact]
+    public async Task StudentSmartSearchViewModel_DeleteHistory_UsesActiveHostAndProfileScope()
+    {
+        var privateRepository = new RecordingStudentPrivateRepository { DeleteCount = 3 };
+        var vm = new StudentSmartSearchViewModel(
+            new FixedConnectionService(new ClassroomHostConnection(JoinRequest, "session-token", DateTimeOffset.UtcNow)),
+            new RecordingLibraryHostClient(),
+            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
+            privateRepository);
+
+        await vm.DeleteHistoryAsync();
+
+        Assert.Equal(ProfileId, privateRepository.DeletedProfileId);
+        Assert.Contains(JoinRequest.Address, privateRepository.DeletedHostId, StringComparison.Ordinal);
+        Assert.Contains("Deleted 3", vm.StatusText, StringComparison.Ordinal);
+    }
+
     [AvaloniaFact]
     public void StudentSmartSearchView_RendersPrimaryWorkflowText()
     {
         var vm = new StudentSmartSearchViewModel(
             new FixedConnectionService(new ClassroomHostConnection(JoinRequest, "session-token", DateTimeOffset.UtcNow)),
             new RecordingLibraryHostClient(),
-            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)))
+            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
+            new RecordingStudentPrivateRepository())
         {
             Query = "What should I read?",
         };
@@ -96,6 +121,7 @@ public sealed class StudentSmartSearchViewModelTests
         Assert.Contains("AI Smart Search", visibleText);
         Assert.Contains("Preview", visibleText);
         Assert.Contains("Answer", visibleText);
+        Assert.Contains("Delete history", visibleText);
         Assert.Contains("Session tokens used: 0", visibleText);
     }
 
@@ -257,6 +283,160 @@ public sealed class StudentSmartSearchViewModelTests
             ClassroomJoinRequest request,
             string sessionToken,
             CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class RecordingStudentPrivateRepository : IStudentPrivateRepository
+    {
+        public List<StudentAiHistoryEntry> SavedHistory { get; } = [];
+
+        public Guid SavedProfileId { get; private set; }
+
+        public Guid DeletedProfileId { get; private set; }
+
+        public string DeletedHostId { get; private set; } = string.Empty;
+
+        public int DeleteCount { get; init; }
+
+        public string GetPrivateDatabasePath(Guid profileId) => "private.db";
+
+        public Task EnsureCreatedAsync(Guid profileId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<StudentReadingProgress?> GetReadingProgressAsync(
+            Guid profileId,
+            string hostId,
+            string bookId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentReadingProgress>> ListReadingProgressAsync(
+            Guid profileId,
+            string hostId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SaveReadingProgressAsync(
+            Guid profileId,
+            StudentReadingProgress progress,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentAnnotation>> ListAnnotationsAsync(
+            Guid profileId,
+            string hostId,
+            string bookId,
+            bool includeDeleted = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentAnnotation>> ListAnnotationsForHostAsync(
+            Guid profileId,
+            string hostId,
+            bool includeDeleted = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SaveAnnotationAsync(
+            Guid profileId,
+            StudentAnnotation annotation,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentAnnotationConflict>> ListAnnotationConflictsAsync(
+            Guid profileId,
+            string hostId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SaveAnnotationConflictAsync(
+            Guid profileId,
+            StudentAnnotationConflict conflict,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task DeleteAnnotationConflictAsync(
+            Guid profileId,
+            string hostId,
+            string annotationId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SoftDeleteAnnotationAsync(
+            Guid profileId,
+            string annotationId,
+            DateTimeOffset updatedUtc,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentBookmark>> ListBookmarksAsync(
+            Guid profileId,
+            string hostId,
+            string bookId,
+            bool includeDeleted = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentBookmark>> ListBookmarksForHostAsync(
+            Guid profileId,
+            string hostId,
+            bool includeDeleted = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SaveBookmarkAsync(
+            Guid profileId,
+            StudentBookmark bookmark,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SoftDeleteBookmarkAsync(
+            Guid profileId,
+            string bookmarkId,
+            DateTimeOffset updatedUtc,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<StudentAiHistoryEntry>> ListAiHistoryAsync(
+            Guid profileId,
+            string hostId,
+            bool includeDeleted = false,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<StudentAiHistoryEntry>>(SavedHistory);
+
+        public Task SaveAiHistoryAsync(
+            Guid profileId,
+            StudentAiHistoryEntry entry,
+            CancellationToken cancellationToken = default)
+        {
+            SavedProfileId = profileId;
+            SavedHistory.Add(entry);
+            return Task.CompletedTask;
+        }
+
+        public Task<int> DeleteAiHistoryAsync(
+            Guid profileId,
+            string hostId,
+            CancellationToken cancellationToken = default)
+        {
+            DeletedProfileId = profileId;
+            DeletedHostId = hostId;
+            return Task.FromResult(DeleteCount);
+        }
+
+        public Task<StudentSyncState?> GetSyncStateAsync(
+            Guid profileId,
+            string hostId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task SaveSyncStateAsync(
+            Guid profileId,
+            StudentSyncState state,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task DeleteAsync(Guid profileId, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }
 }

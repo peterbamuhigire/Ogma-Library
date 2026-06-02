@@ -664,6 +664,27 @@
               </ListBox>
             </StackPanel>
           </Grid>
+
+          <Grid Grid.Row="3"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="8">
+            <TextBox Grid.Column="0"
+                     Text="{Binding AiHistoryPurgeConfirmationText, Mode=TwoWay}"
+                     Watermark="Type PURGE AI HISTORY to clear student AI history and usage ledger"
+                     AutomationProperties.Name="AI history purge confirmation"
+                     FontSize="{DynamicResource Type.Size.Caption}" />
+            <Button Grid.Column="1"
+                    Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Clay}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanPurgeAiHistory}"
+                    AutomationProperties.Name="Purge school AI history"
+                    Click="PurgeAiHistoryButton_Click">
+              <TextBlock Text="Purge AI history"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+          </Grid>
         </Grid>
       </Border>
 

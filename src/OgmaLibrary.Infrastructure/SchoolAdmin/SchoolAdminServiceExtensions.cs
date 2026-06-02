@@ -24,6 +24,7 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<SchoolProfileEnrollmentService>();
         services.AddSingleton<SchoolAiPolicyService>();
         services.AddSingleton<SchoolUsageDashboardService>();
+        services.AddSingleton<SchoolAiHistoryManagementService>();
         services.AddSingleton<SchoolDpiaScreeningService>();
         services.AddSingleton<UnavailableSchoolAdminService>();
         services.AddSingleton<ILibraryPublishingService>(provider =>
@@ -51,6 +52,8 @@ public static class SchoolAdminServiceExtensions
                 provider.GetService<IAiCostCalculator>()));
         services.AddSingleton<IUsageDashboardService>(provider =>
             provider.GetRequiredService<SchoolUsageDashboardService>());
+        services.AddSingleton<ISchoolAiHistoryManagementService>(provider =>
+            provider.GetRequiredService<SchoolAiHistoryManagementService>());
         services.AddSingleton<IDpiaScreeningService>(provider =>
             provider.GetRequiredService<SchoolDpiaScreeningService>());
         return services;

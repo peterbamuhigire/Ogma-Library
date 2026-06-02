@@ -27,6 +27,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly ISchoolAiKeyProvider? _schoolAiKeyProvider;
     private readonly ISchoolAiPolicyService? _schoolAiPolicyService;
     private readonly IUsageDashboardService? _usageDashboardService;
+    private readonly ISchoolAiHistoryManagementService? _schoolAiHistoryManagementService;
     private readonly IAuditRepository? _auditRepository;
     private readonly string _title = "Host";
     private readonly string _schoolAdminTitle = "School administration";
@@ -95,6 +96,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private string _enrollmentRole = "student";
     private string _enrollmentBirthYearText = string.Empty;
     private string _lastEnrollmentTokenText = string.Empty;
+    private string _aiHistoryPurgeConfirmationText = string.Empty;
     private EnrolledProfile? _selectedEnrolledProfile;
     private int _perStudentDailyTokenBudget = 10_000;
     private int _classDailyTokenBudget = 500_000;
@@ -113,6 +115,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ISchoolAiKeyProvider? schoolAiKeyProvider = null,
         ISchoolAiPolicyService? schoolAiPolicyService = null,
         IUsageDashboardService? usageDashboardService = null,
+        ISchoolAiHistoryManagementService? schoolAiHistoryManagementService = null,
         IAuditRepository? auditRepository = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
@@ -127,6 +130,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _schoolAiKeyProvider = schoolAiKeyProvider;
         _schoolAiPolicyService = schoolAiPolicyService;
         _usageDashboardService = usageDashboardService;
+        _schoolAiHistoryManagementService = schoolAiHistoryManagementService;
         _auditRepository = auditRepository;
     }
 
@@ -454,6 +458,21 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public bool HasLastEnrollmentToken => !string.IsNullOrWhiteSpace(LastEnrollmentTokenText);
 
+    public string AiHistoryPurgeConfirmationText
+    {
+        get => _aiHistoryPurgeConfirmationText;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (_aiHistoryPurgeConfirmationText != next)
+            {
+                _aiHistoryPurgeConfirmationText = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPurgeAiHistory));
+            }
+        }
+    }
+
     public int PerStudentDailyTokenBudget
     {
         get => _perStudentDailyTokenBudget;
@@ -675,6 +694,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _schoolAiKeyProvider is not null ||
         _schoolAiPolicyService is not null ||
         _usageDashboardService is not null ||
+        _schoolAiHistoryManagementService is not null ||
         _auditRepository is not null;
 
     public bool CanSaveSchoolAiKey => !IsBusy && _schoolAiKeyProvider is not null;
@@ -682,6 +702,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public bool CanDeleteSchoolAiKey => !IsBusy && _schoolAiKeyProvider is not null;
 
     public bool CanSaveSchoolAiPolicy => !IsBusy && _schoolAiPolicyService is not null;
+
+    public bool CanPurgeAiHistory =>
+        !IsBusy &&
+        _schoolAiHistoryManagementService is not null &&
+        string.Equals(AiHistoryPurgeConfirmationText.Trim(), "PURGE AI HISTORY", StringComparison.Ordinal);
 
     public bool CanEnrollProfile =>
         !IsBusy &&
@@ -948,6 +973,33 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 .ConfigureAwait(true);
             await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
             SchoolAdminStatusText = "Profile revoked";
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task PurgeAiHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanPurgeAiHistory || _schoolAiHistoryManagementService is null)
+        {
+            SchoolAdminStatusText = "Type PURGE AI HISTORY before clearing school AI history.";
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            SchoolAiHistoryPurgeResult result = await _schoolAiHistoryManagementService
+                .PurgeInstitutionHistoryAsync(cancellationToken)
+                .ConfigureAwait(true);
+            AiHistoryPurgeConfirmationText = string.Empty;
+            await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshAuditEventsAsync(cancellationToken).ConfigureAwait(true);
+            SchoolAdminStatusText =
+                $"Purged {result.QueryHistoryRowsDeleted.ToString("N0", CultureInfo.CurrentCulture)} AI history rows and {result.UsageLedgerRowsDeleted.ToString("N0", CultureInfo.CurrentCulture)} usage rows";
         }
         finally
         {
@@ -1545,6 +1597,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanSaveSchoolAiPolicy));
         OnPropertyChanged(nameof(CanEnrollProfile));
         OnPropertyChanged(nameof(CanRevokeSelectedProfile));
+        OnPropertyChanged(nameof(CanPurgeAiHistory));
     }
 
     private void RaiseShareChanged()

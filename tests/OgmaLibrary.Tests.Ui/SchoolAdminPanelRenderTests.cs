@@ -25,6 +25,7 @@ public sealed class SchoolAdminPanelRenderTests
             schoolAiKeyProvider: new FakeSchoolAiKeyProvider(),
             schoolAiPolicyService: new FakeSchoolAiPolicyService(),
             usageDashboardService: new FakeUsageDashboardService(),
+            schoolAiHistoryManagementService: new FakeSchoolAiHistoryManagementService(),
             auditRepository: new FakeAuditRepository());
         await viewModel.RefreshSchoolAdminAsync();
 
@@ -49,6 +50,7 @@ public sealed class SchoolAdminPanelRenderTests
         Assert.Contains("School AI", visibleText);
         Assert.Contains("Usage dashboard", visibleText);
         Assert.Contains("Recent audit", visibleText);
+        Assert.Contains("Purge AI history", visibleText);
         Assert.Contains("Amina Reader", visibleText);
     }
 
@@ -161,6 +163,13 @@ public sealed class SchoolAdminPanelRenderTests
                     QuotaPercent: 12,
                     LastQueryUtc: DateTimeOffset.UtcNow),
             ]);
+    }
+
+    private sealed class FakeSchoolAiHistoryManagementService : ISchoolAiHistoryManagementService
+    {
+        public Task<SchoolAiHistoryPurgeResult> PurgeInstitutionHistoryAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SchoolAiHistoryPurgeResult(0, 0, DateTimeOffset.UtcNow));
     }
 
     private sealed class FakeAuditRepository : IAuditRepository

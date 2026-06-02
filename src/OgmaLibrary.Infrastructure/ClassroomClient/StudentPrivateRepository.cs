@@ -484,6 +484,19 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<int> DeleteAiHistoryAsync(
+        Guid profileId,
+        string hostId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        return await context.AiHistory
+            .Where(row => row.HostId == hostId)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<StudentSyncState?> GetSyncStateAsync(
         Guid profileId,
         string hostId,

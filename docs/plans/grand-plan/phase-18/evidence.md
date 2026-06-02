@@ -47,6 +47,8 @@ on.
 | Host Sharing school admin console | `HostSharingViewModel` and `SharingSettingsView` expose managed profile enrollment/revocation, masked school AI key save/delete, quota policy editing, usage dashboard rows, and recent audit events from the configured school admin services |
 | Student smart-search client UI | `StudentSmartSearchViewModel` and `StudentSmartSearchView` add a classroom-client route with natural-language query entry, metadata payload preview, confirm/cancel controls, grounded answer rendering, citation rows, token/cost status, and active Host/profile enforcement |
 | Classroom AI client contract | `ILibraryHostClient`, `LibraryHostHttpClient`, and `CachingLibraryHostClient` expose typed preview/search calls for `/api/v1/ai/search/preview` and `/api/v1/ai/search` without caching AI responses |
+| Student AI history deletion | `IStudentPrivateRepository.DeleteAiHistoryAsync()` and `StudentSmartSearchViewModel.DeleteHistoryAsync()` clear private smart-search history for the active profile/Host while preserving other Host/profile state |
+| Admin institution AI history purge | `ISchoolAiHistoryManagementService.PurgeInstitutionHistoryAsync()` and Host Sharing admin controls purge Host `AiQueryHistory` plus `AiUsageLedger` rows behind a typed confirmation while preserving immutable audit rows |
 
 ## Verified Locally
 
@@ -140,14 +142,17 @@ on.
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after student smart-search client UI: 10 projects, 0 warnings, 0 errors |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~LibraryHostHttpClientTests" --logger "console;verbosity=minimal"` | Passed: 13 classroom Host HTTP client tests including AI preview/search bearer auth, request body, and response mapping |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~StudentSmartSearchViewModelTests" --logger "console;verbosity=minimal"` | Passed: 3 student smart-search tests covering preview/confirm state, no-active-connection messaging, and headless view rendering |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~SchoolAiHistoryManagementServiceTests" --logger "console;verbosity=minimal"` | Passed: 8 private-history and school-admin purge tests covering scoped student deletion, Host query-history purge, usage-ledger purge, and audit preservation |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 13 Host Sharing tests including school admin refresh, key/policy/enrollment/revocation, and AI-history purge confirmation |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~StudentSmartSearchViewModelTests\|FullyQualifiedName~SchoolAdminPanelRenderTests" --logger "console;verbosity=minimal"` | Passed: 4 UI tests covering smart-search history save/delete and school-admin purge control rendering |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- Student smart-search localization/accessibility polish, student AI history
-  deletion, and admin institution-wide purge.
+- Student smart-search localization/accessibility polish and richer classroom AI
+  history browsing beyond the delete/purge controls now implemented.
 - Admin console polish: rotate/test-key actions, richer usage charts, audit filtering,
   and CSV export beyond the basic key, quota, dashboard, and audit surface now in
   Host Sharing settings.

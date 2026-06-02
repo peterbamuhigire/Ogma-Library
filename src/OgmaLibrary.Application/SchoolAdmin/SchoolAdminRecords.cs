@@ -163,6 +163,12 @@ public sealed record UsageDashboardEntry(
     double QuotaPercent,
     DateTimeOffset? LastQueryUtc);
 
+/// <summary>Institution-wide AI history purge summary.</summary>
+public sealed record SchoolAiHistoryPurgeResult(
+    int QueryHistoryRowsDeleted,
+    int UsageLedgerRowsDeleted,
+    DateTimeOffset PurgedUtc);
+
 /// <summary>Request to screen an off-device classroom AI action.</summary>
 public sealed record DpiaScreeningRequest(
     Guid ProfileId,
