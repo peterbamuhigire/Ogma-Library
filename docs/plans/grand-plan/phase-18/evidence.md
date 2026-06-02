@@ -41,6 +41,9 @@ on.
 | DPIA screening service | `SchoolDpiaScreeningService` approves no-egress and metadata-only tiers, blocks ContentAware requests until explicit school DPIA approval exists, treats unknown-age profiles conservatively, and writes local audit events |
 | Enrollment-token redemption | `IProfileEnrollmentService.RedeemTokenAsync()` validates hashed one-time tokens, rejects revoked/expired/replayed tokens, consumes valid tokens, and returns enrolled profile metadata |
 | Managed profile Host sessions | `/api/v1/auth/session` accepts `profileId` + `enrollmentToken` for school-managed profiles, issues sessions using the enrolled server-side role, and keeps admin role unenrollable from LAN |
+| Classroom AI answer grounding | `ClassroomAnswerGrounder` accepts only `[[book:BOOK_ID]]` citations verified against Host-local catalogue candidates, strips fabricated citation markers, and returns `No local evidence found.` when no cited local evidence survives |
+| Host AI proxy handler | `AiProxyEndpointHandler` builds metadata-only payload previews, requires preview confirmation, verifies active managed profiles, enforces per-profile minute limits, reserves quota before provider calls, performs DPIA screening, estimates token/cost usage, and grounds provider answers |
+| Student smart-search API | `POST /api/v1/ai/search/preview` and `POST /api/v1/ai/search` are authenticated LAN endpoints bound to the managed profile id in the session, reject admin/manual profile spoofing, and audit preview/search actions |
 
 ## Verified Locally
 
@@ -122,13 +125,18 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after enrollment-token redemption: 35 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after enrollment-token redemption |
 | `git diff --check` | Passed after enrollment-token redemption: no whitespace errors |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after Host AI proxy slice: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomAnswerGrounderTests\|FullyQualifiedName~AiProxyEndpointHandlerTests\|FullyQualifiedName~SchoolAiPolicyServiceTests\|FullyQualifiedName~SchoolDpiaScreeningServiceTests" --logger "console;verbosity=minimal"` | Passed: 18 focused grounding/proxy/policy/DPIA tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after Host AI proxy slice: 1 real HTTPS Host endpoint test covering managed profile AI preview, confirmed search, unconfirmed blocking, spoof rejection, grounding, and audit |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after Host AI proxy slice: 35 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after Host AI proxy slice |
+| `git diff --check` | Passed after Host AI proxy slice: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- AI key panel UI, rate-limit enforcement, AI-proxy, dashboard UI, audit viewer,
-  and student smart-search implementation.
+- AI key panel UI, dashboard UI, audit viewer, and student smart-search client UI.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

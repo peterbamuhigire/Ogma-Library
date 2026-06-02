@@ -6,10 +6,12 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.SchoolAdmin;
+using OgmaLibrary.Domain.Ai;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
@@ -92,8 +94,32 @@ public sealed class LanHostEndpointTests
                     enrollmentToken = managedEnrollment.Token,
                     lifetimeMinutes = 5,
                 });
+            using HttpClient managedHttp = CreatePinnedTestClient(port);
+            managedHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managedToken);
+            var aiRequest = new
+            {
+                profileId = managedEnrollment.ProfileId,
+                query = "LAN Endpoint",
+                libraryId = "default",
+                requestedTier = AiPrivacyTier.MetadataOnly,
+                confirmedPayloadPreview = true,
+            };
+            using HttpResponseMessage aiPreview = await managedHttp.PostAsJsonAsync(
+                "/api/v1/ai/search/preview",
+                aiRequest);
+            string aiPreviewJson = await aiPreview.Content.ReadAsStringAsync();
+            using HttpResponseMessage unconfirmedAiSearch = await managedHttp.PostAsJsonAsync(
+                "/api/v1/ai/search",
+                aiRequest with { confirmedPayloadPreview = false });
+            using HttpResponseMessage aiSearch = await managedHttp.PostAsJsonAsync(
+                "/api/v1/ai/search",
+                aiRequest);
+            string aiSearchJson = await aiSearch.Content.ReadAsStringAsync();
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using HttpResponseMessage studentAdminRoute = await http.PostAsync("/admin/ai/test-connection?providerId=openai", null);
+            using HttpResponseMessage manualProfileAiSearch = await http.PostAsJsonAsync(
+                "/api/v1/ai/search",
+                aiRequest);
             using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=10");
             string catalogueJson = await catalogue.Content.ReadAsStringAsync();
             using HttpResponseMessage pagedCatalogue = await http.GetAsync("/api/v1/catalogue?page=1&pageSize=1");
@@ -138,7 +164,11 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, managedSession.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, replayManagedSession.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, aiPreview.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, unconfirmedAiSearch.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, aiSearch.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, studentAdminRoute.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, manualProfileAiSearch.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
@@ -162,6 +192,10 @@ public sealed class LanHostEndpointTests
             Assert.Contains("key_not_configured", adminTestConnectionJson, StringComparison.Ordinal);
             Assert.DoesNotContain(adminSession.Token, adminTestConnectionJson, StringComparison.Ordinal);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
+            Assert.Contains("LAN Endpoint Book", aiPreviewJson, StringComparison.Ordinal);
+            Assert.Contains("\"wasProviderCalled\":true", aiSearchJson, StringComparison.Ordinal);
+            Assert.Contains("01LANENDPOINT000000000001", aiSearchJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("01FAKEBOOK000000000001", aiSearchJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", catalogueJson, StringComparison.Ordinal);
             Assert.Contains($"/api/v1/assets/cover/{assetHash}", catalogueJson, StringComparison.Ordinal);
             Assert.Contains($"/api/v1/assets/spine/{assetHash}", catalogueJson, StringComparison.Ordinal);
@@ -219,6 +253,12 @@ public sealed class LanHostEndpointTests
                      e.AfterJson?.Contains("\"action\":\"ListCatalogue\"", StringComparison.Ordinal) == true &&
                      e.AfterJson.Contains("\"resourceType\":\"Catalogue\"", StringComparison.Ordinal) &&
                      e.AfterJson.Contains("\"sessionFingerprint\":", StringComparison.Ordinal));
+            Assert.Contains(
+                auditEvents,
+                e => e.EntityId == "/api/v1/ai/search" &&
+                     e.ActorId == $"client:{managedEnrollment.ProfileId:D}" &&
+                     e.AfterJson?.Contains("\"action\":\"SearchSchoolAi\"", StringComparison.Ordinal) == true &&
+                     e.AfterJson.Contains("\"statusCode\":200", StringComparison.Ordinal));
             Assert.Contains(
                 auditEvents,
                 e => e.EntityId == "/api/v1/profile/sync" &&
@@ -284,6 +324,7 @@ public sealed class LanHostEndpointTests
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
+            .AddSingleton<IAiProvider>(new FakeAiProvider())
             .AddSchoolAdminServices(dataDirectory)
             .AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
             .BuildServiceProvider();
@@ -407,5 +448,18 @@ public sealed class LanHostEndpointTests
     private sealed class StaticLanBindAddressSelector(IPAddress address) : ILanBindAddressSelector
     {
         public IPAddress SelectBindAddress() => address;
+    }
+
+    private sealed class FakeAiProvider : IAiProvider
+    {
+        public string ProviderKey => "fake";
+
+        public bool IsLocalOnly => false;
+
+        public Task<AiCompletion> CompleteAsync(AiRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new AiCompletion(
+                "Use LAN Endpoint Book [[book:01LANENDPOINT000000000001]] and not [[book:01FAKEBOOK000000000001]].",
+                PromptTokens: 20,
+                CompletionTokens: 8));
     }
 }

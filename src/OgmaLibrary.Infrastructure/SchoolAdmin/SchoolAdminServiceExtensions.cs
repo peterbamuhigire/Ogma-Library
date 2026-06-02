@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -41,7 +42,13 @@ public static class SchoolAdminServiceExtensions
                 : new SchoolAiKeyProvider(credentialStore);
         });
         services.AddSingleton<IAiProxyEndpointHandler>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            new AiProxyEndpointHandler(
+                provider.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<CatalogueDbContext>>(),
+                provider.GetRequiredService<OgmaLibrary.Application.Catalogue.ICatalogueReadModel>(),
+                provider.GetRequiredService<ISchoolAiPolicyService>(),
+                provider.GetRequiredService<IDpiaScreeningService>(),
+                provider.GetService<IAiProvider>(),
+                provider.GetService<IAiCostCalculator>()));
         services.AddSingleton<IUsageDashboardService>(provider =>
             provider.GetRequiredService<SchoolUsageDashboardService>());
         services.AddSingleton<IDpiaScreeningService>(provider =>

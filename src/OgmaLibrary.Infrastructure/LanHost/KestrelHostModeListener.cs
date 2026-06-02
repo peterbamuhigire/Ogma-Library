@@ -14,6 +14,7 @@ using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.SchoolAdmin;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
 
@@ -38,6 +39,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly ILanClientAddressPolicy _clientAddressPolicy;
     private readonly ISchoolAiKeyProvider? _schoolAiKeys;
     private readonly IProfileEnrollmentService? _profileEnrollment;
+    private readonly IAiProxyEndpointHandler? _schoolAiProxy;
     private WebApplication? _app;
 
     public KestrelHostModeListener(
@@ -54,7 +56,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         ILanBindAddressSelector bindAddressSelector,
         ILanClientAddressPolicy clientAddressPolicy,
         ISchoolAiKeyProvider? schoolAiKeys = null,
-        IProfileEnrollmentService? profileEnrollment = null)
+        IProfileEnrollmentService? profileEnrollment = null,
+        IAiProxyEndpointHandler? schoolAiProxy = null)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
@@ -70,6 +73,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _clientAddressPolicy = clientAddressPolicy ?? throw new ArgumentNullException(nameof(clientAddressPolicy));
         _schoolAiKeys = schoolAiKeys;
         _profileEnrollment = profileEnrollment;
+        _schoolAiProxy = schoolAiProxy;
     }
 
     /// <inheritdoc />
@@ -355,6 +359,60 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             return book is null
                 ? Results.NotFound(new LanHostError("book_not_found", "The requested book was not found."))
                 : Results.Json(MapDetail(book));
+        });
+
+        app.MapPost("/api/v1/ai/search/preview", async (AiSearchApiRequest request, HttpContext context, CancellationToken ct) =>
+        {
+            if (!TryAuthorizeSchoolAiRequest(request.ProfileId, context, out IResult? error))
+            {
+                return error;
+            }
+
+            if (_schoolAiProxy is null)
+            {
+                return Results.Json(
+                    new LanHostError("school_ai_unavailable", "School AI proxy services are not registered."),
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            try
+            {
+                AiProxyPayloadPreview preview = await _schoolAiProxy
+                    .PreviewAsync(MapAiSearchRequest(request, confirmed: false), ct)
+                    .ConfigureAwait(false);
+                return Results.Json(preview);
+            }
+            catch (SchoolAiProxyException proxyError)
+            {
+                return MapSchoolAiProxyError(proxyError);
+            }
+        });
+
+        app.MapPost("/api/v1/ai/search", async (AiSearchApiRequest request, HttpContext context, CancellationToken ct) =>
+        {
+            if (!TryAuthorizeSchoolAiRequest(request.ProfileId, context, out IResult? error))
+            {
+                return error;
+            }
+
+            if (_schoolAiProxy is null)
+            {
+                return Results.Json(
+                    new LanHostError("school_ai_unavailable", "School AI proxy services are not registered."),
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            try
+            {
+                AiProxySearchResult result = await _schoolAiProxy
+                    .SearchAsync(MapAiSearchRequest(request, confirmed: request.ConfirmedPayloadPreview), ct)
+                    .ConfigureAwait(false);
+                return Results.Json(result);
+            }
+            catch (SchoolAiProxyException proxyError)
+            {
+                return MapSchoolAiProxyError(proxyError);
+            }
         });
 
         app.MapPut("/api/v1/profile/sync", async (HttpContext context, CancellationToken ct) =>
@@ -695,6 +753,12 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 new LanAuditRouteInfo("SearchCatalogue", "CatalogueSearch", null),
             "catalogue" when segments.Length >= 4 =>
                 new LanAuditRouteInfo("GetBookDetail", "Book", segments[3]),
+            "ai" when segments.Length >= 4 &&
+                      string.Equals(segments[3], "search", StringComparison.OrdinalIgnoreCase) =>
+                segments.Length >= 5 &&
+                string.Equals(segments[4], "preview", StringComparison.OrdinalIgnoreCase)
+                    ? new LanAuditRouteInfo("PreviewSchoolAiSearch", "SchoolAiSearch", GetAuditClientId(context))
+                    : new LanAuditRouteInfo("SearchSchoolAi", "SchoolAiSearch", GetAuditClientId(context)),
             "profile" when segments.Length >= 4 &&
                            string.Equals(segments[3], "sync", StringComparison.OrdinalIgnoreCase) =>
                 new LanAuditRouteInfo(
@@ -840,6 +904,13 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         bool IsPasswordProtected,
         LanAssetLinks Assets);
 
+    private sealed record AiSearchApiRequest(
+        Guid ProfileId,
+        string Query,
+        string LibraryId,
+        OgmaLibrary.Domain.Ai.AiPrivacyTier RequestedTier,
+        bool ConfirmedPayloadPreview);
+
     private sealed record LanAssetLinks(
         string? CoverUrl,
         string? SpineUrl,
@@ -853,4 +924,40 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         string ProviderId,
         string Status,
         bool IsConfigured);
+
+    private static AiProxySearchRequest MapAiSearchRequest(AiSearchApiRequest request, bool confirmed) =>
+        new(
+            request.ProfileId,
+            request.Query,
+            request.LibraryId,
+            request.RequestedTier,
+            confirmed);
+
+    private static bool TryAuthorizeSchoolAiRequest(Guid profileId, HttpContext context, out IResult? error)
+    {
+        ClientSessionSnapshot session = GetAuthenticatedSession(context);
+        if (SchoolAdminAuthorization.IsAdminRole(session.Role))
+        {
+            error = Results.Json(
+                new LanHostError("school_ai_admin_forbidden", "School AI search is for managed classroom clients."),
+                statusCode: StatusCodes.Status403Forbidden);
+            return false;
+        }
+
+        if (!Guid.TryParse(session.ClientId, out Guid sessionProfileId) || sessionProfileId != profileId)
+        {
+            error = Results.Json(
+                new LanHostError("school_ai_profile_mismatch", "School AI search requires the authenticated managed profile."),
+                statusCode: StatusCodes.Status403Forbidden);
+            return false;
+        }
+
+        error = null;
+        return true;
+    }
+
+    private static IResult MapSchoolAiProxyError(SchoolAiProxyException error) =>
+        Results.Json(
+            new LanHostError(error.Code, error.Message),
+            statusCode: error.StatusCode);
 }
