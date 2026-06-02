@@ -112,6 +112,24 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Issued LAN client sessions with hashed bearer tokens.</summary>
     public DbSet<HostClientSessionRow> HostClientSessions => Set<HostClientSessionRow>();
 
+    /// <summary>Classroom-visible library root publishing policies.</summary>
+    public DbSet<LibraryPublishSettingsRow> LibraryPublishSettings => Set<LibraryPublishSettingsRow>();
+
+    /// <summary>Administrator-curated classroom shelves.</summary>
+    public DbSet<SharedShelfRow> SharedShelves => Set<SharedShelfRow>();
+
+    /// <summary>Book assignments for administrator-curated classroom shelves.</summary>
+    public DbSet<SharedShelfBookRow> SharedShelfBooks => Set<SharedShelfBookRow>();
+
+    /// <summary>School-managed classroom profile enrollments.</summary>
+    public DbSet<EnrolledProfileRow> EnrolledProfiles => Set<EnrolledProfileRow>();
+
+    /// <summary>Per-profile classroom AI entitlements.</summary>
+    public DbSet<SchoolAiEntitlementRow> SchoolAiEntitlements => Set<SchoolAiEntitlementRow>();
+
+    /// <summary>Daily classroom AI usage ledger rows.</summary>
+    public DbSet<AiUsageLedgerRow> AiUsageLedger => Set<AiUsageLedgerRow>();
+
     // ── Phase 09 — Annotations, Layers, Bookmarks, Reading Memory ────────────
 
     /// <summary>Named annotation layers for grouping highlights and notes.</summary>
@@ -160,6 +178,12 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AuditEventConfiguration());
         modelBuilder.ApplyConfiguration(new HostModeSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new HostClientSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new LibraryPublishSettingsConfiguration());
+        modelBuilder.ApplyConfiguration(new SharedShelfConfiguration());
+        modelBuilder.ApplyConfiguration(new SharedShelfBookConfiguration());
+        modelBuilder.ApplyConfiguration(new EnrolledProfileConfiguration());
+        modelBuilder.ApplyConfiguration(new SchoolAiEntitlementConfiguration());
+        modelBuilder.ApplyConfiguration(new AiUsageLedgerConfiguration());
         modelBuilder.ApplyConfiguration(new WorkConfiguration());
         modelBuilder.ApplyConfiguration(new EditionConfiguration());
 

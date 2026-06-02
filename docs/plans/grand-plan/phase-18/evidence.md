@@ -23,6 +23,10 @@ on.
 | Admin enrollment hardening | `/api/v1/auth/session` refuses LAN enrollment requests that ask for `admin` role |
 | Disabled admin AI test endpoint | `POST /admin/ai/test-connection` is guarded and returns key status without exposing token or secret material |
 | Admin route tests | `LanHostEndpointTests` covers rejected admin enrollment, student 403, Host-minted admin access, and audit redaction |
+| Phase 18 EF row model | `LibraryPublishSettingsRow`, `SharedShelfRow`, `SharedShelfBookRow`, `EnrolledProfileRow`, `SchoolAiEntitlementRow`, `AiUsageLedgerRow` |
+| Phase 18 table configurations | `LibraryPublishSettingsConfiguration`, `SharedShelfConfiguration`, `SharedShelfBookConfiguration`, `EnrolledProfileConfiguration`, `SchoolAiEntitlementConfiguration`, `AiUsageLedgerConfiguration` |
+| Phase 18 migration | `20260602072445_Phase18SchoolAdminTables` creates six additive Host catalogue tables and reverses to Phase 16 |
+| Migration isolation test | `Phase18Migration_AddsSchoolAdminTablesAndRoundTrips` verifies UP, DOWN to `20260601184330_Phase16LanHostTables`, and re-UP |
 
 ## Verified Locally
 
@@ -44,6 +48,15 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after admin route guard: 34 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after admin route guard |
 | `git diff --check` | Passed after admin route guard: no whitespace errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Phase18Migration" --logger "console;verbosity=minimal"` | Passed: 1 Phase 18 migration UP/DOWN/re-UP isolation test |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~MigrationTests" --logger "console;verbosity=minimal"` | Passed: 5 migration tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~LanHostPersistenceTests" --logger "console;verbosity=minimal"` | Passed: 4 LAN Host persistence tests |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after Phase 18 schema: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~LanHostLoadSmokeTests" --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed when isolated: 2 load smoke tests; earlier parallel gate contention produced a transient P95 miss |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after Phase 18 schema: 586 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after Phase 18 schema: 34 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after Phase 18 schema |
+| `git diff --check` | Passed after Phase 18 schema: no whitespace errors |
 
 ## Remaining Phase 18 Work
 

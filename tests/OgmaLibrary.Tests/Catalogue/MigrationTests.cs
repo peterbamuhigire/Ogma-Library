@@ -1,5 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -209,5 +211,93 @@ public sealed class MigrationTests
                 File.Delete(bak);
             }
         }
+    }
+
+    [Fact]
+    public async Task Phase18Migration_AddsSchoolAdminTablesAndRoundTrips()
+    {
+        string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-p18-schema-{Guid.NewGuid():N}.db");
+        string[] expectedTables =
+        [
+            "LibraryPublishSettings",
+            "SharedShelves",
+            "SharedShelfBooks",
+            "EnrolledProfiles",
+            "SchoolAiEntitlements",
+            "AiUsageLedger",
+        ];
+        string[] expectedIndexes =
+        [
+            "IX_LibraryPublishSettings_IsPublished",
+            "UX_LibraryPublishSettings_SourcePath",
+            "IX_SharedShelves_Visibility_IsDeleted",
+            "IX_SharedShelfBooks_BookId",
+            "UX_EnrolledProfiles_EnrollmentToken",
+            "IX_EnrolledProfiles_Role_RevokedUtc",
+            "UX_AiUsageLedger_ProfileId_Date",
+            "IX_AiUsageLedger_Date",
+        ];
+
+        try
+        {
+            var options = new DbContextOptionsBuilder<CatalogueDbContext>()
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
+                .Options;
+
+            await using (var migrated = new CatalogueDbContext(options))
+            {
+                await migrated.Database.MigrateAsync();
+                IReadOnlyList<string> tables = await ReadObjectNamesAsync(migrated, "table", expectedTables);
+                IReadOnlyList<string> indexes = await ReadObjectNamesAsync(migrated, "index", expectedIndexes);
+
+                Assert.Equal(
+                    expectedTables.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
+                    tables.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+                Assert.Equal(
+                    expectedIndexes.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
+                    indexes.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await using (var downgraded = new CatalogueDbContext(options))
+            {
+                IMigrator migrator = downgraded.Database.GetService<IMigrator>();
+                await migrator.MigrateAsync("20260601184330_Phase16LanHostTables");
+                Assert.Empty(await ReadObjectNamesAsync(downgraded, "table", expectedTables));
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await using (var remigrated = new CatalogueDbContext(options))
+            {
+                await remigrated.Database.MigrateAsync();
+                IReadOnlyList<string> tables = await ReadObjectNamesAsync(remigrated, "table", expectedTables);
+
+                Assert.Equal(
+                    expectedTables.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
+                    tables.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            CatalogueTestHelper.DeleteTempDb(dbPath);
+        }
+    }
+
+    private static async Task<IReadOnlyList<string>> ReadObjectNamesAsync(
+        CatalogueDbContext context,
+        string objectType,
+        IReadOnlyList<string> names)
+    {
+        List<string> found = await context.Database
+            .SqlQueryRaw<string>(
+                "SELECT name AS Value FROM sqlite_master WHERE type = {0}",
+                objectType)
+            .ToListAsync();
+        return found
+            .Where(names.Contains)
+            .ToList();
     }
 }
