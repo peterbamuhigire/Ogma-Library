@@ -373,6 +373,59 @@ public sealed class HostSharingViewModelTests
         Assert.Equal("Private sync is off", viewModel.SyncStatusText);
     }
 
+    [Fact]
+    public async Task HostSharingViewModel_AnnotationConflictChoice_RefreshesPendingList()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var sync = new RecordingSyncService
+        {
+            Status = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: null,
+                ConflictCount: 1,
+                ErrorMessage: null),
+            NextStatus = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: new DateTimeOffset(2026, 6, 2, 15, 45, 0, TimeSpan.Zero),
+                ConflictCount: 0,
+                ErrorMessage: null),
+        };
+        var local = new StudentAnnotation(
+            "annotation-1",
+            "host-1",
+            "book-1",
+            7,
+            "Note",
+            null,
+            "Local note",
+            new DateTimeOffset(2026, 6, 2, 8, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 6, 2, 9, 0, 0, TimeSpan.Zero));
+        sync.AddConflict(new StudentAnnotationConflict(
+            "host-1",
+            local,
+            local with { Body = "Server note" },
+            new DateTimeOffset(2026, 6, 2, 10, 0, 0, TimeSpan.Zero)));
+        var viewModel = new HostSharingViewModel(host, settings, syncService: sync);
+
+        await viewModel.RefreshAsync();
+
+        Assert.True(viewModel.HasPendingAnnotationConflicts);
+        Assert.True(viewModel.CanResolveAnnotationConflict);
+        Assert.Contains("Local note", viewModel.SelectedConflictText, StringComparison.Ordinal);
+        Assert.Contains("Server note", viewModel.SelectedConflictText, StringComparison.Ordinal);
+
+        await viewModel.KeepServerAnnotationConflictAsync();
+
+        Assert.Equal(1, sync.ResolveCalls);
+        Assert.Equal(ClassroomSyncConflictResolution.KeepServer, sync.LastResolution);
+        Assert.False(viewModel.HasPendingAnnotationConflicts);
+        Assert.False(viewModel.CanResolveAnnotationConflict);
+        Assert.Equal("Last synced 2026-06-02 15:45 UTC, 0 conflicts", viewModel.SyncStatusText);
+    }
+
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
     {
         public HostModeSettings Settings { get; private set; } = new(
@@ -471,6 +524,8 @@ public sealed class HostSharingViewModelTests
 
     private sealed class RecordingSyncService : ISyncService
     {
+        private readonly List<StudentAnnotationConflict> _conflicts = [];
+
         public ClassroomSyncStatus Status { get; init; } = new(
             IsEnabled: false,
             IsRunning: false,
@@ -487,10 +542,36 @@ public sealed class HostSharingViewModelTests
 
         public int SyncCalls { get; private set; }
 
+        public int ResolveCalls { get; private set; }
+
+        public ClassroomSyncConflictResolution? LastResolution { get; private set; }
+
+        public void AddConflict(StudentAnnotationConflict conflict) => _conflicts.Add(conflict);
+
         public Task<ClassroomSyncStatus> GetStatusAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(Status);
+        }
+
+        public Task<IReadOnlyList<StudentAnnotationConflict>> ListAnnotationConflictsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyList<StudentAnnotationConflict>>(_conflicts.ToArray());
+        }
+
+        public Task<ClassroomSyncStatus> ResolveAnnotationConflictAsync(
+            string annotationId,
+            ClassroomSyncConflictResolution resolution,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(annotationId);
+            cancellationToken.ThrowIfCancellationRequested();
+            ResolveCalls++;
+            LastResolution = resolution;
+            _conflicts.RemoveAll(conflict => conflict.LocalAnnotation.Id == annotationId);
+            return Task.FromResult(NextStatus with { ConflictCount = _conflicts.Count });
         }
 
         public Task<ClassroomSyncStatus> SyncNowAsync(CancellationToken cancellationToken = default)

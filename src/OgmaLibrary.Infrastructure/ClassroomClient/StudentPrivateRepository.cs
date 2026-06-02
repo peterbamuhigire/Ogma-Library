@@ -33,6 +33,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using StudentDbContext context = CreateContext(path);
         await context.Database.EnsureCreatedAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureConflictSchemaAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StudentReadingProgress?> GetReadingProgressAsync(
@@ -200,6 +201,84 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             row.IsDeleted = annotation.IsDeleted;
         }
 
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<StudentAnnotationConflict>> ListAnnotationConflictsAsync(
+        Guid profileId,
+        string hostId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        List<StudentAnnotationConflictRow> rows = await context.AnnotationConflicts
+            .AsNoTracking()
+            .Where(row => row.HostId == hostId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return rows
+            .OrderBy(row => row.BookId, StringComparer.Ordinal)
+            .ThenBy(row => row.PageNumber)
+            .ThenBy(row => row.DetectedUtc)
+            .ThenBy(row => row.AnnotationId, StringComparer.Ordinal)
+            .Select(Map)
+            .ToArray();
+    }
+
+    public async Task SaveAnnotationConflictAsync(
+        Guid profileId,
+        StudentAnnotationConflict conflict,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(conflict);
+        ArgumentException.ThrowIfNullOrWhiteSpace(conflict.HostId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(conflict.LocalAnnotation.Id);
+        if (!string.Equals(conflict.LocalAnnotation.Id, conflict.RemoteAnnotation.Id, StringComparison.Ordinal) ||
+            !string.Equals(conflict.HostId, conflict.LocalAnnotation.HostId, StringComparison.Ordinal) ||
+            !string.Equals(conflict.HostId, conflict.RemoteAnnotation.HostId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Conflict rows must refer to the same Host and annotation.", nameof(conflict));
+        }
+
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        StudentAnnotationConflictRow? row = await context.AnnotationConflicts
+            .SingleOrDefaultAsync(
+                candidate => candidate.HostId == conflict.HostId &&
+                             candidate.AnnotationId == conflict.LocalAnnotation.Id,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (row is null)
+        {
+            context.AnnotationConflicts.Add(CreateRow(conflict));
+        }
+        else
+        {
+            Apply(row, conflict);
+        }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteAnnotationConflictAsync(
+        Guid profileId,
+        string hostId,
+        string annotationId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(annotationId);
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        StudentAnnotationConflictRow? row = await context.AnnotationConflicts
+            .SingleOrDefaultAsync(
+                candidate => candidate.HostId == hostId && candidate.AnnotationId == annotationId,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (row is null)
+        {
+            return;
+        }
+
+        context.AnnotationConflicts.Remove(row);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -481,6 +560,36 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         return new StudentDbContext(options);
     }
 
+    private static Task<int> EnsureConflictSchemaAsync(StudentDbContext context, CancellationToken cancellationToken) =>
+        context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE IF NOT EXISTS StudentAnnotationConflicts (
+                HostId TEXT NOT NULL,
+                AnnotationId TEXT NOT NULL,
+                BookId TEXT NOT NULL,
+                PageNumber INTEGER NOT NULL,
+                Type TEXT NOT NULL,
+                LocalColor TEXT NULL,
+                LocalBody TEXT NULL,
+                LocalCreatedUtc TEXT NOT NULL,
+                LocalUpdatedUtc TEXT NOT NULL,
+                LocalIsDeleted INTEGER NOT NULL,
+                RemoteColor TEXT NULL,
+                RemoteBookId TEXT NOT NULL,
+                RemotePageNumber INTEGER NOT NULL,
+                RemoteType TEXT NOT NULL,
+                RemoteBody TEXT NULL,
+                RemoteCreatedUtc TEXT NOT NULL,
+                RemoteUpdatedUtc TEXT NOT NULL,
+                RemoteIsDeleted INTEGER NOT NULL,
+                DetectedUtc TEXT NOT NULL,
+                CONSTRAINT PK_StudentAnnotationConflicts PRIMARY KEY (HostId, AnnotationId)
+            );
+            CREATE INDEX IF NOT EXISTS IX_StudentAnnotationConflicts_HostId_BookId_PageNumber
+                ON StudentAnnotationConflicts (HostId, BookId, PageNumber);
+            """,
+            cancellationToken);
+
     private static void ValidateScope(string hostId, string bookId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
@@ -502,6 +611,65 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             row.CreatedUtc,
             row.UpdatedUtc,
             row.IsDeleted);
+
+    private static StudentAnnotationConflict Map(StudentAnnotationConflictRow row) =>
+        new(
+            row.HostId,
+            new StudentAnnotation(
+                row.AnnotationId,
+                row.HostId,
+                row.BookId,
+                row.PageNumber,
+                row.Type,
+                row.LocalColor,
+                row.LocalBody,
+                row.LocalCreatedUtc,
+                row.LocalUpdatedUtc,
+                row.LocalIsDeleted),
+            new StudentAnnotation(
+                row.AnnotationId,
+                row.HostId,
+                row.RemoteBookId,
+                row.RemotePageNumber,
+                row.RemoteType,
+                row.RemoteColor,
+                row.RemoteBody,
+                row.RemoteCreatedUtc,
+                row.RemoteUpdatedUtc,
+                row.RemoteIsDeleted),
+            row.DetectedUtc);
+
+    private static StudentAnnotationConflictRow CreateRow(StudentAnnotationConflict conflict)
+    {
+        var row = new StudentAnnotationConflictRow();
+        Apply(row, conflict);
+        return row;
+    }
+
+    private static void Apply(StudentAnnotationConflictRow row, StudentAnnotationConflict conflict)
+    {
+        StudentAnnotation local = conflict.LocalAnnotation;
+        StudentAnnotation remote = conflict.RemoteAnnotation;
+        row.HostId = conflict.HostId;
+        row.AnnotationId = local.Id;
+        row.BookId = local.BookId;
+        row.PageNumber = local.PageNumber;
+        row.Type = local.Type;
+        row.LocalColor = local.Color;
+        row.LocalBody = local.Body;
+        row.LocalCreatedUtc = local.CreatedUtc;
+        row.LocalUpdatedUtc = local.UpdatedUtc;
+        row.LocalIsDeleted = local.IsDeleted;
+        row.RemoteColor = remote.Color;
+        row.RemoteBookId = remote.BookId;
+        row.RemotePageNumber = remote.PageNumber;
+        row.RemoteType = remote.Type;
+        row.RemoteBody = remote.Body;
+        row.RemoteCreatedUtc = remote.CreatedUtc;
+        row.RemoteUpdatedUtc = remote.UpdatedUtc;
+        row.RemoteIsDeleted = remote.IsDeleted;
+        row.DetectedUtc = conflict.DetectedUtc;
+    }
 
     private static StudentBookmark Map(StudentBookmarkRow row) =>
         new(

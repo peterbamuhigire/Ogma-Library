@@ -260,10 +260,86 @@ public sealed class ClassroomSyncServiceTests
                 includeDeleted: true));
             StudentSyncState? state = await repository.GetSyncStateAsync(profileId, hostId);
             ClassroomSyncSnapshot uploaded = codec.Decode(host.Uploaded!, Connection.SessionToken);
+            StudentAnnotationConflict conflict = Assert.Single(
+                await repository.ListAnnotationConflictsAsync(profileId, hostId));
             Assert.Equal("Keep local body", persisted.Body);
+            Assert.Equal("Keep local body", conflict.LocalAnnotation.Body);
+            Assert.Equal("Server conflicting body", conflict.RemoteAnnotation.Body);
             Assert.Equal(1, status.ConflictCount);
             Assert.Equal(1, state!.ConflictCount);
             Assert.Equal("Keep local body", Assert.Single(uploaded.Annotations).Body);
+
+            ClassroomSyncStatus resolvedStatus = await service.ResolveAnnotationConflictAsync(
+                "annotation-1",
+                ClassroomSyncConflictResolution.KeepServer);
+
+            StudentAnnotation resolved = Assert.Single(await repository.ListAnnotationsForHostAsync(
+                profileId,
+                hostId,
+                includeDeleted: true));
+            StudentSyncState? resolvedState = await repository.GetSyncStateAsync(profileId, hostId);
+            Assert.Equal("Server conflicting body", resolved.Body);
+            Assert.Empty(await repository.ListAnnotationConflictsAsync(profileId, hostId));
+            Assert.Equal(0, resolvedStatus.ConflictCount);
+            Assert.Equal(0, resolvedState!.ConflictCount);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ClassroomSyncService_ResolveConflictKeepLocal_ClearsPendingConflict()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            Guid profileId = Guid.NewGuid();
+            var profile = new ClassroomProfile(profileId, "Ada", ClassroomRole.Student, IsGuest: false);
+            var repository = new StudentPrivateRepository(dataDirectory);
+            string hostId = HostTrustService.CreateHostKey(JoinRequest);
+            DateTimeOffset updatedUtc = new(2026, 6, 2, 8, 0, 0, TimeSpan.Zero);
+            var localAnnotation = new StudentAnnotation(
+                "annotation-1",
+                hostId,
+                "book-1",
+                4,
+                "Note",
+                null,
+                "Keep local body",
+                updatedUtc.AddMinutes(-1),
+                updatedUtc);
+            await repository.SaveAnnotationAsync(profileId, localAnnotation);
+            await repository.SaveAnnotationConflictAsync(
+                profileId,
+                new StudentAnnotationConflict(
+                    hostId,
+                    localAnnotation,
+                    localAnnotation with { Body = "Server conflicting body" },
+                    updatedUtc));
+            await repository.SaveSyncStateAsync(profileId, new StudentSyncState(hostId, updatedUtc, "abc123", 1));
+            var service = new ClassroomSyncService(
+                new FixedProfileService(profile),
+                new FixedConnectionService(Connection),
+                repository,
+                new ClassroomSyncBlobCodec(),
+                new RecordingHostClient());
+
+            ClassroomSyncStatus status = await service.ResolveAnnotationConflictAsync(
+                "annotation-1",
+                ClassroomSyncConflictResolution.KeepLocal);
+
+            StudentAnnotation persisted = Assert.Single(await repository.ListAnnotationsForHostAsync(
+                profileId,
+                hostId,
+                includeDeleted: true));
+            StudentSyncState? state = await repository.GetSyncStateAsync(profileId, hostId);
+            Assert.Equal("Keep local body", persisted.Body);
+            Assert.Empty(await repository.ListAnnotationConflictsAsync(profileId, hostId));
+            Assert.Equal(0, status.ConflictCount);
+            Assert.Equal(0, state!.ConflictCount);
         }
         finally
         {

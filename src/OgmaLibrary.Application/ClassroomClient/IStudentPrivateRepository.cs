@@ -49,6 +49,25 @@ public interface IStudentPrivateRepository
         StudentAnnotation annotation,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Lists pending annotation conflicts for one Host.</summary>
+    Task<IReadOnlyList<StudentAnnotationConflict>> ListAnnotationConflictsAsync(
+        Guid profileId,
+        string hostId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Saves or replaces a pending annotation conflict.</summary>
+    Task SaveAnnotationConflictAsync(
+        Guid profileId,
+        StudentAnnotationConflict conflict,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes a pending annotation conflict after student choice.</summary>
+    Task DeleteAnnotationConflictAsync(
+        Guid profileId,
+        string hostId,
+        string annotationId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Soft-deletes a private annotation for future sync tombstones.</summary>
     Task SoftDeleteAnnotationAsync(
         Guid profileId,

@@ -100,6 +100,16 @@ public sealed record ClassroomSyncStatus(
     int ConflictCount,
     string? ErrorMessage);
 
+/// <summary>Student choice for a pending private-state sync conflict.</summary>
+public enum ClassroomSyncConflictResolution
+{
+    /// <summary>Keep the local row and discard the pending remote version.</summary>
+    KeepLocal = 0,
+
+    /// <summary>Apply the remote row received from the classroom Host.</summary>
+    KeepServer = 1,
+}
+
 /// <summary>Cached classroom resource payload.</summary>
 public sealed record OfflineCacheEntry(
     string HostId,
@@ -274,6 +284,13 @@ public sealed record StudentAnnotation(
     DateTimeOffset CreatedUtc,
     DateTimeOffset UpdatedUtc,
     bool IsDeleted = false);
+
+/// <summary>Pending private annotation conflict awaiting student choice.</summary>
+public sealed record StudentAnnotationConflict(
+    string HostId,
+    StudentAnnotation LocalAnnotation,
+    StudentAnnotation RemoteAnnotation,
+    DateTimeOffset DetectedUtc);
 
 /// <summary>Private per-student bookmark for one Host book.</summary>
 public sealed record StudentBookmark(

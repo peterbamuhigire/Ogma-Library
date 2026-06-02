@@ -88,6 +88,22 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void KeepLocalConflictButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.KeepLocalAnnotationConflictAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void KeepServerConflictButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.KeepServerAnnotationConflictAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void CopyJoinLinkButton_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null &&

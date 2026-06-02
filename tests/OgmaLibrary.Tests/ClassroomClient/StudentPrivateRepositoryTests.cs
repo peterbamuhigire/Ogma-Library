@@ -140,6 +140,49 @@ public sealed class StudentPrivateRepositoryTests
     }
 
     [Fact]
+    public async Task StudentPrivateRepository_PersistsAnnotationConflicts()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var firstRepository = new StudentPrivateRepository(dataDirectory);
+            Guid profileId = Guid.NewGuid();
+            var local = new StudentAnnotation(
+                "annotation-1",
+                "host-1",
+                "book-1",
+                9,
+                "Note",
+                null,
+                "Local note",
+                Now,
+                Now);
+            var conflict = new StudentAnnotationConflict(
+                "host-1",
+                local,
+                local with { Body = "Server note" },
+                Now.AddMinutes(1));
+
+            await firstRepository.SaveAnnotationConflictAsync(profileId, conflict);
+
+            var secondRepository = new StudentPrivateRepository(dataDirectory);
+            StudentAnnotationConflict persisted = Assert.Single(
+                await secondRepository.ListAnnotationConflictsAsync(profileId, "host-1"));
+            await secondRepository.DeleteAnnotationConflictAsync(profileId, "host-1", "annotation-1");
+            IReadOnlyList<StudentAnnotationConflict> afterDelete =
+                await secondRepository.ListAnnotationConflictsAsync(profileId, "host-1");
+
+            Assert.Equal(conflict, persisted);
+            Assert.Empty(afterDelete);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task StudentPrivateRepository_ListsHostWideSnapshotRows_WithTombstones()
     {
         string dataDirectory = CreateTempDirectory();

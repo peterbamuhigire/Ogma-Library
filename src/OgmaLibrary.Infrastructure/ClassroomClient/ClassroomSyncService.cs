@@ -62,6 +62,88 @@ internal sealed class ClassroomSyncService : ISyncService
             ErrorMessage: null);
     }
 
+    public async Task<IReadOnlyList<StudentAnnotationConflict>> ListAnnotationConflictsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ClassroomProfile? profile = await _profiles.GetActiveAsync(cancellationToken).ConfigureAwait(false);
+        if (profile is null || profile.IsGuest || profile.Role == ClassroomRole.Guest)
+        {
+            return [];
+        }
+
+        ClassroomHostConnection? connection = await _connections.GetActiveAsync(cancellationToken).ConfigureAwait(false);
+        if (connection is null)
+        {
+            return [];
+        }
+
+        string hostId = HostTrustService.CreateHostKey(connection.Request);
+        return await _privateRepository
+            .ListAnnotationConflictsAsync(profile.ProfileId, hostId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<ClassroomSyncStatus> ResolveAnnotationConflictAsync(
+        string annotationId,
+        ClassroomSyncConflictResolution resolution,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(annotationId);
+        ClassroomProfile? profile = await _profiles.GetActiveAsync(cancellationToken).ConfigureAwait(false);
+        if (profile is null)
+        {
+            return Disabled(NoActiveProfileMessage);
+        }
+
+        if (profile.IsGuest || profile.Role == ClassroomRole.Guest)
+        {
+            return Disabled(GuestSyncMessage);
+        }
+
+        ClassroomHostConnection? connection = await _connections.GetActiveAsync(cancellationToken).ConfigureAwait(false);
+        if (connection is null)
+        {
+            return Disabled(NoActiveConnectionMessage);
+        }
+
+        string hostId = HostTrustService.CreateHostKey(connection.Request);
+        IReadOnlyList<StudentAnnotationConflict> conflicts = await _privateRepository
+            .ListAnnotationConflictsAsync(profile.ProfileId, hostId, cancellationToken)
+            .ConfigureAwait(false);
+        StudentAnnotationConflict? conflict = conflicts.SingleOrDefault(candidate => string.Equals(
+            candidate.LocalAnnotation.Id,
+            annotationId,
+            StringComparison.Ordinal));
+        if (conflict is null)
+        {
+            return await GetStatusAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (resolution == ClassroomSyncConflictResolution.KeepServer)
+        {
+            await _privateRepository
+                .SaveAnnotationAsync(profile.ProfileId, conflict.RemoteAnnotation, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        await _privateRepository
+            .DeleteAnnotationConflictAsync(profile.ProfileId, hostId, annotationId, cancellationToken)
+            .ConfigureAwait(false);
+        int remainingConflicts = conflicts.Count - 1;
+        await SaveConflictCountAsync(profile.ProfileId, hostId, remainingConflicts, cancellationToken)
+            .ConfigureAwait(false);
+
+        StudentSyncState? state = await _privateRepository
+            .GetSyncStateAsync(profile.ProfileId, hostId, cancellationToken)
+            .ConfigureAwait(false);
+        return new ClassroomSyncStatus(
+            IsEnabled: true,
+            IsRunning: false,
+            LastSyncedUtc: state?.LastSyncedUtc,
+            ConflictCount: remainingConflicts,
+            ErrorMessage: null);
+    }
+
     public async Task<ClassroomSyncStatus> SyncNowAsync(CancellationToken cancellationToken = default)
     {
         ClassroomProfile? profile = await _profiles.GetActiveAsync(cancellationToken).ConfigureAwait(false);
@@ -131,6 +213,23 @@ internal sealed class ClassroomSyncService : ISyncService
     private static ClassroomSyncStatus Disabled(string errorMessage) =>
         new(IsEnabled: false, IsRunning: false, LastSyncedUtc: null, ConflictCount: 0, ErrorMessage: errorMessage);
 
+    private async Task SaveConflictCountAsync(
+        Guid profileId,
+        string hostId,
+        int conflictCount,
+        CancellationToken cancellationToken)
+    {
+        StudentSyncState? previous = await _privateRepository
+            .GetSyncStateAsync(profileId, hostId, cancellationToken)
+            .ConfigureAwait(false);
+        var next = new StudentSyncState(
+            hostId,
+            previous?.LastSyncedUtc,
+            previous?.LastSyncBlobHash,
+            Math.Max(0, conflictCount));
+        await _privateRepository.SaveSyncStateAsync(profileId, next, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task<int> DownloadAndMergeAsync(
         Guid profileId,
         string hostId,
@@ -154,8 +253,12 @@ internal sealed class ClassroomSyncService : ISyncService
         int conflictCount = 0;
         conflictCount += await MergeReadingProgressAsync(profileId, hostId, remoteSnapshot.ReadingProgress, cancellationToken)
             .ConfigureAwait(false);
-        conflictCount += await MergeAnnotationsAsync(profileId, hostId, remoteSnapshot.Annotations, cancellationToken)
+        _ = await MergeAnnotationsAsync(profileId, hostId, remoteSnapshot.Annotations, cancellationToken)
             .ConfigureAwait(false);
+        IReadOnlyList<StudentAnnotationConflict> annotationConflicts = await _privateRepository
+            .ListAnnotationConflictsAsync(profileId, hostId, cancellationToken)
+            .ConfigureAwait(false);
+        conflictCount += annotationConflicts.Count;
         conflictCount += await MergeBookmarksAsync(profileId, hostId, remoteSnapshot.Bookmarks, cancellationToken)
             .ConfigureAwait(false);
         conflictCount += await MergeAiHistoryAsync(profileId, hostId, remoteSnapshot.AiHistory, cancellationToken)
@@ -225,6 +328,14 @@ internal sealed class ClassroomSyncService : ISyncService
             }
             else if (decision == MergeDecision.Conflict)
             {
+                var conflict = new StudentAnnotationConflict(
+                    hostId,
+                    local,
+                    remote,
+                    DateTimeOffset.UtcNow);
+                await _privateRepository
+                    .SaveAnnotationConflictAsync(profileId, conflict, cancellationToken)
+                    .ConfigureAwait(false);
                 conflicts++;
             }
         }

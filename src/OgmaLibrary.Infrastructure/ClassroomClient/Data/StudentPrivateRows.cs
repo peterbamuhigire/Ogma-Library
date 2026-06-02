@@ -38,6 +38,47 @@ internal sealed class StudentAnnotationRow
     public bool IsDeleted { get; set; }
 }
 
+internal sealed class StudentAnnotationConflictRow
+{
+    public string HostId { get; set; } = string.Empty;
+
+    public string AnnotationId { get; set; } = string.Empty;
+
+    public string BookId { get; set; } = string.Empty;
+
+    public int PageNumber { get; set; }
+
+    public string Type { get; set; } = string.Empty;
+
+    public string? LocalColor { get; set; }
+
+    public string? LocalBody { get; set; }
+
+    public DateTimeOffset LocalCreatedUtc { get; set; }
+
+    public DateTimeOffset LocalUpdatedUtc { get; set; }
+
+    public bool LocalIsDeleted { get; set; }
+
+    public string? RemoteColor { get; set; }
+
+    public string RemoteBookId { get; set; } = string.Empty;
+
+    public int RemotePageNumber { get; set; }
+
+    public string RemoteType { get; set; } = string.Empty;
+
+    public string? RemoteBody { get; set; }
+
+    public DateTimeOffset RemoteCreatedUtc { get; set; }
+
+    public DateTimeOffset RemoteUpdatedUtc { get; set; }
+
+    public bool RemoteIsDeleted { get; set; }
+
+    public DateTimeOffset DetectedUtc { get; set; }
+}
+
 internal sealed class StudentBookmarkRow
 {
     public string Id { get; set; } = string.Empty;
@@ -96,6 +137,8 @@ internal sealed class StudentDbContext : DbContext
 
     public DbSet<StudentAnnotationRow> Annotations => Set<StudentAnnotationRow>();
 
+    public DbSet<StudentAnnotationConflictRow> AnnotationConflicts => Set<StudentAnnotationConflictRow>();
+
     public DbSet<StudentBookmarkRow> Bookmarks => Set<StudentBookmarkRow>();
 
     public DbSet<StudentAiHistoryRow> AiHistory => Set<StudentAiHistoryRow>();
@@ -121,6 +164,21 @@ internal sealed class StudentDbContext : DbContext
             builder.Property(row => row.HostId).HasMaxLength(128);
             builder.Property(row => row.Type).HasMaxLength(32);
             builder.Property(row => row.Color).HasMaxLength(32);
+            builder.HasIndex(row => new { row.HostId, row.BookId, row.PageNumber });
+        });
+
+        modelBuilder.Entity<StudentAnnotationConflictRow>(builder =>
+        {
+            builder.ToTable("StudentAnnotationConflicts");
+            builder.HasKey(row => new { row.HostId, row.AnnotationId });
+            builder.Property(row => row.HostId).HasMaxLength(128);
+            builder.Property(row => row.AnnotationId).HasMaxLength(64);
+            builder.Property(row => row.BookId).HasMaxLength(64);
+            builder.Property(row => row.Type).HasMaxLength(32);
+            builder.Property(row => row.LocalColor).HasMaxLength(32);
+            builder.Property(row => row.RemoteBookId).HasMaxLength(64);
+            builder.Property(row => row.RemoteType).HasMaxLength(32);
+            builder.Property(row => row.RemoteColor).HasMaxLength(32);
             builder.HasIndex(row => new { row.HostId, row.BookId, row.PageNumber });
         });
 

@@ -26,6 +26,9 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly string _syncNowText = "Sync now";
     private readonly string _syncOptInText = "Enable private sync";
     private readonly string _syncOnReconnectText = "Sync on reconnect";
+    private readonly string _syncConflictsLabel = "Annotation conflicts";
+    private readonly string _keepLocalText = "Keep local";
+    private readonly string _keepServerText = "Keep server";
     private readonly string _joinLinkLabel = "Join link";
     private readonly string _savedProfileLabel = "Saved profile";
     private readonly string _profileDisplayNameLabel = "Student name";
@@ -68,6 +71,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private DiscoveredClassroomHost? _selectedDiscoveredHost;
     private IReadOnlyList<ClassroomProfile> _classroomProfiles = [];
     private ClassroomProfile? _selectedClassroomProfile;
+    private IReadOnlyList<StudentAnnotationConflict> _pendingAnnotationConflicts = [];
+    private StudentAnnotationConflict? _selectedAnnotationConflict;
     private string _joinLink = string.Empty;
     private string _profileDisplayName = string.Empty;
     private string _clientConnectionStatusText = "Not connected";
@@ -113,6 +118,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public string SyncOptInText => _syncOptInText;
 
     public string SyncOnReconnectText => _syncOnReconnectText;
+
+    public string SyncConflictsLabel => _syncConflictsLabel;
+
+    public string KeepLocalText => _keepLocalText;
+
+    public string KeepServerText => _keepServerText;
 
     public string JoinLinkLabel => _joinLinkLabel;
 
@@ -237,6 +248,44 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             }
         }
     }
+
+    public IReadOnlyList<StudentAnnotationConflict> PendingAnnotationConflicts
+    {
+        get => _pendingAnnotationConflicts;
+        private set
+        {
+            if (!ReferenceEquals(_pendingAnnotationConflicts, value))
+            {
+                _pendingAnnotationConflicts = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasPendingAnnotationConflicts));
+                OnPropertyChanged(nameof(PendingConflictCountText));
+            }
+        }
+    }
+
+    public StudentAnnotationConflict? SelectedAnnotationConflict
+    {
+        get => _selectedAnnotationConflict;
+        set
+        {
+            if (_selectedAnnotationConflict != value)
+            {
+                _selectedAnnotationConflict = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedConflictText));
+                OnPropertyChanged(nameof(CanResolveAnnotationConflict));
+            }
+        }
+    }
+
+    public string PendingConflictCountText => PendingAnnotationConflicts.Count == 1
+        ? "1 annotation conflict needs a choice"
+        : $"{PendingAnnotationConflicts.Count} annotation conflicts need a choice";
+
+    public string SelectedConflictText => SelectedAnnotationConflict is null
+        ? string.Empty
+        : FormatAnnotationConflict(SelectedAnnotationConflict);
 
     public string ProfileDisplayName
     {
@@ -400,6 +449,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanConnectToHost));
                 OnPropertyChanged(nameof(CanSyncNow));
                 OnPropertyChanged(nameof(CanDiscoverHosts));
+                OnPropertyChanged(nameof(CanResolveAnnotationConflict));
             }
         }
     }
@@ -427,9 +477,16 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public bool HasClassroomProfiles => ClassroomProfiles.Count > 0;
 
+    public bool HasPendingAnnotationConflicts => PendingAnnotationConflicts.Count > 0;
+
     public bool CanSyncNow =>
         !IsBusy &&
         CanSyncWhenIdle;
+
+    public bool CanResolveAnnotationConflict =>
+        !IsBusy &&
+        _syncService is not null &&
+        SelectedAnnotationConflict is not null;
 
     private bool CanSyncWhenIdle =>
         _syncService is not null &&
@@ -628,6 +685,18 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
     }
 
+    public async Task KeepLocalAnnotationConflictAsync(CancellationToken cancellationToken = default) =>
+        await ResolveSelectedAnnotationConflictAsync(
+                ClassroomSyncConflictResolution.KeepLocal,
+                cancellationToken)
+            .ConfigureAwait(true);
+
+    public async Task KeepServerAnnotationConflictAsync(CancellationToken cancellationToken = default) =>
+        await ResolveSelectedAnnotationConflictAsync(
+                ClassroomSyncConflictResolution.KeepServer,
+                cancellationToken)
+            .ConfigureAwait(true);
+
     public async Task SaveSyncSettingsAsync(CancellationToken cancellationToken = default)
     {
         if (_classroomModeService is null)
@@ -812,6 +881,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             SyncStatusText = "Syncing";
             ClassroomSyncStatus status = await _syncService.SyncNowAsync(cancellationToken).ConfigureAwait(true);
             ApplySyncStatus(status);
+            await RefreshAnnotationConflictsAsync(cancellationToken).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
         {
@@ -832,6 +902,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         if (_syncService is null)
         {
             SyncStatusText = "Sync unavailable";
+            PendingAnnotationConflicts = [];
+            SelectedAnnotationConflict = null;
             OnPropertyChanged(nameof(CanSyncNow));
             return;
         }
@@ -840,13 +912,69 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         {
             _isSyncEnabled = false;
             SyncStatusText = "Private sync is off";
+            PendingAnnotationConflicts = [];
+            SelectedAnnotationConflict = null;
             OnPropertyChanged(nameof(CanSyncNow));
             return;
         }
 
         ClassroomSyncStatus status = await _syncService.GetStatusAsync(cancellationToken).ConfigureAwait(true);
         ApplySyncStatus(status);
+        await RefreshAnnotationConflictsAsync(cancellationToken).ConfigureAwait(true);
         OnPropertyChanged(nameof(CanSyncNow));
+    }
+
+    private async Task ResolveSelectedAnnotationConflictAsync(
+        ClassroomSyncConflictResolution resolution,
+        CancellationToken cancellationToken)
+    {
+        if (!CanResolveAnnotationConflict || _syncService is null || SelectedAnnotationConflict is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            ClassroomSyncStatus status = await _syncService
+                .ResolveAnnotationConflictAsync(
+                    SelectedAnnotationConflict.LocalAnnotation.Id,
+                    resolution,
+                    cancellationToken)
+                .ConfigureAwait(true);
+            ApplySyncStatus(status);
+            await RefreshAnnotationConflictsAsync(cancellationToken).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
+        {
+            SyncStatusText = $"Conflict choice failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanResolveAnnotationConflict));
+        }
+    }
+
+    private async Task RefreshAnnotationConflictsAsync(CancellationToken cancellationToken)
+    {
+        if (_syncService is null)
+        {
+            PendingAnnotationConflicts = [];
+            SelectedAnnotationConflict = null;
+            return;
+        }
+
+        string? selectedId = SelectedAnnotationConflict?.LocalAnnotation.Id;
+        IReadOnlyList<StudentAnnotationConflict> conflicts = await _syncService
+            .ListAnnotationConflictsAsync(cancellationToken)
+            .ConfigureAwait(true);
+        PendingAnnotationConflicts = conflicts;
+        SelectedAnnotationConflict = conflicts.FirstOrDefault(conflict =>
+            string.Equals(
+                conflict.LocalAnnotation.Id,
+                selectedId,
+                StringComparison.Ordinal)) ?? (conflicts.Count > 0 ? conflicts[0] : null);
     }
 
     private async Task RefreshProfilesAsync(CancellationToken cancellationToken)
@@ -992,6 +1120,28 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
 
         return builder.ToString();
+    }
+
+    private static string FormatAnnotationConflict(StudentAnnotationConflict conflict) =>
+        string.Format(
+            CultureInfo.InvariantCulture,
+            "{0}, page {1}: local \"{2}\" / server \"{3}\"",
+            conflict.LocalAnnotation.BookId,
+            conflict.LocalAnnotation.PageNumber,
+            TruncateConflictText(conflict.LocalAnnotation.Body),
+            TruncateConflictText(conflict.RemoteAnnotation.Body));
+
+    private static string TruncateConflictText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "empty";
+        }
+
+        string trimmed = value.Trim();
+        return trimmed.Length <= 80
+            ? trimmed
+            : trimmed[..77] + "...";
     }
 
     private static string BuildQrCodeText(string payload)

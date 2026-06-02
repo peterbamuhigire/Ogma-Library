@@ -181,7 +181,7 @@
       </Grid>
 
       <Grid Grid.Row="3"
-            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
             RowSpacing="10">
         <TextBlock Grid.Row="0"
                    Text="{Binding ClientTitle}"
@@ -339,6 +339,61 @@
             <TextBlock Text="{Binding SyncNowText}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
+        </Grid>
+
+        <Grid Grid.Row="7"
+              RowDefinitions="Auto,Auto"
+              RowSpacing="8"
+              IsVisible="{Binding HasPendingAnnotationConflicts}">
+          <Grid Grid.Row="0"
+                ColumnDefinitions="*,Auto,Auto"
+                ColumnSpacing="8">
+            <ComboBox Grid.Column="0"
+                      ItemsSource="{Binding PendingAnnotationConflicts}"
+                      SelectedItem="{Binding SelectedAnnotationConflict, Mode=TwoWay}"
+                      AutomationProperties.Name="{Binding SyncConflictsLabel}"
+                      FontSize="{DynamicResource Type.Size.Caption}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding LocalAnnotation.BookId}"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                    <TextBlock Text="{Binding LocalAnnotation.Body}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="1"
+                    Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Sage}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanResolveAnnotationConflict}"
+                    AutomationProperties.Name="{Binding KeepLocalText}"
+                    Click="KeepLocalConflictButton_Click">
+              <TextBlock Text="{Binding KeepLocalText}"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+            <Button Grid.Column="2"
+                    Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Slate}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanResolveAnnotationConflict}"
+                    AutomationProperties.Name="{Binding KeepServerText}"
+                    Click="KeepServerConflictButton_Click">
+              <TextBlock Text="{Binding KeepServerText}"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+          </Grid>
+          <TextBlock Grid.Row="1"
+                     Text="{Binding SelectedConflictText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap" />
         </Grid>
       </Grid>
 
