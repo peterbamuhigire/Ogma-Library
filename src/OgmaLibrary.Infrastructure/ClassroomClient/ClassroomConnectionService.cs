@@ -35,7 +35,8 @@ internal sealed class ClassroomConnectionService : IClassroomConnectionService
         ArgumentNullException.ThrowIfNull(request.JoinRequest);
         cancellationToken.ThrowIfCancellationRequested();
 
-        string presentedFingerprint = request.PresentedFingerprint ?? request.JoinRequest.CertificateFingerprint;
+        string presentedFingerprint = await ResolvePresentedFingerprintAsync(request, cancellationToken)
+            .ConfigureAwait(false);
         HostTrustEvaluation trust = request.AcceptFirstUseTrust
             ? await _trustService
                 .AcceptAsync(request.JoinRequest, presentedFingerprint, cancellationToken)
@@ -115,6 +116,21 @@ internal sealed class ClassroomConnectionService : IClassroomConnectionService
             trust.State,
             profile,
             connection);
+    }
+
+    private async Task<string> ResolvePresentedFingerprintAsync(
+        ClassroomConnectionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(request.PresentedFingerprint))
+        {
+            return request.PresentedFingerprint;
+        }
+
+        LibraryHostHealth health = await _hostClient
+            .GetHealthAsync(request.JoinRequest, cancellationToken)
+            .ConfigureAwait(false);
+        return health.CertificateFingerprint;
     }
 
     private async Task<ClassroomProfile?> ResolveProfileAsync(

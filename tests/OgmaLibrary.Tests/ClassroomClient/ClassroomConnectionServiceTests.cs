@@ -21,6 +21,7 @@ public sealed class ClassroomConnectionServiceTests
 
         Assert.False(result.IsConnected);
         Assert.Equal(HostTrustState.FirstUse, result.TrustState);
+        Assert.Equal(1, harness.HostClient.HealthCalls);
         Assert.Equal(0, harness.HostClient.SessionCalls);
         Assert.Null(await harness.ConnectionService.GetActiveAsync());
         Assert.Equal(LibraryRuntimeMode.Standalone, (await harness.ModeService.GetModeAsync()).Mode);
@@ -52,6 +53,7 @@ public sealed class ClassroomConnectionServiceTests
             Assert.False(result.Profile.IsGuest);
             Assert.Equal("issued-session-token", result.Connection!.SessionToken);
             Assert.Equal(request, result.Connection.Request);
+            Assert.Equal(1, harness.HostClient.HealthCalls);
             Assert.Equal(1, harness.HostClient.SessionCalls);
             Assert.Equal(result.Profile.ProfileId, harness.HostClient.ProfileId);
             Assert.Equal(ClassroomRole.Student, harness.HostClient.Role);
@@ -85,6 +87,26 @@ public sealed class ClassroomConnectionServiceTests
 
         Assert.False(result.IsConnected);
         Assert.Equal(HostTrustState.Mismatch, result.TrustState);
+        Assert.Equal(0, harness.HostClient.HealthCalls);
+        Assert.Equal(0, harness.HostClient.SessionCalls);
+        Assert.Null(await harness.ConnectionService.GetActiveAsync());
+    }
+
+    [Fact]
+    public async Task ConnectionService_FetchesLiveFingerprintBeforeTrustEvaluation()
+    {
+        using TestHarness harness = CreateHarness();
+        harness.HostClient.HealthFingerprint = ChangedFingerprint;
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        ClassroomConnectionResult result = await harness.Service.ConnectAsync(new ClassroomConnectionRequest(
+            request,
+            AcceptFirstUseTrust: true,
+            ProfileDisplayName: "Amina"));
+
+        Assert.False(result.IsConnected);
+        Assert.Equal(HostTrustState.Mismatch, result.TrustState);
+        Assert.Equal(1, harness.HostClient.HealthCalls);
         Assert.Equal(0, harness.HostClient.SessionCalls);
         Assert.Null(await harness.ConnectionService.GetActiveAsync());
     }
@@ -106,6 +128,7 @@ public sealed class ClassroomConnectionServiceTests
 
             Assert.True(result.IsConnected);
             Assert.Equal(profile.ProfileId, result.Profile!.ProfileId);
+            Assert.Equal(1, harness.HostClient.HealthCalls);
             Assert.Equal(ClassroomRole.Teacher, harness.HostClient.Role);
             Assert.Equal("issued-session-token", await harness.ProfileService.GetSessionTokenAsync(profile.ProfileId));
         }
@@ -133,6 +156,7 @@ public sealed class ClassroomConnectionServiceTests
             Assert.True(result.IsConnected);
             Assert.True(result.Profile!.IsGuest);
             Assert.Equal(ClassroomRole.Guest, result.Profile.Role);
+            Assert.Equal(1, harness.HostClient.HealthCalls);
             Assert.Equal("issued-session-token", (await harness.ConnectionService.GetActiveAsync())!.SessionToken);
             Assert.Null(await harness.ProfileService.GetSessionTokenAsync(result.Profile.ProfileId));
         }
@@ -153,6 +177,7 @@ public sealed class ClassroomConnectionServiceTests
 
         Assert.False(result.IsConnected);
         Assert.Equal(HostTrustState.Trusted, result.TrustState);
+        Assert.Equal(1, harness.HostClient.HealthCalls);
         Assert.Equal(0, harness.HostClient.SessionCalls);
         Assert.Contains("profile", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
@@ -246,7 +271,11 @@ public sealed class ClassroomConnectionServiceTests
 
     private sealed class RecordingHostClient : ILibraryHostClient
     {
+        public int HealthCalls { get; private set; }
+
         public int SessionCalls { get; private set; }
+
+        public string HealthFingerprint { get; set; } = Fingerprint;
 
         public Guid ProfileId { get; private set; }
 
@@ -256,8 +285,15 @@ public sealed class ClassroomConnectionServiceTests
 
         public Task<LibraryHostHealth> GetHealthAsync(
             ClassroomJoinRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            HealthCalls++;
+            return Task.FromResult(new LibraryHostHealth(
+                request.DisplayName ?? "School Library",
+                HealthFingerprint,
+                "file-stream"));
+        }
 
         public Task<LibraryHostSession> IssueSessionAsync(
             ClassroomJoinRequest request,
