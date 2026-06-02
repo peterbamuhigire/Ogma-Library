@@ -61,6 +61,30 @@ public sealed class ClassroomCredentialStoreTests
     }
 
     [Fact]
+    public async Task LinuxSecretServiceStore_UsesSecretToolAttributes()
+    {
+        var tool = new FakeLinuxSecretTool();
+        var store = new LinuxSecretServiceClassroomSecretStore(tool);
+
+        await store.SaveAsync("Ogma:Classroom:test", "secret", CancellationToken.None);
+        string? secret = await store.GetAsync("Ogma:Classroom:test", CancellationToken.None);
+        await store.DeleteAsync("Ogma:Classroom:test", CancellationToken.None);
+
+        Assert.Equal("secret", secret);
+        Assert.Contains(tool.Commands, command => command.Arguments[0] == "store");
+        Assert.Contains(tool.Commands, command => command.Arguments[0] == "lookup");
+        Assert.Contains(tool.Commands, command => command.Arguments[0] == "clear");
+        Assert.All(tool.Commands, command =>
+        {
+            Assert.Contains("service", command.Arguments);
+            Assert.Contains(LinuxSecretServiceClassroomSecretStore.ServiceName, command.Arguments);
+            Assert.Contains("key", command.Arguments);
+            Assert.Contains("Ogma:Classroom:test", command.Arguments);
+        });
+        Assert.Contains(tool.Commands, command => command.StandardInput == "secret");
+    }
+
+    [Fact]
     public async Task FileCredentialFallback_PersistsAndRestrictsUnixFile()
     {
         string dataDirectory = CreateTempDirectory();
@@ -222,4 +246,43 @@ public sealed class ClassroomCredentialStoreTests
             return Task.FromResult(new ClassroomMacOsSecurityToolResult(64, string.Empty, "unsupported"));
         }
     }
+
+    private sealed class FakeLinuxSecretTool : ILinuxSecretTool
+    {
+        private string? _storedSecret;
+
+        public List<LinuxCommand> Commands { get; } = [];
+
+        public Task<LinuxSecretToolResult> RunAsync(
+            IReadOnlyList<string> arguments,
+            string? standardInput,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Commands.Add(new LinuxCommand(arguments.ToArray(), standardInput));
+
+            if (arguments.Count > 0 && arguments[0] == "lookup")
+            {
+                return Task.FromResult(_storedSecret is null
+                    ? new LinuxSecretToolResult(1, string.Empty, "not found")
+                    : new LinuxSecretToolResult(0, _storedSecret + Environment.NewLine, string.Empty));
+            }
+
+            if (arguments.Count > 0 && arguments[0] == "store")
+            {
+                _storedSecret = standardInput;
+                return Task.FromResult(new LinuxSecretToolResult(0, string.Empty, string.Empty));
+            }
+
+            if (arguments.Count > 0 && arguments[0] == "clear")
+            {
+                _storedSecret = null;
+                return Task.FromResult(new LinuxSecretToolResult(0, string.Empty, string.Empty));
+            }
+
+            return Task.FromResult(new LinuxSecretToolResult(64, string.Empty, "unsupported"));
+        }
+    }
+
+    private sealed record LinuxCommand(IReadOnlyList<string> Arguments, string? StandardInput);
 }

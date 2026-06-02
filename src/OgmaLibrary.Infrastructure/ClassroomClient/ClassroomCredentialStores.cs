@@ -67,6 +67,11 @@ internal static class ClassroomSecretStoreFactory
             return new MacOsKeychainClassroomSecretStore(new DefaultClassroomMacOsSecurityTool());
         }
 
+        if (OperatingSystem.IsLinux() && File.Exists(DefaultLinuxSecretTool.SecretToolPath))
+        {
+            return new LinuxSecretServiceClassroomSecretStore(new DefaultLinuxSecretTool());
+        }
+
         return new FileClassroomSecretStore(
             Path.Combine(dataDirectory, "classroom", "credentials", "secrets.json"));
     }
@@ -312,6 +317,110 @@ internal sealed class DefaultClassroomMacOsSecurityTool : IClassroomMacOsSecurit
         string error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         return new ClassroomMacOsSecurityToolResult(process.ExitCode, output, error);
+    }
+}
+
+internal sealed class LinuxSecretServiceClassroomSecretStore : IClassroomSecretStore
+{
+    internal const string ServiceName = "OgmaLibrary.Classroom";
+    private readonly ILinuxSecretTool _secretTool;
+
+    public LinuxSecretServiceClassroomSecretStore(ILinuxSecretTool secretTool)
+    {
+        _secretTool = secretTool ?? throw new ArgumentNullException(nameof(secretTool));
+    }
+
+    public async Task SaveAsync(string key, string value, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        LinuxSecretToolResult result = await _secretTool.RunAsync(
+                ["store", "--label", ServiceName, "service", ServiceName, "key", key],
+                value,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (result.ExitCode != 0)
+        {
+            throw new InvalidOperationException("Linux Secret Service rejected the classroom credential: " + result.Error.Trim());
+        }
+    }
+
+    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        LinuxSecretToolResult result = await _secretTool.RunAsync(
+                ["lookup", "service", ServiceName, "key", key],
+                standardInput: null,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return result.ExitCode == 0
+            ? result.Output.TrimEnd('\r', '\n')
+            : null;
+    }
+
+    public async Task DeleteAsync(string key, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        _ = await _secretTool.RunAsync(
+                ["clear", "service", ServiceName, "key", key],
+                standardInput: null,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+}
+
+internal interface ILinuxSecretTool
+{
+    Task<LinuxSecretToolResult> RunAsync(
+        IReadOnlyList<string> arguments,
+        string? standardInput,
+        CancellationToken cancellationToken);
+}
+
+internal sealed record LinuxSecretToolResult(int ExitCode, string Output, string Error);
+
+internal sealed class DefaultLinuxSecretTool : ILinuxSecretTool
+{
+    internal const string SecretToolPath = "/usr/bin/secret-tool";
+
+    public async Task<LinuxSecretToolResult> RunAsync(
+        IReadOnlyList<string> arguments,
+        string? standardInput,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo(SecretToolPath)
+        {
+            RedirectStandardInput = standardInput is not null,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        foreach (string argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo) ??
+            throw new InvalidOperationException("Could not start Linux secret-tool.");
+        if (standardInput is not null)
+        {
+            await process.StandardInput.WriteAsync(standardInput.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await process.StandardInput.FlushAsync(cancellationToken).ConfigureAwait(false);
+            process.StandardInput.Close();
+        }
+
+        string output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        string error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        return new LinuxSecretToolResult(process.ExitCode, output, error);
     }
 }
 
