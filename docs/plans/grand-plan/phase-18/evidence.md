@@ -44,6 +44,7 @@ on.
 | Classroom AI answer grounding | `ClassroomAnswerGrounder` accepts only `[[book:BOOK_ID]]` citations verified against Host-local catalogue candidates, strips fabricated citation markers, and returns `No local evidence found.` when no cited local evidence survives |
 | Host AI proxy handler | `AiProxyEndpointHandler` builds metadata-only payload previews, requires preview confirmation, verifies active managed profiles, enforces per-profile minute limits, reserves quota before provider calls, performs DPIA screening, estimates token/cost usage, and grounds provider answers |
 | Student smart-search API | `POST /api/v1/ai/search/preview` and `POST /api/v1/ai/search` are authenticated LAN endpoints bound to the managed profile id in the session, reject admin/manual profile spoofing, and audit preview/search actions |
+| Host Sharing school admin console | `HostSharingViewModel` and `SharingSettingsView` expose managed profile enrollment/revocation, masked school AI key save/delete, quota policy editing, usage dashboard rows, and recent audit events from the configured school admin services |
 
 ## Verified Locally
 
@@ -131,12 +132,18 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after Host AI proxy slice: 35 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after Host AI proxy slice |
 | `git diff --check` | Passed after Host AI proxy slice: no whitespace errors |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after Host Sharing school admin console: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 13 Host Sharing ViewModel tests including school admin refresh, key save/delete, policy save, enrollment, and revocation |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminPanelRenderTests" --logger "console;verbosity=minimal"` | Passed: 1 headless render test covering the school admin console sections and enrolled profile row |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- AI key panel UI, dashboard UI, audit viewer, and student smart-search client UI.
+- Student smart-search client UI.
+- Admin console polish: rotate/test-key actions, richer usage charts, audit filtering,
+  and CSV export beyond the basic key, quota, dashboard, and audit surface now in
+  Host Sharing settings.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

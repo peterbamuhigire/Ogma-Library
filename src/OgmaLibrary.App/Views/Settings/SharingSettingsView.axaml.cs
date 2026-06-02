@@ -80,6 +80,58 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void RefreshSchoolAdminButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.RefreshSchoolAdminAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void SaveSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+        {
+            return;
+        }
+
+        char[] key = (SchoolAiKeyBox.Text ?? string.Empty).ToCharArray();
+        SchoolAiKeyBox.Text = string.Empty;
+        await ViewModel.SaveSchoolAiKeyAsync(key).ConfigureAwait(true);
+    }
+
+    private async void DeleteSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.DeleteSchoolAiKeyAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void SaveSchoolAiPolicyButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.SaveSchoolAiPolicyAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void EnrollProfileButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.EnrollProfileAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void RevokeProfileButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.RevokeSelectedProfileAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void SyncSettingsCheckBox_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)

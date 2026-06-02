@@ -1,9 +1,13 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Application.SchoolAdmin;
+using OgmaLibrary.Domain;
+using OgmaLibrary.Domain.Ai;
 using QRCoder;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
@@ -19,7 +23,13 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly IClassroomModeService? _classroomModeService;
     private readonly IMdnsResolver? _mdnsResolver;
     private readonly IProfileService? _profileService;
+    private readonly IProfileEnrollmentService? _profileEnrollmentService;
+    private readonly ISchoolAiKeyProvider? _schoolAiKeyProvider;
+    private readonly ISchoolAiPolicyService? _schoolAiPolicyService;
+    private readonly IUsageDashboardService? _usageDashboardService;
+    private readonly IAuditRepository? _auditRepository;
     private readonly string _title = "Host";
+    private readonly string _schoolAdminTitle = "School administration";
     private readonly string _clientTitle = "Connect to Host";
     private readonly string _discoveredHostsLabel = "LAN Hosts";
     private readonly string _refreshHostsText = "Scan";
@@ -78,6 +88,17 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private string _clientConnectionStatusText = "Not connected";
     private string _syncStatusText = "Sync unavailable";
     private string? _shareConfirmationText;
+    private string _schoolAiProviderId = "openai";
+    private string _schoolAiKeyStatusText = "AI key status unavailable";
+    private string _schoolAdminStatusText = "School administration unavailable";
+    private string _enrollmentDisplayName = string.Empty;
+    private string _enrollmentRole = "student";
+    private string _enrollmentBirthYearText = string.Empty;
+    private string _lastEnrollmentTokenText = string.Empty;
+    private EnrolledProfile? _selectedEnrolledProfile;
+    private int _perStudentDailyTokenBudget = 10_000;
+    private int _classDailyTokenBudget = 500_000;
+    private int _perStudentQueriesPerMinute = 5;
 
     public HostSharingViewModel(
         ILibraryHostService hostService,
@@ -87,7 +108,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ISyncService? syncService = null,
         IClassroomModeService? classroomModeService = null,
         IMdnsResolver? mdnsResolver = null,
-        IProfileService? profileService = null)
+        IProfileService? profileService = null,
+        IProfileEnrollmentService? profileEnrollmentService = null,
+        ISchoolAiKeyProvider? schoolAiKeyProvider = null,
+        ISchoolAiPolicyService? schoolAiPolicyService = null,
+        IUsageDashboardService? usageDashboardService = null,
+        IAuditRepository? auditRepository = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
@@ -97,6 +123,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _classroomModeService = classroomModeService;
         _mdnsResolver = mdnsResolver;
         _profileService = profileService;
+        _profileEnrollmentService = profileEnrollmentService;
+        _schoolAiKeyProvider = schoolAiKeyProvider;
+        _schoolAiPolicyService = schoolAiPolicyService;
+        _usageDashboardService = usageDashboardService;
+        _auditRepository = auditRepository;
     }
 
     /// <inheritdoc />
@@ -106,6 +137,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public event EventHandler<ClassroomConnectionResult>? HostConnectionSucceeded;
 
     public string Title => _title;
+
+    public string SchoolAdminTitle => _schoolAdminTitle;
 
     public string ClientTitle => _clientTitle;
 
@@ -264,6 +297,26 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
     }
 
+    public ObservableCollection<EnrolledProfile> EnrolledProfiles { get; } = [];
+
+    public ObservableCollection<UsageDashboardEntry> SchoolAiUsage { get; } = [];
+
+    public ObservableCollection<SchoolAuditRow> SchoolAuditEvents { get; } = [];
+
+    public EnrolledProfile? SelectedEnrolledProfile
+    {
+        get => _selectedEnrolledProfile;
+        set
+        {
+            if (_selectedEnrolledProfile != value)
+            {
+                _selectedEnrolledProfile = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanRevokeSelectedProfile));
+            }
+        }
+    }
+
     public StudentAnnotationConflict? SelectedAnnotationConflict
     {
         get => _selectedAnnotationConflict;
@@ -298,6 +351,147 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 _profileDisplayName = next;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanConnectToHost));
+            }
+        }
+    }
+
+    public string SchoolAiProviderId
+    {
+        get => _schoolAiProviderId;
+        set
+        {
+            string next = string.IsNullOrWhiteSpace(value) ? "openai" : value.Trim();
+            if (_schoolAiProviderId != next)
+            {
+                _schoolAiProviderId = next;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string SchoolAiKeyStatusText
+    {
+        get => _schoolAiKeyStatusText;
+        private set
+        {
+            if (_schoolAiKeyStatusText != value)
+            {
+                _schoolAiKeyStatusText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string SchoolAdminStatusText
+    {
+        get => _schoolAdminStatusText;
+        private set
+        {
+            if (_schoolAdminStatusText != value)
+            {
+                _schoolAdminStatusText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string EnrollmentDisplayName
+    {
+        get => _enrollmentDisplayName;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (_enrollmentDisplayName != next)
+            {
+                _enrollmentDisplayName = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEnrollProfile));
+            }
+        }
+    }
+
+    public string EnrollmentRole
+    {
+        get => _enrollmentRole;
+        set
+        {
+            string next = string.IsNullOrWhiteSpace(value) ? "student" : value.Trim();
+            if (_enrollmentRole != next)
+            {
+                _enrollmentRole = next;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string EnrollmentBirthYearText
+    {
+        get => _enrollmentBirthYearText;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (_enrollmentBirthYearText != next)
+            {
+                _enrollmentBirthYearText = next;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string LastEnrollmentTokenText
+    {
+        get => _lastEnrollmentTokenText;
+        private set
+        {
+            if (_lastEnrollmentTokenText != value)
+            {
+                _lastEnrollmentTokenText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasLastEnrollmentToken));
+            }
+        }
+    }
+
+    public bool HasLastEnrollmentToken => !string.IsNullOrWhiteSpace(LastEnrollmentTokenText);
+
+    public int PerStudentDailyTokenBudget
+    {
+        get => _perStudentDailyTokenBudget;
+        set
+        {
+            int next = Math.Max(0, value);
+            if (_perStudentDailyTokenBudget != next)
+            {
+                _perStudentDailyTokenBudget = next;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int ClassDailyTokenBudget
+    {
+        get => _classDailyTokenBudget;
+        set
+        {
+            int next = Math.Max(0, value);
+            if (_classDailyTokenBudget != next)
+            {
+                _classDailyTokenBudget = next;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int PerStudentQueriesPerMinute
+    {
+        get => _perStudentQueriesPerMinute;
+        set
+        {
+            int next = Math.Max(0, value);
+            if (_perStudentQueriesPerMinute != next)
+            {
+                _perStudentQueriesPerMinute = next;
+                OnPropertyChanged();
             }
         }
     }
@@ -450,6 +644,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanSyncNow));
                 OnPropertyChanged(nameof(CanDiscoverHosts));
                 OnPropertyChanged(nameof(CanResolveAnnotationConflict));
+                RaiseSchoolAdminCapabilitiesChanged();
             }
         }
     }
@@ -474,6 +669,30 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public bool HasDiscoveredHosts => DiscoveredHosts.Count > 0;
 
     public bool HasProfileManagement => _profileService is not null;
+
+    public bool HasSchoolAdministration =>
+        _profileEnrollmentService is not null ||
+        _schoolAiKeyProvider is not null ||
+        _schoolAiPolicyService is not null ||
+        _usageDashboardService is not null ||
+        _auditRepository is not null;
+
+    public bool CanSaveSchoolAiKey => !IsBusy && _schoolAiKeyProvider is not null;
+
+    public bool CanDeleteSchoolAiKey => !IsBusy && _schoolAiKeyProvider is not null;
+
+    public bool CanSaveSchoolAiPolicy => !IsBusy && _schoolAiPolicyService is not null;
+
+    public bool CanEnrollProfile =>
+        !IsBusy &&
+        _profileEnrollmentService is not null &&
+        !string.IsNullOrWhiteSpace(EnrollmentDisplayName);
+
+    public bool CanRevokeSelectedProfile =>
+        !IsBusy &&
+        _profileEnrollmentService is not null &&
+        SelectedEnrolledProfile is not null &&
+        SelectedEnrolledProfile.Status == EnrollmentStatus.Active;
 
     public bool HasClassroomProfiles => ClassroomProfiles.Count > 0;
 
@@ -566,7 +785,175 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(false);
         await RefreshProfilesAsync(cancellationToken).ConfigureAwait(false);
         await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshSchoolAdminAsync(cancellationToken).ConfigureAwait(false);
         RaiseStatusChanged();
+    }
+
+    public async Task RefreshSchoolAdminAsync(CancellationToken cancellationToken = default)
+    {
+        if (!HasSchoolAdministration)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await RefreshSchoolAiKeyStatusAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshSchoolAiPolicyAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshAuditEventsAsync(cancellationToken).ConfigureAwait(true);
+            SchoolAdminStatusText = "School administration loaded";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            SchoolAdminStatusText = $"School administration failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task SaveSchoolAiKeyAsync(char[] key, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        if (_schoolAiKeyProvider is null)
+        {
+            Array.Clear(key);
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            if (key.Length == 0 || key.All(static ch => char.IsWhiteSpace(ch)))
+            {
+                SchoolAiKeyStatusText = "Enter a key before saving";
+                return;
+            }
+
+            await _schoolAiKeyProvider.SaveKeyAsync(SchoolAiProviderId, key, cancellationToken)
+                .ConfigureAwait(true);
+            SchoolAiKeyStatusText = $"Key saved for {SchoolAiProviderId}";
+            await RefreshSchoolAiKeyStatusAsync(cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            Array.Clear(key);
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task DeleteSchoolAiKeyAsync(CancellationToken cancellationToken = default)
+    {
+        if (_schoolAiKeyProvider is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await _schoolAiKeyProvider.DeleteKeyAsync(SchoolAiProviderId, cancellationToken)
+                .ConfigureAwait(true);
+            SchoolAiKeyStatusText = $"Key removed for {SchoolAiProviderId}";
+            await RefreshSchoolAiKeyStatusAsync(cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task SaveSchoolAiPolicyAsync(CancellationToken cancellationToken = default)
+    {
+        if (_schoolAiPolicyService is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await _schoolAiPolicyService.SavePolicyAsync(
+                    new SchoolAiPolicy(
+                        AiPrivacyTier.MetadataOnly,
+                        ContentAwareEnabled: false,
+                        PerStudentDailyTokenBudget,
+                        ClassDailyTokenBudget,
+                        PerStudentQueriesPerMinute,
+                        AnswerModeEnabled: false),
+                    cancellationToken)
+                .ConfigureAwait(true);
+            SchoolAdminStatusText = "School AI policy saved";
+            await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task EnrollProfileAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanEnrollProfile || _profileEnrollmentService is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            int? birthYear = ParseOptionalBirthYear(EnrollmentBirthYearText);
+            EnrollmentToken token = await _profileEnrollmentService
+                .EnrollAsync(
+                    new EnrollProfileRequest(
+                        EnrollmentDisplayName.Trim(),
+                        EnrollmentRole.Trim(),
+                        birthYear),
+                    cancellationToken)
+                .ConfigureAwait(true);
+            LastEnrollmentTokenText =
+                $"Profile {token.ProfileId:D} token {token.Token} expires {token.ExpiresUtc:u}";
+            EnrollmentDisplayName = string.Empty;
+            await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
+            SchoolAdminStatusText = "Profile enrolled";
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task RevokeSelectedProfileAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanRevokeSelectedProfile || _profileEnrollmentService is null || SelectedEnrolledProfile is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            Guid revokedProfileId = SelectedEnrolledProfile.ProfileId;
+            await _profileEnrollmentService.RevokeAsync(revokedProfileId, cancellationToken)
+                .ConfigureAwait(true);
+            await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
+            SchoolAdminStatusText = "Profile revoked";
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
     }
 
     public async Task ConnectToHostAsync(CancellationToken cancellationToken = default)
@@ -997,6 +1384,97 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task RefreshSchoolAiKeyStatusAsync(CancellationToken cancellationToken)
+    {
+        if (_schoolAiKeyProvider is null)
+        {
+            return;
+        }
+
+        SchoolAiKeyStatus status = await _schoolAiKeyProvider
+            .GetStatusAsync(SchoolAiProviderId, cancellationToken)
+            .ConfigureAwait(true);
+        SchoolAiKeyStatusText = status.IsConfigured
+            ? $"Key configured for {status.ProviderId}"
+            : $"No key configured for {status.ProviderId}";
+    }
+
+    private async Task RefreshSchoolAiPolicyAsync(CancellationToken cancellationToken)
+    {
+        if (_schoolAiPolicyService is null)
+        {
+            return;
+        }
+
+        SchoolAiPolicy policy = await _schoolAiPolicyService.GetPolicyAsync(cancellationToken)
+            .ConfigureAwait(true);
+        PerStudentDailyTokenBudget = policy.PerStudentDailyTokenBudget;
+        ClassDailyTokenBudget = policy.ClassDailyTokenBudget;
+        PerStudentQueriesPerMinute = policy.PerStudentQueriesPerMinute;
+    }
+
+    private async Task RefreshEnrolledProfilesAsync(CancellationToken cancellationToken)
+    {
+        if (_profileEnrollmentService is null)
+        {
+            return;
+        }
+
+        Guid? selectedId = SelectedEnrolledProfile?.ProfileId;
+        IReadOnlyList<EnrolledProfile> profiles = await _profileEnrollmentService
+            .ListAsync(cancellationToken)
+            .ConfigureAwait(true);
+        EnrolledProfiles.Clear();
+        foreach (EnrolledProfile profile in profiles)
+        {
+            EnrolledProfiles.Add(profile);
+        }
+
+        SelectedEnrolledProfile = selectedId is Guid id
+            ? EnrolledProfiles.FirstOrDefault(profile => profile.ProfileId == id)
+            : EnrolledProfiles.FirstOrDefault();
+    }
+
+    private async Task RefreshUsageDashboardAsync(CancellationToken cancellationToken)
+    {
+        if (_usageDashboardService is null)
+        {
+            return;
+        }
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        IReadOnlyList<UsageDashboardEntry> entries = await _usageDashboardService
+            .GetSummaryAsync(now.AddDays(-7), now, cancellationToken)
+            .ConfigureAwait(true);
+        SchoolAiUsage.Clear();
+        foreach (UsageDashboardEntry entry in entries)
+        {
+            SchoolAiUsage.Add(entry);
+        }
+    }
+
+    private async Task RefreshAuditEventsAsync(CancellationToken cancellationToken)
+    {
+        if (_auditRepository is null)
+        {
+            return;
+        }
+
+        IReadOnlyList<AuditEvent> events = await _auditRepository
+            .ReadRecentAsync(25, cancellationToken)
+            .ConfigureAwait(true);
+        SchoolAuditEvents.Clear();
+        foreach (AuditEvent auditEvent in events)
+        {
+            SchoolAuditEvents.Add(new SchoolAuditRow(
+                auditEvent.TimestampUtc,
+                auditEvent.ActorId ?? "unknown",
+                auditEvent.EventType,
+                auditEvent.EntityId ?? string.Empty,
+                auditEvent.Payload ?? string.Empty));
+        }
+    }
+
     private void ApplySyncSettings(ClassroomSyncSettings settings)
     {
         IsSyncOptInEnabled = settings.IsEnabled;
@@ -1058,6 +1536,15 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanChangeContentMode));
         OnPropertyChanged(nameof(CanShare));
         OnPropertyChanged(nameof(CanDiscoverHosts));
+    }
+
+    private void RaiseSchoolAdminCapabilitiesChanged()
+    {
+        OnPropertyChanged(nameof(CanSaveSchoolAiKey));
+        OnPropertyChanged(nameof(CanDeleteSchoolAiKey));
+        OnPropertyChanged(nameof(CanSaveSchoolAiPolicy));
+        OnPropertyChanged(nameof(CanEnrollProfile));
+        OnPropertyChanged(nameof(CanRevokeSelectedProfile));
     }
 
     private void RaiseShareChanged()
@@ -1131,6 +1618,26 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             TruncateConflictText(conflict.LocalAnnotation.Body),
             TruncateConflictText(conflict.RemoteAnnotation.Body));
 
+    private static int? ParseOptionalBirthYear(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (!int.TryParse(value.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int birthYear))
+        {
+            throw new ArgumentException("Birth year must be a four-digit year.", nameof(value));
+        }
+
+        if (birthYear is < 1900 or > 2100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), birthYear, "Birth year is outside the supported range.");
+        }
+
+        return birthYear;
+    }
+
     private static string TruncateConflictText(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -1173,3 +1680,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
+
+public sealed record SchoolAuditRow(
+    DateTimeOffset TimestampUtc,
+    string ActorId,
+    string EventType,
+    string EntityId,
+    string Payload);

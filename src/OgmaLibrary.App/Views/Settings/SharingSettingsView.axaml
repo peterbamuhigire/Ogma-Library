@@ -5,7 +5,7 @@
              x:DataType="vm:HostSharingViewModel">
 
   <ScrollViewer>
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*"
           RowSpacing="18"
           Margin="28"
           MaxWidth="960"
@@ -397,7 +397,277 @@
         </Grid>
       </Grid>
 
-      <Grid Grid.Row="4"
+      <Border Grid.Row="4"
+              IsVisible="{Binding HasSchoolAdministration}"
+              Padding="16"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+              RowSpacing="16">
+          <Grid Grid.Row="0"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Spacing="3">
+              <TextBlock Text="{Binding SchoolAdminTitle}"
+                         FontSize="{DynamicResource Type.Size.Subtitle}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock Text="{Binding SchoolAdminStatusText}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Slate}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    AutomationProperties.Name="Refresh school administration"
+                    Click="RefreshSchoolAdminButton_Click">
+              <TextBlock Text="Refresh"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+          </Grid>
+
+          <Grid Grid.Row="1"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="18">
+            <StackPanel Grid.Column="0" Spacing="8">
+              <TextBlock Text="Managed profiles"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <Grid ColumnDefinitions="2*,*,*,Auto"
+                    ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding EnrollmentDisplayName, Mode=TwoWay}"
+                         Watermark="Student or teacher name"
+                         AutomationProperties.Name="Enrollment display name"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+                <TextBox Grid.Column="1"
+                         Text="{Binding EnrollmentRole, Mode=TwoWay}"
+                         Watermark="Role"
+                         AutomationProperties.Name="Enrollment role"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+                <TextBox Grid.Column="2"
+                         Text="{Binding EnrollmentBirthYearText, Mode=TwoWay}"
+                         Watermark="Birth year"
+                         AutomationProperties.Name="Enrollment birth year"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+                <Button Grid.Column="3"
+                        Padding="12,7"
+                        Background="{DynamicResource Brush.Accent.Sage}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanEnrollProfile}"
+                        AutomationProperties.Name="Enroll managed profile"
+                        Click="EnrollProfileButton_Click">
+                  <TextBlock Text="Enroll"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </Grid>
+              <TextBox Text="{Binding LastEnrollmentTokenText, Mode=OneWay}"
+                       IsVisible="{Binding HasLastEnrollmentToken}"
+                       IsReadOnly="True"
+                       TextWrapping="Wrap"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       AutomationProperties.Name="Latest enrollment token" />
+              <Grid ColumnDefinitions="*,Auto"
+                    ColumnSpacing="8">
+                <ListBox Grid.Column="0"
+                         ItemsSource="{Binding EnrolledProfiles}"
+                         SelectedItem="{Binding SelectedEnrolledProfile, Mode=TwoWay}"
+                         MinHeight="116"
+                         MaxHeight="160"
+                         AutomationProperties.Name="Enrolled profiles">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <Grid ColumnDefinitions="2*,*,*,*"
+                            ColumnSpacing="8">
+                        <TextBlock Text="{Binding DisplayName}"
+                                   FontSize="{DynamicResource Type.Size.Caption}" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Role}"
+                                   FontSize="{DynamicResource Type.Size.Caption}" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Status}"
+                                   FontSize="{DynamicResource Type.Size.Caption}" />
+                        <TextBlock Grid.Column="3"
+                                   Text="{Binding BirthYear}"
+                                   FontSize="{DynamicResource Type.Size.Caption}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <Button Grid.Column="1"
+                        Padding="12,7"
+                        Background="{DynamicResource Brush.Accent.Clay}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanRevokeSelectedProfile}"
+                        AutomationProperties.Name="Revoke managed profile"
+                        Click="RevokeProfileButton_Click">
+                  <TextBlock Text="Revoke"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </Grid>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="8">
+              <TextBlock Text="School AI"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <Grid ColumnDefinitions="*,2*,Auto,Auto"
+                    ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding SchoolAiProviderId, Mode=TwoWay}"
+                         Watermark="Provider"
+                         AutomationProperties.Name="School AI provider"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+                <TextBox x:Name="SchoolAiKeyBox"
+                         Grid.Column="1"
+                         PasswordChar="*"
+                         Watermark="Provider key"
+                         AutomationProperties.Name="School AI key"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+                <Button Grid.Column="2"
+                        Padding="12,7"
+                        Background="{DynamicResource Brush.Accent.Sage}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanSaveSchoolAiKey}"
+                        AutomationProperties.Name="Save school AI key"
+                        Click="SaveSchoolAiKeyButton_Click">
+                  <TextBlock Text="Save key"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+                <Button Grid.Column="3"
+                        Padding="12,7"
+                        Background="{DynamicResource Brush.Accent.Clay}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanDeleteSchoolAiKey}"
+                        AutomationProperties.Name="Delete school AI key"
+                        Click="DeleteSchoolAiKeyButton_Click">
+                  <TextBlock Text="Delete"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </Grid>
+              <TextBlock Text="{Binding SchoolAiKeyStatusText}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                         TextWrapping="Wrap" />
+              <Grid ColumnDefinitions="*,*,*,Auto"
+                    ColumnSpacing="8">
+                <NumericUpDown Grid.Column="0"
+                               Value="{Binding PerStudentDailyTokenBudget, Mode=TwoWay}"
+                               Minimum="0"
+                               Maximum="10000000"
+                               Increment="500"
+                               AutomationProperties.Name="Per-student daily token budget"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                <NumericUpDown Grid.Column="1"
+                               Value="{Binding ClassDailyTokenBudget, Mode=TwoWay}"
+                               Minimum="0"
+                               Maximum="100000000"
+                               Increment="5000"
+                               AutomationProperties.Name="Class daily token budget"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                <NumericUpDown Grid.Column="2"
+                               Value="{Binding PerStudentQueriesPerMinute, Mode=TwoWay}"
+                               Minimum="0"
+                               Maximum="120"
+                               Increment="1"
+                               AutomationProperties.Name="Per-student queries per minute"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                <Button Grid.Column="3"
+                        Padding="12,7"
+                        Background="{DynamicResource Brush.Accent.Slate}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanSaveSchoolAiPolicy}"
+                        AutomationProperties.Name="Save school AI policy"
+                        Click="SaveSchoolAiPolicyButton_Click">
+                  <TextBlock Text="Save policy"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </Grid>
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="2"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="18">
+            <StackPanel Grid.Column="0" Spacing="8">
+              <TextBlock Text="Usage dashboard"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <ItemsControl ItemsSource="{Binding SchoolAiUsage}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="2*,*,*,*,*"
+                          ColumnSpacing="8">
+                      <TextBlock Text="{Binding DisplayName}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding QueryCount}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding TokensUsed}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <TextBlock Grid.Column="3"
+                                 Text="{Binding EstimatedCostUsd}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <ProgressBar Grid.Column="4"
+                                   Minimum="0"
+                                   Maximum="100"
+                                   Value="{Binding QuotaPercent}"
+                                   Height="8"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.Name="Quota percentage" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="8">
+              <TextBlock Text="Recent audit"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <ListBox ItemsSource="{Binding SchoolAuditEvents}"
+                       MinHeight="116"
+                       MaxHeight="170"
+                       AutomationProperties.Name="School audit events">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="150,140,*,*"
+                          ColumnSpacing="8">
+                      <TextBlock Text="{Binding TimestampUtc}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding ActorId}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding EventType}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                      <TextBlock Grid.Column="3"
+                                 Text="{Binding EntityId}"
+                                 FontSize="{DynamicResource Type.Size.Caption}" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="5"
             ColumnDefinitions="Auto,*"
             ColumnSpacing="20"
             IsVisible="{Binding CanShare}">

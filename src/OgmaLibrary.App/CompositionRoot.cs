@@ -17,6 +17,7 @@ using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
@@ -188,7 +189,12 @@ public static class CompositionRoot
                 sp.GetRequiredService<ISyncService>(),
                 sp.GetRequiredService<IClassroomModeService>(),
                 sp.GetRequiredService<IMdnsResolver>(),
-                sp.GetRequiredService<IProfileService>());
+                sp.GetRequiredService<IProfileService>(),
+                sp.GetRequiredService<IProfileEnrollmentService>(),
+                sp.GetRequiredService<ISchoolAiKeyProvider>(),
+                sp.GetRequiredService<ISchoolAiPolicyService>(),
+                sp.GetRequiredService<IUsageDashboardService>(),
+                sp.GetRequiredService<IAuditRepository>());
             var splitViewVm = sp.GetRequiredService<SplitViewViewModel>();
 
             shell = new MainShellViewModel(

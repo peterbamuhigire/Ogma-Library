@@ -1,6 +1,9 @@
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
+using OgmaLibrary.Application.SchoolAdmin;
+using OgmaLibrary.Domain;
+using OgmaLibrary.Domain.Ai;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 
 namespace OgmaLibrary.Tests.LanHost;
@@ -426,6 +429,78 @@ public sealed class HostSharingViewModelTests
         Assert.Equal("Last synced 2026-06-02 15:45 UTC, 0 conflicts", viewModel.SyncStatusText);
     }
 
+    [Fact]
+    public async Task HostSharingViewModel_SchoolAdminRefresh_LoadsProfilesPolicyUsageAndAudit()
+    {
+        var enrollment = new RecordingProfileEnrollmentService();
+        var keys = new RecordingSchoolAiKeyProvider(isConfigured: true);
+        var policy = new RecordingSchoolAiPolicyService();
+        var usage = new RecordingUsageDashboardService();
+        var audit = new RecordingAuditRepository();
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            profileEnrollmentService: enrollment,
+            schoolAiKeyProvider: keys,
+            schoolAiPolicyService: policy,
+            usageDashboardService: usage,
+            auditRepository: audit);
+
+        await viewModel.RefreshSchoolAdminAsync();
+
+        Assert.True(viewModel.HasSchoolAdministration);
+        Assert.Equal("Key configured for openai", viewModel.SchoolAiKeyStatusText);
+        Assert.Equal(250, viewModel.PerStudentDailyTokenBudget);
+        Assert.Equal(1_000, viewModel.ClassDailyTokenBudget);
+        Assert.Equal(7, viewModel.PerStudentQueriesPerMinute);
+        Assert.Single(viewModel.EnrolledProfiles);
+        Assert.Single(viewModel.SchoolAiUsage);
+        Assert.Single(viewModel.SchoolAuditEvents);
+        Assert.Equal("School administration loaded", viewModel.SchoolAdminStatusText);
+    }
+
+    [Fact]
+    public async Task HostSharingViewModel_SchoolAdminCommands_SaveKeyPolicyEnrollAndRevoke()
+    {
+        var enrollment = new RecordingProfileEnrollmentService();
+        var keys = new RecordingSchoolAiKeyProvider(isConfigured: false);
+        var policy = new RecordingSchoolAiPolicyService();
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            profileEnrollmentService: enrollment,
+            schoolAiKeyProvider: keys,
+            schoolAiPolicyService: policy,
+            usageDashboardService: new RecordingUsageDashboardService(),
+            auditRepository: new RecordingAuditRepository())
+        {
+            EnrollmentDisplayName = "Okello Reader",
+            EnrollmentRole = "teacher",
+            EnrollmentBirthYearText = "2010",
+            PerStudentDailyTokenBudget = 500,
+            ClassDailyTokenBudget = 5_000,
+            PerStudentQueriesPerMinute = 3,
+        };
+        char[] key = "sk-test-value".ToCharArray();
+
+        await viewModel.SaveSchoolAiKeyAsync(key);
+        await viewModel.SaveSchoolAiPolicyAsync();
+        await viewModel.EnrollProfileAsync();
+        viewModel.SelectedEnrolledProfile = viewModel.EnrolledProfiles.Single(profile => profile.DisplayName == "Okello Reader");
+        await viewModel.RevokeSelectedProfileAsync();
+
+        Assert.True(key.All(ch => ch == '\0'));
+        Assert.True(keys.IsConfigured);
+        Assert.Equal("sk-test-value", keys.LastSavedKey);
+        Assert.Equal(500, policy.Policy.PerStudentDailyTokenBudget);
+        Assert.Equal(5_000, policy.Policy.ClassDailyTokenBudget);
+        Assert.Equal(3, policy.Policy.PerStudentQueriesPerMinute);
+        Assert.Contains("token", viewModel.LastEnrollmentTokenText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(viewModel.EnrolledProfiles, profile =>
+            profile.DisplayName == "Okello Reader" &&
+            profile.Status == EnrollmentStatus.Revoked);
+    }
+
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
     {
         public HostModeSettings Settings { get; private set; } = new(
@@ -763,6 +838,187 @@ public sealed class HostSharingViewModelTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingProfileEnrollmentService : IProfileEnrollmentService
+    {
+        private readonly List<EnrolledProfile> _profiles =
+        [
+            new(
+                Guid.Parse("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"),
+                "Amina Reader",
+                "student",
+                EnrollmentStatus.Active,
+                2014,
+                new DateTimeOffset(2026, 6, 2, 8, 0, 0, TimeSpan.Zero),
+                RevokedUtc: null),
+        ];
+
+        public Task<EnrollmentToken> EnrollAsync(
+            EnrollProfileRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Guid profileId = Guid.NewGuid();
+            _profiles.Add(new EnrolledProfile(
+                profileId,
+                request.DisplayName,
+                request.Role,
+                EnrollmentStatus.Active,
+                request.BirthYear,
+                DateTimeOffset.UtcNow,
+                RevokedUtc: null));
+            return Task.FromResult(new EnrollmentToken(
+                profileId,
+                "token-value",
+                DateTimeOffset.UtcNow.AddHours(24)));
+        }
+
+        public Task<IReadOnlyList<EnrolledProfile>> ListAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyList<EnrolledProfile>>(_profiles.ToArray());
+        }
+
+        public Task RevokeAsync(Guid profileId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int index = _profiles.FindIndex(profile => profile.ProfileId == profileId);
+            if (index >= 0)
+            {
+                _profiles[index] = _profiles[index] with
+                {
+                    Status = EnrollmentStatus.Revoked,
+                    RevokedUtc = DateTimeOffset.UtcNow,
+                };
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task<EnrolledProfile?> RedeemTokenAsync(
+            Guid profileId,
+            string token,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<EnrolledProfile?>(_profiles.FirstOrDefault(profile => profile.ProfileId == profileId));
+        }
+    }
+
+    private sealed class RecordingSchoolAiKeyProvider(bool isConfigured) : ISchoolAiKeyProvider
+    {
+        public bool IsConfigured { get; private set; } = isConfigured;
+
+        public string? LastSavedKey { get; private set; }
+
+        public Task SaveKeyAsync(string providerId, char[] key, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            LastSavedKey = new string(key);
+            IsConfigured = true;
+            Array.Clear(key);
+            return Task.CompletedTask;
+        }
+
+        public Task<SchoolAiKeyStatus> GetStatusAsync(string providerId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new SchoolAiKeyStatus(providerId, IsConfigured, DateTimeOffset.UtcNow));
+        }
+
+        public Task DeleteKeyAsync(string providerId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IsConfigured = false;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingSchoolAiPolicyService : ISchoolAiPolicyService
+    {
+        public SchoolAiPolicy Policy { get; private set; } = new(
+            AiPrivacyTier.MetadataOnly,
+            ContentAwareEnabled: false,
+            PerStudentDailyTokenBudget: 250,
+            ClassDailyTokenBudget: 1_000,
+            PerStudentQueriesPerMinute: 7,
+            AnswerModeEnabled: false);
+
+        public Task<SchoolAiPolicy> GetPolicyAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Policy);
+        }
+
+        public Task SavePolicyAsync(SchoolAiPolicy policy, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Policy = policy;
+            return Task.CompletedTask;
+        }
+
+        public Task<SchoolAiQuotaDecision> CheckAndReserveQuotaAsync(
+            Guid profileId,
+            int estimatedTokens,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new SchoolAiQuotaDecision(
+                IsAllowed: true,
+                RemainingStudentTokens: 100,
+                RemainingClassTokens: 500,
+                ResetUtc: DateTimeOffset.UtcNow.AddDays(1),
+                Reason: null));
+        }
+    }
+
+    private sealed class RecordingUsageDashboardService : IUsageDashboardService
+    {
+        public Task<IReadOnlyList<UsageDashboardEntry>> GetSummaryAsync(
+            DateTimeOffset fromUtc,
+            DateTimeOffset toUtc,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyList<UsageDashboardEntry>>(
+            [
+                new(
+                    Guid.Parse("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"),
+                    "Amina Reader",
+                    QueryCount: 4,
+                    TokensUsed: 120,
+                    EstimatedCostUsd: 0.01m,
+                    QuotaPercent: 12,
+                    LastQueryUtc: DateTimeOffset.UtcNow),
+            ]);
+        }
+    }
+
+    private sealed class RecordingAuditRepository : IAuditRepository
+    {
+        public Task AppendAsync(AuditEvent auditEvent, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<AuditEvent>> ReadRecentAsync(int maxCount, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyList<AuditEvent>>(
+            [
+                new()
+                {
+                    Id = "audit-1",
+                    EventType = "LanHostRequestServed",
+                    EntityId = "/api/v1/ai/search",
+                    ActorId = "client:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                    TimestampUtc = DateTimeOffset.UtcNow,
+                    Payload = "{\"action\":\"SearchSchoolAi\"}",
+                },
+            ]);
         }
     }
 }
