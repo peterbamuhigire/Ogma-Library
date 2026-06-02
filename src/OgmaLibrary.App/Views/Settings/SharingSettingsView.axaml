@@ -519,7 +519,7 @@
                          FontSize="{DynamicResource Type.Size.Body}"
                          FontWeight="SemiBold"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-              <Grid ColumnDefinitions="*,2*,Auto,Auto"
+              <Grid ColumnDefinitions="*,2*,Auto,Auto,Auto"
                     ColumnSpacing="8">
                 <TextBox Grid.Column="0"
                          Text="{Binding SchoolAiProviderId, Mode=TwoWay}"
@@ -544,6 +544,17 @@
                              FontSize="{DynamicResource Type.Size.Caption}" />
                 </Button>
                 <Button Grid.Column="3"
+                        Padding="12,7"
+                        Background="{DynamicResource Brush.Accent.Slate}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanTestSchoolAiKey}"
+                        AutomationProperties.Name="Test school AI key"
+                        Click="TestSchoolAiKeyButton_Click">
+                  <TextBlock Text="Test key"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+                <Button Grid.Column="4"
                         Padding="12,7"
                         Background="{DynamicResource Brush.Accent.Clay}"
                         Foreground="White"

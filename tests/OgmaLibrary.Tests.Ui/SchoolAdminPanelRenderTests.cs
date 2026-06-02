@@ -48,6 +48,7 @@ public sealed class SchoolAdminPanelRenderTests
         Assert.Contains("School administration", visibleText);
         Assert.Contains("Managed profiles", visibleText);
         Assert.Contains("School AI", visibleText);
+        Assert.Contains("Test key", visibleText);
         Assert.Contains("Usage dashboard", visibleText);
         Assert.Contains("Recent audit", visibleText);
         Assert.Contains("Export CSV", visibleText);

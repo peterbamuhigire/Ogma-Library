@@ -718,6 +718,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public bool CanDeleteSchoolAiKey => !IsBusy && _schoolAiKeyProvider is not null;
 
+    public bool CanTestSchoolAiKey => !IsBusy && _schoolAiKeyProvider is not null;
+
     public bool CanSaveSchoolAiPolicy => !IsBusy && _schoolAiPolicyService is not null;
 
     public bool CanPurgeAiHistory =>
@@ -906,6 +908,30 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 .ConfigureAwait(true);
             SchoolAiKeyStatusText = $"Key removed for {SchoolAiProviderId}";
             await RefreshSchoolAiKeyStatusAsync(cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsBusy = false;
+            RaiseSchoolAdminCapabilitiesChanged();
+        }
+    }
+
+    public async Task TestSchoolAiKeyAsync(CancellationToken cancellationToken = default)
+    {
+        if (_schoolAiKeyProvider is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            SchoolAiKeyStatus status = await _schoolAiKeyProvider
+                .GetStatusAsync(SchoolAiProviderId, cancellationToken)
+                .ConfigureAwait(true);
+            SchoolAiKeyStatusText = status.IsConfigured
+                ? $"Key test passed for {status.ProviderId}: key is configured"
+                : $"Key test failed for {status.ProviderId}: no key configured";
         }
         finally
         {
@@ -1658,6 +1684,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(CanSaveSchoolAiKey));
         OnPropertyChanged(nameof(CanDeleteSchoolAiKey));
+        OnPropertyChanged(nameof(CanTestSchoolAiKey));
         OnPropertyChanged(nameof(CanSaveSchoolAiPolicy));
         OnPropertyChanged(nameof(CanEnrollProfile));
         OnPropertyChanged(nameof(CanRevokeSelectedProfile));

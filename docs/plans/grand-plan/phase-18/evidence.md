@@ -50,6 +50,7 @@ on.
 | Student AI history deletion | `IStudentPrivateRepository.DeleteAiHistoryAsync()` and `StudentSmartSearchViewModel.DeleteHistoryAsync()` clear private smart-search history for the active profile/Host while preserving other Host/profile state |
 | Admin institution AI history purge | `ISchoolAiHistoryManagementService.PurgeInstitutionHistoryAsync()` and Host Sharing admin controls purge Host `AiQueryHistory` plus `AiUsageLedger` rows behind a typed confirmation while preserving immutable audit rows |
 | Admin audit filtering and CSV export | `HostSharingViewModel.SchoolAuditFilterText` filters recent school audit rows by actor/action/resource/payload, and `ExportSchoolAuditCsvAsync()` exports the filtered rows as CSV |
+| Admin school AI key test action | Host Sharing includes a status-only "Test key" action through `ISchoolAiKeyProvider.GetStatusAsync()`; it never returns or renders plaintext key material |
 | Phase 18 safety scan report | `docs/security/phase-18-safety-scan-2026-06-02.md` records dependency, secret-pattern, admin-auth, architecture, core, and UI verification evidence plus residual release gaps |
 
 ## Verified Locally

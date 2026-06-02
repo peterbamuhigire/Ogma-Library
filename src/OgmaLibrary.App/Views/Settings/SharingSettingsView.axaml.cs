@@ -108,6 +108,14 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void TestSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.TestSchoolAiKeyAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void SaveSchoolAiPolicyButton_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)

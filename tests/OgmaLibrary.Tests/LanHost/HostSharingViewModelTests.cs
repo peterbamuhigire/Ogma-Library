@@ -487,6 +487,7 @@ public sealed class HostSharingViewModelTests
         char[] key = "sk-test-value".ToCharArray();
 
         await viewModel.SaveSchoolAiKeyAsync(key);
+        await viewModel.TestSchoolAiKeyAsync();
         await viewModel.SaveSchoolAiPolicyAsync();
         await viewModel.EnrollProfileAsync();
         viewModel.SelectedEnrolledProfile = viewModel.EnrolledProfiles.Single(profile => profile.DisplayName == "Okello Reader");
@@ -498,6 +499,7 @@ public sealed class HostSharingViewModelTests
         Assert.True(key.All(ch => ch == '\0'));
         Assert.True(keys.IsConfigured);
         Assert.Equal("sk-test-value", keys.LastSavedKey);
+        Assert.Contains("Key test passed", viewModel.SchoolAiKeyStatusText, StringComparison.Ordinal);
         Assert.Equal(500, policy.Policy.PerStudentDailyTokenBudget);
         Assert.Equal(5_000, policy.Policy.ClassDailyTokenBudget);
         Assert.Equal(3, policy.Policy.PerStudentQueriesPerMinute);
