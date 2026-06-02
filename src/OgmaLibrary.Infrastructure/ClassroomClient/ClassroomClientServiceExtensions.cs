@@ -19,6 +19,7 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<IClassroomHostConnectionService, InMemoryClassroomHostConnectionService>();
         services.AddSingleton<IClassroomCredentialStore>(_ => credentialStore ??
             new PlatformClassroomCredentialStore(ClassroomSecretStoreFactory.Create(dataDirectory)));
+        services.AddSingleton<IClassroomSyncBlobCodec, ClassroomSyncBlobCodec>();
         services.AddSingleton<IProfileService>(provider => new FileClassroomProfileService(
             dataDirectory,
             provider.GetRequiredService<IStudentPrivateRepository>(),
