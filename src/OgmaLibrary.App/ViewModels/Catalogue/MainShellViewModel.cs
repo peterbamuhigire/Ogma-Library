@@ -58,8 +58,10 @@ public sealed class MainShellViewModel :
     private readonly IIngestionOrchestrator? _orchestrator;
     private readonly IScanProgressService? _scanProgress;
     private readonly IDirectPdfOpenService? _directPdfOpenService;
+    private readonly IClassroomModeService? _classroomModeService;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
+    private readonly string _classroomOfflineIconPath = IconCatalog.GetAvaresPath("ic_status_unavailable") ?? string.Empty;
 
     private ScanPhase _scanPhase = ScanPhase.Idle;
     private int _filesDiscovered;
@@ -74,6 +76,12 @@ public sealed class MainShellViewModel :
     private string? _statusOverride;
     private string? _readerPlaceholderMessage;
     private ShellView _activeView = ShellView.Catalogue;
+    private bool _isClassroomClientMode;
+    private ClassroomConnectivityStatus _classroomConnectivityStatus = new(
+        IsOnline: false,
+        UpdatedUtc: DateTimeOffset.MinValue,
+        Message: "Not connected");
+    private IDisposable? _classroomConnectivitySubscription;
 
     /// <summary>
     /// Full constructor used at runtime.
@@ -91,6 +99,7 @@ public sealed class MainShellViewModel :
     /// <param name="search">The Phase 10 search view model.</param>
     /// <param name="indexManager">The Phase 10 Index Manager view model.</param>
     /// <param name="hostSharing">The Phase 16 Host sharing control view model.</param>
+    /// <param name="classroomModeService">The Phase 17 classroom mode/connectivity service.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -104,7 +113,8 @@ public sealed class MainShellViewModel :
         SearchViewModel? search = null,
         IndexManagerViewModel? indexManager = null,
         SplitViewViewModel? splitView = null,
-        HostSharingViewModel? hostSharing = null)
+        HostSharingViewModel? hostSharing = null,
+        IClassroomModeService? classroomModeService = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -124,6 +134,7 @@ public sealed class MainShellViewModel :
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
         _directPdfOpenService = directPdfOpenService;
+        _classroomModeService = classroomModeService;
 
         _localization.CultureChanged += (_, _) => RaiseAllChanged();
 
@@ -135,6 +146,13 @@ public sealed class MainShellViewModel :
         if (HostSharing is not null)
         {
             HostSharing.HostConnectionSucceeded += OnHostConnectionSucceeded;
+        }
+
+        if (_classroomModeService is not null)
+        {
+            _classroomConnectivitySubscription = _classroomModeService.Connectivity.Subscribe(
+                new ConnectivityObserver(OnClassroomConnectivityChanged));
+            _ = RefreshClassroomConnectivityAsync();
         }
     }
 
@@ -169,6 +187,19 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the Host sharing control strip is available.</summary>
     public bool IsHostSharingVisible => HostSharing is not null;
+
+    /// <summary>True when Client mode is disconnected and the shell should show the offline chip.</summary>
+    public bool IsClassroomOfflineVisible => _isClassroomClientMode && !_classroomConnectivityStatus.IsOnline;
+
+    /// <summary>Text shown in the Client-mode offline chip.</summary>
+    public string ClassroomOfflineText =>
+        OfflineText(_classroomConnectivityStatus.Message);
+
+    /// <summary>Accessible label for the Client-mode offline chip.</summary>
+    public string ClassroomOfflineAutomationName => $"Classroom connection: {ClassroomOfflineText}";
+
+    /// <summary>Icon path shown in the Client-mode offline chip.</summary>
+    public string ClassroomOfflineIconPath => _classroomOfflineIconPath;
 
     // ── Layout state ──────────────────────────────────────────────────────────
 
@@ -656,6 +687,8 @@ public sealed class MainShellViewModel :
     /// <inheritdoc />
     public void Dispose()
     {
+        _classroomConnectivitySubscription?.Dispose();
+
         if (HostSharing is not null)
         {
             HostSharing.HostConnectionSucceeded -= OnHostConnectionSucceeded;
@@ -711,7 +744,44 @@ public sealed class MainShellViewModel :
 
     private void OnHostConnectionSucceeded(object? sender, ClassroomConnectionResult result)
     {
+        _ = RefreshClassroomConnectivityAsync(result.Connection is null
+            ? null
+            : new ClassroomConnectivityStatus(
+                IsOnline: true,
+                UpdatedUtc: result.Connection.ConnectedUtc,
+                Message: result.Connection.Request.DisplayName is { Length: > 0 } displayName
+                    ? $"Connected to {displayName}"
+                    : "Connected to classroom Host"));
         _ = RefreshCatalogueAfterHostConnectionAsync();
+    }
+
+    /// <summary>Refreshes the Client-mode offline chip from the current classroom mode service state.</summary>
+    public async Task RefreshClassroomConnectivityAsync(
+        ClassroomConnectivityStatus? knownStatus = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (_classroomModeService is null)
+        {
+            return;
+        }
+
+        ClassroomModeSettings mode = await _classroomModeService
+            .GetModeAsync(cancellationToken)
+            .ConfigureAwait(false);
+        ClassroomConnectivityStatus status = knownStatus ?? await _classroomModeService
+            .GetConnectivityAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        void Apply() => ApplyClassroomConnectivity(mode.Mode == LibraryRuntimeMode.ConnectToHost, status);
+
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Apply();
+        }
+        else
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(Apply);
+        }
     }
 
     private async Task RefreshCatalogueAfterHostConnectionAsync()
@@ -733,6 +803,34 @@ public sealed class MainShellViewModel :
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 SetStatusOverride($"Connected, but catalogue refresh failed: {ex.Message}"));
         }
+    }
+
+    private void OnClassroomConnectivityChanged(ClassroomConnectivityStatus status)
+    {
+        _ = RefreshClassroomConnectivityAsync(status);
+    }
+
+    private void ApplyClassroomConnectivity(bool isClientMode, ClassroomConnectivityStatus status)
+    {
+        _isClassroomClientMode = isClientMode;
+        _classroomConnectivityStatus = status;
+        OnPropertyChanged(nameof(IsClassroomOfflineVisible));
+        OnPropertyChanged(nameof(ClassroomOfflineText));
+        OnPropertyChanged(nameof(ClassroomOfflineAutomationName));
+        OnPropertyChanged(nameof(ClassroomOfflineIconPath));
+    }
+
+    private static string OfflineText(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message) ||
+            string.Equals(message, "Not connected", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Offline";
+        }
+
+        return message.StartsWith("Offline", StringComparison.OrdinalIgnoreCase)
+            ? message
+            : $"Offline - {message}";
     }
 
     private void SetStatusOverride(string? value)
@@ -765,6 +863,10 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(IndexManagerLabel));
         OnPropertyChanged(nameof(SplitViewLabel));
         OnPropertyChanged(nameof(SharingSettingsLabel));
+        OnPropertyChanged(nameof(IsClassroomOfflineVisible));
+        OnPropertyChanged(nameof(ClassroomOfflineText));
+        OnPropertyChanged(nameof(ClassroomOfflineAutomationName));
+        OnPropertyChanged(nameof(ClassroomOfflineIconPath));
         OnPropertyChanged(nameof(SearchIconPath));
         OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(SortLabel));
@@ -772,4 +874,22 @@ public sealed class MainShellViewModel :
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private sealed class ConnectivityObserver : IObserver<ClassroomConnectivityStatus>
+    {
+        private readonly Action<ClassroomConnectivityStatus> _onNext;
+
+        public ConnectivityObserver(Action<ClassroomConnectivityStatus> onNext) =>
+            _onNext = onNext;
+
+        public void OnCompleted()
+        {
+        }
+
+        public void OnError(Exception error)
+        {
+        }
+
+        public void OnNext(ClassroomConnectivityStatus value) => _onNext(value);
+    }
 }

@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
+using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.App.Views.Reader;
 using OgmaLibrary.App.Views.Settings;
 using OgmaLibrary.Application.Catalogue;
@@ -280,6 +281,92 @@ public sealed class ShellReaderNavigationTests
         Assert.True(shell.IsCatalogueActive);
         Assert.False(shell.BookDetail.IsVisible);
         Assert.Equal("Connected to Classroom Host", hostSharing.ClientConnectionStatusText);
+
+        shell.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_ClassroomOfflineChip_VisibleInClientModeAndClearsOnReconnect()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var mode = new FakeClassroomModeService
+        {
+            Mode = new ClassroomModeSettings(LibraryRuntimeMode.ConnectToHost),
+            ConnectivityStatus = new ClassroomConnectivityStatus(
+                IsOnline: false,
+                UpdatedUtc: new DateTimeOffset(2026, 6, 2, 12, 0, 0, TimeSpan.Zero),
+                Message: "Offline - reading from cache"),
+        };
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            classroomModeService: mode);
+        await shell.RefreshClassroomConnectivityAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shell.IsClassroomOfflineVisible);
+        Assert.Equal("Offline - reading from cache", shell.ClassroomOfflineText);
+        Assert.Contains("Offline - reading from cache", shell.ClassroomOfflineAutomationName, StringComparison.Ordinal);
+        Assert.Contains("ic_status_unavailable", shell.ClassroomOfflineIconPath, StringComparison.Ordinal);
+
+        var window = new Window
+        {
+            Width = 980,
+            Height = 720,
+            Content = new CatalogueShellView { DataContext = shell },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotNull(window.Content);
+        window.Close();
+
+        await mode.SetConnectivityAsync(new ClassroomConnectivityStatus(
+            IsOnline: true,
+            UpdatedUtc: new DateTimeOffset(2026, 6, 2, 12, 1, 0, TimeSpan.Zero),
+            Message: "Connected to Classroom Host"));
+        await WaitForAsync(() => !shell.IsClassroomOfflineVisible);
+
+        shell.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task MainShell_ClassroomOfflineChip_HiddenInStandaloneMode()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var mode = new FakeClassroomModeService
+        {
+            Mode = new ClassroomModeSettings(LibraryRuntimeMode.Standalone),
+            ConnectivityStatus = new ClassroomConnectivityStatus(
+                IsOnline: false,
+                UpdatedUtc: new DateTimeOffset(2026, 6, 2, 12, 0, 0, TimeSpan.Zero),
+                Message: "Offline - reading from cache"),
+        };
+
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar,
+            classroomModeService: mode);
+        await shell.RefreshClassroomConnectivityAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(shell.IsClassroomOfflineVisible);
 
         shell.Dispose();
     }
@@ -602,6 +689,74 @@ public sealed class ShellReaderNavigationTests
                 HostTrustState.Trusted,
                 profile,
                 connection));
+        }
+    }
+
+    private sealed class FakeClassroomModeService : IClassroomModeService
+    {
+        private readonly List<IObserver<ClassroomConnectivityStatus>> _observers = [];
+
+        public ClassroomModeSettings Mode { get; set; } = new(LibraryRuntimeMode.Standalone);
+
+        public ClassroomConnectivityStatus ConnectivityStatus { get; set; } = new(
+            IsOnline: false,
+            UpdatedUtc: DateTimeOffset.MinValue,
+            Message: "Not connected");
+
+        public IObservable<ClassroomConnectivityStatus> Connectivity => new Observable(this);
+
+        public Task<ClassroomModeSettings> GetModeAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Mode);
+
+        public Task SaveModeAsync(ClassroomModeSettings settings, CancellationToken cancellationToken = default)
+        {
+            Mode = settings;
+            return Task.CompletedTask;
+        }
+
+        public Task<ClassroomConnectivityStatus> GetConnectivityAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(ConnectivityStatus);
+
+        public Task SetConnectivityAsync(
+            ClassroomConnectivityStatus status,
+            CancellationToken cancellationToken = default)
+        {
+            ConnectivityStatus = status;
+            foreach (IObserver<ClassroomConnectivityStatus> observer in _observers.ToArray())
+            {
+                observer.OnNext(status);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private sealed class Observable : IObservable<ClassroomConnectivityStatus>
+        {
+            private readonly FakeClassroomModeService _owner;
+
+            public Observable(FakeClassroomModeService owner) => _owner = owner;
+
+            public IDisposable Subscribe(IObserver<ClassroomConnectivityStatus> observer)
+            {
+                _owner._observers.Add(observer);
+                return new Subscription(_owner, observer);
+            }
+        }
+
+        private sealed class Subscription : IDisposable
+        {
+            private readonly FakeClassroomModeService _owner;
+            private readonly IObserver<ClassroomConnectivityStatus> _observer;
+
+            public Subscription(
+                FakeClassroomModeService owner,
+                IObserver<ClassroomConnectivityStatus> observer)
+            {
+                _owner = owner;
+                _observer = observer;
+            }
+
+            public void Dispose() => _owner._observers.Remove(_observer);
         }
     }
 

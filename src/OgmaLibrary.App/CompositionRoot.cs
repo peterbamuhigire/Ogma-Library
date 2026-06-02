@@ -196,7 +196,8 @@ public static class CompositionRoot
                 searchVm,
                 indexManagerVm,
                 splitViewVm,
-                hostSharingVm);
+                hostSharingVm,
+                sp.GetRequiredService<IClassroomModeService>());
 
             return shell;
         });
