@@ -34,6 +34,9 @@ on.
 | School AI key provider | `SchoolAiKeyProvider` stores school provider keys under `ogma.school.ai.key.<providerId>` through `IClassroomCredentialStore`, clears the mutable input buffer, reports status only, and deletes configured keys |
 | AI key API guard | `ISchoolAiKeyProvider` exposes only save/status/delete methods; no public method returns the plaintext key |
 | Credential-store activation | School AI key storage activates when the Host composition registers `IClassroomCredentialStore`; standalone SchoolAdmin-only registration remains disabled/fail-closed |
+| School AI policy service | `SchoolAiPolicyService` reads and writes per-student/class token budgets and query-rate settings through `SchoolAiEntitlementRow` |
+| School AI quota reservation | `SchoolAiPolicyService.CheckAndReserveQuotaAsync()` transactionally writes `AiUsageLedger` rows, blocks student/class daily token exhaustion, and serializes in-process reservations to prevent budget overrun |
+| Conservative tier policy | `SchoolAiPolicyService.SavePolicyAsync()` rejects ContentAware and answer-mode elevation until the Phase 18 AI proxy/tier persistence path is implemented |
 
 ## Verified Locally
 
@@ -86,13 +89,20 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after school AI key provider: 35 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after school AI key provider |
 | `git diff --check` | Passed after school AI key provider: no whitespace errors |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after school AI policy/quota service: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAiPolicyServiceTests" --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 6 policy/quota tests covering default policy projection, entitlement updates, ledger writes, student exhaustion, class exhaustion, concurrent reservation budget ceiling, and unsupported tier elevation |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminScaffoldTests\|FullyQualifiedName~SchoolProfileEnrollmentServiceTests" --logger "console;verbosity=minimal"` | Passed after school AI policy/quota registration: 14 SchoolAdmin scaffold/enrollment tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after school AI policy/quota service: 600 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after school AI policy/quota service: 35 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after school AI policy/quota service |
+| `git diff --check` | Passed after school AI policy/quota service: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- Enrollment-token exchange with Host sessions; AI key panel UI, DPIA, quota,
+- Enrollment-token exchange with Host sessions; AI key panel UI, DPIA, rate-limit enforcement,
   AI-proxy, dashboard, audit viewer, and student smart-search implementation.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

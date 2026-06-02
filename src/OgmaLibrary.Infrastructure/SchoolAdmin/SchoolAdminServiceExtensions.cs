@@ -21,6 +21,7 @@ public static class SchoolAdminServiceExtensions
 
         services.AddSingleton<SchoolAdminCatalogueService>();
         services.AddSingleton<SchoolProfileEnrollmentService>();
+        services.AddSingleton<SchoolAiPolicyService>();
         services.AddSingleton<UnavailableSchoolAdminService>();
         services.AddSingleton<ILibraryPublishingService>(provider =>
             provider.GetRequiredService<SchoolAdminCatalogueService>());
@@ -29,7 +30,7 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<IProfileEnrollmentService>(provider =>
             provider.GetRequiredService<SchoolProfileEnrollmentService>());
         services.AddSingleton<ISchoolAiPolicyService>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            provider.GetRequiredService<SchoolAiPolicyService>());
         services.AddSingleton<ISchoolAiKeyProvider>(provider =>
         {
             IClassroomCredentialStore? credentialStore = provider.GetService<IClassroomCredentialStore>();
