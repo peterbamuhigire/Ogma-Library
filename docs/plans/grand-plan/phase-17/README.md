@@ -482,3 +482,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Advanced WP4: added typed Host HTTP client methods for book-detail and metadata-search reads with nested response mapping tests. |
 | 2026-06-02 | Implementation | Advanced WP7/WP5: added cache-aside Host resource client integration for page-render, file-stream, and asset reads, including cache-hit network bypass tests. |
 | 2026-06-02 | Implementation | Advanced WP7: added runtime online/offline connectivity status and observable state-change stream with tests for future offline fallback UI. |
+| 2026-06-02 | Implementation | Advanced WP5: added Host PDF file-stream materialization into stable local reader paths with atomic writes, metadata, validation, and DI/tests. |

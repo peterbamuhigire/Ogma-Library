@@ -4,8 +4,10 @@ Date started: 2026-06-02
 
 ## Current Status
 
-Phase 17 WP1 is underway locally. The first slice establishes the
-Client/Classroom mode decision record and inactive bounded-context scaffold:
+Phase 17 implementation is underway locally. The completed slices establish the
+Client/Classroom mode decision record, inactive bounded-context scaffold, Host
+client foundation, private-state storage, offline cache, and first reader-file
+bridge:
 
 - `docs/adrs/0012-classroom-identity-roles-private-state.md` records the
   proposed identity, role, per-profile private database, offline cache, and sync
@@ -46,6 +48,9 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 - `CachingLibraryHostClient` wraps Host page-render, file-stream, and sidecar
   asset reads with cache-aside storage and cache-hit fallback so reader resource
   calls can be served from disk without touching the network when already cached.
+- `ClassroomBookFileMaterializer` turns Host file-stream PDF resources into
+  stable local `.pdf` files under `classroom/files`, using atomic writes and
+  sidecar metadata so the existing path-based PDF renderer can open Host books.
 - `LibraryHostHttpClient` maps the Phase 16 Host health endpoint, enrollment
   session endpoint, authenticated catalogue page endpoint, page-render PNG
   endpoint, raw PDF file-stream endpoint, projected asset URLs, book-detail
@@ -60,10 +65,10 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Gate | Evidence |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 10 projects, 0 warnings, 0 errors |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests" --logger "console;verbosity=minimal"` | Passed: 52 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, online/offline status defaults, observable connectivity emissions, connectivity unsubscribe, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, and cached Host-client DI registration |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests\|FullyQualifiedName~ClassroomBookFileMaterializerTests" --logger "console;verbosity=minimal"` | Passed: 56 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, online/offline status defaults, observable connectivity emissions, connectivity unsubscribe, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, cached Host-client DI registration, Host PDF materialization to local reader paths, stable file reuse, non-PDF rejection, and materializer DI registration |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_ClassroomClient\|FullyQualifiedName~ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault" --logger "console;verbosity=minimal"` | Passed: 3 Classroom Client architecture/default-mode guardrails |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 30 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 523 tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 527 tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
 ## Implemented Locally
@@ -95,12 +100,14 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Host resource cache-aside tests | `CachingLibraryHostClientTests` |
 | Host API client foundation | `LibraryHostHttpClient` health, session, catalogue-page, book-detail, search, page-render, file-stream, and asset methods |
 | Host API client tests | `LibraryHostHttpClientTests` |
+| Host PDF reader-file materializer | `IClassroomBookFileMaterializer` and `ClassroomBookFileMaterializer` |
+| Host PDF reader-file tests | `ClassroomBookFileMaterializerTests` |
 | Architecture guardrails | `ArchTests_ClassroomClient_*` and default-Standalone guard |
 
 ## Remaining Phase 17 Work
 
 - Owner ratification for ADR-0012.
 - OS-backed credential storage for Host trust pins and session tokens, live
-  certificate fetch integration, reader page-source integration, catalogue UI
+  certificate fetch integration, reader navigation integration, catalogue UI
   source integration, sync, UI, offline chip wiring, profile-management polish,
   and cross-platform real-LAN verification.

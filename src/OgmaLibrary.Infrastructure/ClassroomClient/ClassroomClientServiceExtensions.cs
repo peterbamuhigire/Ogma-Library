@@ -27,6 +27,9 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<ILibraryHostClient>(provider => new CachingLibraryHostClient(
             provider.GetRequiredService<LibraryHostHttpClient>(),
             provider.GetRequiredService<IOfflineCacheService>()));
+        services.AddSingleton<IClassroomBookFileMaterializer>(provider => new ClassroomBookFileMaterializer(
+            dataDirectory,
+            provider.GetRequiredService<ILibraryHostClient>()));
         services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
         services.AddSingleton<IMdnsResolver, MdnsResolver>();
         services.AddSingleton<IHostTrustStore, InMemoryHostTrustStore>();
