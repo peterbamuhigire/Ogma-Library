@@ -40,6 +40,56 @@ public sealed class LibraryHostHttpClientTests
     }
 
     [Fact]
+    public async Task LibraryHostHttpClient_UsesTlsCertificateFingerprintWhenAvailable()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueJson(new
+        {
+            state = "running",
+            port = 7473,
+            bindAddress = "192.168.1.13",
+            certificateFingerprint = (string?)null,
+            requiresAuth = true,
+        });
+        var probe = new FakeCertificateFingerprintProbe(Fingerprint);
+        using var client = new LibraryHostHttpClient(new HttpClient(handler), probe);
+        var request = new ClassroomJoinRequest(
+            "192.168.1.13",
+            7473,
+            new string('a', 64),
+            DisplayName: "School Library");
+
+        LibraryHostHealth health = await client.GetHealthAsync(request);
+
+        Assert.Equal(Fingerprint, health.CertificateFingerprint);
+        Assert.Equal(1, probe.Calls);
+        Assert.Equal(request, probe.Request);
+    }
+
+    [Fact]
+    public async Task LibraryHostHttpClient_RejectsHealthFingerprintMismatchWithTlsCertificate()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueJson(new
+        {
+            state = "running",
+            port = 7473,
+            bindAddress = "192.168.1.13",
+            certificateFingerprint = Fingerprint,
+            requiresAuth = true,
+        });
+        using var client = new LibraryHostHttpClient(
+            new HttpClient(handler),
+            new FakeCertificateFingerprintProbe(new string('b', 64)));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetHealthAsync(request));
+
+        Assert.Contains("TLS certificate fingerprint", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task LibraryHostHttpClient_IssuesSessionWithEnrollmentCode()
     {
         var handler = new QueueHttpHandler();
@@ -382,6 +432,27 @@ public sealed class LibraryHostHttpClientTests
         {
             Requests.Add(request);
             return Task.FromResult(_responses.Dequeue());
+        }
+    }
+
+    private sealed class FakeCertificateFingerprintProbe : IHostCertificateFingerprintProbe
+    {
+        private readonly string? _fingerprint;
+
+        public FakeCertificateFingerprintProbe(string? fingerprint) => _fingerprint = fingerprint;
+
+        public int Calls { get; private set; }
+
+        public ClassroomJoinRequest? Request { get; private set; }
+
+        public Task<string?> GetCertificateFingerprintAsync(
+            ClassroomJoinRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Calls++;
+            Request = request;
+            return Task.FromResult(_fingerprint);
         }
     }
 }

@@ -10,10 +10,14 @@ namespace OgmaLibrary.Infrastructure.ClassroomClient;
 internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
 {
     private readonly HttpClient _httpClient;
+    private readonly IHostCertificateFingerprintProbe? _certificateProbe;
 
-    public LibraryHostHttpClient(HttpClient httpClient)
+    public LibraryHostHttpClient(
+        HttpClient httpClient,
+        IHostCertificateFingerprintProbe? certificateProbe = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _certificateProbe = certificateProbe;
     }
 
     public async Task<LibraryHostHealth> GetHealthAsync(
@@ -28,10 +32,14 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
         HostHealthDto dto = await response.Content
             .ReadFromJsonAsync<HostHealthDto>(cancellationToken)
             .ConfigureAwait(false) ?? throw new InvalidOperationException("Host health response was empty.");
+        string? tlsFingerprint = _certificateProbe is null
+            ? null
+            : await _certificateProbe.GetCertificateFingerprintAsync(request, cancellationToken).ConfigureAwait(false);
+        string fingerprint = ResolveHealthFingerprint(request, dto.CertificateFingerprint, tlsFingerprint);
 
         return new LibraryHostHealth(
             request.DisplayName ?? request.Address,
-            dto.CertificateFingerprint ?? request.CertificateFingerprint,
+            fingerprint,
             dto.ContentMode ?? "unknown");
     }
 
@@ -315,6 +323,26 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
         }
 
         return builder.Uri;
+    }
+
+    private static string ResolveHealthFingerprint(
+        ClassroomJoinRequest request,
+        string? healthFingerprint,
+        string? tlsFingerprint)
+    {
+        if (!string.IsNullOrWhiteSpace(healthFingerprint) &&
+            !string.IsNullOrWhiteSpace(tlsFingerprint) &&
+            !healthFingerprint.Equals(tlsFingerprint, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Host health fingerprint does not match the TLS certificate fingerprint.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(tlsFingerprint))
+        {
+            return tlsFingerprint;
+        }
+
+        return healthFingerprint ?? request.CertificateFingerprint;
     }
 
     private static LibraryHostBookSummary Map(CatalogueBookDto dto) =>

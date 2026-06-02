@@ -26,7 +26,10 @@ public static class ClassroomClientServiceExtensions
             provider.GetRequiredService<IClassroomCredentialStore>()));
         services.AddSingleton<IOfflineCacheService>(_ => new DiskOfflineCacheService(dataDirectory));
         services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
-        services.AddSingleton<LibraryHostHttpClient>(_ => new LibraryHostHttpClient(new HttpClient()));
+        services.AddSingleton<IHostCertificateFingerprintProbe, TlsHostCertificateFingerprintProbe>();
+        services.AddSingleton<LibraryHostHttpClient>(provider => new LibraryHostHttpClient(
+            new HttpClient(),
+            provider.GetRequiredService<IHostCertificateFingerprintProbe>()));
         services.AddSingleton<ILibraryHostClient>(provider => new CachingLibraryHostClient(
             provider.GetRequiredService<LibraryHostHttpClient>(),
             provider.GetRequiredService<IOfflineCacheService>()));
