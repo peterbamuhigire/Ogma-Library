@@ -49,6 +49,7 @@ on.
 | Classroom AI client contract | `ILibraryHostClient`, `LibraryHostHttpClient`, and `CachingLibraryHostClient` expose typed preview/search calls for `/api/v1/ai/search/preview` and `/api/v1/ai/search` without caching AI responses |
 | Student AI history deletion | `IStudentPrivateRepository.DeleteAiHistoryAsync()` and `StudentSmartSearchViewModel.DeleteHistoryAsync()` clear private smart-search history for the active profile/Host while preserving other Host/profile state |
 | Admin institution AI history purge | `ISchoolAiHistoryManagementService.PurgeInstitutionHistoryAsync()` and Host Sharing admin controls purge Host `AiQueryHistory` plus `AiUsageLedger` rows behind a typed confirmation while preserving immutable audit rows |
+| Admin audit filtering and CSV export | `HostSharingViewModel.SchoolAuditFilterText` filters recent school audit rows by actor/action/resource/payload, and `ExportSchoolAuditCsvAsync()` exports the filtered rows as CSV |
 
 ## Verified Locally
 
@@ -145,6 +146,8 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~SchoolAiHistoryManagementServiceTests" --logger "console;verbosity=minimal"` | Passed: 8 private-history and school-admin purge tests covering scoped student deletion, Host query-history purge, usage-ledger purge, and audit preservation |
 | `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 13 Host Sharing tests including school admin refresh, key/policy/enrollment/revocation, and AI-history purge confirmation |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~StudentSmartSearchViewModelTests\|FullyQualifiedName~SchoolAdminPanelRenderTests" --logger "console;verbosity=minimal"` | Passed: 4 UI tests covering smart-search history save/delete and school-admin purge control rendering |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 14 Host Sharing tests including audit filtering and filtered CSV export |
+| `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminPanelRenderTests" --logger "console;verbosity=minimal"` | Passed: school-admin render test covering audit export control visibility |
 
 ## Remaining Phase 18 Work
 
@@ -153,8 +156,8 @@ on.
   session path; admin-route enforcement is implemented and tested.
 - Student smart-search localization/accessibility polish and richer classroom AI
   history browsing beyond the delete/purge controls now implemented.
-- Admin console polish: rotate/test-key actions, richer usage charts, audit filtering,
-  and CSV export beyond the basic key, quota, dashboard, and audit surface now in
-  Host Sharing settings.
+- Admin console polish: rotate/test-key actions and richer usage charts beyond
+  the key, quota, dashboard, audit filter/export, and purge surface now in Host
+  Sharing settings.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

@@ -639,6 +639,25 @@
                          FontSize="{DynamicResource Type.Size.Body}"
                          FontWeight="SemiBold"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <Grid ColumnDefinitions="*,Auto"
+                    ColumnSpacing="8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding SchoolAuditFilterText, Mode=TwoWay}"
+                         Watermark="Filter by profile, action, route, or payload"
+                         AutomationProperties.Name="School audit filter"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+                <Button Grid.Column="1"
+                        Padding="10,6"
+                        Background="{DynamicResource Brush.Accent.Slate}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        IsEnabled="{Binding CanExportSchoolAuditCsv}"
+                        AutomationProperties.Name="Export school audit CSV"
+                        Click="ExportSchoolAuditCsvButton_Click">
+                  <TextBlock Text="Export CSV"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </Grid>
               <ListBox ItemsSource="{Binding SchoolAuditEvents}"
                        MinHeight="116"
                        MaxHeight="170"

@@ -140,6 +140,15 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void ExportSchoolAuditCsvButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            using var stream = new MemoryStream();
+            await ViewModel.ExportSchoolAuditCsvAsync(stream).ConfigureAwait(true);
+        }
+    }
+
     private async void SyncSettingsCheckBox_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)

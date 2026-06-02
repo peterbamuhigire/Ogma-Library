@@ -1,3 +1,4 @@
+using System.Text;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
@@ -455,7 +456,7 @@ public sealed class HostSharingViewModelTests
         Assert.Equal(7, viewModel.PerStudentQueriesPerMinute);
         Assert.Single(viewModel.EnrolledProfiles);
         Assert.Single(viewModel.SchoolAiUsage);
-        Assert.Single(viewModel.SchoolAuditEvents);
+        Assert.Equal(2, viewModel.SchoolAuditEvents.Count);
         Assert.Equal("School administration loaded", viewModel.SchoolAdminStatusText);
     }
 
@@ -507,6 +508,30 @@ public sealed class HostSharingViewModelTests
         Assert.Equal(1, history.PurgeCalls);
         Assert.Contains("Purged 2", viewModel.SchoolAdminStatusText, StringComparison.Ordinal);
         Assert.False(viewModel.CanPurgeAiHistory);
+    }
+
+    [Fact]
+    public async Task HostSharingViewModel_AuditFilterAndCsvExport_UseVisibleRows()
+    {
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            profileEnrollmentService: new RecordingProfileEnrollmentService(),
+            auditRepository: new RecordingAuditRepository());
+        await viewModel.RefreshSchoolAdminAsync();
+
+        viewModel.SchoolAuditFilterText = "ai/search";
+        using var stream = new MemoryStream();
+        await viewModel.ExportSchoolAuditCsvAsync(stream);
+        string csv = Encoding.UTF8.GetString(stream.ToArray());
+
+        SchoolAuditRow row = Assert.Single(viewModel.SchoolAuditEvents);
+        Assert.Equal("/api/v1/ai/search", row.EntityId);
+        Assert.Contains("timestampUtc,actorId,eventType,entityId,payload", csv, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/ai/search", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("/api/v1/catalogue", csv, StringComparison.Ordinal);
+        Assert.Contains("\"{\"\"action\"\":\"\"SearchSchoolAi\"\"}\"", csv, StringComparison.Ordinal);
+        Assert.Contains("Exported 1", viewModel.SchoolAdminStatusText, StringComparison.Ordinal);
     }
 
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
@@ -1041,6 +1066,15 @@ public sealed class HostSharingViewModelTests
                     ActorId = "client:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
                     TimestampUtc = DateTimeOffset.UtcNow,
                     Payload = "{\"action\":\"SearchSchoolAi\"}",
+                },
+                new()
+                {
+                    Id = "audit-2",
+                    EventType = "LanHostRequestServed",
+                    EntityId = "/api/v1/catalogue",
+                    ActorId = "client:bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+                    TimestampUtc = DateTimeOffset.UtcNow,
+                    Payload = "{\"action\":\"Catalogue\"}",
                 },
             ]);
         }

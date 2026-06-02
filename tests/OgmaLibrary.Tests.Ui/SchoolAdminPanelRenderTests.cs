@@ -50,6 +50,7 @@ public sealed class SchoolAdminPanelRenderTests
         Assert.Contains("School AI", visibleText);
         Assert.Contains("Usage dashboard", visibleText);
         Assert.Contains("Recent audit", visibleText);
+        Assert.Contains("Export CSV", visibleText);
         Assert.Contains("Purge AI history", visibleText);
         Assert.Contains("Amina Reader", visibleText);
     }

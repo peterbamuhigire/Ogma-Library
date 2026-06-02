@@ -97,6 +97,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private string _enrollmentBirthYearText = string.Empty;
     private string _lastEnrollmentTokenText = string.Empty;
     private string _aiHistoryPurgeConfirmationText = string.Empty;
+    private string _schoolAuditFilterText = string.Empty;
+    private List<SchoolAuditRow> _allSchoolAuditEvents = [];
     private EnrolledProfile? _selectedEnrolledProfile;
     private int _perStudentDailyTokenBudget = 10_000;
     private int _classDailyTokenBudget = 500_000;
@@ -473,6 +475,21 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
     }
 
+    public string SchoolAuditFilterText
+    {
+        get => _schoolAuditFilterText;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (_schoolAuditFilterText != next)
+            {
+                _schoolAuditFilterText = next;
+                OnPropertyChanged();
+                ApplySchoolAuditFilter();
+            }
+        }
+    }
+
     public int PerStudentDailyTokenBudget
     {
         get => _perStudentDailyTokenBudget;
@@ -707,6 +724,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         !IsBusy &&
         _schoolAiHistoryManagementService is not null &&
         string.Equals(AiHistoryPurgeConfirmationText.Trim(), "PURGE AI HISTORY", StringComparison.Ordinal);
+
+    public bool CanExportSchoolAuditCsv => !IsBusy && SchoolAuditEvents.Count > 0;
 
     public bool CanEnrollProfile =>
         !IsBusy &&
@@ -1006,6 +1025,30 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             IsBusy = false;
             RaiseSchoolAdminCapabilitiesChanged();
         }
+    }
+
+    public async Task ExportSchoolAuditCsvAsync(Stream output, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        cancellationToken.ThrowIfCancellationRequested();
+        using var writer = new StreamWriter(output, Encoding.UTF8, leaveOpen: true);
+        await writer.WriteLineAsync("timestampUtc,actorId,eventType,entityId,payload").ConfigureAwait(false);
+        foreach (SchoolAuditRow row in SchoolAuditEvents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await writer.WriteLineAsync(string.Join(
+                    ",",
+                    EscapeCsv(row.TimestampUtc.ToString("O", CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.ActorId),
+                    EscapeCsv(row.EventType),
+                    EscapeCsv(row.EntityId),
+                    EscapeCsv(row.Payload)))
+                .ConfigureAwait(false);
+        }
+
+        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        SchoolAdminStatusText =
+            $"Exported {SchoolAuditEvents.Count.ToString("N0", CultureInfo.CurrentCulture)} school audit rows to CSV";
     }
 
     public async Task ConnectToHostAsync(CancellationToken cancellationToken = default)
@@ -1515,16 +1558,37 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IReadOnlyList<AuditEvent> events = await _auditRepository
             .ReadRecentAsync(25, cancellationToken)
             .ConfigureAwait(true);
-        SchoolAuditEvents.Clear();
-        foreach (AuditEvent auditEvent in events)
-        {
-            SchoolAuditEvents.Add(new SchoolAuditRow(
+        _allSchoolAuditEvents = events
+            .Select(auditEvent => new SchoolAuditRow(
                 auditEvent.TimestampUtc,
                 auditEvent.ActorId ?? "unknown",
                 auditEvent.EventType,
                 auditEvent.EntityId ?? string.Empty,
-                auditEvent.Payload ?? string.Empty));
+                auditEvent.Payload ?? string.Empty))
+            .ToList();
+        ApplySchoolAuditFilter();
+    }
+
+    private void ApplySchoolAuditFilter()
+    {
+        string filter = SchoolAuditFilterText.Trim();
+        IEnumerable<SchoolAuditRow> rows = _allSchoolAuditEvents;
+        if (!string.IsNullOrWhiteSpace(filter))
+        {
+            rows = rows.Where(row =>
+                row.ActorId.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                row.EventType.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                row.EntityId.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                row.Payload.Contains(filter, StringComparison.OrdinalIgnoreCase));
         }
+
+        SchoolAuditEvents.Clear();
+        foreach (SchoolAuditRow row in rows)
+        {
+            SchoolAuditEvents.Add(row);
+        }
+
+        OnPropertyChanged(nameof(CanExportSchoolAuditCsv));
     }
 
     private void ApplySyncSettings(ClassroomSyncSettings settings)
@@ -1598,6 +1662,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanEnrollProfile));
         OnPropertyChanged(nameof(CanRevokeSelectedProfile));
         OnPropertyChanged(nameof(CanPurgeAiHistory));
+        OnPropertyChanged(nameof(CanExportSchoolAuditCsv));
     }
 
     private void RaiseShareChanged()
@@ -1660,6 +1725,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         }
 
         return builder.ToString();
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        string text = value ?? string.Empty;
+        return text.IndexOfAny([',', '"', '\r', '\n']) < 0
+            ? text
+            : $"\"{text.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
     }
 
     private static string FormatAnnotationConflict(StudentAnnotationConflict conflict) =>
