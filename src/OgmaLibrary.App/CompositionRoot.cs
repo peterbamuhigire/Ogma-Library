@@ -104,6 +104,13 @@ public static class CompositionRoot
 
         // Phase 17 — inactive Client/Classroom bounded-context scaffold.
         services.AddClassroomClientServices(dataDirectory);
+        services.AddSingleton<ClassroomCatalogueReadModel>(sp => new ClassroomCatalogueReadModel(
+            sp.GetRequiredService<CatalogueReadModel>(),
+            sp.GetRequiredService<IClassroomModeService>(),
+            sp.GetRequiredService<IClassroomHostConnectionService>(),
+            sp.GetRequiredService<ILibraryHostClient>()));
+        services.AddSingleton<ICatalogueReadModel>(sp =>
+            sp.GetRequiredService<ClassroomCatalogueReadModel>());
 
         // Phase 05 — Workers: background job worker + crash-recovery service.
         services.AddSingleton<JobRecoveryService>();

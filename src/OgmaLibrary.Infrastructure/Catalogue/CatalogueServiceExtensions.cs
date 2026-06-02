@@ -113,7 +113,8 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IBookIdentityService, BookIdentityService>();
 
         // Read model.
-        services.AddSingleton<ICatalogueReadModel, CatalogueReadModel>();
+        services.AddSingleton<CatalogueReadModel>();
+        services.AddSingleton<ICatalogueReadModel>(sp => sp.GetRequiredService<CatalogueReadModel>());
 
         return services;
     }
