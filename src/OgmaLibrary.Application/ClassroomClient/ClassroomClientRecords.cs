@@ -105,3 +105,52 @@ public sealed record HostTrustEvaluation(
     HostTrustState State,
     string PresentedFingerprint,
     string? PinnedFingerprint);
+
+/// <summary>Private per-student reading progress for one Host book.</summary>
+public sealed record StudentReadingProgress(
+    string HostId,
+    string BookId,
+    int LastPage,
+    double LastOffsetY,
+    DateTimeOffset UpdatedUtc);
+
+/// <summary>Private per-student annotation for one Host book.</summary>
+public sealed record StudentAnnotation(
+    string Id,
+    string HostId,
+    string BookId,
+    int PageNumber,
+    string Type,
+    string? Color,
+    string? Body,
+    DateTimeOffset CreatedUtc,
+    DateTimeOffset UpdatedUtc,
+    bool IsDeleted = false);
+
+/// <summary>Private per-student bookmark for one Host book.</summary>
+public sealed record StudentBookmark(
+    string Id,
+    string HostId,
+    string BookId,
+    int PageNumber,
+    string? Label,
+    DateTimeOffset CreatedUtc,
+    DateTimeOffset UpdatedUtc,
+    bool IsDeleted = false);
+
+/// <summary>Private per-student AI query history entry.</summary>
+public sealed record StudentAiHistoryEntry(
+    string Id,
+    string HostId,
+    string Query,
+    string? ResponseSummary,
+    string Tier,
+    DateTimeOffset CreatedUtc,
+    bool IsDeleted = false);
+
+/// <summary>Private per-student sync state for one Host.</summary>
+public sealed record StudentSyncState(
+    string HostId,
+    DateTimeOffset? LastSyncedUtc,
+    string? LastSyncBlobHash,
+    int ConflictCount);

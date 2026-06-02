@@ -32,7 +32,9 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
   settings under the sidecar classroom state while keeping Standalone as the
   missing-file default.
 - `StudentPrivateRepository` derives per-profile private database paths under
-  `classroom/profiles/<profileId>/private.db` without touching the standalone
+  `classroom/profiles/<profileId>/private.db`, creates the private SQLite
+  schema in code, and persists isolated reading progress, annotations,
+  bookmarks, AI history, and sync state without touching the standalone
   catalogue database.
 - Architecture tests guard the Classroom Client context from depending on the
   Phase 16 Host server implementation or the standalone catalogue
@@ -43,10 +45,10 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Gate | Evidence |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 10 projects, 0 warnings, 0 errors |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests" --logger "console;verbosity=minimal"` | Passed: 28 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, and mode persistence across restart |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests" --logger "console;verbosity=minimal"` | Passed: 31 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, and sync state |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_ClassroomClient\|FullyQualifiedName~ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault" --logger "console;verbosity=minimal"` | Passed: 3 Classroom Client architecture/default-mode guardrails |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 30 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 499 tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 502 tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
 ## Implemented Locally
@@ -68,12 +70,13 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Profile/session tests | `ProfileServiceTests` |
 | Runtime mode persistence | `FileClassroomModeService` |
 | Runtime mode tests | `ClassroomModeServiceTests` |
+| Private student DB schema/CRUD | `StudentDbContext` and `StudentPrivateRepository` |
+| Private student DB tests | `StudentPrivateRepositoryTests` |
 | Architecture guardrails | `ArchTests_ClassroomClient_*` and default-Standalone guard |
 
 ## Remaining Phase 17 Work
 
 - Owner ratification for ADR-0012.
-- Private database schema/CRUD.
 - OS-backed credential storage for Host trust pins and session tokens, live
   certificate fetch integration, Host API client, reader/cache integration,
   sync, UI, profile-management polish, and cross-platform real-LAN verification.
