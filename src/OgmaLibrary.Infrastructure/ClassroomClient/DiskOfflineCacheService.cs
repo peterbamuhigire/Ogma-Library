@@ -64,7 +64,8 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
                 metadata.ResourceKey,
                 metadata.ETag,
                 content,
-                metadata.StoredUtc);
+                metadata.StoredUtc,
+                metadata.ContentType);
         }
         finally
         {
@@ -91,6 +92,7 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
                 StoredUtc = entry.StoredUtc,
                 LastAccessUtc = DateTimeOffset.UtcNow,
                 ContentLength = entry.Content.LongLength,
+                ContentType = entry.ContentType,
                 ContentFile = Path.GetFileName(contentPath),
             };
 
@@ -246,6 +248,8 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
         public DateTimeOffset LastAccessUtc { get; set; }
 
         public long ContentLength { get; set; }
+
+        public string ContentType { get; set; } = "application/octet-stream";
 
         public string ContentFile { get; set; } = string.Empty;
     }

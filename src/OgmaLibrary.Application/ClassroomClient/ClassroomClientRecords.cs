@@ -70,7 +70,8 @@ public sealed record OfflineCacheEntry(
     string ResourceKey,
     string? ETag,
     byte[] Content,
-    DateTimeOffset StoredUtc);
+    DateTimeOffset StoredUtc,
+    string ContentType = "application/octet-stream");
 
 /// <summary>Lightweight Host health response consumed before full enrolment.</summary>
 public sealed record LibraryHostHealth(

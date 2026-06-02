@@ -33,6 +33,7 @@ public sealed class OfflineCacheServiceTests
             Assert.Equal("etag-1", cached.ETag);
             Assert.Equal([1, 2, 3], cached.Content);
             Assert.Equal(Now, cached.StoredUtc);
+            Assert.Equal("application/octet-stream", cached.ContentType);
         }
         finally
         {
@@ -103,6 +104,32 @@ public sealed class OfflineCacheServiceTests
             IOfflineCacheService service = provider.GetRequiredService<IOfflineCacheService>();
 
             Assert.IsType<DiskOfflineCacheService>(service);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task DiskOfflineCache_PreservesContentType()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using var cache = new DiskOfflineCacheService(dataDirectory);
+            await cache.PutAsync(new OfflineCacheEntry(
+                "host-1",
+                "books/1/page/1",
+                "etag-1",
+                [1, 2, 3],
+                Now,
+                "image/png"));
+
+            OfflineCacheEntry? cached = await cache.GetAsync("host-1", "books/1/page/1");
+
+            Assert.Equal("image/png", cached!.ContentType);
         }
         finally
         {

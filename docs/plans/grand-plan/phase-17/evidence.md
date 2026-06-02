@@ -40,6 +40,9 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
   preserves eTags and content across app restarts, scopes entries by Host and
   resource, clears one Host at a time, and enforces size-limit eviction with LRU
   last-access metadata.
+- `CachingLibraryHostClient` wraps Host page-render, file-stream, and sidecar
+  asset reads with cache-aside storage and cache-hit fallback so reader resource
+  calls can be served from disk without touching the network when already cached.
 - `LibraryHostHttpClient` maps the Phase 16 Host health endpoint, enrollment
   session endpoint, authenticated catalogue page endpoint, page-render PNG
   endpoint, raw PDF file-stream endpoint, projected asset URLs, book-detail
@@ -54,10 +57,10 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Gate | Evidence |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 10 projects, 0 warnings, 0 errors |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests" --logger "console;verbosity=minimal"` | Passed: 44 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, and catalogue search mapping |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests" --logger "console;verbosity=minimal"` | Passed: 49 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, and cached Host-client DI registration |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_ClassroomClient\|FullyQualifiedName~ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault" --logger "console;verbosity=minimal"` | Passed: 3 Classroom Client architecture/default-mode guardrails |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 30 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 515 tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 520 tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
 ## Implemented Locally
@@ -83,6 +86,8 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 | Private student DB tests | `StudentPrivateRepositoryTests` |
 | Offline cache foundation | `DiskOfflineCacheService` |
 | Offline cache tests | `OfflineCacheServiceTests` |
+| Host resource cache-aside | `CachingLibraryHostClient` |
+| Host resource cache-aside tests | `CachingLibraryHostClientTests` |
 | Host API client foundation | `LibraryHostHttpClient` health, session, catalogue-page, book-detail, search, page-render, file-stream, and asset methods |
 | Host API client tests | `LibraryHostHttpClientTests` |
 | Architecture guardrails | `ArchTests_ClassroomClient_*` and default-Standalone guard |
@@ -91,6 +96,6 @@ Client/Classroom mode decision record and inactive bounded-context scaffold:
 
 - Owner ratification for ADR-0012.
 - OS-backed credential storage for Host trust pins and session tokens, live
-  certificate fetch integration, reader/cache integration, sync, UI, offline
-  fallback orchestration, profile-management polish, and cross-platform real-LAN
-  verification.
+  certificate fetch integration, reader page-source integration, catalogue UI
+  source integration, sync, UI, online/offline state signalling,
+  profile-management polish, and cross-platform real-LAN verification.
