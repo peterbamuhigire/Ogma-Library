@@ -479,3 +479,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Started WP7: added disk-backed offline cache persistence, per-Host clearing, eTag metadata, and LRU size-limit eviction tests. |
 | 2026-06-02 | Implementation | Started WP4: added typed Host HTTP client methods for health, enrollment session issuance, and authenticated catalogue page reads with tests. |
 | 2026-06-02 | Implementation | Advanced WP5: added typed Host HTTP client methods for page-render PNGs, raw PDF file streams, and projected sidecar assets with bearer-token tests. |
+| 2026-06-02 | Implementation | Advanced WP4: added typed Host HTTP client methods for book-detail and metadata-search reads with nested response mapping tests. |

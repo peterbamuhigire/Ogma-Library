@@ -89,6 +89,51 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
             dto.HasMore);
     }
 
+    public async Task<LibraryHostBookDetail> GetBookAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        string escapedBookId = Uri.EscapeDataString(bookId);
+        using var message = new HttpRequestMessage(HttpMethod.Get, BuildUri(request, $"/api/v1/catalogue/{escapedBookId}"));
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        BookDetailDto dto = await response.Content
+            .ReadFromJsonAsync<BookDetailDto>(cancellationToken)
+            .ConfigureAwait(false) ?? throw new InvalidOperationException("Host book detail response was empty.");
+
+        return Map(dto);
+    }
+
+    public async Task<LibraryHostSearchPage> SearchCatalogueAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostSearchQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+        ArgumentNullException.ThrowIfNull(query);
+        using var message = new HttpRequestMessage(HttpMethod.Get, BuildSearchUri(request, query));
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        SearchPageDto dto = await response.Content
+            .ReadFromJsonAsync<SearchPageDto>(cancellationToken)
+            .ConfigureAwait(false) ?? throw new InvalidOperationException("Host catalogue search response was empty.");
+
+        return new LibraryHostSearchPage(
+            dto.Query,
+            dto.Items.Select(Map).ToArray(),
+            dto.ReturnedCount,
+            dto.HasMore);
+    }
+
     public Task<LibraryHostResource> GetPageRenderAsync(
         ClassroomJoinRequest request,
         string sessionToken,
@@ -187,6 +232,16 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
         return BuildUri(request, $"/api/v1/catalogue?{string.Join('&', parts)}");
     }
 
+    private static Uri BuildSearchUri(ClassroomJoinRequest request, LibraryHostSearchQuery query)
+    {
+        var parts = new List<string>
+        {
+            $"pageSize={Math.Clamp(query.PageSize, 1, 50)}",
+        };
+        AddQueryPart(parts, "q", query.Query);
+        return BuildUri(request, $"/api/v1/catalogue/search?{string.Join('&', parts)}");
+    }
+
     private static void AddQueryPart(List<string> parts, string key, string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
@@ -226,6 +281,41 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
                 dto.Assets.CoverUrl,
                 dto.Assets.SpineUrl,
                 dto.Assets.ThumbnailUrl));
+
+    private static LibraryHostBookDetail Map(BookDetailDto dto) =>
+        new(
+            dto.BookId,
+            dto.Title,
+            dto.Authors,
+            dto.Year,
+            dto.Isbn,
+            dto.Doi,
+            dto.Rating,
+            dto.Status,
+            dto.ContentHash,
+            dto.SizeBytes,
+            dto.ReadingProgress is null ? null : Map(dto.ReadingProgress),
+            dto.Annotations,
+            dto.MetadataFields.Select(Map).ToArray(),
+            dto.ReadingMemory is null ? null : Map(dto.ReadingMemory),
+            dto.IsOcrDerived,
+            dto.IsPasswordProtected,
+            new LibraryHostAssetLinks(
+                dto.Assets.CoverUrl,
+                dto.Assets.SpineUrl,
+                dto.Assets.ThumbnailUrl));
+
+    private static LibraryHostReadingProgress Map(ReadingProgressDto dto) =>
+        new(dto.BookId, dto.CurrentPage, dto.CompletionPct, dto.LastReadUtc, dto.Status);
+
+    private static LibraryHostMetadataField Map(MetadataFieldDto dto) =>
+        new(dto.FieldName, dto.Value, dto.Source, dto.Confidence, dto.IsOverridden);
+
+    private static LibraryHostReadingMemorySummary Map(ReadingMemoryDto dto) =>
+        new(dto.Disposition, dto.KeyInsight, dto.UpdatedAtUtc);
+
+    private static LibraryHostSearchResult Map(SearchResultDto dto) =>
+        new(dto.BookId, dto.Title, dto.Author, dto.Score, dto.MatchedFields);
 
     private sealed record HostHealthDto(
         string? State,
@@ -269,4 +359,55 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
         string? CoverUrl,
         string? SpineUrl,
         string? ThumbnailUrl);
+
+    private sealed record BookDetailDto(
+        string BookId,
+        string? Title,
+        IReadOnlyList<string> Authors,
+        int? Year,
+        string? Isbn,
+        string? Doi,
+        int? Rating,
+        int Status,
+        string? ContentHash,
+        long? SizeBytes,
+        ReadingProgressDto? ReadingProgress,
+        int Annotations,
+        IReadOnlyList<MetadataFieldDto> MetadataFields,
+        ReadingMemoryDto? ReadingMemory,
+        bool IsOcrDerived,
+        bool IsPasswordProtected,
+        AssetLinksDto Assets);
+
+    private sealed record ReadingProgressDto(
+        string BookId,
+        int CurrentPage,
+        double CompletionPct,
+        DateTimeOffset? LastReadUtc,
+        int Status);
+
+    private sealed record MetadataFieldDto(
+        string FieldName,
+        string? Value,
+        string? Source,
+        double? Confidence,
+        bool IsOverridden);
+
+    private sealed record ReadingMemoryDto(
+        int? Disposition,
+        string? KeyInsight,
+        DateTimeOffset? UpdatedAtUtc);
+
+    private sealed record SearchPageDto(
+        string Query,
+        IReadOnlyList<SearchResultDto> Items,
+        int ReturnedCount,
+        bool HasMore);
+
+    private sealed record SearchResultDto(
+        string BookId,
+        string? Title,
+        string? Author,
+        int Score,
+        IReadOnlyList<string> MatchedFields);
 }

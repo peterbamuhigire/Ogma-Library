@@ -12,6 +12,7 @@ public sealed class LibraryHostHttpClientTests
     private const string Fingerprint = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     private static readonly string[] AdaAuthor = ["Ada"];
     private static readonly string[] MathShelf = ["math"];
+    private static readonly string[] TitleMatchedFields = ["Title"];
 
     [Fact]
     public async Task LibraryHostHttpClient_MapsHealthResponse()
@@ -118,6 +119,114 @@ public sealed class LibraryHostHttpClientTests
         Assert.Equal("session-token", handler.Requests[0].Headers.Authorization!.Parameter);
         Assert.Equal(
             "https://192.168.1.13:7473/api/v1/catalogue?page=2&pageSize=10&title=algebra&author=Ada%20Lovelace",
+            handler.Requests[0].RequestUri!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task LibraryHostHttpClient_GetsBookDetailWithBearerToken()
+    {
+        var handler = new QueueHttpHandler();
+        DateTimeOffset lastRead = new(2026, 6, 2, 11, 45, 0, TimeSpan.Zero);
+        handler.EnqueueJson(new
+        {
+            bookId = "book 1",
+            title = "Algebra I",
+            authors = AdaAuthor,
+            year = 2026,
+            isbn = "9780000000001",
+            doi = "10.1000/ogma",
+            rating = 5,
+            status = 1,
+            contentHash = Fingerprint,
+            sizeBytes = 12345,
+            readingProgress = new
+            {
+                bookId = "book 1",
+                currentPage = 4,
+                completionPct = 25.0,
+                lastReadUtc = lastRead,
+                status = 1,
+            },
+            annotations = 3,
+            metadataFields = new[]
+            {
+                new
+                {
+                    fieldName = "Title",
+                    value = "Algebra I",
+                    source = "manual",
+                    confidence = 1.0,
+                    isOverridden = true,
+                },
+            },
+            readingMemory = new
+            {
+                disposition = 5,
+                keyInsight = "Linear equations need practice.",
+                updatedAtUtc = lastRead,
+            },
+            isOcrDerived = false,
+            isPasswordProtected = false,
+            assets = new
+            {
+                coverUrl = "/api/v1/assets/cover/hash",
+                spineUrl = (string?)null,
+                thumbnailUrl = "/api/v1/assets/thumb/hash",
+            },
+        });
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        LibraryHostBookDetail detail = await client.GetBookAsync(request, "session-token", "book 1");
+
+        Assert.Equal("book 1", detail.BookId);
+        Assert.Equal("Algebra I", detail.Title);
+        Assert.Equal(4, detail.ReadingProgress!.CurrentPage);
+        Assert.Equal("Title", Assert.Single(detail.MetadataFields).FieldName);
+        Assert.Equal("Linear equations need practice.", detail.ReadingMemory!.KeyInsight);
+        Assert.Equal("/api/v1/assets/thumb/hash", detail.Assets.ThumbnailUrl);
+        Assert.Equal("session-token", handler.Requests[0].Headers.Authorization!.Parameter);
+        Assert.Equal(
+            "https://192.168.1.13:7473/api/v1/catalogue/book%201",
+            handler.Requests[0].RequestUri!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task LibraryHostHttpClient_SearchesCatalogueWithBearerToken()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueJson(new
+        {
+            query = "algebra",
+            items = new[]
+            {
+                new
+                {
+                    bookId = "book-1",
+                    title = "Algebra I",
+                    author = "Ada",
+                    score = 100,
+                    matchedFields = TitleMatchedFields,
+                },
+            },
+            returnedCount = 1,
+            hasMore = false,
+        });
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        LibraryHostSearchPage results = await client.SearchCatalogueAsync(
+            request,
+            "session-token",
+            new LibraryHostSearchQuery("algebra", PageSize: 12));
+
+        LibraryHostSearchResult result = Assert.Single(results.Items);
+        Assert.Equal("algebra", results.Query);
+        Assert.Equal("book-1", result.BookId);
+        Assert.Equal("Title", Assert.Single(result.MatchedFields));
+        Assert.Equal("session-token", handler.Requests[0].Headers.Authorization!.Parameter);
+        Assert.Equal(
+            "https://192.168.1.13:7473/api/v1/catalogue/search?pageSize=12&q=algebra",
             handler.Requests[0].RequestUri!.AbsoluteUri);
     }
 

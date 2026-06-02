@@ -23,6 +23,20 @@ public interface ILibraryHostClient
         LibraryHostCatalogueQuery query,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Reads one Host book detail projection using an issued session token.</summary>
+    Task<LibraryHostBookDetail> GetBookAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        string bookId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Searches Host catalogue metadata using an issued session token.</summary>
+    Task<LibraryHostSearchPage> SearchCatalogueAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostSearchQuery query,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Gets one rendered page PNG from a Host in page-render mode.</summary>
     Task<LibraryHostResource> GetPageRenderAsync(
         ClassroomJoinRequest request,

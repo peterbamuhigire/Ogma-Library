@@ -114,6 +114,68 @@ public sealed record LibraryHostBookSummary(
     string? ContentHash,
     LibraryHostAssetLinks Assets);
 
+/// <summary>Full book detail projected by a classroom Host.</summary>
+public sealed record LibraryHostBookDetail(
+    string BookId,
+    string? Title,
+    IReadOnlyList<string> Authors,
+    int? Year,
+    string? Isbn,
+    string? Doi,
+    int? Rating,
+    int Status,
+    string? ContentHash,
+    long? SizeBytes,
+    LibraryHostReadingProgress? ReadingProgress,
+    int Annotations,
+    IReadOnlyList<LibraryHostMetadataField> MetadataFields,
+    LibraryHostReadingMemorySummary? ReadingMemory,
+    bool IsOcrDerived,
+    bool IsPasswordProtected,
+    LibraryHostAssetLinks Assets);
+
+/// <summary>Host-projected reading progress for a book.</summary>
+public sealed record LibraryHostReadingProgress(
+    string BookId,
+    int CurrentPage,
+    double CompletionPct,
+    DateTimeOffset? LastReadUtc,
+    int Status);
+
+/// <summary>Host-projected metadata field with provenance.</summary>
+public sealed record LibraryHostMetadataField(
+    string FieldName,
+    string? Value,
+    string? Source,
+    double? Confidence,
+    bool IsOverridden);
+
+/// <summary>Host-projected reading memory summary.</summary>
+public sealed record LibraryHostReadingMemorySummary(
+    int? Disposition,
+    string? KeyInsight,
+    DateTimeOffset? UpdatedAtUtc);
+
+/// <summary>Metadata search query sent to a classroom Host.</summary>
+public sealed record LibraryHostSearchQuery(
+    string? Query,
+    int PageSize = 20);
+
+/// <summary>Metadata search page returned by a classroom Host.</summary>
+public sealed record LibraryHostSearchPage(
+    string Query,
+    IReadOnlyList<LibraryHostSearchResult> Items,
+    int ReturnedCount,
+    bool HasMore);
+
+/// <summary>One Host metadata search result.</summary>
+public sealed record LibraryHostSearchResult(
+    string BookId,
+    string? Title,
+    string? Author,
+    int Score,
+    IReadOnlyList<string> MatchedFields);
+
 /// <summary>Asset links projected by a classroom Host.</summary>
 public sealed record LibraryHostAssetLinks(
     string? CoverUrl,
