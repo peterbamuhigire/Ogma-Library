@@ -320,8 +320,8 @@ public sealed class ArchitectureTests
     }
 
     /// <summary>
-    /// Phase 12 AI provider HTTP clients must remain in infrastructure adapter
-    /// namespaces, never in feature, UI, domain, or application code.
+    /// HTTP clients must remain in infrastructure adapter namespaces, never in
+    /// feature, UI, domain, or application code.
     /// </summary>
     [Fact]
     public void Architecture_AiProviderHttpClients_StayInAdapterNamespaces()
@@ -336,7 +336,8 @@ public sealed class ArchitectureTests
             Assert.True(
                 ns.StartsWith("OgmaLibrary.Infrastructure.AI.Providers", StringComparison.Ordinal) ||
                 ns.StartsWith("OgmaLibrary.Infrastructure.AI.Ollama", StringComparison.Ordinal) ||
-                ns.StartsWith("OgmaLibrary.Infrastructure.Metadata.Providers", StringComparison.Ordinal),
+                ns.StartsWith("OgmaLibrary.Infrastructure.Metadata.Providers", StringComparison.Ordinal) ||
+                ns.StartsWith("OgmaLibrary.Infrastructure.ClassroomClient", StringComparison.Ordinal),
                 $"{type.FullName} must not own provider HTTP egress outside adapter namespaces.");
         });
     }

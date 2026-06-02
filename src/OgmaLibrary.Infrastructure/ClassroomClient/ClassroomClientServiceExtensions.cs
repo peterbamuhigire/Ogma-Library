@@ -23,7 +23,7 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<ISyncService, UnavailableSyncService>();
         services.AddSingleton<IOfflineCacheService>(_ => new DiskOfflineCacheService(dataDirectory));
         services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
-        services.AddSingleton<ILibraryHostClient, UnavailableLibraryHostClient>();
+        services.AddSingleton<ILibraryHostClient>(_ => new LibraryHostHttpClient(new HttpClient()));
         services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
         services.AddSingleton<IMdnsResolver, MdnsResolver>();
         services.AddSingleton<IHostTrustStore, InMemoryHostTrustStore>();

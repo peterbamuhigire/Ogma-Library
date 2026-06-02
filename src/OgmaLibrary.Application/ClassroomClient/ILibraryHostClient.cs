@@ -7,4 +7,19 @@ public interface ILibraryHostClient
     Task<LibraryHostHealth> GetHealthAsync(
         ClassroomJoinRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Issues a Host session token after enrollment-code confirmation.</summary>
+    Task<LibraryHostSession> IssueSessionAsync(
+        ClassroomJoinRequest request,
+        Guid profileId,
+        ClassroomRole role,
+        TimeSpan lifetime,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Reads a page of Host catalogue summaries using an issued session token.</summary>
+    Task<LibraryHostCataloguePage> GetCataloguePageAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        LibraryHostCatalogueQuery query,
+        CancellationToken cancellationToken = default);
 }

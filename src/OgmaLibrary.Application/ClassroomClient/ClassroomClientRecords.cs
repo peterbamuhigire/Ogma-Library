@@ -78,6 +78,48 @@ public sealed record LibraryHostHealth(
     string CertificateFingerprint,
     string ContentMode);
 
+/// <summary>Session token issued by a classroom Host.</summary>
+public sealed record LibraryHostSession(
+    string Token,
+    DateTimeOffset ExpiresUtc);
+
+/// <summary>Catalogue query sent to a classroom Host.</summary>
+public sealed record LibraryHostCatalogueQuery(
+    string? Title = null,
+    string? Author = null,
+    string? ShelfId = null,
+    int? Status = null,
+    int Page = 1,
+    int PageSize = 50);
+
+/// <summary>Page of catalogue books returned by a classroom Host.</summary>
+public sealed record LibraryHostCataloguePage(
+    IReadOnlyList<LibraryHostBookSummary> Items,
+    int Page,
+    int PageSize,
+    int ReturnedCount,
+    bool HasMore);
+
+/// <summary>Book summary projected by a classroom Host.</summary>
+public sealed record LibraryHostBookSummary(
+    string BookId,
+    string? Title,
+    IReadOnlyList<string> Authors,
+    int Status,
+    int? Rating,
+    IReadOnlyList<string> ShelfIds,
+    double? ReadingProgressPct,
+    bool IsAvailable,
+    int? Year,
+    string? ContentHash,
+    LibraryHostAssetLinks Assets);
+
+/// <summary>Asset links projected by a classroom Host.</summary>
+public sealed record LibraryHostAssetLinks(
+    string? CoverUrl,
+    string? SpineUrl,
+    string? ThumbnailUrl);
+
 /// <summary>TOFU trust state for a Host certificate fingerprint.</summary>
 public enum HostTrustState
 {
