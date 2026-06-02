@@ -37,6 +37,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly ILanBindAddressSelector _bindAddressSelector;
     private readonly ILanClientAddressPolicy _clientAddressPolicy;
     private readonly ISchoolAiKeyProvider? _schoolAiKeys;
+    private readonly IProfileEnrollmentService? _profileEnrollment;
     private WebApplication? _app;
 
     public KestrelHostModeListener(
@@ -52,7 +53,8 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         IAuditRepository audit,
         ILanBindAddressSelector bindAddressSelector,
         ILanClientAddressPolicy clientAddressPolicy,
-        ISchoolAiKeyProvider? schoolAiKeys = null)
+        ISchoolAiKeyProvider? schoolAiKeys = null,
+        IProfileEnrollmentService? profileEnrollment = null)
     {
         _catalogueReadModel = catalogueReadModel ?? throw new ArgumentNullException(nameof(catalogueReadModel));
         _metadataSearch = metadataSearch ?? throw new ArgumentNullException(nameof(metadataSearch));
@@ -67,6 +69,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         _bindAddressSelector = bindAddressSelector ?? throw new ArgumentNullException(nameof(bindAddressSelector));
         _clientAddressPolicy = clientAddressPolicy ?? throw new ArgumentNullException(nameof(clientAddressPolicy));
         _schoolAiKeys = schoolAiKeys;
+        _profileEnrollment = profileEnrollment;
     }
 
     /// <inheritdoc />
@@ -201,6 +204,60 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
         app.MapPost("/api/v1/auth/session", async (LanSessionIssueRequest request, HttpContext context, CancellationToken ct) =>
         {
+            if (request.ProfileId is not null || !string.IsNullOrWhiteSpace(request.EnrollmentToken))
+            {
+                if (_profileEnrollment is null)
+                {
+                    return Results.Json(
+                        new LanHostError(
+                            "profile_enrollment_unavailable",
+                            "Managed profile enrollment is not available on this Host."),
+                        statusCode: StatusCodes.Status503ServiceUnavailable);
+                }
+
+                if (request.ProfileId is null || string.IsNullOrWhiteSpace(request.EnrollmentToken))
+                {
+                    return Results.Json(
+                        new LanHostError(
+                            "invalid_enrollment_token_request",
+                            "Managed profile enrollment requires both profileId and enrollmentToken."),
+                        statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                EnrolledProfile? profile = await _profileEnrollment
+                    .RedeemTokenAsync(request.ProfileId.Value, request.EnrollmentToken, ct)
+                    .ConfigureAwait(false);
+                if (profile is null)
+                {
+                    return Results.Json(
+                        new LanHostError(
+                            "invalid_enrollment_token",
+                            "The managed profile enrollment token is invalid, expired, revoked, or already used."),
+                        statusCode: StatusCodes.Status401Unauthorized);
+                }
+
+                if (SchoolAdminAuthorization.IsAdminRole(profile.Role))
+                {
+                    return Results.Json(
+                        new LanHostError(
+                            "admin_role_not_enrollable",
+                            "Administrator sessions must be created on the Host, not through LAN enrollment."),
+                        statusCode: StatusCodes.Status403Forbidden);
+                }
+
+                TimeSpan managedLifetime = TimeSpan.FromMinutes(Math.Clamp(request.LifetimeMinutes ?? 30, 1, 480));
+                ClientSessionResult managedResult = await _sessions.IssueAsync(
+                        new ClientSessionRequest(profile.ProfileId.ToString("D"), profile.Role, managedLifetime),
+                        ct)
+                    .ConfigureAwait(false);
+                context.Items[IssuedSessionItemKey] = new ClientSessionSnapshot(
+                    TokenFingerprint: CreateTokenFingerprint(managedResult.Token),
+                    ClientId: profile.ProfileId.ToString("D"),
+                    Role: profile.Role,
+                    ExpiresUtc: managedResult.ExpiresUtc);
+                return Results.Json(new LanSessionIssueResponse(managedResult.Token, managedResult.ExpiresUtc));
+            }
+
             if (!IsEnrollmentCodeValid(request.EnrollmentCode, enrollmentCode))
             {
                 return Results.Json(
@@ -730,7 +787,9 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         string? ClientId,
         string? Role,
         int? LifetimeMinutes,
-        string? EnrollmentCode);
+        string? EnrollmentCode,
+        Guid? ProfileId,
+        string? EnrollmentToken);
 
     private sealed record LanSessionIssueResponse(
         string Token,

@@ -110,6 +110,45 @@ internal sealed class SchoolProfileEnrollmentService : IProfileEnrollmentService
         }
     }
 
+    public async Task<EnrolledProfile?> RedeemTokenAsync(
+        Guid profileId,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        if (profileId == Guid.Empty)
+        {
+            throw new ArgumentException("Profile id is required.", nameof(profileId));
+        }
+
+        string normalizedToken = RequireTrimmed(token, nameof(token));
+        string tokenHash = HashToken(normalizedToken);
+        string profileKey = profileId.ToString("D");
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        CatalogueDbContext context = await _contextFactory
+            .CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using (context.ConfigureAwait(false))
+        {
+            EnrolledProfileRow? row = await context.EnrolledProfiles
+                .FirstOrDefaultAsync(profile => profile.ProfileId == profileKey, cancellationToken)
+                .ConfigureAwait(false);
+            if (row is null ||
+                row.RevokedUtc is not null ||
+                row.EnrollmentTokenExpiresUtc is null ||
+                row.EnrollmentTokenExpiresUtc <= now ||
+                !string.Equals(row.EnrollmentToken, tokenHash, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            row.EnrollmentToken = null;
+            row.EnrollmentTokenExpiresUtc = null;
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return Map(row);
+        }
+    }
+
     internal static string HashToken(string token)
     {
         byte[] tokenBytes = Encoding.UTF8.GetBytes(token);

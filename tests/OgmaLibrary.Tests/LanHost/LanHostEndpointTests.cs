@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
@@ -72,6 +73,25 @@ public sealed class LanHostEndpointTests
                 "/api/v1/auth/session",
                 new { clientId = "student-1", role = "Student", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
+            EnrollmentToken managedEnrollment = await services.GetRequiredService<IProfileEnrollmentService>()
+                .EnrollAsync(new EnrollProfileRequest("Managed Student", "Student", BirthYear: 2014));
+            using HttpResponseMessage managedSession = await http.PostAsJsonAsync(
+                "/api/v1/auth/session",
+                new
+                {
+                    profileId = managedEnrollment.ProfileId,
+                    enrollmentToken = managedEnrollment.Token,
+                    lifetimeMinutes = 5,
+                });
+            string managedToken = await ReadJsonStringAsync(managedSession, "token");
+            using HttpResponseMessage replayManagedSession = await http.PostAsJsonAsync(
+                "/api/v1/auth/session",
+                new
+                {
+                    profileId = managedEnrollment.ProfileId,
+                    enrollmentToken = managedEnrollment.Token,
+                    lifetimeMinutes = 5,
+                });
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using HttpResponseMessage studentAdminRoute = await http.PostAsync("/admin/ai/test-connection?providerId=openai", null);
             using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=10");
@@ -116,6 +136,8 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.Unauthorized, invalidSession.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, rejectedAdminSession.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, managedSession.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, replayManagedSession.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, studentAdminRoute.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
@@ -205,6 +227,7 @@ public sealed class LanHostEndpointTests
                      e.AfterJson.Contains("\"resourceType\":\"ProfileSync\"", StringComparison.Ordinal));
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(adminSession.Token, StringComparison.Ordinal) == true);
+            Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(managedToken, StringComparison.Ordinal) == true);
 
             await services.GetRequiredService<IHostModeSettingsRepository>()
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.FileStream, "Ogma Endpoint Test"));

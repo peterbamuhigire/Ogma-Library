@@ -92,6 +92,21 @@ internal sealed class UnavailableSchoolAdminService :
         throw Disabled();
     }
 
+    public Task<EnrolledProfile?> RedeemTokenAsync(
+        Guid profileId,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        if (profileId == Guid.Empty)
+        {
+            throw new ArgumentException("Profile id is required.", nameof(profileId));
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<EnrolledProfile?>(null);
+    }
+
     public Task<SchoolAiPolicy> GetPolicyAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

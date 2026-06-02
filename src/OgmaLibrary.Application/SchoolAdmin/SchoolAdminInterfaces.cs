@@ -43,6 +43,12 @@ public interface IProfileEnrollmentService
 
     /// <summary>Revokes a profile and prevents new sessions.</summary>
     Task RevokeAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>Redeems a one-time enrollment token and consumes it on success.</summary>
+    Task<EnrolledProfile?> RedeemTokenAsync(
+        Guid profileId,
+        string token,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Owns classroom AI tier, quota, and rate-limit policy.</summary>

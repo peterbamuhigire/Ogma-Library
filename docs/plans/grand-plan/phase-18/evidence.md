@@ -39,6 +39,8 @@ on.
 | Conservative tier policy | `SchoolAiPolicyService.SavePolicyAsync()` rejects ContentAware and answer-mode elevation until the Phase 18 AI proxy/tier persistence path is implemented |
 | Usage dashboard service | `SchoolUsageDashboardService.GetSummaryAsync()` aggregates `AiUsageLedger` by enrolled profile, filters UTC date ranges, includes zero-usage enrolled profiles, and reports quota percentage and last activity |
 | DPIA screening service | `SchoolDpiaScreeningService` approves no-egress and metadata-only tiers, blocks ContentAware requests until explicit school DPIA approval exists, treats unknown-age profiles conservatively, and writes local audit events |
+| Enrollment-token redemption | `IProfileEnrollmentService.RedeemTokenAsync()` validates hashed one-time tokens, rejects revoked/expired/replayed tokens, consumes valid tokens, and returns enrolled profile metadata |
+| Managed profile Host sessions | `/api/v1/auth/session` accepts `profileId` + `enrollmentToken` for school-managed profiles, issues sessions using the enrolled server-side role, and keeps admin role unenrollable from LAN |
 
 ## Verified Locally
 
@@ -113,13 +115,20 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after DPIA screening service: 35 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after DPIA screening service |
 | `git diff --check` | Passed after DPIA screening service: no whitespace errors |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after enrollment-token redemption: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolProfileEnrollmentServiceTests" --logger "console;verbosity=minimal"` | Passed: 5 enrollment tests covering enroll/list/revoke, token hashing, default entitlement, admin-role rejection, one-time token redemption, replay rejection, and revoked-profile rejection |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~LanHostEndpointTests" --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after enrollment-token redemption: 1 real HTTPS Host endpoint test covering managed profile session issue, token replay rejection, admin-route guard, catalogue/search/detail/profile-sync, page render, and file-stream mode |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after enrollment-token redemption: 612 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after enrollment-token redemption: 35 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after enrollment-token redemption |
+| `git diff --check` | Passed after enrollment-token redemption: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- Enrollment-token exchange with Host sessions; AI key panel UI, rate-limit enforcement,
-  AI-proxy, dashboard UI, audit viewer, and student smart-search implementation.
+- AI key panel UI, rate-limit enforcement, AI-proxy, dashboard UI, audit viewer,
+  and student smart-search implementation.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

@@ -100,6 +100,63 @@ public sealed class SchoolProfileEnrollmentServiceTests
         }
     }
 
+    [Fact]
+    public async Task ProfileEnrollmentService_RedeemToken_ConsumesOneTimeToken()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            await using ServiceProvider provider = await CreateServicesAsync(dataDirectory);
+            var enrollment = provider.GetRequiredService<IProfileEnrollmentService>();
+            EnrollmentToken token = await enrollment.EnrollAsync(new EnrollProfileRequest(
+                "Amina Reader",
+                "Student",
+                BirthYear: 2014));
+
+            EnrolledProfile? redeemed = await enrollment.RedeemTokenAsync(token.ProfileId, token.Token);
+            EnrolledProfile? replay = await enrollment.RedeemTokenAsync(token.ProfileId, token.Token);
+
+            await using CatalogueDbContext context = provider.GetRequiredService<CatalogueDbContext>();
+            var row = await context.EnrolledProfiles.SingleAsync();
+            Assert.NotNull(redeemed);
+            Assert.Equal(token.ProfileId, redeemed.ProfileId);
+            Assert.Equal("student", redeemed.Role);
+            Assert.Null(replay);
+            Assert.Null(row.EnrollmentToken);
+            Assert.Null(row.EnrollmentTokenExpiresUtc);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ProfileEnrollmentService_RedeemToken_RejectsRevokedProfile()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            await using ServiceProvider provider = await CreateServicesAsync(dataDirectory);
+            var enrollment = provider.GetRequiredService<IProfileEnrollmentService>();
+            EnrollmentToken token = await enrollment.EnrollAsync(new EnrollProfileRequest(
+                "Amina Reader",
+                "Student",
+                BirthYear: 2014));
+            await enrollment.RevokeAsync(token.ProfileId);
+
+            EnrolledProfile? redeemed = await enrollment.RedeemTokenAsync(token.ProfileId, token.Token);
+
+            Assert.Null(redeemed);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static async Task<ServiceProvider> CreateServicesAsync(string dataDirectory)
     {
         ServiceProvider provider = new ServiceCollection()
