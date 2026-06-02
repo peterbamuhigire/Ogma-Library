@@ -17,8 +17,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly IClassroomConnectionService? _connectionService;
     private readonly ISyncService? _syncService;
     private readonly IClassroomModeService? _classroomModeService;
+    private readonly IMdnsResolver? _mdnsResolver;
     private readonly string _title = "Host";
     private readonly string _clientTitle = "Connect to Host";
+    private readonly string _discoveredHostsLabel = "LAN Hosts";
+    private readonly string _refreshHostsText = "Scan";
     private readonly string _syncNowText = "Sync now";
     private readonly string _syncOptInText = "Enable private sync";
     private readonly string _syncOnReconnectText = "Sync on reconnect";
@@ -59,6 +62,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private bool _isSyncEnabled;
     private bool _isSyncOptInEnabled;
     private bool _syncOnReconnect;
+    private IReadOnlyList<DiscoveredClassroomHost> _discoveredHosts = [];
+    private DiscoveredClassroomHost? _selectedDiscoveredHost;
     private string _joinLink = string.Empty;
     private string _profileDisplayName = string.Empty;
     private string _clientConnectionStatusText = "Not connected";
@@ -71,7 +76,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IClassroomJoinParser? joinParser = null,
         IClassroomConnectionService? connectionService = null,
         ISyncService? syncService = null,
-        IClassroomModeService? classroomModeService = null)
+        IClassroomModeService? classroomModeService = null,
+        IMdnsResolver? mdnsResolver = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
@@ -79,6 +85,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _connectionService = connectionService;
         _syncService = syncService;
         _classroomModeService = classroomModeService;
+        _mdnsResolver = mdnsResolver;
     }
 
     /// <inheritdoc />
@@ -90,6 +97,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public string Title => _title;
 
     public string ClientTitle => _clientTitle;
+
+    public string DiscoveredHostsLabel => _discoveredHostsLabel;
+
+    public string RefreshHostsText => _refreshHostsText;
 
     public string SyncNowText => _syncNowText;
 
@@ -144,6 +155,43 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 _joinLink = next;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanConnectToHost));
+            }
+        }
+    }
+
+    public IReadOnlyList<DiscoveredClassroomHost> DiscoveredHosts
+    {
+        get => _discoveredHosts;
+        private set
+        {
+            if (!ReferenceEquals(_discoveredHosts, value))
+            {
+                _discoveredHosts = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasDiscoveredHosts));
+            }
+        }
+    }
+
+    public DiscoveredClassroomHost? SelectedDiscoveredHost
+    {
+        get => _selectedDiscoveredHost;
+        set
+        {
+            if (_selectedDiscoveredHost != value)
+            {
+                _selectedDiscoveredHost = value;
+                OnPropertyChanged();
+                if (value is not null)
+                {
+                    JoinLink = BuildJoinUri(
+                        value.DisplayName,
+                        value.Address,
+                        value.Port,
+                        value.CertificateFingerprint,
+                        ResolveEnrollmentCode(value));
+                    ClientConnectionStatusText = $"Selected {value.DisplayName}";
+                }
             }
         }
     }
@@ -309,6 +357,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanChangeContentMode));
                 OnPropertyChanged(nameof(CanConnectToHost));
                 OnPropertyChanged(nameof(CanSyncNow));
+                OnPropertyChanged(nameof(CanDiscoverHosts));
             }
         }
     }
@@ -325,6 +374,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _connectionService is not null &&
         !string.IsNullOrWhiteSpace(JoinLink) &&
         (UseGuestProfile || !string.IsNullOrWhiteSpace(ProfileDisplayName));
+
+    public bool CanDiscoverHosts => !IsBusy && _mdnsResolver is not null;
+
+    public bool HasHostDiscovery => _mdnsResolver is not null;
+
+    public bool HasDiscoveredHosts => DiscoveredHosts.Count > 0;
 
     public bool CanSyncNow =>
         !IsBusy &&
@@ -469,6 +524,41 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             IsBusy = false;
             OnPropertyChanged(nameof(CanConnectToHost));
             OnPropertyChanged(nameof(CanSyncNow));
+        }
+    }
+
+    public async Task DiscoverHostsAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanDiscoverHosts || _mdnsResolver is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            ClientConnectionStatusText = "Scanning for classroom Hosts";
+            IReadOnlyList<DiscoveredClassroomHost> hosts = await _mdnsResolver
+                .DiscoverAsync(TimeSpan.FromSeconds(2), cancellationToken)
+                .ConfigureAwait(true);
+            DiscoveredHosts = hosts;
+            SelectedDiscoveredHost = hosts.Count == 1 ? hosts[0] : null;
+            ClientConnectionStatusText = hosts.Count switch
+            {
+                0 => "No classroom Hosts found",
+                1 => $"Selected {hosts[0].DisplayName}",
+                _ => $"{hosts.Count} classroom Hosts found",
+            };
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
+        {
+            ClientConnectionStatusText = $"Host scan failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanDiscoverHosts));
+            OnPropertyChanged(nameof(CanConnectToHost));
         }
     }
 
@@ -772,6 +862,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStop));
         OnPropertyChanged(nameof(CanChangeContentMode));
         OnPropertyChanged(nameof(CanShare));
+        OnPropertyChanged(nameof(CanDiscoverHosts));
     }
 
     private void RaiseShareChanged()
@@ -788,18 +879,36 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         string hostAddress,
         int port,
         string fingerprint,
-        string enrollmentCode)
+        string? enrollmentCode)
     {
+        string query =
+            $"name={Uri.EscapeDataString(displayName)}" +
+            $"&fp={Uri.EscapeDataString(fingerprint)}";
+        if (!string.IsNullOrWhiteSpace(enrollmentCode))
+        {
+            query += $"&code={Uri.EscapeDataString(enrollmentCode)}";
+        }
+
+        query += "&auth=enrollment-code";
         var builder = new UriBuilder("ogma-lan", hostAddress, port)
         {
             Path = "join",
-            Query =
-                $"name={Uri.EscapeDataString(displayName)}" +
-                $"&fp={Uri.EscapeDataString(fingerprint)}" +
-                $"&code={Uri.EscapeDataString(enrollmentCode)}" +
-                "&auth=enrollment-code",
+            Query = query,
         };
         return builder.Uri.AbsoluteUri;
+    }
+
+    private static string? ResolveEnrollmentCode(DiscoveredClassroomHost host)
+    {
+        if (host.Txt.TryGetValue("code", out string? code) && !string.IsNullOrWhiteSpace(code))
+        {
+            return code;
+        }
+
+        return host.Txt.TryGetValue("enrollment-code", out string? enrollmentCode) &&
+            !string.IsNullOrWhiteSpace(enrollmentCode)
+            ? enrollmentCode
+            : null;
     }
 
     private static string FormatFingerprint(string fingerprint)

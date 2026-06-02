@@ -64,6 +64,14 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
+    private async void DiscoverHostsButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.DiscoverHostsAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void SyncNowButton_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)

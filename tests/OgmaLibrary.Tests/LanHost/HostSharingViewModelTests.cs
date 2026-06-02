@@ -174,6 +174,43 @@ public sealed class HostSharingViewModelTests
     }
 
     [Fact]
+    public async Task HostSharingViewModel_DiscoverHosts_SelectsSingleHostAndBuildsJoinLink()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var discovered = new DiscoveredClassroomHost(
+            "room-12",
+            "Room 12 Library",
+            "192.168.1.13",
+            7473,
+            FakeLibraryHostService.Fingerprint,
+            new Dictionary<string, string>
+            {
+                ["requires-auth"] = "true",
+            });
+        var resolver = new RecordingMdnsResolver(discovered);
+        var viewModel = new HostSharingViewModel(
+            host,
+            settings,
+            mdnsResolver: resolver)
+        {
+            UseGuestProfile = true,
+        };
+
+        await viewModel.DiscoverHostsAsync();
+
+        Assert.Equal(1, resolver.DiscoverCalls);
+        Assert.True(viewModel.HasDiscoveredHosts);
+        Assert.True(viewModel.CanDiscoverHosts);
+        Assert.Equal(discovered, viewModel.SelectedDiscoveredHost);
+        Assert.Contains("ogma-lan://192.168.1.13:7473/join", viewModel.JoinLink, StringComparison.Ordinal);
+        Assert.Contains("name=Room%2012%20Library", viewModel.JoinLink, StringComparison.Ordinal);
+        Assert.Contains($"fp={FakeLibraryHostService.Fingerprint}", viewModel.JoinLink, StringComparison.Ordinal);
+        Assert.DoesNotContain("&code=", viewModel.JoinLink, StringComparison.Ordinal);
+        Assert.Equal("Selected Room 12 Library", viewModel.ClientConnectionStatusText);
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_ConnectToHost_SyncOnReconnectRunsAfterSuccessfulConnection()
     {
         var host = new FakeLibraryHostService();
@@ -496,6 +533,27 @@ public sealed class HostSharingViewModelTests
     {
         public void Dispose()
         {
+        }
+    }
+
+    private sealed class RecordingMdnsResolver : IMdnsResolver
+    {
+        private readonly IReadOnlyList<DiscoveredClassroomHost> _hosts;
+
+        public RecordingMdnsResolver(params DiscoveredClassroomHost[] hosts) => _hosts = hosts;
+
+        public int DiscoverCalls { get; private set; }
+
+        public IObservable<DiscoveredClassroomHost> Hosts { get; } =
+            new EmptyObservable<DiscoveredClassroomHost>();
+
+        public Task<IReadOnlyList<DiscoveredClassroomHost>> DiscoverAsync(
+            TimeSpan timeout,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            DiscoverCalls++;
+            return Task.FromResult(_hosts);
         }
     }
 }

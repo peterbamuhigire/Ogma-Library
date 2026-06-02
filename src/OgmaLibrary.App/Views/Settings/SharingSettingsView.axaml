@@ -181,7 +181,7 @@
       </Grid>
 
       <Grid Grid.Row="3"
-            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
             RowSpacing="10">
         <TextBlock Grid.Row="0"
                    Text="{Binding ClientTitle}"
@@ -190,6 +190,41 @@
                    Foreground="{DynamicResource Brush.Surface.OnParchment}" />
 
         <Grid Grid.Row="1"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="10"
+              IsVisible="{Binding HasHostDiscovery}">
+          <ComboBox Grid.Column="0"
+                    ItemsSource="{Binding DiscoveredHosts}"
+                    SelectedItem="{Binding SelectedDiscoveredHost, Mode=TwoWay}"
+                    AutomationProperties.Name="{Binding DiscoveredHostsLabel}"
+                    IsEnabled="{Binding HasDiscoveredHosts}"
+                    FontSize="{DynamicResource Type.Size.Caption}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding DisplayName}"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                  <TextBlock Text="{Binding Address}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                </StackPanel>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Grid.Column="1"
+                  Padding="12,7"
+                  Background="{DynamicResource Brush.Accent.Slate}"
+                  Foreground="White"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  IsEnabled="{Binding CanDiscoverHosts}"
+                  AutomationProperties.Name="{Binding RefreshHostsText}"
+                  Click="DiscoverHostsButton_Click">
+            <TextBlock Text="{Binding RefreshHostsText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </Grid>
+
+        <Grid Grid.Row="2"
               ColumnDefinitions="2*,*,Auto"
               ColumnSpacing="10">
           <TextBox Grid.Column="0"
@@ -217,7 +252,7 @@
           </Button>
         </Grid>
 
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="3"
               ColumnDefinitions="Auto,Auto,*"
               ColumnSpacing="14">
           <CheckBox Grid.Column="0"
@@ -236,7 +271,7 @@
                      VerticalAlignment="Center" />
         </Grid>
 
-        <Grid Grid.Row="3"
+        <Grid Grid.Row="4"
               ColumnDefinitions="Auto,Auto,*"
               ColumnSpacing="14">
           <CheckBox Grid.Column="0"
@@ -254,7 +289,7 @@
                     Click="SyncSettingsCheckBox_Click" />
         </Grid>
 
-        <Grid Grid.Row="4"
+        <Grid Grid.Row="5"
               ColumnDefinitions="*,Auto"
               ColumnSpacing="10">
           <TextBlock Grid.Column="0"
