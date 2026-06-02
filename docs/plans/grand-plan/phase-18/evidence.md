@@ -29,7 +29,8 @@ on.
 | Migration isolation test | `Phase18Migration_AddsSchoolAdminTablesAndRoundTrips` verifies UP, DOWN to `20260601184330_Phase16LanHostTables`, and re-UP |
 | Library publishing service | `SchoolAdminCatalogueService` implements `ILibraryPublishingService` with publish, unpublish, and list persistence |
 | Shared shelf service | `SchoolAdminCatalogueService` implements `ISharedShelfService` with save, list, soft-delete, book assignment, and group visibility persistence |
-| Service registration | `AddSchoolAdminServices()` registers data-backed publishing/shared-shelf services while non-implemented AI/enrollment services remain fail-closed |
+| Profile enrollment service | `SchoolProfileEnrollmentService` enrolls student/teacher profiles, stores one-time token hashes, creates default AI entitlements, lists profiles, and revokes profiles |
+| Service registration | `AddSchoolAdminServices()` registers data-backed publishing, shared-shelf, and profile-enrollment services while non-implemented AI services remain fail-closed |
 
 ## Verified Locally
 
@@ -67,13 +68,20 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after publishing/shared-shelf services: 34 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after publishing/shared-shelf services |
 | `git diff --check` | Passed after publishing/shared-shelf services: no whitespace errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolProfileEnrollmentServiceTests" --logger "console;verbosity=minimal"` | Passed: 3 profile enrollment, hashed token, entitlement, and admin-role rejection tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminScaffoldTests\|FullyQualifiedName~SchoolAdminCatalogueServiceTests" --logger "console;verbosity=minimal"` | Passed after enrollment registration: 10 SchoolAdmin scaffold/catalogue tests |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after profile enrollment service: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after profile enrollment service: 591 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after profile enrollment service: 34 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after profile enrollment service |
+| `git diff --check` | Passed after profile enrollment service: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- Library publishing, shared shelves, enrollment, key storage, DPIA, quota,
+- Enrollment-token exchange with Host sessions; key storage, DPIA, quota,
   AI-proxy, dashboard, audit viewer, and student smart-search implementation.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.

@@ -19,13 +19,14 @@ public static class SchoolAdminServiceExtensions
         }
 
         services.AddSingleton<SchoolAdminCatalogueService>();
+        services.AddSingleton<SchoolProfileEnrollmentService>();
         services.AddSingleton<UnavailableSchoolAdminService>();
         services.AddSingleton<ILibraryPublishingService>(provider =>
             provider.GetRequiredService<SchoolAdminCatalogueService>());
         services.AddSingleton<ISharedShelfService>(provider =>
             provider.GetRequiredService<SchoolAdminCatalogueService>());
         services.AddSingleton<IProfileEnrollmentService>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+            provider.GetRequiredService<SchoolProfileEnrollmentService>());
         services.AddSingleton<ISchoolAiPolicyService>(provider =>
             provider.GetRequiredService<UnavailableSchoolAdminService>());
         services.AddSingleton<ISchoolAiKeyProvider>(provider =>
