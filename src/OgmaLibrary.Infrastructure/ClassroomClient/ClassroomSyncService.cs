@@ -85,6 +85,12 @@ internal sealed class ClassroomSyncService : ISyncService
         StudentSyncState? previousState = await _privateRepository
             .GetSyncStateAsync(profile.ProfileId, hostId, cancellationToken)
             .ConfigureAwait(false);
+        int conflictCount = await DownloadAndMergeAsync(
+                profile.ProfileId,
+                hostId,
+                connection,
+                cancellationToken)
+            .ConfigureAwait(false);
 
         ClassroomSyncSnapshot snapshot = new(
             profile.ProfileId,
@@ -111,17 +117,227 @@ internal sealed class ClassroomSyncService : ISyncService
         byte[] hashSource = downloadedBlob?.Content ?? uploadBlob.Content;
         string blobHash = Convert.ToHexString(SHA256.HashData(hashSource)).ToLowerInvariant();
         DateTimeOffset syncedUtc = DateTimeOffset.UtcNow;
-        var state = new StudentSyncState(hostId, syncedUtc, blobHash, ConflictCount: 0);
+        var state = new StudentSyncState(hostId, syncedUtc, blobHash, conflictCount);
         await _privateRepository.SaveSyncStateAsync(profile.ProfileId, state, cancellationToken).ConfigureAwait(false);
 
         return new ClassroomSyncStatus(
             IsEnabled: true,
             IsRunning: false,
             LastSyncedUtc: syncedUtc,
-            ConflictCount: 0,
+            ConflictCount: conflictCount,
             ErrorMessage: null);
     }
 
     private static ClassroomSyncStatus Disabled(string errorMessage) =>
         new(IsEnabled: false, IsRunning: false, LastSyncedUtc: null, ConflictCount: 0, ErrorMessage: errorMessage);
+
+    private async Task<int> DownloadAndMergeAsync(
+        Guid profileId,
+        string hostId,
+        ClassroomHostConnection connection,
+        CancellationToken cancellationToken)
+    {
+        EncryptedClassroomSyncBlob? remoteBlob = await _hostClient
+            .DownloadProfileSyncBlobAsync(connection.Request, connection.SessionToken, cancellationToken)
+            .ConfigureAwait(false);
+        if (remoteBlob is null)
+        {
+            return 0;
+        }
+
+        ClassroomSyncSnapshot remoteSnapshot = _codec.Decode(remoteBlob, connection.SessionToken);
+        if (remoteSnapshot.ProfileId != profileId || !string.Equals(remoteSnapshot.HostId, hostId, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        int conflictCount = 0;
+        conflictCount += await MergeReadingProgressAsync(profileId, hostId, remoteSnapshot.ReadingProgress, cancellationToken)
+            .ConfigureAwait(false);
+        conflictCount += await MergeAnnotationsAsync(profileId, hostId, remoteSnapshot.Annotations, cancellationToken)
+            .ConfigureAwait(false);
+        conflictCount += await MergeBookmarksAsync(profileId, hostId, remoteSnapshot.Bookmarks, cancellationToken)
+            .ConfigureAwait(false);
+        conflictCount += await MergeAiHistoryAsync(profileId, hostId, remoteSnapshot.AiHistory, cancellationToken)
+            .ConfigureAwait(false);
+        return conflictCount;
+    }
+
+    private async Task<int> MergeReadingProgressAsync(
+        Guid profileId,
+        string hostId,
+        IReadOnlyList<StudentReadingProgress> remoteRows,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<string, StudentReadingProgress> localRows = (await _privateRepository
+                .ListReadingProgressAsync(profileId, hostId, cancellationToken)
+                .ConfigureAwait(false))
+            .ToDictionary(row => row.BookId, StringComparer.Ordinal);
+        int conflicts = 0;
+        foreach (StudentReadingProgress remote in remoteRows.Where(row => string.Equals(row.HostId, hostId, StringComparison.Ordinal)))
+        {
+            if (!localRows.TryGetValue(remote.BookId, out StudentReadingProgress? local))
+            {
+                await _privateRepository.SaveReadingProgressAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            MergeDecision decision = Decide(
+                local.UpdatedUtc,
+                remote.UpdatedUtc,
+                local.LastPage == remote.LastPage && Math.Abs(local.LastOffsetY - remote.LastOffsetY) < 0.001);
+            if (decision == MergeDecision.UseRemote)
+            {
+                await _privateRepository.SaveReadingProgressAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+            }
+            else if (decision == MergeDecision.Conflict)
+            {
+                conflicts++;
+            }
+        }
+
+        return conflicts;
+    }
+
+    private async Task<int> MergeAnnotationsAsync(
+        Guid profileId,
+        string hostId,
+        IReadOnlyList<StudentAnnotation> remoteRows,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<string, StudentAnnotation> localRows = (await _privateRepository
+                .ListAnnotationsForHostAsync(profileId, hostId, includeDeleted: true, cancellationToken)
+                .ConfigureAwait(false))
+            .ToDictionary(row => row.Id, StringComparer.Ordinal);
+        int conflicts = 0;
+        foreach (StudentAnnotation remote in remoteRows.Where(row => string.Equals(row.HostId, hostId, StringComparison.Ordinal)))
+        {
+            if (!localRows.TryGetValue(remote.Id, out StudentAnnotation? local))
+            {
+                await _privateRepository.SaveAnnotationAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            MergeDecision decision = Decide(local.UpdatedUtc, remote.UpdatedUtc, SameAnnotation(local, remote));
+            if (decision == MergeDecision.UseRemote)
+            {
+                await _privateRepository.SaveAnnotationAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+            }
+            else if (decision == MergeDecision.Conflict)
+            {
+                conflicts++;
+            }
+        }
+
+        return conflicts;
+    }
+
+    private async Task<int> MergeBookmarksAsync(
+        Guid profileId,
+        string hostId,
+        IReadOnlyList<StudentBookmark> remoteRows,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<string, StudentBookmark> localRows = (await _privateRepository
+                .ListBookmarksForHostAsync(profileId, hostId, includeDeleted: true, cancellationToken)
+                .ConfigureAwait(false))
+            .ToDictionary(row => row.Id, StringComparer.Ordinal);
+        int conflicts = 0;
+        foreach (StudentBookmark remote in remoteRows.Where(row => string.Equals(row.HostId, hostId, StringComparison.Ordinal)))
+        {
+            if (!localRows.TryGetValue(remote.Id, out StudentBookmark? local))
+            {
+                await _privateRepository.SaveBookmarkAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            MergeDecision decision = Decide(local.UpdatedUtc, remote.UpdatedUtc, SameBookmark(local, remote));
+            if (decision == MergeDecision.UseRemote)
+            {
+                await _privateRepository.SaveBookmarkAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+            }
+            else if (decision == MergeDecision.Conflict)
+            {
+                conflicts++;
+            }
+        }
+
+        return conflicts;
+    }
+
+    private async Task<int> MergeAiHistoryAsync(
+        Guid profileId,
+        string hostId,
+        IReadOnlyList<StudentAiHistoryEntry> remoteRows,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<string, StudentAiHistoryEntry> localRows = (await _privateRepository
+                .ListAiHistoryAsync(profileId, hostId, includeDeleted: true, cancellationToken)
+                .ConfigureAwait(false))
+            .ToDictionary(row => row.Id, StringComparer.Ordinal);
+        int conflicts = 0;
+        foreach (StudentAiHistoryEntry remote in remoteRows.Where(row => string.Equals(row.HostId, hostId, StringComparison.Ordinal)))
+        {
+            if (!localRows.TryGetValue(remote.Id, out StudentAiHistoryEntry? local))
+            {
+                await _privateRepository.SaveAiHistoryAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            MergeDecision decision = Decide(local.CreatedUtc, remote.CreatedUtc, SameAiHistory(local, remote));
+            if (decision == MergeDecision.UseRemote)
+            {
+                await _privateRepository.SaveAiHistoryAsync(profileId, remote, cancellationToken).ConfigureAwait(false);
+            }
+            else if (decision == MergeDecision.Conflict)
+            {
+                conflicts++;
+            }
+        }
+
+        return conflicts;
+    }
+
+    private static MergeDecision Decide(DateTimeOffset localUpdated, DateTimeOffset remoteUpdated, bool sameContent)
+    {
+        TimeSpan delta = remoteUpdated - localUpdated;
+        if (delta.Duration() <= TimeSpan.FromSeconds(1))
+        {
+            return sameContent ? MergeDecision.KeepLocal : MergeDecision.Conflict;
+        }
+
+        return delta > TimeSpan.Zero ? MergeDecision.UseRemote : MergeDecision.KeepLocal;
+    }
+
+    private static bool SameAnnotation(StudentAnnotation left, StudentAnnotation right) =>
+        string.Equals(left.HostId, right.HostId, StringComparison.Ordinal) &&
+        string.Equals(left.BookId, right.BookId, StringComparison.Ordinal) &&
+        left.PageNumber == right.PageNumber &&
+        string.Equals(left.Type, right.Type, StringComparison.Ordinal) &&
+        string.Equals(left.Color, right.Color, StringComparison.Ordinal) &&
+        string.Equals(left.Body, right.Body, StringComparison.Ordinal) &&
+        left.CreatedUtc == right.CreatedUtc &&
+        left.IsDeleted == right.IsDeleted;
+
+    private static bool SameBookmark(StudentBookmark left, StudentBookmark right) =>
+        string.Equals(left.HostId, right.HostId, StringComparison.Ordinal) &&
+        string.Equals(left.BookId, right.BookId, StringComparison.Ordinal) &&
+        left.PageNumber == right.PageNumber &&
+        string.Equals(left.Label, right.Label, StringComparison.Ordinal) &&
+        left.CreatedUtc == right.CreatedUtc &&
+        left.IsDeleted == right.IsDeleted;
+
+    private static bool SameAiHistory(StudentAiHistoryEntry left, StudentAiHistoryEntry right) =>
+        string.Equals(left.HostId, right.HostId, StringComparison.Ordinal) &&
+        string.Equals(left.Query, right.Query, StringComparison.Ordinal) &&
+        string.Equals(left.ResponseSummary, right.ResponseSummary, StringComparison.Ordinal) &&
+        string.Equals(left.Tier, right.Tier, StringComparison.Ordinal) &&
+        left.IsDeleted == right.IsDeleted;
+
+    private enum MergeDecision
+    {
+        KeepLocal,
+        UseRemote,
+        Conflict,
+    }
 }

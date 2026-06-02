@@ -133,6 +133,145 @@ public sealed class ClassroomSyncServiceTests
     }
 
     [Fact]
+    public async Task ClassroomSyncService_SyncNow_DownloadsRemoteSnapshotAndAppliesLastWriteWins()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            Guid profileId = Guid.NewGuid();
+            var profile = new ClassroomProfile(profileId, "Ada", ClassroomRole.Student, IsGuest: false);
+            var repository = new StudentPrivateRepository(dataDirectory);
+            string hostId = HostTrustService.CreateHostKey(JoinRequest);
+            DateTimeOffset createdUtc = new(2026, 6, 2, 8, 0, 0, TimeSpan.Zero);
+            await repository.SaveAnnotationAsync(
+                profileId,
+                new StudentAnnotation(
+                    "annotation-1",
+                    hostId,
+                    "book-1",
+                    4,
+                    "Note",
+                    null,
+                    "Local older body",
+                    createdUtc,
+                    createdUtc.AddMinutes(1)));
+            var remoteAnnotation = new StudentAnnotation(
+                "annotation-1",
+                hostId,
+                "book-1",
+                4,
+                "Note",
+                null,
+                "Server newer body",
+                createdUtc,
+                createdUtc.AddMinutes(5));
+            var codec = new ClassroomSyncBlobCodec();
+            var host = new RecordingHostClient
+            {
+                RemoteBlob = codec.Encode(
+                    new ClassroomSyncSnapshot(
+                        profileId,
+                        hostId,
+                        createdUtc.AddMinutes(5),
+                        [],
+                        [remoteAnnotation],
+                        [],
+                        [],
+                        null),
+                    Connection.SessionToken),
+            };
+            var service = new ClassroomSyncService(
+                new FixedProfileService(profile),
+                new FixedConnectionService(Connection),
+                repository,
+                codec,
+                host);
+
+            ClassroomSyncStatus status = await service.SyncNowAsync();
+
+            IReadOnlyList<StudentAnnotation> annotations = await repository.ListAnnotationsForHostAsync(
+                profileId,
+                hostId,
+                includeDeleted: true);
+            StudentAnnotation merged = Assert.Single(annotations);
+            Assert.Equal("Server newer body", merged.Body);
+            Assert.Equal(0, status.ConflictCount);
+            ClassroomSyncSnapshot uploaded = codec.Decode(host.Uploaded!, Connection.SessionToken);
+            Assert.Equal("Server newer body", Assert.Single(uploaded.Annotations).Body);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ClassroomSyncService_SyncNow_DetectsConflictAndKeepsLocalUntilUiResolution()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            Guid profileId = Guid.NewGuid();
+            var profile = new ClassroomProfile(profileId, "Ada", ClassroomRole.Student, IsGuest: false);
+            var repository = new StudentPrivateRepository(dataDirectory);
+            string hostId = HostTrustService.CreateHostKey(JoinRequest);
+            DateTimeOffset updatedUtc = new(2026, 6, 2, 8, 0, 0, TimeSpan.Zero);
+            var localAnnotation = new StudentAnnotation(
+                "annotation-1",
+                hostId,
+                "book-1",
+                4,
+                "Note",
+                null,
+                "Keep local body",
+                updatedUtc.AddMinutes(-1),
+                updatedUtc);
+            await repository.SaveAnnotationAsync(profileId, localAnnotation);
+            var remoteAnnotation = localAnnotation with { Body = "Server conflicting body" };
+            var codec = new ClassroomSyncBlobCodec();
+            var host = new RecordingHostClient
+            {
+                RemoteBlob = codec.Encode(
+                    new ClassroomSyncSnapshot(
+                        profileId,
+                        hostId,
+                        updatedUtc,
+                        [],
+                        [remoteAnnotation],
+                        [],
+                        [],
+                        null),
+                    Connection.SessionToken),
+            };
+            var service = new ClassroomSyncService(
+                new FixedProfileService(profile),
+                new FixedConnectionService(Connection),
+                repository,
+                codec,
+                host);
+
+            ClassroomSyncStatus status = await service.SyncNowAsync();
+
+            StudentAnnotation persisted = Assert.Single(await repository.ListAnnotationsForHostAsync(
+                profileId,
+                hostId,
+                includeDeleted: true));
+            StudentSyncState? state = await repository.GetSyncStateAsync(profileId, hostId);
+            ClassroomSyncSnapshot uploaded = codec.Decode(host.Uploaded!, Connection.SessionToken);
+            Assert.Equal("Keep local body", persisted.Body);
+            Assert.Equal(1, status.ConflictCount);
+            Assert.Equal(1, state!.ConflictCount);
+            Assert.Equal("Keep local body", Assert.Single(uploaded.Annotations).Body);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task ClassroomSyncService_SyncNow_RequiresPersistentProfileAndActiveConnection()
     {
         string dataDirectory = CreateTempDirectory();
@@ -259,6 +398,8 @@ public sealed class ClassroomSyncServiceTests
 
     private sealed class RecordingHostClient : ILibraryHostClient
     {
+        public EncryptedClassroomSyncBlob? RemoteBlob { get; init; }
+
         public EncryptedClassroomSyncBlob? Uploaded { get; private set; }
 
         public int UploadCalls { get; private set; }
@@ -335,6 +476,6 @@ public sealed class ClassroomSyncServiceTests
             ClassroomJoinRequest request,
             string sessionToken,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(Uploaded);
+            Task.FromResult(RemoteBlob ?? Uploaded);
     }
 }
