@@ -12,6 +12,12 @@ public interface IClassroomModeService
     /// <summary>Persists a mode change. Switching into Client mode requires explicit UI confirmation.</summary>
     Task SaveModeAsync(ClassroomModeSettings settings, CancellationToken cancellationToken = default);
 
+    /// <summary>Gets persisted private sync preferences for Client mode.</summary>
+    Task<ClassroomSyncSettings> GetSyncSettingsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Persists private sync preferences for Client mode.</summary>
+    Task SaveSyncSettingsAsync(ClassroomSyncSettings settings, CancellationToken cancellationToken = default);
+
     /// <summary>Gets the latest runtime Host connectivity status.</summary>
     Task<ClassroomConnectivityStatus> GetConnectivityAsync(CancellationToken cancellationToken = default);
 

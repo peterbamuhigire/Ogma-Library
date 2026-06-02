@@ -16,9 +16,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly IClassroomJoinParser? _joinParser;
     private readonly IClassroomConnectionService? _connectionService;
     private readonly ISyncService? _syncService;
+    private readonly IClassroomModeService? _classroomModeService;
     private readonly string _title = "Host";
     private readonly string _clientTitle = "Connect to Host";
     private readonly string _syncNowText = "Sync now";
+    private readonly string _syncOptInText = "Enable private sync";
+    private readonly string _syncOnReconnectText = "Sync on reconnect";
     private readonly string _joinLinkLabel = "Join link";
     private readonly string _profileDisplayNameLabel = "Student name";
     private readonly string _guestProfileText = "Guest";
@@ -54,6 +57,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private bool _acceptFirstUseTrust;
     private bool _useGuestProfile;
     private bool _isSyncEnabled;
+    private bool _isSyncOptInEnabled;
+    private bool _syncOnReconnect;
     private string _joinLink = string.Empty;
     private string _profileDisplayName = string.Empty;
     private string _clientConnectionStatusText = "Not connected";
@@ -65,13 +70,15 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         IHostModeSettingsRepository settingsRepository,
         IClassroomJoinParser? joinParser = null,
         IClassroomConnectionService? connectionService = null,
-        ISyncService? syncService = null)
+        ISyncService? syncService = null,
+        IClassroomModeService? classroomModeService = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
         _joinParser = joinParser;
         _connectionService = connectionService;
         _syncService = syncService;
+        _classroomModeService = classroomModeService;
     }
 
     /// <inheritdoc />
@@ -85,6 +92,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     public string ClientTitle => _clientTitle;
 
     public string SyncNowText => _syncNowText;
+
+    public string SyncOptInText => _syncOptInText;
+
+    public string SyncOnReconnectText => _syncOnReconnectText;
 
     public string JoinLinkLabel => _joinLinkLabel;
 
@@ -175,6 +186,40 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
                 _useGuestProfile = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanConnectToHost));
+            }
+        }
+    }
+
+    public bool IsSyncOptInEnabled
+    {
+        get => _isSyncOptInEnabled;
+        set
+        {
+            if (_isSyncOptInEnabled != value)
+            {
+                _isSyncOptInEnabled = value;
+                if (!_isSyncOptInEnabled)
+                {
+                    SyncOnReconnect = false;
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanSyncNow));
+                OnPropertyChanged(nameof(CanSyncOnReconnect));
+            }
+        }
+    }
+
+    public bool SyncOnReconnect
+    {
+        get => _syncOnReconnect;
+        set
+        {
+            bool next = value && IsSyncOptInEnabled;
+            if (_syncOnReconnect != next)
+            {
+                _syncOnReconnect = next;
+                OnPropertyChanged();
             }
         }
     }
@@ -281,7 +326,16 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         !string.IsNullOrWhiteSpace(JoinLink) &&
         (UseGuestProfile || !string.IsNullOrWhiteSpace(ProfileDisplayName));
 
-    public bool CanSyncNow => !IsBusy && _syncService is not null && _isSyncEnabled;
+    public bool CanSyncNow =>
+        !IsBusy &&
+        _syncService is not null &&
+        _isSyncEnabled &&
+        (_classroomModeService is null || IsSyncOptInEnabled);
+
+    public bool CanSyncOnReconnect => _classroomModeService is not null && IsSyncOptInEnabled;
+
+    public bool HasPersistentSyncSettings => _classroomModeService is not null;
+
 
     public bool CanShare =>
         IsRunning &&
@@ -432,6 +486,29 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
             OnPropertyChanged(nameof(CanSyncNow));
+        }
+    }
+
+    public async Task SaveSyncSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_classroomModeService is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var settings = new ClassroomSyncSettings(IsSyncOptInEnabled, SyncOnReconnect);
+            await _classroomModeService.SaveSyncSettingsAsync(settings, cancellationToken).ConfigureAwait(true);
+            ApplySyncSettings(settings.IsEnabled ? settings : settings with { SyncOnReconnect = false });
+            await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanSyncNow));
+            OnPropertyChanged(nameof(CanSyncOnReconnect));
         }
     }
 
@@ -586,6 +663,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     private async Task RefreshSyncStatusAsync(CancellationToken cancellationToken)
     {
+        if (_classroomModeService is not null)
+        {
+            ClassroomSyncSettings settings = await _classroomModeService
+                .GetSyncSettingsAsync(cancellationToken)
+                .ConfigureAwait(true);
+            ApplySyncSettings(settings);
+        }
+
         if (_syncService is null)
         {
             SyncStatusText = "Sync unavailable";
@@ -593,9 +678,24 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (_classroomModeService is not null && !IsSyncOptInEnabled)
+        {
+            _isSyncEnabled = false;
+            SyncStatusText = "Private sync is off";
+            OnPropertyChanged(nameof(CanSyncNow));
+            return;
+        }
+
         ClassroomSyncStatus status = await _syncService.GetStatusAsync(cancellationToken).ConfigureAwait(true);
         ApplySyncStatus(status);
         OnPropertyChanged(nameof(CanSyncNow));
+    }
+
+    private void ApplySyncSettings(ClassroomSyncSettings settings)
+    {
+        IsSyncOptInEnabled = settings.IsEnabled;
+        SyncOnReconnect = settings.IsEnabled && settings.SyncOnReconnect;
+        OnPropertyChanged(nameof(CanSyncOnReconnect));
     }
 
     private void ApplySyncStatus(ClassroomSyncStatus status)

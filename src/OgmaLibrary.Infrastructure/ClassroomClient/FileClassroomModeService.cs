@@ -12,6 +12,7 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
     };
 
     private readonly string _settingsPath;
+    private readonly string _syncSettingsPath;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly ObservableEvents<ClassroomConnectivityStatus> _connectivity = new();
     private ClassroomConnectivityStatus _connectivityStatus = new(
@@ -23,6 +24,7 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         _settingsPath = Path.Combine(dataDirectory, "classroom", "mode.json");
+        _syncSettingsPath = Path.Combine(dataDirectory, "classroom", "sync.json");
     }
 
     public IObservable<ClassroomConnectivityStatus> Connectivity => _connectivity;
@@ -76,6 +78,55 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
         }
     }
 
+    public async Task<ClassroomSyncSettings> GetSyncSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (!File.Exists(_syncSettingsPath))
+            {
+                return new ClassroomSyncSettings();
+            }
+
+            using FileStream stream = File.OpenRead(_syncSettingsPath);
+            ClassroomSyncSettings? settings = await JsonSerializer
+                .DeserializeAsync<ClassroomSyncSettings>(stream, JsonOptions, cancellationToken)
+                .ConfigureAwait(false);
+            return Normalize(settings ?? new ClassroomSyncSettings());
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task SaveSyncSettingsAsync(
+        ClassroomSyncSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        ClassroomSyncSettings normalized = Normalize(settings);
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_syncSettingsPath)!);
+            string tempPath = $"{_syncSettingsPath}.{Guid.NewGuid():N}.tmp";
+            using (FileStream stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, normalized, JsonOptions, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            File.Move(tempPath, _syncSettingsPath, overwrite: true);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public Task<ClassroomConnectivityStatus> GetConnectivityAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -94,4 +145,7 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
     }
 
     public void Dispose() => _gate.Dispose();
+
+    private static ClassroomSyncSettings Normalize(ClassroomSyncSettings settings) =>
+        settings.IsEnabled ? settings : settings with { SyncOnReconnect = false };
 }

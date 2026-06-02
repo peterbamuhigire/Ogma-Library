@@ -698,6 +698,8 @@ public sealed class ShellReaderNavigationTests
 
         public ClassroomModeSettings Mode { get; set; } = new(LibraryRuntimeMode.Standalone);
 
+        public ClassroomSyncSettings SyncSettings { get; set; } = new();
+
         public ClassroomConnectivityStatus ConnectivityStatus { get; set; } = new(
             IsOnline: false,
             UpdatedUtc: DateTimeOffset.MinValue,
@@ -711,6 +713,17 @@ public sealed class ShellReaderNavigationTests
         public Task SaveModeAsync(ClassroomModeSettings settings, CancellationToken cancellationToken = default)
         {
             Mode = settings;
+            return Task.CompletedTask;
+        }
+
+        public Task<ClassroomSyncSettings> GetSyncSettingsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(SyncSettings);
+
+        public Task SaveSyncSettingsAsync(
+            ClassroomSyncSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            SyncSettings = settings.IsEnabled ? settings : settings with { SyncOnReconnect = false };
             return Task.CompletedTask;
         }
 

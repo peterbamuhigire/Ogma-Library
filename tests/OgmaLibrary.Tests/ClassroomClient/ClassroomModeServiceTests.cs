@@ -55,6 +55,66 @@ public sealed class ClassroomModeServiceTests
     }
 
     [Fact]
+    public async Task ClassroomMode_SyncSettings_DefaultDisabledAndPersistAcrossProviderRestart()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using (ServiceProvider firstProvider = CreateProvider(dataDirectory))
+            {
+                IClassroomModeService firstService = firstProvider.GetRequiredService<IClassroomModeService>();
+
+                ClassroomSyncSettings missing = await firstService.GetSyncSettingsAsync();
+
+                Assert.False(missing.IsEnabled);
+                Assert.False(missing.SyncOnReconnect);
+
+                await firstService.SaveSyncSettingsAsync(new ClassroomSyncSettings(
+                    IsEnabled: true,
+                    SyncOnReconnect: true));
+            }
+
+            using ServiceProvider secondProvider = CreateProvider(dataDirectory);
+            IClassroomModeService secondService = secondProvider.GetRequiredService<IClassroomModeService>();
+
+            ClassroomSyncSettings settings = await secondService.GetSyncSettingsAsync();
+
+            Assert.True(settings.IsEnabled);
+            Assert.True(settings.SyncOnReconnect);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ClassroomMode_SyncSettings_DisabledClearsSyncOnReconnect()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using ServiceProvider provider = CreateProvider(dataDirectory);
+            IClassroomModeService service = provider.GetRequiredService<IClassroomModeService>();
+
+            await service.SaveSyncSettingsAsync(new ClassroomSyncSettings(
+                IsEnabled: false,
+                SyncOnReconnect: true));
+
+            ClassroomSyncSettings settings = await service.GetSyncSettingsAsync();
+
+            Assert.False(settings.IsEnabled);
+            Assert.False(settings.SyncOnReconnect);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task ClassroomMode_ConnectivityDefaultsToNotConnected()
     {
         string dataDirectory = CreateTempDirectory();

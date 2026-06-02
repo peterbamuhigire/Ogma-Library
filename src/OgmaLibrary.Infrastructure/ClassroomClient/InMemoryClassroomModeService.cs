@@ -6,6 +6,7 @@ namespace OgmaLibrary.Infrastructure.ClassroomClient;
 internal sealed class InMemoryClassroomModeService : IClassroomModeService
 {
     private ClassroomModeSettings _settings = new(LibraryRuntimeMode.Standalone);
+    private ClassroomSyncSettings _syncSettings = new();
     private readonly ObservableEvents<ClassroomConnectivityStatus> _connectivity = new();
     private ClassroomConnectivityStatus _connectivityStatus = new(
         IsOnline: false,
@@ -25,6 +26,22 @@ internal sealed class InMemoryClassroomModeService : IClassroomModeService
         ArgumentNullException.ThrowIfNull(settings);
         cancellationToken.ThrowIfCancellationRequested();
         _settings = settings;
+        return Task.CompletedTask;
+    }
+
+    public Task<ClassroomSyncSettings> GetSyncSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_syncSettings);
+    }
+
+    public Task SaveSyncSettingsAsync(
+        ClassroomSyncSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        cancellationToken.ThrowIfCancellationRequested();
+        _syncSettings = settings.IsEnabled ? settings : settings with { SyncOnReconnect = false };
         return Task.CompletedTask;
     }
 

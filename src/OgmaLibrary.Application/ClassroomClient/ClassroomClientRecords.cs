@@ -26,6 +26,11 @@ public enum ClassroomRole
 /// <summary>Persisted runtime mode settings.</summary>
 public sealed record ClassroomModeSettings(LibraryRuntimeMode Mode);
 
+/// <summary>Persisted Client-mode private sync settings.</summary>
+public sealed record ClassroomSyncSettings(
+    bool IsEnabled = false,
+    bool SyncOnReconnect = false);
+
 /// <summary>Runtime Client-mode connectivity status.</summary>
 public sealed record ClassroomConnectivityStatus(
     bool IsOnline,

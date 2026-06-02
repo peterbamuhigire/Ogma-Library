@@ -181,7 +181,7 @@
       </Grid>
 
       <Grid Grid.Row="3"
-            RowDefinitions="Auto,Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
             RowSpacing="10">
         <TextBlock Grid.Row="0"
                    Text="{Binding ClientTitle}"
@@ -237,6 +237,24 @@
         </Grid>
 
         <Grid Grid.Row="3"
+              ColumnDefinitions="Auto,Auto,*"
+              ColumnSpacing="14">
+          <CheckBox Grid.Column="0"
+                    Content="{Binding SyncOptInText}"
+                    IsChecked="{Binding IsSyncOptInEnabled, Mode=TwoWay}"
+                    IsVisible="{Binding HasPersistentSyncSettings}"
+                    FontSize="{DynamicResource Type.Size.Caption}"
+                    Click="SyncSettingsCheckBox_Click" />
+          <CheckBox Grid.Column="1"
+                    Content="{Binding SyncOnReconnectText}"
+                    IsChecked="{Binding SyncOnReconnect, Mode=TwoWay}"
+                    IsEnabled="{Binding CanSyncOnReconnect}"
+                    IsVisible="{Binding HasPersistentSyncSettings}"
+                    FontSize="{DynamicResource Type.Size.Caption}"
+                    Click="SyncSettingsCheckBox_Click" />
+        </Grid>
+
+        <Grid Grid.Row="4"
               ColumnDefinitions="*,Auto"
               ColumnSpacing="10">
           <TextBlock Grid.Column="0"

@@ -207,6 +207,55 @@ public sealed class HostSharingViewModelTests
         Assert.Equal("Last synced 2026-06-02 15:30 UTC, 0 conflicts", viewModel.SyncStatusText);
     }
 
+    [Fact]
+    public async Task HostSharingViewModel_SyncOptIn_PersistsAndControlsSyncNow()
+    {
+        var host = new FakeLibraryHostService();
+        var settings = new FakeHostModeSettingsRepository();
+        var sync = new RecordingSyncService
+        {
+            Status = new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: false,
+                LastSyncedUtc: null,
+                ConflictCount: 0,
+                ErrorMessage: null),
+        };
+        var mode = new RecordingClassroomModeService();
+        var viewModel = new HostSharingViewModel(
+            host,
+            settings,
+            syncService: sync,
+            classroomModeService: mode);
+
+        await viewModel.RefreshAsync();
+
+        Assert.False(viewModel.IsSyncOptInEnabled);
+        Assert.False(viewModel.SyncOnReconnect);
+        Assert.False(viewModel.CanSyncNow);
+        Assert.False(viewModel.CanSyncOnReconnect);
+        Assert.Equal("Private sync is off", viewModel.SyncStatusText);
+
+        viewModel.IsSyncOptInEnabled = true;
+        viewModel.SyncOnReconnect = true;
+        await viewModel.SaveSyncSettingsAsync();
+
+        Assert.True(mode.SyncSettings.IsEnabled);
+        Assert.True(mode.SyncSettings.SyncOnReconnect);
+        Assert.True(viewModel.CanSyncNow);
+        Assert.True(viewModel.CanSyncOnReconnect);
+        Assert.Equal("Ready to sync, 0 conflicts", viewModel.SyncStatusText);
+
+        viewModel.IsSyncOptInEnabled = false;
+        await viewModel.SaveSyncSettingsAsync();
+
+        Assert.False(mode.SyncSettings.IsEnabled);
+        Assert.False(mode.SyncSettings.SyncOnReconnect);
+        Assert.False(viewModel.SyncOnReconnect);
+        Assert.False(viewModel.CanSyncNow);
+        Assert.Equal("Private sync is off", viewModel.SyncStatusText);
+    }
+
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
     {
         public HostModeSettings Settings { get; private set; } = new(
@@ -332,6 +381,76 @@ public sealed class HostSharingViewModelTests
             cancellationToken.ThrowIfCancellationRequested();
             SyncCalls++;
             return Task.FromResult(NextStatus);
+        }
+    }
+
+    private sealed class RecordingClassroomModeService : IClassroomModeService
+    {
+        public ClassroomModeSettings Mode { get; private set; } = new(LibraryRuntimeMode.Standalone);
+
+        public ClassroomSyncSettings SyncSettings { get; private set; } = new();
+
+        public ClassroomConnectivityStatus ConnectivityStatus { get; private set; } = new(
+            IsOnline: false,
+            UpdatedUtc: DateTimeOffset.MinValue,
+            Message: "Not connected");
+
+        public IObservable<ClassroomConnectivityStatus> Connectivity { get; } =
+            new EmptyObservable<ClassroomConnectivityStatus>();
+
+        public Task<ClassroomModeSettings> GetModeAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Mode);
+        }
+
+        public Task SaveModeAsync(ClassroomModeSettings settings, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Mode = settings;
+            return Task.CompletedTask;
+        }
+
+        public Task<ClassroomSyncSettings> GetSyncSettingsAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(SyncSettings);
+        }
+
+        public Task SaveSyncSettingsAsync(
+            ClassroomSyncSettings settings,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SyncSettings = settings.IsEnabled ? settings : settings with { SyncOnReconnect = false };
+            return Task.CompletedTask;
+        }
+
+        public Task<ClassroomConnectivityStatus> GetConnectivityAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(ConnectivityStatus);
+        }
+
+        public Task SetConnectivityAsync(
+            ClassroomConnectivityStatus status,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ConnectivityStatus = status;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class EmptyObservable<T> : IObservable<T>
+    {
+        public IDisposable Subscribe(IObserver<T> observer) => new EmptySubscription();
+    }
+
+    private sealed class EmptySubscription : IDisposable
+    {
+        public void Dispose()
+        {
         }
     }
 }
