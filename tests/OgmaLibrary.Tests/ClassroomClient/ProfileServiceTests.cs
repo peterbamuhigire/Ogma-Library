@@ -123,7 +123,7 @@ public sealed class ProfileServiceTests
 
     private static ServiceProvider CreateProvider(string dataDirectory) =>
         new ServiceCollection()
-            .AddClassroomClientServices(dataDirectory)
+            .AddClassroomClientServices(dataDirectory, new InMemoryClassroomCredentialStore())
             .BuildServiceProvider();
 
     private static string CreateTempDirectory()

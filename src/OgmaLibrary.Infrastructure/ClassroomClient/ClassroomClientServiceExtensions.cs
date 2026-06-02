@@ -9,14 +9,16 @@ public static class ClassroomClientServiceExtensions
     /// <summary>Adds inactive Client/Classroom mode services.</summary>
     public static IServiceCollection AddClassroomClientServices(
         this IServiceCollection services,
-        string dataDirectory)
+        string dataDirectory,
+        IClassroomCredentialStore? credentialStore = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
         services.AddSingleton<IClassroomModeService>(_ => new FileClassroomModeService(dataDirectory));
         services.AddSingleton<IClassroomHostConnectionService, InMemoryClassroomHostConnectionService>();
-        services.AddSingleton<IClassroomCredentialStore, InMemoryClassroomCredentialStore>();
+        services.AddSingleton<IClassroomCredentialStore>(_ => credentialStore ??
+            new PlatformClassroomCredentialStore(ClassroomSecretStoreFactory.Create(dataDirectory)));
         services.AddSingleton<IProfileService>(provider => new FileClassroomProfileService(
             dataDirectory,
             provider.GetRequiredService<IStudentPrivateRepository>(),
@@ -33,7 +35,8 @@ public static class ClassroomClientServiceExtensions
             provider.GetRequiredService<ILibraryHostClient>()));
         services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
         services.AddSingleton<IMdnsResolver, MdnsResolver>();
-        services.AddSingleton<IHostTrustStore, InMemoryHostTrustStore>();
+        services.AddSingleton<IHostTrustStore>(provider => new CredentialBackedHostTrustStore(
+            provider.GetRequiredService<IClassroomCredentialStore>()));
         services.AddSingleton<IHostTrustService, HostTrustService>();
         services.AddSingleton<IClassroomConnectionService, ClassroomConnectionService>();
         return services;

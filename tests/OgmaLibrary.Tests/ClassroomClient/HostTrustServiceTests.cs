@@ -70,8 +70,11 @@ public sealed class HostTrustServiceTests
     [Fact]
     public async Task HostTrustService_IsRegisteredInClassroomClientServices()
     {
+        var credentialStore = new InMemoryClassroomCredentialStore();
         IHostTrustService service = new ServiceCollection()
-            .AddClassroomClientServices(Path.Combine(Path.GetTempPath(), $"ogma-classroom-trust-{Guid.NewGuid():N}"))
+            .AddClassroomClientServices(
+                Path.Combine(Path.GetTempPath(), $"ogma-classroom-trust-{Guid.NewGuid():N}"),
+                credentialStore)
             .BuildServiceProvider()
             .GetRequiredService<IHostTrustService>();
 
@@ -80,5 +83,29 @@ public sealed class HostTrustServiceTests
             Fingerprint);
 
         Assert.Equal(HostTrustState.FirstUse, evaluation.State);
+    }
+
+    [Fact]
+    public async Task CredentialBackedHostTrustStore_PersistsPinsThroughCredentialStore()
+    {
+        var credentialStore = new InMemoryClassroomCredentialStore();
+        var firstStore = new CredentialBackedHostTrustStore(credentialStore);
+        var secondStore = new CredentialBackedHostTrustStore(credentialStore);
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+        string hostKey = HostTrustService.CreateHostKey(request);
+
+        await firstStore.SaveAsync(new HostTrustPin(
+            hostKey,
+            request.Address,
+            request.Port,
+            Fingerprint,
+            new DateTimeOffset(2026, 6, 2, 8, 0, 0, TimeSpan.Zero)));
+
+        HostTrustPin? pin = await secondStore.GetAsync(hostKey);
+
+        Assert.NotNull(pin);
+        Assert.Equal(hostKey, pin.HostKey);
+        Assert.Equal(Fingerprint, pin.CertificateFingerprint);
+        Assert.NotNull(await credentialStore.GetSecretAsync(CredentialBackedHostTrustStore.CreateCredentialKey(hostKey)));
     }
 }

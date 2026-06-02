@@ -30,6 +30,14 @@ bridge:
   active selection, keeps guest sessions transient, creates/deletes per-profile
   private-state folders, and stores Host session tokens behind the classroom
   credential-store seam.
+- `PlatformClassroomCredentialStore` maps classroom session-token and Host
+  trust-pin secrets to Windows Credential Manager on Windows, macOS Keychain on
+  macOS, and a restricted file fallback on unsupported platforms; tests use
+  injected fake backends so the suite does not write to the real user credential
+  store.
+- `CredentialBackedHostTrustStore` persists TOFU Host certificate pins through
+  the same classroom credential-store boundary instead of keeping accepted pins
+  only in process memory.
 - `FileClassroomModeService` persists Standalone/Connect-to-Host runtime mode
   settings under the sidecar classroom state while keeping Standalone as the
   missing-file default.
@@ -90,11 +98,11 @@ bridge:
 | Gate | Evidence |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed: 10 projects, 0 warnings, 0 errors |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests\|FullyQualifiedName~ClassroomBookFileMaterializerTests\|FullyQualifiedName~ClassroomBookFileLocatorTests\|FullyQualifiedName~ClassroomConnectionServiceTests\|FullyQualifiedName~ClassroomCatalogueReadModelTests\|FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 78 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, connection-service trust gating, profile creation/selection, guest connection behavior, Host session issuance, active connection storage, online status publication, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, online/offline status defaults, observable connectivity emissions, connectivity unsubscribe, active Host connection registration, Host catalogue projection mapping, Host detail/progress mapping, Standalone catalogue delegation, mode-aware catalogue DI shape, Sharing settings connection controls, invalid join status reporting, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, cached Host-client DI registration, Host PDF materialization to local reader paths, stable file reuse, non-PDF rejection, materializer DI registration, Standalone-vs-Client reader file-location switching, no-active-Host null resolution, and existing reader-session open through the classroom locator |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ClassroomClientScaffoldTests\|FullyQualifiedName~ClassroomJoinParserTests\|FullyQualifiedName~MdnsResolverTests\|FullyQualifiedName~HostTrustServiceTests\|FullyQualifiedName~ClassroomCredentialStoreTests\|FullyQualifiedName~ProfileServiceTests\|FullyQualifiedName~ClassroomModeServiceTests\|FullyQualifiedName~StudentPrivateRepositoryTests\|FullyQualifiedName~OfflineCacheServiceTests\|FullyQualifiedName~LibraryHostHttpClientTests\|FullyQualifiedName~CachingLibraryHostClientTests\|FullyQualifiedName~ClassroomBookFileMaterializerTests\|FullyQualifiedName~ClassroomBookFileLocatorTests\|FullyQualifiedName~ClassroomConnectionServiceTests\|FullyQualifiedName~ClassroomCatalogueReadModelTests\|FullyQualifiedName~HostSharingViewModelTests" --logger "console;verbosity=minimal"` | Passed: 84 Classroom Client tests for default Standalone mode, persistent vs guest profile behavior, platform-scoped classroom credential keys, fake Windows Credential Manager and macOS Keychain adapters, restricted file fallback, credential-backed TOFU pin persistence, per-profile private DB paths, Host/resource-scoped offline cache entries, Phase 16 `ogma-lan://` join parsing, legacy plan URI parsing, chunked fingerprint normalization, malformed payload rejection, parser DI registration, mDNS Host record projection, observable discovery emissions, invalid fingerprint filtering, resolver DI registration, first-use TOFU evaluation, explicit accept pinning, trusted matching pins, mismatch rejection, connection-service trust gating, profile creation/selection, guest connection behavior, Host session issuance, active connection storage, online status publication, trust-service DI registration, file-backed profile persistence, transient guest sessions, credential-store session token keys, delete cleanup, mode persistence across restart, online/offline status defaults, observable connectivity emissions, connectivity unsubscribe, active Host connection registration, Host catalogue projection mapping, Host detail/progress mapping, Standalone catalogue delegation, mode-aware catalogue DI shape, Sharing settings connection controls, invalid join status reporting, private SQLite DB persistence, cross-profile annotation isolation, sync tombstones, bookmarks, AI history, sync state, disk cache persistence, per-Host cache clearing, LRU eviction, cache DI registration, Host health mapping, enrollment session issuance, authenticated catalogue page mapping, page-render resource reads, file-stream reads, projected asset reads, book-detail mapping, catalogue search mapping, cache-aside page/file/asset storage, cache-hit network bypass, cached Host-client DI registration, Host PDF materialization to local reader paths, stable file reuse, non-PDF rejection, materializer DI registration, Standalone-vs-Client reader file-location switching, no-active-Host null resolution, and existing reader-session open through the classroom locator |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --filter "FullyQualifiedName~ShellReaderNavigationTests" --logger "console;verbosity=minimal"` | Passed: 10 shell/settings UI tests |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_ClassroomClient\|FullyQualifiedName~ArchTests_StandaloneMode_HasClassroomClientInactiveByDefault" --logger "console;verbosity=minimal"` | Passed: 3 Classroom Client architecture/default-mode guardrails |
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed: 30 architecture tests |
-| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 546 tests |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 552 tests |
 | `dotnet test tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed: 117 UI tests. Earlier long runs exposed transient Dispatcher/timer starvation in shell refresh and search debounce waits; the tests passed alone, wait helpers were hardened to 10 seconds, and subsequent full serialized UI suites passed. |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed |
 
@@ -111,8 +119,10 @@ bridge:
 | Join parser tests | `ClassroomJoinParserTests` |
 | mDNS resolver | `IMdnsResolver` and `MdnsResolver` |
 | mDNS resolver tests | `MdnsResolverTests` |
-| TOFU trust-pin logic | `IHostTrustService`, `IHostTrustStore`, `HostTrustService`, and `InMemoryHostTrustStore` |
+| TOFU trust-pin logic | `IHostTrustService`, `IHostTrustStore`, `HostTrustService`, and `CredentialBackedHostTrustStore` |
 | TOFU trust-pin tests | `HostTrustServiceTests` |
+| Platform classroom credential store | `PlatformClassroomCredentialStore`, Windows Credential Manager adapter, macOS Keychain adapter, and restricted file fallback |
+| Platform classroom credential tests | `ClassroomCredentialStoreTests` |
 | Profile/session management | `FileClassroomProfileService` and `IClassroomCredentialStore` |
 | Profile/session tests | `ProfileServiceTests` |
 | Runtime mode persistence | `FileClassroomModeService` |
@@ -148,6 +158,7 @@ bridge:
 ## Remaining Phase 17 Work
 
 - Owner ratification for ADR-0012.
-- OS-backed credential storage for Host trust pins and session tokens, live
-  certificate fetch integration, mDNS picker/QR onboarding polish, sync,
-  profile-management polish, and cross-platform real-LAN verification.
+- Live certificate fetch integration, mDNS picker/QR onboarding polish, sync,
+  profile-management polish, live Windows/macOS credential-store verification,
+  Linux secret-service hardening beyond the restricted fallback, and
+  cross-platform real-LAN verification.
