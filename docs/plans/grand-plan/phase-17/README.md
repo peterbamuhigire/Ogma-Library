@@ -481,3 +481,4 @@ Full guidance in `skills.md`. Key skills:
 | 2026-06-02 | Implementation | Advanced WP5: added typed Host HTTP client methods for page-render PNGs, raw PDF file streams, and projected sidecar assets with bearer-token tests. |
 | 2026-06-02 | Implementation | Advanced WP4: added typed Host HTTP client methods for book-detail and metadata-search reads with nested response mapping tests. |
 | 2026-06-02 | Implementation | Advanced WP7/WP5: added cache-aside Host resource client integration for page-render, file-stream, and asset reads, including cache-hit network bypass tests. |
+| 2026-06-02 | Implementation | Advanced WP7: added runtime online/offline connectivity status and observable state-change stream with tests for future offline fallback UI. |

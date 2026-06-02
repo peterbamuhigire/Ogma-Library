@@ -13,12 +13,19 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
 
     private readonly string _settingsPath;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly ObservableEvents<ClassroomConnectivityStatus> _connectivity = new();
+    private ClassroomConnectivityStatus _connectivityStatus = new(
+        IsOnline: false,
+        UpdatedUtc: DateTimeOffset.MinValue,
+        Message: "Not connected");
 
     public FileClassroomModeService(string dataDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         _settingsPath = Path.Combine(dataDirectory, "classroom", "mode.json");
     }
+
+    public IObservable<ClassroomConnectivityStatus> Connectivity => _connectivity;
 
     public async Task<ClassroomModeSettings> GetModeAsync(CancellationToken cancellationToken = default)
     {
@@ -67,6 +74,23 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
         {
             _gate.Release();
         }
+    }
+
+    public Task<ClassroomConnectivityStatus> GetConnectivityAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_connectivityStatus);
+    }
+
+    public Task SetConnectivityAsync(
+        ClassroomConnectivityStatus status,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        cancellationToken.ThrowIfCancellationRequested();
+        _connectivityStatus = status;
+        _connectivity.Publish(status);
+        return Task.CompletedTask;
     }
 
     public void Dispose() => _gate.Dispose();

@@ -26,6 +26,12 @@ public enum ClassroomRole
 /// <summary>Persisted runtime mode settings.</summary>
 public sealed record ClassroomModeSettings(LibraryRuntimeMode Mode);
 
+/// <summary>Runtime Client-mode connectivity status.</summary>
+public sealed record ClassroomConnectivityStatus(
+    bool IsOnline,
+    DateTimeOffset UpdatedUtc,
+    string? Message = null);
+
 /// <summary>Local classroom profile metadata.</summary>
 public sealed record ClassroomProfile(
     Guid ProfileId,

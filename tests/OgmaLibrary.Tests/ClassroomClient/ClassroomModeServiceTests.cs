@@ -54,6 +54,80 @@ public sealed class ClassroomModeServiceTests
         }
     }
 
+    [Fact]
+    public async Task ClassroomMode_ConnectivityDefaultsToNotConnected()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using ServiceProvider provider = CreateProvider(dataDirectory);
+            IClassroomModeService service = provider.GetRequiredService<IClassroomModeService>();
+
+            ClassroomConnectivityStatus status = await service.GetConnectivityAsync();
+
+            Assert.False(status.IsOnline);
+            Assert.Equal("Not connected", status.Message);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ClassroomMode_ConnectivityPublishesChanges()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using ServiceProvider provider = CreateProvider(dataDirectory);
+            IClassroomModeService service = provider.GetRequiredService<IClassroomModeService>();
+            var observer = new RecordingConnectivityObserver();
+            using IDisposable subscription = service.Connectivity.Subscribe(observer);
+            var online = new ClassroomConnectivityStatus(
+                IsOnline: true,
+                UpdatedUtc: new DateTimeOffset(2026, 6, 2, 12, 0, 0, TimeSpan.Zero),
+                Message: "Connected");
+
+            await service.SetConnectivityAsync(online);
+
+            Assert.Equal(online, await service.GetConnectivityAsync());
+            Assert.Equal(online, Assert.Single(observer.Events));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ClassroomMode_ConnectivitySubscriptionCanUnsubscribe()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using ServiceProvider provider = CreateProvider(dataDirectory);
+            IClassroomModeService service = provider.GetRequiredService<IClassroomModeService>();
+            var observer = new RecordingConnectivityObserver();
+            IDisposable subscription = service.Connectivity.Subscribe(observer);
+            subscription.Dispose();
+
+            await service.SetConnectivityAsync(new ClassroomConnectivityStatus(
+                IsOnline: true,
+                UpdatedUtc: new DateTimeOffset(2026, 6, 2, 12, 0, 0, TimeSpan.Zero),
+                Message: "Connected"));
+
+            Assert.Empty(observer.Events);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static ServiceProvider CreateProvider(string dataDirectory) =>
         new ServiceCollection()
             .AddClassroomClientServices(dataDirectory)
@@ -72,5 +146,21 @@ public sealed class ClassroomModeServiceTests
         {
             Directory.Delete(dataDirectory, recursive: true);
         }
+    }
+
+    private sealed class RecordingConnectivityObserver : IObserver<ClassroomConnectivityStatus>
+    {
+        public List<ClassroomConnectivityStatus> Events { get; } = [];
+
+        public void OnCompleted()
+        {
+        }
+
+        public void OnError(Exception error)
+        {
+            throw error;
+        }
+
+        public void OnNext(ClassroomConnectivityStatus value) => Events.Add(value);
     }
 }
