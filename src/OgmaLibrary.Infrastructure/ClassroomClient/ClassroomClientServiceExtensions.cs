@@ -24,13 +24,13 @@ public static class ClassroomClientServiceExtensions
             dataDirectory,
             provider.GetRequiredService<IStudentPrivateRepository>(),
             provider.GetRequiredService<IClassroomCredentialStore>()));
-        services.AddSingleton<ISyncService, UnavailableSyncService>();
         services.AddSingleton<IOfflineCacheService>(_ => new DiskOfflineCacheService(dataDirectory));
         services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
         services.AddSingleton<LibraryHostHttpClient>(_ => new LibraryHostHttpClient(new HttpClient()));
         services.AddSingleton<ILibraryHostClient>(provider => new CachingLibraryHostClient(
             provider.GetRequiredService<LibraryHostHttpClient>(),
             provider.GetRequiredService<IOfflineCacheService>()));
+        services.AddSingleton<ISyncService, ClassroomSyncService>();
         services.AddSingleton<IClassroomBookFileMaterializer>(provider => new ClassroomBookFileMaterializer(
             dataDirectory,
             provider.GetRequiredService<ILibraryHostClient>()));

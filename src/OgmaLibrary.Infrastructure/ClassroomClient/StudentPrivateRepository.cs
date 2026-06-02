@@ -52,6 +52,24 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         return row is null ? null : Map(row);
     }
 
+    public async Task<IReadOnlyList<StudentReadingProgress>> ListReadingProgressAsync(
+        Guid profileId,
+        string hostId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        List<StudentReadingProgressRow> rows = await context.ReadingProgress
+            .AsNoTracking()
+            .Where(row => row.HostId == hostId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return rows
+            .OrderBy(row => row.BookId, StringComparer.Ordinal)
+            .Select(Map)
+            .ToArray();
+    }
+
     public async Task SaveReadingProgressAsync(
         Guid profileId,
         StudentReadingProgress progress,
@@ -109,6 +127,34 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         return rows
             .OrderBy(row => row.PageNumber)
             .ThenBy(row => row.CreatedUtc)
+            .Select(Map)
+            .ToArray();
+    }
+
+    public async Task<IReadOnlyList<StudentAnnotation>> ListAnnotationsForHostAsync(
+        Guid profileId,
+        string hostId,
+        bool includeDeleted = false,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        IQueryable<StudentAnnotationRow> query = context.Annotations
+            .AsNoTracking()
+            .Where(row => row.HostId == hostId);
+        if (!includeDeleted)
+        {
+            query = query.Where(row => !row.IsDeleted);
+        }
+
+        List<StudentAnnotationRow> rows = await query
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return rows
+            .OrderBy(row => row.BookId, StringComparer.Ordinal)
+            .ThenBy(row => row.PageNumber)
+            .ThenBy(row => row.CreatedUtc)
+            .ThenBy(row => row.Id, StringComparer.Ordinal)
             .Select(Map)
             .ToArray();
     }
@@ -201,6 +247,34 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         return rows
             .OrderBy(row => row.PageNumber)
             .ThenBy(row => row.CreatedUtc)
+            .Select(Map)
+            .ToArray();
+    }
+
+    public async Task<IReadOnlyList<StudentBookmark>> ListBookmarksForHostAsync(
+        Guid profileId,
+        string hostId,
+        bool includeDeleted = false,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        IQueryable<StudentBookmarkRow> query = context.Bookmarks
+            .AsNoTracking()
+            .Where(row => row.HostId == hostId);
+        if (!includeDeleted)
+        {
+            query = query.Where(row => !row.IsDeleted);
+        }
+
+        List<StudentBookmarkRow> rows = await query
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return rows
+            .OrderBy(row => row.BookId, StringComparer.Ordinal)
+            .ThenBy(row => row.PageNumber)
+            .ThenBy(row => row.CreatedUtc)
+            .ThenBy(row => row.Id, StringComparer.Ordinal)
             .Select(Map)
             .ToArray();
     }

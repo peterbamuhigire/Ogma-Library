@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -293,6 +294,35 @@ public sealed class LibraryHostHttpClientTests
     }
 
     [Fact]
+    public async Task LibraryHostHttpClient_UploadsAndDownloadsEncryptedProfileSyncBlob()
+    {
+        var handler = new QueueHttpHandler();
+        handler.EnqueueStatus(HttpStatusCode.NoContent);
+        handler.EnqueueBytes([1, 2, 3, 4], "application/vnd.ogma.classroom-sync+bin", null, version: 7);
+        using var client = new LibraryHostHttpClient(new HttpClient(handler));
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+        var blob = new EncryptedClassroomSyncBlob(
+            Version: 7,
+            ContentType: "application/vnd.ogma.classroom-sync+bin",
+            Content: [1, 2, 3, 4]);
+
+        await client.UploadProfileSyncBlobAsync(request, "session-token", blob);
+        EncryptedClassroomSyncBlob? downloaded = await client.DownloadProfileSyncBlobAsync(request, "session-token");
+
+        Assert.NotNull(downloaded);
+        Assert.Equal(7, downloaded.Version);
+        Assert.Equal("application/vnd.ogma.classroom-sync+bin", downloaded.ContentType);
+        Assert.Equal([1, 2, 3, 4], downloaded.Content);
+        Assert.Equal(HttpMethod.Put, handler.Requests[0].Method);
+        Assert.Equal(HttpMethod.Get, handler.Requests[1].Method);
+        Assert.Equal("session-token", handler.Requests[0].Headers.Authorization!.Parameter);
+        Assert.Equal("7", handler.Requests[0].Headers.GetValues("X-Ogma-Sync-Version").Single());
+        Assert.Equal(
+            "https://192.168.1.13:7473/api/v1/profile/sync",
+            handler.Requests[0].RequestUri!.AbsoluteUri);
+    }
+
+    [Fact]
     public async Task LibraryHostHttpClient_RejectsNonHostAssetUrl()
     {
         using var client = new LibraryHostHttpClient(new HttpClient(new QueueHttpHandler()));
@@ -319,7 +349,12 @@ public sealed class LibraryHostHttpClientTests
             });
         }
 
-        public void EnqueueBytes(byte[] content, string contentType, string? eTag)
+        public void EnqueueStatus(HttpStatusCode statusCode)
+        {
+            _responses.Enqueue(new HttpResponseMessage(statusCode));
+        }
+
+        public void EnqueueBytes(byte[] content, string contentType, string? eTag, int? version = null)
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -329,6 +364,13 @@ public sealed class LibraryHostHttpClientTests
             if (eTag is not null)
             {
                 response.Headers.ETag = new EntityTagHeaderValue(eTag);
+            }
+
+            if (version is not null)
+            {
+                response.Headers.TryAddWithoutValidation(
+                    "X-Ogma-Sync-Version",
+                    version.Value.ToString(CultureInfo.InvariantCulture));
             }
 
             _responses.Enqueue(response);

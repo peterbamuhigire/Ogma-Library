@@ -178,5 +178,18 @@ public sealed class CachingLibraryHostClientTests
                 "image/jpeg",
                 "\"asset\"",
                 [255, 216]));
+
+        public Task UploadProfileSyncBlobAsync(
+            ClassroomJoinRequest request,
+            string sessionToken,
+            EncryptedClassroomSyncBlob blob,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<EncryptedClassroomSyncBlob?> DownloadProfileSyncBlobAsync(
+            ClassroomJoinRequest request,
+            string sessionToken,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<EncryptedClassroomSyncBlob?>(null);
     }
 }

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -193,6 +194,57 @@ internal sealed class LibraryHostHttpClient : ILibraryHostClient, IDisposable
             BuildUri(request, assetUrl),
             resourceKey,
             cancellationToken);
+    }
+
+    public async Task UploadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        EncryptedClassroomSyncBlob blob,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+        ArgumentNullException.ThrowIfNull(blob);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blob.Version);
+        ArgumentException.ThrowIfNullOrWhiteSpace(blob.ContentType);
+
+        using var message = new HttpRequestMessage(HttpMethod.Put, BuildUri(request, "/api/v1/profile/sync"));
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        message.Headers.TryAddWithoutValidation("X-Ogma-Sync-Version", blob.Version.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        message.Content = new ByteArrayContent(blob.Content);
+        message.Content.Headers.ContentType = new MediaTypeHeaderValue(blob.ContentType);
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<EncryptedClassroomSyncBlob?> DownloadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
+
+        using var message = new HttpRequestMessage(HttpMethod.Get, BuildUri(request, "/api/v1/profile/sync"));
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessionToken);
+        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        byte[] content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+        string contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        int version = 1;
+        if (response.Headers.TryGetValues("X-Ogma-Sync-Version", out IEnumerable<string>? versions) &&
+            int.TryParse(versions.FirstOrDefault(), out int parsedVersion) &&
+            parsedVersion > 0)
+        {
+            version = parsedVersion;
+        }
+
+        return new EncryptedClassroomSyncBlob(version, contentType, content);
     }
 
     public void Dispose() => _httpClient.Dispose();

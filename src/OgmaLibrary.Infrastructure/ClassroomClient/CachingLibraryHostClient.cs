@@ -98,6 +98,19 @@ internal sealed class CachingLibraryHostClient : ILibraryHostClient
             cancellationToken);
     }
 
+    public Task UploadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        EncryptedClassroomSyncBlob blob,
+        CancellationToken cancellationToken = default) =>
+        _inner.UploadProfileSyncBlobAsync(request, sessionToken, blob, cancellationToken);
+
+    public Task<EncryptedClassroomSyncBlob?> DownloadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        CancellationToken cancellationToken = default) =>
+        _inner.DownloadProfileSyncBlobAsync(request, sessionToken, cancellationToken);
+
     private async Task<LibraryHostResource> GetOrFetchAsync(
         ClassroomJoinRequest request,
         string resourceKey,

@@ -139,6 +139,66 @@ public sealed class StudentPrivateRepositoryTests
         }
     }
 
+    [Fact]
+    public async Task StudentPrivateRepository_ListsHostWideSnapshotRows_WithTombstones()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var repository = new StudentPrivateRepository(dataDirectory);
+            Guid profileId = Guid.NewGuid();
+            Guid otherProfileId = Guid.NewGuid();
+            await repository.SaveReadingProgressAsync(
+                profileId,
+                new StudentReadingProgress("host-1", "book-2", 12, 4.5, Now));
+            await repository.SaveReadingProgressAsync(
+                profileId,
+                new StudentReadingProgress("host-2", "book-9", 1, 0, Now));
+            await repository.SaveAnnotationAsync(
+                profileId,
+                new StudentAnnotation("annotation-1", "host-1", "book-1", 3, "Highlight", "#ffd166", "Keep", Now, Now));
+            await repository.SaveAnnotationAsync(
+                profileId,
+                new StudentAnnotation("annotation-2", "host-1", "book-2", 4, "Note", null, "Deleted", Now, Now, IsDeleted: true));
+            await repository.SaveAnnotationAsync(
+                otherProfileId,
+                new StudentAnnotation("annotation-3", "host-1", "book-3", 5, "Note", null, "Other profile", Now, Now));
+            await repository.SaveBookmarkAsync(
+                profileId,
+                new StudentBookmark("bookmark-1", "host-1", "book-1", 2, "Visible", Now, Now));
+            await repository.SaveBookmarkAsync(
+                profileId,
+                new StudentBookmark("bookmark-2", "host-1", "book-2", 7, "Deleted", Now, Now, IsDeleted: true));
+
+            IReadOnlyList<StudentReadingProgress> progress = await repository.ListReadingProgressAsync(
+                profileId,
+                "host-1");
+            IReadOnlyList<StudentAnnotation> visibleAnnotations = await repository.ListAnnotationsForHostAsync(
+                profileId,
+                "host-1");
+            IReadOnlyList<StudentAnnotation> allAnnotations = await repository.ListAnnotationsForHostAsync(
+                profileId,
+                "host-1",
+                includeDeleted: true);
+            IReadOnlyList<StudentBookmark> allBookmarks = await repository.ListBookmarksForHostAsync(
+                profileId,
+                "host-1",
+                includeDeleted: true);
+
+            Assert.Equal("book-2", Assert.Single(progress).BookId);
+            Assert.Equal("annotation-1", Assert.Single(visibleAnnotations).Id);
+            Assert.Equal(["annotation-1", "annotation-2"], allAnnotations.Select(annotation => annotation.Id).ToArray());
+            Assert.Contains(allAnnotations, annotation => annotation is { Id: "annotation-2", IsDeleted: true });
+            Assert.Equal(["bookmark-1", "bookmark-2"], allBookmarks.Select(bookmark => bookmark.Id).ToArray());
+            Assert.DoesNotContain(allAnnotations, annotation => annotation.Id == "annotation-3");
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         string dataDirectory = Path.Combine(Path.GetTempPath(), $"ogma-student-private-{Guid.NewGuid():N}");

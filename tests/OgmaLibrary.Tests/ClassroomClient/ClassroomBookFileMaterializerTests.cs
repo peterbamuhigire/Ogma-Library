@@ -208,5 +208,18 @@ public sealed class ClassroomBookFileMaterializerTests
             string assetUrl,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+
+        public Task UploadProfileSyncBlobAsync(
+            ClassroomJoinRequest request,
+            string sessionToken,
+            EncryptedClassroomSyncBlob blob,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<EncryptedClassroomSyncBlob?> DownloadProfileSyncBlobAsync(
+            ClassroomJoinRequest request,
+            string sessionToken,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

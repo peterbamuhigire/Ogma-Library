@@ -16,6 +16,12 @@ public interface IStudentPrivateRepository
         string bookId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Lists private reading progress for all books from one Host.</summary>
+    Task<IReadOnlyList<StudentReadingProgress>> ListReadingProgressAsync(
+        Guid profileId,
+        string hostId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Saves private reading progress for one Host book.</summary>
     Task SaveReadingProgressAsync(
         Guid profileId,
@@ -27,6 +33,13 @@ public interface IStudentPrivateRepository
         Guid profileId,
         string hostId,
         string bookId,
+        bool includeDeleted = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Lists private annotations for all books from one Host.</summary>
+    Task<IReadOnlyList<StudentAnnotation>> ListAnnotationsForHostAsync(
+        Guid profileId,
+        string hostId,
         bool includeDeleted = false,
         CancellationToken cancellationToken = default);
 
@@ -48,6 +61,13 @@ public interface IStudentPrivateRepository
         Guid profileId,
         string hostId,
         string bookId,
+        bool includeDeleted = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Lists private bookmarks for all books from one Host.</summary>
+    Task<IReadOnlyList<StudentBookmark>> ListBookmarksForHostAsync(
+        Guid profileId,
+        string hostId,
         bool includeDeleted = false,
         CancellationToken cancellationToken = default);
 

@@ -95,4 +95,26 @@ internal sealed class UnavailableLibraryHostClient : ILibraryHostClient
         cancellationToken.ThrowIfCancellationRequested();
         throw new InvalidOperationException("Classroom Host client is not active yet.");
     }
+
+    public Task UploadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        EncryptedClassroomSyncBlob blob,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(blob);
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Classroom Host client is not active yet.");
+    }
+
+    public Task<EncryptedClassroomSyncBlob?> DownloadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Classroom Host client is not active yet.");
+    }
 }

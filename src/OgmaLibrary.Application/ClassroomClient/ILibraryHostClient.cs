@@ -59,4 +59,17 @@ public interface ILibraryHostClient
         string sessionToken,
         string assetUrl,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Uploads this profile's encrypted private-state sync blob to the Host.</summary>
+    Task UploadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        EncryptedClassroomSyncBlob blob,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Downloads this profile's encrypted private-state sync blob from the Host, when present.</summary>
+    Task<EncryptedClassroomSyncBlob?> DownloadProfileSyncBlobAsync(
+        ClassroomJoinRequest request,
+        string sessionToken,
+        CancellationToken cancellationToken = default);
 }
