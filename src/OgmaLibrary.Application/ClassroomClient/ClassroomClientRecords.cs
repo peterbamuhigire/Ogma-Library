@@ -77,3 +77,31 @@ public sealed record LibraryHostHealth(
     string DisplayName,
     string CertificateFingerprint,
     string ContentMode);
+
+/// <summary>TOFU trust state for a Host certificate fingerprint.</summary>
+public enum HostTrustState
+{
+    /// <summary>No previous pin exists; the user must explicitly accept.</summary>
+    FirstUse = 0,
+
+    /// <summary>The presented fingerprint matches the stored Host pin.</summary>
+    Trusted = 1,
+
+    /// <summary>The presented fingerprint does not match the expected or stored Host pin.</summary>
+    Mismatch = 2,
+}
+
+/// <summary>Persisted Host trust pin.</summary>
+public sealed record HostTrustPin(
+    string HostKey,
+    string Address,
+    int Port,
+    string CertificateFingerprint,
+    DateTimeOffset PinnedUtc);
+
+/// <summary>Result of evaluating a Host certificate against TOFU pins.</summary>
+public sealed record HostTrustEvaluation(
+    ClassroomJoinRequest Request,
+    HostTrustState State,
+    string PresentedFingerprint,
+    string? PinnedFingerprint);

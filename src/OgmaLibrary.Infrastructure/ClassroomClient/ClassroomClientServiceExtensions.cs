@@ -22,6 +22,8 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<ILibraryHostClient, UnavailableLibraryHostClient>();
         services.AddSingleton<IClassroomJoinParser, ClassroomJoinParser>();
         services.AddSingleton<IMdnsResolver, MdnsResolver>();
+        services.AddSingleton<IHostTrustStore, InMemoryHostTrustStore>();
+        services.AddSingleton<IHostTrustService, HostTrustService>();
         return services;
     }
 }
