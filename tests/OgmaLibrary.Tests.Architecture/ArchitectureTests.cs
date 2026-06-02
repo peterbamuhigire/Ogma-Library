@@ -656,6 +656,20 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
+    public void ArchTests_SchoolAiKeyProvider_PublicApiDoesNotReturnPlaintextKey()
+    {
+        MethodInfo[] interfaceMethods = typeof(ISchoolAiKeyProvider).GetMethods();
+        Type implementationType = typeof(SchoolAdminServiceExtensions).Assembly
+            .GetType("OgmaLibrary.Infrastructure.SchoolAdmin.SchoolAiKeyProvider")
+            ?? throw new InvalidOperationException("School AI key provider type was not found.");
+        MethodInfo[] implementationMethods = implementationType
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+
+        Assert.DoesNotContain(interfaceMethods, method => ReturnsString(method.ReturnType));
+        Assert.DoesNotContain(implementationMethods, method => ReturnsString(method.ReturnType));
+    }
+
+    [Fact]
     public async Task ArchTests_SchoolAdminScaffold_IsDisabledAndAdminRoleScoped()
     {
         using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
@@ -697,6 +711,12 @@ public sealed class ArchitectureTests
         result.IsSuccessful
             ? "ok"
             : "Offending types: " + string.Join(", ", result.FailingTypeNames ?? []);
+
+    private static bool ReturnsString(Type returnType) =>
+        returnType == typeof(string) ||
+        (returnType.IsGenericType &&
+            returnType.GetGenericTypeDefinition() == typeof(Task<>) &&
+            returnType.GetGenericArguments()[0] == typeof(string));
 
     private static bool IsLanHostType(Type type) =>
         (type.Namespace ?? string.Empty).StartsWith("OgmaLibrary.Infrastructure.LanHost", StringComparison.Ordinal) ||

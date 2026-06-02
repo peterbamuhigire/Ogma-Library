@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Catalogue;
 
@@ -30,7 +31,12 @@ public static class SchoolAdminServiceExtensions
         services.AddSingleton<ISchoolAiPolicyService>(provider =>
             provider.GetRequiredService<UnavailableSchoolAdminService>());
         services.AddSingleton<ISchoolAiKeyProvider>(provider =>
-            provider.GetRequiredService<UnavailableSchoolAdminService>());
+        {
+            IClassroomCredentialStore? credentialStore = provider.GetService<IClassroomCredentialStore>();
+            return credentialStore is null
+                ? provider.GetRequiredService<UnavailableSchoolAdminService>()
+                : new SchoolAiKeyProvider(credentialStore);
+        });
         services.AddSingleton<IAiProxyEndpointHandler>(provider =>
             provider.GetRequiredService<UnavailableSchoolAdminService>());
         services.AddSingleton<IUsageDashboardService>(provider =>

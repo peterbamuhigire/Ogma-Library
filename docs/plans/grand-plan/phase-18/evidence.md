@@ -30,7 +30,10 @@ on.
 | Library publishing service | `SchoolAdminCatalogueService` implements `ILibraryPublishingService` with publish, unpublish, and list persistence |
 | Shared shelf service | `SchoolAdminCatalogueService` implements `ISharedShelfService` with save, list, soft-delete, book assignment, and group visibility persistence |
 | Profile enrollment service | `SchoolProfileEnrollmentService` enrolls student/teacher profiles, stores one-time token hashes, creates default AI entitlements, lists profiles, and revokes profiles |
-| Service registration | `AddSchoolAdminServices()` registers data-backed publishing, shared-shelf, and profile-enrollment services while non-implemented AI services remain fail-closed |
+| Service registration | `AddSchoolAdminServices()` registers data-backed publishing, shared-shelf, profile-enrollment, and credential-backed AI key services while non-implemented AI policy/proxy/DPIA/dashboard services remain fail-closed |
+| School AI key provider | `SchoolAiKeyProvider` stores school provider keys under `ogma.school.ai.key.<providerId>` through `IClassroomCredentialStore`, clears the mutable input buffer, reports status only, and deletes configured keys |
+| AI key API guard | `ISchoolAiKeyProvider` exposes only save/status/delete methods; no public method returns the plaintext key |
+| Credential-store activation | School AI key storage activates when the Host composition registers `IClassroomCredentialStore`; standalone SchoolAdmin-only registration remains disabled/fail-closed |
 
 ## Verified Locally
 
@@ -75,13 +78,21 @@ on.
 | `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after profile enrollment service: 34 architecture tests |
 | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after profile enrollment service |
 | `git diff --check` | Passed after profile enrollment service: no whitespace errors |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | Passed after school AI key provider: 10 projects, 0 warnings, 0 errors |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~SchoolAdminScaffoldTests" --logger "console;verbosity=minimal"` | Passed after school AI key provider: 11 SchoolAdmin scaffold/key tests covering disabled key zeroing, credential-backed save/status, provider key normalization, status-only public return, no plaintext in data-directory files, delete, invalid-provider buffer clearing, and authorization |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_SchoolAdmin" --logger "console;verbosity=minimal"` | Passed after school AI key provider: 2 SchoolAdmin bounded-context/disabled-scope architecture tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --filter "FullyQualifiedName~ArchTests_SchoolAiKeyProvider" --logger "console;verbosity=minimal"` | Passed after school AI key provider: 2 key-provider architecture tests covering no direct AI provider dependency and no public plaintext-key return |
+| `dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj --configuration Release --no-build --logger "console;verbosity=minimal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1` | Passed after school AI key provider: 594 core tests |
+| `dotnet test tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --logger "console;verbosity=minimal"` | Passed after school AI key provider: 35 architecture tests |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | Passed after school AI key provider |
+| `git diff --check` | Passed after school AI key provider: no whitespace errors |
 
 ## Remaining Phase 18 Work
 
 - Owner ratification for ADR-0013.
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
-- Enrollment-token exchange with Host sessions; key storage, DPIA, quota,
+- Enrollment-token exchange with Host sessions; AI key panel UI, DPIA, quota,
   AI-proxy, dashboard, audit viewer, and student smart-search implementation.
 - Windows/macOS live credential-store verification for school AI key storage.
 - Red-team, security review, code review, and secret-scan gates.
