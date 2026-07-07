@@ -18,6 +18,8 @@ This directory (`docs/plans/grand-plan/`) is structured as follows:
 | --- | --- |
 | `README.md` (this file) | The master index: vision, the 24 phases, principles, global gates, and the cross‑cutting threads (icons, i18n, accessibility, privacy, LAN). |
 | `CONVENTIONS.md` | The mandatory template every phase folder follows, plus writing, traceability, and Definition‑of‑Done standards. |
+| `PHASE-IMPLEMENTATION-PROMPT.md` | The repo-specific 24-phase Plan -> Execute -> Verify -> Document -> Commit prompt for executing this grand plan. |
+| `../analysis-report-2026-07-07/` | Current-state 24-phase remediation execution package based on the July 2026 reference docs and the broken restore/test baseline. |
 | `SOURCE-SUMMARY.md` | A distilled, single‑source‑of‑truth digest of the PRD, SRS, HLD, ADRs, Test Strategy and Deployment/Ops docs (FR/NFR IDs, bounded contexts, budgets, open questions). Read this before any phase. |
 | `SKILLS-INDEX.md` | The full map of which **skills** (from `~/.claude/skills`) and **slash commands** to invoke in which phase, and why. |
 | `ICON-SYSTEM.md` | The colorful premium‑icon design system, the per‑phase **icon manifest** convention, and the procurement workflow (we *always ask the owner* for the premium PNG icons). |

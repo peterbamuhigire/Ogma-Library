@@ -172,7 +172,8 @@ public static class CompositionRoot
                 sp.GetRequiredService<ICitationService>(),
                 sp.GetRequiredService<IReadingMemoryService>(),
                 localization,
-                sp.GetRequiredService<ITextLayerService>());
+                sp.GetRequiredService<ITextLayerService>(),
+                sp.GetRequiredService<IPageRenderCache>());
             var searchVm = new SearchViewModel(
                 sp.GetRequiredService<ISemanticSearchService>(),
                 navProxy,

@@ -47,13 +47,7 @@ public sealed class Phase15OcrSchemaTests : IDisposable
     {
         IMigrator migrator = _context.Database.GetService<IMigrator>();
         migrator.Migrate(PreviousMigration);
-        _context.Books.Add(new BookRow
-        {
-            BookId = "BOOKPHASE15SCHEMA000001",
-            Title = "Phase 15 Schema Book",
-            Status = 0,
-        });
-        _context.SaveChanges();
+        InsertBookUsingPreviousSchema("BOOKPHASE15SCHEMA000001", "Phase 15 Schema Book");
 
         migrator.Migrate(Phase15Migration);
         Assert.Contains("IsOcrDerived", GetColumns("Books"));
@@ -61,7 +55,7 @@ public sealed class Phase15OcrSchemaTests : IDisposable
         migrator.Migrate(PreviousMigration);
 
         Assert.DoesNotContain("IsOcrDerived", GetColumns("Books"));
-        Assert.True(_context.Books.AsNoTracking().Any(book => book.BookId == "BOOKPHASE15SCHEMA000001"));
+        Assert.True(BookExistsUsingPreviousSchema("BOOKPHASE15SCHEMA000001"));
     }
 
     [Fact]
@@ -138,5 +132,39 @@ public sealed class Phase15OcrSchemaTests : IDisposable
         parameter.Value = indexName;
         command.Parameters.Add(parameter);
         return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) > 0;
+    }
+
+    private void InsertBookUsingPreviousSchema(string bookId, string title)
+    {
+        _context.Database.OpenConnection();
+        using DbCommand command = _context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = """
+            INSERT INTO Books (BookId, Title, Status)
+            VALUES ($bookId, $title, 0)
+            """;
+        AddParameter(command, "$bookId", bookId);
+        AddParameter(command, "$title", title);
+        command.ExecuteNonQuery();
+    }
+
+    private bool BookExistsUsingPreviousSchema(string bookId)
+    {
+        _context.Database.OpenConnection();
+        using DbCommand command = _context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(1)
+            FROM Books
+            WHERE BookId = $bookId
+            """;
+        AddParameter(command, "$bookId", bookId);
+        return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) > 0;
+    }
+
+    private static void AddParameter(DbCommand command, string name, object value)
+    {
+        DbParameter parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
     }
 }

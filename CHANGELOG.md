@@ -35,6 +35,13 @@ release.
 
 ### Fixed
 
+- **July 2026 remediation Phase 01 - restore/build stabilization.** Canonical
+  restore now passes with NuGet audit and warnings-as-errors still enabled by
+  upgrading EF Core SQLite declarations to 9.0.17 and explicitly resolving the
+  SQLitePCLRaw native bundle to 3.0.3. The Phase 15 OCR migration regression
+  test now seeds/asserts the previous schema through raw SQLite commands so it
+  remains valid against the patched native SQLite engine. (`F-BLD-001`,
+  `F-TEST-001`)
 - **Reader now displays rendered PDF pages.** The page-render pipeline
   (`PdfiumAdapter` → PNG, `PageRenderCache`, `ReaderSessionService.CurrentRenderer`)
   existed but was never surfaced in the UI — the reader showed only a "Page X of N"

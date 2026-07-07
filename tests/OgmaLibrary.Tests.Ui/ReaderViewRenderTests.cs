@@ -1320,6 +1320,47 @@ public sealed class ReaderViewRenderTests
     }
 
     [AvaloniaFact]
+    public void ReaderViewModel_ReopenAfterClose_ReNotifiesNavigationButtons()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        // Open then return to the library: IsOpen drops to false.
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.CloseAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        var raised = new List<string>();
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is not null)
+            {
+                raised.Add(e.PropertyName);
+            }
+        };
+
+        // Reopen a different book that lands on the same page index (0) and page count
+        // as the previous session — so only IsOpen actually changes value.
+        viewModel.OpenAsync("book-002", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        Assert.True(viewModel.IsOpen);
+        Assert.True(viewModel.CanGoNext);
+        Assert.False(viewModel.CanGoPrevious);
+
+        // The nav buttons bind to CanGoNext/CanGoPrevious; without re-notifying here
+        // they stay disabled because the page index and count are unchanged.
+        Assert.Contains(nameof(ReaderViewModel.CanGoNext), raised);
+        Assert.Contains(nameof(ReaderViewModel.CanGoPrevious), raised);
+    }
+
+    [AvaloniaFact]
     public void ReaderViewModel_EditNote_SavesUpdatedTextAndClosesEditor()
     {
         var localization = new InMemoryLocalizationService();

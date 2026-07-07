@@ -27,6 +27,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private readonly IReadingMemoryService _readingMemory;
     private readonly ILocalizationService _localization;
     private readonly ITextLayerService? _textLayers;
+    private readonly IPageRenderCache? _renderCache;
     private const int BookmarkTabIndex = 1;
     private const string BookmarkSortByPageId = "page";
     private const string BookmarkSortByCreatedId = "created";
@@ -86,7 +87,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         ICitationService citations,
         IReadingMemoryService readingMemory,
         ILocalizationService localization,
-        ITextLayerService? textLayers = null)
+        ITextLayerService? textLayers = null,
+        IPageRenderCache? renderCache = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(annotations);
@@ -104,6 +106,14 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _readingMemory = readingMemory;
         _localization = localization;
         _textLayers = textLayers;
+        _renderCache = renderCache;
+
+        if (_renderCache is not null)
+        {
+            // A background render (full-res after a low-res preview, or a prefetch
+            // landing) upgrades the on-screen page when it is still the current one.
+            _renderCache.RenderCompleted += OnRenderCompleted;
+        }
 
         _localization.CultureChanged += (_, _) => RaiseLocalizedProperties();
         RefreshBookmarkSortOptions();
@@ -226,6 +236,12 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             {
                 _isOpen = value;
                 OnPropertyChanged();
+
+                // CanGoPrevious/CanGoNext gate on IsOpen. Reopening a new book at the
+                // same page index and page count leaves those unchanged, so the nav
+                // buttons must be re-evaluated here or they stay stale (disabled).
+                OnPropertyChanged(nameof(CanGoPrevious));
+                OnPropertyChanged(nameof(CanGoNext));
             }
         }
     }
@@ -1400,6 +1416,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _renderCts = cts;
 
         int pageIndex = CurrentPageIndex;
+
+        // At default (fit-width) zoom this resolves to ReaderRenderDefaults.PageWidthPx,
+        // matching the prefetch width so neighbour page turns are warm cache hits.
         int widthPx = Math.Clamp(
             (int)Math.Round(BasePageSurfaceWidth * Math.Max(1.0, OverlayZoomFactor) * PageRenderSupersample),
             1,
@@ -1416,9 +1435,19 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     {
         try
         {
-            RenderResult result = await renderer
-                .RenderPageAsync(pageIndex, new RenderRequest(widthPx), cts.Token)
-                .ConfigureAwait(false);
+            var request = new RenderRequest(widthPx);
+
+            // Prefer the shared render cache: prefetched neighbour pages return instantly,
+            // and a low-res preview may come back first while the full render proceeds
+            // in the background (upgraded later via OnRenderCompleted). Fall back to the
+            // renderer directly when no cache is wired (e.g. headless tests).
+            RenderResult result = _renderCache is not null && BookId is { } bookId
+                ? await _renderCache
+                    .GetOrRenderAsync(bookId, pageIndex, request, cts.Token)
+                    .ConfigureAwait(false)
+                : await renderer
+                    .RenderPageAsync(pageIndex, request, cts.Token)
+                    .ConfigureAwait(false);
 
             cts.Token.ThrowIfCancellationRequested();
 
@@ -1454,6 +1483,50 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         catch (Exception)
         {
             // Leave PageImage unchanged so the page-number placeholder remains visible.
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <summary>
+    /// Upgrades the on-screen page when a background render completes for the page
+    /// currently in view — typically the full-res render arriving after a low-res
+    /// preview. Never replaces a higher-resolution bitmap with a lower-resolution one.
+    /// </summary>
+    private async void OnRenderCompleted(object? sender, RenderCompletedEventArgs e)
+    {
+        if (!IsOpen || !string.Equals(e.BookId, BookId, StringComparison.Ordinal) ||
+            e.PageIndex != CurrentPageIndex)
+        {
+            return;
+        }
+
+        try
+        {
+            byte[] pngBytes = e.Result.PngBytes;
+            Bitmap bitmap = await Task.Run(() =>
+            {
+                using var stream = new MemoryStream(pngBytes, writable: false);
+                return new Bitmap(stream);
+            }).ConfigureAwait(false);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                // Re-check on the UI thread: the page may have changed, or a larger
+                // render may already be shown. Only upgrade, never downgrade.
+                if (!IsOpen || e.PageIndex != CurrentPageIndex ||
+                    (_pageImage is not null && bitmap.PixelSize.Width < _pageImage.PixelSize.Width))
+                {
+                    bitmap.Dispose();
+                    return;
+                }
+
+                PageImage = bitmap;
+            });
+        }
+#pragma warning disable CA1031 // A failed upgrade must not crash the reader; keep the displayed page.
+        catch (Exception)
+        {
+            // Keep whatever is already displayed.
         }
 #pragma warning restore CA1031
     }

@@ -268,7 +268,9 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
     private void TriggerPrefetch(ReaderSession session)
     {
         var pages = GetPrefetchRange(session);
-        var request = new RenderRequest(800);
+        // Must match the reader surface's render width so prefetched neighbours are
+        // cache hits on the next/previous page turn (NFR-OGMA-005).
+        var request = new RenderRequest(ReaderRenderDefaults.PageWidthPx);
         _renderCache.Prefetch(session.BookId, pages, request);
     }
 
