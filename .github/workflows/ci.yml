@@ -30,7 +30,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore OgmaLibrary.sln
+        run: dotnet restore OgmaLibrary.sln --locked-mode
 
       - name: Format check
         run: dotnet format OgmaLibrary.sln --verify-no-changes --no-restore

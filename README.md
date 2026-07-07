@@ -9,7 +9,7 @@
 <br />
 
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-1A5C38?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0wIDBoMTJ2MTJIMHoiLz48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTEzIDBoMTF2MTJIMTMiLz48cGF0aCBmaWxsPSJ3aGl0ZSIgZD0iTTAgMTNoMTJ2MTFIMCJ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMyAxM2gxMXYxMUgxMyIvPjwvc3ZnPg==)](https://github.com/peterbamuhigire/ogma-library)
-[![Framework](https://img.shields.io/badge/.NET%208%20%2F%20Avalonia%20UI-512BD4?style=for-the-badge)](https://avaloniaui.net/)
+[![Framework](https://img.shields.io/badge/.NET%2010%20%2F%20Avalonia%20UI-512BD4?style=for-the-badge)](https://avaloniaui.net/)
 [![Language](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/csharp/)
 [![License](https://img.shields.io/badge/license-MIT-C4922A?style=for-the-badge)](LICENSE)
 [![Status](https://img.shields.io/badge/status-In%20Development-orange?style=for-the-badge)](https://github.com/peterbamuhigire/ogma-library/projects)
@@ -114,13 +114,13 @@ Built on **PDFium** — the same rendering engine as Google Chrome.
 
 | Component | Technology |
 |---|---|
-| UI framework | [Avalonia UI 11](https://avaloniaui.net/) (.NET 8) — native Windows and macOS from one codebase |
+| UI framework | [Avalonia UI 11](https://avaloniaui.net/) (.NET 10) — native Windows and macOS from one codebase |
 | MVVM | [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/) |
 | 3D bookshelf | [Three.js](https://threejs.org/) in an embedded WebView2 (Windows) / WKWebView (macOS) |
 | PDF rendering | [PDFium](https://pdfium.googlesource.com/pdfium/) via Pdfium.Net.SDK |
 | PDF metadata write | [PdfSharp](https://www.pdfsharp.net/) |
 | PDF parsing / extraction | [PdfPig](https://uglytoad.github.io/PdfPig/) |
-| Database | SQLite via [Entity Framework Core 8](https://learn.microsoft.com/en-us/ef/core/) |
+| Database | SQLite via [Entity Framework Core 10](https://learn.microsoft.com/en-us/ef/core/) |
 | Image processing | [SkiaSharp](https://github.com/mono/SkiaSharp) |
 | HTTP / external APIs | `System.Net.Http.HttpClient` + `System.Text.Json` |
 | Credential storage | OS credential manager via `Microsoft.Extensions.SecretManagement` |
@@ -168,7 +168,7 @@ OgmaLibrary.sln
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8) or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10) or later
 - Windows 10 version 1903+ **or** macOS 12 Monterey+
 - (Optional) A [Google Books API key](https://developers.google.com/books/docs/v1/using#APIKey) for metadata enrichment
 - (Optional) An API key for your preferred AI provider — [OpenAI](https://platform.openai.com/), [Anthropic](https://console.anthropic.com/), or [DeepSeek](https://platform.deepseek.com/)
@@ -367,7 +367,7 @@ Ogma Library is developed by [Peter Bamuhigire](https://techguypeter.com) under 
 5. Open a pull request against `main`
 
 **Code standards:**
-- C# 12, .NET 8, nullable reference types enabled
+- C# latest, .NET 10, nullable reference types enabled
 - `async`/`await` throughout — no blocking calls on the UI thread
 - No raw SQL — use EF Core repositories in `OgmaLibrary.Core`
 - Business logic in `OgmaLibrary.Core` only — no Avalonia dependencies in Core

@@ -6,7 +6,7 @@
 
 **Architecture:** System.Threading.Channels pipeline: DiscoveryService → IdentityMatcher → MetadataExtractionService → BookIngestionWorker (BackgroundService). All inter-stage communication via Channel<T>. UI progress bridged via Dispatcher.UIThread.Post. Every background task is a Jobs row with an IdempotencyKey unique index (NFR-OGMA-009). Per-file isolation: each job in a try/catch so failures never cancel siblings.
 
-**Tech Stack:** .NET 10, EF Core 9 (SQLite), PDFtoImage 4.1.0 + bblanchon.PDFium (thumbnail render), SkiaSharp (resize/encode), PdfPig (metadata extraction), Avalonia 11.3.17 (StorageProvider for folder picker, Dispatcher.UIThread), xUnit, QuestPDF (test fixture generation).
+**Tech Stack:** .NET 10, EF Core 10 (SQLite), PDFtoImage 4.1.0 + bblanchon.PDFium (thumbnail render), SkiaSharp (resize/encode), PdfPig (metadata extraction), Avalonia 11.3.17 (StorageProvider for folder picker, Dispatcher.UIThread), xUnit, QuestPDF (test fixture generation).
 
 ---
 

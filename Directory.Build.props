@@ -16,6 +16,7 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <!-- The repo root namespace per Development Standards §3. -->
     <RootNamespace>OgmaLibrary.$(MSBuildProjectName.Replace('OgmaLibrary.', ''))</RootNamespace>

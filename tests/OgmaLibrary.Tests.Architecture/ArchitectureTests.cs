@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
+using OgmaLibrary.App;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
@@ -79,6 +81,58 @@ public sealed class ArchitectureTests
 
         Assert.True(domain.IsSuccessful, Describe(domain));
         Assert.True(application.IsSuccessful, Describe(application));
+    }
+
+    [Fact]
+    public void Architecture_CompositionRoot_CentralizesRuntimeBranches()
+    {
+        ServiceCollection services = [];
+        services.AddOgmaLibrary();
+
+        Assert.Contains(services, descriptor =>
+            descriptor.ServiceType == typeof(IWebViewBridge) &&
+            descriptor.ImplementationFactory is not null &&
+            descriptor.Lifetime == ServiceLifetime.Singleton);
+        Assert.Contains(services, descriptor =>
+            descriptor.ServiceType == typeof(IPasswordProvider) &&
+            descriptor.ImplementationFactory is not null &&
+            descriptor.Lifetime == ServiceLifetime.Singleton);
+        Assert.Contains(services, descriptor =>
+            descriptor.ServiceType == typeof(ILibraryHostService) &&
+            descriptor.ImplementationType?.FullName == "OgmaLibrary.Infrastructure.LanHost.LibraryHostService");
+        Assert.DoesNotContain(services, descriptor =>
+            descriptor.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService) &&
+            descriptor.ImplementationType?.Namespace?.StartsWith(
+                "OgmaLibrary.Infrastructure.LanHost",
+                StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IAiProvider));
+        Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IAiGateway));
+    }
+
+    [Fact]
+    public void Architecture_RatifiedRuntimePackagePolicy_IsExecutable()
+    {
+        string root = LocateRepositoryRoot();
+
+        string props = File.ReadAllText(Path.Combine(root, "Directory.Build.props"));
+        string ci = File.ReadAllText(Path.Combine(root, ".github", "workflows", "ci.yml"));
+        string adr14 = File.ReadAllText(Path.Combine(root, "docs", "adrs", "0014-ef-core-10-on-net10-runtime.md"));
+        string adr15 = File.ReadAllText(Path.Combine(root, "docs", "adrs", "0015-documentation-baseline-v2.md"));
+
+        Assert.Contains("<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>", props);
+        Assert.Contains("dotnet restore OgmaLibrary.sln --locked-mode", ci);
+        AssertAdrAccepted(adr14);
+        AssertAdrAccepted(adr15);
+
+        AssertPackageVersion(root, "src/OgmaLibrary.Infrastructure/OgmaLibrary.Infrastructure.csproj", "Microsoft.EntityFrameworkCore.Sqlite", "10.0.9");
+        AssertPackageVersion(root, "src/OgmaLibrary.Infrastructure/OgmaLibrary.Infrastructure.csproj", "Microsoft.EntityFrameworkCore.Design", "10.0.9");
+        AssertPackageVersion(root, "tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj", "Microsoft.EntityFrameworkCore.Sqlite", "10.0.9");
+        AssertPackageVersion(root, "src/OgmaLibrary.App/OgmaLibrary.App.csproj", "Microsoft.Extensions.DependencyInjection", "10.0.9");
+        AssertPackageVersion(root, "src/OgmaLibrary.Workers/OgmaLibrary.Workers.csproj", "Microsoft.Extensions.Hosting.Abstractions", "10.0.9");
+
+        Assert.True(File.Exists(Path.Combine(root, "src", "OgmaLibrary.Infrastructure", "packages.lock.json")));
+        Assert.True(File.Exists(Path.Combine(root, "src", "OgmaLibrary.App", "packages.lock.json")));
+        Assert.True(File.Exists(Path.Combine(root, "tests", "OgmaLibrary.Tests", "packages.lock.json")));
     }
 
     /// <summary>
@@ -717,6 +771,53 @@ public sealed class ArchitectureTests
         (returnType.IsGenericType &&
             returnType.GetGenericTypeDefinition() == typeof(Task<>) &&
             returnType.GetGenericArguments()[0] == typeof(string));
+
+    private static string LocateRepositoryRoot()
+    {
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "OgmaLibrary.sln")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new InvalidOperationException("Repository root with OgmaLibrary.sln was not found.");
+    }
+
+    private static void AssertPackageVersion(
+        string root,
+        string relativeProjectPath,
+        string packageId,
+        string expectedVersion)
+    {
+        XDocument project = XDocument.Load(Path.Combine(
+            root,
+            relativeProjectPath.Replace('/', Path.DirectorySeparatorChar)));
+        XElement[] packageReferences = project
+            .Descendants("PackageReference")
+            .Where(element => element.Attribute("Include")?.Value == packageId)
+            .ToArray();
+
+        XElement packageReference = Assert.Single(packageReferences);
+        Assert.Equal(expectedVersion, packageReference.Attribute("Version")?.Value);
+    }
+
+    private static void AssertAdrAccepted(string content)
+    {
+        int statusIndex = content.IndexOf("## Status", StringComparison.Ordinal);
+        Assert.True(statusIndex >= 0, "ADR status heading was not found.");
+
+        int nextHeadingIndex = content.IndexOf("\n## ", statusIndex + "## Status".Length, StringComparison.Ordinal);
+        string statusSection = nextHeadingIndex < 0
+            ? content[statusIndex..]
+            : content[statusIndex..nextHeadingIndex];
+
+        Assert.Contains("Accepted", statusSection);
+    }
 
     private static bool IsLanHostType(Type type) =>
         (type.Namespace ?? string.Empty).StartsWith("OgmaLibrary.Infrastructure.LanHost", StringComparison.Ordinal) ||

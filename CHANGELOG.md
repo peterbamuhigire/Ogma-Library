@@ -42,6 +42,14 @@ release.
   test now seeds/asserts the previous schema through raw SQLite commands so it
   remains valid against the patched native SQLite engine. (`F-BLD-001`,
   `F-TEST-001`)
+- **July 2026 remediation Phase 02 - runtime and architecture decision closure.**
+  ADR-0014/0015 are accepted in the live ADR catalogue, EF Core and explicit
+  Microsoft.Extensions packages now align to 10.0.9 on net10.0, NuGet lock files
+  are committed with CI locked restore, and architecture tests now enforce the
+  ratified package/composition-root policy. The large-library batch enrichment
+  path now prefetches idempotency keys instead of querying once per book so the
+  full regression suite remains stable under the canonical solution test run.
+  (`F-BLD-002`, `F-BLD-003`, `F-DOC-001`, `F-ARCH-001`)
 - **Reader now displays rendered PDF pages.** The page-render pipeline
   (`PdfiumAdapter` → PNG, `PageRenderCache`, `ReaderSessionService.CurrentRenderer`)
   existed but was never surfaced in the UI — the reader showed only a "Page X of N"

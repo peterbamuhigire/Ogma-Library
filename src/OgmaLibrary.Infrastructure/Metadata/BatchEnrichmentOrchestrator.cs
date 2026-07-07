@@ -51,27 +51,25 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        int created = 0;
         string batchId = Guid.NewGuid().ToString("N");
+        List<PendingEnrichmentJob> requestedJobs = bookIds
+            .Select((bookId, index) => new { BookId = bookId, Index = index })
+            .Where(item => !string.IsNullOrWhiteSpace(item.BookId))
+            .Select(item => new PendingEnrichmentJob(
+                item.BookId,
+                item.Index,
+                ComputeIdempotencyKey(item.BookId)))
+            .ToList();
+        HashSet<string> scheduledKeys = await LoadExistingIdempotencyKeysAsync(
+                context,
+                requestedJobs.Select(job => job.IdempotencyKey),
+                cancellationToken)
+            .ConfigureAwait(false);
 
-        foreach ((string bookId, int index) in bookIds.Select((bookId, index) => (bookId, index)))
+        int created = 0;
+        foreach (PendingEnrichmentJob requestedJob in requestedJobs)
         {
-            if (string.IsNullOrWhiteSpace(bookId))
-            {
-                continue;
-            }
-
-            string idempotencyKey = ComputeIdempotencyKey(bookId);
-
-            // Skip if an enrichment job already exists for this book.
-            bool exists = await context.Jobs
-                .AsNoTracking()
-                .AnyAsync(
-                    j => j.IdempotencyKey == idempotencyKey && j.JobType == "Enrich",
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (exists)
+            if (!scheduledKeys.Add(requestedJob.IdempotencyKey))
             {
                 continue;
             }
@@ -79,14 +77,14 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
             context.Jobs.Add(new JobRow
             {
                 JobType = "Enrich",
-                IdempotencyKey = idempotencyKey,
+                IdempotencyKey = requestedJob.IdempotencyKey,
                 Status = 0, // Pending
-                BookId = bookId,
+                BookId = requestedJob.BookId,
                 Payload = JsonSerializer.Serialize(new BatchEnrichmentJobPayload(
                     batchId,
-                    ChunkIndex: index / ChunkSize,
-                    ChunkSize: Math.Min(ChunkSize, bookIds.Count - (index / ChunkSize * ChunkSize)),
-                    OrdinalInChunk: index % ChunkSize)),
+                    ChunkIndex: requestedJob.Index / ChunkSize,
+                    ChunkSize: Math.Min(ChunkSize, bookIds.Count - (requestedJob.Index / ChunkSize * ChunkSize)),
+                    OrdinalInChunk: requestedJob.Index % ChunkSize)),
             });
 
             created++;
@@ -100,9 +98,32 @@ public sealed class BatchEnrichmentOrchestrator : IBatchEnrichmentOrchestrator
         return created;
     }
 
+    private static async Task<HashSet<string>> LoadExistingIdempotencyKeysAsync(
+        CatalogueDbContext context,
+        IEnumerable<string> idempotencyKeys,
+        CancellationToken cancellationToken)
+    {
+        var existingKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string[] chunk in idempotencyKeys.Distinct(StringComparer.Ordinal).Chunk(500))
+        {
+            List<string> matchedKeys = await context.Jobs
+                .AsNoTracking()
+                .Where(job => job.JobType == "Enrich" && chunk.Contains(job.IdempotencyKey))
+                .Select(job => job.IdempotencyKey)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            existingKeys.UnionWith(matchedKeys);
+        }
+
+        return existingKeys;
+    }
+
     private static string ComputeIdempotencyKey(string bookId)
     {
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes($"Enrich:{bookId}"));
         return Convert.ToHexStringLower(hash);
     }
+
+    private sealed record PendingEnrichmentJob(string BookId, int Index, string IdempotencyKey);
 }

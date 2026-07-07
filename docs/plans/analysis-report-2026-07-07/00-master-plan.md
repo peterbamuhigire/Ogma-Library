@@ -43,6 +43,7 @@ The sequence starts with restore/build blockers because no later verification is
 | Phase | Status | Current projected score | Evidence |
 | ---: | --- | ---: | --- |
 | 01 | Complete | 60.0% | `phase-01-baseline-recovery-build-stabilization/COMPLETED.md` |
+| 02 | Complete | 61.5% | `phase-02-architecture-composition-root/COMPLETED.md` |
 
 ## Dependency Map
 
