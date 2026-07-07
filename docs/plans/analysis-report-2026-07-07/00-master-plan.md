@@ -17,7 +17,7 @@ The sequence starts with restore/build blockers because no later verification is
 | 02 | Runtime and Architecture Decision Closure | F-BLD-002, F-BLD-003, F-DOC-001, F-ARCH-001 | 60.0 -> 61.5 |
 | 03 | Canonical Test Recovery and Known Failure Fix | F-TEST-002, F-FUNC-001, F-PERF-004 | 61.5 -> 64.0 |
 | 04 | Security Threat Model and SAST Baseline | F-SEC-001, F-SEC-004, F-SEC-005, F-ARCH-001 | 64.0 -> 66.5 |
-| 05 | Untrusted PDF Worker Isolation | F-SEC-001, F-SEC-002 | 66.5 -> 69.0 |
+| 05 | Untrusted PDF Worker Isolation | F-SEC-001; P04-R1 / CTRL-OGMA-004..007 | 66.5 -> 69.0 |
 | 06 | At-Rest Encryption and Secret Lifecycle | F-SEC-002, F-SEC-003, F-SEC-005 | 69.0 -> 71.0 |
 | 07 | Database Migration Integrity | F-DATA-001, F-DATA-002, F-DATA-003 | 71.0 -> 73.0 |
 | 08 | Catalogue UX and Asset Completion | F-FUNC-002, F-FUNC-004, F-UI-001, F-UI-002 | 73.0 -> 75.0 |
@@ -46,6 +46,7 @@ The sequence starts with restore/build blockers because no later verification is
 | 02 | Complete | 61.5% | `phase-02-architecture-composition-root/COMPLETED.md` |
 | 03 | Complete | 64.0% | `phase-03-catalogue-data-layer/COMPLETED.md` |
 | 04 | Complete | 66.5% | `phase-04-ingestion-scanning-pipeline/COMPLETED.md` |
+| 05 | Complete | 69.0% | `phase-05-metadata-enrichment-health/COMPLETED.md` |
 
 ## Dependency Map
 

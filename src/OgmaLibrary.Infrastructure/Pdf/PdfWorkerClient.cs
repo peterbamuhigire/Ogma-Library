@@ -1,0 +1,509 @@
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
+using OgmaLibrary.Application.Reader;
+
+namespace OgmaLibrary.Infrastructure.Pdf;
+
+/// <summary>
+/// Launches the external PDF worker process and exchanges sandboxed render results
+/// with the main application process.
+/// </summary>
+public sealed class PdfWorkerClient
+{
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly PdfWorkerOptions _options;
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="PdfWorkerClient"/>.
+    /// </summary>
+    /// <param name="options">Optional worker launch settings.</param>
+    public PdfWorkerClient(PdfWorkerOptions? options = null)
+    {
+        _options = options ?? new PdfWorkerOptions();
+    }
+
+    /// <summary>
+    /// Gets the page count for a PDF by invoking the worker process.
+    /// </summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="password">Optional password characters.</param>
+    /// <returns>The detected page count, or zero for malformed PDFs.</returns>
+    public int GetPageCount(string filePath, char[]? password = null)
+    {
+        WorkerEnvelope<PageCountResponse> envelope = RunJson<PageCountResponse>(
+            ["page-count", "--input", RequireAbsoluteFile(filePath)],
+            password);
+        return envelope.Payload?.PageCount ?? 0;
+    }
+
+    /// <summary>
+    /// Renders a single PDF page by invoking the worker process.
+    /// </summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="pageIndex">The zero-based page index.</param>
+    /// <param name="request">The render request.</param>
+    /// <param name="password">Optional password characters.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The rendered page result.</returns>
+    public async Task<RenderResult> RenderPageAsync(
+        string filePath,
+        int pageIndex,
+        RenderRequest request,
+        char[]? password,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentNullException.ThrowIfNull(request);
+
+        using PdfWorkerSandbox sandbox = CreateSandbox();
+        string outputPath = Path.Combine(sandbox.Path, "page.png");
+        WorkerEnvelope<RenderPageResponse> envelope = await RunJsonAsync<RenderPageResponse>(
+                [
+                    "render-page",
+                    "--input",
+                    RequireAbsoluteFile(filePath),
+                    "--page",
+                    pageIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "--width",
+                    request.WidthPx.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "--height",
+                    request.HeightPx.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "--scale",
+                    request.Scale.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "--low-res",
+                    request.IsLowResPreview ? "true" : "false",
+                    "--output",
+                    outputPath,
+                ],
+                password,
+                sandbox,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        byte[] pngBytes = await File.ReadAllBytesAsync(outputPath, cancellationToken).ConfigureAwait(false);
+        RenderPageResponse payload = envelope.Payload ?? new RenderPageResponse(595, 842);
+        return new RenderResult(pngBytes, payload.PageWidthPoints, payload.PageHeightPoints, pageIndex);
+    }
+
+    /// <summary>
+    /// Gets the normalized PDF rotation for a page by invoking the worker process.
+    /// </summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="pageIndex">The zero-based page index.</param>
+    /// <param name="password">Optional password characters.</param>
+    /// <returns>The clockwise page rotation in degrees.</returns>
+    public int GetPageRotationDegrees(string filePath, int pageIndex, char[]? password = null)
+    {
+        WorkerEnvelope<RotationResponse> envelope = RunJson<RotationResponse>(
+            [
+                "rotation",
+                "--input",
+                RequireAbsoluteFile(filePath),
+                "--page",
+                pageIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ],
+            password);
+        return envelope.Payload?.RotationDegrees ?? 0;
+    }
+
+    /// <summary>
+    /// Extracts a PDF text layer by invoking the worker process.
+    /// </summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="pageIndex">The zero-based page index.</param>
+    /// <param name="password">Optional password characters.</param>
+    /// <returns>The extracted text layer, or an empty layer when extraction fails.</returns>
+    public TextLayer ExtractTextLayer(string filePath, int pageIndex, char[]? password = null)
+    {
+        WorkerEnvelope<TextLayer> envelope = RunJson<TextLayer>(
+            [
+                "text-layer",
+                "--input",
+                RequireAbsoluteFile(filePath),
+                "--page",
+                pageIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ],
+            password);
+        return envelope.Payload ?? new TextLayer(pageIndex, [], ExtractionQuality.Empty);
+    }
+
+    /// <summary>
+    /// Generates a cover asset in the worker sandbox and copies the completed file
+    /// to the requested output path after the worker exits successfully.
+    /// </summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="outputPath">The final sidecar output path.</param>
+    public void GenerateCover(string filePath, string outputPath) =>
+        GenerateAsset("cover", filePath, outputPath);
+
+    /// <summary>
+    /// Generates a spine asset in the worker sandbox and copies the completed file
+    /// to the requested output path after the worker exits successfully.
+    /// </summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="outputPath">The final sidecar output path.</param>
+    public void GenerateSpine(string filePath, string outputPath) =>
+        GenerateAsset("spine", filePath, outputPath);
+
+    /// <summary>
+    /// Runs a worker diagnostic used by security tests.
+    /// </summary>
+    /// <param name="diagnosticName">The diagnostic name.</param>
+    /// <returns>The diagnostic result.</returns>
+    public PdfWorkerDiagnosticResult RunDiagnostic(string diagnosticName)
+    {
+        WorkerEnvelope<PdfWorkerDiagnosticResult> envelope = RunJson<PdfWorkerDiagnosticResult>(
+            ["diagnose", "--kind", diagnosticName],
+            password: null);
+        return envelope.Payload ?? new PdfWorkerDiagnosticResult("failed", "Worker returned no diagnostic payload.");
+    }
+
+    private void GenerateAsset(string command, string filePath, string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+
+        string fullOutputPath = Path.GetFullPath(outputPath);
+        string? directory = Path.GetDirectoryName(fullOutputPath);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            throw new ArgumentException("The output path must include a directory.", nameof(outputPath));
+        }
+
+        Directory.CreateDirectory(directory);
+
+        using PdfWorkerSandbox sandbox = CreateSandbox();
+        string workerOutputPath = Path.Combine(sandbox.Path, $"{command}.jpg");
+        RunJson<AssetResponse>(
+            [
+                $"asset-{command}",
+                "--input",
+                RequireAbsoluteFile(filePath),
+                "--output",
+                workerOutputPath,
+            ],
+            password: null,
+            sandbox);
+        File.Copy(workerOutputPath, fullOutputPath, overwrite: true);
+    }
+
+    private WorkerEnvelope<T> RunJson<T>(IReadOnlyList<string> args, char[]? password, PdfWorkerSandbox? sandbox = null)
+    {
+        using var cts = new CancellationTokenSource(_options.Timeout);
+        return RunJsonAsync<T>(args, password, sandbox, cts.Token).GetAwaiter().GetResult();
+    }
+
+    private async Task<WorkerEnvelope<T>> RunJsonAsync<T>(
+        IReadOnlyList<string> args,
+        char[]? password,
+        PdfWorkerSandbox? sandbox,
+        CancellationToken cancellationToken)
+    {
+        bool ownsSandbox = sandbox is null;
+        sandbox ??= CreateSandbox();
+        try
+        {
+            WorkerCommand command = ResolveWorkerCommand();
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo(command.FileName)
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                WorkingDirectory = sandbox.Path,
+            };
+
+            foreach (string prefixArg in command.PrefixArguments)
+            {
+                process.StartInfo.ArgumentList.Add(prefixArg);
+            }
+
+            process.StartInfo.ArgumentList.Add("pdf-worker");
+            process.StartInfo.ArgumentList.Add("--sandbox");
+            process.StartInfo.ArgumentList.Add(sandbox.Path);
+            foreach (string arg in args)
+            {
+                process.StartInfo.ArgumentList.Add(arg);
+            }
+
+            SetSandboxEnvironment(process.StartInfo, sandbox.Path, password);
+
+            process.Start();
+            using WindowsChildProcessLimit? childProcessLimit = WindowsChildProcessLimit.TryAssign(process);
+            Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+            Task<string> stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
+
+            try
+            {
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(_options.Timeout);
+                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                KillProcessTree(process);
+                throw new TimeoutException("The PDF worker process exceeded its execution timeout.");
+            }
+
+            string stdout = await stdoutTask.ConfigureAwait(false);
+            string stderr = await stderrTask.ConfigureAwait(false);
+            if (process.ExitCode != 0)
+            {
+                ThrowWorkerFailure(stdout, stderr);
+            }
+
+            WorkerEnvelope<T>? envelope = JsonSerializer.Deserialize<WorkerEnvelope<T>>(stdout, JsonOptions);
+            if (envelope is null)
+            {
+                throw new InvalidOperationException("The PDF worker returned an empty or invalid response.");
+            }
+
+            if (!string.Equals(envelope.Status, "ok", StringComparison.OrdinalIgnoreCase))
+            {
+                ThrowWorkerFailure(envelope);
+            }
+
+            return envelope;
+        }
+        finally
+        {
+            if (ownsSandbox)
+            {
+                sandbox.Dispose();
+            }
+        }
+    }
+
+    private static void SetSandboxEnvironment(ProcessStartInfo startInfo, string sandboxPath, char[]? password)
+    {
+        startInfo.Environment["TMP"] = sandboxPath;
+        startInfo.Environment["TEMP"] = sandboxPath;
+        startInfo.Environment["TMPDIR"] = sandboxPath;
+        startInfo.Environment["OGMA_PDF_WORKER_NETWORK"] = "disabled";
+        startInfo.Environment["OGMA_PDF_WORKER_CHILD_PROCESSES"] = "disabled";
+        if (password is not null)
+        {
+            startInfo.Environment["OGMA_PDF_WORKER_PASSWORD_B64"] =
+                Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+        }
+    }
+
+    private static void ThrowWorkerFailure(string stdout, string stderr)
+    {
+        try
+        {
+            WorkerEnvelope<JsonElement>? error = JsonSerializer.Deserialize<WorkerEnvelope<JsonElement>>(stdout, JsonOptions);
+            if (error is not null)
+            {
+                ThrowWorkerFailure(error);
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall through to the generic stderr message.
+        }
+
+        throw new InvalidOperationException(
+            string.IsNullOrWhiteSpace(stderr)
+                ? "The PDF worker process failed."
+                : $"The PDF worker process failed: {stderr.Trim()}");
+    }
+
+    private static void ThrowWorkerFailure<T>(WorkerEnvelope<T> envelope)
+    {
+        string message = string.IsNullOrWhiteSpace(envelope.Error)
+            ? "The PDF worker process failed."
+            : envelope.Error;
+        throw envelope.ErrorType switch
+        {
+            nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(message),
+            nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(message),
+            _ => new InvalidOperationException(message),
+        };
+    }
+
+    private PdfWorkerSandbox CreateSandbox()
+    {
+        string root = string.IsNullOrWhiteSpace(_options.SandboxRoot)
+            ? Path.Combine(Path.GetTempPath(), "OgmaLibraryPdfWorker")
+            : _options.SandboxRoot;
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(path);
+        return new PdfWorkerSandbox(path);
+    }
+
+    private WorkerCommand ResolveWorkerCommand()
+    {
+        string? configuredPath = _options.WorkerPath;
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            return ToWorkerCommand(configuredPath);
+        }
+
+        string? envPath = Environment.GetEnvironmentVariable("OGMA_PDF_WORKER_PATH");
+        if (!string.IsNullOrWhiteSpace(envPath))
+        {
+            return ToWorkerCommand(envPath);
+        }
+
+        string baseDirectory = AppContext.BaseDirectory;
+        foreach (string candidate in GetWorkerPathCandidates(baseDirectory))
+        {
+            if (File.Exists(candidate))
+            {
+                return ToWorkerCommand(candidate);
+            }
+        }
+
+        throw new FileNotFoundException("Could not locate the OgmaLibrary.Workers PDF worker executable.");
+    }
+
+    private static IEnumerable<string> GetWorkerPathCandidates(string baseDirectory)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            yield return Path.Combine(baseDirectory, "OgmaLibrary.Workers.exe");
+        }
+
+        yield return Path.Combine(baseDirectory, "OgmaLibrary.Workers");
+        yield return Path.Combine(baseDirectory, "OgmaLibrary.Workers.dll");
+        yield return Path.GetFullPath(Path.Combine(
+            baseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "src",
+            "OgmaLibrary.Workers",
+            "bin",
+            "Release",
+            "net10.0",
+            OperatingSystem.IsWindows() ? "OgmaLibrary.Workers.exe" : "OgmaLibrary.Workers"));
+        yield return Path.GetFullPath(Path.Combine(
+            baseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "src",
+            "OgmaLibrary.Workers",
+            "bin",
+            "Release",
+            "net10.0",
+            "OgmaLibrary.Workers.dll"));
+    }
+
+    private static WorkerCommand ToWorkerCommand(string path)
+    {
+        string fullPath = Path.GetFullPath(path);
+        if (string.Equals(Path.GetExtension(fullPath), ".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            return new WorkerCommand("dotnet", [fullPath]);
+        }
+
+        return new WorkerCommand(fullPath, []);
+    }
+
+    private static string RequireAbsoluteFile(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        string fullPath = Path.GetFullPath(filePath);
+        if (!Path.IsPathFullyQualified(fullPath))
+        {
+            throw new ArgumentException("The PDF path must be absolute.", nameof(filePath));
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("The PDF file does not exist.", fullPath);
+        }
+
+        return fullPath;
+    }
+
+    private static void KillProcessTree(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Process already exited.
+        }
+    }
+
+    private sealed record WorkerCommand(string FileName, IReadOnlyList<string> PrefixArguments);
+
+    private sealed record PageCountResponse(int PageCount);
+
+    private sealed record RenderPageResponse(double PageWidthPoints, double PageHeightPoints);
+
+    private sealed record RotationResponse(int RotationDegrees);
+
+    private sealed record AssetResponse(string OutputPath);
+}
+
+/// <summary>
+/// Options controlling PDF worker process launch.
+/// </summary>
+public sealed class PdfWorkerOptions
+{
+    /// <summary>
+    /// Gets or sets the explicit worker executable or assembly path.
+    /// </summary>
+    public string? WorkerPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the root directory used for per-operation worker sandboxes.
+    /// </summary>
+    public string? SandboxRoot { get; set; }
+
+    /// <summary>
+    /// Gets or sets the worker operation timeout.
+    /// </summary>
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(15);
+}
+
+/// <summary>
+/// A diagnostic result returned by the PDF worker process.
+/// </summary>
+/// <param name="Status">The diagnostic status.</param>
+/// <param name="Detail">The diagnostic detail.</param>
+public sealed record PdfWorkerDiagnosticResult(string Status, string Detail);
+
+internal sealed record WorkerEnvelope<T>(string Status, T? Payload, string? ErrorType = null, string? Error = null);
+
+internal sealed class PdfWorkerSandbox : IDisposable
+{
+    public PdfWorkerSandbox(string path)
+    {
+        Path = path;
+    }
+
+    public string Path { get; }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(Path))
+            {
+                Directory.Delete(Path, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+            // Best-effort cleanup; stale sandboxes are under the controlled temp root.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Best-effort cleanup; stale sandboxes are under the controlled temp root.
+        }
+    }
+}

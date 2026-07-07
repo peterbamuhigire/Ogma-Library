@@ -4,13 +4,13 @@ Run these checks exactly, adding phase-specific commands where the changed modul
 
 1. `dotnet restore OgmaLibrary.sln`
 2. `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
-3. Targeted tests for affected modules under `src/OgmaLibrary.Workers; src/OgmaLibrary.Reader; src/OgmaLibrary.Infrastructure/Assets; tests/OgmaLibrary.Tests/Security`. Choose the narrowest matching project/filter first and record the exact command.
+3. Targeted tests for affected modules under `src/OgmaLibrary.Workers; src/OgmaLibrary.Reader; src/OgmaLibrary.Infrastructure/Assets; src/OgmaLibrary.Infrastructure/Pdf; tests/OgmaLibrary.Tests/Security`. Choose the narrowest matching project/filter first and record the exact command.
 4. `dotnet test OgmaLibrary.sln --configuration Release --no-build`
 5. If UI changed: run the affected `tests/OgmaLibrary.Tests.Ui` filters and capture before/after screenshots or render-test evidence.
 6. If security/release changed: run dependency/SAST/secret/release commands named by the governing skill and record artifact paths.
 7. If performance changed: run the documented benchmark on the required reference hardware and store results under `docs/benchmarks` or `docs/qa`.
 8. Walk `acceptance-criteria.md` line by line and write pass/fail evidence into `COMPLETED.md`.
 
-Findings that may be marked resolved after this phase: **F-SEC-001, F-SEC-002**.
+Findings that may be marked resolved after this phase: **F-SEC-001**. The Phase 04 worker-isolation risk/control evidence target (**P04-R1 / CTRL-OGMA-004..007**) may be closed when the required proof and fault-injection evidence pass. **F-SEC-002** remains assigned to Phase 06.
 
 Full verification must be rerun after any fix. A partial rerun is not sufficient for phase completion.

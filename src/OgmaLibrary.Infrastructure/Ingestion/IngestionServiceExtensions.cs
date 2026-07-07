@@ -4,6 +4,7 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -30,6 +31,7 @@ public static class IngestionServiceExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
         services.AddSingleton<ILibrarySettingsService>(_ => new LibrarySettingsService(dataDirectory));
+        services.AddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();
         services.AddSingleton<IUnavailableFileFlagService, UnavailableFileFlagService>();

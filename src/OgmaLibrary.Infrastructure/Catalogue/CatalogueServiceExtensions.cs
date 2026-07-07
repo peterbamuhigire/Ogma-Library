@@ -126,6 +126,20 @@ public static class CatalogueServiceExtensions
     /// <returns>An absolute path to the per-user data directory.</returns>
     public static string GetDefaultDataDirectory()
     {
+        string? configuredDirectory = Environment.GetEnvironmentVariable("OGMA_LIBRARY_DATA_DIR");
+        if (!string.IsNullOrWhiteSpace(configuredDirectory))
+        {
+            return Path.GetFullPath(configuredDirectory);
+        }
+
+        if (IsRunningUnderTestHost())
+        {
+            return Path.Combine(
+                Path.GetTempPath(),
+                "Ogma Library Test Data",
+                Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         // Environment.SpecialFolder.LocalApplicationData is:
         //   Windows: %LOCALAPPDATA%  (e.g. C:\Users\Name\AppData\Local)
         //   macOS:   ~/Library/Application Support
@@ -135,5 +149,12 @@ public static class CatalogueServiceExtensions
             Environment.SpecialFolderOption.Create);
 
         return Path.Combine(appData, "Ogma Library Data");
+    }
+
+    private static bool IsRunningUnderTestHost()
+    {
+        string processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+        return processName.Equals("testhost", StringComparison.OrdinalIgnoreCase)
+            || processName.Equals("vstest.console", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -231,7 +231,7 @@ public static class CompositionRoot
             sp.GetRequiredService<MainShellViewModel>());
 
         // Phase 08 — Reader bounded context.
-        services.AddSingleton<IPdfRendererFactory, PdfiumAdapterFactory>();
+        services.AddSingleton<IPdfRendererFactory, IsolatedPdfRendererFactory>();
         services.AddSingleton<BookFileLocator>();
         services.AddSingleton<IBookFileLocator>(sp => new ClassroomBookFileLocator(
             sp.GetRequiredService<BookFileLocator>(),

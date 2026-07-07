@@ -6,8 +6,8 @@ Harden untrusted PDF handling so malformed PDFs cannot access network, spawn pro
 
 ## Scope In
 
-- Resolve findings: **F-SEC-001, F-SEC-002**.
-- Work only in these target areas unless an import, project reference, or test fixture must change mechanically: `src/OgmaLibrary.Workers; src/OgmaLibrary.Reader; src/OgmaLibrary.Infrastructure/Assets; tests/OgmaLibrary.Tests/Security`.
+- Resolve finding **F-SEC-001** and close the Phase 04 worker-isolation risk/control evidence target (**P04-R1 / CTRL-OGMA-004..007**). **F-SEC-002** remains assigned to Phase 06.
+- Work in these target areas, with the approved Deviation Protocol expansion to the PDF adapter and DI boundary required for a real subprocess isolation path: `src/OgmaLibrary.Workers; src/OgmaLibrary.Reader; src/OgmaLibrary.Infrastructure/Assets; src/OgmaLibrary.Infrastructure/Pdf; src/OgmaLibrary.App/CompositionRoot.cs; tests/OgmaLibrary.Tests/Security`.
 - Re-open every named skill file before implementation; do not rely on this plan summary as the skill body.
 
 ## Scope Out
@@ -30,4 +30,4 @@ web-app-security-audit; code-safety-scanner; system-architecture-design
 
 ## Findings Addressed
 
-F-SEC-001, F-SEC-002
+F-SEC-001; P04-R1 / CTRL-OGMA-004..007

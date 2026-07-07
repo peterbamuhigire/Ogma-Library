@@ -104,3 +104,13 @@ benchmark ran on 4.1.0 — re-confirm the version at Phase 08.
 
 > With this amendment, ADR-0004 is **Accepted** with the wrapper fixed
 > (PDFtoImage), pending only macOS-arm64 runtime confirmation.
+
+### Phase 05 isolation amendment (2026-07-07)
+
+Production reader, text-layer, OCR, and cover/spine paths now execute PDF parsing
+through `OgmaLibrary.Workers pdf-worker` subprocesses. The direct `PdfiumAdapter`
+remains the worker-side PDFium wrapper; application callers use
+`IsolatedPdfRendererFactory`, which delegates to `PdfWorkerClient` and exchanges
+JSON metadata plus sandboxed output files. See
+`docs/security/phase-05-pdf-worker-isolation.md` for the isolation boundary,
+fault-injection evidence, and platform notes.
