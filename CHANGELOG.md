@@ -50,6 +50,12 @@ release.
   path now prefetches idempotency keys instead of querying once per book so the
   full regression suite remains stable under the canonical solution test run.
   (`F-BLD-002`, `F-BLD-003`, `F-DOC-001`, `F-ARCH-001`)
+- **July 2026 remediation Phase 03 - canonical test recovery and known failure fix.**
+  The health-dashboard retry boundary now only requeues failed metadata jobs,
+  preventing completed jobs from being reset by retry actions. Added a focused
+  regression test for completed-job retry protection and recorded the restored
+  canonical Release test baseline: 37 architecture tests, 629 core tests, and
+  126 UI tests passed. (`F-TEST-002`, `F-FUNC-001`, `F-PERF-004`)
 - **Reader now displays rendered PDF pages.** The page-render pipeline
   (`PdfiumAdapter` → PNG, `PageRenderCache`, `ReaderSessionService.CurrentRenderer`)
   existed but was never surfaced in the UI — the reader showed only a "Page X of N"

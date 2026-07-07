@@ -143,6 +143,31 @@ public sealed class HealthDashboardTests
     }
 
     [Fact]
+    public async Task HealthDashboard_RetryJob_IgnoresCompletedJob()
+    {
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+
+        DateTimeOffset completedUtc = DateTimeOffset.UtcNow.AddMinutes(-5);
+        context.Jobs.Add(new Infrastructure.Catalogue.Entities.JobRow
+        {
+            JobId = 1,
+            JobType = "Enrich",
+            IdempotencyKey = "completed-key-001",
+            Status = 2, // Completed
+            CompletedUtc = completedUtc,
+        });
+        await context.SaveChangesAsync();
+
+        var svc = new LibraryHealthService(context);
+        await svc.RetryJobAsync(1);
+
+        var job = context.Jobs.Single(j => j.JobId == 1);
+        Assert.Equal(2, job.Status);
+        Assert.Equal(completedUtc, job.CompletedUtc);
+        Assert.Equal(0, job.RetryCount);
+    }
+
+    [Fact]
     public async Task HealthDashboard_DuplicateByContentHash_Detected()
     {
         using var context = CatalogueTestHelper.CreateInMemoryContext();

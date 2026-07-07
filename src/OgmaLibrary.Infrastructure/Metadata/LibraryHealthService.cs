@@ -85,7 +85,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
         CatalogueDbContext context = lease.Context;
 
         var job = await context.Jobs
-            .FirstOrDefaultAsync(j => j.JobId == jobId, cancellationToken)
+            .FirstOrDefaultAsync(j => j.JobId == jobId && j.Status == 3, cancellationToken)
             .ConfigureAwait(false);
 
         if (job is null)
