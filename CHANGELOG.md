@@ -56,6 +56,12 @@ release.
   regression test for completed-job retry protection and recorded the restored
   canonical Release test baseline: 37 architecture tests, 629 core tests, and
   126 UI tests passed. (`F-TEST-002`, `F-FUNC-001`, `F-PERF-004`)
+- **July 2026 remediation Phase 04 - security threat model and SAST baseline.**
+  Added the Phase 04 STRIDE threat model, security control matrix, residual risk
+  register, SAST/secret-scan report, and QA gate evidence. CI now runs dependency
+  vulnerability, analyzer, and high-confidence secret-pattern scans before tests,
+  with executable security-baseline tests guarding the docs and workflow.
+  (`F-SEC-001`, `F-SEC-004`, `F-SEC-005`, `F-ARCH-001`)
 - **Reader now displays rendered PDF pages.** The page-render pipeline
   (`PdfiumAdapter` → PNG, `PageRenderCache`, `ReaderSessionService.CurrentRenderer`)
   existed but was never surfaced in the UI — the reader showed only a "Page X of N"

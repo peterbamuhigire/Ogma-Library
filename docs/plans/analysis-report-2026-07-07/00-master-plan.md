@@ -45,6 +45,7 @@ The sequence starts with restore/build blockers because no later verification is
 | 01 | Complete | 60.0% | `phase-01-baseline-recovery-build-stabilization/COMPLETED.md` |
 | 02 | Complete | 61.5% | `phase-02-architecture-composition-root/COMPLETED.md` |
 | 03 | Complete | 64.0% | `phase-03-catalogue-data-layer/COMPLETED.md` |
+| 04 | Complete | 66.5% | `phase-04-ingestion-scanning-pipeline/COMPLETED.md` |
 
 ## Dependency Map
 

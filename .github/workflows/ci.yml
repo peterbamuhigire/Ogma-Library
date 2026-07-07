@@ -38,6 +38,35 @@ jobs:
       - name: Build (warnings as errors)
         run: dotnet build OgmaLibrary.sln --configuration Release --no-restore
 
+      - name: Dependency vulnerability scan
+        run: dotnet list OgmaLibrary.sln package --vulnerable --include-transitive
+
+      - name: SAST analyzer scan
+        run: dotnet format analyzers OgmaLibrary.sln --verify-no-changes --no-restore --severity warn --verbosity minimal
+
+      - name: Secret pattern scan
+        shell: pwsh
+        run: |
+          $patterns = @(
+            'sk_live_[A-Za-z0-9]{16,}',
+            'sk-[A-Za-z0-9]{20,}',
+            'ghp_[A-Za-z0-9]{36}',
+            'github_pat_[A-Za-z0-9_]{20,}',
+            'AIza[0-9A-Za-z\-_]{35}',
+            '-----BEGIN (RSA |EC |OPENSSH |)?PRIVATE KEY-----'
+          )
+          $files = Get-ChildItem -Path src,.github -Recurse -File -Include *.cs,*.axaml,*.json,*.yml,*.yaml,*.props,*.csproj |
+            Where-Object { $_.FullName -notmatch '\\bin\\|\\obj\\|packages\.lock\.json|\\.github\\workflows\\ci\.yml$' }
+          $hits = foreach ($pattern in $patterns) {
+            Select-String -Path $files.FullName -Pattern $pattern -ErrorAction SilentlyContinue |
+              ForEach-Object { "$($_.Path):$($_.LineNumber):$($_.Line.Trim())" }
+          }
+          if ($hits) {
+            $hits
+            exit 1
+          }
+          "No high-confidence secret patterns found."
+
       - name: Test (unit + architecture + UI render)
         run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal
 
