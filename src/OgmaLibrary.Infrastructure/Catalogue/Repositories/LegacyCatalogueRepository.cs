@@ -5,35 +5,37 @@ using OgmaLibrary.Infrastructure.Catalogue.Entities;
 namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 
 /// <summary>
-/// EF Core implementation of <see cref="IBookRepository"/> against
-/// <see cref="CatalogueDbContext"/> (HLD §2.2, ADR-0005).
+/// EF Core compatibility adapter for legacy <c>Books</c> rows during the canonical
+/// identity migration. It never fabricates unavailable file facts.
 /// </summary>
-public sealed class BookRepository : IBookRepository
+public sealed class LegacyCatalogueRepository : ILegacyCatalogueRepository
 {
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BookRepository"/>.
+    /// Initializes a new instance of <see cref="LegacyCatalogueRepository"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    internal BookRepository(CatalogueDbContext context)
+    internal LegacyCatalogueRepository(CatalogueDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BookRepository"/>.
+    /// Initializes a new instance of <see cref="LegacyCatalogueRepository"/>.
     /// </summary>
-    public BookRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
+    public LegacyCatalogueRepository(IDbContextFactory<CatalogueDbContext> contextFactory)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         _contextFactory = contextFactory;
     }
 
     /// <inheritdoc />
-    public async Task<Book?> FindAsync(BookId id, CancellationToken cancellationToken)
+    public async Task<LegacyCatalogueRecord?> FindAsync(
+        BookId id,
+        CancellationToken cancellationToken)
     {
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
@@ -52,9 +54,11 @@ public sealed class BookRepository : IBookRepository
     }
 
     /// <inheritdoc />
-    public async Task SaveAsync(Book book, CancellationToken cancellationToken)
+    public async Task SaveAsync(
+        LegacyCatalogueRecord record,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(book);
+        ArgumentNullException.ThrowIfNull(record);
 
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
@@ -62,26 +66,26 @@ public sealed class BookRepository : IBookRepository
         CatalogueDbContext context = lease.Context;
 
         BookRow? existing = await context.Books
-            .FirstOrDefaultAsync(b => b.BookId == book.Id.Value, cancellationToken)
+            .FirstOrDefaultAsync(b => b.BookId == record.Id.Value, cancellationToken)
             .ConfigureAwait(false);
 
         if (existing is null)
         {
-            var row = MapToRow(book);
+            var row = MapToRow(record);
             context.Books.Add(row);
         }
         else
         {
-            existing.Title = book.Title;
-            existing.Year = book.Year;
-            existing.Rating = book.Rating;
-            existing.IsbnNormalized = book.Isbn?.Normalized;
+            existing.Title = record.Title;
+            existing.Year = record.Year;
+            existing.Rating = record.Rating;
+            existing.IsbnNormalized = record.Isbn?.Normalized;
         }
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static Book MapToDomain(BookRow row)
+    private static LegacyCatalogueRecord MapToDomain(BookRow row)
     {
         Isbn? isbn = null;
         if (row.IsbnNormalized is not null && Isbn.TryParse(row.IsbnNormalized, out Isbn parsed))
@@ -89,12 +93,15 @@ public sealed class BookRepository : IBookRepository
             isbn = parsed;
         }
 
-        var files = row.BookFiles.Select(f => new BookFile
+        ContentHash? contentHash = TryReadVerifiedHash(row.Sha256Hash);
+        var files = row.BookFiles.Select(f => new LegacyFileRecord
         {
             RelativePath = f.RelativePath,
-            ContentHash = new ContentHash(string.IsNullOrEmpty(f.RelativePath) ? new string('a', 64) : GeneratePlaceholderHash(f.RelativePath)),
-            SizeBytes = 0,
-            ModifiedUtc = f.LastSeenUtc,
+            ContentHash = contentHash,
+            SizeBytes = row.SizeBytes,
+            ModifiedUtc = row.MtimeTicks is long ticks
+                ? new DateTimeOffset(ticks, TimeSpan.Zero)
+                : null,
             Availability = f.FileStatus == 0 ? AvailabilityStatus.Available : AvailabilityStatus.Unavailable,
         }).ToList();
 
@@ -115,7 +122,7 @@ public sealed class BookRepository : IBookRepository
                 IsSmart = sb.Shelf.ShelfType == 1,
             }).ToList();
 
-        return new Book
+        return new LegacyCatalogueRecord
         {
             Id = new BookId(row.BookId),
             Title = row.Title,
@@ -128,20 +135,30 @@ public sealed class BookRepository : IBookRepository
         };
     }
 
-    private static BookRow MapToRow(Book book) => new BookRow
+    private static BookRow MapToRow(LegacyCatalogueRecord record) => new BookRow
     {
-        BookId = book.Id.Value,
-        Title = book.Title,
-        IsbnNormalized = book.Isbn?.Normalized,
-        Year = book.Year,
-        Rating = book.Rating,
+        BookId = record.Id.Value,
+        Title = record.Title,
+        IsbnNormalized = record.Isbn?.Normalized,
+        Year = record.Year,
+        Rating = record.Rating,
         Status = 0,
     };
 
-    private static string GeneratePlaceholderHash(string seed)
+    private static ContentHash? TryReadVerifiedHash(string? value)
     {
-        // Stable 64-char hex placeholder for display — not a real SHA-256.
-        int hash = seed.GetHashCode();
-        return Math.Abs(hash).ToString("x8", System.Globalization.CultureInfo.InvariantCulture).PadRight(16, '0').PadRight(64, '0');
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            return new ContentHash(value);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 }

@@ -5,7 +5,8 @@ using System.Text;
 namespace OgmaLibrary.Domain;
 
 /// <summary>
-/// The stable identity of a <see cref="Book"/> in the catalogue of record.
+/// Compatibility identity of a pre-canonical catalogue presentation.
+/// New identity-sensitive code uses the explicit root/occurrence/asset/edition/work IDs.
 /// Backed by a ULID-style 26-character Crockford base-32 string so identifiers are
 /// sortable by creation time yet collision-resistant.
 /// </summary>

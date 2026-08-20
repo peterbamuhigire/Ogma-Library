@@ -46,11 +46,55 @@ public sealed class ArchitectureTests
     private const string DependencyInjection = "Microsoft.Extensions.DependencyInjection";
     private const string EntityFrameworkCore = "Microsoft.EntityFrameworkCore";
 
+    [Fact]
+    public void Architecture_CanonicalIdentityModel_IsPathIndependentAndExplicit()
+    {
+        Type[] canonicalTypes =
+        [
+            typeof(FileOccurrence),
+            typeof(ContentAsset),
+            typeof(Edition),
+            typeof(Work),
+            typeof(CataloguePresentationIdentity),
+            typeof(IdentityEvidenceProfile),
+            typeof(IdentityDecision),
+        ];
+
+        foreach (Type type in canonicalTypes)
+        {
+            Assert.DoesNotContain(type.GetProperties(), property =>
+                property.Name.Contains("Path", StringComparison.OrdinalIgnoreCase) ||
+                property.Name.Contains("Locator", StringComparison.OrdinalIgnoreCase));
+        }
+
+        Assert.Null(typeof(Work).Assembly.GetType("OgmaLibrary.Domain.Book"));
+        Assert.Null(typeof(Work).Assembly.GetType("OgmaLibrary.Domain.BookFile"));
+        Assert.Null(typeof(Work).Assembly.GetType("OgmaLibrary.Domain.IBookRepository"));
+        Assert.NotNull(typeof(Work).Assembly.GetType("OgmaLibrary.Domain.LegacyCatalogueRecord"));
+    }
+
+    [Fact]
+    public void Architecture_LegacyCatalogueAdapter_DoesNotFabricateHashes()
+    {
+        string root = LocateRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "OgmaLibrary.Infrastructure",
+            "Catalogue",
+            "Repositories",
+            "LegacyCatalogueRepository.cs"));
+
+        Assert.DoesNotContain("GeneratePlaceholderHash", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stable 64-char hex placeholder", source, StringComparison.Ordinal);
+        Assert.Contains("TryReadVerifiedHash", source, StringComparison.Ordinal);
+    }
+
     /// <summary>The Domain project must depend on no other project (strict isolation).</summary>
     [Fact]
     public void Architecture_DomainProject_HasNoOutwardDependencies()
     {
-        var result = Types.InAssembly(typeof(Book).Assembly)
+        var result = Types.InAssembly(typeof(Work).Assembly)
             .ShouldNot()
             .HaveDependencyOnAny(Application, Infrastructure, Reader, Bookshelf3D, Workers, App)
             .GetResult();
@@ -62,7 +106,7 @@ public sealed class ArchitectureTests
     [Fact]
     public void Architecture_OnlyInfrastructureUsesHttpClient()
     {
-        var domain = Types.InAssembly(typeof(Book).Assembly)
+        var domain = Types.InAssembly(typeof(Work).Assembly)
             .ShouldNot().HaveDependencyOn(Http).GetResult();
         var application = Types.InAssembly(typeof(IBenchmarkContext).Assembly)
             .ShouldNot().HaveDependencyOn(Http).GetResult();
@@ -75,7 +119,7 @@ public sealed class ArchitectureTests
     [Fact]
     public void Architecture_OnlyAppBindsImplementations()
     {
-        var domain = Types.InAssembly(typeof(Book).Assembly)
+        var domain = Types.InAssembly(typeof(Work).Assembly)
             .ShouldNot().HaveDependencyOn(DependencyInjection).GetResult();
         var application = Types.InAssembly(typeof(IBenchmarkContext).Assembly)
             .ShouldNot().HaveDependencyOn(DependencyInjection).GetResult();
@@ -194,7 +238,7 @@ public sealed class ArchitectureTests
     [Fact]
     public void Architecture_OnlyInfrastructureUsesEntityFrameworkCore()
     {
-        var domain = Types.InAssembly(typeof(Book).Assembly)
+        var domain = Types.InAssembly(typeof(Work).Assembly)
             .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
         var application = Types.InAssembly(typeof(IBenchmarkContext).Assembly)
             .ShouldNot().HaveDependencyOnAny(EntityFrameworkCore).GetResult();
@@ -241,7 +285,7 @@ public sealed class ArchitectureTests
             .ShouldNot().HaveDependencyOn(Http).GetResult();
 
         // Domain must not directly use HttpClient.
-        var domainResult = Types.InAssembly(typeof(Book).Assembly)
+        var domainResult = Types.InAssembly(typeof(Work).Assembly)
             .ShouldNot().HaveDependencyOn(Http).GetResult();
 
         // Providers live in Infrastructure — verify by asserting Infrastructure
