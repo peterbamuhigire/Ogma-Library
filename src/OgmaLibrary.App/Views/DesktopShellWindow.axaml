@@ -36,6 +36,15 @@
                    TextWrapping="Wrap"
                    FontSize="{DynamicResource Type.Size.Body}"
                    Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <TextBlock Text="{Binding MigrationProgressText}"
+                   IsVisible="{Binding IsMigrationProgressKnown}"
+                   TextWrapping="Wrap"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <ProgressBar Value="{Binding MigrationProgress}"
+                     IsVisible="{Binding IsMigrationProgressKnown}"
+                     Height="5"
+                     AutomationProperties.Name="Canonical identity migration progress" />
         <ProgressBar IsIndeterminate="True"
                      Height="5"
                      AutomationProperties.Name="{Binding StartingBody}" />

@@ -1,10 +1,12 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Avalonia.Threading;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.Startup;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
+using OgmaLibrary.Infrastructure.Catalogue;
 
 namespace OgmaLibrary.App.ViewModels;
 
@@ -21,6 +23,7 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
     private readonly IApplicationStartupCoordinator? _coordinator;
     private readonly OgmaRuntimeOptions? _options;
     private readonly ILocalizationService _localization;
+    private readonly CatalogueMigrator? _catalogueMigrator;
     private CancellationToken _applicationCancellationToken;
     private ApplicationStartupReport? _report;
     private bool _isStarting = true;
@@ -30,18 +33,26 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
     private bool _canRetry;
     private bool _canExportDiagnostics;
     private string? _exportStatus;
+    private string _migrationProgressText = string.Empty;
+    private double _migrationProgress;
 
     /// <summary>Initializes the runtime startup shell.</summary>
     public StartupShellViewModel(
         IApplicationStartupCoordinator coordinator,
         MainShellViewModel mainShell,
         OgmaRuntimeOptions options,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        CatalogueMigrator? catalogueMigrator = null)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
         MainShell = mainShell ?? throw new ArgumentNullException(nameof(mainShell));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        _catalogueMigrator = catalogueMigrator;
+        if (_catalogueMigrator is not null)
+        {
+            _catalogueMigrator.ProgressChanged += OnCatalogueMigrationProgress;
+        }
         _localization.CultureChanged += OnCultureChanged;
     }
 
@@ -164,6 +175,23 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
     /// <summary>Body for the loading state.</summary>
     public string StartingBody => _localization["Startup.Starting.Body"];
 
+    /// <summary>Redacted canonical migration progress text.</summary>
+    public string MigrationProgressText
+    {
+        get => _migrationProgressText;
+        private set => SetField(ref _migrationProgressText, value);
+    }
+
+    /// <summary>Canonical migration progress in [0, 1].</summary>
+    public double MigrationProgress
+    {
+        get => _migrationProgress;
+        private set => SetField(ref _migrationProgress, value);
+    }
+
+    /// <summary>Whether migration has reported a determinate total.</summary>
+    public bool IsMigrationProgressKnown => MigrationProgressText.Length > 0;
+
     /// <summary>Heading for the degraded state.</summary>
     public string DegradedHeading => IsLibraryVisible
         ? _localization["Startup.Degraded.PartialHeading"]
@@ -202,6 +230,8 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
         CanRetry = false;
         CanExportDiagnostics = false;
         ExportStatus = null;
+        MigrationProgressText = string.Empty;
+        MigrationProgress = 0;
 
         Task loadingDelay = RevealLoadingAfterDelayAsync(cancellationToken);
         ApplicationStartupReport report = await _coordinator.InitializeAsync(cancellationToken)
@@ -314,6 +344,31 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Issues));
         OnPropertyChanged(nameof(DegradedHeading));
         OnPropertyChanged(nameof(DegradedBody));
+    }
+
+    private void OnCatalogueMigrationProgress(
+        object? sender,
+        CatalogueMigrationProgress progress)
+    {
+        void Apply()
+        {
+            MigrationProgress = progress.TotalItems <= 0
+                ? 0
+                : Math.Clamp((double)progress.CompletedItems / progress.TotalItems, 0, 1);
+            MigrationProgressText = progress.TotalItems <= 0
+                ? "Preparing canonical library identities"
+                : $"Preparing canonical library identities: {progress.CompletedItems} / {progress.TotalItems}";
+            OnPropertyChanged(nameof(IsMigrationProgressKnown));
+        }
+
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            Apply();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(Apply);
+        }
     }
 
     private void SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

@@ -149,6 +149,41 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Published editions of works (schema-only; UI in Phase 06/07).</summary>
     public DbSet<EditionRow> Editions => Set<EditionRow>();
 
+    // Canonical identity persistence (Phase 4 freeze).
+
+    /// <summary>Approved or compatibility library-root identities.</summary>
+    public DbSet<LibraryRootRow> LibraryRoots => Set<LibraryRootRow>();
+
+    /// <summary>Exact-byte asset identities.</summary>
+    public DbSet<ContentAssetRow> ContentAssets => Set<ContentAssetRow>();
+
+    /// <summary>Physical file occurrences within approved roots.</summary>
+    public DbSet<FileOccurrenceRow> FileOccurrences => Set<FileOccurrenceRow>();
+
+    /// <summary>Canonical intellectual works.</summary>
+    public DbSet<CanonicalWorkRow> CanonicalWorks => Set<CanonicalWorkRow>();
+
+    /// <summary>Canonical publication editions.</summary>
+    public DbSet<CanonicalEditionRow> CanonicalEditions => Set<CanonicalEditionRow>();
+
+    /// <summary>Stable catalogue presentation identities.</summary>
+    public DbSet<CatalogueItemRow> CatalogueItems => Set<CatalogueItemRow>();
+
+    /// <summary>Edition-to-content-asset relationships.</summary>
+    public DbSet<EditionContentAssetRow> EditionContentAssets => Set<EditionContentAssetRow>();
+
+    /// <summary>Catalogue-item-to-occurrence relationships.</summary>
+    public DbSet<CatalogueItemOccurrenceRow> CatalogueItemOccurrences => Set<CatalogueItemOccurrenceRow>();
+
+    /// <summary>Source-scoped canonical bibliographic identifiers.</summary>
+    public DbSet<BibliographicIdentifierRow> BibliographicIdentifiers => Set<BibliographicIdentifierRow>();
+
+    /// <summary>Versioned path-free identity decisions.</summary>
+    public DbSet<IdentityDecisionRow> IdentityDecisions => Set<IdentityDecisionRow>();
+
+    /// <summary>Aliases from legacy BookIds to canonical identities.</summary>
+    public DbSet<LegacyIdentityAliasRow> LegacyIdentityAliases => Set<LegacyIdentityAliasRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -186,6 +221,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AiUsageLedgerConfiguration());
         modelBuilder.ApplyConfiguration(new WorkConfiguration());
         modelBuilder.ApplyConfiguration(new EditionConfiguration());
+        CanonicalIdentityConfiguration.Configure(modelBuilder);
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());

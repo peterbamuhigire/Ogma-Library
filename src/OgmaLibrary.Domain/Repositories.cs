@@ -18,6 +18,34 @@ public interface ILegacyCatalogueRepository
     Task SaveAsync(LegacyCatalogueRecord record, CancellationToken cancellationToken);
 }
 
+/// <summary>Read access to the canonical identity graph and compatibility aliases.</summary>
+public interface ICanonicalIdentityRepository
+{
+    /// <summary>Resolves a legacy BookId to its canonical path-free projection.</summary>
+    /// <param name="legacyBookId">The legacy catalogue identifier.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The canonical projection, or null when no alias exists.</returns>
+    Task<CanonicalIdentityProjection?> FindByLegacyBookIdAsync(
+        BookId legacyBookId,
+        CancellationToken cancellationToken);
+
+    /// <summary>Finds a canonical path-free projection by catalogue item ID.</summary>
+    /// <param name="catalogueItemId">The canonical catalogue item identifier.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The canonical projection, or null when it does not exist.</returns>
+    Task<CanonicalIdentityProjection?> FindByCatalogueItemIdAsync(
+        CatalogueItemId catalogueItemId,
+        CancellationToken cancellationToken);
+
+    /// <summary>Resolves the temporary legacy ID used by old search and API clients.</summary>
+    /// <param name="catalogueItemId">The canonical catalogue item identifier.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The legacy ID, or null for a post-migration-only item.</returns>
+    Task<BookId?> FindLegacyBookIdAsync(
+        CatalogueItemId catalogueItemId,
+        CancellationToken cancellationToken);
+}
+
 /// <summary>Read/write access to virtual and smart shelves (FR-CAT-003).</summary>
 public interface IShelfRepository
 {

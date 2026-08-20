@@ -486,3 +486,21 @@ internal static class StableIdentity
         }
     }
 }
+
+/// <summary>Path-free occurrence projection returned by canonical repositories.</summary>
+public sealed record CanonicalFileOccurrenceProjection(
+    FileOccurrenceId FileOccurrenceId,
+    LibraryRootId LibraryRootId,
+    ContentAssetId? ContentAssetId,
+    AvailabilityStatus Availability);
+
+/// <summary>
+/// Explicit canonical identity projection for catalogue, search, advisor and 3D
+/// consumers during the legacy-ID compatibility window.
+/// </summary>
+public sealed record CanonicalIdentityProjection(
+    CataloguePresentationIdentity PresentationIdentity,
+    BibliographicResolutionState WorkResolutionState,
+    BibliographicResolutionState EditionResolutionState,
+    IReadOnlyList<CanonicalFileOccurrenceProjection> Occurrences,
+    bool RequiresSemanticReindex);
