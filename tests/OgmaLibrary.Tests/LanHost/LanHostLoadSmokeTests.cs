@@ -105,8 +105,10 @@ public sealed class LanHostLoadSmokeTests
         var stopwatch = Stopwatch.StartNew();
         using HttpResponseMessage response = await http.GetAsync(path);
         stopwatch.Stop();
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         string json = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.StatusCode == HttpStatusCode.OK,
+            $"Expected HTTP 200 from {path}; received {(int)response.StatusCode} {response.StatusCode}. Body: {json}");
         Assert.Contains("Load Smoke Book", json, StringComparison.Ordinal);
         return stopwatch.ElapsedMilliseconds;
     }

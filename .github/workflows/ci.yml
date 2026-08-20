@@ -29,6 +29,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/shelf3d/package-lock.json
+
+      - name: Requirement accountability gate
+        shell: pwsh
+        run: ./scripts/Test-RequirementAccountability.ps1
+
       - name: Restore
         run: dotnet restore OgmaLibrary.sln --locked-mode
 
@@ -43,6 +54,18 @@ jobs:
 
       - name: SAST analyzer scan
         run: dotnet format analyzers OgmaLibrary.sln --verify-no-changes --no-restore --severity warn --verbosity minimal
+
+      - name: Install and audit 3D dependencies
+        run: |
+          npm ci --prefix src/shelf3d
+          npm audit --prefix src/shelf3d --audit-level=low
+
+      - name: Verify 3D source and performance budget
+        run: |
+          npm run typecheck --prefix src/shelf3d
+          npm run build --prefix src/shelf3d
+          npm run perf:budget --prefix src/shelf3d
+          git diff --exit-code -- src/OgmaLibrary.Bookshelf3D/Assets/Web/shelf3d.js
 
       - name: Secret pattern scan
         shell: pwsh
