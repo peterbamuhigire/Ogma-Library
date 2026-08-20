@@ -22,10 +22,15 @@ public static class MetadataServiceExtensions
     /// The validated library root directory, used by the write-back service for
     /// path-traversal validation.
     /// </param>
+    /// <param name="enableExternalProviders">
+    /// Whether external provider adapters may be resolved. Disabled registration
+    /// keeps deterministic local metadata services available without network egress.
+    /// </param>
     /// <returns>The same service collection for chaining.</returns>
     public static IServiceCollection AddMetadataEnrichment(
         this IServiceCollection services,
-        string libraryRoot)
+        string libraryRoot,
+        bool enableExternalProviders = false)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
@@ -34,33 +39,35 @@ public static class MetadataServiceExtensions
         services.AddSingleton<IIsbnDetectionService, IsbnDetectionService>();
 
         // HTTP clients — named, routed through IHttpClientFactory (architecture rule SI-1).
-        services.AddHttpClient<GoogleBooksProvider>(
-            "GoogleBooks",
-            client =>
-            {
-                client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
-                client.Timeout = TimeSpan.FromSeconds(10);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
-            })
-            .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
-                MetadataProviderRateLimitPolicy.GoogleBooks));
+        if (enableExternalProviders)
+        {
+            services.AddHttpClient<GoogleBooksProvider>(
+                "GoogleBooks",
+                client =>
+                {
+                    client.BaseAddress = new Uri("https://www.googleapis.com/books/v1/");
+                    client.Timeout = TimeSpan.FromSeconds(10);
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
+                })
+                .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
+                    MetadataProviderRateLimitPolicy.GoogleBooks));
 
-        services.AddHttpClient<OpenLibraryProvider>(
-            "OpenLibrary",
-            client =>
-            {
-                client.BaseAddress = new Uri("https://openlibrary.org/");
-                client.Timeout = TimeSpan.FromSeconds(10);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
-            })
-            .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
-                MetadataProviderRateLimitPolicy.OpenLibrary));
+            services.AddHttpClient<OpenLibraryProvider>(
+                "OpenLibrary",
+                client =>
+                {
+                    client.BaseAddress = new Uri("https://openlibrary.org/");
+                    client.Timeout = TimeSpan.FromSeconds(10);
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
+                })
+                .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
+                    MetadataProviderRateLimitPolicy.OpenLibrary));
 
-        // Register both providers as IMetadataProvider implementations.
-        services.AddSingleton<IMetadataProvider, GoogleBooksProvider>(sp =>
-            sp.GetRequiredService<GoogleBooksProvider>());
-        services.AddSingleton<IMetadataProvider, OpenLibraryProvider>(sp =>
-            sp.GetRequiredService<OpenLibraryProvider>());
+            services.AddSingleton<IMetadataProvider, GoogleBooksProvider>(sp =>
+                sp.GetRequiredService<GoogleBooksProvider>());
+            services.AddSingleton<IMetadataProvider, OpenLibraryProvider>(sp =>
+                sp.GetRequiredService<OpenLibraryProvider>());
+        }
 
         // Aggregator.
         services.AddSingleton<IMetadataProviderAggregator, MetadataProviderAggregator>();

@@ -24,6 +24,38 @@ public sealed class PdfWorkerClient
     }
 
     /// <summary>
+    /// Checks whether the configured worker command can be resolved without
+    /// launching it or opening a PDF.
+    /// </summary>
+    /// <returns>A redacted availability result that never includes a filesystem path.</returns>
+    public PdfWorkerAvailability GetAvailability()
+    {
+        try
+        {
+            WorkerCommand command = ResolveWorkerCommand();
+            bool exists = string.Equals(command.FileName, "dotnet", StringComparison.Ordinal) &&
+                          command.PrefixArguments.Count > 0
+                ? File.Exists(command.PrefixArguments[0])
+                : File.Exists(command.FileName);
+            return exists
+                ? new PdfWorkerAvailability(true, "ready")
+                : new PdfWorkerAvailability(false, "worker_file_unavailable");
+        }
+        catch (FileNotFoundException)
+        {
+            return new PdfWorkerAvailability(false, "worker_file_unavailable");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new PdfWorkerAvailability(false, "worker_access_denied");
+        }
+        catch (ArgumentException)
+        {
+            return new PdfWorkerAvailability(false, "worker_path_unusable");
+        }
+    }
+
+    /// <summary>
     /// Gets the page count for a PDF by invoking the worker process.
     /// </summary>
     /// <param name="filePath">The absolute PDF path.</param>
@@ -448,6 +480,11 @@ public sealed class PdfWorkerClient
 
     private sealed record AssetResponse(string OutputPath);
 }
+
+/// <summary>Redacted PDF worker prerequisite status.</summary>
+/// <param name="IsAvailable">Whether the worker file can be resolved.</param>
+/// <param name="Code">Stable diagnostic code with no path or secret value.</param>
+public sealed record PdfWorkerAvailability(bool IsAvailable, string Code);
 
 /// <summary>
 /// Options controlling PDF worker process launch.
