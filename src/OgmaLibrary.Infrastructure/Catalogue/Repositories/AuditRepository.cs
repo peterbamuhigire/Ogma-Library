@@ -9,10 +9,11 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// <see cref="CatalogueDbContext"/>. This is a strictly append-only implementation;
 /// no update or delete operations are exposed (NFR-PROD-013, CTRL-OGMA-018).
 /// </summary>
-public sealed class AuditRepository : IAuditRepository
+public sealed class AuditRepository : IAuditRepository, IDisposable
 {
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
 
     /// <summary>
     /// Initializes a new instance of <see cref="AuditRepository"/>.
@@ -37,23 +38,33 @@ public sealed class AuditRepository : IAuditRepository
     public async Task AppendAsync(AuditEvent auditEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(auditEvent);
-
-        using CatalogueContextLease lease = await CatalogueContextLease
-            .CreateAsync(_contextFactory, _context, cancellationToken)
-            .ConfigureAwait(false);
-        CatalogueDbContext context = lease.Context;
-
-        context.AuditEvents.Add(new AuditEventRow
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            EventType = auditEvent.EventType,
-            EntityId = auditEvent.EntityId,
-            ActorId = auditEvent.ActorId,
-            AfterJson = auditEvent.Payload,
-            Timestamp = auditEvent.TimestampUtc,
-            IsLocalOnly = true,
-        });
+            // SQLite accepts a single writer. Serializing this append-only stream
+            // avoids a thundering herd of busy retries when many authenticated LAN
+            // requests finish together, while preserving durable audit ordering.
+            using CatalogueContextLease lease = await CatalogueContextLease
+                .CreateAsync(_contextFactory, _context, cancellationToken)
+                .ConfigureAwait(false);
+            CatalogueDbContext context = lease.Context;
 
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            context.AuditEvents.Add(new AuditEventRow
+            {
+                EventType = auditEvent.EventType,
+                EntityId = auditEvent.EntityId,
+                ActorId = auditEvent.ActorId,
+                AfterJson = auditEvent.Payload,
+                Timestamp = auditEvent.TimestampUtc,
+                IsLocalOnly = true,
+            });
+
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
     }
 
     /// <inheritdoc />
@@ -88,4 +99,7 @@ public sealed class AuditRepository : IAuditRepository
             Payload = r.AfterJson,
         }).ToList();
     }
+
+    /// <inheritdoc />
+    public void Dispose() => _writeGate.Dispose();
 }

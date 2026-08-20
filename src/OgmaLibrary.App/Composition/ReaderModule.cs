@@ -4,6 +4,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 using OgmaLibrary.Infrastructure.Pdf;
@@ -21,10 +22,6 @@ internal sealed class ReaderModule : IOgmaModuleRegistrar
 
     public void Register(IServiceCollection services, OgmaRuntimeOptions options)
     {
-        services.AddSingleton(_ => new PdfWorkerClient(new PdfWorkerOptions
-        {
-            WorkerPath = options.PdfWorkerPath,
-        }));
         services.AddSingleton<IPdfRendererFactory, IsolatedPdfRendererFactory>();
         services.AddSingleton<BookFileLocator>();
         services.AddSingleton<IBookFileLocator>(sp => new ClassroomBookFileLocator(

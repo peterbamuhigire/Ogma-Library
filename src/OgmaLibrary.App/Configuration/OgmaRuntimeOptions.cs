@@ -89,13 +89,29 @@ public sealed record OgmaRuntimeOptions
         string fallback)
     {
         string? value = reader(key);
-        return string.IsNullOrWhiteSpace(value) ? Path.GetFullPath(fallback) : Path.GetFullPath(value);
+        return NormalizePath(string.IsNullOrWhiteSpace(value) ? fallback : value, key);
     }
 
     private static string? ReadOptionalPath(Func<string, string?> reader, string key)
     {
         string? value = reader(key);
-        return string.IsNullOrWhiteSpace(value) ? null : Path.GetFullPath(value);
+        return string.IsNullOrWhiteSpace(value) ? null : NormalizePath(value, key);
+    }
+
+    private static string NormalizePath(string value, string settingName)
+    {
+        try
+        {
+            return Path.GetFullPath(value);
+        }
+        catch (Exception exception) when (exception is ArgumentException or
+                                          NotSupportedException or
+                                          PathTooLongException)
+        {
+            throw new OgmaConfigurationException(
+                settingName,
+                "The setting does not contain a valid filesystem path.");
+        }
     }
 
     private static bool ReadBoolean(Func<string, string?> reader, string key)
@@ -134,6 +150,8 @@ public sealed record OgmaRuntimeOptions
                 settingName,
                 "The setting must contain an absolute path.");
         }
+
+        _ = NormalizePath(path, settingName);
     }
 }
 

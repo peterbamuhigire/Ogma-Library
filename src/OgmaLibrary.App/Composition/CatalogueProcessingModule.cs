@@ -3,12 +3,12 @@ using OgmaLibrary.App.Configuration;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ocr;
-using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Ocr;
+using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Workers;
 using OgmaLibrary.Workers.Ocr;
 
@@ -21,7 +21,10 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
     public void Register(IServiceCollection services, OgmaRuntimeOptions options)
     {
         services.AddCatalogueContext(options.DataDirectory, options.LibraryRoot);
-        services.AddAiGatewayCore();
+        services.AddSingleton(_ => new PdfWorkerClient(new PdfWorkerOptions
+        {
+            WorkerPath = options.PdfWorkerPath,
+        }));
         services.AddIngestionPipeline(options.DataDirectory);
         services.AddMetadataEnrichment(
             options.LibraryRoot,

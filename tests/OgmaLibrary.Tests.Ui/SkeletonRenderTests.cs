@@ -18,7 +18,7 @@ namespace OgmaLibrary.Tests.Ui;
 /// </summary>
 public sealed class SkeletonRenderTests
 {
-    private static string ArtifactsDir
+    internal static string ArtifactsDir
     {
         get
         {
@@ -28,7 +28,7 @@ public sealed class SkeletonRenderTests
         }
     }
 
-    private static MainShellViewModel CreateViewModel(InMemoryLocalizationService localization)
+    internal static MainShellViewModel CreateViewModel(InMemoryLocalizationService localization)
     {
         var readModel = new EmptyCatalogueReadModel();
         var writeService = new NoOpCatalogueWriteService();

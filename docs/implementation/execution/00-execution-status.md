@@ -9,7 +9,7 @@ Execution branch: `main`
 | Phase | Name | Status | Started | Completed | Notes |
 | ----: | ---- | ------ | ------- | --------- | ----- |
 | 1 | Evidence Baseline and Scope Freeze | COMPLETE | 2026-08-20 | 2026-08-20 | Scope frozen; 162-ID accountability gate added |
-| 2 | Composition, Configuration and Startup | NOT STARTED | — | — | — |
+| 2 | Composition, Configuration and Startup | COMPLETE | 2026-08-20 | 2026-08-20 | Modular DI; non-blocking/recoverable startup; external capabilities disabled by default |
 | 3 | Canonical Library Identity Model | NOT STARTED | — | — | — |
 | 4 | Identity Schema and Data Migration | NOT STARTED | — | — | Identity freeze point |
 | 5 | Library Roots and Path Security | NOT STARTED | — | — | Push checkpoint after completion |

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.ViewModels;
-using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
@@ -28,20 +27,20 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
     public void Register(IServiceCollection services, OgmaRuntimeOptions options)
     {
         services.AddTransient<MainWindowViewModel>();
-        services.AddTransient<RecommendationPanelViewModel>();
-        services.AddTransient<ReadingPlanViewModel>();
         services.AddTransient<Bookshelf3DViewModel>();
         services.AddTransient<SplitViewViewModel>();
         services.AddTransient<PasswordUnlockViewModel>();
 
-        services.AddSingleton<MainShellViewModel>(CreateMainShell);
+        services.AddSingleton<MainShellViewModel>(sp => CreateMainShell(sp, options));
         services.AddSingleton<IBookDetailNavigationService>(sp =>
             sp.GetRequiredService<MainShellViewModel>());
         services.AddSingleton<IReaderNavigationService>(sp =>
             sp.GetRequiredService<MainShellViewModel>());
     }
 
-    private static MainShellViewModel CreateMainShell(IServiceProvider services)
+    private static MainShellViewModel CreateMainShell(
+        IServiceProvider services,
+        OgmaRuntimeOptions options)
     {
         var localization = services.GetRequiredService<ILocalizationService>();
         var readModel = services.GetRequiredService<ICatalogueReadModel>();
@@ -83,21 +82,23 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<ILibraryHostClient>(),
             services.GetRequiredService<IProfileService>(),
             services.GetRequiredService<IStudentPrivateRepository>());
-        var hostSharing = new HostSharingViewModel(
-            services.GetRequiredService<ILibraryHostService>(),
-            services.GetRequiredService<IHostModeSettingsRepository>(),
-            services.GetRequiredService<IClassroomJoinParser>(),
-            services.GetRequiredService<IClassroomConnectionService>(),
-            services.GetRequiredService<ISyncService>(),
-            services.GetRequiredService<IClassroomModeService>(),
-            services.GetRequiredService<IMdnsResolver>(),
-            services.GetRequiredService<IProfileService>(),
-            services.GetRequiredService<IProfileEnrollmentService>(),
-            services.GetRequiredService<ISchoolAiKeyProvider>(),
-            services.GetRequiredService<ISchoolAiPolicyService>(),
-            services.GetRequiredService<IUsageDashboardService>(),
-            services.GetRequiredService<ISchoolAiHistoryManagementService>(),
-            services.GetRequiredService<IAuditRepository>());
+        HostSharingViewModel? hostSharing = options.EnableClassroomHost
+            ? new HostSharingViewModel(
+                services.GetRequiredService<ILibraryHostService>(),
+                services.GetRequiredService<IHostModeSettingsRepository>(),
+                services.GetRequiredService<IClassroomJoinParser>(),
+                services.GetRequiredService<IClassroomConnectionService>(),
+                services.GetRequiredService<ISyncService>(),
+                services.GetRequiredService<IClassroomModeService>(),
+                services.GetRequiredService<IMdnsResolver>(),
+                services.GetRequiredService<IProfileService>(),
+                services.GetRequiredService<IProfileEnrollmentService>(),
+                services.GetRequiredService<ISchoolAiKeyProvider>(),
+                services.GetRequiredService<ISchoolAiPolicyService>(),
+                services.GetRequiredService<IUsageDashboardService>(),
+                services.GetRequiredService<ISchoolAiHistoryManagementService>(),
+                services.GetRequiredService<IAuditRepository>())
+            : null;
 
         shell = new MainShellViewModel(
             localization,

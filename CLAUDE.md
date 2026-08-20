@@ -41,7 +41,7 @@ dotnet format OgmaLibrary.sln --verify-no-changes --no-restore
 dotnet build OgmaLibrary.sln --configuration Release --no-restore
 dotnet list OgmaLibrary.sln package --vulnerable --include-transitive
 dotnet format analyzers OgmaLibrary.sln --verify-no-changes --no-restore --severity warn --verbosity minimal
-dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal
+dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1
 ```
 
 The 3D source also has its own locked Node.js gates in `src/shelf3d`:

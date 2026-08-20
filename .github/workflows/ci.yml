@@ -91,7 +91,9 @@ jobs:
           "No high-confidence secret patterns found."
 
       - name: Test (unit + architecture + UI render)
-        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal
+        # Run test projects sequentially so latency budgets are not distorted by
+        # competing architecture/UI test hosts on shared CI runners.
+        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1
 
       - name: Upload skeleton screenshots
         if: always()

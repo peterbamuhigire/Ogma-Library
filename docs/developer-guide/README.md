@@ -31,7 +31,7 @@ The current skeleton renders a localized main window (English/French):
 ## Test
 
 ```bash
-dotnet test OgmaLibrary.sln -c Release
+dotnet test OgmaLibrary.sln -c Release -m:1
 ```
 
 Three test projects:

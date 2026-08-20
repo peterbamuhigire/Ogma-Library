@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
 using OgmaLibrary.App;
+using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
@@ -107,6 +108,57 @@ public sealed class ArchitectureTests
                 StringComparison.Ordinal) == true);
         Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IAiProvider));
         Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IAiGateway));
+    }
+
+    [Fact]
+    public void Architecture_CompositionModules_AreOrderedAndExternallyDisabledByDefault()
+    {
+        Assert.Equal(
+        [
+            "core-platform",
+            "catalogue-processing",
+            "classroom",
+            "reader",
+            "shell",
+            "startup",
+        ],
+            CompositionRoot.RegisteredModuleNames);
+
+        ServiceCollection services = [];
+        services.AddOgmaLibrary(new OgmaRuntimeOptions
+        {
+            DataDirectory = Path.GetTempPath(),
+            LibraryRoot = Path.GetTempPath(),
+        });
+
+        Assert.DoesNotContain(services, descriptor =>
+            descriptor.ServiceType == typeof(IMetadataProvider));
+        Assert.DoesNotContain(services, descriptor =>
+            descriptor.ServiceType == typeof(IAiProvider));
+    }
+
+    [Fact]
+    public void Architecture_ColdStart_YieldsShellBeforeCompositionAndAvoidsSyncStartupWaits()
+    {
+        string root = LocateRepositoryRoot();
+        string appSource = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "OgmaLibrary.App",
+            "App.axaml.cs"));
+        string compositionSource = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "OgmaLibrary.App",
+            "CompositionRoot.cs"));
+
+        Assert.Contains("desktop.MainWindow = window", appSource, StringComparison.Ordinal);
+        Assert.Contains("Dispatcher.UIThread.Post", appSource, StringComparison.Ordinal);
+        Assert.Contains("Task.Run(ComposeRuntime", appSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("InitializeAsync(_services).GetAwaiter", appSource, StringComparison.Ordinal);
+        Assert.True(
+            compositionSource.Split('\n').Length < 80,
+            "CompositionRoot should remain a small deterministic module orchestrator.");
     }
 
     [Fact]

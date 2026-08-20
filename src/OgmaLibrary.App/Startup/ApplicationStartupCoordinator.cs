@@ -8,7 +8,7 @@ namespace OgmaLibrary.App.Startup;
 /// </summary>
 public sealed class ApplicationStartupCoordinator : IApplicationStartupCoordinator, IDisposable
 {
-    private readonly IReadOnlyList<IApplicationStartupTask> _tasks;
+    private readonly List<IApplicationStartupTask> _tasks;
     private readonly IStartupCapabilityProbe _capabilityProbe;
     private readonly IBenchmarkContext _benchmark;
     private readonly SemaphoreSlim _gate = new(1, 1);

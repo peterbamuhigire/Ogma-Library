@@ -1,0 +1,125 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels"
+        xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+        x:Class="OgmaLibrary.App.Views.DesktopShellWindow"
+        x:DataType="vm:StartupShellViewModel"
+        Title="{Binding Title}"
+        Icon="/Assets/app.png"
+        Width="1180" Height="760"
+        MinWidth="860" MinHeight="560"
+        Background="{DynamicResource Brush.Surface.Parchment}">
+
+  <Grid>
+    <Grid x:Name="LibrarySurface" IsVisible="{Binding IsLibraryVisible}">
+      <cat:CatalogueShellView DataContext="{Binding MainShell}"
+                              x:CompileBindings="False" />
+    </Grid>
+
+    <Border IsVisible="{Binding IsLoadingVisible}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Width="420"
+            Padding="28"
+            CornerRadius="{DynamicResource Radius.L}"
+            Background="{DynamicResource Brush.Surface.Card}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="1"
+            AutomationProperties.Name="{Binding StartingHeading}"
+            AutomationProperties.LiveSetting="Polite">
+      <StackPanel Spacing="14">
+        <TextBlock Text="{Binding StartingHeading}"
+                   FontSize="{DynamicResource Type.Size.Title}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <TextBlock Text="{Binding StartingBody}"
+                   TextWrapping="Wrap"
+                   FontSize="{DynamicResource Type.Size.Body}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <ProgressBar IsIndeterminate="True"
+                     Height="5"
+                     AutomationProperties.Name="{Binding StartingBody}" />
+      </StackPanel>
+    </Border>
+
+    <Border IsVisible="{Binding IsDegraded}"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Stretch"
+            Width="420"
+            Margin="16"
+            Padding="24"
+            CornerRadius="{DynamicResource Radius.L}"
+            Background="{DynamicResource Brush.Surface.Card}"
+            BorderBrush="{DynamicResource Brush.Accent.Clay}"
+            BorderThickness="2"
+            AutomationProperties.Name="{Binding DegradedHeading}"
+            AutomationProperties.LiveSetting="Assertive">
+      <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <TextBlock Grid.Row="0"
+                   Text="{Binding DegradedHeading}"
+                   FontSize="{DynamicResource Type.Size.Title}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <TextBlock Grid.Row="1"
+                   Margin="0,10,0,16"
+                   Text="{Binding DegradedBody}"
+                   TextWrapping="Wrap"
+                   FontSize="{DynamicResource Type.Size.Body}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <ScrollViewer Grid.Row="2">
+          <ItemsControl ItemsSource="{Binding Issues}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Margin="0,0,0,10"
+                        Padding="12"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Background="{DynamicResource Brush.Surface.Footer}">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Name}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBlock Text="{Binding Message}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    <TextBlock Text="{Binding Code}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Accent.Slate}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+        <StackPanel Grid.Row="3" Spacing="10" Margin="0,16,0,0">
+          <TextBlock Text="{Binding ExportStatus}"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     AutomationProperties.LiveSetting="Polite" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button x:Name="RetryButton"
+                    MinWidth="130"
+                    MinHeight="40"
+                    Background="{DynamicResource Brush.Accent.Oak}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanRetry}"
+                    Content="{Binding RetryText}"
+                    AutomationProperties.Name="{Binding RetryText}"
+                    Click="RetryButton_Click" />
+            <Button MinWidth="150"
+                    MinHeight="40"
+                    Background="Transparent"
+                    Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                    BorderBrush="{DynamicResource Brush.Accent.Slate}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanExportDiagnostics}"
+                    Content="{Binding ExportDiagnosticsText}"
+                    AutomationProperties.Name="{Binding ExportDiagnosticsText}"
+                    Click="ExportDiagnosticsButton_Click" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
