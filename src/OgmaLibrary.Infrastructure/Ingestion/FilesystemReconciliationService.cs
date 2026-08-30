@@ -56,14 +56,14 @@ public sealed class FilesystemReconciliationService : IFilesystemReconciliationS
             string.IsNullOrWhiteSpace(root.CanonicalLocator))
         {
             return new ReconciliationResult(
-                scanSessionId, rootId, ReconciliationOutcome.RootUnavailable, 0, 0, evaluatedUtc);
+                scanSessionId, rootId, ReconciliationOutcome.RootUnavailable, 0, 0, 0, 0, evaluatedUtc);
         }
 
         if (checkpoint is null || checkpoint.LastCompletedUtc < session.StartedUtc ||
             checkpoint.LastErrorCode is not null)
         {
             return new ReconciliationResult(
-                scanSessionId, rootId, ReconciliationOutcome.IncompleteScan, 0, 0, evaluatedUtc);
+                scanSessionId, rootId, ReconciliationOutcome.IncompleteScan, 0, 0, 0, 0, evaluatedUtc);
         }
 
         HashSet<string> observed = (await context.DiscoveryObservations
@@ -73,16 +73,56 @@ public sealed class FilesystemReconciliationService : IFilesystemReconciliationS
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        List<DiscoveryObservationRow> observedRows = await context.DiscoveryObservations
+            .Where(row => row.LibraryRootId == session.LibraryRootId &&
+                          row.LastObservedScanSessionId == scanSessionId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        Dictionary<string, List<DiscoveryObservationRow>> observationsByHash = observedRows
+            .Where(row => !string.IsNullOrWhiteSpace(row.Sha256Hash))
+            .GroupBy(row => row.Sha256Hash!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, DiscoveryObservationRow> observationsByPath = observedRows
+            .ToDictionary(row => row.NormalizedRelativePath, StringComparer.OrdinalIgnoreCase);
         List<FileOccurrenceRow> occurrences = await context.FileOccurrences
             .Where(row => row.LibraryRootId == session.LibraryRootId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        string[] assetIds = occurrences
+            .Where(occurrence => occurrence.ContentAssetId is not null)
+            .Select(occurrence => occurrence.ContentAssetId!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        Dictionary<string, string> assetHashes = await context.ContentAssets
+            .Where(asset => assetIds.Contains(asset.ContentAssetId))
+            .ToDictionaryAsync(asset => asset.ContentAssetId, asset => asset.Sha256Hash, cancellationToken)
+            .ConfigureAwait(false);
         int restored = 0;
         int unavailable = 0;
+        int moved = 0;
+        int replacements = 0;
         foreach (FileOccurrenceRow occurrence in occurrences)
         {
             string normalized = Normalize(occurrence.RelativePath);
             bool present = observed.Contains(normalized);
+            if (!present && occurrence.ContentAssetId is not null)
+            {
+                if (assetHashes.TryGetValue(occurrence.ContentAssetId, out string? assetHash) &&
+                    observationsByHash.TryGetValue(assetHash, out List<DiscoveryObservationRow>? matches) &&
+                    matches.Count == 1)
+                {
+                    DiscoveryObservationRow match = matches[0];
+                    occurrence.RelativePath = match.NormalizedRelativePath;
+                    occurrence.NormalizedRelativePath = match.NormalizedRelativePath;
+                    occurrence.SizeBytes = match.SizeBytes;
+                    occurrence.ModifiedUtcTicks = match.ModifiedUtcTicks;
+                    occurrence.LastSeenUtc = evaluatedUtc;
+                    occurrence.AvailabilityStatus = (int)AvailabilityStatus.Available;
+                    moved++;
+                    AddAudit(context, occurrence.FileOccurrenceId, "moved_by_exact_hash");
+                    continue;
+                }
+            }
             if (present && occurrence.AvailabilityStatus != (int)AvailabilityStatus.Available)
             {
                 occurrence.AvailabilityStatus = (int)AvailabilityStatus.Available;
@@ -99,6 +139,19 @@ public sealed class FilesystemReconciliationService : IFilesystemReconciliationS
             else if (present)
             {
                 occurrence.LastSeenUtc = evaluatedUtc;
+                observationsByPath.TryGetValue(normalized, out DiscoveryObservationRow? observation);
+                if (observation?.Sha256Hash is not null && occurrence.ContentAssetId is not null)
+                {
+                    if (assetHashes.TryGetValue(occurrence.ContentAssetId, out string? assetHash) &&
+                        !string.Equals(assetHash, observation.Sha256Hash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        occurrence.ContentAssetId = null;
+                        occurrence.SizeBytes = observation.SizeBytes;
+                        occurrence.ModifiedUtcTicks = observation.ModifiedUtcTicks;
+                        replacements++;
+                        AddAudit(context, occurrence.FileOccurrenceId, "replacement_requires_reprocessing");
+                    }
+                }
             }
         }
 
@@ -109,6 +162,8 @@ public sealed class FilesystemReconciliationService : IFilesystemReconciliationS
             ReconciliationOutcome.Applied,
             restored,
             unavailable,
+            moved,
+            replacements,
             evaluatedUtc);
     }
 

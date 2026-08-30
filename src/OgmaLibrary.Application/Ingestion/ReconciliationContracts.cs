@@ -22,6 +22,8 @@ public sealed record ReconciliationResult(
     ReconciliationOutcome Outcome,
     int RestoredOccurrences,
     int MarkedUnavailableOccurrences,
+    int MovedOccurrences,
+    int ReplacementOccurrences,
     DateTimeOffset EvaluatedUtc);
 
 /// <summary>Reconciles occurrence availability from a completed root observation.</summary>

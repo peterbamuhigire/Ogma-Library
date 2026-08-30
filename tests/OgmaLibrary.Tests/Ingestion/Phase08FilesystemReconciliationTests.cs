@@ -99,12 +99,78 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         Assert.Empty(await _context.AuditEvents.ToListAsync());
     }
 
-    private FileOccurrenceRow NewOccurrence(string id, string path, int availability) => new()
+    [Fact]
+    public async Task ExactHashMoveFollowsOccurrence_AndReplacementInvalidatesAssetBinding()
+    {
+        const string assetId = "01PH08ASSET000000000000001";
+        const string hashA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        ScanSessionDescriptor session = await _processing.StartSessionAsync(_rootId);
+        _context.ContentAssets.Add(new ContentAssetRow
+        {
+            ContentAssetId = assetId,
+            Sha256Hash = hashA,
+            FingerprintVersion = 1,
+            VerificationStatus = 1,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.FileOccurrences.AddRange(
+            NewOccurrence("01PH08OCCURRENCE0000000004", "old.pdf", availability: 1, assetId),
+            NewOccurrence("01PH08OCCURRENCE0000000005", "replace.pdf", availability: 0, assetId));
+        _context.DiscoveryObservations.AddRange(
+            NewObservation(session.Id, "new.pdf", hashA),
+            NewObservation(session.Id, "replace.pdf",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"));
+        AddCompleteCheckpoint();
+        await _context.SaveChangesAsync();
+
+        ReconciliationResult result = await _reconciliation.ReconcileAsync(session.Id);
+
+        Assert.Equal(ReconciliationOutcome.Applied, result.Outcome);
+        Assert.Equal(1, result.MovedOccurrences);
+        Assert.Equal(1, result.ReplacementOccurrences);
+        FileOccurrenceRow moved = await _context.FileOccurrences
+            .SingleAsync(row => row.FileOccurrenceId == "01PH08OCCURRENCE0000000004");
+        FileOccurrenceRow replaced = await _context.FileOccurrences
+            .SingleAsync(row => row.FileOccurrenceId == "01PH08OCCURRENCE0000000005");
+        Assert.Equal("new.pdf", moved.NormalizedRelativePath);
+        Assert.Equal(0, moved.AvailabilityStatus);
+        Assert.Null(replaced.ContentAssetId);
+    }
+
+    private FileOccurrenceRow NewOccurrence(
+        string id,
+        string path,
+        int availability,
+        string? assetId = null) => new()
     {
         FileOccurrenceId = id,
         LibraryRootId = _rootId.Value,
         RelativePath = path,
         NormalizedRelativePath = path,
         AvailabilityStatus = availability,
+        ContentAssetId = assetId,
     };
+
+    private DiscoveryObservationRow NewObservation(long sessionId, string path, string hash) => new()
+    {
+        LibraryRootId = _rootId.Value,
+        NormalizedRelativePath = path,
+        SizeBytes = 10,
+        ModifiedUtcTicks = 1,
+        Sha256Hash = hash,
+        LastObservedScanSessionId = sessionId,
+        FirstSeenUtc = DateTimeOffset.UtcNow,
+        LastSeenUtc = DateTimeOffset.UtcNow,
+    };
+
+    private void AddCompleteCheckpoint()
+    {
+        _context.DirectoryCheckpoints.Add(new DirectoryCheckpointRow
+        {
+            LibraryRootId = _rootId.Value,
+            NormalizedRelativeDirectory = string.Empty,
+            LastCompletedUtc = DateTimeOffset.UtcNow,
+            LastObservedFileCount = 2,
+        });
+    }
 }

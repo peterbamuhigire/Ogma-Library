@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
@@ -115,6 +116,11 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
                 observation.ModifiedUtcTicks = file.MtimeTicks;
                 observation.LastObservedScanSessionId = session.Id;
                 AddParentDirectories(observedDirectories, normalizedPath);
+                if (isChanged)
+                {
+                    observation.Sha256Hash = await ComputeSha256Async(
+                        file.AbsolutePath, cancellationToken).ConfigureAwait(false);
+                }
                 observation.LastSeenUtc = DateTimeOffset.UtcNow;
                 if (isChanged)
                 {
@@ -196,6 +202,21 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
         long sizeBytes,
         long modifiedUtcTicks) =>
         $"{rootId.Value}:{relativePath}:{sizeBytes}:{modifiedUtcTicks}";
+
+    private static async Task<string> ComputeSha256Async(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        using FileStream stream = new(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 81920,
+            useAsync: true);
+        byte[] hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
+        return Convert.ToHexStringLower(hash);
+    }
 
     private async Task<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

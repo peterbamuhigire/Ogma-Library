@@ -21,6 +21,9 @@ public sealed class DiscoveryObservationRow
     /// <summary>Observed UTC mtime ticks.</summary>
     public long ModifiedUtcTicks { get; set; }
 
+    /// <summary>Verified lower-case SHA-256 for the observed bytes, when computed.</summary>
+    public string? Sha256Hash { get; set; }
+
     /// <summary>UTC first-observed timestamp.</summary>
     public DateTimeOffset FirstSeenUtc { get; set; }
 
