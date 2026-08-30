@@ -97,6 +97,14 @@ public sealed class BookFileLocator : IBookFileLocator
         }
 
         string storedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        if (Path.IsPathFullyQualified(storedPath))
+        {
+            // Direct-open may intentionally register one exact external file.
+            // Relative paths remain bounded to the configured library root.
+            string externalPath = Path.GetFullPath(storedPath);
+            return File.Exists(externalPath) ? externalPath : null;
+        }
+
         string fullPath;
         try
         {

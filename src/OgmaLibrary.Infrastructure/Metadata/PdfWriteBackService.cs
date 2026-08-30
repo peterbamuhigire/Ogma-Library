@@ -178,18 +178,18 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             .ConfigureAwait(false);
 
         string originalPath = backupToken.OriginalAbsolutePath;
-        string currentSha256 = await ComputeSha256Async(originalPath, cancellationToken)
-            .ConfigureAwait(false);
-        if (!string.Equals(currentSha256, backupToken.OriginalSha256, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                "The source PDF changed after the write-back preview. Create a new backup and review the diff.");
-        }
-
         string tempPath = originalPath + ".ogma_tmp";
 
         try
         {
+            string currentSha256 = await ComputeSha256Async(originalPath, cancellationToken)
+                .ConfigureAwait(false);
+            if (!string.Equals(currentSha256, backupToken.OriginalSha256, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "The source PDF changed after the write-back preview. Create a new backup and review the diff.");
+            }
+
             // Write to temp file using PDFsharp.
             await Task.Run(() => WriteToPdfSharp(originalPath, tempPath, acceptedProposals), cancellationToken)
                 .ConfigureAwait(false);

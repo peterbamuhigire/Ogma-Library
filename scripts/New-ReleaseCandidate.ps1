@@ -14,7 +14,11 @@ param(
     [string] $OutputDirectory,
     [string] $PublicKeyId = 'production-2026',
     [string] $SigningKeyPath,
-    [switch] $RequireSignature
+    [switch] $RequireSignature,
+    [switch] $RequirePlatformSigning,
+    [string] $WindowsCertificateThumbprint,
+    [string] $AppleSigningIdentity,
+    [string] $NotaryProfile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,7 +26,13 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $runtimeIdentifier = if ($Platform -eq 'windows') { "win-$Architecture" } else { "osx-$Architecture" }
 $releaseId = "rc-$Version-$runtimeIdentifier-$(git -C $repoRoot rev-parse --short=12 HEAD)"
 $defaultOutput = Join-Path $repoRoot "artifacts/release-candidates/$Version/$runtimeIdentifier"
-$candidateRoot = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) { $defaultOutput } else { (Resolve-Path (Split-Path -Parent $OutputDirectory) -ErrorAction SilentlyContinue)?.Path + [IO.Path]::DirectorySeparatorChar + (Split-Path -Leaf $OutputDirectory) }
+$candidateRoot = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $defaultOutput
+} elseif ([IO.Path]::IsPathRooted($OutputDirectory)) {
+    $OutputDirectory
+} else {
+    Join-Path $repoRoot $OutputDirectory
+}
 
 if ([string]::IsNullOrWhiteSpace($candidateRoot)) {
     throw 'OutputDirectory must resolve to a directory.'
@@ -51,6 +61,53 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed with exit code $LASTEXIT
     -p:Version=$Version `
     -p:InformationalVersion=$Version
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE." }
+
+if ($RequirePlatformSigning -and $Platform -eq 'windows') {
+    if ([string]::IsNullOrWhiteSpace($WindowsCertificateThumbprint)) {
+        throw 'WindowsCertificateThumbprint is required for platform signing.'
+    }
+    $signtool = Get-Command signtool -ErrorAction SilentlyContinue
+    if (-not $signtool) { throw 'signtool is required for Windows platform signing.' }
+    $signTargets = @(Get-ChildItem -LiteralPath $publishDirectory -Recurse -File |
+        Where-Object { $_.Extension -in '.exe', '.dll' })
+    if ($signTargets.Count -eq 0) { throw 'No Windows PE files were found to sign.' }
+    foreach ($target in $signTargets) {
+        & $signtool.Source sign /sha1 $WindowsCertificateThumbprint /fd SHA256 /tr 'http://timestamp.digicert.com' /td SHA256 $target.FullName
+        if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed for $($target.Name)." }
+        & $signtool.Source verify /pa /all $target.FullName
+        if ($LASTEXITCODE -ne 0) { throw "Authenticode verification failed for $($target.Name)." }
+    }
+} elseif ($RequirePlatformSigning -and $Platform -eq 'macos') {
+    if ([string]::IsNullOrWhiteSpace($AppleSigningIdentity) -or [string]::IsNullOrWhiteSpace($NotaryProfile)) {
+        throw 'AppleSigningIdentity and NotaryProfile are required for signed/notarized macOS candidates.'
+    }
+    $codesign = Get-Command codesign -ErrorAction SilentlyContinue
+    $xcrun = Get-Command xcrun -ErrorAction SilentlyContinue
+    if (-not $codesign -or -not $xcrun) { throw 'codesign and xcrun are required for macOS platform signing.' }
+    $macExecutable = Get-ChildItem -LiteralPath $publishDirectory -File |
+        Where-Object { $_.Extension -eq '' } |
+        Select-Object -First 1
+    if (-not $macExecutable) { throw 'No macOS application executable was found to bundle.' }
+    $appBundle = Join-Path $publishDirectory 'OgmaLibrary.app'
+    $contents = Join-Path $appBundle 'Contents'
+    $macOsDirectory = Join-Path $contents 'MacOS'
+    New-Item -ItemType Directory -Force -Path $macOsDirectory | Out-Null
+    $entriesToBundle = @(Get-ChildItem -LiteralPath $publishDirectory)
+    foreach ($entry in $entriesToBundle) { Move-Item -LiteralPath $entry.FullName -Destination (Join-Path $macOsDirectory $entry.Name) }
+    $infoPlistPath = Join-Path $contents 'Info.plist'
+    $infoPlist = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/macos/Info.plist') -Raw
+    $infoPlist = $infoPlist.Replace('__OGMA_EXECUTABLE__', $macExecutable.Name, [StringComparison]::Ordinal)
+    $infoPlist = $infoPlist.Replace('__OGMA_VERSION__', $Version, [StringComparison]::Ordinal)
+    [IO.File]::WriteAllText($infoPlistPath, $infoPlist, [Text.UTF8Encoding]::new($false))
+    & $codesign.Source --force --deep --options runtime --sign $AppleSigningIdentity $appBundle
+    if ($LASTEXITCODE -ne 0) { throw 'Developer ID signing failed for the macOS application bundle.' }
+    & $codesign.Source --verify --deep --strict $appBundle
+    if ($LASTEXITCODE -ne 0) { throw 'Developer ID verification failed for the macOS application bundle.' }
+    & $xcrun.Source notarytool submit $appBundle --keychain-profile $NotaryProfile --wait
+    if ($LASTEXITCODE -ne 0) { throw 'Apple notarization failed.' }
+    & $xcrun.Source stapler staple $appBundle
+    if ($LASTEXITCODE -ne 0) { throw 'Apple notarization ticket stapling failed.' }
+}
 
 if (Test-Path $artifactPath) { Remove-Item -LiteralPath $artifactPath -Force }
 Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $artifactPath -CompressionLevel Optimal
