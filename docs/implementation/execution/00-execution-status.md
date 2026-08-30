@@ -18,7 +18,7 @@ Execution branch: `main`
 | 8 | Filesystem Reconciliation and Recovery | IN PROGRESS | 2026-08-30 | — | Evidence-gated presence reconciliation delivered; move/replacement/grace gates remain in phase-08-progress.md |
 | 9 | Duplicate and Bibliographic Resolution | IN PROGRESS | 2026-08-30 | — | Durable conservative decision recording delivered; merge/split and scale gates remain in phase-09-progress.md |
 | 10 | PDF Validation and Containment | IN PROGRESS | 2026-08-30 | — | Root-bounded validation broker delivered; sandbox/password/resource gates remain in phase-10-progress.md |
-| 11 | PDF Extraction and ISBN Primitives | NOT STARTED | â€” | â€” | â€” |
+| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-08-30 | — | Versioned extraction artifact lifecycle and input broker delivered; pipeline/quality evidence gates remain in phase-11-progress.md |
 | 12 | Canonical Metadata and Provenance | NOT STARTED | â€” | â€” | â€” |
 | 13 | Bibliographic Provider Gateway | NOT STARTED | â€” | â€” | â€” |
 | 14 | Metadata Review and Manual Curation | NOT STARTED | â€” | â€” | â€” |

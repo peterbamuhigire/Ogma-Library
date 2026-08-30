@@ -68,6 +68,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ILegacyCatalogueRepository, LegacyCatalogueRepository>();
         services.AddSingleton<ICanonicalIdentityRepository, CanonicalIdentityRepository>();
         services.AddSingleton<IIdentityDecisionService, IdentityDecisionRepository>();
+        services.AddSingleton<IExtractionArtifactService, ExtractionArtifactService>();
         services.AddSingleton<IShelfRepository, ShelfRepository>();
         services.AddSingleton<IAnnotationRepository, AnnotationRepository>();
         services.AddSingleton<IReadingProgressRepository, ReadingProgressRepository>();

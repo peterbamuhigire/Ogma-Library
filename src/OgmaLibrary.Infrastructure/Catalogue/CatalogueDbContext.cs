@@ -196,6 +196,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Durable directory discovery checkpoints.</summary>
     public DbSet<DirectoryCheckpointRow> DirectoryCheckpoints => Set<DirectoryCheckpointRow>();
 
+    /// <summary>Versioned extraction artifact manifests.</summary>
+    public DbSet<ExtractionArtifactRow> ExtractionArtifacts => Set<ExtractionArtifactRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -238,6 +241,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new StageExecutionConfiguration());
         modelBuilder.ApplyConfiguration(new DiscoveryObservationConfiguration());
         modelBuilder.ApplyConfiguration(new DirectoryCheckpointConfiguration());
+        modelBuilder.ApplyConfiguration(new ExtractionArtifactConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());
