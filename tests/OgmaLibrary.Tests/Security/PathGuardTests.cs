@@ -1,4 +1,4 @@
-using OgmaLibrary.Infrastructure.Security;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Tests.Security;
 

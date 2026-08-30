@@ -1,4 +1,4 @@
-namespace OgmaLibrary.Infrastructure.Security;
+namespace OgmaLibrary.Infrastructure.Pathing;
 
 /// <summary>Raised when a file-system path escapes its declared trust root.</summary>
 public sealed class PathTraversalException : IOException

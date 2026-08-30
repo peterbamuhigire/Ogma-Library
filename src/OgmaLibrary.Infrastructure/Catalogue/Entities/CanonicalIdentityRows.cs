@@ -9,14 +9,35 @@ public sealed class LibraryRootRow
     /// <summary>A non-secret display label.</summary>
     public string DisplayName { get; set; } = string.Empty;
 
+    /// <summary>Canonical absolute locator, or null for a legacy compatibility root.</summary>
+    public string? CanonicalLocator { get; set; }
+
+    /// <summary>Opaque volume or mount hint used during relink suggestions.</summary>
+    public string? VolumeIdentity { get; set; }
+
     /// <summary>Root health state; detailed path authority is introduced in Phase 5.</summary>
     public int RootStatus { get; set; }
+
+    /// <summary>Permission probe state.</summary>
+    public int PermissionStatus { get; set; }
 
     /// <summary>Whether this root was created solely to migrate legacy rows.</summary>
     public bool IsCompatibilityRoot { get; set; }
 
+    /// <summary>Whether this root participates in future scans.</summary>
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>Whether traversal through symbolic links was explicitly approved.</summary>
+    public bool AllowSymlinkTraversal { get; set; }
+
     /// <summary>UTC creation time.</summary>
     public DateTimeOffset CreatedUtc { get; set; }
+
+    /// <summary>UTC time of the latest bounded health probe.</summary>
+    public DateTimeOffset? LastHealthCheckUtc { get; set; }
+
+    /// <summary>UTC time of the latest successful scan.</summary>
+    public DateTimeOffset? LastSuccessfulScanUtc { get; set; }
 }
 
 /// <summary>Persistence row for one exact source-file byte identity.</summary>

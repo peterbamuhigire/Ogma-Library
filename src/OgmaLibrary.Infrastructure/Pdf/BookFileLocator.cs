@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
-using OgmaLibrary.Infrastructure.Security;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 

@@ -13,6 +13,35 @@ public readonly record struct LibraryRootId
     public override string ToString() => Value;
 }
 
+/// <summary>Health state of a configured library root.</summary>
+public enum LibraryRootStatus
+{
+    /// <summary>The root is reachable and the application can inspect it.</summary>
+    Available = 0,
+
+    /// <summary>The root is not currently reachable.</summary>
+    Unavailable = 1,
+
+    /// <summary>The root exists but access was denied.</summary>
+    PermissionDenied = 2,
+
+    /// <summary>The root needs a user-selected replacement location.</summary>
+    NeedsRelink = 3,
+}
+
+/// <summary>Permission probe state for a configured library root.</summary>
+public enum LibraryRootPermissionStatus
+{
+    /// <summary>The permission state has not been probed.</summary>
+    Unknown = 0,
+
+    /// <summary>The application can inspect the root.</summary>
+    Granted = 1,
+
+    /// <summary>The operating system denied inspection.</summary>
+    Denied = 2,
+}
+
 /// <summary>Immutable identity of one physical file occurrence within a root.</summary>
 public readonly record struct FileOccurrenceId
 {

@@ -32,6 +32,8 @@ public static class IngestionServiceExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
         services.AddSingleton<ILibrarySettingsService>(_ => new LibrarySettingsService(dataDirectory));
+        services.AddSingleton<ILibraryRootPlatformAdapter, FileSystemLibraryRootPlatformAdapter>();
+        services.AddSingleton<ILibraryRootService, LibraryRootService>();
         services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();

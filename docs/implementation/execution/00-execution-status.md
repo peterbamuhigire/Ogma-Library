@@ -12,7 +12,7 @@ Execution branch: `main`
 | 2 | Composition, Configuration and Startup | COMPLETE | 2026-08-20 | 2026-08-20 | Modular DI; non-blocking/recoverable startup; external capabilities disabled by default |
 | 3 | Canonical Library Identity Model | COMPLETE | 2026-08-20 | 2026-08-20 | Canonical root/occurrence/asset/edition/work contract; no fake hash |
 | 4 | Identity Schema and Data Migration | COMPLETE | 2026-08-20 | 2026-08-20 | Canonical schema, transactional backfill, aliases, verified local backup/restore |
-| 5 | Library Roots and Path Security | NOT STARTED | — | — | Push checkpoint after completion |
+| 5 | Library Roots and Path Security | COMPLETE | 2026-08-30 | 2026-08-30 | Durable roots, bounded probes, relink semantics and canonical discovery guard; evidence in phase-05-completion.md |
 | 6 | Processing State Machine and Scan Sessions | NOT STARTED | — | — | — |
 | 7 | Discovery and Incremental Scanning | NOT STARTED | — | — | — |
 | 8 | Filesystem Reconciliation and Recovery | NOT STARTED | — | — | — |

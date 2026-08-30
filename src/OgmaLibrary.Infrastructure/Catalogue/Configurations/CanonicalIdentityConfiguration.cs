@@ -31,9 +31,19 @@ internal static class CanonicalIdentityConfiguration
         builder.HasKey(row => row.LibraryRootId);
         builder.Property(row => row.LibraryRootId).HasMaxLength(CanonicalIdLength);
         builder.Property(row => row.DisplayName).IsRequired().HasMaxLength(256);
+        builder.Property(row => row.CanonicalLocator).HasMaxLength(4096);
+        builder.Property(row => row.VolumeIdentity).HasMaxLength(512);
         builder.Property(row => row.RootStatus);
+        builder.Property(row => row.PermissionStatus);
         builder.Property(row => row.IsCompatibilityRoot);
+        builder.Property(row => row.IsEnabled).HasDefaultValue(true);
+        builder.Property(row => row.AllowSymlinkTraversal).HasDefaultValue(false);
         builder.Property(row => row.CreatedUtc);
+        builder.Property(row => row.LastHealthCheckUtc);
+        builder.Property(row => row.LastSuccessfulScanUtc);
+        builder.HasIndex(row => row.CanonicalLocator)
+            .IsUnique()
+            .HasDatabaseName("UX_LibraryRoots_CanonicalLocator");
     }
 
     private static void ConfigureContentAsset(ModelBuilder modelBuilder)

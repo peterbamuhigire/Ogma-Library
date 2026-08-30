@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -23,9 +24,9 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
         ArgumentNullException.ThrowIfNull(excludedFolders);
         ArgumentNullException.ThrowIfNull(writer);
 
-        // Normalize root once for prefix-matching.
-        string normalizedRoot = Path.TrimEndingDirectorySeparator(
-            Path.GetFullPath(rootPath));
+        // Canonicalize once so boundary checks remain safe for roots whose names
+        // share a prefix and for existing symlink/reparse-point segments.
+        string normalizedRoot = PathGuard.CanonicalizeRoot(rootPath);
 
         try
         {
@@ -72,20 +73,25 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
                 string fullPath = Path.GetFullPath(file);
 
                 // Path-traversal guard: skip anything outside the root.
-                if (!fullPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+                string canonicalPath;
+                try
+                {
+                    canonicalPath = PathGuard.EnsureWithinRoot(fullPath, normalizedRoot);
+                }
+                catch (PathTraversalException)
                 {
                     continue;
                 }
 
-                var info = new FileInfo(fullPath);
+                var info = new FileInfo(canonicalPath);
                 if (!info.Exists)
                 {
                     continue;
                 }
 
-                string relative = ComputeRelativePath(fullPath, normalizedRoot);
+                string relative = ComputeRelativePath(canonicalPath, normalizedRoot);
                 var discovered = new DiscoveredFile(
-                    AbsolutePath: fullPath,
+                    AbsolutePath: canonicalPath,
                     RelativePath: relative,
                     SizeBytes: info.Length,
                     MtimeTicks: info.LastWriteTimeUtc.Ticks);

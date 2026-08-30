@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Infrastructure.Catalogue;
-using OgmaLibrary.Infrastructure.Security;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
 
