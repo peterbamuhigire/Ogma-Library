@@ -36,6 +36,8 @@ public static class IngestionServiceExtensions
         services.AddSingleton<ILibraryRootPlatformAdapter, FileSystemLibraryRootPlatformAdapter>();
         services.AddSingleton<ILibraryRootService, LibraryRootService>();
         services.AddSingleton<IProcessingStateService, ProcessingStateService>();
+        services.AddSingleton<IJobRuntimeService>(sp => new JobRuntimeService(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
         services.AddSingleton<IIncrementalDiscoveryService, IncrementalDiscoveryService>();
         services.AddSingleton<IFilesystemReconciliationService, FilesystemReconciliationService>();
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();

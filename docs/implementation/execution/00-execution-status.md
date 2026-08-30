@@ -55,3 +55,7 @@ roadmap.
 Current evidence override: Phase 16 is IN PROGRESS as documented in
 `phase-16-progress.md`; the legacy table row will be normalized with the next
 status-file encoding cleanup.
+
+Current evidence override: Phase 17 is IN PROGRESS as documented in
+`phase-17-progress.md`; the legacy table row will be normalized with the next
+status-file encoding cleanup.

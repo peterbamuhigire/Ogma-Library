@@ -39,4 +39,16 @@ public sealed class JobRow
 
     /// <summary>Number of retry attempts so far.</summary>
     public int RetryCount { get; set; }
+
+    /// <summary>Current worker lease owner.</summary>
+    public string? LeaseOwner { get; set; }
+
+    /// <summary>UTC lease expiry; expired leases are recoverable.</summary>
+    public DateTimeOffset? LeaseExpiresUtc { get; set; }
+
+    /// <summary>Earliest UTC time at which a retry may be claimed.</summary>
+    public DateTimeOffset? NextAttemptUtc { get; set; }
+
+    /// <summary>Stable machine-readable failure code.</summary>
+    public string? FailureCode { get; set; }
 }

@@ -27,6 +27,10 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<JobRow>
         builder.Property(j => j.CompletedUtc);
         builder.Property(j => j.ErrorMessage).HasMaxLength(4096);
         builder.Property(j => j.RetryCount).HasDefaultValue(0);
+        builder.Property(j => j.LeaseOwner).HasMaxLength(128);
+        builder.Property(j => j.LeaseExpiresUtc);
+        builder.Property(j => j.NextAttemptUtc);
+        builder.Property(j => j.FailureCode).HasMaxLength(128);
 
         // The idempotency constraint — prevents duplicate job submissions (NFR-OGMA-009).
         builder.HasIndex(j => j.IdempotencyKey)
@@ -36,5 +40,9 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<JobRow>
         // Status + type index for queue polling.
         builder.HasIndex(j => new { j.Status, j.JobType })
             .HasDatabaseName("IX_Jobs_Status_JobType");
+        builder.HasIndex(j => new { j.Status, j.NextAttemptUtc, j.JobType })
+            .HasDatabaseName("IX_Jobs_DueWork");
+        builder.HasIndex(j => j.LeaseExpiresUtc)
+            .HasDatabaseName("IX_Jobs_LeaseExpiry");
     }
 }
