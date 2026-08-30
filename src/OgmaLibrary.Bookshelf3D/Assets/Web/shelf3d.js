@@ -1,5 +1,11 @@
 "use strict";
 var OgmaShelf3D = (() => {
+  // src/messages.ts
+  var BRIDGE_PROTOCOL_VERSION = "shelf3d-v1";
+  function assertNever(value) {
+    throw new Error(`Unhandled shelf3d message: ${JSON.stringify(value)}`);
+  }
+
   // node_modules/three/build/three.core.js
   var REVISION = "181";
   var MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
@@ -154,7 +160,6 @@ var OgmaShelf3D = (() => {
   var GreaterEqualCompare = 518;
   var AlwaysCompare = 519;
   var StaticDrawUsage = 35044;
-  var DynamicDrawUsage = 35048;
   var GLSL3 = "300 es";
   var WebGLCoordinateSystem = 2e3;
   var WebGPUCoordinateSystem = 2001;
@@ -12721,230 +12726,6 @@ var OgmaShelf3D = (() => {
       this.generateMipmaps = false;
       this.flipY = false;
       this.unpackAlignment = 1;
-    }
-  };
-  var InstancedBufferAttribute = class extends BufferAttribute {
-    /**
-     * Constructs a new instanced buffer attribute.
-     *
-     * @param {TypedArray} array - The array holding the attribute data.
-     * @param {number} itemSize - The item size.
-     * @param {boolean} [normalized=false] - Whether the data are normalized or not.
-     * @param {number} [meshPerAttribute=1] - How often a value of this buffer attribute should be repeated.
-     */
-    constructor(array, itemSize, normalized, meshPerAttribute = 1) {
-      super(array, itemSize, normalized);
-      this.isInstancedBufferAttribute = true;
-      this.meshPerAttribute = meshPerAttribute;
-    }
-    copy(source) {
-      super.copy(source);
-      this.meshPerAttribute = source.meshPerAttribute;
-      return this;
-    }
-    toJSON() {
-      const data = super.toJSON();
-      data.meshPerAttribute = this.meshPerAttribute;
-      data.isInstancedBufferAttribute = true;
-      return data;
-    }
-  };
-  var _instanceLocalMatrix = /* @__PURE__ */ new Matrix4();
-  var _instanceWorldMatrix = /* @__PURE__ */ new Matrix4();
-  var _instanceIntersects = [];
-  var _box3 = /* @__PURE__ */ new Box3();
-  var _identity = /* @__PURE__ */ new Matrix4();
-  var _mesh$1 = /* @__PURE__ */ new Mesh();
-  var _sphere$4 = /* @__PURE__ */ new Sphere();
-  var InstancedMesh = class extends Mesh {
-    /**
-     * Constructs a new instanced mesh.
-     *
-     * @param {BufferGeometry} [geometry] - The mesh geometry.
-     * @param {Material|Array<Material>} [material] - The mesh material.
-     * @param {number} count - The number of instances.
-     */
-    constructor(geometry, material, count) {
-      super(geometry, material);
-      this.isInstancedMesh = true;
-      this.instanceMatrix = new InstancedBufferAttribute(new Float32Array(count * 16), 16);
-      this.instanceColor = null;
-      this.morphTexture = null;
-      this.count = count;
-      this.boundingBox = null;
-      this.boundingSphere = null;
-      for (let i = 0; i < count; i++) {
-        this.setMatrixAt(i, _identity);
-      }
-    }
-    /**
-     * Computes the bounding box of the instanced mesh, and updates {@link InstancedMesh#boundingBox}.
-     * The bounding box is not automatically computed by the engine; this method must be called by your app.
-     * You may need to recompute the bounding box if an instance is transformed via {@link InstancedMesh#setMatrixAt}.
-     */
-    computeBoundingBox() {
-      const geometry = this.geometry;
-      const count = this.count;
-      if (this.boundingBox === null) {
-        this.boundingBox = new Box3();
-      }
-      if (geometry.boundingBox === null) {
-        geometry.computeBoundingBox();
-      }
-      this.boundingBox.makeEmpty();
-      for (let i = 0; i < count; i++) {
-        this.getMatrixAt(i, _instanceLocalMatrix);
-        _box3.copy(geometry.boundingBox).applyMatrix4(_instanceLocalMatrix);
-        this.boundingBox.union(_box3);
-      }
-    }
-    /**
-     * Computes the bounding sphere of the instanced mesh, and updates {@link InstancedMesh#boundingSphere}
-     * The engine automatically computes the bounding sphere when it is needed, e.g., for ray casting or view frustum culling.
-     * You may need to recompute the bounding sphere if an instance is transformed via {@link InstancedMesh#setMatrixAt}.
-     */
-    computeBoundingSphere() {
-      const geometry = this.geometry;
-      const count = this.count;
-      if (this.boundingSphere === null) {
-        this.boundingSphere = new Sphere();
-      }
-      if (geometry.boundingSphere === null) {
-        geometry.computeBoundingSphere();
-      }
-      this.boundingSphere.makeEmpty();
-      for (let i = 0; i < count; i++) {
-        this.getMatrixAt(i, _instanceLocalMatrix);
-        _sphere$4.copy(geometry.boundingSphere).applyMatrix4(_instanceLocalMatrix);
-        this.boundingSphere.union(_sphere$4);
-      }
-    }
-    copy(source, recursive) {
-      super.copy(source, recursive);
-      this.instanceMatrix.copy(source.instanceMatrix);
-      if (source.morphTexture !== null) this.morphTexture = source.morphTexture.clone();
-      if (source.instanceColor !== null) this.instanceColor = source.instanceColor.clone();
-      this.count = source.count;
-      if (source.boundingBox !== null) this.boundingBox = source.boundingBox.clone();
-      if (source.boundingSphere !== null) this.boundingSphere = source.boundingSphere.clone();
-      return this;
-    }
-    /**
-     * Gets the color of the defined instance.
-     *
-     * @param {number} index - The instance index.
-     * @param {Color} color - The target object that is used to store the method's result.
-     */
-    getColorAt(index, color) {
-      color.fromArray(this.instanceColor.array, index * 3);
-    }
-    /**
-     * Gets the local transformation matrix of the defined instance.
-     *
-     * @param {number} index - The instance index.
-     * @param {Matrix4} matrix - The target object that is used to store the method's result.
-     */
-    getMatrixAt(index, matrix) {
-      matrix.fromArray(this.instanceMatrix.array, index * 16);
-    }
-    /**
-     * Gets the morph target weights of the defined instance.
-     *
-     * @param {number} index - The instance index.
-     * @param {Mesh} object - The target object that is used to store the method's result.
-     */
-    getMorphAt(index, object) {
-      const objectInfluences = object.morphTargetInfluences;
-      const array = this.morphTexture.source.data.data;
-      const len = objectInfluences.length + 1;
-      const dataIndex = index * len + 1;
-      for (let i = 0; i < objectInfluences.length; i++) {
-        objectInfluences[i] = array[dataIndex + i];
-      }
-    }
-    raycast(raycaster, intersects) {
-      const matrixWorld = this.matrixWorld;
-      const raycastTimes = this.count;
-      _mesh$1.geometry = this.geometry;
-      _mesh$1.material = this.material;
-      if (_mesh$1.material === void 0) return;
-      if (this.boundingSphere === null) this.computeBoundingSphere();
-      _sphere$4.copy(this.boundingSphere);
-      _sphere$4.applyMatrix4(matrixWorld);
-      if (raycaster.ray.intersectsSphere(_sphere$4) === false) return;
-      for (let instanceId = 0; instanceId < raycastTimes; instanceId++) {
-        this.getMatrixAt(instanceId, _instanceLocalMatrix);
-        _instanceWorldMatrix.multiplyMatrices(matrixWorld, _instanceLocalMatrix);
-        _mesh$1.matrixWorld = _instanceWorldMatrix;
-        _mesh$1.raycast(raycaster, _instanceIntersects);
-        for (let i = 0, l = _instanceIntersects.length; i < l; i++) {
-          const intersect2 = _instanceIntersects[i];
-          intersect2.instanceId = instanceId;
-          intersect2.object = this;
-          intersects.push(intersect2);
-        }
-        _instanceIntersects.length = 0;
-      }
-    }
-    /**
-     * Sets the given color to the defined instance. Make sure you set the `needsUpdate` flag of
-     * {@link InstancedMesh#instanceColor} to `true` after updating all the colors.
-     *
-     * @param {number} index - The instance index.
-     * @param {Color} color - The instance color.
-     */
-    setColorAt(index, color) {
-      if (this.instanceColor === null) {
-        this.instanceColor = new InstancedBufferAttribute(new Float32Array(this.instanceMatrix.count * 3).fill(1), 3);
-      }
-      color.toArray(this.instanceColor.array, index * 3);
-    }
-    /**
-     * Sets the given local transformation matrix to the defined instance. Make sure you set the `needsUpdate` flag of
-     * {@link InstancedMesh#instanceMatrix} to `true` after updating all the colors.
-     *
-     * @param {number} index - The instance index.
-     * @param {Matrix4} matrix - The local transformation.
-     */
-    setMatrixAt(index, matrix) {
-      matrix.toArray(this.instanceMatrix.array, index * 16);
-    }
-    /**
-     * Sets the morph target weights to the defined instance. Make sure you set the `needsUpdate` flag of
-     * {@link InstancedMesh#morphTexture} to `true` after updating all the influences.
-     *
-     * @param {number} index - The instance index.
-     * @param {Mesh} object -  A mesh which `morphTargetInfluences` property containing the morph target weights
-     * of a single instance.
-     */
-    setMorphAt(index, object) {
-      const objectInfluences = object.morphTargetInfluences;
-      const len = objectInfluences.length + 1;
-      if (this.morphTexture === null) {
-        this.morphTexture = new DataTexture(new Float32Array(len * this.count), len, this.count, RedFormat, FloatType);
-      }
-      const array = this.morphTexture.source.data.data;
-      let morphInfluencesSum = 0;
-      for (let i = 0; i < objectInfluences.length; i++) {
-        morphInfluencesSum += objectInfluences[i];
-      }
-      const morphBaseInfluence = this.geometry.morphTargetsRelative ? 1 : 1 - morphInfluencesSum;
-      const dataIndex = len * index;
-      array[dataIndex] = morphBaseInfluence;
-      array.set(objectInfluences, dataIndex + 1);
-    }
-    updateMorphTargets() {
-    }
-    /**
-     * Frees the GPU-related resources allocated by this instance. Call this
-     * method whenever this instance is no longer used in your app.
-     */
-    dispose() {
-      this.dispatchEvent({ type: "dispose" });
-      if (this.morphTexture !== null) {
-        this.morphTexture.dispose();
-        this.morphTexture = null;
-      }
     }
   };
   var _vector1 = /* @__PURE__ */ new Vector3();
@@ -28751,30 +28532,27 @@ void main() {
     }
   }
 
-  // src/messages.ts
-  function assertNever(value) {
-    throw new Error(`Unhandled shelf3d message: ${JSON.stringify(value)}`);
-  }
-
   // src/scene.ts
   var BOOK_WIDTH = 0.025;
   var BOOK_HEIGHT = 0.18;
   var BOOK_DEPTH = 0.13;
   var SHELF_COLUMNS = 18;
   var SHELF_ROW_HEIGHT = 0.27;
-  var PROTOCOL_VERSION = "shelf3d-v1";
+  var MAX_RESIDENT_BOOKS = 500;
+  var BRIDGE_MESSAGE_BOOK_LIMIT = 1e5;
   var Shelf3DScene = class {
     constructor(canvas) {
       this.canvas = canvas;
+      this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
       this.controls = new OrbitControls(this.camera, canvas);
-      this.controls.enableDamping = true;
+      this.controls.enableDamping = !this.reducedMotion;
       this.controls.addEventListener("change", () => this.postCameraChanged());
       this.scene.add(new HemisphereLight(16777215, 4928550, 1.2));
-      this.sceneRoot = new Group();
       this.scene.add(this.sceneRoot);
       this.camera.position.set(0, 0.45, 1.4);
       this.camera.lookAt(0, 0, 0);
+      this.canvas.setAttribute("aria-describedby", "shelf3d-status");
       this.resize();
       this.bindEvents();
       this.post({ type: "WebGl2Status", supported: this.isWebGl2Supported() });
@@ -28788,15 +28566,19 @@ void main() {
     controls;
     geometry = new BoxGeometry(BOOK_WIDTH, BOOK_HEIGHT, BOOK_DEPTH);
     shelfGeometry = new BoxGeometry(SHELF_COLUMNS * 0.03 + 0.04, 0.025, 0.18);
-    sceneRoot = null;
+    sceneRoot = new Group();
+    reducedMotion;
     bookMeshes = [];
     shelfMeshes = [];
     books = [];
     layout = "shelf";
     focusedIndex = 0;
+    residentStart = 0;
+    residentEnd = 0;
     hoveredBookId = null;
-    frameCount = 0;
-    fpsWindowStartedAt = 0;
+    frameSamples = [];
+    performanceWindowStartedAt = 0;
+    lastFrameTimestamp = 0;
     lastPerformanceWarningAt = 0;
     handleMessage(message) {
       switch (message.type) {
@@ -28817,7 +28599,7 @@ void main() {
           return;
         case "SetLayout":
           this.layout = message.layout;
-          this.applyLayout();
+          this.rebuildResidentWindow();
           return;
         default:
           assertNever(message);
@@ -28834,10 +28616,45 @@ void main() {
     }
     setScene(books, camera) {
       this.clearScene();
-      this.books = Array.isArray(books) ? books.filter((book) => this.isSafeBook(book)) : [];
+      this.books = Array.isArray(books) ? books.slice(0, BRIDGE_MESSAGE_BOOK_LIMIT).filter((book) => this.isSafeBook(book)) : [];
       this.focusedIndex = 0;
-      for (let index = 0; index < this.books.length; index++) {
+      this.rebuildResidentWindow();
+      this.applyCamera(camera);
+      this.setFocusedIndex(0, false, false);
+      this.setStatus(this.books.length === 0 ? "No books are available in this shelf." : `${this.books.length} books loaded; use arrow keys to browse and Enter to open.`);
+    }
+    updateBook(bookId, book) {
+      const index = this.books.findIndex((existing) => existing.bookId === bookId);
+      if (index < 0 || !this.isSafeBook(book)) return;
+      this.books = this.books.map((existing, existingIndex) => existingIndex === index ? book : existing);
+      const mesh = this.bookMeshes.find((candidate) => candidate.userData.bookIndex === index);
+      if (mesh !== void 0) {
+        mesh.userData.bookId = book.bookId;
+        this.applySpineTexture(mesh, book);
+      }
+      this.applyLayout();
+    }
+    removeBook(bookId) {
+      const remaining = this.books.filter((book) => book.bookId !== bookId);
+      this.setScene(remaining, this.readCamera());
+    }
+    rebuildResidentWindow() {
+      this.clearBookMeshes();
+      if (this.books.length === 0) {
+        this.residentStart = 0;
+        this.residentEnd = 0;
+        this.buildShelves();
+        return;
+      }
+      const maximumStart = Math.max(0, this.books.length - MAX_RESIDENT_BOOKS);
+      this.residentStart = Math.min(
+        maximumStart,
+        Math.max(0, this.focusedIndex - Math.floor(MAX_RESIDENT_BOOKS / 2))
+      );
+      this.residentEnd = Math.min(this.books.length, this.residentStart + MAX_RESIDENT_BOOKS);
+      for (let index = this.residentStart; index < this.residentEnd; index++) {
         const book = this.books[index];
+        if (book === void 0) continue;
         const material = new MeshStandardMaterial({
           color: this.fallbackColor(book.bookId),
           roughness: 0.7,
@@ -28852,34 +28669,22 @@ void main() {
       }
       this.buildShelves();
       this.applyLayout();
-      this.applyCamera(camera);
-      this.setFocusedIndex(0, false);
-    }
-    updateBook(bookId, book) {
-      const index = this.books.findIndex((existing) => existing.bookId === bookId);
-      if (index < 0 || !this.isSafeBook(book)) return;
-      this.books[index] = book;
-      this.bookMeshes[index].userData.bookId = book.bookId;
-      this.applySpineTexture(this.bookMeshes[index], book);
-      this.applyLayout();
-    }
-    removeBook(bookId) {
-      const remaining = this.books.filter((book) => book.bookId !== bookId);
-      this.setScene(remaining, this.readCamera());
+      this.applyFocusScale();
     }
     applyLayout() {
-      if (this.sceneRoot === null) {
-        return;
-      }
-      for (let index = 0; index < this.books.length; index++) {
+      for (const mesh of this.bookMeshes) {
+        const index = mesh.userData.bookIndex;
         const position = this.layout === "shelf" ? this.shelfPosition(index) : this.gridPosition(index);
         const rotation = this.layout === "shelf" ? (index % 5 - 2) * 0.015 : 0;
-        const mesh = this.bookMeshes[index];
         mesh.position.copy(position);
         mesh.rotation.set(0, rotation, 0);
       }
+      const firstRow = Math.floor(this.residentStart / SHELF_COLUMNS);
       for (let index = 0; index < this.shelfMeshes.length; index++) {
-        this.shelfMeshes[index].position.set(0, -index * SHELF_ROW_HEIGHT - 0.115, 0.02);
+        const shelf = this.shelfMeshes[index];
+        if (shelf !== void 0) {
+          shelf.position.set(0, -(firstRow + index) * SHELF_ROW_HEIGHT - 0.115, 0.02);
+        }
       }
     }
     shelfPosition(index) {
@@ -28920,6 +28725,15 @@ void main() {
       this.canvas.addEventListener("dblclick", (event) => this.handlePointer(event, "BookDoubleClicked"));
       this.canvas.addEventListener("pointermove", (event) => this.handleHover(event));
       this.canvas.addEventListener("keydown", (event) => this.handleKeyDown(event));
+      this.canvas.addEventListener("webglcontextlost", (event) => {
+        event.preventDefault();
+        this.post({ type: "WebGl2Status", supported: false });
+        this.setStatus("3D rendering is temporarily unavailable; the accessible list remains available.");
+      });
+      this.canvas.addEventListener("webglcontextrestored", () => {
+        this.post({ type: "WebGl2Status", supported: this.isWebGl2Supported() });
+        this.rebuildResidentWindow();
+      });
       this.canvas.tabIndex = 0;
     }
     resize() {
@@ -28931,20 +28745,16 @@ void main() {
     }
     handlePointer(event, type) {
       const index = this.pickBookIndex(event);
-      if (index === null) {
-        return;
-      }
+      if (index === null) return;
       const book = this.books[index];
-      if (book === void 0) {
-        return;
-      }
+      if (book === void 0) return;
       this.setFocusedIndex(index);
       this.post({ type, bookId: book.bookId });
     }
     handleHover(event) {
       const index = this.pickBookIndex(event);
       const book = index === null ? void 0 : this.books[index];
-      if (book === void 0) {
+      if (index === null || book === void 0) {
         this.hoveredBookId = null;
         return;
       }
@@ -28954,20 +28764,16 @@ void main() {
       this.post({ type: "BookHovered", bookId: book.bookId });
     }
     pickBookIndex(event) {
-      if (this.bookMeshes.length === 0) {
-        return null;
-      }
+      if (this.bookMeshes.length === 0) return null;
       const rect = this.canvas.getBoundingClientRect();
       this.pointer.x = (event.clientX - rect.left) / rect.width * 2 - 1;
       this.pointer.y = -((event.clientY - rect.top) / rect.height * 2 - 1);
       this.raycaster.setFromCamera(this.pointer, this.camera);
       const hit = this.raycaster.intersectObjects(this.bookMeshes, false)[0];
-      return hit?.object?.userData?.bookIndex ?? null;
+      return hit?.object.userData.bookIndex ?? null;
     }
     handleKeyDown(event) {
-      if (this.books.length === 0) {
-        return;
-      }
+      if (this.books.length === 0) return;
       if (event.key === "ArrowRight" || event.key === "ArrowDown") {
         this.setFocusedIndex((this.focusedIndex + 1) % this.books.length);
         event.preventDefault();
@@ -28980,9 +28786,7 @@ void main() {
       }
       if (event.key === "Enter") {
         const book = this.books[this.focusedIndex];
-        if (book !== void 0) {
-          this.post({ type: "BookDoubleClicked", bookId: book.bookId });
-        }
+        if (book !== void 0) this.post({ type: "BookDoubleClicked", bookId: book.bookId });
         event.preventDefault();
       }
     }
@@ -28990,26 +28794,36 @@ void main() {
       this.post({ type: "CameraChanged", camera: this.readCamera() });
     }
     recordFrame(timestamp) {
-      if (this.fpsWindowStartedAt === 0) {
-        this.fpsWindowStartedAt = timestamp;
+      if (this.performanceWindowStartedAt === 0) {
+        this.performanceWindowStartedAt = timestamp;
+        this.lastFrameTimestamp = timestamp;
         return;
       }
-      this.frameCount++;
-      const elapsedMs = timestamp - this.fpsWindowStartedAt;
-      if (elapsedMs < 2e3) {
-        return;
-      }
-      const averageFps = this.frameCount / elapsedMs * 1e3;
+      this.frameSamples.push(Math.max(0, timestamp - this.lastFrameTimestamp));
+      this.lastFrameTimestamp = timestamp;
+      const elapsedMs = timestamp - this.performanceWindowStartedAt;
+      if (elapsedMs < 2e3) return;
+      const samples = [...this.frameSamples].sort((a, b) => a - b);
+      const p95FrameTimeMs = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.95))] ?? 0;
+      const averageFps = samples.length / elapsedMs * 1e3;
+      this.post({
+        type: "PerformanceMetrics",
+        averageFps,
+        frameTimeMs: p95FrameTimeMs,
+        drawCalls: this.renderer.info.render.calls,
+        sceneBookCount: this.books.length,
+        residentBookCount: this.bookMeshes.length,
+        reducedMotion: this.reducedMotion
+      });
       if (averageFps < 55 && timestamp - this.lastPerformanceWarningAt > 5e3) {
         this.lastPerformanceWarningAt = timestamp;
         this.post({ type: "PerformanceWarning", averageFps });
       }
-      this.frameCount = 0;
-      this.fpsWindowStartedAt = timestamp;
+      this.frameSamples = [];
+      this.performanceWindowStartedAt = timestamp;
     }
     post(message) {
-      message.version = PROTOCOL_VERSION;
-      const serialized = JSON.stringify(message);
+      const serialized = JSON.stringify({ ...message, version: BRIDGE_PROTOCOL_VERSION });
       if (window.chrome?.webview !== void 0) {
         window.chrome.webview.postMessage(serialized);
         return;
@@ -29017,55 +28831,49 @@ void main() {
       window.webkit?.messageHandlers?.ogma?.postMessage(serialized);
     }
     isWebGl2Supported() {
-      const context = document.createElement("canvas").getContext("webgl2");
-      return context !== null;
+      return document.createElement("canvas").getContext("webgl2") !== null;
     }
     clearScene() {
-      if (this.sceneRoot === null) return;
-      for (const mesh of this.bookMeshes) {
+      this.clearBookMeshes();
+      for (const shelf of this.shelfMeshes.splice(0)) {
+        shelf.material.dispose();
+        this.sceneRoot.remove(shelf);
+      }
+    }
+    clearBookMeshes() {
+      for (const mesh of this.bookMeshes.splice(0)) {
         mesh.material.map?.dispose();
         mesh.material.dispose();
         this.sceneRoot.remove(mesh);
       }
-      for (const shelf of this.shelfMeshes) {
-        shelf.material.dispose();
-        this.sceneRoot.remove(shelf);
-      }
-      this.bookMeshes = [];
-      this.shelfMeshes = [];
     }
     buildShelves() {
-      const rowCount = Math.max(1, Math.ceil(this.books.length / SHELF_COLUMNS));
-      const material = new MeshStandardMaterial({ color: 4791810, roughness: 0.82, metalness: 0.02 });
+      const firstRow = Math.floor(this.residentStart / SHELF_COLUMNS);
+      const rowCount = Math.max(1, Math.ceil(Math.max(this.residentEnd - this.residentStart, 1) / SHELF_COLUMNS));
+      const material = new MeshStandardMaterial({ color: 4795682, roughness: 0.82, metalness: 0.02 });
       for (let row = 0; row < rowCount; row++) {
         const shelf = new Mesh(this.shelfGeometry, material.clone());
-        shelf.position.set(0, -row * SHELF_ROW_HEIGHT - 0.115, 0.02);
+        shelf.position.set(0, -(firstRow + row) * SHELF_ROW_HEIGHT - 0.115, 0.02);
         this.shelfMeshes.push(shelf);
         this.sceneRoot.add(shelf);
       }
+      material.dispose();
     }
     isSafeBook(book) {
-      return book !== null &&
-        typeof book.bookId === "string" &&
-        book.bookId.length > 0 &&
-        typeof book.title === "string" &&
-        book.title.length <= 160 &&
-        typeof book.author === "string" &&
-        book.author.length <= 120;
+      return book !== null && book !== void 0 && typeof book.bookId === "string" && book.bookId.length > 0 && book.bookId.length <= 128 && typeof book.title === "string" && book.title.length <= 160 && typeof book.author === "string" && book.author.length <= 120 && typeof book.spineUri === "string" && book.spineUri.length <= 512;
     }
     fallbackColor(bookId) {
       let hash = 0;
-      for (let index = 0; index < bookId.length; index++) {
-        hash = (hash * 31 + bookId.charCodeAt(index)) >>> 0;
-      }
-      return new Color("hsl(" + (hash % 360) + ", 42%, 38%)");
+      for (let index = 0; index < bookId.length; index++) hash = hash * 31 + bookId.charCodeAt(index) >>> 0;
+      return new Color(`hsl(${hash % 360}, 42%, 38%)`);
     }
     applySpineTexture(mesh, book) {
       const fallback = document.createElement("canvas");
       fallback.width = 256;
       fallback.height = 512;
       const context = fallback.getContext("2d");
-      context.fillStyle = "#" + this.fallbackColor(book.bookId).getHexString();
+      if (context === null) return;
+      context.fillStyle = `#${this.fallbackColor(book.bookId).getHexString()}`;
       context.fillRect(0, 0, fallback.width, fallback.height);
       context.fillStyle = "#f5efe4";
       context.font = "bold 22px Georgia";
@@ -29082,9 +28890,7 @@ void main() {
       fallbackTexture.needsUpdate = true;
       mesh.material.map = fallbackTexture;
       mesh.material.needsUpdate = true;
-      if (typeof Image === "undefined" || typeof book.spineUri !== "string" || !book.spineUri.startsWith("ogma://assets/")) {
-        return;
-      }
+      if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
       const image = new Image();
       image.onload = () => {
         const texture = new Texture(image);
@@ -29094,25 +28900,37 @@ void main() {
         mesh.material.map = texture;
         mesh.material.needsUpdate = true;
       };
-      image.onerror = () => {};
+      image.onerror = () => void 0;
       image.src = book.spineUri;
     }
-    setFocusedIndex(index, announce = true) {
+    setFocusedIndex(index, announce = true, moveCamera = true) {
       if (this.books.length === 0) return;
       this.focusedIndex = Math.max(0, Math.min(index, this.books.length - 1));
-      for (let item = 0; item < this.bookMeshes.length; item++) {
-        const mesh = this.bookMeshes[item];
-        const focused = item === this.focusedIndex;
-        mesh.scale.set(focused ? 1.08 : 1, focused ? 1.08 : 1, focused ? 1.08 : 1);
-      }
+      if (this.focusedIndex < this.residentStart || this.focusedIndex >= this.residentEnd) this.rebuildResidentWindow();
+      this.applyFocusScale();
       const focusedBook = this.books[this.focusedIndex];
-      if (announce && focusedBook !== void 0) {
-        this.post({ type: "BookHovered", bookId: focusedBook.bookId });
+      if (moveCamera) this.focusCamera(this.focusedIndex);
+      if (announce && focusedBook !== void 0) this.post({ type: "BookHovered", bookId: focusedBook.bookId });
+      if (focusedBook !== void 0) this.setStatus(`${focusedBook.title} \u2014 ${focusedBook.author}`);
+    }
+    applyFocusScale() {
+      for (const mesh of this.bookMeshes) {
+        const focused = mesh.userData.bookIndex === this.focusedIndex;
+        mesh.scale.setScalar(focused ? 1.08 : 1);
       }
+    }
+    focusCamera(index) {
+      const target = this.layout === "shelf" ? this.shelfPosition(index) : this.gridPosition(index);
+      const deltaX = target.x - this.controls.target.x;
+      const deltaY = target.y - this.controls.target.y;
+      this.controls.target.copy(target);
+      this.camera.position.x += deltaX;
+      this.camera.position.y += deltaY;
+      this.controls.update();
+    }
+    setStatus(text) {
       const status = document.getElementById("shelf3d-status");
-      if (status && focusedBook !== void 0) {
-        status.textContent = focusedBook.title + " — " + focusedBook.author;
-      }
+      if (status !== null) status.textContent = text.slice(0, 240);
     }
   };
   function initializeShelf3D(canvas) {
@@ -29125,8 +28943,7 @@ void main() {
   function parseOutboundMessage(json) {
     try {
       const parsed = JSON.parse(json);
-      return typeof parsed.type === "string" &&
-        (parsed.version === void 0 || parsed.version === PROTOCOL_VERSION) ? parsed : null;
+      return typeof parsed.type === "string" && (parsed.version === void 0 || parsed.version === BRIDGE_PROTOCOL_VERSION) ? parsed : null;
     } catch {
       return null;
     }

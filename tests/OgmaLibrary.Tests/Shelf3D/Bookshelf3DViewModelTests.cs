@@ -56,6 +56,32 @@ public sealed class Bookshelf3DViewModelTests
     }
 
     [Fact]
+    public void PerformanceWarning_SwitchesToAccessibleFallback()
+    {
+        var bridge = new FakeBridge();
+        using var viewModel = CreateViewModel(bridge, new RecordingNavigation());
+
+        bridge.Emit(new WebGl2StatusMessage(true));
+        bridge.Emit(new PerformanceWarningMessage(41));
+
+        Assert.True(viewModel.IsPerformanceDegraded);
+        Assert.True(viewModel.IsFallbackVisible);
+        Assert.False(viewModel.IsInteractive3DVisible);
+    }
+
+    [Fact]
+    public void PerformanceMetrics_AreRetainedForLocalDiagnostics()
+    {
+        var bridge = new FakeBridge();
+        using var viewModel = CreateViewModel(bridge, new RecordingNavigation());
+        var metrics = new PerformanceMetricsMessage(60, 16.6, 12, 5000, 500, true);
+
+        bridge.Emit(metrics);
+
+        Assert.Same(metrics, viewModel.LastPerformanceMetrics);
+    }
+
+    [Fact]
     public async Task Bookshelf3DViewModel_WithoutNativeHost_PreservesAccessibleFallback()
     {
         using var viewModel = new Bookshelf3DViewModel(

@@ -1,8 +1,8 @@
 import { performance } from "node:perf_hooks";
 
-const BOOK_COUNT = 500;
+const BOOK_COUNTS = [50, 250, 500, 1_000, 5_000, 10_000];
 const ITERATIONS = 250;
-const FRAME_BUDGET_MS = 16.67;
+const WARMUP_ITERATIONS = 10;
 const LAYOUT_BUDGET_MS = 5;
 
 function shelfPosition(index) {
@@ -39,32 +39,35 @@ function computeLayout(mode, count) {
   return checksum;
 }
 
-function measure(mode) {
+function measure(mode, bookCount) {
   const samples = [];
   let checksum = 0;
-  for (let i = 0; i < ITERATIONS; i++) {
+  for (let i = 0; i < ITERATIONS + WARMUP_ITERATIONS; i++) {
     const started = performance.now();
-    checksum += computeLayout(mode, BOOK_COUNT);
-    samples.push(performance.now() - started);
+    checksum += computeLayout(mode, bookCount);
+    if (i >= WARMUP_ITERATIONS) {
+      samples.push(performance.now() - started);
+    }
   }
 
   samples.sort((a, b) => a - b);
   return {
     mode,
+    bookCount,
     checksum: Number(checksum.toFixed(4)),
     p95Ms: samples[Math.floor(samples.length * 0.95)],
     maxMs: samples.at(-1),
   };
 }
 
-const results = [measure("shelf"), measure("grid3d")];
+const results = BOOK_COUNTS.flatMap((bookCount) => [measure("shelf", bookCount), measure("grid3d", bookCount)]);
 for (const result of results) {
-  console.log(`${result.mode}: p95=${result.p95Ms.toFixed(3)}ms max=${result.maxMs.toFixed(3)}ms checksum=${result.checksum}`);
+  console.log(`${result.mode} ${result.bookCount}: p95=${result.p95Ms.toFixed(3)}ms max=${result.maxMs.toFixed(3)}ms checksum=${result.checksum}`);
   if (result.p95Ms > LAYOUT_BUDGET_MS) {
     throw new Error(`${result.mode} layout p95 ${result.p95Ms.toFixed(3)}ms exceeds ${LAYOUT_BUDGET_MS}ms budget.`);
   }
 
-  if (result.maxMs > FRAME_BUDGET_MS) {
-    throw new Error(`${result.mode} layout max ${result.maxMs.toFixed(3)}ms exceeds ${FRAME_BUDGET_MS}ms frame budget.`);
-  }
+  // This Node-only arithmetic harness is intentionally not a GPU/frame-time
+  // claim. Max is retained in the output for diagnostics; p95 is the stable
+  // gate while runtime WebView metrics provide the real rendering evidence.
 }

@@ -1,4 +1,5 @@
 import type { OutboundMessage } from "./messages";
+import { BRIDGE_PROTOCOL_VERSION } from "./messages";
 import { initializeShelf3D, type Shelf3DScene } from "./scene";
 
 type Shelf3DHostApi = Readonly<{
@@ -15,7 +16,10 @@ declare global {
 function parseOutboundMessage(json: string): OutboundMessage | null {
   try {
     const parsed = JSON.parse(json) as Partial<OutboundMessage>;
-    return typeof parsed.type === "string" ? (parsed as OutboundMessage) : null;
+    return typeof parsed.type === "string" &&
+      (parsed.version === undefined || parsed.version === BRIDGE_PROTOCOL_VERSION)
+      ? (parsed as OutboundMessage)
+      : null;
   } catch {
     return null;
   }

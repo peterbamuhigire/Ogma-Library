@@ -41,7 +41,7 @@
     </Grid>
 
     <Grid Grid.Row="1">
-      <Border IsVisible="{Binding IsWebGl2Supported}"
+      <Border IsVisible="{Binding IsInteractive3DVisible}"
               BorderBrush="{DynamicResource ThemeBorderLowBrush}"
               BorderThickness="1"
               CornerRadius="6"

@@ -60,6 +60,13 @@ public static class InboundMessageParser
                 "CameraChanged" => new CameraChangedMessage(ReadCamera(root.GetProperty("camera"))),
                 "WebGl2Status" => new WebGl2StatusMessage(root.GetProperty("supported").GetBoolean()),
                 "PerformanceWarning" => new PerformanceWarningMessage(root.GetProperty("averageFps").GetDouble()),
+                "PerformanceMetrics" => new PerformanceMetricsMessage(
+                    root.GetProperty("averageFps").GetDouble(),
+                    root.GetProperty("frameTimeMs").GetDouble(),
+                    root.GetProperty("drawCalls").GetInt32(),
+                    root.GetProperty("sceneBookCount").GetInt32(),
+                    root.GetProperty("residentBookCount").GetInt32(),
+                    root.GetProperty("reducedMotion").GetBoolean()),
                 _ => new UnknownInboundMessage(type ?? string.Empty),
             };
             return true;

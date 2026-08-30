@@ -81,6 +81,31 @@ public sealed class BridgeMessageTests
     }
 
     [Fact]
+    public void InboundMessageParser_AcceptsBoundedPerformanceMetrics()
+    {
+        bool parsed = InboundMessageParser.TryParse(
+            """{"version":"shelf3d-v1","type":"PerformanceMetrics","averageFps":60,"frameTimeMs":16.6,"drawCalls":29,"sceneBookCount":10000,"residentBookCount":500,"reducedMotion":true}""",
+            out InboundMessage? message,
+            out string? error);
+
+        Assert.True(parsed, error);
+        PerformanceMetricsMessage metrics = Assert.IsType<PerformanceMetricsMessage>(message);
+        Assert.Equal(10_000, metrics.SceneBookCount);
+        Assert.Equal(500, metrics.ResidentBookCount);
+        Assert.True(InboundMessageValidator.Validate(metrics).ShouldDispatch);
+    }
+
+    [Fact]
+    public void InboundMessageValidator_PerformanceMetrics_RejectsResidentOverflow()
+    {
+        InboundMessageValidationResult result = InboundMessageValidator.Validate(
+            new PerformanceMetricsMessage(60, 16, 10, 50, 51, false));
+
+        Assert.False(result.ShouldDispatch);
+        Assert.Contains("bounds", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task InboundMessage_Invalid_IsRejectedWithNoSideEffect()
     {
         var host = new FakeWebViewHostAdapter();

@@ -22,6 +22,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     private readonly string _gridLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_grid3d") ?? string.Empty;
     private readonly string _unavailableIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_unavailable") ?? string.Empty;
     private bool _isWebGl2Supported;
+    private bool _isPerformanceDegraded;
     private bool _isLoading;
     private string _currentLayout = "shelf";
 
@@ -62,12 +63,35 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
                 _isWebGl2Supported = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsFallbackVisible));
+                OnPropertyChanged(nameof(IsInteractive3DVisible));
             }
         }
     }
 
     /// <summary>Whether the accessible fallback should be visible.</summary>
-    public bool IsFallbackVisible => !IsWebGl2Supported;
+    public bool IsFallbackVisible => !IsWebGl2Supported || IsPerformanceDegraded;
+
+    /// <summary>Whether runtime performance forced the accessible fallback.</summary>
+    public bool IsPerformanceDegraded
+    {
+        get => _isPerformanceDegraded;
+        private set
+        {
+            if (_isPerformanceDegraded != value)
+            {
+                _isPerformanceDegraded = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsFallbackVisible));
+                OnPropertyChanged(nameof(IsInteractive3DVisible));
+            }
+        }
+    }
+
+    /// <summary>Whether the native 3D surface should be displayed.</summary>
+    public bool IsInteractive3DVisible => IsWebGl2Supported && !IsPerformanceDegraded;
+
+    /// <summary>Most recent accepted renderer metrics, when a native host is active.</summary>
+    public PerformanceMetricsMessage? LastPerformanceMetrics { get; private set; }
 
     /// <summary>Whether scene data is loading.</summary>
     public bool IsLoading
@@ -131,11 +155,12 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         IsLoading = true;
+        IsPerformanceDegraded = false;
         try
         {
             Books.Clear();
             await foreach (BookSummaryProjection summary in _catalogue.GetBookSummariesAsync(
-                new CatalogueFilter(Status: 0, MaxResults: 500),
+                new CatalogueFilter(Status: 0, MaxResults: 0),
                 cancellationToken).ConfigureAwait(false))
             {
                 Books.Add(ToSceneItem(summary));
@@ -220,6 +245,13 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
                 break;
             case WebGl2StatusMessage status:
                 IsWebGl2Supported = status.Supported;
+                break;
+            case PerformanceWarningMessage:
+                IsPerformanceDegraded = true;
+                break;
+            case PerformanceMetricsMessage metrics:
+                LastPerformanceMetrics = metrics;
+                OnPropertyChanged(nameof(LastPerformanceMetrics));
                 break;
         }
     }

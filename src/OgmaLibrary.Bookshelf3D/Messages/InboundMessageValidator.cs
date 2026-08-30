@@ -20,6 +20,7 @@ public static partial class InboundMessageValidator
             CameraChangedMessage cameraChanged => ValidateCamera(cameraChanged.Camera),
             WebGl2StatusMessage => InboundMessageValidationResult.Dispatch,
             PerformanceWarningMessage warning => ValidateFinite(warning.AverageFps, nameof(warning.AverageFps)),
+            PerformanceMetricsMessage metrics => ValidateMetrics(metrics),
             UnknownInboundMessage unknown => InboundMessageValidationResult.Discard($"Unknown inbound message type '{unknown.UnknownType}'."),
             _ => InboundMessageValidationResult.Discard($"Unsupported inbound message type '{message.Type}'."),
         };
@@ -64,6 +65,24 @@ public static partial class InboundMessageValidator
         double.IsFinite(value)
             ? InboundMessageValidationResult.Dispatch
             : InboundMessageValidationResult.Discard($"{propertyName} must be finite.");
+
+    private static InboundMessageValidationResult ValidateMetrics(PerformanceMetricsMessage metrics)
+    {
+        if (!double.IsFinite(metrics.AverageFps) || !double.IsFinite(metrics.FrameTimeMs))
+        {
+            return InboundMessageValidationResult.Discard("Performance metrics must be finite.");
+        }
+
+        if (metrics.AverageFps < 0 || metrics.FrameTimeMs < 0 ||
+            metrics.SceneBookCount < 0 || metrics.ResidentBookCount < 0 ||
+            metrics.ResidentBookCount > metrics.SceneBookCount ||
+            metrics.SceneBookCount > 100_000)
+        {
+            return InboundMessageValidationResult.Discard("Performance metrics are outside the permitted bounds.");
+        }
+
+        return InboundMessageValidationResult.Dispatch;
+    }
 
     [GeneratedRegex("^[0-9A-HJKMNP-TV-Z]{26}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex BookIdPattern();

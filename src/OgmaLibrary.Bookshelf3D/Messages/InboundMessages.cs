@@ -29,5 +29,14 @@ public sealed record WebGl2StatusMessage(
 public sealed record PerformanceWarningMessage(
     [property: JsonPropertyName("averageFps")] double AverageFps) : InboundMessage("PerformanceWarning");
 
+/// <summary>Reports bounded runtime metrics from the local Three.js renderer.</summary>
+public sealed record PerformanceMetricsMessage(
+    [property: JsonPropertyName("averageFps")] double AverageFps,
+    [property: JsonPropertyName("frameTimeMs")] double FrameTimeMs,
+    [property: JsonPropertyName("drawCalls")] int DrawCalls,
+    [property: JsonPropertyName("sceneBookCount")] int SceneBookCount,
+    [property: JsonPropertyName("residentBookCount")] int ResidentBookCount,
+    [property: JsonPropertyName("reducedMotion")] bool ReducedMotion) : InboundMessage("PerformanceMetrics");
+
 /// <summary>Represents an unrecognized inbound message type that must be discarded.</summary>
 public sealed record UnknownInboundMessage(string UnknownType) : InboundMessage(UnknownType);
