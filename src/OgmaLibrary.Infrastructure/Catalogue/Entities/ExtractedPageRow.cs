@@ -34,6 +34,9 @@ public sealed class ExtractedPageRow
     /// <summary>Method used to extract the text (e.g. "PdfPig", "Tesseract").</summary>
     public string? ExtractionMethod { get; set; }
 
+    /// <summary>Version of the extractor that produced this page.</summary>
+    public string ExtractorVersion { get; set; } = "pdf-text-v1";
+
     /// <summary>UTC timestamp when this page was extracted.</summary>
     public DateTimeOffset? ExtractionUtc { get; set; }
 

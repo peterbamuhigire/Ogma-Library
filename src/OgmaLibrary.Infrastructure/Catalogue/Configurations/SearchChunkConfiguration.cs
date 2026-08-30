@@ -25,12 +25,21 @@ public sealed class SearchChunkConfiguration : IEntityTypeConfiguration<SearchCh
         builder.Property(c => c.Source).HasDefaultValue(0);
         builder.Property(c => c.TokenCount).HasDefaultValue(0);
         builder.Property(c => c.CreatedAtUtc);
+        builder.Property(c => c.ExtractionArtifactId);
+        builder.Property(c => c.IndexVersion).IsRequired().HasMaxLength(128).HasDefaultValue("fts5-v1");
 
         // Index for chunk ordering per book.
         builder.HasIndex(c => new { c.BookId, c.ChunkIndex })
             .HasDatabaseName("IX_SearchChunks_BookId_ChunkIndex");
         builder.HasIndex(c => new { c.BookId, c.Source })
             .HasDatabaseName("IX_SearchChunks_BookId_Source");
+        builder.HasIndex(c => new { c.BookId, c.IndexVersion })
+            .HasDatabaseName("IX_SearchChunks_BookId_IndexVersion");
+
+        builder.HasOne<ExtractionArtifactRow>()
+            .WithMany()
+            .HasForeignKey(c => c.ExtractionArtifactId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasMany(c => c.EmbeddingVectors)
             .WithOne(v => v.Chunk)

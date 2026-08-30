@@ -31,6 +31,12 @@ public sealed class SearchChunkRow
     /// <summary>UTC timestamp when this chunk was created.</summary>
     public DateTimeOffset CreatedAtUtc { get; set; }
 
+    /// <summary>Versioned extraction artifact that produced this chunk.</summary>
+    public long? ExtractionArtifactId { get; set; }
+
+    /// <summary>Version of the indexer that produced this chunk.</summary>
+    public string IndexVersion { get; set; } = "fts5-v1";
+
     /// <summary>Navigation: the source extracted page.</summary>
     public ExtractedPageRow? ExtractedPage { get; set; }
 

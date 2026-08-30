@@ -119,6 +119,8 @@ public sealed class SearchChunkRepository : ISearchChunkRepository
             CreatedAtUtc = chunk.CreatedAtUtc == default
                 ? DateTimeOffset.UtcNow
                 : chunk.CreatedAtUtc,
+            ExtractionArtifactId = chunk.ExtractionArtifactId,
+            IndexVersion = string.IsNullOrWhiteSpace(chunk.IndexVersion) ? "fts5-v1" : chunk.IndexVersion,
         };
 
     private static SearchChunkRecord MapToRecord(SearchChunkRow row, int? pageIndex) =>
@@ -131,7 +133,9 @@ public sealed class SearchChunkRepository : ISearchChunkRepository
             row.ChunkText ?? string.Empty,
             row.TokenCount,
             (SearchChunkSource)row.Source,
-            row.CreatedAtUtc);
+            row.CreatedAtUtc,
+            row.ExtractionArtifactId,
+            row.IndexVersion);
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

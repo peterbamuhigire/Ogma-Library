@@ -26,6 +26,7 @@ public sealed class ExtractedPageConfiguration : IEntityTypeConfiguration<Extrac
         builder.Property(p => p.ContentHash).HasMaxLength(64).IsFixedLength();
         builder.Property(p => p.Source).IsRequired().HasMaxLength(32).HasDefaultValue("Extraction");
         builder.Property(p => p.ExtractionMethod).HasMaxLength(64);
+        builder.Property(p => p.ExtractorVersion).IsRequired().HasMaxLength(128).HasDefaultValue("pdf-text-v1");
         builder.Property(p => p.ExtractionUtc);
 
         // Index for page-number lookup per book.

@@ -75,7 +75,17 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
         Assert.Equal(0, result.FailedPages);
         Assert.Equal((int)SearchBookIndexStatus.Indexed, _context.Books.Single(b => b.BookId == bookId).IndexStatus);
         Assert.Equal(2, _context.ExtractedPages.Count(p => p.BookId == bookId));
+        ExtractionArtifactRow artifact = Assert.Single(_context.ExtractionArtifacts.Where(a => a.BookId == bookId));
+        Assert.Equal(ExtractionArtifactStatus.Completed, (ExtractionArtifactStatus)artifact.Status);
+        Assert.Equal(64, artifact.ManifestHash?.Length);
+        Assert.All(_context.ExtractedPages.Where(p => p.BookId == bookId), page =>
+            Assert.Equal("pdf-text-v1", page.ExtractorVersion));
         Assert.Contains(chunks, c => c.Source == SearchChunkSource.Page && c.Text.Contains("rarepagekeyword", StringComparison.Ordinal));
+        Assert.All(chunks, chunk =>
+        {
+            Assert.Equal(artifact.ExtractionArtifactId, chunk.ExtractionArtifactId);
+            Assert.Equal("fts5-v1", chunk.IndexVersion);
+        });
         Assert.Contains(chunks, c => c.Source == SearchChunkSource.Note && c.Text.Contains("schoollibrarynote", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Source == SearchChunkSource.Tag && c.Text.Contains("classroom", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Source == SearchChunkSource.Description && c.Text.Contains("awardreadydescription", StringComparison.Ordinal));

@@ -134,6 +134,7 @@ public enum ConfidenceLabel
 /// <param name="ContentHash">Book content hash used for extraction staleness checks.</param>
 /// <param name="ExtractedAtUtc">UTC timestamp of the extraction.</param>
 /// <param name="Source">Source of the page text, such as "Extraction" or "OCR".</param>
+/// <param name="ExtractorVersion">Version of the extractor that produced the page.</param>
 public sealed record ExtractedPageRecord(
     long Id,
     string BookId,
@@ -143,7 +144,8 @@ public sealed record ExtractedPageRecord(
     int WordCount,
     string? ContentHash,
     DateTimeOffset ExtractedAtUtc,
-    string Source = "Extraction");
+    string Source = "Extraction",
+    string ExtractorVersion = "pdf-text-v1");
 
 /// <summary>
 /// A token-bounded search chunk that feeds SQLite FTS5 and future embeddings.
@@ -157,6 +159,8 @@ public sealed record ExtractedPageRecord(
 /// <param name="TokenCount">Approximate token count for the chunk.</param>
 /// <param name="Source">The source category for ranking and filters.</param>
 /// <param name="CreatedAtUtc">UTC timestamp of chunk creation.</param>
+/// <param name="ExtractionArtifactId">Versioned extraction artifact that produced the chunk.</param>
+/// <param name="IndexVersion">Version of the indexer that produced the chunk.</param>
 public sealed record SearchChunkRecord(
     long Id,
     string BookId,
@@ -166,4 +170,6 @@ public sealed record SearchChunkRecord(
     string Text,
     int TokenCount,
     SearchChunkSource Source,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    long? ExtractionArtifactId = null,
+    string IndexVersion = "fts5-v1");

@@ -18,6 +18,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
 {
     private const int ActiveBookStatus = 0;
     private const int JobFailed = 3;
+    private const string ExtractorVersion = "pdf-text-v1";
+    private const string IndexVersion = "fts5-v1";
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -26,6 +28,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
     private readonly IExtractedTextStore _extractedTextStore;
     private readonly ISearchChunkRepository _chunkRepository;
     private readonly SearchChunker _chunker;
+    private readonly IExtractionArtifactService _artifactService;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ExtractionPipelineService"/>.
@@ -37,7 +40,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         IPdfRendererFactory rendererFactory,
         IExtractedTextStore extractedTextStore,
         ISearchChunkRepository chunkRepository,
-        SearchChunker chunker)
+        SearchChunker chunker,
+        IExtractionArtifactService artifactService)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(fileLocator);
@@ -45,6 +49,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         ArgumentNullException.ThrowIfNull(extractedTextStore);
         ArgumentNullException.ThrowIfNull(chunkRepository);
         ArgumentNullException.ThrowIfNull(chunker);
+        ArgumentNullException.ThrowIfNull(artifactService);
 
         _contextFactory = contextFactory;
         _fileLocator = fileLocator;
@@ -52,6 +57,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         _extractedTextStore = extractedTextStore;
         _chunkRepository = chunkRepository;
         _chunker = chunker;
+        _artifactService = artifactService;
     }
 
     /// <summary>
@@ -79,6 +85,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         _extractedTextStore = extractedTextStore;
         _chunkRepository = chunkRepository;
         _chunker = chunker;
+        _artifactService = new ExtractionArtifactService(context);
     }
 
     /// <inheritdoc />
@@ -145,11 +152,29 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         await SetBookStatusAsync(bookId, SearchBookIndexStatus.Extracting, cancellationToken)
             .ConfigureAwait(false);
 
+        ExtractionArtifactDescriptor? artifact = null;
+        try
+        {
+            artifact = await _artifactService.BeginAsync(
+                    bookId,
+                    book.ContentHash,
+                    ExtractorVersion,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await RecordBookFailureAsync(bookId, book.ContentHash, ex.Message, cancellationToken)
+                .ConfigureAwait(false);
+            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, ex.Message);
+        }
+
         string? filePath = await _fileLocator.LocateAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(filePath))
         {
             const string message = "No available PDF file was found for indexing.";
+            await _artifactService.FailAsync(artifact.Id, CancellationToken.None).ConfigureAwait(false);
             await RecordBookFailureAsync(bookId, book.ContentHash, message, cancellationToken)
                 .ConfigureAwait(false);
             return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message);
@@ -163,17 +188,26 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
                     bookId,
                     book.ContentHash,
                     renderer,
+                    ExtractorVersion,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
+            if (artifact is not null)
+            {
+                await _artifactService.FailAsync(artifact.Id, CancellationToken.None).ConfigureAwait(false);
+            }
             await SetBookStatusAsync(bookId, SearchBookIndexStatus.NotIndexed, CancellationToken.None)
                 .ConfigureAwait(false);
             throw;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            if (artifact is not null)
+            {
+                await _artifactService.FailAsync(artifact.Id, CancellationToken.None).ConfigureAwait(false);
+            }
             await RecordBookFailureAsync(bookId, book.ContentHash, ex.Message, cancellationToken)
                 .ConfigureAwait(false);
             return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, ex.Message);
@@ -186,6 +220,11 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
             .ConfigureAwait(false);
         IReadOnlyList<SearchChunkRecord> descriptionChunks = await BuildDescriptionChunksAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
+
+        pageChunks = StampChunks(pageChunks, artifact.Id);
+        noteChunks = StampChunks(noteChunks, artifact.Id);
+        tagChunks = StampChunks(tagChunks, artifact.Id);
+        descriptionChunks = StampChunks(descriptionChunks, artifact.Id);
 
         int chunksWritten = 0;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
@@ -218,6 +257,21 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         SearchBookIndexStatus finalStatus = extracted.FailedPages > 0
             ? SearchBookIndexStatus.Failed
             : SearchBookIndexStatus.Indexed;
+        string manifestHash = ComputeManifestHash(extracted.Pages, pageChunks, noteChunks, tagChunks, descriptionChunks);
+        if (finalStatus == SearchBookIndexStatus.Indexed)
+        {
+            await _artifactService.CompleteAsync(
+                    artifact.Id,
+                    extracted.PagesProcessed,
+                    extracted.FailedPages,
+                    manifestHash,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            await _artifactService.FailAsync(artifact.Id, cancellationToken).ConfigureAwait(false);
+        }
         await SetBookStatusAsync(bookId, finalStatus, cancellationToken).ConfigureAwait(false);
 
         return new ExtractionBookResult(
@@ -236,6 +290,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         string bookId,
         string? contentHash,
         IPdfRenderer renderer,
+        string extractorVersion,
         CancellationToken cancellationToken)
     {
         IReadOnlyList<ExtractedPageRecord> existingPages = await _extractedTextStore
@@ -255,6 +310,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
 
             if (existingByPage.TryGetValue(pageIndex, out ExtractedPageRecord? existing) &&
                 string.Equals(existing.ContentHash, contentHash, StringComparison.Ordinal) &&
+                string.Equals(existing.ExtractorVersion, extractorVersion, StringComparison.Ordinal) &&
                 existing.Quality != SearchExtractionQuality.Failed)
             {
                 records.Add(existing);
@@ -278,7 +334,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
                     Quality: MapQuality(layer.Quality),
                     WordCount: SearchChunker.CountTokens(text),
                     ContentHash: contentHash,
-                    ExtractedAtUtc: DateTimeOffset.UtcNow);
+                    ExtractedAtUtc: DateTimeOffset.UtcNow,
+                    ExtractorVersion: extractorVersion);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -290,7 +347,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
                     Quality: SearchExtractionQuality.Failed,
                     WordCount: 0,
                     ContentHash: contentHash,
-                    ExtractedAtUtc: DateTimeOffset.UtcNow);
+                    ExtractedAtUtc: DateTimeOffset.UtcNow,
+                    ExtractorVersion: extractorVersion);
                 await RecordPageFailureAsync(bookId, contentHash, pageIndex, ex.Message, cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -549,6 +607,57 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
 
     private static string JoinWords(IReadOnlyList<TextWord> words) =>
         string.Join(' ', words.Select(word => word.Text).Where(text => !string.IsNullOrWhiteSpace(text)));
+
+    private static List<SearchChunkRecord> StampChunks(
+        IReadOnlyList<SearchChunkRecord> chunks,
+        long extractionArtifactId) =>
+        chunks
+            .Select(chunk => chunk with
+            {
+                ExtractionArtifactId = extractionArtifactId,
+                IndexVersion = IndexVersion,
+            })
+            .ToList();
+
+    private static string ComputeManifestHash(
+        IReadOnlyList<ExtractedPageRecord> pages,
+        params IReadOnlyList<SearchChunkRecord>[] chunkSets)
+    {
+        var manifest = new StringBuilder();
+        foreach (ExtractedPageRecord page in pages.OrderBy(page => page.PageIndex))
+        {
+            manifest.Append("page|")
+                .Append(page.PageIndex)
+                .Append('|')
+                .Append(page.ContentHash)
+                .Append('|')
+                .Append((int)page.Quality)
+                .Append('|')
+                .Append(page.WordCount)
+                .Append('|')
+                .Append(page.ExtractorVersion)
+                .Append('\n');
+        }
+
+        foreach (SearchChunkRecord chunk in chunkSets
+                     .SelectMany(chunks => chunks)
+                     .OrderBy(chunk => chunk.Source)
+                     .ThenBy(chunk => chunk.ChunkIndex)
+                     .ThenBy(chunk => chunk.ExtractedPageId))
+        {
+            manifest.Append("chunk|")
+                .Append((int)chunk.Source)
+                .Append('|')
+                .Append(chunk.ChunkIndex)
+                .Append('|')
+                .Append(chunk.ExtractedPageId)
+                .Append('|')
+                .Append(chunk.Text)
+                .Append('\n');
+        }
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(manifest.ToString())));
+    }
 
     private static SearchExtractionQuality MapQuality(ExtractionQuality quality) =>
         quality switch

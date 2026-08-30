@@ -149,7 +149,8 @@ public sealed class ExtractedTextStore : IExtractedTextStore
             row.WordCount,
             row.ContentHash,
             row.ExtractionUtc ?? DateTimeOffset.MinValue,
-            row.Source);
+            row.Source,
+            row.ExtractorVersion);
 
     private static ExtractedPageRow MapToRow(ExtractedPageRecord page)
     {
@@ -168,6 +169,9 @@ public sealed class ExtractedTextStore : IExtractedTextStore
         row.ContentHash = page.ContentHash;
         row.Source = NormalizeSource(page.Source);
         row.ExtractionMethod = "PdfPig";
+        row.ExtractorVersion = string.IsNullOrWhiteSpace(page.ExtractorVersion)
+            ? "pdf-text-v1"
+            : page.ExtractorVersion;
         row.ExtractionUtc = page.ExtractedAtUtc;
     }
 
