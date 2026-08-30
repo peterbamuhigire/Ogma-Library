@@ -80,7 +80,7 @@ internal sealed class SchoolDpiaScreeningService : IDpiaScreeningService
                 {
                     tier = request.Tier.ToString(),
                     payloadScope = request.PayloadScope.Trim(),
-                    birthYear = request.BirthYear,
+                    birthYearProvided = request.BirthYear is not null,
                     decision = result.Decision.ToString(),
                     reason = result.Reason,
                 }, JsonOptions),

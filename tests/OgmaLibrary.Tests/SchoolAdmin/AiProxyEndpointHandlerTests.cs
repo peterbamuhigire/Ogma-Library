@@ -142,6 +142,37 @@ public sealed class AiProxyEndpointHandlerTests
         }
     }
 
+    [Fact]
+    public async Task SearchAsync_OverlongQuery_IsRejectedBeforeProviderOrQuota()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeProvider("No call expected.");
+            await using ServiceProvider services = await CreateServicesAsync(dataDirectory, provider);
+            await SeedBookAsync(services);
+            Guid profileId = await EnrollAsync(services);
+            var handler = services.GetRequiredService<IAiProxyEndpointHandler>();
+            string longQuery = new('x', 257);
+
+            SchoolAiProxyException error = await Assert.ThrowsAsync<SchoolAiProxyException>(() =>
+                handler.SearchAsync(new AiProxySearchRequest(
+                    profileId,
+                    longQuery,
+                    "default",
+                    AiPrivacyTier.MetadataOnly,
+                    ConfirmedPayloadPreview: true)));
+
+            Assert.Equal("invalid_query", error.Code);
+            Assert.Equal(0, provider.Calls);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static async Task<ServiceProvider> CreateServicesAsync(string dataDirectory, IAiProvider? provider)
     {
         ServiceCollection services = new();

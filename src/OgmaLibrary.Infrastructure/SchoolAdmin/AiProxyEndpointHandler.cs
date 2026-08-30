@@ -14,6 +14,9 @@ namespace OgmaLibrary.Infrastructure.SchoolAdmin;
 internal sealed class AiProxyEndpointHandler : IAiProxyEndpointHandler
 {
     private const int MaxCandidates = 10;
+    private const int MaxQueryLength = 256;
+    private const int MaxLibraryIdLength = 64;
+    private const int MaxCandidateTextLength = 10_000;
     private const string DefaultProviderModel = "school-metadata-search";
     private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
     private readonly ICatalogueReadModel _catalogue;
@@ -164,10 +167,13 @@ internal sealed class AiProxyEndpointHandler : IAiProxyEndpointHandler
     {
         var candidates = new List<BookSummaryProjection>(MaxCandidates);
         await foreach (BookSummaryProjection book in _catalogue
-            .GetBookSummariesAsync(new CatalogueFilter(TitleContains: query.Trim(), MaxResults: MaxCandidates), cancellationToken)
-            .ConfigureAwait(false))
+            .GetBookSummariesAsync(new CatalogueFilter(TitleContains: query.Trim(), Status: 0, MaxResults: MaxCandidates), cancellationToken)
+                .ConfigureAwait(false))
         {
-            candidates.Add(book);
+            if (book.Status == 0)
+            {
+                candidates.Add(book);
+            }
         }
 
         if (candidates.Count > 0)
@@ -176,10 +182,13 @@ internal sealed class AiProxyEndpointHandler : IAiProxyEndpointHandler
         }
 
         await foreach (BookSummaryProjection book in _catalogue
-            .GetBookSummariesAsync(new CatalogueFilter(MaxResults: MaxCandidates), cancellationToken)
-            .ConfigureAwait(false))
+            .GetBookSummariesAsync(new CatalogueFilter(Status: 0, MaxResults: MaxCandidates), cancellationToken)
+                .ConfigureAwait(false))
         {
-            candidates.Add(book);
+            if (book.Status == 0)
+            {
+                candidates.Add(book);
+            }
         }
 
         return candidates;
@@ -276,7 +285,10 @@ internal sealed class AiProxyEndpointHandler : IAiProxyEndpointHandler
         string candidateText = string.Join(
             Environment.NewLine,
             candidates.Select(candidate =>
-                $"{candidate.BookId} | {candidate.Title ?? "Untitled"} | {string.Join(", ", candidate.Authors)} | {candidate.Year?.ToString(CultureInfo.InvariantCulture) ?? "Unknown year"}"));
+                $"{candidate.BookId} | {Limit(candidate.Title ?? "Untitled", 512)} | " +
+                $"{string.Join(", ", candidate.Authors.Select(author => Limit(author, 128)))} | " +
+                $"{candidate.Year?.ToString(CultureInfo.InvariantCulture) ?? "Unknown year"}"));
+        candidateText = Limit(candidateText, MaxCandidateTextLength);
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["query"] = request.Query.Trim(),
@@ -312,11 +324,26 @@ internal sealed class AiProxyEndpointHandler : IAiProxyEndpointHandler
             throw SchoolAiProxyException.BadRequest("invalid_query", "Search query is required.");
         }
 
+        string query = request.Query.Trim();
+        if (query.Length > MaxQueryLength || query.Any(char.IsControl))
+        {
+            throw SchoolAiProxyException.BadRequest("invalid_query", "Search query exceeds the permitted classroom AI limit.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.LibraryId))
         {
             throw SchoolAiProxyException.BadRequest("invalid_library_id", "Library id is required.");
         }
+
+        string libraryId = request.LibraryId.Trim();
+        if (libraryId.Length > MaxLibraryIdLength || libraryId.Any(char.IsControl))
+        {
+            throw SchoolAiProxyException.BadRequest("invalid_library_id", "Library id exceeds the permitted classroom AI limit.");
+        }
     }
+
+    private static string Limit(string value, int maximumLength) =>
+        value.Length <= maximumLength ? value : value[..(maximumLength - 1)] + "…";
 
     private sealed record PayloadPlan(
         AiPrivacyTier Tier,
