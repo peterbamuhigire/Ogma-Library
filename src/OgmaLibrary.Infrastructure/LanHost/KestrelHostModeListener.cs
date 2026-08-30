@@ -312,7 +312,10 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 TitleContains: title,
                 AuthorContains: author,
                 ShelfId: shelfId,
-                Status: status,
+                // Classroom publication is intentionally limited to active
+                // catalogue records; callers cannot broaden the published scope
+                // by supplying an arbitrary lifecycle status.
+                Status: 0,
                 MaxResults: requested);
 
             await foreach (BookSummaryProjection book in _catalogueReadModel.GetBookSummariesAsync(filter, ct)
@@ -356,7 +359,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
             BookDetailProjection? book = await _catalogueReadModel.GetBookDetailAsync(bookId, ct)
                 .ConfigureAwait(false);
-            return book is null
+            return book is null || book.Status != 0
                 ? Results.NotFound(new LanHostError("book_not_found", "The requested book was not found."))
                 : Results.Json(MapDetail(book));
         });
@@ -462,10 +465,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 : Results.Bytes(blob.Content, blob.ContentType);
         });
 
-        app.MapGet("/api/v1/assets/{assetClass}/{contentHash}", (
+        app.MapGet("/api/v1/assets/{assetClass}/{contentHash}", async (
             string assetClass,
             string contentHash,
-            string? variant) =>
+            string? variant,
+            CancellationToken ct) =>
         {
             if (!TryMapAssetClass(assetClass, out SidecarClass sidecarClass))
             {
@@ -480,6 +484,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             if (!IsSafeVariant(variant))
             {
                 return Results.BadRequest(new LanHostError("invalid_variant", "Asset variant is not valid."));
+            }
+
+            if (!await IsPublishedContentHashAsync(contentHash, ct).ConfigureAwait(false))
+            {
+                return Results.NotFound(new LanHostError("asset_not_published", "The requested asset is not part of the published catalogue."));
             }
 
             string path = _sidecarService.Resolve(contentHash, sidecarClass, variant);
@@ -504,6 +513,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                         "page_render_disabled",
                         "Page-render streaming is disabled for this Host. File-stream mode uses the raw PDF endpoint."),
                     statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            if (!await IsPublishedBookAsync(bookId, requireFile: true, ct).ConfigureAwait(false))
+            {
+                return Results.NotFound(new LanHostError("book_not_published", "The requested book is not part of the published catalogue."));
             }
 
             if (pageNumber <= 0)
@@ -548,6 +562,11 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
+            if (!await IsPublishedBookAsync(bookId, requireFile: true, ct).ConfigureAwait(false))
+            {
+                return Results.NotFound(new LanHostError("book_not_published", "The requested book is not part of the published catalogue."));
+            }
+
             string? path = await _fileResolver.ResolveAsync(bookId, ct).ConfigureAwait(false);
             if (path is null)
             {
@@ -587,6 +606,39 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
     private static bool IsLoopback(IPAddress? address) =>
         address is not null && IPAddress.IsLoopback(address);
+
+    private async Task<bool> IsPublishedBookAsync(
+        string bookId,
+        bool requireFile,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(bookId))
+        {
+            return false;
+        }
+
+        BookDetailProjection? book = await _catalogueReadModel
+            .GetBookDetailAsync(bookId.Trim(), cancellationToken)
+            .ConfigureAwait(false);
+        return book is not null && book.Status == 0 && (!requireFile || book.IsAvailable);
+    }
+
+    private async Task<bool> IsPublishedContentHashAsync(
+        string contentHash,
+        CancellationToken cancellationToken)
+    {
+        await foreach (BookSummaryProjection book in _catalogueReadModel
+            .GetBookSummariesAsync(new CatalogueFilter(Status: 0, MaxResults: 0), cancellationToken)
+            .ConfigureAwait(false))
+        {
+            if (string.Equals(book.Sha256Hash, contentHash, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static ClientSessionSnapshot? GetIssuedSession(HttpContext context) =>
         context.Items.TryGetValue(IssuedSessionItemKey, out object? value)
@@ -660,7 +712,9 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             Status: book.Status,
             Rating: book.Rating,
             ShelfIds: book.ShelfIds,
-            ReadingProgressPct: book.ReadingProgressPct,
+            // Reading progress is private client state and never crosses the
+            // classroom publication boundary.
+            ReadingProgressPct: null,
             IsAvailable: book.IsAvailable,
             Year: book.Year,
             ContentHash: book.Sha256Hash,
@@ -677,15 +731,13 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             Rating: book.Rating,
             Status: book.Status,
             ContentHash: book.Sha256Hash,
-            SizeBytes: book.SizeBytes,
-            ReadingProgress: book.ReadingProgress,
-            Annotations: book.Annotations,
-            MetadataFields: book.MetadataFields
-                .Where(static field => !IsLocalPathMetadataField(field.FieldName))
-                .ToList(),
-            ReadingMemory: book.ReadingMemory,
-            IsOcrDerived: book.IsOcrDerived,
-            IsPasswordProtected: book.IsPasswordProtected,
+            SizeBytes: null,
+            ReadingProgress: null,
+            Annotations: 0,
+            MetadataFields: [],
+            ReadingMemory: null,
+            IsOcrDerived: false,
+            IsPasswordProtected: false,
             Assets: BuildAssetLinks(book.Sha256Hash));
 
     private static bool IsLocalPathMetadataField(string fieldName) =>

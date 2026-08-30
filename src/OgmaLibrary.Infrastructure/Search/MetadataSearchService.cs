@@ -56,6 +56,9 @@ public sealed class MetadataSearchService : IMetadataSearchService
 
         List<BookRow> books = await context.Books
             .AsNoTracking()
+            // Search is also consumed by the classroom Host; inactive catalogue
+            // records must never become discoverable through that boundary.
+            .Where(book => book.Status == 0)
             .Where(book =>
                 EF.Functions.Like(book.Title ?? string.Empty, likePattern, "\\") ||
                 EF.Functions.Like(book.IsbnNormalized ?? string.Empty, likePattern, "\\") ||
@@ -103,6 +106,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
         // indexed/literal path found no result.
         var candidates = await context.Books
             .AsNoTracking()
+            .Where(book => book.Status == 0)
             .Select(book => new
             {
                 book.BookId,

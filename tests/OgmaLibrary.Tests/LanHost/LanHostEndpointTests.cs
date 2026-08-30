@@ -38,6 +38,8 @@ public sealed class LanHostEndpointTests
             byte[] assetBytes = [0xFF, 0xD8, 0xFF, 0xD9];
             string assetPath = new SidecarService(dataDirectory).Resolve(assetHash, SidecarClass.Covers);
             await File.WriteAllBytesAsync(assetPath, assetBytes);
+            string unpublishedAssetPath = new SidecarService(dataDirectory).Resolve(new string('e', 64), SidecarClass.Covers);
+            await File.WriteAllBytesAsync(unpublishedAssetPath, assetBytes);
             byte[] pdfBytes = "%PDF-1.7\n% Ogma LAN fixture\n"u8.ToArray();
             await File.WriteAllBytesAsync(Path.Combine(dataDirectory, "lan-endpoint-book.pdf"), pdfBytes);
             await services.GetRequiredService<IHostModeSettingsRepository>()
@@ -128,6 +130,7 @@ public sealed class LanHostEndpointTests
             string searchJson = await search.Content.ReadAsStringAsync();
             using HttpResponseMessage bookDetail = await http.GetAsync("/api/v1/catalogue/01LANENDPOINT000000000001");
             string bookDetailJson = await bookDetail.Content.ReadAsStringAsync();
+            using HttpResponseMessage unpublishedDetail = await http.GetAsync("/api/v1/catalogue/01LANENDPOINT000000000003");
             byte[] syncBlob = [0x4F, 0x47, 0x4D, 0x41, 0x01, 0x02, 0x03, 0x04];
             using var syncContent = new ByteArrayContent(syncBlob);
             syncContent.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.ogma.classroom-sync+binary");
@@ -136,6 +139,7 @@ public sealed class LanHostEndpointTests
             byte[] downloadedSyncBlob = await downloadSync.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
             byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
+            using HttpResponseMessage unpublishedAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('e', 64)}");
             using HttpResponseMessage page = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/page/1?widthPx=800");
             byte[] renderedPage = await page.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage invalidAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('z', 64)}");
@@ -173,9 +177,11 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, pagedCatalogue.StatusCode);
             Assert.Equal(HttpStatusCode.OK, search.StatusCode);
             Assert.Equal(HttpStatusCode.OK, bookDetail.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, unpublishedDetail.StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, uploadSync.StatusCode);
             Assert.Equal(HttpStatusCode.OK, downloadSync.StatusCode);
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, unpublishedAsset.StatusCode);
             Assert.Equal(HttpStatusCode.OK, page.StatusCode);
             Assert.Equal(assetBytes, servedAsset);
             Assert.Equal(syncBlob, downloadedSyncBlob);
@@ -192,6 +198,8 @@ public sealed class LanHostEndpointTests
             Assert.Contains("key_not_configured", adminTestConnectionJson, StringComparison.Ordinal);
             Assert.DoesNotContain(adminSession.Token, adminTestConnectionJson, StringComparison.Ordinal);
             Assert.Contains("LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("Unpublished LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("Inactive LAN Endpoint Book", catalogueJson, StringComparison.Ordinal);
             Assert.Contains("LAN Endpoint Book", aiPreviewJson, StringComparison.Ordinal);
             Assert.Contains("\"wasProviderCalled\":true", aiSearchJson, StringComparison.Ordinal);
             Assert.Contains("01LANENDPOINT000000000001", aiSearchJson, StringComparison.Ordinal);
@@ -385,6 +393,36 @@ public sealed class LanHostEndpointTests
                         LastSeenUtc = DateTimeOffset.UtcNow,
                     },
                 ],
+            },
+            new BookRow
+            {
+                BookId = "01LANENDPOINT000000000003",
+                Title = "Unpublished LAN Endpoint Book",
+                RelativePath = "unpublished-lan-endpoint-book.pdf",
+                Sha256Hash = new string('e', 64),
+                SizeBytes = 512,
+                MtimeTicks = DateTimeOffset.UtcNow.UtcTicks,
+                Status = 1,
+                IndexStatus = 0,
+                EmbeddingStatus = 0,
+                IsOcrDerived = false,
+                IsPasswordProtected = false,
+                Year = 2026,
+            },
+            new BookRow
+            {
+                BookId = "01LANENDPOINT000000000004",
+                Title = "Inactive LAN Endpoint Book",
+                RelativePath = "inactive-lan-endpoint-book.pdf",
+                Sha256Hash = new string('f', 64),
+                SizeBytes = 512,
+                MtimeTicks = DateTimeOffset.UtcNow.UtcTicks,
+                Status = 2,
+                IndexStatus = 0,
+                EmbeddingStatus = 0,
+                IsOcrDerived = false,
+                IsPasswordProtected = false,
+                Year = 2026,
             });
         await context.SaveChangesAsync();
     }
