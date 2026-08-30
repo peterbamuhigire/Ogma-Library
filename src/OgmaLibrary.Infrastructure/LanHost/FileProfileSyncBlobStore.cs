@@ -8,6 +8,7 @@ namespace OgmaLibrary.Infrastructure.LanHost;
 /// <summary>File-backed opaque profile sync blob store for LAN Host mode.</summary>
 internal sealed class FileProfileSyncBlobStore : IProfileSyncBlobStore
 {
+    private const int MaxBlobBytes = 5 * 1024 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -29,6 +30,10 @@ internal sealed class FileProfileSyncBlobStore : IProfileSyncBlobStore
         ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
         ArgumentNullException.ThrowIfNull(blob);
         cancellationToken.ThrowIfCancellationRequested();
+        if (blob.Content.Length > MaxBlobBytes)
+        {
+            throw new ArgumentOutOfRangeException(nameof(blob), "Profile sync blob exceeds the Host safety limit.");
+        }
 
         Directory.CreateDirectory(_root);
         string key = CreateClientKey(clientId);
@@ -41,7 +46,12 @@ internal sealed class FileProfileSyncBlobStore : IProfileSyncBlobStore
             .ConfigureAwait(false);
         await File.WriteAllTextAsync(
                 tempMetadataPath,
-                JsonSerializer.Serialize(new BlobMetadata(blob.ContentType, blob.UpdatedUtc), JsonOptions),
+                JsonSerializer.Serialize(
+                    new BlobMetadata(
+                        blob.ContentType,
+                        blob.UpdatedUtc,
+                        Convert.ToHexStringLower(SHA256.HashData(blob.Content))),
+                    JsonOptions),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -72,8 +82,22 @@ internal sealed class FileProfileSyncBlobStore : IProfileSyncBlobStore
             return null;
         }
 
+        FileInfo payloadInfo = new(payloadPath);
+        if (payloadInfo.Length > MaxBlobBytes)
+        {
+            return null;
+        }
+
         byte[] content = await File.ReadAllBytesAsync(payloadPath, cancellationToken)
             .ConfigureAwait(false);
+        if (!string.Equals(
+                metadata.ContentHash,
+                Convert.ToHexStringLower(SHA256.HashData(content)),
+                StringComparison.Ordinal))
+        {
+            return null;
+        }
+
         return new HostProfileSyncBlob(metadata.ContentType, content, metadata.UpdatedUtc);
     }
 
@@ -91,5 +115,5 @@ internal sealed class FileProfileSyncBlobStore : IProfileSyncBlobStore
         }
     }
 
-    private sealed record BlobMetadata(string ContentType, DateTimeOffset UpdatedUtc);
+    private sealed record BlobMetadata(string ContentType, DateTimeOffset UpdatedUtc, string ContentHash);
 }

@@ -96,6 +96,27 @@ public sealed class LanHostEndpointTests
                     enrollmentToken = managedEnrollment.Token,
                     lifetimeMinutes = 5,
                 });
+            HttpResponseMessage? rateLimitedSession = null;
+            for (int attempt = 0; attempt < 6; attempt++)
+            {
+                HttpResponseMessage candidate = await http.PostAsJsonAsync(
+                    "/api/v1/auth/session",
+                    new
+                    {
+                        clientId = "rate-limit-client",
+                        role = "Student",
+                        lifetimeMinutes = 5,
+                        enrollmentCode = "WRONG123",
+                    });
+                if (attempt == 5)
+                {
+                    rateLimitedSession = candidate;
+                }
+                else
+                {
+                    candidate.Dispose();
+                }
+            }
             using HttpClient managedHttp = CreatePinnedTestClient(port);
             managedHttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managedToken);
             var aiRequest = new
@@ -161,6 +182,9 @@ public sealed class LanHostEndpointTests
                 .ToListAsync();
 
             Assert.Equal(HttpStatusCode.OK, health.StatusCode);
+            Assert.Equal("DENY", health.Headers.GetValues("X-Frame-Options").Single());
+            Assert.Equal("nosniff", health.Headers.GetValues("X-Content-Type-Options").Single());
+            Assert.Equal("no-store", health.Headers.GetValues("Cache-Control").Single());
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedSync.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, invalidSession.StatusCode);
@@ -168,6 +192,8 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, managedSession.StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, replayManagedSession.StatusCode);
+            Assert.Equal(HttpStatusCode.TooManyRequests, rateLimitedSession!.StatusCode);
+            Assert.True(rateLimitedSession.Headers.Contains("Retry-After"));
             Assert.Equal(HttpStatusCode.OK, aiPreview.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, unconfirmedAiSearch.StatusCode);
             Assert.Equal(HttpStatusCode.OK, aiSearch.StatusCode);
@@ -276,6 +302,7 @@ public sealed class LanHostEndpointTests
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(adminSession.Token, StringComparison.Ordinal) == true);
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(managedToken, StringComparison.Ordinal) == true);
+            rateLimitedSession.Dispose();
 
             await services.GetRequiredService<IHostModeSettingsRepository>()
                 .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.FileStream, "Ogma Endpoint Test"));

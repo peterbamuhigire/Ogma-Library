@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,6 +26,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private const string IssuedSessionItemKey = "Ogma.LanHost.IssuedSession";
     private const string AuthenticatedSessionItemKey = "Ogma.LanHost.AuthenticatedSession";
     private const int MaxProfileSyncBlobBytes = 5 * 1024 * 1024;
+    private const int MaxSessionIssuesPerMinute = 10;
 
     private readonly ICatalogueReadModel _catalogueReadModel;
     private readonly IMetadataSearchService _metadataSearch;
@@ -40,6 +43,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private readonly ISchoolAiKeyProvider? _schoolAiKeys;
     private readonly IProfileEnrollmentService? _profileEnrollment;
     private readonly IAiProxyEndpointHandler? _schoolAiProxy;
+    private readonly ConcurrentDictionary<string, Queue<DateTimeOffset>> _sessionIssueWindows = new(StringComparer.Ordinal);
     private WebApplication? _app;
 
     public KestrelHostModeListener(
@@ -123,6 +127,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         await _app.StopAsync(cancellationToken).ConfigureAwait(false);
         await _app.DisposeAsync().ConfigureAwait(false);
         _app = null;
+        _sessionIssueWindows.Clear();
     }
 
     private void ConfigurePipeline(
@@ -134,6 +139,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     {
         app.Use(async (context, next) =>
         {
+            ApplySecurityHeaders(context.Response);
             long started = Environment.TickCount64;
             string? token = ReadBearerToken(context.Request);
             ClientSessionSnapshot? session = null;
@@ -208,6 +214,14 @@ internal sealed class KestrelHostModeListener : IHostModeListener
 
         app.MapPost("/api/v1/auth/session", async (LanSessionIssueRequest request, HttpContext context, CancellationToken ct) =>
         {
+            if (!TryAcquireSessionIssue(context.Connection.RemoteIpAddress, out DateTimeOffset retryUtc))
+            {
+                context.Response.Headers["Retry-After"] = Math.Max(1, (int)Math.Ceiling((retryUtc - DateTimeOffset.UtcNow).TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+                return Results.Json(
+                    new LanHostError("session_rate_limited", "Too many session attempts from this address. Try again shortly."),
+                    statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
             if (request.ProfileId is not null || !string.IsNullOrWhiteSpace(request.EnrollmentToken))
             {
                 if (_profileEnrollment is null)
@@ -607,6 +621,30 @@ internal sealed class KestrelHostModeListener : IHostModeListener
     private static bool IsLoopback(IPAddress? address) =>
         address is not null && IPAddress.IsLoopback(address);
 
+    private bool TryAcquireSessionIssue(IPAddress? address, out DateTimeOffset retryUtc)
+    {
+        string key = address?.ToString() ?? "unknown";
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        retryUtc = now.AddMinutes(1);
+        Queue<DateTimeOffset> window = _sessionIssueWindows.GetOrAdd(key, _ => new Queue<DateTimeOffset>());
+        lock (window)
+        {
+            while (window.Count > 0 && now - window.Peek() >= TimeSpan.FromMinutes(1))
+            {
+                window.Dequeue();
+            }
+
+            if (window.Count >= MaxSessionIssuesPerMinute)
+            {
+                retryUtc = window.Peek().AddMinutes(1);
+                return false;
+            }
+
+            window.Enqueue(now);
+            return true;
+        }
+    }
+
     private async Task<bool> IsPublishedBookAsync(
         string bookId,
         bool requireFile,
@@ -864,7 +902,9 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             method = context.Request.Method,
             path,
             statusCode = context.Response.StatusCode,
-            remoteIpAddress = context.Connection.RemoteIpAddress?.ToString(),
+            remoteIpFingerprint = context.Connection.RemoteIpAddress is null
+                ? null
+                : CreateTokenFingerprint(context.Connection.RemoteIpAddress.ToString()),
             elapsedMs = Math.Max(0, Environment.TickCount64 - started),
             authenticated,
             contentMode = contentMode.ToString(),
@@ -885,6 +925,16 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 },
                 context.RequestAborted)
             .ConfigureAwait(false);
+    }
+
+    private static void ApplySecurityHeaders(HttpResponse response)
+    {
+        response.Headers["Strict-Transport-Security"] = "max-age=31536000";
+        response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+        response.Headers["X-Content-Type-Options"] = "nosniff";
+        response.Headers["X-Frame-Options"] = "DENY";
+        response.Headers["Referrer-Policy"] = "no-referrer";
+        response.Headers["Cache-Control"] = "no-store";
     }
 
     private sealed record LanAuditRouteInfo(

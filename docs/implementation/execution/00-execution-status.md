@@ -135,3 +135,7 @@ status-file encoding cleanup.
 Current evidence override: Phase 36 is IN PROGRESS as documented in
 `phase-36-progress.md`; the legacy table row will be normalized with the next
 status-file encoding cleanup.
+
+Current evidence override: Phase 37 is IN PROGRESS as documented in
+`phase-37-progress.md`; the legacy table row will be normalized with the next
+status-file encoding cleanup.
