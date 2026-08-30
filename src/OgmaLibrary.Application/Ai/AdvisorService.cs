@@ -5,25 +5,44 @@ namespace OgmaLibrary.Application.Ai;
 /// <summary>Default application service for AI advisor use cases.</summary>
 public sealed class AdvisorService : IAiAdvisorService
 {
-    private const string AnswerModeV2Message = "Answer mode is V2; coming in a future release.";
-
     private readonly IAiPrivacyService _privacyService;
     private readonly IRecommendationPipeline _recommendationPipeline;
     private readonly IReadingPlanPipeline _readingPlanPipeline;
+    private readonly IAnswerPipeline _answerPipeline;
+
+    /// <summary>Initializes the advisor with the legacy dependency set.</summary>
+    /// <remarks>
+    /// The overload is retained for embedders compiled against the Phase 13
+    /// contract. The composition root uses the full local-evidence pipeline.
+    /// </remarks>
+    public AdvisorService(
+        IAiPrivacyService privacyService,
+        IRecommendationPipeline recommendationPipeline,
+        IReadingPlanPipeline readingPlanPipeline)
+        : this(
+            privacyService,
+            recommendationPipeline,
+            readingPlanPipeline,
+            new UnavailableAnswerPipeline())
+    {
+    }
 
     /// <summary>Initializes a new instance of <see cref="AdvisorService"/>.</summary>
     public AdvisorService(
         IAiPrivacyService privacyService,
         IRecommendationPipeline recommendationPipeline,
-        IReadingPlanPipeline readingPlanPipeline)
+        IReadingPlanPipeline readingPlanPipeline,
+        IAnswerPipeline answerPipeline)
     {
         ArgumentNullException.ThrowIfNull(privacyService);
         ArgumentNullException.ThrowIfNull(recommendationPipeline);
         ArgumentNullException.ThrowIfNull(readingPlanPipeline);
+        ArgumentNullException.ThrowIfNull(answerPipeline);
 
         _privacyService = privacyService;
         _recommendationPipeline = recommendationPipeline;
         _readingPlanPipeline = readingPlanPipeline;
+        _answerPipeline = answerPipeline;
     }
 
     /// <inheritdoc />
@@ -53,7 +72,7 @@ public sealed class AdvisorService : IAiAdvisorService
     public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        throw new NotImplementedException(AnswerModeV2Message);
+        return _answerPipeline.GetAnswerAsync(request, cancellationToken);
     }
 
     private void ThrowIfDisabled()
@@ -62,5 +81,16 @@ public sealed class AdvisorService : IAiAdvisorService
         {
             throw new AiDisabledException();
         }
+    }
+
+    private sealed class UnavailableAnswerPipeline : IAnswerPipeline
+    {
+        public Task<AnswerResponse> GetAnswerAsync(
+            AnswerRequest request,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new AnswerResponse(
+                "Local answer evidence is not configured.",
+                [],
+                IsV2: false));
     }
 }

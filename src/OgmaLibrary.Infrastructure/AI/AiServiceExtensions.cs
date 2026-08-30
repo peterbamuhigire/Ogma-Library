@@ -19,6 +19,7 @@ public static class AiServiceExtensions
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
         services.AddSingleton<IAiAdvisorService, AdvisorService>();
+        services.AddSingleton<IAnswerPipeline, LocalEvidenceAnswerPipeline>();
         services.AddSingleton<AdvisorCatalogueReader>();
         services.AddSingleton<IAdvisorCatalogueReader>(sp => sp.GetRequiredService<AdvisorCatalogueReader>());
         services.AddSingleton<IAiCatalogueReader>(sp => sp.GetRequiredService<AdvisorCatalogueReader>());
