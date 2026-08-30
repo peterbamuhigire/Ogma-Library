@@ -17,13 +17,26 @@
     }
 
     #shelf3d-canvas:focus {
-      outline: 2px solid #7a5cff;
-      outline-offset: -2px;
+      outline: 3px solid #8b5e34;
+      outline-offset: -3px;
+    }
+
+    #shelf3d-status {
+      position: absolute;
+      left: 12px;
+      bottom: 10px;
+      max-width: calc(100% - 24px);
+      padding: 6px 10px;
+      color: #f5efe4;
+      background: rgba(39, 31, 25, 0.84);
+      font: 15px Georgia, serif;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <canvas id="shelf3d-canvas" aria-label="3D bookshelf"></canvas>
+  <div id="shelf3d-status" role="status" aria-live="polite">Use arrow keys to browse books; press Enter to open.</div>
   <script src="shelf3d.js"></script>
 </body>
 </html>

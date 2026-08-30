@@ -28760,7 +28760,9 @@ void main() {
   var BOOK_WIDTH = 0.025;
   var BOOK_HEIGHT = 0.18;
   var BOOK_DEPTH = 0.13;
-  var SHELF_COLUMNS = 50;
+  var SHELF_COLUMNS = 18;
+  var SHELF_ROW_HEIGHT = 0.27;
+  var PROTOCOL_VERSION = "shelf3d-v1";
   var Shelf3DScene = class {
     constructor(canvas) {
       this.canvas = canvas;
@@ -28769,6 +28771,8 @@ void main() {
       this.controls.enableDamping = true;
       this.controls.addEventListener("change", () => this.postCameraChanged());
       this.scene.add(new HemisphereLight(16777215, 4928550, 1.2));
+      this.sceneRoot = new Group();
+      this.scene.add(this.sceneRoot);
       this.camera.position.set(0, 0.45, 1.4);
       this.camera.lookAt(0, 0, 0);
       this.resize();
@@ -28783,7 +28787,10 @@ void main() {
     renderer;
     controls;
     geometry = new BoxGeometry(BOOK_WIDTH, BOOK_HEIGHT, BOOK_DEPTH);
-    mesh = null;
+    shelfGeometry = new BoxGeometry(SHELF_COLUMNS * 0.03 + 0.04, 0.025, 0.18);
+    sceneRoot = null;
+    bookMeshes = [];
+    shelfMeshes = [];
     books = [];
     layout = "shelf";
     focusedIndex = 0;
@@ -28826,19 +28833,34 @@ void main() {
       requestAnimationFrame(tick);
     }
     setScene(books, camera) {
-      this.books = books;
+      this.clearScene();
+      this.books = Array.isArray(books) ? books.filter((book) => this.isSafeBook(book)) : [];
       this.focusedIndex = 0;
-      this.mesh?.removeFromParent();
-      this.mesh?.dispose();
-      const material = new MeshStandardMaterial({ color: 9132604, roughness: 0.8, metalness: 0.05 });
-      this.mesh = new InstancedMesh(this.geometry, material, books.length);
-      this.mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-      this.scene.add(this.mesh);
+      for (let index = 0; index < this.books.length; index++) {
+        const book = this.books[index];
+        const material = new MeshStandardMaterial({
+          color: this.fallbackColor(book.bookId),
+          roughness: 0.7,
+          metalness: 0.05
+        });
+        const mesh = new Mesh(this.geometry, material);
+        mesh.userData.bookIndex = index;
+        mesh.userData.bookId = book.bookId;
+        this.bookMeshes.push(mesh);
+        this.sceneRoot.add(mesh);
+        this.applySpineTexture(mesh, book);
+      }
+      this.buildShelves();
       this.applyLayout();
       this.applyCamera(camera);
+      this.setFocusedIndex(0, false);
     }
     updateBook(bookId, book) {
-      this.books = this.books.map((existing) => existing.bookId === bookId ? book : existing);
+      const index = this.books.findIndex((existing) => existing.bookId === bookId);
+      if (index < 0 || !this.isSafeBook(book)) return;
+      this.books[index] = book;
+      this.bookMeshes[index].userData.bookId = book.bookId;
+      this.applySpineTexture(this.bookMeshes[index], book);
       this.applyLayout();
     }
     removeBook(bookId) {
@@ -28846,29 +28868,30 @@ void main() {
       this.setScene(remaining, this.readCamera());
     }
     applyLayout() {
-      if (this.mesh === null) {
+      if (this.sceneRoot === null) {
         return;
       }
-      const matrix = new Matrix4();
       for (let index = 0; index < this.books.length; index++) {
         const position = this.layout === "shelf" ? this.shelfPosition(index) : this.gridPosition(index);
         const rotation = this.layout === "shelf" ? (index % 5 - 2) * 0.015 : 0;
-        matrix.compose(position, new Quaternion().setFromEuler(new Euler(0, rotation, 0)), new Vector3(1, 1, 1));
-        this.mesh.setMatrixAt(index, matrix);
+        const mesh = this.bookMeshes[index];
+        mesh.position.copy(position);
+        mesh.rotation.set(0, rotation, 0);
       }
-      this.mesh.count = this.books.length;
-      this.mesh.instanceMatrix.needsUpdate = true;
+      for (let index = 0; index < this.shelfMeshes.length; index++) {
+        this.shelfMeshes[index].position.set(0, -index * SHELF_ROW_HEIGHT - 0.115, 0.02);
+      }
     }
     shelfPosition(index) {
       const column = index % SHELF_COLUMNS;
       const row = Math.floor(index / SHELF_COLUMNS);
-      return new Vector3((column - SHELF_COLUMNS / 2) * 0.03, -row * 0.24, 0);
+      return new Vector3((column - (SHELF_COLUMNS - 1) / 2) * 0.03, -row * SHELF_ROW_HEIGHT, 0);
     }
     gridPosition(index) {
       const side = Math.ceil(Math.sqrt(Math.max(this.books.length, 1)));
       const column = index % side;
       const row = Math.floor(index / side);
-      return new Vector3((column - side / 2) * 0.05, 0, (row - side / 2) * 0.08);
+      return new Vector3((column - (side - 1) / 2) * 0.05, (side / 2 - row) * 0.08, 0);
     }
     setTheme(themeKey) {
       this.scene.background = new Color(themeKey === "dark" ? 2169366 : 16117732);
@@ -28915,40 +28938,43 @@ void main() {
       if (book === void 0) {
         return;
       }
-      this.focusedIndex = index;
+      this.setFocusedIndex(index);
       this.post({ type, bookId: book.bookId });
     }
     handleHover(event) {
       const index = this.pickBookIndex(event);
       const book = index === null ? void 0 : this.books[index];
-      if (book === void 0 || book.bookId === this.hoveredBookId) {
+      if (book === void 0) {
+        this.hoveredBookId = null;
         return;
       }
+      if (book.bookId === this.hoveredBookId) return;
       this.hoveredBookId = book.bookId;
+      this.setFocusedIndex(index, false);
       this.post({ type: "BookHovered", bookId: book.bookId });
     }
     pickBookIndex(event) {
-      if (this.mesh === null) {
+      if (this.bookMeshes.length === 0) {
         return null;
       }
       const rect = this.canvas.getBoundingClientRect();
       this.pointer.x = (event.clientX - rect.left) / rect.width * 2 - 1;
       this.pointer.y = -((event.clientY - rect.top) / rect.height * 2 - 1);
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit = this.raycaster.intersectObject(this.mesh, false)[0];
-      return hit?.instanceId ?? null;
+      const hit = this.raycaster.intersectObjects(this.bookMeshes, false)[0];
+      return hit?.object?.userData?.bookIndex ?? null;
     }
     handleKeyDown(event) {
       if (this.books.length === 0) {
         return;
       }
       if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-        this.focusedIndex = (this.focusedIndex + 1) % this.books.length;
+        this.setFocusedIndex((this.focusedIndex + 1) % this.books.length);
         event.preventDefault();
         return;
       }
       if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-        this.focusedIndex = (this.focusedIndex - 1 + this.books.length) % this.books.length;
+        this.setFocusedIndex((this.focusedIndex - 1 + this.books.length) % this.books.length);
         event.preventDefault();
         return;
       }
@@ -28982,6 +29008,7 @@ void main() {
       this.fpsWindowStartedAt = timestamp;
     }
     post(message) {
+      message.version = PROTOCOL_VERSION;
       const serialized = JSON.stringify(message);
       if (window.chrome?.webview !== void 0) {
         window.chrome.webview.postMessage(serialized);
@@ -28992,6 +29019,100 @@ void main() {
     isWebGl2Supported() {
       const context = document.createElement("canvas").getContext("webgl2");
       return context !== null;
+    }
+    clearScene() {
+      if (this.sceneRoot === null) return;
+      for (const mesh of this.bookMeshes) {
+        mesh.material.map?.dispose();
+        mesh.material.dispose();
+        this.sceneRoot.remove(mesh);
+      }
+      for (const shelf of this.shelfMeshes) {
+        shelf.material.dispose();
+        this.sceneRoot.remove(shelf);
+      }
+      this.bookMeshes = [];
+      this.shelfMeshes = [];
+    }
+    buildShelves() {
+      const rowCount = Math.max(1, Math.ceil(this.books.length / SHELF_COLUMNS));
+      const material = new MeshStandardMaterial({ color: 4791810, roughness: 0.82, metalness: 0.02 });
+      for (let row = 0; row < rowCount; row++) {
+        const shelf = new Mesh(this.shelfGeometry, material.clone());
+        shelf.position.set(0, -row * SHELF_ROW_HEIGHT - 0.115, 0.02);
+        this.shelfMeshes.push(shelf);
+        this.sceneRoot.add(shelf);
+      }
+    }
+    isSafeBook(book) {
+      return book !== null &&
+        typeof book.bookId === "string" &&
+        book.bookId.length > 0 &&
+        typeof book.title === "string" &&
+        book.title.length <= 160 &&
+        typeof book.author === "string" &&
+        book.author.length <= 120;
+    }
+    fallbackColor(bookId) {
+      let hash = 0;
+      for (let index = 0; index < bookId.length; index++) {
+        hash = (hash * 31 + bookId.charCodeAt(index)) >>> 0;
+      }
+      return new Color("hsl(" + (hash % 360) + ", 42%, 38%)");
+    }
+    applySpineTexture(mesh, book) {
+      const fallback = document.createElement("canvas");
+      fallback.width = 256;
+      fallback.height = 512;
+      const context = fallback.getContext("2d");
+      context.fillStyle = "#" + this.fallbackColor(book.bookId).getHexString();
+      context.fillRect(0, 0, fallback.width, fallback.height);
+      context.fillStyle = "#f5efe4";
+      context.font = "bold 22px Georgia";
+      context.textAlign = "center";
+      context.save();
+      context.translate(fallback.width / 2, fallback.height / 2);
+      context.rotate(-Math.PI / 2);
+      context.fillText(book.title.slice(0, 34), 0, -4);
+      context.font = "16px Georgia";
+      context.fillText(book.author.slice(0, 34), 0, 22);
+      context.restore();
+      const fallbackTexture = new Texture(fallback);
+      fallbackTexture.colorSpace = SRGBColorSpace;
+      fallbackTexture.needsUpdate = true;
+      mesh.material.map = fallbackTexture;
+      mesh.material.needsUpdate = true;
+      if (typeof Image === "undefined" || typeof book.spineUri !== "string" || !book.spineUri.startsWith("ogma://assets/")) {
+        return;
+      }
+      const image = new Image();
+      image.onload = () => {
+        const texture = new Texture(image);
+        texture.colorSpace = SRGBColorSpace;
+        texture.needsUpdate = true;
+        mesh.material.map?.dispose();
+        mesh.material.map = texture;
+        mesh.material.needsUpdate = true;
+      };
+      image.onerror = () => {};
+      image.src = book.spineUri;
+    }
+    setFocusedIndex(index, announce = true) {
+      if (this.books.length === 0) return;
+      this.focusedIndex = Math.max(0, Math.min(index, this.books.length - 1));
+      for (let item = 0; item < this.bookMeshes.length; item++) {
+        const mesh = this.bookMeshes[item];
+        const focused = item === this.focusedIndex;
+        mesh.scale.set(focused ? 1.08 : 1, focused ? 1.08 : 1, focused ? 1.08 : 1);
+      }
+      const focusedBook = this.books[this.focusedIndex];
+      if (announce && focusedBook !== void 0) {
+        this.post({ type: "BookHovered", bookId: focusedBook.bookId });
+      }
+      const status = document.getElementById("shelf3d-status");
+      if (status && focusedBook !== void 0) {
+        status.textContent = focusedBook.title + " — " + focusedBook.author;
+      }
     }
   };
   function initializeShelf3D(canvas) {
@@ -29004,7 +29125,8 @@ void main() {
   function parseOutboundMessage(json) {
     try {
       const parsed = JSON.parse(json);
-      return typeof parsed.type === "string" ? parsed : null;
+      return typeof parsed.type === "string" &&
+        (parsed.version === void 0 || parsed.version === PROTOCOL_VERSION) ? parsed : null;
     } catch {
       return null;
     }

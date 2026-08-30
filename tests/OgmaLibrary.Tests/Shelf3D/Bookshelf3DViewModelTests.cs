@@ -56,6 +56,21 @@ public sealed class Bookshelf3DViewModelTests
     }
 
     [Fact]
+    public async Task Bookshelf3DViewModel_WithoutNativeHost_PreservesAccessibleFallback()
+    {
+        using var viewModel = new Bookshelf3DViewModel(
+            new FakeCatalogueReadModel(),
+            new WebView2Bridge(),
+            new RecordingNavigation(),
+            new InMemoryLocalizationService());
+
+        await viewModel.LoadAsync();
+
+        Assert.True(viewModel.IsFallbackVisible);
+        Assert.Single(viewModel.Books);
+    }
+
+    [Fact]
     public async Task Bookshelf3DViewModel_SetLayout_PostsLayoutMessage()
     {
         var bridge = new FakeBridge();

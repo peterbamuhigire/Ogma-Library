@@ -188,8 +188,8 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
 
     private static BookSceneItem ToSceneItem(BookSummaryProjection summary)
     {
-        string title = string.IsNullOrWhiteSpace(summary.Title) ? "Untitled" : summary.Title;
-        string author = summary.Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author)) ?? "Unknown author";
+        string title = LimitLabel(string.IsNullOrWhiteSpace(summary.Title) ? "Untitled" : summary.Title, 120);
+        string author = LimitLabel(summary.Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author)) ?? "Unknown author", 80);
         string encodedBookId = Uri.EscapeDataString(summary.BookId);
         string? coverUri = string.IsNullOrWhiteSpace(summary.CoverRelativePath)
             ? null
@@ -202,6 +202,9 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
             $"ogma://assets/spines/{encodedBookId}.png",
             coverUri);
     }
+
+    private static string LimitLabel(string value, int maximumLength) =>
+        value.Length <= maximumLength ? value : value[..(maximumLength - 1)].TrimEnd() + "…";
 
     private static CameraState DefaultCamera() => new(0, 0.45, 1.4, 0, 0, 0, 45);
 
