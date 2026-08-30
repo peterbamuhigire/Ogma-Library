@@ -166,6 +166,30 @@ public sealed class SemanticSearchServiceTests : IDisposable
         Assert.Null(result.SemanticScore);
     }
 
+    [Fact]
+    public async Task SemanticSearch_DimensionMismatch_UsesExactFallback()
+    {
+        long chunkId = SeedBookChunk(
+            "P26DIMENSIONBOOK000001",
+            "Dimension Book",
+            "dimension mismatch");
+        await new EmbeddingVectorRepository(_context).CreateAsync(
+            NewVector(chunkId, [1.0f, 0.0f]),
+            CancellationToken.None);
+        var service = new SemanticSearchService(
+            _context,
+            new StubOllamaProvider { QueryVector = [1.0f, 0.0f, 0.0f] },
+            new StubExactSearch());
+
+        SemanticSearchResponse response = await service.SearchAsync(
+            "dimension query",
+            5,
+            CancellationToken.None);
+
+        Assert.True(response.UsedExactFallback);
+        Assert.Empty(response.Results);
+    }
+
     private long SeedBookChunk(
         string bookId,
         string title,

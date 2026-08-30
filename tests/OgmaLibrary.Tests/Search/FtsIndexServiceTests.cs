@@ -145,6 +145,7 @@ public sealed class FtsIndexServiceTests : IDisposable
 
         CombinedSearchResult result = Assert.Single(results);
         Assert.Equal(bookId, result.BookId);
+        Assert.Equal("rrf-v1", result.FusionVersion);
         Assert.Contains("tag", result.MatchedFields);
         Assert.Contains("full-text:page", result.MatchedFields);
         Assert.Single(result.FtsHits);

@@ -8,6 +8,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 /// </summary>
 public sealed class CombinedSearchService : ICombinedSearchService
 {
+    private const int ReciprocalRankConstant = 60;
     private readonly IMetadataSearchService _metadataSearch;
     private readonly IFtsIndexService _ftsIndex;
 
@@ -42,17 +43,28 @@ public sealed class CombinedSearchService : ICombinedSearchService
             .ConfigureAwait(false);
 
         var byBook = new Dictionary<string, MutableCombinedResult>(StringComparer.Ordinal);
+        Dictionary<string, int> metadataRanks = RankBooks(
+            metadata
+                .OrderByDescending(result => result.Score)
+                .ThenBy(result => result.BookId, StringComparer.Ordinal),
+            result => result.BookId);
+        Dictionary<string, int> ftsRanks = RankBooks(
+            fts
+                .OrderByDescending(result => result.Score)
+                .ThenBy(result => result.BookId, StringComparer.Ordinal)
+                .ThenBy(result => result.ChunkIndex),
+            result => result.BookId);
         foreach (MetadataSearchResult result in metadata)
         {
             MutableCombinedResult mutable = GetOrAdd(byBook, result.BookId, result.Title, result.Author);
-            mutable.Score += result.Score;
+            mutable.Score += ReciprocalRankScore(metadataRanks[result.BookId]);
             mutable.MatchedFields.AddRange(result.MatchedFields);
         }
 
         foreach (FtsSearchResult hit in fts)
         {
             MutableCombinedResult mutable = GetOrAdd(byBook, hit.BookId, hit.Title, hit.Author);
-            mutable.Score += hit.Score;
+            mutable.Score += ReciprocalRankScore(ftsRanks[hit.BookId]);
             mutable.FtsHits.Add(hit);
             mutable.MatchedFields.Add("full-text:" + hit.Source.ToString().ToLowerInvariant());
         }
@@ -67,13 +79,30 @@ public sealed class CombinedSearchService : ICombinedSearchService
                 result.FtsHits
                     .OrderByDescending(hit => hit.Score)
                     .ThenBy(hit => hit.ChunkIndex)
-                    .ToList()))
+                    .ToList(),
+                FusionVersion: "rrf-v1"))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Title, StringComparer.OrdinalIgnoreCase)
             .ThenBy(result => result.BookId, StringComparer.Ordinal)
             .Take(limit)
             .ToList();
     }
+
+    private static Dictionary<string, int> RankBooks<T>(
+        IEnumerable<T> results,
+        Func<T, string> bookIdSelector)
+    {
+        var ranks = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach ((T result, int index) in results.Select((result, index) => (result, index)))
+        {
+            ranks.TryAdd(bookIdSelector(result), index + 1);
+        }
+
+        return ranks;
+    }
+
+    private static double ReciprocalRankScore(int rank) =>
+        1.0 / (ReciprocalRankConstant + Math.Max(1, rank));
 
     private static MutableCombinedResult GetOrAdd(
         Dictionary<string, MutableCombinedResult> byBook,

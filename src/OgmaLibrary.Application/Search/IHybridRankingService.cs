@@ -52,5 +52,6 @@ public sealed record HybridRankedResult(
     double RatingScore,
     double? SemanticScore,
     CombinedSearchResult? ExactResult,
-    SemanticSearchResult? SemanticResult);
+    SemanticSearchResult? SemanticResult,
+    string FusionVersion = "hybrid-v1");
 

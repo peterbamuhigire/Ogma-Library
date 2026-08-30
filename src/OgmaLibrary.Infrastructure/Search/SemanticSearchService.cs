@@ -14,6 +14,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
 {
     private const int ActiveBookStatus = 0;
     private const int OversampleMultiplier = 4;
+    private const int MaxCorpusVectors = 10_000;
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -82,16 +83,23 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IReadOnlyList<CombinedSearchResult> exact = await _exactSearch
             .SearchAsync(queryText, maxResults * OversampleMultiplier, cancellationToken)
             .ConfigureAwait(false);
-        IReadOnlyList<VectorCandidateRow> corpus = await LoadCorpusAsync(cancellationToken)
+        OllamaEmbeddingResult query = await _provider
+            .EmbedAsync(queryText, EmbeddingGenerationService.DefaultModelName, cancellationToken)
+            .ConfigureAwait(false);
+        if (query.Vector.Length == 0 ||
+            query.Vector.Length > 4096 ||
+            query.Vector.Any(value => !float.IsFinite(value)))
+        {
+            return ExactFallback(exact, maxResults, providerUnavailable: false);
+        }
+
+        IReadOnlyList<VectorCandidateRow> corpus = await LoadCorpusAsync(query.Vector.Length, cancellationToken)
             .ConfigureAwait(false);
         if (corpus.Count == 0)
         {
             return ExactFallback(exact, maxResults, providerUnavailable: false);
         }
 
-        OllamaEmbeddingResult query = await _provider
-            .EmbedAsync(queryText, EmbeddingGenerationService.DefaultModelName, cancellationToken)
-            .ConfigureAwait(false);
         IReadOnlyList<VectorSearchHit> hits = CosineSimilarityService.TopK(
             query.Vector,
             corpus.Select(row => new VectorSearchCandidate(row.ChunkId, row.Vector)),
@@ -239,7 +247,9 @@ public sealed class SemanticSearchService : ISemanticSearchService
             StringComparer.Ordinal);
     }
 
-    private async Task<IReadOnlyList<VectorCandidateRow>> LoadCorpusAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<VectorCandidateRow>> LoadCorpusAsync(
+        int queryDimension,
+        CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
@@ -249,7 +259,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
             .Where(vector =>
                 vector.ModelName == EmbeddingGenerationService.DefaultModelName &&
                 vector.ModelVersion == EmbeddingGenerationService.DefaultModelVersion &&
-                vector.ProviderKey == EmbeddingGenerationService.DefaultProviderKey)
+                vector.ProviderKey == EmbeddingGenerationService.DefaultProviderKey &&
+                vector.DimensionCount == queryDimension)
             .Join(
                 context.SearchChunks.AsNoTracking(),
                 vector => vector.ChunkId,
@@ -270,6 +281,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
                     book.Title,
                 })
             .OrderBy(row => row.ChunkId)
+            .Take(MaxCorpusVectors)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

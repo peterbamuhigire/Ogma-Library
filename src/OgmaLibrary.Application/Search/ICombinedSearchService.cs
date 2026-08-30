@@ -21,4 +21,5 @@ public sealed record CombinedSearchResult(
     string? Author,
     double Score,
     IReadOnlyList<string> MatchedFields,
-    IReadOnlyList<FtsSearchResult> FtsHits);
+    IReadOnlyList<FtsSearchResult> FtsHits,
+    string FusionVersion = "rrf-v1");
