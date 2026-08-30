@@ -141,6 +141,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Per-book reading-memory journal entries.</summary>
     public DbSet<ReadingMemoryRow> ReadingMemory => Set<ReadingMemoryRow>();
 
+    /// <summary>Redacted personal reading-state history.</summary>
+    public DbSet<ReadingStateHistoryRow> ReadingStateHistory => Set<ReadingStateHistoryRow>();
+
     // ── Work / Edition layer (schema only, Phase 04 WP9) ──────────────────────
 
     /// <summary>Canonical works (schema-only; UI in Phase 06/07).</summary>
@@ -259,6 +262,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());
         modelBuilder.ApplyConfiguration(new AnnotationV2Configuration());
         modelBuilder.ApplyConfiguration(new ReadingMemoryConfiguration());
+        modelBuilder.ApplyConfiguration(new ReadingStateHistoryConfiguration());
 
         base.OnModelCreating(modelBuilder);
     }

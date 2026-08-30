@@ -43,6 +43,9 @@ public sealed class BookRow
     /// <summary>The reader's rating 1–5, when set.</summary>
     public int? Rating { get; set; }
 
+    /// <summary>Whether the reader marked this book as a favourite.</summary>
+    public bool IsFavourite { get; set; }
+
     /// <summary>Search indexing status (0=NotIndexed, 1=Extracting, 2=Indexed, 3=Failed).</summary>
     public int IndexStatus { get; set; }
 

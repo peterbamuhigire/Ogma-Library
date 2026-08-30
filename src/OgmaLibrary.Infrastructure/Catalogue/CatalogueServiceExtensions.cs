@@ -118,6 +118,8 @@ public static class CatalogueServiceExtensions
         // Read model.
         services.AddSingleton<CatalogueReadModel>();
         services.AddSingleton<ICatalogueReadModel>(sp => sp.GetRequiredService<CatalogueReadModel>());
+        services.AddSingleton<IBookCurationService>(sp => new BookCurationService(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
 
         return services;
     }

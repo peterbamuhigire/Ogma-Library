@@ -27,6 +27,7 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.Property(b => b.PdfFingerprint).HasMaxLength(512);
         builder.Property(b => b.Status).HasDefaultValue(0);
         builder.Property(b => b.Rating);
+        builder.Property(b => b.IsFavourite).HasDefaultValue(false);
         builder.Property(b => b.IndexStatus).HasDefaultValue(0);
         builder.Property(b => b.EmbeddingStatus).HasDefaultValue(0);
         builder.Property(b => b.IsOcrDerived).HasDefaultValue(false);

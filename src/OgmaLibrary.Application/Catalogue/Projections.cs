@@ -17,6 +17,7 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="IsAvailable">Whether the physical file is currently present on disk.</param>
 /// <param name="Year">Publication year, or null if unknown.</param>
 /// <param name="Sha256Hash">SHA-256 hex digest of the file content, or null if not available.</param>
+/// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -28,7 +29,8 @@ public sealed record BookSummaryProjection(
     double? ReadingProgressPct,
     bool IsAvailable,
     int? Year,
-    string? Sha256Hash = null);
+    string? Sha256Hash = null,
+    bool IsFavourite = false);
 
 /// <summary>
 /// A full detail projection of a book across all five metadata groups, used by the
@@ -53,6 +55,7 @@ public sealed record BookSummaryProjection(
 /// <param name="ReadingMemory">Reading-memory summary, or null.</param>
 /// <param name="IsOcrDerived">Whether searchable text for this book came from OCR.</param>
 /// <param name="IsPasswordProtected">Whether the source PDF is password-protected.</param>
+/// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
 public sealed record BookDetailProjection(
     string BookId,
     string? Title,
@@ -71,7 +74,8 @@ public sealed record BookDetailProjection(
     IReadOnlyList<MetadataFieldProjection> MetadataFields,
     ReadingMemorySummaryProjection? ReadingMemory = null,
     bool IsOcrDerived = false,
-    bool IsPasswordProtected = false);
+    bool IsPasswordProtected = false,
+    bool IsFavourite = false);
 
 /// <summary>
 /// Compact reading-memory data surfaced in the book-detail panel.

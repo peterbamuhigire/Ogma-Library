@@ -108,6 +108,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.Title,
                 b.Status,
                 b.Rating,
+                b.IsFavourite,
                 b.Year,
                 b.Sha256Hash,
                 Authors = b.BookAuthors
@@ -158,6 +159,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 CoverRelativePath: item.CoverRelativePath,
                 Status: item.Status,
                 Rating: item.Rating,
+                IsFavourite: item.IsFavourite,
                 ShelfIds: item.ShelfIds,
                 ReadingProgressPct: item.Progress?.CompletionPct,
                 IsAvailable: item.HasPresentFile,
@@ -198,6 +200,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.IsbnNormalized,
                 b.Doi,
                 b.Rating,
+                b.IsFavourite,
                 b.Status,
                 b.RelativePath,
                 PrimaryRelativePath = b.BookFiles
@@ -273,7 +276,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             MetadataFields: fields,
             ReadingMemory: memory,
             IsOcrDerived: result.IsOcrDerived,
-            IsPasswordProtected: result.IsPasswordProtected);
+            IsPasswordProtected: result.IsPasswordProtected,
+            IsFavourite: result.IsFavourite);
     }
 
     private static string ResolveTitle(
