@@ -199,6 +199,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Versioned extraction artifact manifests.</summary>
     public DbSet<ExtractionArtifactRow> ExtractionArtifacts => Set<ExtractionArtifactRow>();
 
+    /// <summary>Cached external metadata provider responses.</summary>
+    public DbSet<ProviderCacheEntryRow> ProviderCacheEntries => Set<ProviderCacheEntryRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -242,6 +245,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new DiscoveryObservationConfiguration());
         modelBuilder.ApplyConfiguration(new DirectoryCheckpointConfiguration());
         modelBuilder.ApplyConfiguration(new ExtractionArtifactConfiguration());
+        modelBuilder.ApplyConfiguration(new ProviderCacheEntryConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());

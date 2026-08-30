@@ -71,6 +71,7 @@ public static class MetadataServiceExtensions
 
         // Aggregator.
         services.AddSingleton<IMetadataProviderAggregator, MetadataProviderAggregator>();
+        services.AddSingleton<IMetadataProviderGateway, MetadataProviderGateway>();
 
         // Confidence merge.
         services.AddSingleton<IConfidenceMergeService, ConfidenceMergeService>();
