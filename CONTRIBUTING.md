@@ -295,7 +295,7 @@ dotnet format OgmaLibrary.sln --verify-no-changes
 dotnet build OgmaLibrary.sln --configuration Debug
 
 # 3. Full test suite including golden corpus — must all pass
-dotnet test OgmaLibrary.sln --configuration Debug
+dotnet test OgmaLibrary.sln --configuration Debug -m:1
 
 # 4. Hybrid validation gate — must exit 0
 python -m engine validate Ogma-Library

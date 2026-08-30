@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Assets;
@@ -31,7 +32,7 @@ public static class IngestionServiceExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
         services.AddSingleton<ILibrarySettingsService>(_ => new LibrarySettingsService(dataDirectory));
-        services.AddSingleton<PdfWorkerClient>();
+        services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();
         services.AddSingleton<IUnavailableFileFlagService, UnavailableFileFlagService>();

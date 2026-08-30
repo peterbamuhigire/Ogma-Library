@@ -15,7 +15,7 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.16");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.AiAuditEventRow", b =>
                 {
@@ -448,6 +448,58 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.ToTable("Authors", (string)null);
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.BibliographicIdentifierRow", b =>
+                {
+                    b.Property<long>("BibliographicIdentifierId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EditionId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("IdentifierKind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedValue")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OwnerScope")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WorkId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("BibliographicIdentifierId");
+
+                    b.HasIndex("EditionId")
+                        .HasDatabaseName("IX_BibliographicIdentifiers_EditionId");
+
+                    b.HasIndex("WorkId")
+                        .HasDatabaseName("IX_BibliographicIdentifiers_WorkId");
+
+                    b.HasIndex("OwnerScope", "Source", "IdentifierKind", "NormalizedValue")
+                        .IsUnique()
+                        .HasDatabaseName("UX_BibliographicIdentifiers_ScopedValue");
+
+                    b.ToTable("BibliographicIdentifiers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BibliographicIdentifiers_Kind", "IdentifierKind BETWEEN 0 AND 4");
+
+                            t.HasCheckConstraint("CK_BibliographicIdentifiers_Owner", "(OwnerScope = 0 AND WorkId IS NOT NULL AND EditionId IS NULL) OR (OwnerScope = 1 AND EditionId IS NOT NULL AND WorkId IS NULL)");
+
+                            t.HasCheckConstraint("CK_BibliographicIdentifiers_Scope", "OwnerScope IN (0, 1)");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.BookAuthorRow", b =>
                 {
                     b.Property<string>("BookId")
@@ -696,6 +748,202 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.ToTable("Bookmarks", (string)null);
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalEditionRow", b =>
+                {
+                    b.Property<string>("EditionId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PublicationYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Publisher")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ResolutionState")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("WorkId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("EditionId");
+
+                    b.HasIndex("WorkId", "ResolutionState")
+                        .HasDatabaseName("IX_CanonicalEditions_Work_State");
+
+                    b.ToTable("CanonicalEditions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CanonicalEditions_Id", "length(EditionId) = 26");
+
+                            t.HasCheckConstraint("CK_CanonicalEditions_State", "ResolutionState BETWEEN 0 AND 3");
+
+                            t.HasCheckConstraint("CK_CanonicalEditions_WorkId", "length(WorkId) = 26");
+                        });
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalWorkRow", b =>
+                {
+                    b.Property<string>("WorkId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CanonicalTitle")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ResolutionState")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("WorkId");
+
+                    b.HasIndex("ResolutionState")
+                        .HasDatabaseName("IX_CanonicalWorks_State");
+
+                    b.ToTable("CanonicalWorks", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CanonicalWorks_Id", "length(WorkId) = 26");
+
+                            t.HasCheckConstraint("CK_CanonicalWorks_State", "ResolutionState BETWEEN 0 AND 3");
+                        });
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CatalogueItemOccurrenceRow", b =>
+                {
+                    b.Property<string>("CatalogueItemId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileOccurrenceId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CatalogueItemId", "FileOccurrenceId");
+
+                    b.HasIndex("FileOccurrenceId")
+                        .HasDatabaseName("IX_CatalogueItemOccurrences_OccurrenceId");
+
+                    b.ToTable("CatalogueItemOccurrences", (string)null);
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CatalogueItemRow", b =>
+                {
+                    b.Property<string>("CatalogueItemId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EditionId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PreferredOccurrenceId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WorkId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CatalogueItemId");
+
+                    b.HasIndex("PreferredOccurrenceId");
+
+                    b.HasIndex("EditionId", "WorkId");
+
+                    b.HasIndex("WorkId", "EditionId")
+                        .HasDatabaseName("IX_CatalogueItems_Work_Edition");
+
+                    b.ToTable("CatalogueItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CatalogueItems_EditionId", "length(EditionId) = 26");
+
+                            t.HasCheckConstraint("CK_CatalogueItems_Id", "length(CatalogueItemId) = 26");
+
+                            t.HasCheckConstraint("CK_CatalogueItems_PreferredOccurrenceId", "PreferredOccurrenceId IS NULL OR length(PreferredOccurrenceId) = 26");
+
+                            t.HasCheckConstraint("CK_CatalogueItems_WorkId", "length(WorkId) = 26");
+                        });
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ContentAssetRow", b =>
+                {
+                    b.Property<string>("ContentAssetId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FingerprintVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .IsFixedLength();
+
+                    b.Property<long?>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("VerificationStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ContentAssetId");
+
+                    b.HasIndex("Sha256Hash", "FingerprintVersion")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ContentAssets_Hash_Version");
+
+                    b.ToTable("ContentAssets", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ContentAssets_FingerprintVersion", "FingerprintVersion > 0");
+
+                            t.HasCheckConstraint("CK_ContentAssets_Id", "length(ContentAssetId) = 26");
+
+                            t.HasCheckConstraint("CK_ContentAssets_Sha256", "length(Sha256Hash) = 64 AND Sha256Hash NOT GLOB '*[^0-9a-f]*'");
+
+                            t.HasCheckConstraint("CK_ContentAssets_Size", "SizeBytes IS NULL OR SizeBytes > 0");
+
+                            t.HasCheckConstraint("CK_ContentAssets_Verification", "VerificationStatus IN (0, 1)");
+                        });
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.EditionContentAssetRow", b =>
+                {
+                    b.Property<string>("EditionId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentAssetId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("EditionId", "ContentAssetId");
+
+                    b.HasIndex("ContentAssetId")
+                        .HasDatabaseName("IX_EditionContentAssets_AssetId");
+
+                    b.ToTable("EditionContentAssets", (string)null);
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.EditionRow", b =>
                 {
                     b.Property<long>("EditionId")
@@ -866,6 +1114,70 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.ToTable("ExtractedPages", (string)null);
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", b =>
+                {
+                    b.Property<string>("FileOccurrenceId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AvailabilityStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentAssetId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSeenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LibraryRootId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ModifiedUtcTicks")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedRelativePath")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PdfFingerprint")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("FileOccurrenceId");
+
+                    b.HasIndex("ContentAssetId", "AvailabilityStatus")
+                        .HasDatabaseName("IX_FileOccurrences_Asset_Availability");
+
+                    b.HasIndex("LibraryRootId", "NormalizedRelativePath")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FileOccurrences_Root_NormalizedPath");
+
+                    b.ToTable("FileOccurrences", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FileOccurrences_AssetId", "ContentAssetId IS NULL OR length(ContentAssetId) = 26");
+
+                            t.HasCheckConstraint("CK_FileOccurrences_Availability", "AvailabilityStatus IN (0, 1)");
+
+                            t.HasCheckConstraint("CK_FileOccurrences_Id", "length(FileOccurrenceId) = 26");
+
+                            t.HasCheckConstraint("CK_FileOccurrences_RootId", "length(LibraryRootId) = 26");
+
+                            t.HasCheckConstraint("CK_FileOccurrences_Size", "SizeBytes IS NULL OR SizeBytes >= 0");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.HostClientSessionRow", b =>
                 {
                     b.Property<string>("TokenHash")
@@ -941,6 +1253,65 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityDecisionRow", b =>
+                {
+                    b.Property<string>("IdentityDecisionId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CandidateOccurrenceId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Confidence")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Disposition")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EvidenceTier")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PolicyVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Relationship")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SubjectOccurrenceId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("IdentityDecisionId");
+
+                    b.HasIndex("CandidateOccurrenceId");
+
+                    b.HasIndex("SubjectOccurrenceId", "CandidateOccurrenceId", "PolicyVersion")
+                        .HasDatabaseName("IX_IdentityDecisions_Pair_Version");
+
+                    b.ToTable("IdentityDecisions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IdentityDecisions_Confidence", "Confidence BETWEEN 0.0 AND 1.0");
+
+                            t.HasCheckConstraint("CK_IdentityDecisions_Disposition", "Disposition IN (0, 1)");
+
+                            t.HasCheckConstraint("CK_IdentityDecisions_DistinctOccurrences", "SubjectOccurrenceId <> CandidateOccurrenceId");
+
+                            t.HasCheckConstraint("CK_IdentityDecisions_Id", "length(IdentityDecisionId) = 26");
+
+                            t.HasCheckConstraint("CK_IdentityDecisions_PolicyVersion", "PolicyVersion > 0");
+
+                            t.HasCheckConstraint("CK_IdentityDecisions_Relationship", "Relationship BETWEEN 0 AND 4");
+
+                            t.HasCheckConstraint("CK_IdentityDecisions_Tier", "EvidenceTier BETWEEN 0 AND 4");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.JobRow", b =>
                 {
                     b.Property<long>("JobId")
@@ -997,6 +1368,53 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.ToTable("Jobs", (string)null);
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.LegacyIdentityAliasRow", b =>
+                {
+                    b.Property<string>("LegacyBookId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CatalogueItemId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EditionId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MigrationVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("WorkId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("LegacyBookId");
+
+                    b.HasIndex("CatalogueItemId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_LegacyIdentityAliases_CatalogueItemId");
+
+                    b.HasIndex("EditionId", "WorkId");
+
+                    b.ToTable("LegacyIdentityAliases", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LegacyIdentityAliases_CatalogueItemId", "length(CatalogueItemId) = 26");
+
+                            t.HasCheckConstraint("CK_LegacyIdentityAliases_EditionId", "length(EditionId) = 26");
+
+                            t.HasCheckConstraint("CK_LegacyIdentityAliases_Version", "MigrationVersion > 0");
+
+                            t.HasCheckConstraint("CK_LegacyIdentityAliases_WorkId", "length(WorkId) = 26");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.LibraryPublishSettingsRow", b =>
                 {
                     b.Property<string>("LibraryRootId")
@@ -1036,6 +1454,36 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UX_LibraryPublishSettings_SourcePath");
 
                     b.ToTable("LibraryPublishSettings", (string)null);
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.LibraryRootRow", b =>
+                {
+                    b.Property<string>("LibraryRootId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCompatibilityRoot")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RootStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("LibraryRootId");
+
+                    b.ToTable("LibraryRoots", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LibraryRoots_Id", "length(LibraryRootId) = 26");
+
+                            t.HasCheckConstraint("CK_LibraryRoots_Status", "RootStatus BETWEEN 0 AND 3");
+                        });
                 });
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.MetadataLookupRow", b =>
@@ -1428,6 +1876,19 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Navigation("Layer");
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.BibliographicIdentifierRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalEditionRow", null)
+                        .WithMany()
+                        .HasForeignKey("EditionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalWorkRow", null)
+                        .WithMany()
+                        .HasForeignKey("WorkId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.BookAuthorRow", b =>
                 {
                     b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.AuthorRow", "Author")
@@ -1490,6 +1951,60 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Navigation("Book");
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalEditionRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalWorkRow", null)
+                        .WithMany()
+                        .HasForeignKey("WorkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CatalogueItemOccurrenceRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CatalogueItemRow", null)
+                        .WithMany()
+                        .HasForeignKey("CatalogueItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("FileOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.CatalogueItemRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("PreferredOccurrenceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalEditionRow", null)
+                        .WithMany()
+                        .HasForeignKey("EditionId", "WorkId")
+                        .HasPrincipalKey("EditionId", "WorkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.EditionContentAssetRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.ContentAssetRow", null)
+                        .WithMany()
+                        .HasForeignKey("ContentAssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalEditionRow", null)
+                        .WithMany()
+                        .HasForeignKey("EditionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.EditionRow", b =>
                 {
                     b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.WorkRow", "Work")
@@ -1521,6 +2036,51 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Book");
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.ContentAssetRow", null)
+                        .WithMany()
+                        .HasForeignKey("ContentAssetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.LibraryRootRow", null)
+                        .WithMany()
+                        .HasForeignKey("LibraryRootId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityDecisionRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("CandidateOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.LegacyIdentityAliasRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CatalogueItemRow", null)
+                        .WithMany()
+                        .HasForeignKey("CatalogueItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.CanonicalEditionRow", null)
+                        .WithMany()
+                        .HasForeignKey("EditionId", "WorkId")
+                        .HasPrincipalKey("EditionId", "WorkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.MetadataLookupRow", b =>

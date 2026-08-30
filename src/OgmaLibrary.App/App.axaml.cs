@@ -1,20 +1,21 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
-using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.Configuration;
+using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.Views;
+using OgmaLibrary.Infrastructure.Localization;
 
 namespace OgmaLibrary.App;
 
-/// <summary>
-/// The Avalonia application. On framework initialization it builds the dependency
-/// injection container through the single <see cref="CompositionRoot"/>, resolves the
-/// main window view model, and shows the main window.
-/// </summary>
-public sealed class App : Avalonia.Application
+/// <summary>The Avalonia desktop application and asynchronous lifecycle boundary.</summary>
+public sealed class App : Avalonia.Application, IDisposable
 {
+    private readonly CancellationTokenSource _applicationLifetimeCancellation = new();
     private ServiceProvider? _services;
+    private bool _disposed;
 
     /// <inheritdoc />
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -22,28 +23,114 @@ public sealed class App : Avalonia.Application
     /// <inheritdoc />
     public override void OnFrameworkInitializationCompleted()
     {
-        _services = new ServiceCollection().AddOgmaLibrary().BuildServiceProvider();
-        ApplicationStartup.InitializeAsync(_services).GetAwaiter().GetResult();
-
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var shell = _services.GetRequiredService<MainShellViewModel>();
-            shell.InitializeAsync().GetAwaiter().GetResult();
-
+            var localization = new InMemoryLocalizationService();
+            StartupShellViewModel startupShell = StartupShellViewModel.CreateBootstrap(localization);
+            var window = new DesktopShellWindow { DataContext = startupShell };
             desktop.Exit += (_, _) => StopApplicationServices();
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = shell,
-            };
+            desktop.MainWindow = window;
+
+            // Yield a frame before configuration, graph validation and view-model
+            // construction. The cold-start shell must never wait for database or
+            // worker preparation on the UI thread.
+            Dispatcher.UIThread.Post(() =>
+                _ = ComposeAndStartAsync(
+                    window,
+                    localization,
+                    _applicationLifetimeCancellation.Token));
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
+    private async Task ComposeAndStartAsync(
+        DesktopShellWindow window,
+        InMemoryLocalizationService bootstrapLocalization,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            ComposedRuntime runtime = await Task.Run(ComposeRuntime, cancellationToken)
+                .ConfigureAwait(true);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                runtime.Services.Dispose();
+                return;
+            }
+
+            _services = runtime.Services;
+            window.DataContext = runtime.StartupShell;
+            StartupShellViewModel startupShell = runtime.StartupShell;
+            await startupShell.StartAsync(cancellationToken).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Normal application shutdown during startup.
+        }
+        catch (Exception)
+        {
+            if (_services is not null)
+            {
+                try
+                {
+                    await ApplicationStartup.StopAsync(_services, CancellationToken.None)
+                        .ConfigureAwait(true);
+                }
+                catch (Exception)
+                {
+                    // Preserve the original safe failure state during best-effort cleanup.
+                }
+
+                _services.Dispose();
+                _services = null;
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                window.DataContext = StartupShellViewModel.CreateConfigurationFailure(
+                    bootstrapLocalization,
+                    "Ogma application services could not be loaded safely. No PDF files were changed. Correct the application settings and restart Ogma.");
+            }
+        }
+    }
+
+    private static ComposedRuntime ComposeRuntime()
+    {
+        OgmaRuntimeOptions options = OgmaRuntimeOptions.FromEnvironment();
+        ServiceProvider services = new ServiceCollection()
+            .AddOgmaLibrary(options)
+            .BuildServiceProvider(new ServiceProviderOptions
+            {
+                ValidateOnBuild = true,
+                ValidateScopes = true,
+            });
+
+        try
+        {
+            return new ComposedRuntime(
+                services,
+                services.GetRequiredService<StartupShellViewModel>());
+        }
+        catch
+        {
+            services.Dispose();
+            throw;
+        }
+    }
+
     private void StopApplicationServices()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _applicationLifetimeCancellation.Cancel();
         if (_services is null)
         {
+            _applicationLifetimeCancellation.Dispose();
+            _disposed = true;
             return;
         }
 
@@ -55,6 +142,31 @@ public sealed class App : Avalonia.Application
         {
             _services.Dispose();
             _services = null;
+            _applicationLifetimeCancellation.Dispose();
+            _disposed = true;
         }
     }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!_applicationLifetimeCancellation.IsCancellationRequested)
+        {
+            _applicationLifetimeCancellation.Cancel();
+        }
+
+        _services?.Dispose();
+        _services = null;
+        _applicationLifetimeCancellation.Dispose();
+        _disposed = true;
+    }
+
+    private sealed record ComposedRuntime(
+        ServiceProvider Services,
+        StartupShellViewModel StartupShell);
 }

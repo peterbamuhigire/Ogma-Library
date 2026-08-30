@@ -3,8 +3,7 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Entities;
 /// <summary>
 /// The EF Core persistence row for a catalogued book (HLD §3 — Books table).
 /// This type lives only in Infrastructure and is mapped to the database.
-/// Distinct from the Domain <see cref="OgmaLibrary.Domain.Book"/> entity that the
-/// application layer receives.
+/// This is a legacy persistence shape until the Phase 4 canonical identity migration.
 /// </summary>
 public sealed class BookRow
 {

@@ -2,63 +2,92 @@
 
 Guidance for AI coding agents working in this repository.
 
-## What this is
+## Product and release scope
 
-**Ogma Library** — a local-first, cross-platform (Windows + macOS) desktop PDF
-library application on **.NET 10 LTS + Avalonia**. It turns a folder of PDFs into
-a managed, searchable, beautiful library, with an optional explainable AI advisor
-and (post-MVP) a LAN/classroom mode. Owner: Chwezi Core Systems / Peter
-Bamuhigire.
+**Ogma Library** is a local-first Windows and macOS desktop PDF library built
+with .NET 10 LTS and Avalonia. It manages, enriches and searches a user's own
+PDF collection and provides an optional, grounded Reading Advisor. The approved
+release is one C# desktop application with standalone, classroom Host and
+classroom Client modes. Mobile, PWA and public-website delivery are excluded.
 
-## Read first
+Owner: Chwezi Core Systems / Peter Bamuhigire.
 
-| Need | Path |
+## Authoritative sources
+
+Read these in order when sources disagree:
+
+| Authority | Path |
 | --- | --- |
-| The full 24-phase plan | `docs/plans/grand-plan/README.md` |
-| Canonical requirements digest | `docs/plans/grand-plan/SOURCE-SUMMARY.md` |
-| Owner decisions (binding) | `docs/plans/grand-plan/DECISIONS.md` |
+| Approved 39-phase execution roadmap | `docs/plans/aug-39/README.md` |
+| Requirement-to-phase accountability | `docs/plans/aug-39/appendices/01-requirement-phase-matrix.md` |
+| Canonical v2.1 requirements | `docs/references/Ogma-Library_SRS_v2.1_2026-08-13.docx` |
+| Other approved SDLC references | `docs/references/` |
+| Current implementation audit | `docs/audit/` |
+| Execution status and phase evidence | `docs/implementation/execution/` |
 | Architecture decisions | `docs/adrs/` |
-| Architecture (signed) | `docs/references` (HLD), summarized in SOURCE-SUMMARY |
-| Avalonia standards | `docs/plans/grand-plan/_reference/AVALONIA-STANDARDS.md` |
 | Developer guide | `docs/developer-guide/README.md` |
-| Contributing & governance | `CONTRIBUTING.md`, `docs/governance/` |
+| Contribution and governance rules | `CONTRIBUTING.md`, `docs/governance/` |
 
-## Build / test / format
+Historical plans and phase labels are evidence of prior work, not current
+completion authority. Do not infer release readiness from a class name, an old
+phase comment, a historical test report or a document's internal v2.0 label.
 
-```bash
-dotnet restore OgmaLibrary.sln
-dotnet build   OgmaLibrary.sln -c Release      # warnings are errors
-dotnet test    OgmaLibrary.sln -c Release
-dotnet format  OgmaLibrary.sln --verify-no-changes
-dotnet run     --project src/OgmaLibrary.App   # the running skeleton window
+## Build and verification
+
+```powershell
+./scripts/Test-RequirementAccountability.ps1
+dotnet restore OgmaLibrary.sln --locked-mode
+dotnet format OgmaLibrary.sln --verify-no-changes --no-restore
+dotnet build OgmaLibrary.sln --configuration Release --no-restore
+dotnet list OgmaLibrary.sln package --vulnerable --include-transitive
+dotnet format analyzers OgmaLibrary.sln --verify-no-changes --no-restore --severity warn --verbosity minimal
+dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1
 ```
 
-## Architecture rules (enforced by tests — do not break)
+The 3D source also has its own locked Node.js gates in `src/shelf3d`:
 
-- 9 projects; dependencies point **inward**. `Domain` depends on nothing.
-- Only `OgmaLibrary.App` (the `CompositionRoot`) binds implementations to
-  interfaces.
-- All off-device/HTTP access goes through `Infrastructure` adapters — the single
-  egress chokepoint (the AI gateway). `Domain`/`Application` make no HTTP calls.
-- The SQLite catalogue is the single source of truth for book identity; other
-  contexts read projections, never own identity.
-- `OgmaLibrary.Tests.Architecture` enforces the above; it runs in CI.
+```powershell
+npm ci
+npm run typecheck
+npm run build
+npm run perf:budget
+```
 
-## Conventions
+Unavailable platform, signing, provider or physical-hardware gates must be
+recorded as `NOT ASSESSED`; they are never silently treated as passing.
 
-- C#: Nullable on, async + `CancellationToken` + `ConfigureAwait(false)` in
-  libraries, `_camelCase` private fields, XML docs on public library members.
-- **No hard-coded UI strings** — use `ILocalizationService` (en/fr now;
-  es/it/de later). **No secrets** in the repo (OS credential store only).
-- Every button/menu gets a **flat full-color icon** (Flaticon, SVG+PNG) — see
-  `docs/plans/grand-plan/ICON-SYSTEM.md`. Always ask the owner to procure icons.
-- Commits: Conventional Commits + DCO sign-off (`git commit -s`). Branch from
-  `develop` as `feature/<id>-<slug>`. CI must be green on Windows **and** macOS.
-- Throwaway experiments live in `spikes/` (excluded from the product solution).
+## Architecture rules
 
-## Current status
+- Dependencies point inward; `OgmaLibrary.Domain` has no outward dependency.
+- Only the app composition root binds runtime implementations.
+- HTTP and off-device access stays behind Infrastructure adapters and approved
+  gateways; Domain and Application do not initiate HTTP.
+- The SQLite catalogue is authoritative for library identity. Search, reader,
+  AI, classroom and 3D features consume contracts or projections and do not own
+  competing book identity.
+- Core catalogue, metadata, reader and ordinary search remain useful without AI
+  or internet access.
+- PDFs, filenames and paths are untrusted. Use the approved path and isolated
+  processing boundaries; do not bypass them for convenience.
+- Architecture tests in `OgmaLibrary.Tests.Architecture` are release gates.
 
-Phases 00–02 implemented (inception, spikes, scaffolding + running localized
-skeleton). Next: finish Phase 02 polish (OGMA0001 analyzer — `TRACK-P02-ANALYZER`)
-then Phase 03 (design system + real Flaticon icons). See the grand-plan phase
-folders for per-phase READMEs, tasks, skills, and tests.
+## Engineering conventions
+
+- C#: nullable enabled; async APIs accept `CancellationToken`; library awaits
+  use `ConfigureAwait(false)`; private fields use `_camelCase`; public library
+  members have XML documentation.
+- Do not hard-code user-facing strings. Use localization resources and preserve
+  the approved language and fallback behavior.
+- Do not commit secrets or private book content. Credentials belong in OS-backed
+  stores; evidence records identifiers and results, not extracted documents.
+- Apply the approved Ogma design system and licensed asset policy. Do not add
+  arbitrary one-off controls, placeholder icons or untraceable visual assets.
+- Use Conventional Commits and DCO sign-off. Preserve user work and do not
+  rewrite shared history.
+
+## Current execution status
+
+The authoritative roadmap contains exactly 39 phases. Phase claims are valid
+only when their completion record and executable evidence exist under
+`docs/implementation/execution/`. Consult `00-execution-status.md` before making
+or repeating work.

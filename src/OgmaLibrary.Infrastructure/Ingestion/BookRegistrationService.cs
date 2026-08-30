@@ -15,9 +15,6 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// </summary>
 public sealed class BookRegistrationService : IBookRegistrationService
 {
-    private static readonly char[] CrockfordAlphabet =
-        "0123456789ABCDEFGHJKMNPQRSTVWXYZ".ToCharArray();
-
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -59,7 +56,7 @@ public sealed class BookRegistrationService : IBookRegistrationService
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        string bookId = GenerateBookId();
+        string bookId = CanonicalIdGenerator.NewId();
 
         context.Books.Add(new BookRow
         {
@@ -191,43 +188,6 @@ public sealed class BookRegistrationService : IBookRegistrationService
         byte[] hash = SHA256.HashData(data);
         // 32-hex-char idempotency key (128-bit) is sufficient for uniqueness.
         return Convert.ToHexStringLower(hash)[..32];
-    }
-
-    /// <summary>
-    /// Generates a 26-character Crockford base-32 ULID-style identifier.
-    /// Format: 10 chars timestamp + 16 chars random = 26 chars.
-    /// </summary>
-    private static string GenerateBookId()
-    {
-        long ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Span<char> buf = stackalloc char[26];
-
-        // Encode timestamp in the first 10 Crockford chars (5 bits each).
-        for (int i = 9; i >= 0; i--)
-        {
-            buf[i] = CrockfordAlphabet[(int)(ts & 0x1F)];
-            ts >>= 5;
-        }
-
-        // Fill remaining 16 chars with random bits.
-        Span<byte> random = stackalloc byte[10];
-        RandomNumberGenerator.Fill(random);
-        int bitBuf = 0;
-        int bitCount = 0;
-        int ri = 0;
-        for (int i = 10; i < 26; i++)
-        {
-            if (bitCount < 5)
-            {
-                bitBuf = (bitBuf << 8) | (ri < random.Length ? random[ri++] : 0);
-                bitCount += 8;
-            }
-
-            buf[i] = CrockfordAlphabet[(bitBuf >> (bitCount - 5)) & 0x1F];
-            bitCount -= 5;
-        }
-
-        return new string(buf);
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)

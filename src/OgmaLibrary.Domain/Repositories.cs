@@ -1,22 +1,49 @@
 namespace OgmaLibrary.Domain;
 
 /// <summary>
-/// Read/write access to <see cref="Book"/> records in the catalogue of record.
-/// Implemented by the Infrastructure layer; the Domain owns only the contract so
-/// book identity is never coupled to a storage technology (HLD §2.2).
+/// Temporary read/write access to pre-canonical catalogue rows during Phase 4 migration.
+/// It must not be used as an identity authority by new code.
 /// </summary>
-public interface IBookRepository
+public interface ILegacyCatalogueRepository
 {
     /// <summary>Finds a book by its identity.</summary>
     /// <param name="id">The book identity.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The book, or <see langword="null"/> if none exists.</returns>
-    Task<Book?> FindAsync(BookId id, CancellationToken cancellationToken);
+    Task<LegacyCatalogueRecord?> FindAsync(BookId id, CancellationToken cancellationToken);
 
     /// <summary>Adds or updates a book.</summary>
-    /// <param name="book">The book to persist.</param>
+    /// <param name="record">The compatibility record to persist.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task SaveAsync(Book book, CancellationToken cancellationToken);
+    Task SaveAsync(LegacyCatalogueRecord record, CancellationToken cancellationToken);
+}
+
+/// <summary>Read access to the canonical identity graph and compatibility aliases.</summary>
+public interface ICanonicalIdentityRepository
+{
+    /// <summary>Resolves a legacy BookId to its canonical path-free projection.</summary>
+    /// <param name="legacyBookId">The legacy catalogue identifier.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The canonical projection, or null when no alias exists.</returns>
+    Task<CanonicalIdentityProjection?> FindByLegacyBookIdAsync(
+        BookId legacyBookId,
+        CancellationToken cancellationToken);
+
+    /// <summary>Finds a canonical path-free projection by catalogue item ID.</summary>
+    /// <param name="catalogueItemId">The canonical catalogue item identifier.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The canonical projection, or null when it does not exist.</returns>
+    Task<CanonicalIdentityProjection?> FindByCatalogueItemIdAsync(
+        CatalogueItemId catalogueItemId,
+        CancellationToken cancellationToken);
+
+    /// <summary>Resolves the temporary legacy ID used by old search and API clients.</summary>
+    /// <param name="catalogueItemId">The canonical catalogue item identifier.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The legacy ID, or null for a post-migration-only item.</returns>
+    Task<BookId?> FindLegacyBookIdAsync(
+        CatalogueItemId catalogueItemId,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>Read/write access to virtual and smart shelves (FR-CAT-003).</summary>

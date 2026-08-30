@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Data.Sqlite;
 
 namespace OgmaLibrary.Infrastructure.Catalogue;
 
@@ -37,6 +38,15 @@ public sealed class CatalogueMigrator
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+
+    /// <summary>Latest redacted preflight report, when migration has run.</summary>
+    public IdentityMigrationPreflightReport? LastPreflightReport { get; private set; }
+
+    /// <summary>Latest canonical backfill result, when migration has run.</summary>
+    public CanonicalIdentityMigrationResult? LastMigrationResult { get; private set; }
+
+    /// <summary>Raised with redacted counts as canonical backfill progresses.</summary>
+    public event EventHandler<CatalogueMigrationProgress>? ProgressChanged;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueMigrator"/>.
@@ -85,6 +95,7 @@ public sealed class CatalogueMigrator
             await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
             await EnsureNonModelDatabaseObjectsAsync(context, cancellationToken).ConfigureAwait(false);
+            await MigrateCanonicalIdentityAsync(context, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -104,6 +115,7 @@ public sealed class CatalogueMigrator
         {
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
             await EnsureNonModelDatabaseObjectsAsync(context, cancellationToken).ConfigureAwait(false);
+            await MigrateCanonicalIdentityAsync(context, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -116,6 +128,7 @@ public sealed class CatalogueMigrator
             await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             await EnsureModelTablesExistAsync(context, dbPath, cancellationToken).ConfigureAwait(false);
             await EnsureNonModelDatabaseObjectsAsync(context, cancellationToken).ConfigureAwait(false);
+            await MigrateCanonicalIdentityAsync(context, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -124,9 +137,13 @@ public sealed class CatalogueMigrator
             {
                 try
                 {
+                    context.Database.CloseConnection();
+                    SqliteConnection.ClearAllPools();
+                    DeleteSqliteSidecars(dbPath);
+                    VerifyBackup(backupPath);
                     File.Copy(backupPath, dbPath, overwrite: true);
                 }
-                catch (IOException)
+                catch (Exception)
                 {
                     // Best-effort restore; the original exception is the primary concern.
                 }
@@ -134,6 +151,23 @@ public sealed class CatalogueMigrator
 
             throw;
         }
+    }
+
+    private async Task MigrateCanonicalIdentityAsync(
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var service = new CanonicalIdentityMigrationService(context);
+        if (!await service.IsBackfillRequiredAsync(cancellationToken).ConfigureAwait(false))
+        {
+            LastMigrationResult = new CanonicalIdentityMigrationResult(0, 0, 0, 0, TimeSpan.Zero);
+            return;
+        }
+
+        LastPreflightReport = await service.PreflightAsync(cancellationToken).ConfigureAwait(false);
+        var progress = new Progress<CatalogueMigrationProgress>(
+            update => ProgressChanged?.Invoke(this, update));
+        LastMigrationResult = await service.ApplyAsync(progress, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task RepairKnownPrecreatedMigrationsAsync(
@@ -344,8 +378,41 @@ public sealed class CatalogueMigrator
             backupPath = $"{dbPath}.{timestamp}.{suffix}.bak";
         }
 
-        File.Copy(dbPath, backupPath, overwrite: false);
+        using (var source = new SqliteConnection($"Data Source={dbPath};Mode=ReadOnly;Pooling=False"))
+        using (var destination = new SqliteConnection($"Data Source={backupPath};Pooling=False"))
+        {
+            source.Open();
+            destination.Open();
+            source.BackupDatabase(destination);
+        }
+
+        VerifyBackup(backupPath);
         return backupPath;
+    }
+
+    private static void VerifyBackup(string backupPath)
+    {
+        using var connection = new SqliteConnection($"Data Source={backupPath};Mode=ReadOnly;Pooling=False");
+        connection.Open();
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "PRAGMA integrity_check;";
+        string result = Convert.ToString(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture)
+            ?? string.Empty;
+        if (!string.Equals(result, "ok", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("The catalogue backup failed SQLite integrity verification.");
+        }
+    }
+
+    private static void DeleteSqliteSidecars(string dbPath)
+    {
+        foreach (string sidecar in new[] { dbPath + "-wal", dbPath + "-shm" })
+        {
+            if (File.Exists(sidecar))
+            {
+                File.Delete(sidecar);
+            }
+        }
     }
 
     private static IEnumerable<string> SplitSqlStatements(string sql)

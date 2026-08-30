@@ -1,11 +1,10 @@
 namespace OgmaLibrary.Domain;
 
 /// <summary>
-/// The catalogue record for an intellectual item the reader owns — the single
-/// source of truth for book identity (HLD §3.2). A <see cref="Book"/> owns one or
-/// more <see cref="BookFile"/> instances and associates to authors and shelves.
+/// Compatibility shape for one pre-canonical <c>Books</c> row. It is not a work,
+/// edition, content asset, or file identity and is removed by the Phase 4 migration.
 /// </summary>
-public sealed class Book
+public sealed class LegacyCatalogueRecord
 {
     /// <summary>The stable identity of this book.</summary>
     public required BookId Id { get; init; }
@@ -23,7 +22,7 @@ public sealed class Book
     public int? Rating { get; set; }
 
     /// <summary>The physical files bound to this book.</summary>
-    public IReadOnlyList<BookFile> Files { get; init; } = [];
+    public IReadOnlyList<LegacyFileRecord> Files { get; init; } = [];
 
     /// <summary>The authors associated with this book.</summary>
     public IReadOnlyList<Author> Authors { get; init; } = [];
@@ -36,22 +35,22 @@ public sealed class Book
 }
 
 /// <summary>
-/// A specific PDF file on disk bound to a <see cref="Book"/>, carrying the identity
-/// attributes used for stable matching and incremental rescan (HLD §4.4).
+/// Compatibility file projection over the pre-canonical schema. Unknown facts
+/// remain null; they are never synthesized from a path.
 /// </summary>
-public sealed class BookFile
+public sealed class LegacyFileRecord
 {
     /// <summary>The path relative to the library root — the primary locator.</summary>
     public required string RelativePath { get; init; }
 
-    /// <summary>The SHA-256 content hash — the strong content identity.</summary>
-    public required ContentHash ContentHash { get; init; }
+    /// <summary>The verified SHA-256 content hash, or null when legacy identity is unknown.</summary>
+    public ContentHash? ContentHash { get; init; }
 
     /// <summary>The file size in bytes, used by the incremental rescan.</summary>
-    public required long SizeBytes { get; init; }
+    public long? SizeBytes { get; init; }
 
     /// <summary>The last-modified timestamp (UTC), used by the incremental rescan.</summary>
-    public required DateTimeOffset ModifiedUtc { get; init; }
+    public DateTimeOffset? ModifiedUtc { get; init; }
 
     /// <summary>An optional structural PDF fingerprint, a secondary content signal.</summary>
     public string? PdfFingerprint { get; set; }
@@ -88,7 +87,7 @@ public sealed class Shelf
 }
 
 /// <summary>
-/// The last reading position and status for a <see cref="BookFile"/> (FR-READ-001).
+/// The last reading position and status for a catalogue presentation (FR-READ-001).
 /// </summary>
 public sealed class ReadingProgress
 {
@@ -106,7 +105,7 @@ public sealed class ReadingProgress
 }
 
 /// <summary>
-/// A highlight or note anchored to a region within a <see cref="BookFile"/>,
+/// A highlight or note anchored to a region within a selected content asset,
 /// persisted in the catalogue of record before being reported saved (NFR-OGMA-008).
 /// </summary>
 public sealed class Annotation
