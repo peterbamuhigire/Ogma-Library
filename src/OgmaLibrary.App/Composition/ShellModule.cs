@@ -1,11 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.ViewModels;
+using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.Ingestion;
@@ -86,6 +88,15 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<ILibraryHostClient>(),
             services.GetRequiredService<IProfileService>(),
             services.GetRequiredService<IStudentPrivateRepository>());
+        var advisor = new RecommendationPanelViewModel(
+            services.GetRequiredService<IAiAdvisorService>(),
+            navigation,
+            localization);
+        var readingPlan = new ReadingPlanViewModel(
+            services.GetRequiredService<IAiAdvisorService>(),
+            readModel,
+            navigation,
+            localization);
         HostSharingViewModel? hostSharing = options.EnableClassroomHost
             ? new HostSharingViewModel(
                 services.GetRequiredService<ILibraryHostService>(),
@@ -119,7 +130,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             studentSmartSearch,
             services.GetRequiredService<SplitViewViewModel>(),
             hostSharing,
-            services.GetRequiredService<IClassroomModeService>());
+            services.GetRequiredService<IClassroomModeService>(),
+            advisor,
+            readingPlan);
 
         return shell;
     }

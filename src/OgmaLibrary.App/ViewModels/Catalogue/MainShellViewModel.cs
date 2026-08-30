@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Platform.Storage;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.Application;
@@ -31,6 +32,12 @@ public enum ShellView
 
     /// <summary>The classroom student AI smart-search surface (Phase 18).</summary>
     StudentSmartSearch = 4,
+
+    /// <summary>The local recommendation advisor surface.</summary>
+    Advisor = 5,
+
+    /// <summary>The reading-plan advisor surface.</summary>
+    ReadingPlan = 6,
 }
 
 /// <summary>
@@ -106,6 +113,8 @@ public sealed class MainShellViewModel :
     /// <param name="studentSmartSearch">The Phase 18 student AI smart-search view model.</param>
     /// <param name="hostSharing">The Phase 16 Host sharing control view model.</param>
     /// <param name="classroomModeService">The Phase 17 classroom mode/connectivity service.</param>
+    /// <param name="advisor">The recommendation advisor view model.</param>
+    /// <param name="readingPlan">The reading-plan view model.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -121,7 +130,9 @@ public sealed class MainShellViewModel :
         StudentSmartSearchViewModel? studentSmartSearch = null,
         SplitViewViewModel? splitView = null,
         HostSharingViewModel? hostSharing = null,
-        IClassroomModeService? classroomModeService = null)
+        IClassroomModeService? classroomModeService = null,
+        RecommendationPanelViewModel? advisor = null,
+        ReadingPlanViewModel? readingPlan = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -138,6 +149,8 @@ public sealed class MainShellViewModel :
         IndexManager = indexManager;
         StudentSmartSearch = studentSmartSearch;
         HostSharing = hostSharing;
+        Advisor = advisor;
+        ReadingPlan = readingPlan;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
@@ -211,6 +224,12 @@ public sealed class MainShellViewModel :
     /// <summary>The Phase 18 classroom student smart-search view model.</summary>
     public StudentSmartSearchViewModel? StudentSmartSearch { get; }
 
+    /// <summary>The recommendation advisor view model.</summary>
+    public RecommendationPanelViewModel? Advisor { get; }
+
+    /// <summary>The reading-plan view model.</summary>
+    public ReadingPlanViewModel? ReadingPlan { get; }
+
     /// <summary>The Phase 16 Host sharing control strip view model.</summary>
     public HostSharingViewModel? HostSharing { get; }
 
@@ -250,6 +269,8 @@ public sealed class MainShellViewModel :
                 OnPropertyChanged(nameof(IsSplitViewActive));
                 OnPropertyChanged(nameof(IsSharingSettingsActive));
                 OnPropertyChanged(nameof(IsStudentSmartSearchActive));
+                OnPropertyChanged(nameof(IsAdvisorActive));
+                OnPropertyChanged(nameof(IsReadingPlanActive));
             }
         }
     }
@@ -268,6 +289,12 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the student AI smart-search surface is the active content area.</summary>
     public bool IsStudentSmartSearchActive => _activeView == ShellView.StudentSmartSearch;
+
+    /// <summary>True when the recommendation advisor route is active.</summary>
+    public bool IsAdvisorActive => _activeView == ShellView.Advisor;
+
+    /// <summary>True when the reading-plan route is active.</summary>
+    public bool IsReadingPlanActive => _activeView == ShellView.ReadingPlan;
 
     /// <summary>Whether the left sidebar (shelves) is open.</summary>
     public bool IsSidebarOpen
@@ -453,6 +480,12 @@ public sealed class MainShellViewModel :
     /// <summary>Student smart-search route label.</summary>
     public string StudentSmartSearchLabel => _studentSmartSearchLabel;
 
+    /// <summary>Recommendation advisor route label.</summary>
+    public string AdvisorLabel => _localization["Navigation.Advisor"];
+
+    /// <summary>Reading-plan route label.</summary>
+    public string ReadingPlanLabel => _localization["Navigation.ReadingPlan"];
+
     /// <summary>Search panel toggle icon path.</summary>
     public string SearchIconPath => _searchIconPath;
 
@@ -542,6 +575,22 @@ public sealed class MainShellViewModel :
     public void OpenStudentSmartSearch()
     {
         ActiveView = ShellView.StudentSmartSearch;
+        ReaderPlaceholderMessage = null;
+        BookDetail.IsVisible = false;
+    }
+
+    /// <summary>Opens the local recommendation advisor route.</summary>
+    public void OpenAdvisor()
+    {
+        ActiveView = ShellView.Advisor;
+        ReaderPlaceholderMessage = null;
+        BookDetail.IsVisible = false;
+    }
+
+    /// <summary>Opens the reading-plan route.</summary>
+    public void OpenReadingPlan()
+    {
+        ActiveView = ShellView.ReadingPlan;
         ReaderPlaceholderMessage = null;
         BookDetail.IsVisible = false;
     }
@@ -776,6 +825,8 @@ public sealed class MainShellViewModel :
         _scanCts.Dispose();
         Search?.Dispose();
         IndexManager?.Dispose();
+        Advisor?.Dispose();
+        ReadingPlan?.Dispose();
     }
 
     private void OnProgressChanged(object? sender, ScanProgressSnapshot snapshot)
@@ -941,6 +992,8 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(SplitViewLabel));
         OnPropertyChanged(nameof(SharingSettingsLabel));
         OnPropertyChanged(nameof(StudentSmartSearchLabel));
+        OnPropertyChanged(nameof(AdvisorLabel));
+        OnPropertyChanged(nameof(ReadingPlanLabel));
         OnPropertyChanged(nameof(IsClassroomOfflineVisible));
         OnPropertyChanged(nameof(ClassroomOfflineText));
         OnPropertyChanged(nameof(ClassroomOfflineAutomationName));

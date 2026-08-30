@@ -151,6 +151,22 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void AdvisorButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.OpenAdvisor();
+        }
+    }
+
+    private void ReadingPlanButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.OpenReadingPlan();
+        }
+    }
+
     private async void SharingSettingsButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

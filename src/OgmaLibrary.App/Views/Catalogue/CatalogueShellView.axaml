@@ -6,6 +6,7 @@
              xmlns:reader="using:OgmaLibrary.App.Views.Reader"
              xmlns:search="using:OgmaLibrary.App.Views.Search"
              xmlns:settings="using:OgmaLibrary.App.Views.Settings"
+             xmlns:ai="using:OgmaLibrary.App.Views.Ai"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
              x:DataType="vm:MainShellViewModel"
@@ -76,7 +77,7 @@
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
           <!-- Sidebar toggle -->
           <Button Grid.Column="0"
@@ -173,6 +174,32 @@
                        Path="{Binding StudentSmartSearchIconPath}" />
               <TextBlock Text="{Binding StudentSmartSearchLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
             </StackPanel>
+          </Button>
+
+          <Button Grid.Column="12"
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Foreground="White"
+                  BorderThickness="0"
+                  Padding="10,5"
+                  Margin="8,0,0,0"
+                  AutomationProperties.Name="{Binding AdvisorLabel}"
+                  Click="AdvisorButton_Click">
+            <TextBlock Text="{Binding AdvisorLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+
+          <Button Grid.Column="13"
+                  Background="{DynamicResource Brush.Surface.Footer}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Padding="10,5"
+                  Margin="8,0,0,0"
+                  AutomationProperties.Name="{Binding ReadingPlanLabel}"
+                  Click="ReadingPlanButton_Click">
+            <TextBlock Text="{Binding ReadingPlanLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
           <!-- Index Manager panel toggle -->
@@ -392,6 +419,14 @@
 
         <Panel IsVisible="{Binding IsStudentSmartSearchActive}">
           <classroom:StudentSmartSearchView DataContext="{Binding StudentSmartSearch}" />
+        </Panel>
+
+        <Panel IsVisible="{Binding IsAdvisorActive}">
+          <ai:RecommendationPanelView DataContext="{Binding Advisor}" />
+        </Panel>
+
+        <Panel IsVisible="{Binding IsReadingPlanActive}">
+          <ai:ReadingPlanView DataContext="{Binding ReadingPlan}" />
         </Panel>
 
         <Panel IsVisible="{Binding IsSharingSettingsActive}">

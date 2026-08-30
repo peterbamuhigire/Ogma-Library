@@ -203,6 +203,7 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Ai.Advisor.Query.Default"] = "Recommend useful books from my library",
         ["Ai.Advisor.Why"] = "Why?",
         ["Ai.Advisor.OpenBook"] = "Open",
+        ["Ai.Advisor.Intent.None"] = "No preferences interpreted yet",
         ["Ai.Advisor.Plan.Title"] = "Reading Plan",
         ["Ai.Advisor.Plan.Goal.Placeholder"] = "What do you want to understand?",
         ["Ai.Advisor.Plan.Goal.Default"] = "Build a useful reading path from my library",
@@ -217,6 +218,8 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Ai.Advisor.Status.RecommendationsLoadedFormat"] = "Loaded {0} recommendations",
         ["Ai.Advisor.Status.PlanLoadedFormat"] = "Loaded {0} reading plan steps",
         ["Ai.Advisor.ErrorFormat"] = "AI advisor unavailable: {0}",
+        ["Navigation.Advisor"] = "Advisor",
+        ["Navigation.ReadingPlan"] = "Reading plan",
 
         // Phase 05 — Scan progress and status strings (en)
         ["Scan.Phase.Idle"] = "Ready",
@@ -669,6 +672,7 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Ai.Advisor.Query.Default"] = "Recommander des livres utiles de ma bibliotheque",
         ["Ai.Advisor.Why"] = "Pourquoi ?",
         ["Ai.Advisor.OpenBook"] = "Ouvrir",
+        ["Ai.Advisor.Intent.None"] = "Aucune preference interpretee",
         ["Ai.Advisor.Plan.Title"] = "Plan de lecture",
         ["Ai.Advisor.Plan.Goal.Placeholder"] = "Que voulez-vous comprendre ?",
         ["Ai.Advisor.Plan.Goal.Default"] = "Construire un parcours de lecture utile depuis ma bibliotheque",
@@ -683,6 +687,8 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Ai.Advisor.Status.RecommendationsLoadedFormat"] = "{0} recommandations chargees",
         ["Ai.Advisor.Status.PlanLoadedFormat"] = "{0} etapes du plan chargees",
         ["Ai.Advisor.ErrorFormat"] = "Conseiller IA indisponible : {0}",
+        ["Navigation.Advisor"] = "Conseiller",
+        ["Navigation.ReadingPlan"] = "Plan de lecture",
 
         // Phase 05 — Scan progress and status strings (fr)
         ["Scan.Phase.Idle"] = "Prêt",
