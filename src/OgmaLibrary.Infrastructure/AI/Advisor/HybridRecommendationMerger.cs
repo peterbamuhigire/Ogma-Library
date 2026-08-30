@@ -85,7 +85,10 @@ public sealed class HybridRecommendationMerger : IHybridRecommendationMerger
         merged.Add(new ProvenanceItem(
             new BookId(rankedCandidate.Candidate.BookId),
             RecommendationMatchField.SemanticScore,
-            rankedCandidate.SemanticScore.Value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
+            rankedCandidate.SemanticScore.Value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+            "semantic-ranking",
+            "advisor-evidence-v1",
+            "Ranking score is not a factual book claim."));
         return merged;
     }
 

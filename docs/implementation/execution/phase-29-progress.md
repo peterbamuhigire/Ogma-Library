@@ -1,0 +1,35 @@
+# Phase 29 Progress - Grounded Explanations and Answer Mode
+
+Date: 2026-08-30
+
+## Delivered in this increment
+
+- Expanded recommendation provenance and answer citations with source labels,
+  evidence contract versions, and explicit uncertainty labels.
+- Added field-level recommendation provenance validation: a provider claim must
+  match the cited local title, author, tag, description or note value before it
+  is retained; unsupported claims degrade to a clearly marked local fallback.
+- Hardened local answer mode as extractive evidence presentation with bounded
+  control-character-safe excerpts, duplicate citation suppression, source labels,
+  page/chunk anchors, and an explicit “evidence excerpts” limitation statement.
+- Enforced the metadata-only/content-aware boundary: page, note and TOC passages
+  require `AllowContentAwareTier`; metadata tags and descriptions remain usable
+  without content-aware opt-in.
+- Preserved useful grounded results when semantic relevance is unavailable by
+  labeling exact-text fallback uncertainty instead of presenting it as semantic
+  certainty.
+
+## Verification
+
+- `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed with
+  0 warnings and 0 errors before the final test-only adjustment; the same code
+  path is covered by the focused test build.
+- Phase 29 grounded evidence and answer slice: 6 passed.
+- Existing local answer regression slice: 6 passed.
+
+## Remaining phase gate
+
+Provider-generated explanations from assembled source-labeled evidence, durable
+claim/citation validation traces, prompt-injection fixture corpus, answer UI
+citation navigation, content-tier consent wiring in the shell, and benchmark
+unsupported-claim/abstention evaluation remain for phases 29-30.

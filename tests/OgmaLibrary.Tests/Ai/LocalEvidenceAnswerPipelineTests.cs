@@ -17,7 +17,7 @@ public sealed class LocalEvidenceAnswerPipelineTests
             new SemanticSearchResult("book-2", "Another book", 43, SearchChunkSource.Page, "Another local passage.", 0.71f, false, 0.72, PageIndex: 8),
         ]));
 
-        AnswerResponse response = await pipeline.GetAnswerAsync(new AnswerRequest("What is the idea?", 2), CancellationToken.None);
+        AnswerResponse response = await pipeline.GetAnswerAsync(new AnswerRequest("What is the idea?", 2, allowContentAwareTier: true), CancellationToken.None);
 
         Assert.True(response.IsV2);
         Assert.Equal(2, response.Citations.Count);

@@ -47,14 +47,40 @@ public sealed record ProvenanceItem
     /// <param name="bookId">The local book identifier that supplied the evidence.</param>
     /// <param name="matchField">The catalogue field that matched.</param>
     /// <param name="fieldValue">The field value or score text used for explanation.</param>
-    public ProvenanceItem(BookId bookId, RecommendationMatchField matchField, string fieldValue)
+    /// <param name="sourceLabel">Stable label for the local evidence source, when known.</param>
+    /// <param name="evidenceVersion">Version of the evidence contract, when known.</param>
+    /// <param name="uncertaintyLabel">Human-readable uncertainty note, when applicable.</param>
+    public ProvenanceItem(
+        BookId bookId,
+        RecommendationMatchField matchField,
+        string fieldValue,
+        string? sourceLabel = null,
+        string? evidenceVersion = null,
+        string? uncertaintyLabel = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId.Value);
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldValue);
+        if (sourceLabel is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
+        }
+
+        if (evidenceVersion is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(evidenceVersion);
+        }
+
+        if (uncertaintyLabel is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(uncertaintyLabel);
+        }
 
         BookId = bookId;
         MatchField = matchField;
         FieldValue = fieldValue;
+        SourceLabel = sourceLabel;
+        EvidenceVersion = evidenceVersion;
+        UncertaintyLabel = uncertaintyLabel;
     }
 
     /// <summary>The local book identifier that supplied the evidence.</summary>
@@ -65,6 +91,15 @@ public sealed record ProvenanceItem
 
     /// <summary>The field value or score text used for explanation.</summary>
     public string FieldValue { get; }
+
+    /// <summary>Human-readable local source category, when known.</summary>
+    public string? SourceLabel { get; }
+
+    /// <summary>Version of the evidence contract or extraction source.</summary>
+    public string? EvidenceVersion { get; }
+
+    /// <summary>Reason the evidence should be treated as uncertain, when applicable.</summary>
+    public string? UncertaintyLabel { get; }
 }
 
 /// <summary>Human-readable explanation and source provenance for a recommendation.</summary>
@@ -255,7 +290,7 @@ public sealed record ReadingPlan
     public IReadOnlyList<Checkpoint> Checkpoints { get; }
 }
 
-/// <summary>Local evidence citation used by the V2 answer-mode scaffold.</summary>
+/// <summary>Local evidence citation used by the grounded answer mode.</summary>
 public sealed record AnswerCitation
 {
     /// <summary>Creates an answer citation and validates required local evidence.</summary>
@@ -264,12 +299,18 @@ public sealed record AnswerCitation
     /// <param name="chunkId">Optional local text chunk identifier.</param>
     /// <param name="relevantText">Short citation excerpt from the local source.</param>
     /// <param name="confidence">Retrieval confidence for this citation.</param>
+    /// <param name="sourceLabel">Stable label for the local evidence source, when known.</param>
+    /// <param name="evidenceVersion">Version of the evidence contract, when known.</param>
+    /// <param name="uncertaintyLabel">Human-readable uncertainty note, when applicable.</param>
     public AnswerCitation(
         BookId bookId,
         int? pageNumber,
         string? chunkId,
         string relevantText,
-        ConfidenceScore confidence)
+        ConfidenceScore confidence,
+        string? sourceLabel = null,
+        string? evidenceVersion = null,
+        string? uncertaintyLabel = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId.Value);
         if (pageNumber is <= 0)
@@ -278,12 +319,29 @@ public sealed record AnswerCitation
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(relevantText);
+        if (sourceLabel is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
+        }
+
+        if (evidenceVersion is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(evidenceVersion);
+        }
+
+        if (uncertaintyLabel is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(uncertaintyLabel);
+        }
 
         BookId = bookId;
         PageNumber = pageNumber;
         ChunkId = chunkId;
         RelevantText = relevantText;
         Confidence = confidence;
+        SourceLabel = sourceLabel;
+        EvidenceVersion = evidenceVersion;
+        UncertaintyLabel = uncertaintyLabel;
     }
 
     /// <summary>The local book identifier that supplied the citation.</summary>
@@ -300,4 +358,13 @@ public sealed record AnswerCitation
 
     /// <summary>Retrieval confidence for this citation.</summary>
     public ConfidenceScore Confidence { get; }
+
+    /// <summary>Source category from which the excerpt was retrieved.</summary>
+    public string? SourceLabel { get; }
+
+    /// <summary>Version of the local evidence contract or extraction source.</summary>
+    public string? EvidenceVersion { get; }
+
+    /// <summary>Reason the citation should be treated as uncertain, when applicable.</summary>
+    public string? UncertaintyLabel { get; }
 }

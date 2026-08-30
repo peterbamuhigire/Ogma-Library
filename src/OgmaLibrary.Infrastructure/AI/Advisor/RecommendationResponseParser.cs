@@ -96,7 +96,10 @@ public sealed class RecommendationResponseParser : IRecommendationResponseParser
             string bookId = GetOptionalString(entry, fallbackBookId, "book_id", "bookId", "BookId");
             string field = GetOptionalString(entry, "Description", "field", "match_field", "matchField", "MatchField");
             string fieldValue = GetOptionalString(entry, field, "field_value", "fieldValue", "value", "Value");
-            items.Add(new ProvenanceItem(new BookId(bookId), ParseMatchField(field), fieldValue));
+            string? source = GetOptionalNullableString(entry, "source", "source_label", "sourceLabel");
+            string? version = GetOptionalNullableString(entry, "evidence_version", "evidenceVersion", "version");
+            string? uncertainty = GetOptionalNullableString(entry, "uncertainty", "uncertainty_label", "uncertaintyLabel");
+            items.Add(new ProvenanceItem(new BookId(bookId), ParseMatchField(field), fieldValue, source, version, uncertainty));
         }
 
         return items;
@@ -137,6 +140,17 @@ public sealed class RecommendationResponseParser : IRecommendationResponseParser
             JsonValueKind.Number => property.GetRawText(),
             _ => fallback ?? string.Empty,
         };
+    }
+
+    private static string? GetOptionalNullableString(JsonElement element, params string[] names)
+    {
+        if (!TryGetProperty(element, out JsonElement property, names) || property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        string? value = property.GetString();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private static int GetOptionalInt(JsonElement element, int fallback, params string[] names) =>

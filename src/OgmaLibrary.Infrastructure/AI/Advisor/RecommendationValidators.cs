@@ -7,6 +7,8 @@ namespace OgmaLibrary.Infrastructure.AI.Advisor;
 /// <summary>Ensures recommendation provenance references only local candidates.</summary>
 public sealed class RecommendationProvenanceValidator : IRecommendationProvenanceValidator
 {
+    private const string EvidenceVersion = "advisor-evidence-v1";
+
     /// <inheritdoc />
     public IReadOnlyList<RecommendationCard> Validate(
         IReadOnlyList<RecommendationCard> cards,
@@ -37,9 +39,9 @@ public sealed class RecommendationProvenanceValidator : IRecommendationProvenanc
             foreach (ProvenanceItem item in card.Explanation.ProvenanceItems)
             {
                 checkedItems++;
-                if (local.ContainsKey(item.BookId.Value))
+                if (local.TryGetValue(item.BookId.Value, out BookMetadataDto? candidate) && HasVerifiedField(candidate, item))
                 {
-                    provenance.Add(item);
+                    provenance.Add(Stamp(item));
                 }
                 else
                 {
@@ -97,11 +99,48 @@ public sealed class RecommendationProvenanceValidator : IRecommendationProvenanc
     {
         if (!string.IsNullOrWhiteSpace(candidate.Title))
         {
-            return new ProvenanceItem(new BookId(candidate.BookId), RecommendationMatchField.Title, candidate.Title);
+            return new ProvenanceItem(
+                new BookId(candidate.BookId),
+                RecommendationMatchField.Title,
+                candidate.Title,
+                "metadata.title",
+                EvidenceVersion,
+                "Provider explanation was not independently verified.");
         }
 
         string author = candidate.Authors.Count > 0 ? candidate.Authors[0] : "local catalogue";
-        return new ProvenanceItem(new BookId(candidate.BookId), RecommendationMatchField.Author, author);
+        return new ProvenanceItem(
+            new BookId(candidate.BookId),
+            RecommendationMatchField.Author,
+            author,
+            "metadata.author",
+            EvidenceVersion,
+            "Provider explanation was not independently verified.");
+    }
+
+    private static ProvenanceItem Stamp(ProvenanceItem item) =>
+        new(
+            item.BookId,
+            item.MatchField,
+            item.FieldValue,
+            item.SourceLabel ?? $"metadata.{item.MatchField.ToString().ToLowerInvariant()}",
+            item.EvidenceVersion ?? EvidenceVersion,
+            item.UncertaintyLabel);
+
+    private static bool HasVerifiedField(BookMetadataDto candidate, ProvenanceItem item)
+    {
+        IReadOnlyList<string> values = item.MatchField switch
+        {
+            RecommendationMatchField.Title => candidate.Title is null ? [] : [candidate.Title],
+            RecommendationMatchField.Author => candidate.Authors,
+            RecommendationMatchField.Tags => candidate.Tags,
+            RecommendationMatchField.Description => [candidate.Description ?? string.Empty, candidate.Notes ?? string.Empty],
+            RecommendationMatchField.SemanticScore => [],
+            _ => [],
+        };
+
+        return values.Any(value => !string.IsNullOrWhiteSpace(value) &&
+            value.Contains(item.FieldValue, StringComparison.OrdinalIgnoreCase));
     }
 }
 
