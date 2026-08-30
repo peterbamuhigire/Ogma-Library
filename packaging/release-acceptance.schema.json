@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ogma.library/schemas/release-acceptance-v1.json",
+  "title": "Ogma Library signed release acceptance record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "releaseId", "commitSha", "artifacts", "hardware", "migration", "approval"],
+  "properties": {
+    "schema": { "const": "ogma-release-acceptance-v1" },
+    "releaseId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "commitSha": { "type": "string", "pattern": "^[0-9a-fA-F]{40}$" },
+    "artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["platform", "runtimeIdentifier", "sha256", "descriptorSignatureVerified", "platformSigned", "cleanInstall", "criticalFlows", "performanceBudgets"],
+        "properties": {
+          "platform": { "enum": ["windows", "macos"] },
+          "runtimeIdentifier": { "enum": ["win-x64", "win-arm64", "osx-x64", "osx-arm64"] },
+          "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+          "descriptorSignatureVerified": { "const": true },
+          "platformSigned": { "const": true },
+          "cleanInstall": { "const": true },
+          "criticalFlows": { "const": true },
+          "performanceBudgets": { "const": true },
+          "authenticodeOrMsix": { "const": true },
+          "developerIdAndNotarized": { "const": true }
+        }
+      }
+    },
+    "hardware": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["machineId", "installedBuild", "performanceEvidence", "accessibilityEvidence"],
+        "properties": {
+          "machineId": { "enum": ["W-REF-01", "M-REF-01"] },
+          "installedBuild": { "const": true },
+          "performanceEvidence": { "const": true },
+          "accessibilityEvidence": { "const": true }
+        }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["upgrade", "interruptedUpgradeRecovery", "rollback", "backupRestore"],
+      "properties": {
+        "upgrade": { "const": true },
+        "interruptedUpgradeRecovery": { "const": true },
+        "rollback": { "const": true },
+        "backupRestore": { "const": true }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "approvedAtUtc", "residualRisksAccepted"],
+      "properties": {
+        "owner": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "approvedAtUtc": { "type": "string", "format": "date-time" },
+        "residualRisksAccepted": { "const": true }
+      }
+    }
+  }
+}
