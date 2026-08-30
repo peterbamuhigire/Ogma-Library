@@ -1,0 +1,75 @@
+name: Release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer release-candidate version
+        required: true
+        type: string
+      require_signature:
+        description: Fail unless the protected descriptor signing key is available
+        required: true
+        default: true
+        type: boolean
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: package (${{ matrix.platform }} / ${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            rid: win-x64
+            architecture: x64
+            os: windows-latest
+          - platform: macos
+            rid: osx-arm64
+            architecture: arm64
+            os: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build and verify candidate
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+          REQUIRE_SIGNATURE: ${{ inputs.require_signature != false }}
+          OGMA_RELEASE_SIGNING_KEY: ${{ secrets.OGMA_RELEASE_SIGNING_KEY }}
+        run: |
+          $version = $env:RELEASE_VERSION -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid release version: $version" }
+          $arguments = @('-Platform', '${{ matrix.platform }}', '-Architecture', '${{ matrix.architecture }}', '-Version', $version)
+          $keyPath = Join-Path $env:RUNNER_TEMP 'ogma-release-signing-key.pem'
+          if (-not [string]::IsNullOrWhiteSpace($env:OGMA_RELEASE_SIGNING_KEY)) {
+            [IO.File]::WriteAllText($keyPath, $env:OGMA_RELEASE_SIGNING_KEY, [Text.UTF8Encoding]::new($false))
+            $arguments += @('-SigningKeyPath', $keyPath)
+          }
+          if ($env:REQUIRE_SIGNATURE -eq 'true') { $arguments += '-RequireSignature' }
+          & pwsh -NoProfile -File ./scripts/New-ReleaseCandidate.ps1 @arguments
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path -LiteralPath $keyPath) { Remove-Item -LiteralPath $keyPath -Force }
+
+      - name: Upload immutable candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogma-release-${{ matrix.rid }}-${{ github.sha }}
+          path: artifacts/release-candidates/**
+          if-no-files-found: error
+          retention-days: 30
