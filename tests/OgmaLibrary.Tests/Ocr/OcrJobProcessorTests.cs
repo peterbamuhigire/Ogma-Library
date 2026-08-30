@@ -53,6 +53,64 @@ public sealed class OcrJobProcessorTests : IDisposable
     }
 
     [Fact]
+    public async Task OcrJobProcessor_TextPages_AreSkippedWithoutInvokingOcr()
+    {
+        string bookId = SeedBook("BOOKOCRTEXTSKIP00000001");
+        SeedOcrJob(bookId, 0, new OcrJobPayload("sample.pdf"));
+        var provider = new FakeOcrProvider();
+        var processor = CreateProcessor(
+            new FakePdfRendererFactory(pageCount: 3, ExtractionQuality.Full),
+            provider);
+
+        bool processed = await processor.ProcessNextAsync(CancellationToken.None);
+        _context.ChangeTracker.Clear();
+
+        Assert.True(processed);
+        Assert.Equal(0, provider.CallCount);
+        Assert.Empty(_context.ExtractedPages.Where(page => page.BookId == bookId && page.Source == "OCR"));
+        Assert.False(_context.Books.Single(book => book.BookId == bookId).IsOcrDerived);
+    }
+
+    [Fact]
+    public async Task OcrJobProcessor_GoodPrimaryText_RemainsSelectedOverOcrAlternative()
+    {
+        string bookId = SeedBook("BOOKOCRPRIMARY00000001");
+        _context.ExtractedPages.Add(new ExtractedPageRow
+        {
+            BookId = bookId,
+            PageNumber = 0,
+            TextContent = "trusted primary text",
+            ExtractionQuality = (int)SearchExtractionQuality.Full,
+            WordCount = 3,
+            Source = "Extraction",
+            IsSelectedText = true,
+            ExtractionUtc = DateTimeOffset.UtcNow,
+        });
+        _context.SaveChanges();
+        SeedOcrJob(bookId, 0, new OcrJobPayload("sample.pdf"));
+        var processor = CreateProcessor(new FakePdfRendererFactory(pageCount: 1), new FakeOcrProvider());
+
+        await processor.ProcessNextAsync(CancellationToken.None);
+        _context.ChangeTracker.Clear();
+
+        ExtractedPageRow primary = _context.ExtractedPages.Single(page =>
+            page.BookId == bookId && page.Source == "Extraction");
+        ExtractedPageRow ocr = _context.ExtractedPages.Single(page =>
+            page.BookId == bookId && page.Source == "OCR");
+        SearchChunkRow chunk = _context.SearchChunks.Single(row => row.BookId == bookId);
+        Assert.Equal((int)SearchExtractionQuality.Full, primary.ExtractionQuality);
+        Assert.Equal(3, primary.WordCount);
+        Assert.False(OcrPageQualityPolicy.ShouldSelectOcr(
+            SearchExtractionQuality.Full,
+            primary.WordCount,
+            ocr.TextContent,
+            ocr.OcrConfidence ?? 0));
+        Assert.True(primary.IsSelectedText);
+        Assert.False(ocr.IsSelectedText);
+        Assert.Contains("trusted primary text", chunk.ChunkText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task OcrJob_Recovery_AfterInterruption_NoDuplicatePages()
     {
         string bookId = SeedBook("BOOKOCRRECOVER00000001");
@@ -134,12 +192,14 @@ public sealed class OcrJobProcessorTests : IDisposable
         public CatalogueDbContext CreateDbContext() => new(_options);
     }
 
-    private sealed class FakePdfRendererFactory(int pageCount) : IPdfRendererFactory
+    private sealed class FakePdfRendererFactory(
+        int pageCount,
+        ExtractionQuality quality = ExtractionQuality.Scanned) : IPdfRendererFactory
     {
-        public IPdfRenderer Open(string filePath) => new FakePdfRenderer(pageCount);
+        public IPdfRenderer Open(string filePath) => new FakePdfRenderer(pageCount, quality);
     }
 
-    private sealed class FakePdfRenderer(int pageCount) : IPdfRenderer
+    private sealed class FakePdfRenderer(int pageCount, ExtractionQuality quality) : IPdfRenderer
     {
         public int PageCount => pageCount;
 
@@ -153,7 +213,7 @@ public sealed class OcrJobProcessorTests : IDisposable
         public int GetPageRotationDegrees(int pageIndex) => 0;
 
         public TextLayer ExtractTextLayer(int pageIndex) =>
-            new(pageIndex, [], ExtractionQuality.Scanned);
+            new(pageIndex, [], quality);
     }
 
     private sealed class FakeOcrProvider : IOcrProvider

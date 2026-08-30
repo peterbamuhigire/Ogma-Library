@@ -21,12 +21,18 @@ public sealed class ExtractedPageConfiguration : IEntityTypeConfiguration<Extrac
         builder.Property(p => p.BookId).IsRequired().HasMaxLength(26);
         builder.Property(p => p.PageNumber).IsRequired();
         builder.Property(p => p.TextContent);
-        builder.Property(p => p.ExtractionQuality).HasDefaultValue(2);
+        // Keep the database default for legacy SQL writers, but always send an
+        // explicit CLR value so Full (enum zero) is not mistaken for "unset".
+        builder.Property(p => p.ExtractionQuality).HasDefaultValue(2).ValueGeneratedNever();
         builder.Property(p => p.WordCount).HasDefaultValue(0);
         builder.Property(p => p.ContentHash).HasMaxLength(64).IsFixedLength();
         builder.Property(p => p.Source).IsRequired().HasMaxLength(32).HasDefaultValue("Extraction");
         builder.Property(p => p.ExtractionMethod).HasMaxLength(64);
         builder.Property(p => p.ExtractorVersion).IsRequired().HasMaxLength(128).HasDefaultValue("pdf-text-v1");
+        builder.Property(p => p.IsSelectedText).HasDefaultValue(true);
+        builder.Property(p => p.OcrConfidence).HasColumnType("REAL");
+        builder.Property(p => p.OcrLanguage).HasMaxLength(32);
+        builder.Property(p => p.OcrModelVersion).HasMaxLength(128);
         builder.Property(p => p.ExtractionUtc);
 
         // Index for page-number lookup per book.

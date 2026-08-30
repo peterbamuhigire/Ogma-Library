@@ -25,6 +25,9 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
     public const string JobType = "OcrJob";
 
     private const string OcrSource = "OCR";
+    private const string OcrModelVersion = "tesseract-v1";
+    private const int MaximumPagesPerJob = 10_000;
+    private const int MaximumRenderedImageBytes = 64 * 1024 * 1024;
     private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
     private readonly IPdfRendererFactory _rendererFactory;
     private readonly IOcrProvider _ocrProvider;
@@ -108,6 +111,16 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         {
             using IPdfRenderer renderer = _rendererFactory.Open(payload.FilePath);
             int totalPages = renderer.PageCount;
+            if (totalPages < 0 || totalPages > MaximumPagesPerJob)
+            {
+                throw new InvalidOperationException(
+                    $"OCR page count exceeds the local limit of {MaximumPagesPerJob.ToString(System.Globalization.CultureInfo.InvariantCulture)}.");
+            }
+            string? contentHash = await context.Books
+                .Where(book => book.BookId == job.BookId)
+                .Select(book => book.Sha256Hash)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
             HashSet<int> completedPages = await LoadCompletedOcrPagesAsync(context, job.BookId, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -126,9 +139,22 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                     continue;
                 }
 
+                TextLayer nativeLayer = await Task.Run(
+                        () => renderer.ExtractTextLayer(pageIndex),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (!OcrPageQualityPolicy.ShouldProcess(nativeLayer.Quality, nativeLayer.Words.Count))
+                {
+                    continue;
+                }
+
                 RenderResult rendered = await renderer
                     .RenderPageAsync(pageIndex, new RenderRequest(2400, Scale: 3.125), cancellationToken)
                     .ConfigureAwait(false);
+                if (rendered.PngBytes.Length > MaximumRenderedImageBytes)
+                {
+                    throw new InvalidOperationException("Rendered OCR page exceeds the local memory limit.");
+                }
 
                 using var image = new MemoryStream(rendered.PngBytes, writable: false);
                 OcrPageResult result = await _ocrProvider
@@ -136,7 +162,7 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                     .ConfigureAwait(false);
 
                 await _textStore.UpsertPageAsync(
-                    ToExtractedPage(job.BookId, pageIndex, result),
+                    ToExtractedPage(job.BookId, pageIndex, result, payload.Language, contentHash),
                     cancellationToken).ConfigureAwait(false);
 
                 completedPages.Add(pageIndex);
@@ -144,8 +170,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                 await SaveProgressAsync(context, job, payload, cancellationToken).ConfigureAwait(false);
             }
 
-            await MarkBookOcrDerivedAsync(context, job.BookId, cancellationToken).ConfigureAwait(false);
             int chunkCount = await ReplaceOcrSearchChunksAsync(job.BookId, cancellationToken).ConfigureAwait(false);
+            await MarkBookOcrDerivedAsync(context, job.BookId, cancellationToken).ConfigureAwait(false);
             TryAddFtsReindexJob(context, job.BookId);
             if (chunkCount > 0)
             {
@@ -178,18 +204,41 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             .ConfigureAwait(false);
 
         List<ExtractedPageRow> pages = await context.ExtractedPages
-            .AsNoTracking()
-            .Where(page => page.BookId == bookId && page.Source == OcrSource)
-            .OrderBy(page => page.PageNumber)
+            .Where(page => page.BookId == bookId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         var chunks = new List<SearchChunkRecord>();
         int chunkIndex = 0;
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        foreach (ExtractedPageRow page in pages)
+        foreach (IGrouping<int, ExtractedPageRow> pageGroup in pages
+                     .GroupBy(page => page.PageNumber)
+                     .OrderBy(group => group.Key))
         {
-            if (string.IsNullOrWhiteSpace(page.TextContent) ||
+            ExtractedPageRow? primary = pageGroup.FirstOrDefault(page => page.Source == "Extraction");
+            ExtractedPageRow? ocr = pageGroup.FirstOrDefault(page => page.Source == OcrSource);
+            bool selectOcr = ocr is not null && OcrPageQualityPolicy.ShouldSelectOcr(
+                primary is null
+                    ? SearchExtractionQuality.Empty
+                    : (SearchExtractionQuality)primary.ExtractionQuality,
+                primary?.WordCount ?? 0,
+                ocr.TextContent,
+                ocr.OcrConfidence ?? 0);
+
+            if (primary is not null)
+            {
+                primary.IsSelectedText = !selectOcr;
+            }
+
+            if (ocr is not null)
+            {
+                ocr.IsSelectedText = selectOcr;
+            }
+
+            ExtractedPageRow? page = selectOcr ? ocr : primary;
+            if (page is null ||
+                !page.IsSelectedText ||
+                string.IsNullOrWhiteSpace(page.TextContent) ||
                 page.ExtractionQuality == (int)SearchExtractionQuality.Failed)
             {
                 continue;
@@ -206,6 +255,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             chunks.AddRange(pageChunks);
             chunkIndex += pageChunks.Count;
         }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         IReadOnlyList<SearchChunkRecord> saved = await _chunkRepository.ReplaceForBookAsync(
                 bookId,
@@ -229,7 +280,9 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
     private static ExtractedPageRecord ToExtractedPage(
         string bookId,
         int pageIndex,
-        OcrPageResult result)
+        OcrPageResult result,
+        string language,
+        string? contentHash)
     {
         string text = result.Text ?? string.Empty;
         int wordCount = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
@@ -240,9 +293,14 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             Text: text,
             Quality: string.IsNullOrWhiteSpace(text) ? SearchExtractionQuality.Empty : SearchExtractionQuality.Full,
             WordCount: wordCount,
-            ContentHash: null,
+            ContentHash: contentHash,
             ExtractedAtUtc: DateTimeOffset.UtcNow,
-            Source: OcrSource);
+            Source: OcrSource,
+            ExtractorVersion: OcrModelVersion,
+            IsSelectedText: false,
+            OcrConfidence: Math.Clamp(result.Confidence, 0, 1),
+            OcrLanguage: language,
+            OcrModelVersion: OcrModelVersion);
     }
 
     private static async Task<HashSet<int>> LoadCompletedOcrPagesAsync(
@@ -269,7 +327,9 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             .ConfigureAwait(false);
         if (book is not null)
         {
-            book.IsOcrDerived = true;
+            book.IsOcrDerived = await context.ExtractedPages.AnyAsync(
+                page => page.BookId == bookId && page.Source == OcrSource && page.IsSelectedText,
+                cancellationToken).ConfigureAwait(false);
         }
     }
 

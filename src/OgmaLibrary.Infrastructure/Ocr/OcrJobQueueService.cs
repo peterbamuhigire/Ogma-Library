@@ -46,6 +46,11 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(languageHint);
+        string? normalizedLanguage = OcrLanguagePolicy.Normalize(languageHint);
+        if (normalizedLanguage is null)
+        {
+            return new OcrQueueResult(false, false, null, "Unsupported OCR language pack.");
+        }
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
@@ -77,7 +82,7 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
         string payload = JsonSerializer.Serialize(new
         {
             FilePath = filePath,
-            Language = languageHint,
+            Language = normalizedLanguage,
             TotalPages = 0,
             ProcessedPages = 0,
         });
@@ -98,7 +103,7 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
         {
             BookId = bookId,
             JobType = OcrJobType,
-            IdempotencyKey = ComputeIdempotencyKey(bookId, languageHint),
+            IdempotencyKey = ComputeIdempotencyKey(bookId, normalizedLanguage),
             Status = 0,
             Payload = payload,
         };

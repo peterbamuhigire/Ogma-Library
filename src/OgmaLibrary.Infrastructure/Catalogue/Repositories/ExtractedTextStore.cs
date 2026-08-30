@@ -150,7 +150,11 @@ public sealed class ExtractedTextStore : IExtractedTextStore
             row.ContentHash,
             row.ExtractionUtc ?? DateTimeOffset.MinValue,
             row.Source,
-            row.ExtractorVersion);
+            row.ExtractorVersion,
+            row.IsSelectedText,
+            row.OcrConfidence,
+            row.OcrLanguage,
+            row.OcrModelVersion);
 
     private static ExtractedPageRow MapToRow(ExtractedPageRecord page)
     {
@@ -172,6 +176,10 @@ public sealed class ExtractedTextStore : IExtractedTextStore
         row.ExtractorVersion = string.IsNullOrWhiteSpace(page.ExtractorVersion)
             ? "pdf-text-v1"
             : page.ExtractorVersion;
+        row.IsSelectedText = page.IsSelectedText;
+        row.OcrConfidence = page.OcrConfidence;
+        row.OcrLanguage = page.OcrLanguage;
+        row.OcrModelVersion = page.OcrModelVersion;
         row.ExtractionUtc = page.ExtractedAtUtc;
     }
 

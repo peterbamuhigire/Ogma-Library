@@ -135,6 +135,10 @@ public enum ConfidenceLabel
 /// <param name="ExtractedAtUtc">UTC timestamp of the extraction.</param>
 /// <param name="Source">Source of the page text, such as "Extraction" or "OCR".</param>
 /// <param name="ExtractorVersion">Version of the extractor that produced the page.</param>
+/// <param name="IsSelectedText">Whether this page is the selected text alternative for search/reader use.</param>
+/// <param name="OcrConfidence">OCR provider confidence, when this is OCR output.</param>
+/// <param name="OcrLanguage">OCR language, when this is OCR output.</param>
+/// <param name="OcrModelVersion">OCR model version, when this is OCR output.</param>
 public sealed record ExtractedPageRecord(
     long Id,
     string BookId,
@@ -145,7 +149,11 @@ public sealed record ExtractedPageRecord(
     string? ContentHash,
     DateTimeOffset ExtractedAtUtc,
     string Source = "Extraction",
-    string ExtractorVersion = "pdf-text-v1");
+    string ExtractorVersion = "pdf-text-v1",
+    bool IsSelectedText = true,
+    double? OcrConfidence = null,
+    string? OcrLanguage = null,
+    string? OcrModelVersion = null);
 
 /// <summary>
 /// A token-bounded search chunk that feeds SQLite FTS5 and future embeddings.

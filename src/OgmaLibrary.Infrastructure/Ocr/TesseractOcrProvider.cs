@@ -30,6 +30,11 @@ internal sealed class TesseractOcrProvider : IOcrProvider
     {
         ArgumentNullException.ThrowIfNull(pageImage);
         ArgumentException.ThrowIfNullOrWhiteSpace(languageHint);
+        string? normalizedLanguage = OcrLanguagePolicy.Normalize(languageHint);
+        if (normalizedLanguage is null)
+        {
+            throw new ArgumentException("Unsupported OCR language pack.", nameof(languageHint));
+        }
 
         byte[] imageBytes;
         using (var buffer = new MemoryStream())
@@ -38,7 +43,7 @@ internal sealed class TesseractOcrProvider : IOcrProvider
             imageBytes = buffer.ToArray();
         }
 
-        return await Task.Run(() => Recognize(imageBytes, languageHint), cancellationToken)
+        return await Task.Run(() => Recognize(imageBytes, normalizedLanguage), cancellationToken)
             .ConfigureAwait(false);
     }
 

@@ -37,6 +37,18 @@ public sealed class ExtractedPageRow
     /// <summary>Version of the extractor that produced this page.</summary>
     public string ExtractorVersion { get; set; } = "pdf-text-v1";
 
+    /// <summary>Whether this page is the selected text alternative.</summary>
+    public bool IsSelectedText { get; set; } = true;
+
+    /// <summary>OCR confidence, when the source is OCR.</summary>
+    public double? OcrConfidence { get; set; }
+
+    /// <summary>OCR language key, when the source is OCR.</summary>
+    public string? OcrLanguage { get; set; }
+
+    /// <summary>OCR model/provider version, when the source is OCR.</summary>
+    public string? OcrModelVersion { get; set; }
+
     /// <summary>UTC timestamp when this page was extracted.</summary>
     public DateTimeOffset? ExtractionUtc { get; set; }
 

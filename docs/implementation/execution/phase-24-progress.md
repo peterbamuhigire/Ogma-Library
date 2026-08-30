@@ -1,0 +1,36 @@
+# Phase 24 Progress - Selective OCR and Extraction Quality
+
+Date: 2026-08-30
+
+## Delivered in this increment
+
+- Added a deterministic local page-quality policy: complete text pages are not
+  OCRed; scanned, empty and low-word partial pages are eligible.
+- Added a supported local language-pack policy for `eng`, `fra`, `deu`, `ita`
+  and `spa`, with canonical selectors and bounded input length.
+- Added OCR provenance fields for confidence, language, model version,
+  extraction version and source-content hash.
+- Added persisted selected-text state so OCR is an alternative rather than an
+  overwrite of primary extraction.
+- Added confidence-gated selection: good primary text remains selected; OCR is
+  selected only for missing/failed/scanned/low-quality primary text and a
+  confidence of at least 0.75.
+- Added page-count and rendered-image size guards to keep OCR resource use
+  bounded and failure non-blocking.
+- Added provider-side language validation and regression coverage for text-page
+  skipping, confidence selection, primary preservation, language policy and
+  the existing OCR/golden corpus workflows.
+
+## Verification
+
+- `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
+  passed with 0 warnings and 0 errors.
+- Phase 24 policy and OCR processor tests: 8 passed.
+- OCR/golden/schema regression slice: 13 passed.
+
+## Remaining phase gate
+
+Native Tesseract trained-data checksum verification, real mixed-PDF accuracy
+and CPU/memory corpus evidence, complete retry/resource telemetry, OCR UI
+quality controls, and cross-platform packaged asset proof remain before phase
+24 closure.
