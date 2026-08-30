@@ -202,6 +202,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Versioned extraction artifact manifests.</summary>
     public DbSet<ExtractionArtifactRow> ExtractionArtifacts => Set<ExtractionArtifactRow>();
 
+    /// <summary>Durable resumable full-text rebuild checkpoints.</summary>
+    public DbSet<SearchRebuildCheckpointRow> SearchRebuildCheckpoints => Set<SearchRebuildCheckpointRow>();
+
     /// <summary>Cached external metadata provider responses.</summary>
     public DbSet<ProviderCacheEntryRow> ProviderCacheEntries => Set<ProviderCacheEntryRow>();
 
@@ -263,6 +266,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AnnotationV2Configuration());
         modelBuilder.ApplyConfiguration(new ReadingMemoryConfiguration());
         modelBuilder.ApplyConfiguration(new ReadingStateHistoryConfiguration());
+        modelBuilder.ApplyConfiguration(new SearchRebuildCheckpointConfiguration());
 
         base.OnModelCreating(modelBuilder);
     }

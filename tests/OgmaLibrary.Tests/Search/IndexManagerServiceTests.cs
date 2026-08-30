@@ -162,6 +162,11 @@ public sealed class IndexManagerServiceTests : IDisposable
         Assert.Contains(observer.Events, update => update is IndexStatusUpdate.RebuildStarted);
         Assert.Contains(observer.Events, update => update is IndexStatusUpdate.RebuildCompleted);
         Assert.Equal(bookCount, _context.Books.Count(book => book.IndexStatus == (int)SearchBookIndexStatus.Indexed));
+        SearchRebuildCheckpointRow checkpoint = Assert.Single(_context.SearchRebuildCheckpoints);
+        Assert.Equal(2, checkpoint.Status);
+        Assert.Equal(bookCount, checkpoint.BooksAttempted);
+        Assert.Equal(bookCount, checkpoint.BooksIndexed);
+        Assert.NotNull(checkpoint.CompletedUtc);
     }
 
     [Fact]
@@ -207,7 +212,33 @@ public sealed class IndexManagerServiceTests : IDisposable
         Assert.Empty(_context.SearchChunks);
         Assert.Empty(_context.ExtractedPages);
         Assert.Equal((int)SearchBookIndexStatus.NotIndexed, _context.Books.Single(b => b.BookId == bookId).IndexStatus);
+        Assert.Equal(1, Assert.Single(_context.SearchRebuildCheckpoints).Status);
         Assert.True(integrity.IsHealthy, integrity.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task IndexRebuild_ResumesFromRunningCheckpointWithoutClearingProgress()
+    {
+        string bookId = SeedBook("P23RESUMEBOOK0000000001", SearchBookIndexStatus.Indexed);
+        var interrupted = new IndexManagerService(
+            _context,
+            new CancellingPipeline(),
+            new FtsIndexService(_context));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            interrupted.RebuildAsync(CancellationToken.None));
+
+        var resumed = new IndexManagerService(
+            _context,
+            new DeterministicRebuildPipeline(_context),
+            new FtsIndexService(_context));
+        IndexRebuildResult result = await resumed.RebuildAsync(CancellationToken.None);
+
+        Assert.True(result.Completed, result.ErrorMessage);
+        Assert.Equal(1, result.BooksIndexed);
+        SearchRebuildCheckpointRow checkpoint = Assert.Single(_context.SearchRebuildCheckpoints);
+        Assert.Equal(2, checkpoint.Status);
+        Assert.Equal(bookId, _context.Books.Single().BookId);
     }
 
     private async Task SaveChunksAsync(string bookId, string text)

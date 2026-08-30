@@ -492,7 +492,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         return await context.Books
             .AsNoTracking()
             .Where(book => book.Status == ActiveBookStatus &&
-                (book.IndexStatus != (int)SearchBookIndexStatus.Indexed ||
+                ((book.IndexStatus != (int)SearchBookIndexStatus.Indexed &&
+                  book.IndexStatus != (int)SearchBookIndexStatus.Failed) ||
                  !context.ExtractedPages.Any(page =>
                      page.BookId == book.BookId &&
                      page.ContentHash == book.Sha256Hash)))

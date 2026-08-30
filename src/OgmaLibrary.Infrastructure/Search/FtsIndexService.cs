@@ -13,6 +13,8 @@ namespace OgmaLibrary.Infrastructure.Search;
 public sealed class FtsIndexService : IFtsIndexService
 {
     private const int MaxLimit = 100;
+    private const int CompletedArtifactStatus = 1;
+    private const string CurrentIndexVersion = "fts5-v1";
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -82,12 +84,24 @@ public sealed class FtsIndexService : IFtsIndexService
             INNER JOIN SearchChunks c ON c.ChunkId = SearchFts5.rowid
             INNER JOIN Books b ON b.BookId = c.BookId
             LEFT JOIN ExtractedPages ep ON ep.ExtractedPageId = c.ExtractedPageId
+            LEFT JOIN ExtractionArtifacts ea ON ea.ExtractionArtifactId = c.ExtractionArtifactId
             WHERE SearchFts5 MATCH $query
+              AND b.Status = 0
+              AND c.IndexVersion = $indexVersion
+              AND (
+                  c.ExtractionArtifactId IS NULL
+                  OR (
+                      ea.Status = $completedArtifactStatus
+                      AND (ea.ContentHash IS NULL OR b.Sha256Hash IS NULL OR ea.ContentHash = b.Sha256Hash)
+                  )
+              )
             ORDER BY Rank, c.BookId, c.ChunkIndex
             LIMIT $limit;
             """;
         AddParameter(command, "$query", matchQuery);
         AddParameter(command, "$limit", effectiveLimit);
+        AddParameter(command, "$indexVersion", CurrentIndexVersion);
+        AddParameter(command, "$completedArtifactStatus", CompletedArtifactStatus);
 
         var results = new List<FtsSearchResult>();
         using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
@@ -127,6 +141,50 @@ public sealed class FtsIndexService : IFtsIndexService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return new FtsIntegrityResult(false, ex.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FtsCleanupResult> CleanupStaleAsync(CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        try
+        {
+            int removed = await context.Database.ExecuteSqlRawAsync(
+                    """
+                    DELETE FROM SearchChunks
+                    WHERE BookId NOT IN (
+                        SELECT BookId FROM Books WHERE Status = 0
+                    )
+                    OR (
+                        ExtractedPageId IS NOT NULL
+                        AND ExtractedPageId NOT IN (
+                            SELECT ExtractedPageId FROM ExtractedPages
+                        )
+                    )
+                    OR (
+                        ExtractionArtifactId IS NOT NULL
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM ExtractionArtifacts ea
+                            INNER JOIN Books b ON b.BookId = SearchChunks.BookId
+                            WHERE ea.ExtractionArtifactId = SearchChunks.ExtractionArtifactId
+                              AND ea.Status = 1
+                              AND (ea.ContentHash IS NULL OR b.Sha256Hash IS NULL OR ea.ContentHash = b.Sha256Hash)
+                        )
+                    )
+                    OR IndexVersion <> 'fts5-v1';
+                    """,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            FtsIntegrityResult integrity = await CheckIntegrityAsync(cancellationToken).ConfigureAwait(false);
+            return new FtsCleanupResult(removed, integrity.IsHealthy, integrity.ErrorMessage);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new FtsCleanupResult(0, false, ex.Message);
         }
     }
 

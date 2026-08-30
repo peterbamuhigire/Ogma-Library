@@ -87,6 +87,41 @@ public sealed class FtsIndexServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task FtsIndex_CleanupStaleArtifact_RemovesChunksAndPreservesIntegrity()
+    {
+        string bookId = SeedBook("P23STALEARTIFACT0000001", "Stale Artifact Book", null);
+        _context.Books.Single(book => book.BookId == bookId).Sha256Hash = "current-hash";
+        var artifact = new ExtractionArtifactRow
+        {
+            BookId = bookId,
+            ContentHash = "previous-hash",
+            ExtractorVersion = "pdf-text-v1",
+            Status = (int)ExtractionArtifactStatus.Completed,
+            PagesProcessed = 1,
+            ManifestHash = new string('a', 64),
+            CreatedUtc = DateTimeOffset.UtcNow,
+            CompletedUtc = DateTimeOffset.UtcNow,
+        };
+        _context.ExtractionArtifacts.Add(artifact);
+        _context.SaveChanges();
+        await SaveChunksAsync(
+            bookId,
+            SearchChunkSource.Page,
+            "stale artifact marker");
+        SearchChunkRow chunk = _context.SearchChunks.Single(row => row.BookId == bookId);
+        chunk.ExtractionArtifactId = artifact.ExtractionArtifactId;
+        _context.SaveChanges();
+        _context.ChangeTracker.Clear();
+
+        var service = new FtsIndexService(_context);
+        FtsCleanupResult cleanup = await service.CleanupStaleAsync(CancellationToken.None);
+
+        Assert.Equal(1, cleanup.RemovedChunkCount);
+        Assert.True(cleanup.IntegrityHealthy, cleanup.ErrorMessage);
+        Assert.Empty(await service.SearchAsync("stale", 10, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task CombinedSearch_DeduplicatesMetadataAndFtsHitsByBook()
     {
         string bookId = SeedBook("P10FTSBOOK000000000005", "Combined Search Atlas", "Nora Merge");

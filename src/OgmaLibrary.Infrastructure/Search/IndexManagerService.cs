@@ -12,16 +12,19 @@ namespace OgmaLibrary.Infrastructure.Search;
 /// <summary>
 /// Backend service for the Phase 10 Index Manager dashboard and rebuild flow.
 /// </summary>
-public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
+public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel, IDisposable
 {
     private const int ActiveBookStatus = 0;
     private const int RebuildBatchSize = 5;
     private const string OcrJobType = "OcrJob";
+    private const int RebuildRunning = 1;
+    private const int RebuildCompleted = 2;
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly IExtractionPipelineService _pipeline;
     private readonly IFtsIndexService _ftsIndex;
+    private readonly SemaphoreSlim _rebuildGate = new(1, 1);
     private readonly ObservableEvents<IndexStatusUpdate> _events = new();
     private readonly ObservableEvents<SearchIndexEvent> _searchEvents = new();
 
@@ -66,6 +69,9 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
 
     /// <inheritdoc />
     IObservable<SearchIndexEvent> ISearchReadModel.Events => _searchEvents;
+
+    /// <summary>Releases the in-process rebuild gate.</summary>
+    public void Dispose() => _rebuildGate.Dispose();
 
     /// <inheritdoc />
     public async Task<IndexManagerStatus> GetStatusAsync(CancellationToken cancellationToken)
@@ -137,17 +143,18 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     /// <inheritdoc />
     public async Task<IndexRebuildResult> RebuildAsync(CancellationToken cancellationToken)
     {
-        long startedTimestamp = TimeProvider.System.GetTimestamp();
-        _events.Publish(new IndexStatusUpdate.RebuildStarted(DateTimeOffset.UtcNow));
-        await ResetIndexAsync(cancellationToken).ConfigureAwait(false);
-
-        int attempted = 0;
-        int indexed = 0;
-        int failed = 0;
-        int chunksWritten = 0;
-
+        await _rebuildGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            long startedTimestamp = TimeProvider.System.GetTimestamp();
+            _events.Publish(new IndexStatusUpdate.RebuildStarted(DateTimeOffset.UtcNow));
+            SearchRebuildCheckpointRow checkpoint = await LoadOrStartCheckpointAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            int attempted = checkpoint.BooksAttempted;
+            int indexed = checkpoint.BooksIndexed;
+            int failed = checkpoint.BooksFailed;
+            int chunksWritten = checkpoint.ChunksWritten;
             while (!cancellationToken.IsCancellationRequested)
             {
                 ExtractionBatchResult batch = await _pipeline
@@ -162,6 +169,17 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                 indexed += batch.BooksIndexed;
                 failed += batch.BooksFailed;
                 chunksWritten += batch.ChunksWritten;
+                await SaveCheckpointAsync(
+                        checkpoint.SearchRebuildCheckpointId,
+                        RebuildRunning,
+                        attempted,
+                        indexed,
+                        failed,
+                        chunksWritten,
+                        errorMessage: null,
+                        completedUtc: null,
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
             }
 
             FtsIntegrityResult integrity = await _ftsIndex.CheckIntegrityAsync(cancellationToken)
@@ -174,6 +192,17 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                 ChunksWritten: chunksWritten,
                 IntegrityHealthy: integrity.IsHealthy,
                 ErrorMessage: integrity.ErrorMessage);
+            await SaveCheckpointAsync(
+                    checkpoint.SearchRebuildCheckpointId,
+                    RebuildCompleted,
+                    attempted,
+                    indexed,
+                    failed,
+                    chunksWritten,
+                    integrity.ErrorMessage,
+                    DateTimeOffset.UtcNow,
+                    cancellationToken)
+                .ConfigureAwait(false);
             _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
             IndexManagerStatus? status = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
             if (result.Completed && status is not null)
@@ -185,16 +214,13 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
         }
         catch (OperationCanceledException)
         {
-            IndexRebuildResult result = new(
-                Completed: false,
-                BooksAttempted: attempted,
-                BooksIndexed: indexed,
-                BooksFailed: failed,
-                ChunksWritten: chunksWritten,
-                IntegrityHealthy: false,
-                ErrorMessage: "Rebuild cancelled.");
-            _events.Publish(new IndexStatusUpdate.RebuildCompleted(result));
+            // A running checkpoint is intentionally retained. The next rebuild
+            // continues from durable book/page state instead of clearing it.
             throw;
+        }
+        finally
+        {
+            _rebuildGate.Release();
         }
     }
 
@@ -258,6 +284,68 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
 
         await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
         context.ChangeTracker.Clear();
+    }
+
+    private async Task<SearchRebuildCheckpointRow> LoadOrStartCheckpointAsync(
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        List<SearchRebuildCheckpointRow> running = await lease.Context.SearchRebuildCheckpoints
+            .Where(row => row.Status == RebuildRunning)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        SearchRebuildCheckpointRow? existing = running
+            .OrderByDescending(row => row.UpdatedUtc)
+            .FirstOrDefault();
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        _ = await _ftsIndex.CleanupStaleAsync(cancellationToken).ConfigureAwait(false);
+        await ResetIndexAsync(cancellationToken).ConfigureAwait(false);
+
+        var checkpoint = new SearchRebuildCheckpointRow
+        {
+            RebuildId = Guid.NewGuid().ToString("N"),
+            Status = RebuildRunning,
+            StartedUtc = DateTimeOffset.UtcNow,
+            UpdatedUtc = DateTimeOffset.UtcNow,
+        };
+        lease.Context.SearchRebuildCheckpoints.Add(checkpoint);
+        await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return checkpoint;
+    }
+
+    private async Task SaveCheckpointAsync(
+        long checkpointId,
+        int status,
+        int attempted,
+        int indexed,
+        int failed,
+        int chunksWritten,
+        string? errorMessage,
+        DateTimeOffset? completedUtc,
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        SearchRebuildCheckpointRow? checkpoint = await lease.Context.SearchRebuildCheckpoints
+            .FirstOrDefaultAsync(row => row.SearchRebuildCheckpointId == checkpointId, cancellationToken)
+            .ConfigureAwait(false);
+        if (checkpoint is null)
+        {
+            return;
+        }
+
+        checkpoint.Status = status;
+        checkpoint.BooksAttempted = attempted;
+        checkpoint.BooksIndexed = indexed;
+        checkpoint.BooksFailed = failed;
+        checkpoint.ChunksWritten = chunksWritten;
+        checkpoint.ErrorMessage = errorMessage;
+        checkpoint.CompletedUtc = completedUtc;
+        checkpoint.UpdatedUtc = DateTimeOffset.UtcNow;
+        await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IndexManagerStatus?> PublishStatusAsync(CancellationToken cancellationToken)
