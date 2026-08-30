@@ -40,14 +40,18 @@ public sealed class DeterministicAdvisorFallback
             .Select(field => new ProvenanceItem(
                 new BookId(candidate.BookId),
                 field,
-                FieldValue(candidate, field)))
+                FieldValue(candidate, field),
+                $"metadata.{field.ToString().ToLowerInvariant()}",
+                "advisor-evidence-v1"))
             .ToList();
         if (provenance.Count == 0)
         {
             provenance.Add(new ProvenanceItem(
                 new BookId(candidate.BookId),
                 RecommendationMatchField.Title,
-                candidate.Title ?? candidate.BookId));
+                candidate.Title ?? candidate.BookId,
+                "metadata.title",
+                "advisor-evidence-v1"));
         }
 
         double score = AdvisorCandidateRanker.Score(candidate, intent);
