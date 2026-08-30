@@ -17,7 +17,7 @@ Execution branch: `main`
 | 7 | Discovery and Incremental Scanning | IN PROGRESS | 2026-08-30 | — | Scanner core delivered; final cursor/diagnostics/benchmark gate remains in phase-07-progress.md |
 | 8 | Filesystem Reconciliation and Recovery | IN PROGRESS | 2026-08-30 | — | Evidence-gated presence reconciliation delivered; move/replacement/grace gates remain in phase-08-progress.md |
 | 9 | Duplicate and Bibliographic Resolution | IN PROGRESS | 2026-08-30 | — | Durable conservative decision recording delivered; merge/split and scale gates remain in phase-09-progress.md |
-| 10 | PDF Validation and Containment | NOT STARTED | â€” | â€” | Push checkpoint after completion |
+| 10 | PDF Validation and Containment | IN PROGRESS | 2026-08-30 | — | Root-bounded validation broker delivered; sandbox/password/resource gates remain in phase-10-progress.md |
 | 11 | PDF Extraction and ISBN Primitives | NOT STARTED | â€” | â€” | â€” |
 | 12 | Canonical Metadata and Provenance | NOT STARTED | â€” | â€” | â€” |
 | 13 | Bibliographic Provider Gateway | NOT STARTED | â€” | â€” | â€” |

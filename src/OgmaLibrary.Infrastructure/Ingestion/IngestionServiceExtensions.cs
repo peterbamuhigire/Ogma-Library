@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Pdf;
@@ -37,6 +38,7 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IProcessingStateService, ProcessingStateService>();
         services.AddSingleton<IIncrementalDiscoveryService, IncrementalDiscoveryService>();
         services.AddSingleton<IFilesystemReconciliationService, FilesystemReconciliationService>();
+        services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
         services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();
