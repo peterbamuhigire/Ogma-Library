@@ -39,6 +39,8 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IIncrementalDiscoveryService, IncrementalDiscoveryService>();
         services.AddSingleton<IFilesystemReconciliationService, FilesystemReconciliationService>();
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
+        services.AddSingleton<IVisualAssetService>(sp => new VisualAssetService(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
         services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();

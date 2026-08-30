@@ -205,6 +205,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Pending and decided metadata review proposals.</summary>
     public DbSet<MetadataProposalRow> MetadataProposals => Set<MetadataProposalRow>();
 
+    /// <summary>Versioned visual asset manifests shared by 2D and 3D consumers.</summary>
+    public DbSet<VisualAssetManifestRow> VisualAssetManifests => Set<VisualAssetManifestRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -250,6 +253,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ExtractionArtifactConfiguration());
         modelBuilder.ApplyConfiguration(new ProviderCacheEntryConfiguration());
         modelBuilder.ApplyConfiguration(new MetadataProposalConfiguration());
+        modelBuilder.ApplyConfiguration(new VisualAssetManifestConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());

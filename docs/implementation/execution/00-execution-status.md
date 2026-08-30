@@ -51,3 +51,7 @@ Execution branch: `main`
 Status changes require implementation evidence, tests and a phase completion
 record. A historical phase label is not evidence of completion against this
 roadmap.
+
+Current evidence override: Phase 16 is IN PROGRESS as documented in
+`phase-16-progress.md`; the legacy table row will be normalized with the next
+status-file encoding cleanup.

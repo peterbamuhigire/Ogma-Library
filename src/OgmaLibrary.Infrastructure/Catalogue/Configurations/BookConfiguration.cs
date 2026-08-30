@@ -98,5 +98,10 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
             .WithMany(e => e.Books)
             .HasForeignKey(b => b.EditionId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasMany(b => b.VisualAssets)
+            .WithOne(asset => asset.Book)
+            .HasForeignKey(asset => asset.BookId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

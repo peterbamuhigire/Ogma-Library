@@ -117,6 +117,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ShelfIds = b.ShelfBooks
                     .Select(sb => sb.ShelfId)
                     .ToList(),
+                CoverRelativePath = b.VisualAssets
+                    .Where(asset => asset.Kind == (int)VisualAssetKind.Cover &&
+                                    asset.Status == (int)VisualAssetStatus.Ready)
+                    .OrderByDescending(asset => asset.IsCustom)
+                    .ThenBy(asset => asset.Variant)
+                    .Select(asset => asset.RelativePath)
+                    .FirstOrDefault(),
                 Progress = b.ReadingProgress,
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
                 PrimaryRelativePath = b.BookFiles
@@ -148,7 +155,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 BookId: item.BookId,
                 Title: ResolveTitle(item.Title, fields, item.PrimaryRelativePath, item.BookId),
                 Authors: ResolveAuthors(item.Authors, fields),
-                CoverRelativePath: null, // Phase 05 populates covers
+                CoverRelativePath: item.CoverRelativePath,
                 Status: item.Status,
                 Rating: item.Rating,
                 ShelfIds: item.ShelfIds,
@@ -197,6 +204,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .OrderBy(f => f.FileStatus)
                     .ThenBy(f => f.BookFileId)
                     .Select(f => f.RelativePath)
+                    .FirstOrDefault(),
+                CoverRelativePath = b.VisualAssets
+                    .Where(asset => asset.Kind == (int)VisualAssetKind.Cover &&
+                                    asset.Status == (int)VisualAssetStatus.Ready)
+                    .OrderByDescending(asset => asset.IsCustom)
+                    .ThenBy(asset => asset.Variant)
+                    .Select(asset => asset.RelativePath)
                     .FirstOrDefault(),
                 b.Sha256Hash,
                 b.SizeBytes,
@@ -250,7 +264,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             Doi: result.Doi,
             Rating: result.Rating,
             Status: result.Status,
-            CoverRelativePath: null,
+            CoverRelativePath: result.CoverRelativePath,
             RelativePath: result.RelativePath ?? result.PrimaryRelativePath,
             Sha256Hash: result.Sha256Hash,
             SizeBytes: result.SizeBytes,

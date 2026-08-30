@@ -16,13 +16,14 @@ public sealed class SpineService : ISpineService
 
     private readonly ISidecarService _sidecar;
     private readonly PdfWorkerClient _workerClient;
+    private readonly IVisualAssetService? _visualAssets;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SpineService"/>.
     /// </summary>
     /// <param name="sidecar">The sidecar service used to resolve output paths.</param>
     public SpineService(ISidecarService sidecar)
-        : this(sidecar, new PdfWorkerClient())
+        : this(sidecar, new PdfWorkerClient(), null)
     {
     }
 
@@ -32,11 +33,21 @@ public sealed class SpineService : ISpineService
     /// <param name="sidecar">The sidecar service used to resolve output paths.</param>
     /// <param name="workerClient">The isolated PDF worker client.</param>
     public SpineService(ISidecarService sidecar, PdfWorkerClient workerClient)
+        : this(sidecar, workerClient, null)
+    {
+    }
+
+    /// <summary>Initializes the generator with durable manifest registration.</summary>
+    public SpineService(
+        ISidecarService sidecar,
+        PdfWorkerClient workerClient,
+        IVisualAssetService? visualAssets)
     {
         ArgumentNullException.ThrowIfNull(sidecar);
         ArgumentNullException.ThrowIfNull(workerClient);
         _sidecar = sidecar;
         _workerClient = workerClient;
+        _visualAssets = visualAssets;
     }
 
     /// <inheritdoc />
@@ -58,6 +69,21 @@ public sealed class SpineService : ISpineService
             {
                 _workerClient.GenerateSpine(absoluteFilePath, outputPath);
             }, cancellationToken).ConfigureAwait(false);
+
+            if (_visualAssets is not null)
+            {
+                await _visualAssets.RegisterGeneratedAsync(
+                    bookId,
+                    contentHash,
+                    VisualAssetKind.Spine,
+                    "default",
+                    _sidecar.ResolveRelative(contentHash, SidecarClass.Spines),
+                    SpineWidth,
+                    SpineHeight,
+                    "jpg",
+                    generationVersion: 1,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
 
             return (true, null);
         }

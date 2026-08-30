@@ -85,6 +85,9 @@ public sealed class BookRow
     /// <summary>Navigation: optional edition.</summary>
     public EditionRow? Edition { get; set; }
 
+    /// <summary>Navigation: versioned cover, thumbnail, and spine manifests.</summary>
+    public List<VisualAssetManifestRow> VisualAssets { get; set; } = [];
+
     /// <summary>
     /// Metadata quality score in [0.0, 1.0] computed from field completeness and
     /// average confidence (FR-META-007). Updated by the quality service after any
