@@ -51,6 +51,10 @@ public sealed class AiGateway : IAiGateway
     public async Task<AiCompletion> SendAsync(AiRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (!string.Equals(_provider.ProviderKey, request.Provider, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AiTierViolationException("The configured AI provider does not match the requested provider.");
+        }
         AiPrivacyTier activeTier = _privacy.GetActiveTier();
         EnsureTierAllowed(activeTier, request);
 
@@ -75,6 +79,10 @@ public sealed class AiGateway : IAiGateway
         {
             AiCompletion completion = await _provider.CompleteAsync(request, cancellationToken)
                 .ConfigureAwait(false);
+            if (isLocal && !completion.IsLocal)
+            {
+                throw new AiTierViolationException("A local AI request returned a non-local completion.");
+            }
 
             if (!isLocal)
             {

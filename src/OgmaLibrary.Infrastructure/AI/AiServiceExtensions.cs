@@ -39,4 +39,18 @@ public static class AiServiceExtensions
         services.AddHttpClient("ai:ollama", client => client.BaseAddress = new Uri("http://localhost:11434/"));
         return services;
     }
+
+    /// <summary>
+    /// Adds the fail-closed desktop runtime gateway. The disabled provider and
+    /// offline privacy tier keep AI unavailable until an explicit runtime
+    /// provider/consent configuration is supplied.
+    /// </summary>
+    public static IServiceCollection AddFailClosedAiRuntime(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddSingleton<IAiProvider, AiDisabledProvider>();
+        services.AddSingleton<IAiPreviewGate, FailClosedPreviewGate>();
+        services.AddSingleton<IAiGateway, AiGateway>();
+        return services;
+    }
 }

@@ -150,8 +150,10 @@ public sealed class ArchitectureTests
             descriptor.ImplementationType?.Namespace?.StartsWith(
                 "OgmaLibrary.Infrastructure.LanHost",
                 StringComparison.Ordinal) == true);
-        Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IAiProvider));
-        Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IAiGateway));
+        Assert.Contains(services, descriptor =>
+            descriptor.ServiceType == typeof(IAiProvider) &&
+            descriptor.ImplementationType == typeof(AiDisabledProvider));
+        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IAiGateway));
     }
 
     [Fact]
@@ -177,8 +179,9 @@ public sealed class ArchitectureTests
 
         Assert.DoesNotContain(services, descriptor =>
             descriptor.ServiceType == typeof(IMetadataProvider));
-        Assert.DoesNotContain(services, descriptor =>
-            descriptor.ServiceType == typeof(IAiProvider));
+        Assert.Contains(services, descriptor =>
+            descriptor.ServiceType == typeof(IAiProvider) &&
+            descriptor.ImplementationType == typeof(AiDisabledProvider));
     }
 
     [Fact]

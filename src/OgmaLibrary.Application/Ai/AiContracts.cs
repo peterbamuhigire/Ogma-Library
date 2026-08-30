@@ -11,6 +11,18 @@ public sealed record AiContentChunk(
 /// <summary>Provider-neutral AI request passed through the gateway.</summary>
 public sealed record AiRequest
 {
+    /// <summary>Maximum query text length accepted by the gateway contract.</summary>
+    public const int MaxQueryTextLength = 4_096;
+
+    /// <summary>Maximum number of metadata fields in one request.</summary>
+    public const int MaxMetadataFields = 100;
+
+    /// <summary>Maximum number of content chunks in one request.</summary>
+    public const int MaxContentChunks = 50;
+
+    /// <summary>Maximum text length of one content chunk.</summary>
+    public const int MaxContentChunkLength = 8_192;
+
     /// <summary>Creates a provider-neutral AI request.</summary>
     public AiRequest(
         AiPrivacyTier tier,
@@ -34,6 +46,21 @@ public sealed record AiRequest
             throw new ArgumentException(
                 "Content chunks are forbidden for metadata-only AI requests.",
                 nameof(contentChunks));
+        }
+        if (queryText?.Length > MaxQueryTextLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(queryText), "AI query text exceeds the local request limit.");
+        }
+        if (MetadataFields.Count > MaxMetadataFields)
+        {
+            throw new ArgumentOutOfRangeException(nameof(metadataFields), "AI metadata field count exceeds the local request limit.");
+        }
+        if (ContentChunks.Count > MaxContentChunks ||
+            ContentChunks.Any(chunk => string.IsNullOrWhiteSpace(chunk.BookId) ||
+                                       string.IsNullOrWhiteSpace(chunk.Source) ||
+                                       chunk.Text.Length > MaxContentChunkLength))
+        {
+            throw new ArgumentOutOfRangeException(nameof(contentChunks), "AI content exceeds the local request limit.");
         }
 
         Tier = tier;

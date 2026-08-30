@@ -112,6 +112,24 @@ public sealed class AiGatewayTests
     }
 
     [Fact]
+    public async Task AiGateway_RejectsProviderMismatchBeforeEgress()
+    {
+        var provider = new FakeProvider();
+        AiGateway gateway = CreateGateway(provider);
+        AiRequest request = new(
+            AiPrivacyTier.MetadataOnly,
+            "anthropic",
+            "claude-test",
+            "recommendation",
+            "recommend");
+
+        await Assert.ThrowsAsync<AiTierViolationException>(() =>
+            gateway.SendAsync(request, CancellationToken.None));
+
+        Assert.Equal(0, provider.CallCount);
+    }
+
+    [Fact]
     public void AiPayloadBuilder_HashChangesWhenPayloadChanges()
     {
         var builder = new AiPayloadBuilder();

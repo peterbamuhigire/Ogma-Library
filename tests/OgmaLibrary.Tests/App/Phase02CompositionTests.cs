@@ -5,6 +5,7 @@ using OgmaLibrary.App.Startup;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Tests.App;
@@ -26,8 +27,10 @@ public sealed class Phase02CompositionTests
             });
 
             Assert.DoesNotContain(descriptors, item => item.ServiceType == typeof(IMetadataProvider));
-            Assert.DoesNotContain(descriptors, item => item.ServiceType == typeof(IAiProvider));
-            Assert.DoesNotContain(descriptors, item => item.ServiceType == typeof(IAiGateway));
+            Assert.Contains(descriptors, item =>
+                item.ServiceType == typeof(IAiProvider) &&
+                item.ImplementationType == typeof(AiDisabledProvider));
+            Assert.Contains(descriptors, item => item.ServiceType == typeof(IAiGateway));
             Assert.Single(descriptors, item => item.ServiceType == typeof(PdfWorkerClient));
 
             using ServiceProvider services = descriptors.BuildServiceProvider(
@@ -59,8 +62,10 @@ public sealed class Phase02CompositionTests
             });
 
             Assert.Equal(2, descriptors.Count(item => item.ServiceType == typeof(IMetadataProvider)));
-            Assert.DoesNotContain(descriptors, item => item.ServiceType == typeof(IAiProvider));
-            Assert.DoesNotContain(descriptors, item => item.ServiceType == typeof(IAiGateway));
+            Assert.Contains(descriptors, item =>
+                item.ServiceType == typeof(IAiProvider) &&
+                item.ImplementationType == typeof(AiDisabledProvider));
+            Assert.Contains(descriptors, item => item.ServiceType == typeof(IAiGateway));
 
             using ServiceProvider services = descriptors.BuildServiceProvider(
                 new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });

@@ -75,6 +75,30 @@ public sealed class AiContractTests
     }
 
     [Fact]
+    public void AiRequest_BoundsOutboundPayloadSize()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new AiRequest(
+                AiPrivacyTier.MetadataOnly,
+                "openai",
+                "gpt-test",
+                "recommendation",
+                new string('q', AiRequest.MaxQueryTextLength + 1)));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new AiRequest(
+                AiPrivacyTier.ContentAware,
+                "ollama",
+                "local-model",
+                "answer",
+                "query",
+                contentChunks:
+                [
+                    new AiContentChunk("book-1", "page:1", new string('x', AiRequest.MaxContentChunkLength + 1)),
+                ]));
+    }
+
+    [Fact]
     public void AiPayloadPreview_CharacterCount_IncludesExactFields()
     {
         var preview = new AiPayloadPreview(

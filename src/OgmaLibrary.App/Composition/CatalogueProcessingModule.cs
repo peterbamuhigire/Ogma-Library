@@ -4,6 +4,7 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.AI;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Metadata;
@@ -29,6 +30,7 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
         services.AddMetadataEnrichment(
             options.LibraryRoot,
             options.EnableExternalMetadataProviders);
+        services.AddAiGatewayCore().AddFailClosedAiRuntime();
 
         services.AddSingleton<JobRecoveryService>();
         services.AddSingleton<IOcrProvider, TesseractOcrProvider>();
