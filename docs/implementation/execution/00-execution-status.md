@@ -21,7 +21,7 @@ Execution branch: `main`
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-08-30 | — | Versioned extraction artifact lifecycle and input broker delivered; pipeline/quality evidence gates remain in phase-11-progress.md |
 | 12 | Canonical Metadata and Provenance | IN PROGRESS | 2026-08-30 | — | User override precedence and proposal validation delivered; canonical scope/provenance gates remain in phase-12-progress.md |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | 2026-08-30 | — | Durable normalized provider cache and failure isolation delivered; quota/backoff/conflict/privacy gates remain in phase-13-progress.md |
-| 14 | Metadata Review and Manual Curation | NOT STARTED | â€” | â€” | â€” |
+| 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue and explicit review commands delivered; concurrency/undo/UI gates remain in phase-14-progress.md |
 | 15 | Safe Writeback and Override Protection | NOT STARTED | â€” | â€” | Metadata freeze and push checkpoint |
 | 16 | Cover, Thumbnail and Spine Assets | NOT STARTED | â€” | â€” | â€” |
 | 17 | Worker Reliability and Observability | NOT STARTED | â€” | â€” | â€” |

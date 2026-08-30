@@ -202,6 +202,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Cached external metadata provider responses.</summary>
     public DbSet<ProviderCacheEntryRow> ProviderCacheEntries => Set<ProviderCacheEntryRow>();
 
+    /// <summary>Pending and decided metadata review proposals.</summary>
+    public DbSet<MetadataProposalRow> MetadataProposals => Set<MetadataProposalRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -246,6 +249,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new DirectoryCheckpointConfiguration());
         modelBuilder.ApplyConfiguration(new ExtractionArtifactConfiguration());
         modelBuilder.ApplyConfiguration(new ProviderCacheEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new MetadataProposalConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());
