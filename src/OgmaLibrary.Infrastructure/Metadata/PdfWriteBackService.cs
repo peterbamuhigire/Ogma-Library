@@ -6,6 +6,7 @@ using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Pathing;
 using PdfSharp.Pdf.IO;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using PdfPigParsingOptions = UglyToad.PdfPig.ParsingOptions;
@@ -177,6 +178,14 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             .ConfigureAwait(false);
 
         string originalPath = backupToken.OriginalAbsolutePath;
+        string currentSha256 = await ComputeSha256Async(originalPath, cancellationToken)
+            .ConfigureAwait(false);
+        if (!string.Equals(currentSha256, backupToken.OriginalSha256, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "The source PDF changed after the write-back preview. Create a new backup and review the diff.");
+        }
+
         string tempPath = originalPath + ".ogma_tmp";
 
         try
@@ -376,9 +385,16 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string fullPath = Path.GetFullPath(absolutePath);
         string fullRoot = Path.GetFullPath(libraryRoot);
 
-        if (IsUnderRoot(fullPath, fullRoot))
+        try
         {
+            PathGuard.EnsureWithinRoot(fullPath, fullRoot);
             return fullRoot;
+        }
+        catch (PathTraversalException)
+        {
+            // A legacy direct-open file may be registered as an exact external
+            // absolute path; that compatibility path is checked below by exact
+            // equality and is never accepted through prefix matching.
         }
 
         if (await IsRegisteredAbsoluteFileAsync(bookId, fullPath, cancellationToken)
@@ -445,15 +461,6 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         }
 
         return false;
-    }
-
-    private static bool IsUnderRoot(string fullPath, string fullRoot)
-    {
-        string rootWithSeparator = Path.TrimEndingDirectorySeparator(fullRoot)
-            + Path.DirectorySeparatorChar;
-
-        return string.Equals(fullPath, fullRoot, PathComparison) ||
-            fullPath.StartsWith(rootWithSeparator, PathComparison);
     }
 
     private static StringComparison PathComparison =>

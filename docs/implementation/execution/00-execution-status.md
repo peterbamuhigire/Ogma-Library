@@ -22,7 +22,7 @@ Execution branch: `main`
 | 12 | Canonical Metadata and Provenance | IN PROGRESS | 2026-08-30 | — | User override precedence and proposal validation delivered; canonical scope/provenance gates remain in phase-12-progress.md |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | 2026-08-30 | — | Durable normalized provider cache and failure isolation delivered; quota/backoff/conflict/privacy gates remain in phase-13-progress.md |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue and explicit review commands delivered; concurrency/undo/UI gates remain in phase-14-progress.md |
-| 15 | Safe Writeback and Override Protection | NOT STARTED | â€” | â€” | Metadata freeze and push checkpoint |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | 2026-08-30 | — | Canonical path and source-change guards delivered; durable plans/consent/invalidation gates remain in phase-15-progress.md |
 | 16 | Cover, Thumbnail and Spine Assets | NOT STARTED | â€” | â€” | â€” |
 | 17 | Worker Reliability and Observability | NOT STARTED | â€” | â€” | â€” |
 | 18 | Ogma Design System and Application Shell | NOT STARTED | â€” | â€” | â€” |
