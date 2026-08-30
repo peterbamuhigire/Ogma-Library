@@ -217,8 +217,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .FirstOrDefault(),
                 b.Sha256Hash,
                 b.SizeBytes,
-                b.IsOcrDerived,
-                b.IsPasswordProtected,
+                 b.IsOcrDerived,
+                 b.IsPasswordProtected,
+                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
                     .Select(ba => ba.Author!.NormalizedName)
@@ -276,8 +277,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             MetadataFields: fields,
             ReadingMemory: memory,
             IsOcrDerived: result.IsOcrDerived,
-            IsPasswordProtected: result.IsPasswordProtected,
-            IsFavourite: result.IsFavourite);
+             IsPasswordProtected: result.IsPasswordProtected,
+             IsFavourite: result.IsFavourite,
+             IsAvailable: result.HasPresentFile);
     }
 
     private static string ResolveTitle(

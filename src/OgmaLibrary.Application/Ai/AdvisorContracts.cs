@@ -26,6 +26,7 @@ public sealed record RecommendationQuery
         MaxResults = maxResults;
         ExcludeAlreadyRead = excludeAlreadyRead;
         ShelfFilter = shelfFilter;
+        Intent = AdvisorIntentParser.Parse(queryText);
     }
 
     /// <summary>The user's recommendation request.</summary>
@@ -39,6 +40,9 @@ public sealed record RecommendationQuery
 
     /// <summary>Optional shelf identifier to constrain candidates.</summary>
     public string? ShelfFilter { get; }
+
+    /// <summary>Deterministic, editable intent extracted from <see cref="QueryText"/>.</summary>
+    public AdvisorIntent Intent { get; }
 }
 
 /// <summary>Local catalogue metadata eligible for Tier-1 advisor prompts.</summary>
@@ -52,7 +56,8 @@ public sealed record BookMetadataDto(
     string? Notes,
     int? Year,
     IReadOnlyList<string> ShelfIds,
-    double? ReadingProgressPct);
+    double? ReadingProgressPct,
+    int? PageCount = null);
 
 /// <summary>Token-bounded metadata payload sent through the AI gateway.</summary>
 /// <param name="Candidates">Candidate books included in the payload.</param>

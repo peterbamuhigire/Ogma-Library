@@ -56,6 +56,7 @@ public sealed record BookSummaryProjection(
 /// <param name="IsOcrDerived">Whether searchable text for this book came from OCR.</param>
 /// <param name="IsPasswordProtected">Whether the source PDF is password-protected.</param>
 /// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
+/// <param name="IsAvailable">Whether at least one library file is currently present.</param>
 public sealed record BookDetailProjection(
     string BookId,
     string? Title,
@@ -75,7 +76,8 @@ public sealed record BookDetailProjection(
     ReadingMemorySummaryProjection? ReadingMemory = null,
     bool IsOcrDerived = false,
     bool IsPasswordProtected = false,
-    bool IsFavourite = false);
+    bool IsFavourite = false,
+    bool IsAvailable = true);
 
 /// <summary>
 /// Compact reading-memory data surfaced in the book-detail panel.

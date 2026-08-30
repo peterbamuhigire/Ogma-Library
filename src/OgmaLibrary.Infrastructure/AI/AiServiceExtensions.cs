@@ -30,6 +30,7 @@ public static class AiServiceExtensions
         services.AddSingleton<IRecommendationStructuralValidator, RecommendationStructuralValidator>();
         services.AddSingleton<IHybridRankerConsumer, HybridRankerConsumer>();
         services.AddSingleton<IHybridRecommendationMerger, HybridRecommendationMerger>();
+        services.AddSingleton<AdvisorCandidateRanker>();
         services.AddSingleton<IRecommendationPipeline, RecommendationPipeline>();
         services.AddSingleton<IReadingPlanParser, ReadingPlanParser>();
         services.AddSingleton<IReadingPlanPipeline, ReadingPlanPipeline>();

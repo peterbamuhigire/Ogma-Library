@@ -65,6 +65,14 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         {
             ["prompt.template"] = RecommendationPromptTemplate.Load(),
             ["query.max_results"] = query.MaxResults.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["intent.version"] = query.Intent.Version,
+            ["intent.positive_terms"] = string.Join(", ", query.Intent.PositiveTerms),
+            ["intent.negative_terms"] = string.Join(", ", query.Intent.NegativeTerms),
+            ["intent.mood"] = string.Join(", ", query.Intent.MoodTerms),
+            ["intent.difficulty"] = query.Intent.Difficulty?.ToString() ?? "any",
+            ["intent.length"] = query.Intent.Length.ToString(),
+            ["intent.comparison_reference"] = query.Intent.ComparisonReference ?? string.Empty,
+            ["intent.broad_discovery"] = query.Intent.IsBroadDiscovery.ToString(),
         };
 
         AiRequest request = new(
@@ -75,7 +83,22 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             query.QueryText,
             fields);
 
-        AiCompletion completion = await _gateway.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        AiCompletion completion;
+        try
+        {
+            completion = await _gateway.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (AiDisabledException)
+        {
+            return DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
+        }
+        catch (AiTierViolationException)
+        {
+            // A disabled/mismatched provider is a local availability condition;
+            // the catalogue remains safe to rank without hiding explicit preview
+            // cancellation or missing cloud consent.
+            return DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
+        }
         IReadOnlyList<RecommendationCard> parsed = _parser.Parse(completion.Text, options.Model, options.Tier);
         IReadOnlyList<RecommendationCard> localOnly = _provenanceValidator.Validate(
             parsed,

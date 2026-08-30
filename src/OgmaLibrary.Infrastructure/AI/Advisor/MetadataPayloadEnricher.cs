@@ -30,6 +30,7 @@ public sealed class MetadataPayloadEnricher : IMetadataPayloadEnricher
             Add($"books.{index}.year", candidate.Year?.ToString(System.Globalization.CultureInfo.InvariantCulture), ShortFieldLimit, fields, ref estimated);
             Add($"books.{index}.tags", Join(candidate.Tags), ShortFieldLimit, fields, ref estimated);
             Add($"books.{index}.categories", Join(candidate.Categories), ShortFieldLimit, fields, ref estimated);
+            Add($"books.{index}.pages", candidate.PageCount?.ToString(System.Globalization.CultureInfo.InvariantCulture), ShortFieldLimit, fields, ref estimated);
             Add($"books.{index}.description", candidate.Description, LongFieldLimit, fields, ref estimated);
             Add($"books.{index}.notes", candidate.Notes, LongFieldLimit, fields, ref estimated);
 

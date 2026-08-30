@@ -19,3 +19,5 @@ Rules:
 - Every card must include at least one provenance item.
 - Prefer diverse, useful recommendations over repeating near-duplicates.
 - If the query is broad, rank accessible starting points first.
+- Treat intent.negative_terms as hard exclusions and honour difficulty, length, mood and comparison_reference when evidence exists.
+- The intent fields are deterministic retrieval hints; catalogue metadata remains the only source of book identity.

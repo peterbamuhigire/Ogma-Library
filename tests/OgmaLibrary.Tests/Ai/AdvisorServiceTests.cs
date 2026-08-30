@@ -57,14 +57,17 @@ public sealed class AdvisorServiceTests
     }
 
     [Fact]
-    public async Task GetAnswerAsync_ReturnsNotImplemented_Before_V2()
+    public async Task GetAnswerAsync_ReturnsUnavailableScaffold_Before_V2()
     {
         AdvisorService service = CreateService(AiPrivacyTier.MetadataOnly);
 
-        NotImplementedException ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
-            service.GetAnswerAsync(new AnswerRequest("What does this book say about systems?"), CancellationToken.None));
+        AnswerResponse response = await service.GetAnswerAsync(
+            new AnswerRequest("What does this book say about systems?"),
+            CancellationToken.None);
 
-        Assert.Equal("Answer mode is V2; coming in a future release.", ex.Message);
+        Assert.False(response.IsV2);
+        Assert.Empty(response.Citations);
+        Assert.Contains("not configured", response.Answer, StringComparison.OrdinalIgnoreCase);
     }
 
     private static AdvisorService CreateService(
