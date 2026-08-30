@@ -14,6 +14,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 public sealed class MetadataSearchService : IMetadataSearchService
 {
     private const int MaxResults = 50;
+    private const int MaxQueryLength = 128;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -44,7 +45,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
         CancellationToken cancellationToken)
     {
         string normalizedQuery = NormalizeQuery(query);
-        if (normalizedQuery.Length == 0)
+        if (normalizedQuery.Length == 0 || normalizedQuery.Length > MaxQueryLength)
         {
             return [];
         }
@@ -75,7 +76,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return books
+        List<MetadataSearchResult> exactResults = books
             .Select(book => ScoreBook(book, normalizedQuery))
             .Where(result => result.Score > 0)
             .OrderByDescending(result => result.Score)
@@ -83,6 +84,113 @@ public sealed class MetadataSearchService : IMetadataSearchService
             .ThenBy(result => result.BookId, StringComparer.Ordinal)
             .Take(MaxResults)
             .ToList();
+
+        if (exactResults.Count > 0)
+        {
+            return exactResults;
+        }
+
+        return await FuzzyFallbackAsync(context, normalizedQuery, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<IReadOnlyList<MetadataSearchResult>> FuzzyFallbackAsync(
+        CatalogueDbContext context,
+        string query,
+        CancellationToken cancellationToken)
+    {
+        // Select only title/first-author scalars for the bounded fallback. This
+        // avoids materializing complete entity graphs and is used only after the
+        // indexed/literal path found no result.
+        var candidates = await context.Books
+            .AsNoTracking()
+            .Select(book => new
+            {
+                book.BookId,
+                book.Title,
+                Author = book.BookAuthors
+                    .OrderBy(author => author.DisplayOrder)
+                    .Select(author => author.Author!.NormalizedName)
+                    .FirstOrDefault(),
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return candidates
+            .Select(candidate =>
+            {
+                int titleDistance = LevenshteinDistance(candidate.Title, query);
+                int authorDistance = LevenshteinDistance(candidate.Author, query);
+                int distance = Math.Min(titleDistance, authorDistance);
+                string field = titleDistance <= authorDistance ? "title:fuzzy" : "author:fuzzy";
+                string? matchedValue = titleDistance <= authorDistance ? candidate.Title : candidate.Author;
+                return new
+                {
+                    candidate.BookId,
+                    candidate.Title,
+                    candidate.Author,
+                    distance,
+                    field,
+                    matchedValue,
+                };
+            })
+            .Where(candidate => candidate.matchedValue is not null &&
+                                candidate.distance <= FuzzyDistanceLimit(query.Length, candidate.matchedValue.Length))
+            .OrderBy(candidate => candidate.distance)
+            .ThenBy(candidate => candidate.Title, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(candidate => candidate.BookId, StringComparer.Ordinal)
+            .Take(MaxResults)
+            .Select(candidate => new MetadataSearchResult(
+                candidate.BookId,
+                candidate.Title,
+                candidate.Author,
+                Score: Math.Max(1, 45 - candidate.distance * 5),
+                MatchedFields: [candidate.field]))
+            .ToList();
+    }
+
+    private static int FuzzyDistanceLimit(int queryLength, int candidateLength) =>
+        Math.Clamp(Math.Max(queryLength, candidateLength) / 3, 2, 4);
+
+    private static int LevenshteinDistance(string? value, string query)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return int.MaxValue / 2;
+        }
+
+        string target = query.ToUpperInvariant();
+        string[] tokens = value
+            .Split([' ', '.', ',', ';', ':', '-', '_', '\\', '/'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(token => token.ToUpperInvariant())
+            .ToArray();
+        int best = LevenshteinDistanceCore(value.Trim().ToUpperInvariant(), target);
+        foreach (string token in tokens)
+        {
+            best = Math.Min(best, LevenshteinDistanceCore(token, target));
+        }
+
+        return best;
+    }
+
+    private static int LevenshteinDistanceCore(string candidate, string target)
+    {
+        int[] previous = Enumerable.Range(0, target.Length + 1).ToArray();
+        int[] current = new int[target.Length + 1];
+
+        for (int row = 1; row <= candidate.Length; row++)
+        {
+            current[0] = row;
+            for (int column = 1; column <= target.Length; column++)
+            {
+                int substitution = previous[column - 1] + (candidate[row - 1] == target[column - 1] ? 0 : 1);
+                current[column] = Math.Min(
+                    Math.Min(current[column - 1] + 1, previous[column] + 1),
+                    substitution);
+            }
+
+            (previous, current) = (current, previous);
+        }
+        return previous[target.Length];
     }
 
     private static MetadataSearchResult ScoreBook(BookRow book, string query)

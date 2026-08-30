@@ -75,3 +75,7 @@ status-file encoding cleanup.
 Current evidence override: Phase 21 is IN PROGRESS as documented in
 `phase-21-progress.md`; the legacy table row will be normalized with the next
 status-file encoding cleanup.
+
+Current evidence override: Phase 22 is IN PROGRESS as documented in
+`phase-22-progress.md`; the legacy table row will be normalized with the next
+status-file encoding cleanup.

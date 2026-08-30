@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Search;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Search;
@@ -96,6 +97,19 @@ public sealed class MetadataSearchServiceTests : IDisposable
         var results = await service.SearchAsync("C# Patterns (2026)", CancellationToken.None);
 
         Assert.Contains(results, result => result.BookId == "P10METACHARS0000000001");
+    }
+
+    [Fact]
+    public async Task MetadataSearch_TypoTolerance_FindsTolkien()
+    {
+        SeedBook("P22FUZZYTOLKIEN0000001", "The Hobbit", "J.R.R. Tolkien");
+        var service = new MetadataSearchService(_context);
+
+        var results = await service.SearchAsync("tolkein", CancellationToken.None);
+
+        MetadataSearchResult match = Assert.Single(results);
+        Assert.Equal("P22FUZZYTOLKIEN0000001", match.BookId);
+        Assert.Contains("author:fuzzy", match.MatchedFields);
     }
 
     [Fact]
