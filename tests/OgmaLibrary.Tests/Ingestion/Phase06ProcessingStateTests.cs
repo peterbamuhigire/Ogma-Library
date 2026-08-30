@@ -47,6 +47,11 @@ public sealed class Phase06ProcessingStateTests : IDisposable
         Assert.Equal(1, lease.Attempt);
         Assert.Null(await _service.ClaimNextAsync("Discovery", "worker-b", TimeSpan.FromMinutes(1)));
 
+        ScanSessionDescriptor secondSession = await _service.StartSessionAsync(_rootId);
+        long crossSessionId = await _service.EnqueueStageForRootAsync(
+            _rootId, secondSession.Id, "Discovery", "file-a");
+        Assert.Equal(firstId, crossSessionId);
+
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CompleteStageAsync(
             lease.Id, "worker-b"));
         await _service.CompleteStageAsync(lease.Id, "worker-a");

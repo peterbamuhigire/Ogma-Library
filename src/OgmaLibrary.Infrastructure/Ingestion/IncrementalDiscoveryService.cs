@@ -76,9 +76,11 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
         int changed = 0;
         int unchanged = 0;
         int failed = 0;
+        HashSet<string> observedDirectories = [string.Empty];
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
-        DirectoryCheckpointRow checkpoint = await GetCheckpointAsync(context, rootId, cancellationToken)
+        DirectoryCheckpointRow checkpoint = await GetCheckpointAsync(
+            context, rootId, string.Empty, cancellationToken)
             .ConfigureAwait(false);
         DateTimeOffset completedUtc = DateTimeOffset.UtcNow;
 
@@ -111,14 +113,17 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
 
                 observation.SizeBytes = file.SizeBytes;
                 observation.ModifiedUtcTicks = file.MtimeTicks;
+                observation.LastObservedScanSessionId = session.Id;
+                AddParentDirectories(observedDirectories, normalizedPath);
                 observation.LastSeenUtc = DateTimeOffset.UtcNow;
                 if (isChanged)
                 {
                     changed++;
-                    await _processing.EnqueueStageAsync(
+                    await _processing.EnqueueStageForRootAsync(
+                        rootId,
                         session.Id,
                         "FileProcessing",
-                        $"{rootId.Value}:{normalizedPath}",
+                        BuildSubjectKey(rootId, normalizedPath, file.SizeBytes, file.MtimeTicks),
                         cancellationToken).ConfigureAwait(false);
                 }
                 else
@@ -134,9 +139,16 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
 
         await discoveryTask.ConfigureAwait(false);
         completedUtc = DateTimeOffset.UtcNow;
-        checkpoint.LastCompletedUtc = completedUtc;
-        checkpoint.LastObservedFileCount = seen;
-        checkpoint.LastErrorCode = failed == 0 ? null : "observation_persist_failed";
+        foreach (string directory in observedDirectories)
+        {
+            DirectoryCheckpointRow directoryCheckpoint = directory == string.Empty
+                ? checkpoint
+                : await GetCheckpointAsync(context, rootId, directory, cancellationToken)
+                    .ConfigureAwait(false);
+            directoryCheckpoint.LastCompletedUtc = completedUtc;
+            directoryCheckpoint.LastObservedFileCount = seen;
+            directoryCheckpoint.LastErrorCode = failed == 0 ? null : "observation_persist_failed";
+        }
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await _roots.RecordSuccessfulScanAsync(rootId, cancellationToken).ConfigureAwait(false);
         return new DiscoveryScanResult(session, seen, changed, unchanged, failed, completedUtc);
@@ -145,11 +157,12 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
     private static async Task<DirectoryCheckpointRow> GetCheckpointAsync(
         CatalogueDbContext context,
         LibraryRootId rootId,
+        string relativeDirectory,
         CancellationToken cancellationToken)
     {
         DirectoryCheckpointRow? checkpoint = await context.DirectoryCheckpoints
             .FirstOrDefaultAsync(row => row.LibraryRootId == rootId.Value &&
-                                        row.NormalizedRelativeDirectory == string.Empty,
+                                        row.NormalizedRelativeDirectory == relativeDirectory,
                 cancellationToken)
             .ConfigureAwait(false);
         if (checkpoint is not null)
@@ -160,12 +173,29 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
         checkpoint = new DirectoryCheckpointRow
         {
             LibraryRootId = rootId.Value,
-            NormalizedRelativeDirectory = string.Empty,
+            NormalizedRelativeDirectory = relativeDirectory,
             LastCompletedUtc = DateTimeOffset.MinValue,
         };
         context.DirectoryCheckpoints.Add(checkpoint);
         return checkpoint;
     }
+
+    private static void AddParentDirectories(HashSet<string> directories, string relativePath)
+    {
+        int separator = relativePath.LastIndexOf('/');
+        while (separator > 0)
+        {
+            directories.Add(relativePath[..separator]);
+            separator = relativePath.LastIndexOf('/', separator - 1);
+        }
+    }
+
+    private static string BuildSubjectKey(
+        LibraryRootId rootId,
+        string relativePath,
+        long sizeBytes,
+        long modifiedUtcTicks) =>
+        $"{rootId.Value}:{relativePath}:{sizeBytes}:{modifiedUtcTicks}";
 
     private async Task<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

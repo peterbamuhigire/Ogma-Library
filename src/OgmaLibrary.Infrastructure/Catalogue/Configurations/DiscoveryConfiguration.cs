@@ -21,6 +21,7 @@ public sealed class DiscoveryObservationConfiguration : IEntityTypeConfiguration
         builder.Property(row => row.DiscoveryObservationId).ValueGeneratedOnAdd();
         builder.Property(row => row.LibraryRootId).IsRequired().HasMaxLength(26);
         builder.Property(row => row.NormalizedRelativePath).IsRequired().HasMaxLength(4096);
+        builder.Property(row => row.LastObservedScanSessionId);
         builder.HasIndex(row => new { row.LibraryRootId, row.NormalizedRelativePath })
             .IsUnique()
             .HasDatabaseName("UX_DiscoveryObservations_Root_Path");

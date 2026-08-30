@@ -106,6 +106,59 @@ public sealed class ProcessingStateService : IProcessingStateService
     }
 
     /// <inheritdoc />
+    public async Task<long> EnqueueStageForRootAsync(
+        LibraryRootId rootId,
+        long scanSessionId,
+        string stageName,
+        string subjectKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stageName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(subjectKey);
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        ScanSessionRow session = await FindSessionAsync(context, scanSessionId, cancellationToken).ConfigureAwait(false);
+        if (session.LibraryRootId != rootId.Value ||
+            (ScanSessionStatus)session.Status != ScanSessionStatus.Running)
+        {
+            throw new InvalidOperationException("The supplied session does not belong to the requested root.");
+        }
+
+        long[] rootSessionIds = await context.ScanSessions
+            .Where(candidate => candidate.LibraryRootId == rootId.Value &&
+                                candidate.Status == (int)ScanSessionStatus.Running)
+            .Select(candidate => candidate.ScanSessionId)
+            .ToArrayAsync(cancellationToken)
+            .ConfigureAwait(false);
+        StageExecutionRow? existing = await context.StageExecutions
+            .Where(stage => rootSessionIds.Contains(stage.ScanSessionId) &&
+                            stage.StageName == stageName &&
+                            stage.SubjectKey == subjectKey &&
+                            (stage.Status == (int)StageExecutionStatus.Pending ||
+                             stage.Status == (int)StageExecutionStatus.RetryableFailure ||
+                             stage.Status == (int)StageExecutionStatus.Running))
+            .OrderBy(stage => stage.StageExecutionId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (existing is not null)
+        {
+            return existing.StageExecutionId;
+        }
+
+        var stage = new StageExecutionRow
+        {
+            ScanSessionId = scanSessionId,
+            StageName = stageName,
+            SubjectKey = subjectKey,
+            Status = (int)StageExecutionStatus.Pending,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        };
+        context.StageExecutions.Add(stage);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return stage.StageExecutionId;
+    }
+
+    /// <inheritdoc />
     public async Task<StageExecutionLease?> ClaimNextAsync(
         string stageName,
         string workerId,

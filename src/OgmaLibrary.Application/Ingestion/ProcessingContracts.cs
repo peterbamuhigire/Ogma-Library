@@ -85,6 +85,14 @@ public interface IProcessingStateService
         string subjectKey,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Queues a stage once across active sessions for one root.</summary>
+    Task<long> EnqueueStageForRootAsync(
+        LibraryRootId rootId,
+        long scanSessionId,
+        string stageName,
+        string subjectKey,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Atomically claims one eligible stage with a bounded lease.</summary>
     Task<StageExecutionLease?> ClaimNextAsync(
         string stageName,

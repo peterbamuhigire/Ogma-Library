@@ -12,6 +12,9 @@ public sealed class DiscoveryObservationRow
     /// <summary>Forward-slash normalized root-relative path.</summary>
     public string NormalizedRelativePath { get; set; } = string.Empty;
 
+    /// <summary>The scan session that most recently observed this path.</summary>
+    public long LastObservedScanSessionId { get; set; }
+
     /// <summary>Observed byte length.</summary>
     public long SizeBytes { get; set; }
 
