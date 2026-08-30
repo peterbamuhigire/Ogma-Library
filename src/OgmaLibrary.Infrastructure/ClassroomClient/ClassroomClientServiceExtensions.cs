@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.ClassroomClient;
+using OgmaLibrary.Application.Security;
+using OgmaLibrary.Infrastructure.Security;
 
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
 
@@ -19,13 +21,17 @@ public static class ClassroomClientServiceExtensions
         services.AddSingleton<IClassroomHostConnectionService, InMemoryClassroomHostConnectionService>();
         services.AddSingleton<IClassroomCredentialStore>(_ => credentialStore ??
             new PlatformClassroomCredentialStore(ClassroomSecretStoreFactory.Create(dataDirectory)));
+        services.AddSingleton<IAtRestEncryptionService, AesGcmAtRestEncryptionService>();
         services.AddSingleton<IClassroomSyncBlobCodec, ClassroomSyncBlobCodec>();
         services.AddSingleton<IProfileService>(provider => new FileClassroomProfileService(
             dataDirectory,
             provider.GetRequiredService<IStudentPrivateRepository>(),
             provider.GetRequiredService<IClassroomCredentialStore>()));
         services.AddSingleton<IOfflineCacheService>(_ => new DiskOfflineCacheService(dataDirectory));
-        services.AddSingleton<IStudentPrivateRepository>(_ => new StudentPrivateRepository(dataDirectory));
+        services.AddSingleton<IStudentPrivateRepository>(provider => new StudentPrivateRepository(
+            dataDirectory,
+            provider.GetRequiredService<IClassroomCredentialStore>(),
+            provider.GetRequiredService<IAtRestEncryptionService>()));
         services.AddSingleton<IHostCertificateFingerprintProbe, TlsHostCertificateFingerprintProbe>();
         services.AddSingleton<LibraryHostHttpClient>(provider => new LibraryHostHttpClient(
             new HttpClient(),

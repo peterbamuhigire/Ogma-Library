@@ -1,18 +1,42 @@
+using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.ClassroomClient;
+using OgmaLibrary.Application.Security;
 using OgmaLibrary.Infrastructure.ClassroomClient.Data;
+using OgmaLibrary.Infrastructure.Security;
 
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
 
 /// <summary>Creates the Phase 17 per-profile private database location.</summary>
 internal sealed class StudentPrivateRepository : IStudentPrivateRepository
 {
+    private const string PrivateDatabaseKeyPrefix = "ogma.classroom.private-db-key.";
+    private const string AnnotationBodyPurpose = "student-annotation-body";
+    private const string ConflictLocalBodyPurpose = "student-conflict-local-body";
+    private const string ConflictRemoteBodyPurpose = "student-conflict-remote-body";
+    private const string AiQueryPurpose = "student-ai-query";
+    private const string AiResponsePurpose = "student-ai-response";
     private readonly string _profileRoot;
+    private readonly IClassroomCredentialStore _credentialStore;
+    private readonly IAtRestEncryptionService _encryption;
 
     public StudentPrivateRepository(string dataDirectory)
+        : this(
+            dataDirectory,
+            new InMemoryClassroomCredentialStore(),
+            new AesGcmAtRestEncryptionService())
+    {
+    }
+
+    public StudentPrivateRepository(
+        string dataDirectory,
+        IClassroomCredentialStore credentialStore,
+        IAtRestEncryptionService encryption)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
+        _credentialStore = credentialStore ?? throw new ArgumentNullException(nameof(credentialStore));
+        _encryption = encryption ?? throw new ArgumentNullException(nameof(encryption));
         _profileRoot = Path.Combine(dataDirectory, "classroom", "profiles");
     }
 
@@ -125,10 +149,11 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         List<StudentAnnotationRow> rows = await query
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         return rows
             .OrderBy(row => row.PageNumber)
             .ThenBy(row => row.CreatedUtc)
-            .Select(Map)
+            .Select(row => Map(row, key))
             .ToArray();
     }
 
@@ -151,12 +176,13 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         List<StudentAnnotationRow> rows = await query
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         return rows
             .OrderBy(row => row.BookId, StringComparer.Ordinal)
             .ThenBy(row => row.PageNumber)
             .ThenBy(row => row.CreatedUtc)
             .ThenBy(row => row.Id, StringComparer.Ordinal)
-            .Select(Map)
+            .Select(row => Map(row, key))
             .ToArray();
     }
 
@@ -169,6 +195,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         ValidateScope(annotation.HostId, annotation.BookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(annotation.Id);
         using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         StudentAnnotationRow? row = await context.Annotations
             .SingleOrDefaultAsync(candidate => candidate.Id == annotation.Id, cancellationToken)
             .ConfigureAwait(false);
@@ -182,7 +209,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
                 PageNumber = annotation.PageNumber,
                 Type = annotation.Type,
                 Color = annotation.Color,
-                Body = annotation.Body,
+                Body = _encryption.Protect(annotation.Body, key, AnnotationBodyPurpose),
                 CreatedUtc = annotation.CreatedUtc,
                 UpdatedUtc = annotation.UpdatedUtc,
                 IsDeleted = annotation.IsDeleted,
@@ -195,7 +222,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             row.PageNumber = annotation.PageNumber;
             row.Type = annotation.Type;
             row.Color = annotation.Color;
-            row.Body = annotation.Body;
+            row.Body = _encryption.Protect(annotation.Body, key, AnnotationBodyPurpose);
             row.CreatedUtc = annotation.CreatedUtc;
             row.UpdatedUtc = annotation.UpdatedUtc;
             row.IsDeleted = annotation.IsDeleted;
@@ -216,12 +243,13 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             .Where(row => row.HostId == hostId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         return rows
             .OrderBy(row => row.BookId, StringComparer.Ordinal)
             .ThenBy(row => row.PageNumber)
             .ThenBy(row => row.DetectedUtc)
             .ThenBy(row => row.AnnotationId, StringComparer.Ordinal)
-            .Select(Map)
+            .Select(row => Map(row, key))
             .ToArray();
     }
 
@@ -241,6 +269,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         }
 
         using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         StudentAnnotationConflictRow? row = await context.AnnotationConflicts
             .SingleOrDefaultAsync(
                 candidate => candidate.HostId == conflict.HostId &&
@@ -249,11 +278,11 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             .ConfigureAwait(false);
         if (row is null)
         {
-            context.AnnotationConflicts.Add(CreateRow(conflict));
+            context.AnnotationConflicts.Add(CreateRow(conflict, key));
         }
         else
         {
-            Apply(row, conflict);
+            Apply(row, conflict, key);
         }
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -438,9 +467,10 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         List<StudentAiHistoryRow> rows = await query
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         return rows
             .OrderBy(row => row.CreatedUtc)
-            .Select(Map)
+            .Select(row => Map(row, key))
             .ToArray();
     }
 
@@ -455,6 +485,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(entry.Query);
         ArgumentException.ThrowIfNullOrWhiteSpace(entry.Tier);
         using StudentDbContext context = await OpenAsync(profileId, cancellationToken).ConfigureAwait(false);
+        byte[] key = await GetEncryptionKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
         StudentAiHistoryRow? row = await context.AiHistory
             .SingleOrDefaultAsync(candidate => candidate.Id == entry.Id, cancellationToken)
             .ConfigureAwait(false);
@@ -464,8 +495,8 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             {
                 Id = entry.Id,
                 HostId = entry.HostId,
-                Query = entry.Query,
-                ResponseSummary = entry.ResponseSummary,
+                Query = _encryption.Protect(entry.Query, key, AiQueryPurpose)!,
+                ResponseSummary = _encryption.Protect(entry.ResponseSummary, key, AiResponsePurpose),
                 Tier = entry.Tier,
                 CreatedUtc = entry.CreatedUtc,
                 IsDeleted = entry.IsDeleted,
@@ -474,8 +505,8 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         else
         {
             row.HostId = entry.HostId;
-            row.Query = entry.Query;
-            row.ResponseSummary = entry.ResponseSummary;
+            row.Query = _encryption.Protect(entry.Query, key, AiQueryPurpose)!;
+            row.ResponseSummary = _encryption.Protect(entry.ResponseSummary, key, AiResponsePurpose);
             row.Tier = entry.Tier;
             row.CreatedUtc = entry.CreatedUtc;
             row.IsDeleted = entry.IsDeleted;
@@ -542,7 +573,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public Task DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         string profileDirectory = Path.GetDirectoryName(GetPrivateDatabasePath(profileId))!;
@@ -551,7 +582,8 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             Directory.Delete(profileDirectory, recursive: true);
         }
 
-        return Task.CompletedTask;
+        await _credentialStore.DeleteSecretAsync(CreatePrivateDatabaseKeyName(profileId), cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task<StudentDbContext> OpenAsync(Guid profileId, CancellationToken cancellationToken)
@@ -572,6 +604,59 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             .Options;
         return new StudentDbContext(options);
     }
+
+    private async Task<byte[]> GetEncryptionKeyAsync(
+        Guid profileId,
+        CancellationToken cancellationToken)
+    {
+        string secretName = CreatePrivateDatabaseKeyName(profileId);
+        string? encodedSecret = await _credentialStore
+            .GetSecretAsync(secretName, cancellationToken)
+            .ConfigureAwait(false);
+
+        byte[] deviceSecret;
+        if (string.IsNullOrWhiteSpace(encodedSecret))
+        {
+            deviceSecret = RandomNumberGenerator.GetBytes(32);
+            try
+            {
+                await _credentialStore.SaveSecretAsync(
+                        secretName,
+                        Convert.ToBase64String(deviceSecret),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(deviceSecret);
+            }
+
+            encodedSecret = await _credentialStore
+                .GetSecretAsync(secretName, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        try
+        {
+            deviceSecret = Convert.FromBase64String(encodedSecret!);
+        }
+        catch (FormatException error)
+        {
+            throw new CryptographicException("The classroom private database key is malformed.", error);
+        }
+
+        try
+        {
+            return _encryption.DeriveKey(deviceSecret, profileId.ToString("N"));
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(deviceSecret);
+        }
+    }
+
+    private static string CreatePrivateDatabaseKeyName(Guid profileId) =>
+        $"{PrivateDatabaseKeyPrefix}{profileId:N}";
 
     private static Task<int> EnsureConflictSchemaAsync(StudentDbContext context, CancellationToken cancellationToken) =>
         context.Database.ExecuteSqlRawAsync(
@@ -612,7 +697,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
     private static StudentReadingProgress Map(StudentReadingProgressRow row) =>
         new(row.HostId, row.BookId, row.LastPage, row.LastOffsetY, row.UpdatedUtc);
 
-    private static StudentAnnotation Map(StudentAnnotationRow row) =>
+    private StudentAnnotation Map(StudentAnnotationRow row, byte[] key) =>
         new(
             row.Id,
             row.HostId,
@@ -620,12 +705,12 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             row.PageNumber,
             row.Type,
             row.Color,
-            row.Body,
+            _encryption.Unprotect(row.Body, key, AnnotationBodyPurpose),
             row.CreatedUtc,
             row.UpdatedUtc,
             row.IsDeleted);
 
-    private static StudentAnnotationConflict Map(StudentAnnotationConflictRow row) =>
+    private StudentAnnotationConflict Map(StudentAnnotationConflictRow row, byte[] key) =>
         new(
             row.HostId,
             new StudentAnnotation(
@@ -635,7 +720,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
                 row.PageNumber,
                 row.Type,
                 row.LocalColor,
-                row.LocalBody,
+                _encryption.Unprotect(row.LocalBody, key, ConflictLocalBodyPurpose),
                 row.LocalCreatedUtc,
                 row.LocalUpdatedUtc,
                 row.LocalIsDeleted),
@@ -646,20 +731,20 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
                 row.RemotePageNumber,
                 row.RemoteType,
                 row.RemoteColor,
-                row.RemoteBody,
+                _encryption.Unprotect(row.RemoteBody, key, ConflictRemoteBodyPurpose),
                 row.RemoteCreatedUtc,
                 row.RemoteUpdatedUtc,
                 row.RemoteIsDeleted),
             row.DetectedUtc);
 
-    private static StudentAnnotationConflictRow CreateRow(StudentAnnotationConflict conflict)
+    private StudentAnnotationConflictRow CreateRow(StudentAnnotationConflict conflict, byte[] key)
     {
         var row = new StudentAnnotationConflictRow();
-        Apply(row, conflict);
+        Apply(row, conflict, key);
         return row;
     }
 
-    private static void Apply(StudentAnnotationConflictRow row, StudentAnnotationConflict conflict)
+    private void Apply(StudentAnnotationConflictRow row, StudentAnnotationConflict conflict, byte[] key)
     {
         StudentAnnotation local = conflict.LocalAnnotation;
         StudentAnnotation remote = conflict.RemoteAnnotation;
@@ -669,7 +754,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         row.PageNumber = local.PageNumber;
         row.Type = local.Type;
         row.LocalColor = local.Color;
-        row.LocalBody = local.Body;
+        row.LocalBody = _encryption.Protect(local.Body, key, ConflictLocalBodyPurpose);
         row.LocalCreatedUtc = local.CreatedUtc;
         row.LocalUpdatedUtc = local.UpdatedUtc;
         row.LocalIsDeleted = local.IsDeleted;
@@ -677,7 +762,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
         row.RemoteBookId = remote.BookId;
         row.RemotePageNumber = remote.PageNumber;
         row.RemoteType = remote.Type;
-        row.RemoteBody = remote.Body;
+        row.RemoteBody = _encryption.Protect(remote.Body, key, ConflictRemoteBodyPurpose);
         row.RemoteCreatedUtc = remote.CreatedUtc;
         row.RemoteUpdatedUtc = remote.UpdatedUtc;
         row.RemoteIsDeleted = remote.IsDeleted;
@@ -695,12 +780,12 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             row.UpdatedUtc,
             row.IsDeleted);
 
-    private static StudentAiHistoryEntry Map(StudentAiHistoryRow row) =>
+    private StudentAiHistoryEntry Map(StudentAiHistoryRow row, byte[] key) =>
         new(
             row.Id,
             row.HostId,
-            row.Query,
-            row.ResponseSummary,
+            _encryption.Unprotect(row.Query, key, AiQueryPurpose)!,
+            _encryption.Unprotect(row.ResponseSummary, key, AiResponsePurpose),
             row.Tier,
             row.CreatedUtc,
             row.IsDeleted);

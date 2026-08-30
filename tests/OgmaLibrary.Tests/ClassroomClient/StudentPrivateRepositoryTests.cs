@@ -16,12 +16,19 @@ public sealed class StudentPrivateRepositoryTests
         try
         {
             Guid profileId = Guid.NewGuid();
-            var firstRepository = new StudentPrivateRepository(dataDirectory);
+            var credentials = new TestCredentialStore();
+            var firstRepository = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
             var progress = new StudentReadingProgress("host-1", "book-1", 42, 12.5, Now);
 
             await firstRepository.SaveReadingProgressAsync(profileId, progress);
 
-            var secondRepository = new StudentPrivateRepository(dataDirectory);
+            var secondRepository = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
             StudentReadingProgress? persisted = await secondRepository.GetReadingProgressAsync(
                 profileId,
                 "host-1",
@@ -179,7 +186,11 @@ public sealed class StudentPrivateRepositoryTests
 
         try
         {
-            var firstRepository = new StudentPrivateRepository(dataDirectory);
+            var credentials = new TestCredentialStore();
+            var firstRepository = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
             Guid profileId = Guid.NewGuid();
             var local = new StudentAnnotation(
                 "annotation-1",
@@ -199,7 +210,10 @@ public sealed class StudentPrivateRepositoryTests
 
             await firstRepository.SaveAnnotationConflictAsync(profileId, conflict);
 
-            var secondRepository = new StudentPrivateRepository(dataDirectory);
+            var secondRepository = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
             StudentAnnotationConflict persisted = Assert.Single(
                 await secondRepository.ListAnnotationConflictsAsync(profileId, "host-1"));
             await secondRepository.DeleteAnnotationConflictAsync(profileId, "host-1", "annotation-1");
@@ -212,6 +226,75 @@ public sealed class StudentPrivateRepositoryTests
         finally
         {
             CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task StudentPrivateRepository_EncryptsSensitiveFieldsInRawDatabase()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var credentials = new TestCredentialStore();
+            var repository = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
+            Guid profileId = Guid.NewGuid();
+            var annotation = new StudentAnnotation(
+                "annotation-raw",
+                "host-raw",
+                "book-raw",
+                3,
+                "Note",
+                null,
+                "Unique private classroom annotation text",
+                Now,
+                Now);
+            var history = new StudentAiHistoryEntry(
+                "history-raw",
+                "host-raw",
+                "Unique private student question",
+                "Unique private student response",
+                "metadata",
+                Now);
+
+            await repository.SaveAnnotationAsync(profileId, annotation);
+            await repository.SaveAiHistoryAsync(profileId, history);
+
+            byte[] raw = await File.ReadAllBytesAsync(repository.GetPrivateDatabasePath(profileId));
+            string rawText = System.Text.Encoding.UTF8.GetString(raw);
+
+            Assert.DoesNotContain(annotation.Body!, rawText, StringComparison.Ordinal);
+            Assert.DoesNotContain(history.Query, rawText, StringComparison.Ordinal);
+            Assert.DoesNotContain(history.ResponseSummary!, rawText, StringComparison.Ordinal);
+            Assert.Equal(annotation, Assert.Single(await repository.ListAnnotationsAsync(profileId, "host-raw", "book-raw")));
+            Assert.Equal(history, Assert.Single(await repository.ListAiHistoryAsync(profileId, "host-raw")));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    private sealed class TestCredentialStore : IClassroomCredentialStore
+    {
+        private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
+
+        public Task SaveSecretAsync(string key, string value, CancellationToken cancellationToken = default)
+        {
+            _values[key] = value;
+            return Task.CompletedTask;
+        }
+
+        public Task<string?> GetSecretAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_values.TryGetValue(key, out string? value) ? value : null);
+
+        public Task DeleteSecretAsync(string key, CancellationToken cancellationToken = default)
+        {
+            _values.Remove(key);
+            return Task.CompletedTask;
         }
     }
 
