@@ -1,4 +1,5 @@
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Infrastructure.Security;
 
 namespace OgmaLibrary.Infrastructure.Sidecar;
 
@@ -43,7 +44,7 @@ public sealed class SidecarService : ISidecarService
     public SidecarService(string libraryRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
-        _libraryRoot = libraryRoot;
+        _libraryRoot = PathGuard.CanonicalizeRoot(libraryRoot);
     }
 
     /// <inheritdoc />
@@ -53,9 +54,9 @@ public sealed class SidecarService : ISidecarService
 
         string relativePath = ResolveRelative(contentHash, sidecarClass, variant);
         // Convert forward-slash relative path to OS-native absolute path.
-        string absolutePath = Path.Combine(
-            _libraryRoot,
-            relativePath.Replace('/', Path.DirectorySeparatorChar));
+        string absolutePath = PathGuard.EnsureWithinRoot(
+            Path.Combine(_libraryRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)),
+            _libraryRoot);
 
         // Ensure the parent directory exists (first-access creation).
         string? directory = Path.GetDirectoryName(absolutePath);

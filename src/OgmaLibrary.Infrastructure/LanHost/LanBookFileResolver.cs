@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Security;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
 
@@ -13,7 +14,7 @@ internal sealed class LanBookFileResolver : ILanBookFileResolver
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
-        _libraryRoot = Path.GetFullPath(libraryRoot);
+        _libraryRoot = PathGuard.CanonicalizeRoot(libraryRoot);
     }
 
     /// <inheritdoc />
@@ -44,19 +45,21 @@ internal sealed class LanBookFileResolver : ILanBookFileResolver
             return null;
         }
 
-        string fullPath = Path.GetFullPath(Path.Combine(_libraryRoot, platformPath));
-        if (!IsWithinRoot(fullPath, _libraryRoot) || !File.Exists(fullPath))
+        string fullPath;
+        try
+        {
+            fullPath = PathGuard.EnsureWithinRoot(Path.Combine(_libraryRoot, platformPath), _libraryRoot);
+        }
+        catch (PathTraversalException)
+        {
+            return null;
+        }
+
+        if (!File.Exists(fullPath))
         {
             return null;
         }
 
         return fullPath;
-    }
-
-    private static bool IsWithinRoot(string fullPath, string root)
-    {
-        string normalizedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;
-        string normalizedPath = Path.GetFullPath(fullPath);
-        return normalizedPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase);
     }
 }

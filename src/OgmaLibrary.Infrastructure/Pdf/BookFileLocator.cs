@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Security;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
@@ -96,9 +97,17 @@ public sealed class BookFileLocator : IBookFileLocator
         }
 
         string storedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        string fullPath = Path.IsPathRooted(storedPath)
-            ? storedPath
-            : Path.Combine(libraryRoot, storedPath);
+        string fullPath;
+        try
+        {
+            fullPath = PathGuard.EnsureWithinRoot(
+                Path.IsPathRooted(storedPath) ? storedPath : Path.Combine(libraryRoot, storedPath),
+                libraryRoot);
+        }
+        catch (PathTraversalException)
+        {
+            return null;
+        }
 
         return File.Exists(fullPath) ? fullPath : null;
     }
