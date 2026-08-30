@@ -15,7 +15,7 @@ Execution branch: `main`
 | 5 | Library Roots and Path Security | COMPLETE | 2026-08-30 | 2026-08-30 | Durable roots, bounded probes, relink semantics and canonical discovery guard; evidence in phase-05-completion.md |
 | 6 | Processing State Machine and Scan Sessions | COMPLETE | 2026-08-30 | 2026-08-30 | Durable sessions, leased stages, retries, cancellation and recovery; evidence in phase-06-completion.md |
 | 7 | Discovery and Incremental Scanning | IN PROGRESS | 2026-08-30 | — | Scanner core delivered; final cursor/diagnostics/benchmark gate remains in phase-07-progress.md |
-| 8 | Filesystem Reconciliation and Recovery | NOT STARTED | â€” | â€” | â€” |
+| 8 | Filesystem Reconciliation and Recovery | IN PROGRESS | 2026-08-30 | — | Evidence-gated presence reconciliation delivered; move/replacement/grace gates remain in phase-08-progress.md |
 | 9 | Duplicate and Bibliographic Resolution | NOT STARTED | â€” | â€” | Integrity freeze point |
 | 10 | PDF Validation and Containment | NOT STARTED | â€” | â€” | Push checkpoint after completion |
 | 11 | PDF Extraction and ISBN Primitives | NOT STARTED | â€” | â€” | â€” |
