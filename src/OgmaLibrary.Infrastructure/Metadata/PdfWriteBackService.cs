@@ -177,6 +177,12 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         await ValidateWriteTargetAsync(bookId, backupToken.OriginalAbsolutePath, cancellationToken)
             .ConfigureAwait(false);
 
+        if (!File.Exists(backupToken.BackupAbsolutePath))
+        {
+            throw new InvalidOperationException(
+                "The write-back backup is missing. Create a new backup before writing metadata.");
+        }
+
         string originalPath = backupToken.OriginalAbsolutePath;
         string tempPath = originalPath + ".ogma_tmp";
 
