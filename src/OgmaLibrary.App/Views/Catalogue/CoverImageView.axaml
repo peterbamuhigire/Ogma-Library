@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="OgmaLibrary.App.Views.Catalogue.CoverImageView"
+             x:CompileBindings="False">
+  <Grid ClipToBounds="True">
+    <Border Background="{DynamicResource Brush.Accent.Oak}"
+            IsVisible="{Binding IsPlaceholder, RelativeSource={RelativeSource AncestorType=UserControl}}">
+      <TextBlock Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextWrapping="Wrap"
+                 TextAlignment="Center"
+                 MaxWidth="180"
+                 Margin="8"
+                 Foreground="White"
+                 FontSize="{DynamicResource Type.Size.Small}"
+                 FontWeight="SemiBold" />
+    </Border>
+    <Image Source="{Binding Image, RelativeSource={RelativeSource AncestorType=UserControl}}"
+           IsVisible="{Binding IsImageVisible, RelativeSource={RelativeSource AncestorType=UserControl}}"
+           Stretch="UniformToFill" />
+  </Grid>
+</UserControl>

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              xmlns:app="using:OgmaLibrary.Application.Catalogue"
+             xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueListView"
              x:DataType="vm:CatalogueViewModel">
 
@@ -27,20 +28,12 @@
           <Grid ColumnDefinitions="56,*,60,40">
 
             <!-- Cover placeholder -->
-            <Border Grid.Column="0"
-                    Width="40" Height="54"
-                    CornerRadius="{DynamicResource Radius.S}"
-                    Background="{DynamicResource Brush.Accent.Ink}"
-                    VerticalAlignment="Center">
-              <TextBlock HorizontalAlignment="Center"
-                         VerticalAlignment="Center"
-                         Foreground="White"
-                         FontSize="9"
-                         TextWrapping="Wrap"
-                         TextAlignment="Center"
-                         MaxWidth="36"
-                         Text="{Binding Title}" />
-            </Border>
+            <cat:CoverImageView Grid.Column="0"
+                                Width="40"
+                                Height="54"
+                                RelativePath="{Binding CoverRelativePath}"
+                                RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
+                                Label="{Binding Title}" />
 
             <!-- Title + Author -->
             <StackPanel Grid.Column="1"

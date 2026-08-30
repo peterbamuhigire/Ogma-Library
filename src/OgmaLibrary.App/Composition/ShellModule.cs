@@ -50,7 +50,11 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
 
         MainShellViewModel? shell = null;
         var navigation = new NavigationServiceProxy(() => shell!);
-        var catalogue = new CatalogueViewModel(readModel, navigation, localization);
+        var catalogue = new CatalogueViewModel(
+            readModel,
+            navigation,
+            localization,
+            services.GetRequiredService<ILibrarySettingsService>());
         var bookDetail = new BookDetailViewModel(
             readModel,
             navigation,

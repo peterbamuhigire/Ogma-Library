@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
@@ -19,6 +20,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private readonly ICatalogueReadModel _readModel;
     private readonly IBookDetailNavigationService _navigation;
     private readonly ILocalizationService _localization;
+    private readonly ILibrarySettingsService? _settings;
 
     private readonly List<BookSummaryProjection> _allItems = [];
     private readonly ObservableCollection<BookSummaryProjection> _filteredItems = [];
@@ -26,6 +28,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private BookSummaryProjection? _selectedBook;
     private CatalogueView _currentView = CatalogueView.Grid;
     private bool _isLoading;
+    private string? _libraryRootPath;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueViewModel"/>.
@@ -33,10 +36,12 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <param name="readModel">The catalogue read model.</param>
     /// <param name="navigation">The book-detail navigation service.</param>
     /// <param name="localization">The localization service.</param>
+    /// <param name="settings">Optional persisted settings used to resolve local assets.</param>
     public CatalogueViewModel(
         ICatalogueReadModel readModel,
         IBookDetailNavigationService navigation,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        ILibrarySettingsService? settings = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -45,6 +50,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         _readModel = readModel;
         _navigation = navigation;
         _localization = localization;
+        _settings = settings;
 
         Filter = new CatalogueFilterViewModel();
         Filter.PropertyChanged += (_, _) => ApplyFilterAndSort();
@@ -117,6 +123,20 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Configured local library root used only for cover image loading.</summary>
+    public string? LibraryRootPath
+    {
+        get => _libraryRootPath;
+        private set
+        {
+            if (_libraryRootPath != value)
+            {
+                _libraryRootPath = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     /// <summary>The number of items currently shown after filtering.</summary>
     public int FilteredCount => _filteredItems.Count;
 
@@ -137,6 +157,12 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
+            if (_settings is not null)
+            {
+                LibraryRootPath = await _settings.GetLibraryRootAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             _allItems.Clear();
 
             var filter = new CatalogueFilter(MaxResults: 0);
