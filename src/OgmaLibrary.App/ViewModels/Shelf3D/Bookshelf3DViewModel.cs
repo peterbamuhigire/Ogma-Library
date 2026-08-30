@@ -21,7 +21,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     private readonly string _shelfLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_shelf") ?? string.Empty;
     private readonly string _gridLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_grid3d") ?? string.Empty;
     private readonly string _unavailableIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_unavailable") ?? string.Empty;
-    private bool _isWebGl2Supported = true;
+    private bool _isWebGl2Supported;
     private bool _isLoading;
     private string _currentLayout = "shelf";
 
@@ -141,9 +141,18 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
                 Books.Add(ToSceneItem(summary));
             }
 
-            await _bridge.PostMessageAsync(
-                new SetSceneMessage(Books.ToArray(), DefaultCamera()),
-                cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _bridge.PostMessageAsync(
+                    new SetSceneMessage(Books.ToArray(), DefaultCamera()),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+                // No platform adapter is a capability failure, not a catalogue
+                // failure. Keep the local list usable as the accessible fallback.
+                IsWebGl2Supported = false;
+            }
         }
         finally
         {
@@ -160,7 +169,14 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         }
 
         CurrentLayout = layout;
-        await _bridge.PostMessageAsync(new SetLayoutMessage(layout), cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _bridge.PostMessageAsync(new SetLayoutMessage(layout), cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException)
+        {
+            IsWebGl2Supported = false;
+        }
     }
 
     /// <inheritdoc />

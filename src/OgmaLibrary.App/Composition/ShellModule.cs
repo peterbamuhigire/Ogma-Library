@@ -18,6 +18,7 @@ using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.App.Composition;
@@ -97,6 +98,11 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             readModel,
             navigation,
             localization);
+        var bookshelf3D = new Bookshelf3DViewModel(
+            readModel,
+            services.GetRequiredService<IWebViewBridge>(),
+            navigation,
+            localization);
         HostSharingViewModel? hostSharing = options.EnableClassroomHost
             ? new HostSharingViewModel(
                 services.GetRequiredService<ILibraryHostService>(),
@@ -132,7 +138,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             hostSharing,
             services.GetRequiredService<IClassroomModeService>(),
             advisor,
-            readingPlan);
+            readingPlan,
+            bookshelf3D);
 
         return shell;
     }

@@ -7,6 +7,7 @@
              xmlns:search="using:OgmaLibrary.App.Views.Search"
              xmlns:settings="using:OgmaLibrary.App.Views.Settings"
              xmlns:ai="using:OgmaLibrary.App.Views.Ai"
+             xmlns:shelf3d="using:OgmaLibrary.App.Views.Shelf3D"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueShellView"
              x:DataType="vm:MainShellViewModel"
@@ -138,8 +139,9 @@
                     BorderThickness="0"
                     Padding="8,4"
                     AutomationProperties.Name="{Binding Shelf3DViewLabel}"
-                    ToolTip.Tip="3D shelf coming in Phase 14"
-                    IsEnabled="False">
+                    ToolTip.Tip="{Binding Shelf3DViewLabel}"
+                    IsEnabled="{Binding IsShelf3DAvailable}"
+                    Click="Bookshelf3DButton_Click">
               <TextBlock Text="🗂" FontSize="16" Opacity="0.4" />
             </Button>
 
@@ -427,6 +429,10 @@
 
         <Panel IsVisible="{Binding IsReadingPlanActive}">
           <ai:ReadingPlanView DataContext="{Binding ReadingPlan}" />
+        </Panel>
+
+        <Panel IsVisible="{Binding IsBookshelf3DActive}">
+          <shelf3d:Bookshelf3DView DataContext="{Binding Bookshelf3D}" />
         </Panel>
 
         <Panel IsVisible="{Binding IsSharingSettingsActive}">

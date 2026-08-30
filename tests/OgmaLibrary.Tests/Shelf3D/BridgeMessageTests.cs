@@ -18,7 +18,7 @@ public sealed class BridgeMessageTests
 
         await bridge.PostMessageAsync(new SetLayoutMessage("grid3d"), CancellationToken.None);
 
-        Assert.Equal("""{"layout":"grid3d","type":"SetLayout"}""", host.LastPostedJson);
+        Assert.Equal("""{"layout":"grid3d","type":"SetLayout","version":"shelf3d-v1"}""", host.LastPostedJson);
     }
 
     [Fact]
@@ -66,6 +66,18 @@ public sealed class BridgeMessageTests
 
         Assert.False(result.ShouldDispatch);
         Assert.Contains("Unknown", result.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InboundMessageParser_RejectsUnsupportedProtocolVersion()
+    {
+        bool parsed = InboundMessageParser.TryParse(
+            "{\"version\":\"shelf3d-v0\",\"type\":\"BookClicked\",\"bookId\":\"01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7\"}",
+            out _,
+            out string? error);
+
+        Assert.False(parsed);
+        Assert.Contains("version", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

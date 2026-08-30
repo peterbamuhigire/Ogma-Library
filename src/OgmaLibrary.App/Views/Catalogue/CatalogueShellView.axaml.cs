@@ -167,6 +167,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void Bookshelf3DButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.OpenBookshelf3D();
+        }
+    }
+
     private async void SharingSettingsButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

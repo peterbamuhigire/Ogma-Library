@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Avalonia.Platform.Storage;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.App.ViewModels.Ai;
+using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
 using OgmaLibrary.Application;
@@ -38,6 +39,9 @@ public enum ShellView
 
     /// <summary>The reading-plan advisor surface.</summary>
     ReadingPlan = 6,
+
+    /// <summary>The capability-gated native 3D bookshelf route.</summary>
+    Bookshelf3D = 7,
 }
 
 /// <summary>
@@ -115,6 +119,7 @@ public sealed class MainShellViewModel :
     /// <param name="classroomModeService">The Phase 17 classroom mode/connectivity service.</param>
     /// <param name="advisor">The recommendation advisor view model.</param>
     /// <param name="readingPlan">The reading-plan view model.</param>
+    /// <param name="bookshelf3D">The capability-gated 3D bookshelf view model.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -132,7 +137,8 @@ public sealed class MainShellViewModel :
         HostSharingViewModel? hostSharing = null,
         IClassroomModeService? classroomModeService = null,
         RecommendationPanelViewModel? advisor = null,
-        ReadingPlanViewModel? readingPlan = null)
+        ReadingPlanViewModel? readingPlan = null,
+        Bookshelf3DViewModel? bookshelf3D = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -151,6 +157,7 @@ public sealed class MainShellViewModel :
         HostSharing = hostSharing;
         Advisor = advisor;
         ReadingPlan = readingPlan;
+        Bookshelf3D = bookshelf3D;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _scanProgress = scanProgress;
@@ -230,6 +237,9 @@ public sealed class MainShellViewModel :
     /// <summary>The reading-plan view model.</summary>
     public ReadingPlanViewModel? ReadingPlan { get; }
 
+    /// <summary>The capability-gated 3D bookshelf view model.</summary>
+    public Bookshelf3DViewModel? Bookshelf3D { get; }
+
     /// <summary>The Phase 16 Host sharing control strip view model.</summary>
     public HostSharingViewModel? HostSharing { get; }
 
@@ -271,6 +281,7 @@ public sealed class MainShellViewModel :
                 OnPropertyChanged(nameof(IsStudentSmartSearchActive));
                 OnPropertyChanged(nameof(IsAdvisorActive));
                 OnPropertyChanged(nameof(IsReadingPlanActive));
+                OnPropertyChanged(nameof(IsBookshelf3DActive));
             }
         }
     }
@@ -295,6 +306,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the reading-plan route is active.</summary>
     public bool IsReadingPlanActive => _activeView == ShellView.ReadingPlan;
+
+    /// <summary>True when the 3D bookshelf route is active.</summary>
+    public bool IsBookshelf3DActive => _activeView == ShellView.Bookshelf3D;
 
     /// <summary>Whether the left sidebar (shelves) is open.</summary>
     public bool IsSidebarOpen
@@ -486,6 +500,12 @@ public sealed class MainShellViewModel :
     /// <summary>Reading-plan route label.</summary>
     public string ReadingPlanLabel => _localization["Navigation.ReadingPlan"];
 
+    /// <summary>3D bookshelf route label.</summary>
+    public string Bookshelf3DLabel => _localization["Shelf3D.Title"];
+
+    /// <summary>Whether the 3D bookshelf route has a registered host capability.</summary>
+    public bool IsShelf3DAvailable => Bookshelf3D is not null;
+
     /// <summary>Search panel toggle icon path.</summary>
     public string SearchIconPath => _searchIconPath;
 
@@ -591,6 +611,19 @@ public sealed class MainShellViewModel :
     public void OpenReadingPlan()
     {
         ActiveView = ShellView.ReadingPlan;
+        ReaderPlaceholderMessage = null;
+        BookDetail.IsVisible = false;
+    }
+
+    /// <summary>Opens the 3D bookshelf route when its capability is registered.</summary>
+    public void OpenBookshelf3D()
+    {
+        if (Bookshelf3D is null)
+        {
+            return;
+        }
+
+        ActiveView = ShellView.Bookshelf3D;
         ReaderPlaceholderMessage = null;
         BookDetail.IsVisible = false;
     }
@@ -827,6 +860,7 @@ public sealed class MainShellViewModel :
         IndexManager?.Dispose();
         Advisor?.Dispose();
         ReadingPlan?.Dispose();
+        Bookshelf3D?.Dispose();
     }
 
     private void OnProgressChanged(object? sender, ScanProgressSnapshot snapshot)
@@ -994,6 +1028,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(StudentSmartSearchLabel));
         OnPropertyChanged(nameof(AdvisorLabel));
         OnPropertyChanged(nameof(ReadingPlanLabel));
+        OnPropertyChanged(nameof(Bookshelf3DLabel));
         OnPropertyChanged(nameof(IsClassroomOfflineVisible));
         OnPropertyChanged(nameof(ClassroomOfflineText));
         OnPropertyChanged(nameof(ClassroomOfflineAutomationName));

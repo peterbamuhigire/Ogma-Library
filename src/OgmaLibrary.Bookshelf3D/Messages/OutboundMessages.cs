@@ -3,7 +3,12 @@ using System.Text.Json.Serialization;
 namespace OgmaLibrary.Bookshelf3D.Messages;
 
 /// <summary>Base type for C# to JavaScript bridge messages.</summary>
-public abstract record OutboundMessage([property: JsonPropertyName("type")] string Type);
+public abstract record OutboundMessage([property: JsonPropertyName("type")] string Type)
+{
+    /// <summary>Protocol version understood by the packaged Three.js client.</summary>
+    [JsonPropertyName("version")]
+    public string Version { get; } = BridgeProtocol.CurrentVersion;
+}
 
 /// <summary>Replaces the full Three.js scene.</summary>
 public sealed record SetSceneMessage(

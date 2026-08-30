@@ -38,6 +38,13 @@ public static class InboundMessageParser
         {
             using JsonDocument document = JsonDocument.Parse(json);
             JsonElement root = document.RootElement;
+            if (root.TryGetProperty("version", out JsonElement versionElement) &&
+                !string.Equals(versionElement.GetString(), BridgeProtocol.CurrentVersion, StringComparison.Ordinal))
+            {
+                error = $"Unsupported bookshelf bridge version '{versionElement.GetString()}'.";
+                return false;
+            }
+
             if (!root.TryGetProperty("type", out JsonElement typeElement))
             {
                 error = "Inbound bridge message is missing type.";
