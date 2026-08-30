@@ -15,6 +15,8 @@ internal sealed class ClassroomSyncBlobCodec : IClassroomSyncBlobCodec
     private const int SaltLength = 16;
     private const int NonceLength = 12;
     private const int TagLength = 16;
+    private const int MaxBlobBytes = 5 * 1024 * 1024;
+    private const int MaxPlaintextBytes = 20 * 1024 * 1024;
 
     private static readonly byte[] Magic = Encoding.ASCII.GetBytes("OGMASYNC");
     private static readonly byte[] KdfInfo = Encoding.UTF8.GetBytes("Ogma.Library.Classroom.SyncBlob.v1");
@@ -74,6 +76,11 @@ internal sealed class ClassroomSyncBlobCodec : IClassroomSyncBlobCodec
         }
 
         ReadOnlySpan<byte> content = blob.Content;
+        if (content.Length > MaxBlobBytes)
+        {
+            throw new CryptographicException("Classroom sync blob exceeds the permitted size.");
+        }
+
         int minimumLength = Magic.Length + 1 + SaltLength + NonceLength + TagLength;
         if (content.Length <= minimumLength || !content[..Magic.Length].SequenceEqual(Magic))
         {
@@ -135,7 +142,25 @@ internal sealed class ClassroomSyncBlobCodec : IClassroomSyncBlobCodec
         using var input = new MemoryStream(compressed);
         using var brotli = new BrotliStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
-        brotli.CopyTo(output);
+        byte[] buffer = new byte[81920];
+        try
+        {
+            int read;
+            while ((read = brotli.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (output.Length + read > MaxPlaintextBytes)
+                {
+                    throw new CryptographicException("Classroom sync blob expands beyond the permitted size.");
+                }
+
+                output.Write(buffer, 0, read);
+            }
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(buffer);
+        }
+
         return output.ToArray();
     }
 

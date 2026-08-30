@@ -24,7 +24,7 @@ public sealed class CachingLibraryHostClientTests
             pageNumber: 3,
             widthPx: 1200);
 
-        OfflineCacheEntry? cached = await cache.GetAsync("192.168.1.13:7473", "books/book%201/page/3?widthPx=1200");
+        OfflineCacheEntry? cached = await cache.GetAsync($"192.168.1.13:7473:{Fingerprint}", "books/book%201/page/3?widthPx=1200");
         Assert.Equal(1, inner.PageRenderCalls);
         Assert.Equal("image/png", resource.ContentType);
         Assert.Equal([1, 2, 3], cached!.Content);
@@ -37,7 +37,7 @@ public sealed class CachingLibraryHostClientTests
         var inner = new RecordingHostClient();
         var cache = new InMemoryOfflineCacheService();
         await cache.PutAsync(new OfflineCacheEntry(
-            "192.168.1.13:7473",
+            $"192.168.1.13:7473:{Fingerprint}",
             "books/book%201/page/3?widthPx=1200",
             "\"cached\"",
             [9, 9, 9],
@@ -59,6 +59,35 @@ public sealed class CachingLibraryHostClientTests
     }
 
     [Fact]
+    public async Task CachingLibraryHostClient_CertificateRotationDoesNotReuseOldHostCache()
+    {
+        var inner = new RecordingHostClient();
+        var cache = new InMemoryOfflineCacheService();
+        await cache.PutAsync(new OfflineCacheEntry(
+            $"192.168.1.13:7473:{Fingerprint}",
+            "books/book%201/page/3?widthPx=1200",
+            "\"old-host\"",
+            [8, 8, 8],
+            DateTimeOffset.UtcNow,
+            "image/png"));
+        var client = new CachingLibraryHostClient(inner, cache);
+        var rotatedRequest = new ClassroomJoinRequest(
+            "192.168.1.13",
+            7473,
+            "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210");
+
+        LibraryHostResource resource = await client.GetPageRenderAsync(
+            rotatedRequest,
+            "session-token",
+            "book 1",
+            pageNumber: 3,
+            widthPx: 1200);
+
+        Assert.Equal(1, inner.PageRenderCalls);
+        Assert.Equal([1, 2, 3], resource.Content);
+    }
+
+    [Fact]
     public async Task CachingLibraryHostClient_CachesFileStreamAndAssets()
     {
         var inner = new RecordingHostClient();
@@ -74,8 +103,8 @@ public sealed class CachingLibraryHostClientTests
 
         Assert.Equal("application/pdf", pdf.ContentType);
         Assert.Equal("image/jpeg", asset.ContentType);
-        Assert.NotNull(await cache.GetAsync("192.168.1.13:7473", "books/book-1/file"));
-        Assert.NotNull(await cache.GetAsync("192.168.1.13:7473", "api/v1/assets/cover/hash"));
+        Assert.NotNull(await cache.GetAsync($"192.168.1.13:7473:{Fingerprint}", "books/book-1/file"));
+        Assert.NotNull(await cache.GetAsync($"192.168.1.13:7473:{Fingerprint}", "api/v1/assets/cover/hash"));
     }
 
     [Fact]

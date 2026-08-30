@@ -137,6 +137,32 @@ public sealed class OfflineCacheServiceTests
         }
     }
 
+    [Fact]
+    public async Task DiskOfflineCache_RejectsTamperedContentAndRemovesEntry()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using var cache = new DiskOfflineCacheService(dataDirectory);
+            await cache.PutAsync(new OfflineCacheEntry("host-1", "catalogue", "etag", [1, 2, 3], Now));
+
+            string contentPath = Directory.EnumerateFiles(
+                    Path.Combine(dataDirectory, "classroom", "cache"),
+                    "*.bin",
+                    SearchOption.TopDirectoryOnly)
+                .Single();
+            await File.WriteAllBytesAsync(contentPath, [9, 9, 9]);
+
+            Assert.Null(await cache.GetAsync("host-1", "catalogue"));
+            Assert.False(File.Exists(contentPath));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         string dataDirectory = Path.Combine(Path.GetTempPath(), $"ogma-offline-cache-{Guid.NewGuid():N}");

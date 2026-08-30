@@ -37,6 +37,18 @@ public sealed class ClassroomSyncBlobCodecTests
     }
 
     [Fact]
+    public void SyncBlob_RejectsOversizedOpaquePayloadBeforeDecrypting()
+    {
+        var codec = new ClassroomSyncBlobCodec();
+        var blob = new EncryptedClassroomSyncBlob(
+            ClassroomSyncBlobCodec.CurrentVersion,
+            ClassroomSyncBlobCodec.BlobContentType,
+            new byte[(5 * 1024 * 1024) + 1]);
+
+        Assert.Throws<CryptographicException>(() => codec.Decode(blob, "session-token"));
+    }
+
+    [Fact]
     public void SyncBlob_Codec_IsRegisteredInClassroomClientServices()
     {
         using ServiceProvider provider = new ServiceCollection()

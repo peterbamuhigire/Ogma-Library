@@ -4,7 +4,7 @@ using OgmaLibrary.Application.ClassroomClient;
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
 
 /// <summary>Manual opt-in sync orchestration for encrypted per-profile private state.</summary>
-internal sealed class ClassroomSyncService : ISyncService
+internal sealed class ClassroomSyncService : ISyncService, IDisposable
 {
     private const string NoActiveProfileMessage = "No classroom profile is active.";
     private const string GuestSyncMessage = "Guest sessions do not sync private state.";
@@ -15,6 +15,10 @@ internal sealed class ClassroomSyncService : ISyncService
     private readonly IStudentPrivateRepository _privateRepository;
     private readonly IClassroomSyncBlobCodec _codec;
     private readonly ILibraryHostClient _hostClient;
+    private readonly SemaphoreSlim _syncGate = new(1, 1);
+
+    /// <inheritdoc />
+    public void Dispose() => _syncGate.Dispose();
 
     public ClassroomSyncService(
         IProfileService profiles,
@@ -145,6 +149,28 @@ internal sealed class ClassroomSyncService : ISyncService
     }
 
     public async Task<ClassroomSyncStatus> SyncNowAsync(CancellationToken cancellationToken = default)
+    {
+        if (!await _syncGate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        {
+            return new ClassroomSyncStatus(
+                IsEnabled: true,
+                IsRunning: true,
+                LastSyncedUtc: null,
+                ConflictCount: 0,
+                ErrorMessage: "A classroom sync operation is already running.");
+        }
+
+        try
+        {
+            return await SyncNowCoreAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _syncGate.Release();
+        }
+    }
+
+    private async Task<ClassroomSyncStatus> SyncNowCoreAsync(CancellationToken cancellationToken)
     {
         ClassroomProfile? profile = await _profiles.GetActiveAsync(cancellationToken).ConfigureAwait(false);
         if (profile is null)

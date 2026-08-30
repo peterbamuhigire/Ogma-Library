@@ -47,7 +47,12 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
             }
 
             CacheMetadata? metadata = await ReadMetadataAsync(metadataPath, cancellationToken).ConfigureAwait(false);
-            if (metadata is null || !File.Exists(GetContentPath(metadata)))
+            string expectedCacheKey = CreateCacheKey(hostId, resourceKey);
+            if (metadata is null ||
+                !string.Equals(metadata.HostId, hostId, StringComparison.Ordinal) ||
+                !string.Equals(metadata.ResourceKey, resourceKey, StringComparison.Ordinal) ||
+                !string.Equals(metadata.ContentFile, $"{expectedCacheKey}.bin", StringComparison.Ordinal) ||
+                !File.Exists(GetContentPath(metadata)))
             {
                 DeleteEntryFiles(metadataPath, metadata);
                 return null;
@@ -55,6 +60,13 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
 
             byte[] content = await File.ReadAllBytesAsync(GetContentPath(metadata), cancellationToken)
                 .ConfigureAwait(false);
+            string contentHash = Convert.ToHexStringLower(SHA256.HashData(content));
+            if (!string.Equals(metadata.ContentHash, contentHash, StringComparison.Ordinal))
+            {
+                DeleteEntryFiles(metadataPath, metadata);
+                return null;
+            }
+
             metadata.LastAccessUtc = DateTimeOffset.UtcNow;
             metadata.ContentLength = content.LongLength;
             await WriteMetadataAsync(metadataPath, metadata, cancellationToken).ConfigureAwait(false);
@@ -92,11 +104,25 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
                 StoredUtc = entry.StoredUtc,
                 LastAccessUtc = DateTimeOffset.UtcNow,
                 ContentLength = entry.Content.LongLength,
+                ContentHash = Convert.ToHexStringLower(SHA256.HashData(entry.Content)),
                 ContentType = entry.ContentType,
                 ContentFile = Path.GetFileName(contentPath),
             };
 
-            await File.WriteAllBytesAsync(contentPath, entry.Content, cancellationToken).ConfigureAwait(false);
+            string temporaryContentPath = $"{contentPath}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                await File.WriteAllBytesAsync(temporaryContentPath, entry.Content, cancellationToken).ConfigureAwait(false);
+                File.Move(temporaryContentPath, contentPath, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temporaryContentPath))
+                {
+                    File.Delete(temporaryContentPath);
+                }
+            }
+
             await WriteMetadataAsync(metadataPath, metadata, cancellationToken).ConfigureAwait(false);
             await EnforceSizeLimitAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -248,6 +274,8 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
         public DateTimeOffset LastAccessUtc { get; set; }
 
         public long ContentLength { get; set; }
+
+        public string ContentHash { get; set; } = string.Empty;
 
         public string ContentType { get; set; } = "application/octet-stream";
 
