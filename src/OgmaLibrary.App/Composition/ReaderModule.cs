@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
@@ -8,6 +9,7 @@ using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Infrastructure.Reader;
 using OgmaLibrary.Reader.Annotations;
 using OgmaLibrary.Reader.Cache;
 using OgmaLibrary.Reader.Progress;
@@ -66,5 +68,7 @@ internal sealed class ReaderModule : IOgmaModuleRegistrar
             sp.GetRequiredService<ISidecarService>(),
             sp.GetRequiredService<ILocalizationService>()));
         services.AddSingleton<IReadingMemoryService, ReadingMemoryService>();
+        services.AddSingleton<IReaderPortabilityService>(sp => new ReaderPortabilityService(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
     }
 }
