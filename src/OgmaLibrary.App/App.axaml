@@ -5,6 +5,7 @@
 
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://OgmaLibrary.App/Themes/Controls.axaml" />
   </Application.Styles>
 
   <Application.Resources>

@@ -63,6 +63,10 @@
       <Color x:Key="Color.Surface.Footer">#F0EBE3</Color>
       <SolidColorBrush x:Key="Brush.Surface.Footer" Color="{DynamicResource Color.Surface.Footer}" />
 
+      <!-- Keyboard focus ring; distinct from semantic status colors. -->
+      <Color x:Key="Color.Focus">#1C64D1</Color>
+      <SolidColorBrush x:Key="Brush.Focus" Color="{DynamicResource Color.Focus}" />
+
     </ResourceDictionary>
 
     <!-- ═══════════════════════════════ DARK ════════════════════════════════ -->
@@ -107,6 +111,9 @@
       <Color x:Key="Color.Surface.Footer">#161210</Color>
       <SolidColorBrush x:Key="Brush.Surface.Footer" Color="{DynamicResource Color.Surface.Footer}" />
 
+      <Color x:Key="Color.Focus">#8CB8FF</Color>
+      <SolidColorBrush x:Key="Brush.Focus" Color="{DynamicResource Color.Focus}" />
+
     </ResourceDictionary>
 
   </ResourceDictionary.ThemeDictionaries>
@@ -122,6 +129,12 @@
   <x:Double x:Key="Type.Size.Subtitle">16</x:Double>
   <x:Double x:Key="Type.Size.Title">20</x:Double>
   <x:Double x:Key="Type.Size.Display">30</x:Double>
+
+  <!-- Font roles. Inter remains the packaged runtime fallback until the
+       approved Spectral/Public Sans/JetBrains Mono assets are bundled. -->
+  <x:String x:Key="Type.FontFamily.Body">Inter, Segoe UI, sans-serif</x:String>
+  <x:String x:Key="Type.FontFamily.Display">Inter, Segoe UI, sans-serif</x:String>
+  <x:String x:Key="Type.FontFamily.Mono">Consolas, Menlo, monospace</x:String>
 
   <!-- Spacing scale — in device-independent pixels (4-pt grid) -->
   <x:Double x:Key="Spacing.XXS">4</x:Double>

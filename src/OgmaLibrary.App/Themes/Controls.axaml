@@ -1,0 +1,34 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Shared interaction primitives. All values are design tokens so views do
+       not drift as density, contrast, or theme settings evolve. -->
+  <Style Selector="Button">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
+  </Style>
+
+  <Style Selector="TextBox">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
+  </Style>
+
+  <Style Selector="ComboBox">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
+  </Style>
+
+  <!-- A visible focus ring is required for keyboard and screen-reader users. -->
+  <Style Selector="Button:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="TextBox:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+</Styles>
