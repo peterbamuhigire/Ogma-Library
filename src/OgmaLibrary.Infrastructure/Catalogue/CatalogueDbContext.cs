@@ -190,6 +190,12 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Durable leased processing stages.</summary>
     public DbSet<StageExecutionRow> StageExecutions => Set<StageExecutionRow>();
 
+    /// <summary>Latest root-relative file observations.</summary>
+    public DbSet<DiscoveryObservationRow> DiscoveryObservations => Set<DiscoveryObservationRow>();
+
+    /// <summary>Durable directory discovery checkpoints.</summary>
+    public DbSet<DirectoryCheckpointRow> DirectoryCheckpoints => Set<DirectoryCheckpointRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -230,6 +236,8 @@ public sealed class CatalogueDbContext : DbContext
         CanonicalIdentityConfiguration.Configure(modelBuilder);
         modelBuilder.ApplyConfiguration(new ScanSessionConfiguration());
         modelBuilder.ApplyConfiguration(new StageExecutionConfiguration());
+        modelBuilder.ApplyConfiguration(new DiscoveryObservationConfiguration());
+        modelBuilder.ApplyConfiguration(new DirectoryCheckpointConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());

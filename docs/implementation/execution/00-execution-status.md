@@ -14,7 +14,7 @@ Execution branch: `main`
 | 4 | Identity Schema and Data Migration | COMPLETE | 2026-08-20 | 2026-08-20 | Canonical schema, transactional backfill, aliases, verified local backup/restore |
 | 5 | Library Roots and Path Security | COMPLETE | 2026-08-30 | 2026-08-30 | Durable roots, bounded probes, relink semantics and canonical discovery guard; evidence in phase-05-completion.md |
 | 6 | Processing State Machine and Scan Sessions | COMPLETE | 2026-08-30 | 2026-08-30 | Durable sessions, leased stages, retries, cancellation and recovery; evidence in phase-06-completion.md |
-| 7 | Discovery and Incremental Scanning | NOT STARTED | â€” | â€” | â€” |
+| 7 | Discovery and Incremental Scanning | IN PROGRESS | 2026-08-30 | — | Scanner core delivered; final cursor/diagnostics/benchmark gate remains in phase-07-progress.md |
 | 8 | Filesystem Reconciliation and Recovery | NOT STARTED | â€” | â€” | â€” |
 | 9 | Duplicate and Bibliographic Resolution | NOT STARTED | â€” | â€” | Integrity freeze point |
 | 10 | PDF Validation and Containment | NOT STARTED | â€” | â€” | Push checkpoint after completion |

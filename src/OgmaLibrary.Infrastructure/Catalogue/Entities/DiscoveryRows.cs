@@ -1,0 +1,48 @@
+namespace OgmaLibrary.Infrastructure.Catalogue.Entities;
+
+/// <summary>Latest local observation for a root-relative discovered file.</summary>
+public sealed class DiscoveryObservationRow
+{
+    /// <summary>Database identifier.</summary>
+    public long DiscoveryObservationId { get; set; }
+
+    /// <summary>The owning root.</summary>
+    public string LibraryRootId { get; set; } = string.Empty;
+
+    /// <summary>Forward-slash normalized root-relative path.</summary>
+    public string NormalizedRelativePath { get; set; } = string.Empty;
+
+    /// <summary>Observed byte length.</summary>
+    public long SizeBytes { get; set; }
+
+    /// <summary>Observed UTC mtime ticks.</summary>
+    public long ModifiedUtcTicks { get; set; }
+
+    /// <summary>UTC first-observed timestamp.</summary>
+    public DateTimeOffset FirstSeenUtc { get; set; }
+
+    /// <summary>UTC most-recently-observed timestamp.</summary>
+    public DateTimeOffset LastSeenUtc { get; set; }
+}
+
+/// <summary>Latest completed discovery checkpoint for a root-relative directory.</summary>
+public sealed class DirectoryCheckpointRow
+{
+    /// <summary>Database identifier.</summary>
+    public long DirectoryCheckpointId { get; set; }
+
+    /// <summary>The owning root.</summary>
+    public string LibraryRootId { get; set; } = string.Empty;
+
+    /// <summary>Forward-slash normalized root-relative directory.</summary>
+    public string NormalizedRelativeDirectory { get; set; } = string.Empty;
+
+    /// <summary>UTC completion timestamp.</summary>
+    public DateTimeOffset LastCompletedUtc { get; set; }
+
+    /// <summary>Number of PDF observations seen during the pass.</summary>
+    public int LastObservedFileCount { get; set; }
+
+    /// <summary>Stable error code when the directory was only partially read.</summary>
+    public string? LastErrorCode { get; set; }
+}
