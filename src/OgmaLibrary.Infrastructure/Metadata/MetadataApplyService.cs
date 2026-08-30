@@ -61,6 +61,8 @@ public sealed class MetadataApplyService : IMetadataApplyService
             return;
         }
 
+        ValidateProposals(acceptedProposals);
+
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
             .ConfigureAwait(false);
@@ -101,6 +103,13 @@ public sealed class MetadataApplyService : IMetadataApplyService
             }
             else
             {
+                // A user override is authoritative until the user explicitly
+                // submits another override for the same field.
+                if (existing.IsOverridden && !proposal.IsOverridden)
+                {
+                    continue;
+                }
+
                 existing.Value = proposal.AcceptedValue;
                 existing.Source = proposal.Source;
                 existing.SourceTimestamp = now;
@@ -230,6 +239,38 @@ public sealed class MetadataApplyService : IMetadataApplyService
         proposals
             .FirstOrDefault(p => string.Equals(p.FieldName, fieldName, StringComparison.OrdinalIgnoreCase))
             ?.AcceptedValue;
+
+    private static void ValidateProposals(IReadOnlyList<AcceptedFieldProposal> proposals)
+    {
+        foreach (AcceptedFieldProposal proposal in proposals)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(proposal.FieldName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(proposal.Source);
+            if (proposal.FieldName.Length > 128 || proposal.Source.Length > 128)
+            {
+                throw new ArgumentException("Metadata field names and sources must be at most 128 characters.");
+            }
+
+            if (proposal.AcceptedValue?.Length > 4096)
+            {
+                throw new ArgumentException("Metadata values must be at most 4096 characters.");
+            }
+
+            if (proposal.Confidence is < 0.0 or > 1.0 || double.IsNaN(proposal.Confidence))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(proposals), "Metadata proposal confidence must be within [0.0, 1.0].");
+            }
+
+            if (proposal.IsOverridden &&
+                (!string.Equals(proposal.Source, "UserOverride", StringComparison.Ordinal) ||
+                 proposal.Confidence != 1.0))
+            {
+                throw new ArgumentException(
+                    "User overrides must use source UserOverride and confidence 1.0.");
+            }
+        }
+    }
 
     private static string NormalizeAuthorName(string authorName) =>
         string.Join(
