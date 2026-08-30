@@ -184,6 +184,12 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Aliases from legacy BookIds to canonical identities.</summary>
     public DbSet<LegacyIdentityAliasRow> LegacyIdentityAliases => Set<LegacyIdentityAliasRow>();
 
+    /// <summary>Durable root scan sessions.</summary>
+    public DbSet<ScanSessionRow> ScanSessions => Set<ScanSessionRow>();
+
+    /// <summary>Durable leased processing stages.</summary>
+    public DbSet<StageExecutionRow> StageExecutions => Set<StageExecutionRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -222,6 +228,8 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new WorkConfiguration());
         modelBuilder.ApplyConfiguration(new EditionConfiguration());
         CanonicalIdentityConfiguration.Configure(modelBuilder);
+        modelBuilder.ApplyConfiguration(new ScanSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new StageExecutionConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());
