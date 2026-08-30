@@ -17,6 +17,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
 {
     internal const string DefaultModelName = "nomic-embed-text";
     internal const string DefaultModelVersion = "nomic-embed-text:latest";
+    internal const string DefaultProviderKey = "ollama";
 
     private const int ActiveBookStatus = 0;
     private const int JobFailed = 3;
@@ -69,7 +70,8 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChunks);
 
-        if (!await _provider.IsAvailableAsync(cancellationToken).ConfigureAwait(false))
+        if (!_provider.IsLocalOnly ||
+            !await _provider.IsAvailableAsync(cancellationToken).ConfigureAwait(false))
         {
             _events.Publish(new SemanticIndexEvent.OllamaUnavailable(DateTimeOffset.UtcNow));
             return new EmbeddingGenerationBatchResult(0, 0, 0, 0, ProviderUnavailable: true);
@@ -94,6 +96,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 OllamaEmbeddingResult result = await _provider
                     .EmbedAsync(chunk.Text, DefaultModelName, cancellationToken)
                     .ConfigureAwait(false);
+                ValidateResult(result);
 
                 await _vectors.CreateAsync(
                         new EmbeddingVectorRecord(
@@ -105,7 +108,12 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                                 : result.ModelVersion,
                             Vector: result.Vector,
                             DimensionCount: result.Vector.Length,
-                            GeneratedAtUtc: DateTimeOffset.UtcNow),
+                            GeneratedAtUtc: DateTimeOffset.UtcNow,
+                            SourceHash: chunk.SourceHash,
+                            ExtractorVersion: chunk.ExtractorVersion,
+                            ChunkerVersion: SearchChunker.CurrentVersion,
+                            IndexVersion: chunk.IndexVersion,
+                            ProviderKey: _provider.ProviderKey),
                         cancellationToken)
                     .ConfigureAwait(false);
 
@@ -156,12 +164,23 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 !context.EmbeddingVectors.Any(vector =>
                     vector.ChunkId == chunk.ChunkId &&
                     vector.ModelName == DefaultModelName &&
-                    vector.ModelVersion == DefaultModelVersion))
+                    vector.ModelVersion == DefaultModelVersion &&
+                    vector.ProviderKey == DefaultProviderKey &&
+                    vector.SourceHash.Length > 0))
             .OrderBy(chunk => chunk.ChunkId)
             .Select(chunk => new PendingChunk(
                 chunk.ChunkId,
                 chunk.BookId,
-                chunk.ChunkText!))
+                chunk.ChunkText!,
+                ComputeSourceHash(
+                    chunk.BookId,
+                    chunk.ChunkId,
+                    chunk.ChunkText!,
+                    chunk.IndexVersion,
+                    chunk.ExtractionArtifactId),
+                chunk.ExtractedPage == null ? "metadata-v1" : chunk.ExtractedPage.ExtractorVersion,
+                chunk.IndexVersion,
+                chunk.ExtractionArtifactId))
             .Take(maxChunks)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -182,7 +201,9 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 vector.Chunk != null &&
                 vector.Chunk.BookId == chunk.BookId &&
                 vector.ModelName == DefaultModelName &&
-                vector.ModelVersion == DefaultModelVersion,
+                vector.ModelVersion == DefaultModelVersion &&
+                vector.ProviderKey == DefaultProviderKey &&
+                vector.SourceHash.Length > 0,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -216,7 +237,9 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 vector.Chunk != null &&
                 vector.Chunk.BookId == bookId &&
                 vector.ModelName == DefaultModelName &&
-                vector.ModelVersion == DefaultModelVersion,
+                vector.ModelVersion == DefaultModelVersion &&
+                vector.ProviderKey == DefaultProviderKey &&
+                vector.SourceHash.Length > 0,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -306,7 +329,38 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         return Convert.ToHexStringLower(SHA256.HashData(data))[..32];
     }
 
-    private sealed record PendingChunk(long ChunkId, string BookId, string Text);
+    private static string ComputeSourceHash(
+        string bookId,
+        long chunkId,
+        string text,
+        string indexVersion,
+        long? extractionArtifactId)
+    {
+        byte[] data = Encoding.UTF8.GetBytes(
+            $"{bookId}|{chunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{indexVersion}|{extractionArtifactId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "none"}|{text}");
+        return Convert.ToHexStringLower(SHA256.HashData(data));
+    }
+
+    private static void ValidateResult(OllamaEmbeddingResult result)
+    {
+        if (!string.Equals(result.ModelName, DefaultModelName, StringComparison.Ordinal) ||
+            string.IsNullOrWhiteSpace(result.ModelVersion) ||
+            result.Vector.Length == 0 ||
+            result.Vector.Length > 4096 ||
+            result.Vector.Any(value => !float.IsFinite(value)))
+        {
+            throw new InvalidOperationException("Embedding provider returned an invalid model or vector.");
+        }
+    }
+
+    private sealed record PendingChunk(
+        long ChunkId,
+        string BookId,
+        string Text,
+        string SourceHash,
+        string ExtractorVersion,
+        string IndexVersion,
+        long? ExtractionArtifactId);
 
     private sealed class ObservableEvents<TEvent> : IObservable<TEvent>
     {

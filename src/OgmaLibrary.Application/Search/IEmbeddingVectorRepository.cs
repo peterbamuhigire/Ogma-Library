@@ -45,4 +45,9 @@ public sealed record EmbeddingVectorRecord(
     string ModelVersion,
     float[] Vector,
     int DimensionCount,
-    DateTimeOffset GeneratedAtUtc);
+    DateTimeOffset GeneratedAtUtc,
+    string SourceHash = "",
+    string ExtractorVersion = "unknown",
+    string ChunkerVersion = SearchChunker.CurrentVersion,
+    string IndexVersion = "fts5-v1",
+    string ProviderKey = "ollama");

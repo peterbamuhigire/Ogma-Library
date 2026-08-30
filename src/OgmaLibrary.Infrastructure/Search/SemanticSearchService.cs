@@ -248,7 +248,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
             .AsNoTracking()
             .Where(vector =>
                 vector.ModelName == EmbeddingGenerationService.DefaultModelName &&
-                vector.ModelVersion == EmbeddingGenerationService.DefaultModelVersion)
+                vector.ModelVersion == EmbeddingGenerationService.DefaultModelVersion &&
+                vector.ProviderKey == EmbeddingGenerationService.DefaultProviderKey)
             .Join(
                 context.SearchChunks.AsNoTracking(),
                 vector => vector.ChunkId,

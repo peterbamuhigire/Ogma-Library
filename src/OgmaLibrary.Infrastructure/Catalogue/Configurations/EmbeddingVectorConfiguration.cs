@@ -25,6 +25,11 @@ public sealed class EmbeddingVectorConfiguration : IEntityTypeConfiguration<Embe
         builder.Property(v => v.DimensionCount).IsRequired();
         builder.Property(v => v.VectorBlob).IsRequired();
         builder.Property(v => v.GeneratedAtUtc);
+        builder.Property(v => v.SourceHash).IsRequired().HasMaxLength(64).HasDefaultValue("");
+        builder.Property(v => v.ExtractorVersion).IsRequired().HasMaxLength(128).HasDefaultValue("unknown");
+        builder.Property(v => v.ChunkerVersion).IsRequired().HasMaxLength(128).HasDefaultValue("chunker-v1");
+        builder.Property(v => v.IndexVersion).IsRequired().HasMaxLength(128).HasDefaultValue("fts5-v1");
+        builder.Property(v => v.ProviderKey).IsRequired().HasMaxLength(128).HasDefaultValue("ollama");
 
         // Unique model-scoped lookup per chunk. Re-embedding with a new model
         // version creates a second durable row until erasure or cleanup.

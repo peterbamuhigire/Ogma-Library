@@ -1,3 +1,5 @@
+using OgmaLibrary.Application.Search;
+
 namespace OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 /// <summary>
@@ -26,6 +28,21 @@ public sealed class EmbeddingVectorRow
 
     /// <summary>UTC timestamp when this vector was generated.</summary>
     public DateTimeOffset GeneratedAtUtc { get; set; }
+
+    /// <summary>Hash of the source chunk and version tuple.</summary>
+    public string SourceHash { get; set; } = string.Empty;
+
+    /// <summary>Extractor version represented by the source chunk.</summary>
+    public string ExtractorVersion { get; set; } = "unknown";
+
+    /// <summary>Chunker contract version represented by the source chunk.</summary>
+    public string ChunkerVersion { get; set; } = SearchChunker.CurrentVersion;
+
+    /// <summary>Search-index version represented by the source chunk.</summary>
+    public string IndexVersion { get; set; } = "fts5-v1";
+
+    /// <summary>Provider identity that generated the vector.</summary>
+    public string ProviderKey { get; set; } = "ollama";
 
     /// <summary>Navigation: the source chunk.</summary>
     public SearchChunkRow? Chunk { get; set; }

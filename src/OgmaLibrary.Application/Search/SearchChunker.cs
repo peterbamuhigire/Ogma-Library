@@ -7,6 +7,8 @@ namespace OgmaLibrary.Application.Search;
 /// </summary>
 public sealed class SearchChunker
 {
+    /// <summary>Version of the deterministic chunking contract.</summary>
+    public const string CurrentVersion = "chunker-v1";
     /// <summary>Default maximum number of tokens in one search chunk.</summary>
     public const int DefaultMaxTokens = 512;
 

@@ -42,6 +42,15 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         {
             throw new ArgumentException("Embedding vector must contain at least one dimension.", nameof(vector));
         }
+        if (vector.Vector.Length > 4096 || vector.Vector.Any(value => !float.IsFinite(value)))
+        {
+            throw new ArgumentException("Embedding vector dimensions or values are invalid.", nameof(vector));
+        }
+        if (vector.SourceHash.Length > 64 ||
+            vector.SourceHash.Any(character => !Uri.IsHexDigit(character)))
+        {
+            throw new ArgumentException("Embedding source hash must be hexadecimal and at most 64 characters.", nameof(vector));
+        }
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
@@ -70,6 +79,19 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         existing.GeneratedAtUtc = vector.GeneratedAtUtc == default
             ? DateTimeOffset.UtcNow
             : vector.GeneratedAtUtc;
+        existing.SourceHash = vector.SourceHash.ToLowerInvariant();
+        existing.ExtractorVersion = string.IsNullOrWhiteSpace(vector.ExtractorVersion)
+            ? "unknown"
+            : vector.ExtractorVersion;
+        existing.ChunkerVersion = string.IsNullOrWhiteSpace(vector.ChunkerVersion)
+            ? SearchChunker.CurrentVersion
+            : vector.ChunkerVersion;
+        existing.IndexVersion = string.IsNullOrWhiteSpace(vector.IndexVersion)
+            ? "fts5-v1"
+            : vector.IndexVersion;
+        existing.ProviderKey = string.IsNullOrWhiteSpace(vector.ProviderKey)
+            ? "ollama"
+            : vector.ProviderKey;
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return MapToRecord(existing);
@@ -161,7 +183,12 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
             row.ModelVersion,
             Deserialize(row.VectorBlob, row.DimensionCount),
             row.DimensionCount,
-            row.GeneratedAtUtc);
+            row.GeneratedAtUtc,
+            row.SourceHash,
+            row.ExtractorVersion,
+            row.ChunkerVersion,
+            row.IndexVersion,
+            row.ProviderKey);
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {
