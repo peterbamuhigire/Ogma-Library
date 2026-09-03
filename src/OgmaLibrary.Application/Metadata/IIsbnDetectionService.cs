@@ -46,6 +46,17 @@ public sealed record IsbnDetectionResult(
     IReadOnlyList<IsbnCandidate> AllCandidates,
     IReadOnlyList<IsbnSource> SourceRanked);
 
+/// <summary>Persists ranked ISBN observations without overwriting canonical metadata.</summary>
+public interface IIsbnEvidenceStore
+{
+    /// <summary>Replaces the evidence for one versioned extraction artifact.</summary>
+    Task ReplaceAsync(
+        string bookId,
+        long extractionArtifactId,
+        IReadOnlyList<IsbnCandidate> candidates,
+        CancellationToken cancellationToken = default);
+}
+
 /// <summary>
 /// Detects, normalizes, validates, and ranks ISBN-10 and ISBN-13 candidates from four
 /// sources within a PDF file: DocumentInformation, XMP, first-page text, and filename

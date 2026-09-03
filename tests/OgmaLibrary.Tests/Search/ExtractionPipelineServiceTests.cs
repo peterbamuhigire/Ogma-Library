@@ -1,5 +1,7 @@
 using System.Data.Common;
 using System.Security.Cryptography;
+using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -229,6 +231,44 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
         Assert.Equal(1, CountFtsMatches("SEARCHABLE"));
     }
 
+    [Fact]
+    public async Task ExtractionPipeline_RetainsRankedIsbnEvidenceOnTheArtifact()
+    {
+        string bookId = SeedBook("P11EVIDENCEBOOK000000000001", new string('c', 64));
+        var rendererFactory = new FakeRendererFactory([
+            new TextLayer(0, [Word("isbn"), Word("evidence")], ExtractionQuality.Full),
+        ]);
+        var detection = new FixedIsbnDetectionService([
+            new(ParseIsbn("9780262033848"), IsbnSource.DocInfo),
+            new(ParseIsbn("0262033844"), IsbnSource.FirstPage),
+        ]);
+        ExtractionPipelineService service = new(
+            _context,
+            new FakeBookFileLocator(),
+            rendererFactory,
+            new ExtractedTextStore(_context),
+            new SearchChunkRepository(_context),
+            new SearchChunker(),
+            isbnDetection: detection);
+
+        ExtractionBookResult result = await service.IndexBookAsync(bookId, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        ExtractionArtifactRow artifact = Assert.Single(_context.ExtractionArtifacts.Where(row => row.BookId == bookId));
+        List<ExtractedIsbnEvidenceRow> evidence = await _context.ExtractedIsbnEvidence
+            .Where(row => row.ExtractionArtifactId == artifact.ExtractionArtifactId)
+            .OrderBy(row => row.Rank)
+            .ToListAsync();
+        Assert.Equal(["9780262033848", "0262033844"], evidence.Select(row => row.IsbnNormalized));
+        Assert.True(evidence[0].IsBest);
+        Assert.False(evidence[1].IsBest);
+    }
+
+    private static Isbn ParseIsbn(string value) =>
+        Isbn.TryParse(value, out Isbn isbn)
+            ? isbn
+            : throw new InvalidOperationException("The test ISBN must be valid.");
+
     private ExtractionPipelineService CreateService(FakeRendererFactory rendererFactory)
     {
         var chunker = new SearchChunker();
@@ -399,5 +439,14 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
                 return _factory._pages[pageIndex];
             }
         }
+    }
+
+    private sealed class FixedIsbnDetectionService(IReadOnlyList<IsbnCandidate> candidates) : IIsbnDetectionService
+    {
+        public Task<IsbnDetectionResult> DetectAsync(string absoluteFilePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new IsbnDetectionResult(
+                candidates.Count == 0 ? null : candidates[0].Isbn,
+                candidates,
+                candidates.Select(candidate => candidate.Source).Distinct().ToArray()));
     }
 }

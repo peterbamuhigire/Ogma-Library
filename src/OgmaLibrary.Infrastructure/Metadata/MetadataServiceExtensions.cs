@@ -37,6 +37,7 @@ public static class MetadataServiceExtensions
 
         // ISBN detection.
         services.AddSingleton<IIsbnDetectionService, IsbnDetectionService>();
+        services.AddSingleton<IIsbnEvidenceStore, IsbnEvidenceStore>();
 
         // HTTP clients — named, routed through IHttpClientFactory (architecture rule SI-1).
         if (enableExternalProviders)

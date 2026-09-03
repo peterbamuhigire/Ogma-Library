@@ -1550,6 +1550,61 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ExtractedIsbnEvidenceRow", b =>
+                {
+                    b.Property<long>("ExtractedIsbnEvidenceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BookId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("DetectedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExtractionArtifactId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("IdentifierKind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsBest")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("IsbnNormalized")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ExtractedIsbnEvidenceId");
+
+                    b.HasIndex("BookId", "IsbnNormalized")
+                        .HasDatabaseName("IX_ExtractedIsbnEvidence_Book_Value");
+
+                    b.HasIndex("ExtractionArtifactId", "IsbnNormalized", "Source")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ExtractedIsbnEvidence_Artifact_Value_Source");
+
+                    b.ToTable("ExtractedIsbnEvidence", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ExtractedIsbnEvidence_Isbn", "length(IsbnNormalized) IN (10, 13)");
+
+                            t.HasCheckConstraint("CK_ExtractedIsbnEvidence_Kind", "IdentifierKind IN (0, 1)");
+
+                            t.HasCheckConstraint("CK_ExtractedIsbnEvidence_Rank", "Rank >= 0");
+
+                            t.HasCheckConstraint("CK_ExtractedIsbnEvidence_Source", "Source BETWEEN 0 AND 3");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupRow", b =>
                 {
                     b.Property<string>("IdentityGroupId")
@@ -2913,6 +2968,21 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("LibraryRootId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ExtractedIsbnEvidenceRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.BookRow", null)
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.ExtractionArtifactRow", null)
+                        .WithMany()
+                        .HasForeignKey("ExtractionArtifactId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

@@ -202,6 +202,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Versioned extraction artifact manifests.</summary>
     public DbSet<ExtractionArtifactRow> ExtractionArtifacts => Set<ExtractionArtifactRow>();
 
+    /// <summary>Ranked ISBN evidence emitted by extraction artifacts.</summary>
+    public DbSet<ExtractedIsbnEvidenceRow> ExtractedIsbnEvidence => Set<ExtractedIsbnEvidenceRow>();
+
     /// <summary>Durable resumable full-text rebuild checkpoints.</summary>
     public DbSet<SearchRebuildCheckpointRow> SearchRebuildCheckpoints => Set<SearchRebuildCheckpointRow>();
 
@@ -269,6 +272,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new DiscoveryObservationConfiguration());
         modelBuilder.ApplyConfiguration(new DirectoryCheckpointConfiguration());
         modelBuilder.ApplyConfiguration(new ExtractionArtifactConfiguration());
+        modelBuilder.ApplyConfiguration(new ExtractedIsbnEvidenceConfiguration());
         modelBuilder.ApplyConfiguration(new ProviderCacheEntryConfiguration());
         modelBuilder.ApplyConfiguration(new MetadataProposalConfiguration());
         modelBuilder.ApplyConfiguration(new VisualAssetManifestConfiguration());

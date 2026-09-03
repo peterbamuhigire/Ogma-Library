@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Search;
+using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Search;
@@ -62,4 +65,53 @@ public sealed class Phase11ExtractionArtifactTests : IDisposable
         Assert.NotNull(failed.CompletedUtc);
         Assert.Null(failed.ManifestHash);
     }
+
+    [Fact]
+    public async Task IsbnEvidenceStore_ReplacesRankedSourceEvidenceWithoutChangingBookMetadata()
+    {
+        var store = new IsbnEvidenceStore(_context);
+        ExtractionArtifactDescriptor artifact = await _artifacts.BeginAsync(
+            "01PH11BOOK0000000000000001", null, "pdf-text-v4");
+        var candidates = new IsbnCandidate[]
+        {
+            new(ParseIsbn("9780262033848"), IsbnSource.DocInfo),
+            new(ParseIsbn("0262033844"), IsbnSource.FirstPage),
+        };
+
+        await store.ReplaceAsync(
+            artifact.BookId,
+            artifact.Id,
+            candidates);
+
+        List<ExtractedIsbnEvidenceRow> rows = await _context.ExtractedIsbnEvidence
+            .OrderBy(row => row.Rank)
+            .ToListAsync();
+
+        Assert.Collection(
+            rows,
+            first =>
+            {
+                Assert.Equal("9780262033848", first.IsbnNormalized);
+                Assert.Equal(0, first.Source);
+                Assert.Equal(0, first.Rank);
+                Assert.True(first.IsBest);
+            },
+            second =>
+            {
+                Assert.Equal("0262033844", second.IsbnNormalized);
+                Assert.Equal(2, second.Source);
+                Assert.Equal(1, second.Rank);
+                Assert.False(second.IsBest);
+            });
+        Assert.Null(_context.Books.Single().IsbnNormalized);
+
+        await store.ReplaceAsync(artifact.BookId, artifact.Id, [candidates[1]]);
+        Assert.Single(await _context.ExtractedIsbnEvidence.ToListAsync());
+        Assert.Equal("0262033844", (await _context.ExtractedIsbnEvidence.SingleAsync()).IsbnNormalized);
+    }
+
+    private static Isbn ParseIsbn(string value) =>
+        Isbn.TryParse(value, out Isbn isbn)
+            ? isbn
+            : throw new InvalidOperationException("The test ISBN must be valid.");
 }

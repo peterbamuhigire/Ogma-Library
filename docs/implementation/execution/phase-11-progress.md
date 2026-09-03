@@ -1,6 +1,6 @@
 # Phase 11 Progress - PDF Extraction and ISBN Primitives
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -11,10 +11,15 @@ Date: 2026-08-30
 - Added the root-bounded `IPdfInputBroker`, which rejects traversal, bad
   extensions, invalid PDF magic and oversized inputs before parser entry.
 - Added tests for artifact idempotency/lifecycle and all broker validation paths.
+- Wired the extraction pipeline to the versioned artifact lifecycle.
+- Added durable ranked ISBN evidence keyed by extraction artifact, retaining
+  every validated source candidate without overwriting canonical book metadata.
+- Added a migration and integration coverage for evidence replacement,
+  artifact association, rank/source retention, and rerun-safe persistence.
 
 ## Remaining phase gate
 
-The existing extraction pipeline still needs to call the artifact service,
-persist page/TOC quality manifests, retain ISBN evidence in canonical records,
-and supply resource/Unicode/TOC corpus and throughput evidence before phase 11
-can be marked complete.
+The extraction pipeline now calls the artifact and ISBN evidence services and
+persists page-aware deterministic manifests. It still needs a durable TOC
+quality manifest/consumer, a mixed malformed/Unicode/TOC corpus, and measured
+resource/throughput evidence before phase 11 can be marked complete.

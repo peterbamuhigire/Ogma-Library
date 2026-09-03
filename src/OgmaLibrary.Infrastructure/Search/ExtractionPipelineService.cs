@@ -3,9 +3,11 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Metadata;
 
 namespace OgmaLibrary.Infrastructure.Search;
 
@@ -29,6 +31,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
     private readonly ISearchChunkRepository _chunkRepository;
     private readonly SearchChunker _chunker;
     private readonly IExtractionArtifactService _artifactService;
+    private readonly IIsbnDetectionService _isbnDetection;
+    private readonly IIsbnEvidenceStore _isbnEvidenceStore;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ExtractionPipelineService"/>.
@@ -41,7 +45,9 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         IExtractedTextStore extractedTextStore,
         ISearchChunkRepository chunkRepository,
         SearchChunker chunker,
-        IExtractionArtifactService artifactService)
+        IExtractionArtifactService artifactService,
+        IIsbnDetectionService isbnDetection,
+        IIsbnEvidenceStore isbnEvidenceStore)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(fileLocator);
@@ -50,6 +56,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         ArgumentNullException.ThrowIfNull(chunkRepository);
         ArgumentNullException.ThrowIfNull(chunker);
         ArgumentNullException.ThrowIfNull(artifactService);
+        ArgumentNullException.ThrowIfNull(isbnDetection);
+        ArgumentNullException.ThrowIfNull(isbnEvidenceStore);
 
         _contextFactory = contextFactory;
         _fileLocator = fileLocator;
@@ -58,6 +66,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         _chunkRepository = chunkRepository;
         _chunker = chunker;
         _artifactService = artifactService;
+        _isbnDetection = isbnDetection;
+        _isbnEvidenceStore = isbnEvidenceStore;
     }
 
     /// <summary>
@@ -70,7 +80,9 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         IPdfRendererFactory rendererFactory,
         IExtractedTextStore extractedTextStore,
         ISearchChunkRepository chunkRepository,
-        SearchChunker chunker)
+        SearchChunker chunker,
+        IIsbnDetectionService? isbnDetection = null,
+        IIsbnEvidenceStore? isbnEvidenceStore = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(fileLocator);
@@ -86,6 +98,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         _chunkRepository = chunkRepository;
         _chunker = chunker;
         _artifactService = new ExtractionArtifactService(context);
+        _isbnDetection = isbnDetection ?? new IsbnDetectionService();
+        _isbnEvidenceStore = isbnEvidenceStore ?? new IsbnEvidenceStore(context);
     }
 
     /// <inheritdoc />
@@ -212,6 +226,13 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
                 .ConfigureAwait(false);
             return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, ex.Message);
         }
+
+        IsbnDetectionResult isbnEvidence = await _isbnDetection
+            .DetectAsync(filePath, cancellationToken)
+            .ConfigureAwait(false);
+        await _isbnEvidenceStore
+            .ReplaceAsync(bookId, artifact.Id, isbnEvidence.AllCandidates, cancellationToken)
+            .ConfigureAwait(false);
 
         IReadOnlyList<SearchChunkRecord> pageChunks = BuildPageChunks(bookId, extracted.Pages);
         IReadOnlyList<SearchChunkRecord> noteChunks = await BuildNoteChunksAsync(bookId, cancellationToken)

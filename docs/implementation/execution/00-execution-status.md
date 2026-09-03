@@ -19,7 +19,7 @@ Execution branch: `main`
 | 8 | Filesystem Reconciliation and Recovery | IN PROGRESS | 2026-08-30 | — | Evidence-gated presence reconciliation delivered; move/replacement/grace gates remain in phase-08-progress.md |
 | 9 | Duplicate and Bibliographic Resolution | IN PROGRESS | 2026-08-30 | — | Durable conservative decision recording delivered; merge/split and scale gates remain in phase-09-progress.md |
 | 10 | PDF Validation and Containment | IN PROGRESS | 2026-08-30 | — | Root-bounded validation broker delivered; sandbox/password/resource gates remain in phase-10-progress.md |
-| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-08-30 | — | Versioned extraction artifact lifecycle and input broker delivered; pipeline/quality evidence gates remain in phase-11-progress.md |
+| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-09-04 | — | Versioned artifact lifecycle, pipeline integration, page manifests, and ranked ISBN evidence delivered; TOC/resource/corpus evidence remains in phase-11-progress.md |
 | 12 | Canonical Metadata and Provenance | IN PROGRESS | 2026-08-30 | — | User override precedence and proposal validation delivered; canonical scope/provenance gates remain in phase-12-progress.md |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | 2026-08-30 | — | Durable normalized provider cache and failure isolation delivered; quota/backoff/conflict/privacy gates remain in phase-13-progress.md |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue and explicit review commands delivered; concurrency/undo/UI gates remain in phase-14-progress.md |
