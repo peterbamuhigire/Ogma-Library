@@ -17,6 +17,7 @@ public sealed class MetadataProposalConfiguration : IEntityTypeConfiguration<Met
             table.HasCheckConstraint("CK_MetadataProposals_Confidence", "Confidence BETWEEN 0.0 AND 1.0");
             table.HasCheckConstraint("CK_MetadataProposals_Alternatives", "length(AlternativesJson) <= 65536");
             table.HasCheckConstraint("CK_MetadataProposals_Scope", "Scope IN (0, 1)");
+            table.HasCheckConstraint("CK_MetadataProposals_Version", "Version > 0");
         });
         builder.HasKey(row => row.MetadataProposalId);
         builder.Property(row => row.MetadataProposalId).ValueGeneratedOnAdd();
@@ -29,6 +30,7 @@ public sealed class MetadataProposalConfiguration : IEntityTypeConfiguration<Met
         builder.Property(row => row.Status).HasDefaultValue(0);
         builder.Property(row => row.Scope).HasDefaultValue(1).ValueGeneratedNever();
         builder.Property(row => row.ConfidenceModelVersion).IsRequired().HasMaxLength(64).HasDefaultValue("confidence-v1");
+        builder.Property(row => row.Version).HasDefaultValue(1).IsConcurrencyToken().ValueGeneratedNever();
         builder.HasIndex(row => new { row.BookId, row.Status, row.CreatedUtc })
             .HasDatabaseName("IX_MetadataProposals_Book_Status_Created");
         builder.HasOne<BookRow>()

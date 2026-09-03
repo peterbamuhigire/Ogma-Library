@@ -26,6 +26,7 @@ public sealed class Phase14MetadataReviewTests
         ]);
 
         Assert.Equal(2, created.Count);
+        Assert.Equal(1, created[0].Version);
         Assert.Equal(MetadataFieldScope.Work, created[0].Scope);
         Assert.Equal("confidence-v1", created[0].ConfidenceModelVersion);
         Assert.Equal(MetadataFieldScope.Work, created[1].Scope);
@@ -46,5 +47,24 @@ public sealed class Phase14MetadataReviewTests
         Assert.True(context.BookMetadataFields.Single().IsOverridden);
         await Assert.ThrowsAsync<InvalidOperationException>(() => review.DecideAsync(
             created[1].Id, accept: false));
+    }
+
+    [Fact]
+    public async Task Review_RejectsMarkupAndNonHttpsUrlValues()
+    {
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        const string bookId = "01PH14BOOK0000000000000002";
+        context.Books.Add(new BookRow { BookId = bookId, Status = 0 });
+        await context.SaveChangesAsync();
+        var review = new MetadataReviewService(
+            context,
+            new MetadataApplyService(context, new MetadataQualityService(context)));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => review.CreateAsync(bookId, [
+            new MergedMetadataProposal("Title", "<b>unsafe</b>", null, 0.8, "Provider", []),
+        ]));
+        await Assert.ThrowsAsync<ArgumentException>(() => review.CreateAsync(bookId, [
+            new MergedMetadataProposal("CoverUrl", "http://example.test/cover.jpg", null, 0.8, "Provider", []),
+        ]));
     }
 }

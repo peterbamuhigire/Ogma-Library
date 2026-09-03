@@ -73,6 +73,7 @@ public sealed class MetadataReviewService : IMetadataReviewService
                 CreatedUtc = DateTimeOffset.UtcNow,
                 Scope = (int)MetadataFieldPolicy.ScopeFor(proposal.FieldName),
                 ConfidenceModelVersion = proposal.ConfidenceModelVersion,
+                Version = 1,
             });
         }
 
@@ -117,6 +118,7 @@ public sealed class MetadataReviewService : IMetadataReviewService
 
         if (accept)
         {
+            ValidateValue(proposal.FieldName, editedValue ?? proposal.ProposedValue);
             string source = userOverride ? "UserOverride" : proposal.Source;
             double confidence = userOverride ? 1.0 : proposal.Confidence;
             await _applyService.ApplyMergedMetadataAsync(
@@ -136,7 +138,17 @@ public sealed class MetadataReviewService : IMetadataReviewService
         }
 
         proposal.DecidedUtc = DateTimeOffset.UtcNow;
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        proposal.Version++;
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new InvalidOperationException(
+                "The metadata proposal changed while it was being reviewed; reload it before deciding.",
+                ex);
+        }
         return Map(proposal);
     }
 
@@ -155,6 +167,31 @@ public sealed class MetadataReviewService : IMetadataReviewService
             throw new ArgumentOutOfRangeException(
                 nameof(proposal), "Metadata proposal confidence must be within [0.0, 1.0].");
         }
+
+        ValidateValue(proposal.FieldName, proposal.ProposedValue);
+        ValidateValue(proposal.FieldName, proposal.CurrentValue);
+    }
+
+    private static void ValidateValue(string fieldName, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (value.Contains('<', StringComparison.Ordinal) ||
+            value.Contains('>', StringComparison.Ordinal) ||
+            value.Contains("javascript:", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Metadata values cannot contain markup or executable URL schemes.");
+        }
+
+        if (fieldName.EndsWith("Url", StringComparison.OrdinalIgnoreCase) &&
+            (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) ||
+             !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException("Metadata URLs must be absolute HTTPS URLs.");
+        }
     }
 
     private static MetadataProposalDescriptor Map(MetadataProposalRow row) => new(
@@ -170,7 +207,8 @@ public sealed class MetadataReviewService : IMetadataReviewService
         row.CreatedUtc,
         row.DecidedUtc,
         (MetadataFieldScope)row.Scope,
-        row.ConfidenceModelVersion);
+        row.ConfidenceModelVersion,
+        row.Version);
 
     private static List<AlternativeFieldValue> DeserializeAlternatives(string json)
     {

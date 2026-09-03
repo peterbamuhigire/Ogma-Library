@@ -2029,6 +2029,10 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(1);
 
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -2048,6 +2052,8 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_MetadataProposals_Status", "Status BETWEEN 0 AND 2");
 
                             t.HasCheckConstraint("CK_MetadataProposals_Scope", "Scope IN (0, 1)");
+
+                            t.HasCheckConstraint("CK_MetadataProposals_Version", "Version > 0");
                         });
                 });
 

@@ -14,6 +14,20 @@ public enum MetadataProposalStatus
 }
 
 /// <summary>Reviewable metadata proposal with provenance and alternatives.</summary>
+/// <param name="Id">Database identifier.</param>
+/// <param name="BookId">Owning catalogue book.</param>
+/// <param name="FieldName">Canonical metadata field.</param>
+/// <param name="ProposedValue">Provider-proposed value.</param>
+/// <param name="CurrentValue">Value visible when the proposal was created.</param>
+/// <param name="Confidence">Calibrated proposal confidence.</param>
+/// <param name="Source">Provider or extraction source.</param>
+/// <param name="Alternatives">Bounded competing values.</param>
+/// <param name="Status">Current review lifecycle status.</param>
+/// <param name="CreatedUtc">UTC creation timestamp.</param>
+/// <param name="DecidedUtc">UTC decision timestamp, when decided.</param>
+/// <param name="Scope">Whether the proposal belongs to a work or edition.</param>
+/// <param name="ConfidenceModelVersion">Version of the confidence calibration model.</param>
+/// <param name="Version">Optimistic concurrency version for the proposal.</param>
 public sealed record MetadataProposalDescriptor(
     long Id,
     string BookId,
@@ -27,7 +41,8 @@ public sealed record MetadataProposalDescriptor(
     DateTimeOffset CreatedUtc,
     DateTimeOffset? DecidedUtc,
     MetadataFieldScope Scope = MetadataFieldScope.Edition,
-    string ConfidenceModelVersion = "confidence-v1");
+    string ConfidenceModelVersion = "confidence-v1",
+    int Version = 1);
 
 /// <summary>Command boundary for reviewable metadata curation.</summary>
 public interface IMetadataReviewService
