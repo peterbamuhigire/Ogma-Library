@@ -71,16 +71,39 @@ public sealed class ExtractionArtifactService : IExtractionArtifactService
     }
 
     /// <inheritdoc />
+    public Task<ExtractionArtifactDescriptor> CompleteAsync(
+        long artifactId,
+        int pagesProcessed,
+        int failedPages,
+        string manifestHash,
+        CancellationToken cancellationToken = default) =>
+        CompleteAsync(
+            artifactId,
+            pagesProcessed,
+            failedPages,
+            manifestHash,
+            tocEntries: 0,
+            tocQuality: TocExtractionQuality.Empty,
+            cancellationToken);
+
+    /// <inheritdoc />
     public async Task<ExtractionArtifactDescriptor> CompleteAsync(
         long artifactId,
         int pagesProcessed,
         int failedPages,
         string manifestHash,
+        int tocEntries,
+        TocExtractionQuality tocQuality,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(pagesProcessed);
         ArgumentOutOfRangeException.ThrowIfNegative(failedPages);
         ArgumentException.ThrowIfNullOrWhiteSpace(manifestHash);
+        ArgumentOutOfRangeException.ThrowIfNegative(tocEntries);
+        if (!Enum.IsDefined(tocQuality))
+        {
+            throw new ArgumentOutOfRangeException(nameof(tocQuality));
+        }
         if (manifestHash.Length != 64 || manifestHash.Any(character => !Uri.IsHexDigit(character)))
         {
             throw new ArgumentException("The artifact manifest hash must be 64 hexadecimal characters.", nameof(manifestHash));
@@ -92,6 +115,8 @@ public sealed class ExtractionArtifactService : IExtractionArtifactService
         artifact.PagesProcessed = pagesProcessed;
         artifact.FailedPages = failedPages;
         artifact.ManifestHash = manifestHash.ToLowerInvariant();
+        artifact.TocEntries = tocEntries;
+        artifact.TocQuality = (int)tocQuality;
         artifact.CompletedUtc = DateTimeOffset.UtcNow;
         await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return Map(artifact);
@@ -131,7 +156,9 @@ public sealed class ExtractionArtifactService : IExtractionArtifactService
         row.FailedPages,
         row.ManifestHash,
         row.CreatedUtc,
-        row.CompletedUtc);
+        row.CompletedUtc,
+        row.TocEntries,
+        (TocExtractionQuality)row.TocQuality);
 
     private async Task<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

@@ -59,6 +59,31 @@ public enum SearchExtractionQuality
     Failed = 4,
 }
 
+/// <summary>Quality state of a PDF outline/table-of-contents extraction.</summary>
+public enum TocExtractionQuality
+{
+    /// <summary>The document has no usable outline entries.</summary>
+    Empty = 0,
+
+    /// <summary>All retained outline entries have valid titles and page targets.</summary>
+    Complete = 1,
+
+    /// <summary>Some outline entries were retained while others were malformed.</summary>
+    Partial = 2,
+
+    /// <summary>The outline parser failed for this document.</summary>
+    Failed = 3,
+}
+
+/// <summary>One sanitized, page-aware PDF outline entry.</summary>
+public sealed record TocEntryRecord(string Title, int PageIndex, int Level);
+
+/// <summary>Bounded result of extracting a document outline.</summary>
+public sealed record TocExtractionResult(
+    IReadOnlyList<TocEntryRecord> Entries,
+    TocExtractionQuality Quality,
+    string? FailureCode = null);
+
 /// <summary>
 /// Source category for a full-text search chunk. Phase 11 uses this value for
 /// weighting and explanation, and Phase 16 can project it over LAN search.

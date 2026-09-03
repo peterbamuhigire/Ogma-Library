@@ -24,7 +24,9 @@ public sealed record ExtractionArtifactDescriptor(
     int FailedPages,
     string? ManifestHash,
     DateTimeOffset CreatedUtc,
-    DateTimeOffset? CompletedUtc);
+    DateTimeOffset? CompletedUtc,
+    int TocEntries = 0,
+    TocExtractionQuality TocQuality = TocExtractionQuality.Empty);
 
 /// <summary>Records versioned extraction output independent of the search index.</summary>
 public interface IExtractionArtifactService
@@ -42,6 +44,16 @@ public interface IExtractionArtifactService
         int pagesProcessed,
         int failedPages,
         string manifestHash,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Completes an artifact and records its TOC quality manifest.</summary>
+    Task<ExtractionArtifactDescriptor> CompleteAsync(
+        long artifactId,
+        int pagesProcessed,
+        int failedPages,
+        string manifestHash,
+        int tocEntries,
+        TocExtractionQuality tocQuality,
         CancellationToken cancellationToken = default);
 
     /// <summary>Marks a run failed without persisting extracted document content.</summary>

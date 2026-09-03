@@ -7,6 +7,7 @@ using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI.Ollama;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
+using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Infrastructure.Sidecar;
@@ -90,6 +91,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IEmbeddingVectorRepository, EmbeddingVectorRepository>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
+        services.AddSingleton<ITocExtractionService, PdfTableOfContentsService>();
         services.AddSingleton<EmbeddingGenerationService>();
         services.AddSingleton<IEmbeddingGenerationService>(sp =>
             sp.GetRequiredService<EmbeddingGenerationService>());

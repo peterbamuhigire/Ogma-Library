@@ -20,9 +20,13 @@ Date: 2026-09-04
 - Focused extraction/artifact suite: 11 passed, 0 failed.
 - Covered behaviours include artifact association, ranked DocInfo/first-page
   evidence, source retention, replacement idempotency, and pipeline integration.
+- `PdfTableOfContentsService` covers malformed input, Unicode titles, page
+  targets, hierarchy levels, bounded title normalization, and empty outlines;
+  pipeline TOC chunks are included in the deterministic artifact manifest.
 
 ## Remaining Phase 11 gates
 
-TOC quality persistence/consumption, mixed malformed and Unicode corpus
-evidence, and measured extraction resource/throughput evidence remain open.
+Measured extraction resource/throughput evidence over the large/mixed corpus
+remains open. The malformed/Unicode/TOC correctness sub-gates are covered by
+`Phase11TocExtractionTests` (2 passed).
 Physical licensed corpus and platform/release gates are not assessed here.

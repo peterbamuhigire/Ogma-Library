@@ -8,6 +8,7 @@ using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Metadata;
+using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Search;
 
@@ -33,6 +34,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
     private readonly IExtractionArtifactService _artifactService;
     private readonly IIsbnDetectionService _isbnDetection;
     private readonly IIsbnEvidenceStore _isbnEvidenceStore;
+    private readonly ITocExtractionService _tocExtraction;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ExtractionPipelineService"/>.
@@ -47,7 +49,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         SearchChunker chunker,
         IExtractionArtifactService artifactService,
         IIsbnDetectionService isbnDetection,
-        IIsbnEvidenceStore isbnEvidenceStore)
+        IIsbnEvidenceStore isbnEvidenceStore,
+        ITocExtractionService tocExtraction)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(fileLocator);
@@ -58,6 +61,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         ArgumentNullException.ThrowIfNull(artifactService);
         ArgumentNullException.ThrowIfNull(isbnDetection);
         ArgumentNullException.ThrowIfNull(isbnEvidenceStore);
+        ArgumentNullException.ThrowIfNull(tocExtraction);
 
         _contextFactory = contextFactory;
         _fileLocator = fileLocator;
@@ -68,6 +72,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         _artifactService = artifactService;
         _isbnDetection = isbnDetection;
         _isbnEvidenceStore = isbnEvidenceStore;
+        _tocExtraction = tocExtraction;
     }
 
     /// <summary>
@@ -82,7 +87,8 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         ISearchChunkRepository chunkRepository,
         SearchChunker chunker,
         IIsbnDetectionService? isbnDetection = null,
-        IIsbnEvidenceStore? isbnEvidenceStore = null)
+        IIsbnEvidenceStore? isbnEvidenceStore = null,
+        ITocExtractionService? tocExtraction = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(fileLocator);
@@ -100,6 +106,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         _artifactService = new ExtractionArtifactService(context);
         _isbnDetection = isbnDetection ?? new IsbnDetectionService();
         _isbnEvidenceStore = isbnEvidenceStore ?? new IsbnEvidenceStore(context);
+        _tocExtraction = tocExtraction ?? new PdfTableOfContentsService();
     }
 
     /// <inheritdoc />
@@ -234,7 +241,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
             .ReplaceAsync(bookId, artifact.Id, isbnEvidence.AllCandidates, cancellationToken)
             .ConfigureAwait(false);
 
+        TocExtractionResult toc = await _tocExtraction
+            .ExtractAsync(filePath, cancellationToken)
+            .ConfigureAwait(false);
+
         IReadOnlyList<SearchChunkRecord> pageChunks = BuildPageChunks(bookId, extracted.Pages);
+        IReadOnlyList<SearchChunkRecord> tocChunks = BuildTocChunks(bookId, toc.Entries);
         IReadOnlyList<SearchChunkRecord> noteChunks = await BuildNoteChunksAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
         IReadOnlyList<SearchChunkRecord> tagChunks = await BuildTagChunksAsync(bookId, cancellationToken)
@@ -246,6 +258,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         noteChunks = StampChunks(noteChunks, artifact.Id);
         tagChunks = StampChunks(tagChunks, artifact.Id);
         descriptionChunks = StampChunks(descriptionChunks, artifact.Id);
+        tocChunks = StampChunks(tocChunks, artifact.Id);
 
         int chunksWritten = 0;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
@@ -268,17 +281,17 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
             SearchChunkSource.Description,
             descriptionChunks,
             cancellationToken).ConfigureAwait(false)).Count;
-        await _chunkRepository.ReplaceForBookAsync(
+        chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
                 bookId,
                 SearchChunkSource.Toc,
-                [],
+                tocChunks,
                 cancellationToken)
-            .ConfigureAwait(false);
+            .ConfigureAwait(false)).Count;
 
         SearchBookIndexStatus finalStatus = extracted.FailedPages > 0
             ? SearchBookIndexStatus.Failed
             : SearchBookIndexStatus.Indexed;
-        string manifestHash = ComputeManifestHash(extracted.Pages, pageChunks, noteChunks, tagChunks, descriptionChunks);
+        string manifestHash = ComputeManifestHash(extracted.Pages, pageChunks, noteChunks, tagChunks, descriptionChunks, tocChunks);
         if (finalStatus == SearchBookIndexStatus.Indexed)
         {
             await _artifactService.CompleteAsync(
@@ -286,7 +299,9 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
                     extracted.PagesProcessed,
                     extracted.FailedPages,
                     manifestHash,
-                    cancellationToken)
+                    tocEntries: toc.Entries.Count,
+                    tocQuality: toc.Quality,
+                    cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
         else
@@ -417,6 +432,25 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         }
 
         return chunks;
+    }
+
+    private static SearchChunkRecord[] BuildTocChunks(
+        string bookId,
+        IReadOnlyList<TocEntryRecord> entries)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        return entries
+            .Select((entry, index) => new SearchChunkRecord(
+                Id: 0,
+                BookId: bookId,
+                ExtractedPageId: null,
+                PageIndex: entry.PageIndex,
+                ChunkIndex: index,
+                Text: $"{new string(' ', entry.Level * 2)}{entry.Title}",
+                TokenCount: SearchChunker.CountTokens(entry.Title),
+                Source: SearchChunkSource.Toc,
+                CreatedAtUtc: now))
+            .ToArray();
     }
 
     private async Task<IReadOnlyList<SearchChunkRecord>> BuildNoteChunksAsync(

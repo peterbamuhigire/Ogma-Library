@@ -1321,6 +1321,16 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("TocEntries")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TocQuality")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
                     b.HasKey("ExtractionArtifactId");
 
                     b.HasIndex("BookId", "ContentHash", "ExtractorVersion")
@@ -1332,6 +1342,8 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_ExtractionArtifacts_Manifest", "ManifestHash IS NULL OR length(ManifestHash) = 64");
 
                             t.HasCheckConstraint("CK_ExtractionArtifacts_Pages", "PagesProcessed >= 0 AND FailedPages >= 0");
+
+                            t.HasCheckConstraint("CK_ExtractionArtifacts_Toc", "TocEntries >= 0 AND TocQuality BETWEEN 0 AND 3");
 
                             t.HasCheckConstraint("CK_ExtractionArtifacts_Status", "Status BETWEEN 0 AND 2");
                         });

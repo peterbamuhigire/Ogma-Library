@@ -32,4 +32,10 @@ public sealed class ExtractionArtifactRow
 
     /// <summary>UTC completion time.</summary>
     public DateTimeOffset? CompletedUtc { get; set; }
+
+    /// <summary>Number of sanitized TOC entries retained for this artifact.</summary>
+    public int TocEntries { get; set; }
+
+    /// <summary>TOC quality state emitted by the PDF outline adapter.</summary>
+    public int TocQuality { get; set; }
 }

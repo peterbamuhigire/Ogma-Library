@@ -16,10 +16,15 @@ Date: 2026-09-04
   every validated source candidate without overwriting canonical book metadata.
 - Added a migration and integration coverage for evidence replacement,
   artifact association, rank/source retention, and rerun-safe persistence.
+- Added bounded PdfPig outline extraction with Unicode normalization, title/page
+  validation, depth/entry caps, partial/failure quality states, and TOC search
+  chunks linked to the extraction artifact.
+- Added durable TOC entry count/quality fields to the artifact manifest and
+  malformed/Unicode outline acceptance coverage.
 
 ## Remaining phase gate
 
-The extraction pipeline now calls the artifact and ISBN evidence services and
-persists page-aware deterministic manifests. It still needs a durable TOC
-quality manifest/consumer, a mixed malformed/Unicode/TOC corpus, and measured
-resource/throughput evidence before phase 11 can be marked complete.
+The extraction pipeline now calls the artifact, ISBN evidence, and TOC
+services; persists page-aware deterministic manifests; and records TOC quality.
+It still needs measured extraction resource/throughput evidence over the
+large/mixed corpus before phase 11 can be marked complete.

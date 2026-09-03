@@ -16,6 +16,7 @@ public sealed class ExtractionArtifactConfiguration : IEntityTypeConfiguration<E
             table.HasCheckConstraint("CK_ExtractionArtifacts_Status", "Status BETWEEN 0 AND 2");
             table.HasCheckConstraint("CK_ExtractionArtifacts_Pages", "PagesProcessed >= 0 AND FailedPages >= 0");
             table.HasCheckConstraint("CK_ExtractionArtifacts_Manifest", "ManifestHash IS NULL OR length(ManifestHash) = 64");
+            table.HasCheckConstraint("CK_ExtractionArtifacts_Toc", "TocEntries >= 0 AND TocQuality BETWEEN 0 AND 3");
         });
         builder.HasKey(row => row.ExtractionArtifactId);
         builder.Property(row => row.ExtractionArtifactId).ValueGeneratedOnAdd();
@@ -24,6 +25,8 @@ public sealed class ExtractionArtifactConfiguration : IEntityTypeConfiguration<E
         builder.Property(row => row.ExtractorVersion).IsRequired().HasMaxLength(128);
         builder.Property(row => row.Status).HasDefaultValue(0);
         builder.Property(row => row.ManifestHash).HasMaxLength(64);
+        builder.Property(row => row.TocEntries).HasDefaultValue(0);
+        builder.Property(row => row.TocQuality).HasDefaultValue(0);
         builder.HasIndex(row => new { row.BookId, row.ContentHash, row.ExtractorVersion })
             .IsUnique()
             .HasDatabaseName("UX_ExtractionArtifacts_Book_Content_Version");
