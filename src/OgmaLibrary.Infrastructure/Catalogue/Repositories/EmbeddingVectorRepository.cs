@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Search;
@@ -146,6 +148,27 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
     }
 
     /// <inheritdoc />
+    public async Task<int> GetStaleCountAsync(
+        string bookId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        List<EmbeddingVectorRow> rows = await lease.Context.EmbeddingVectors
+            .AsNoTracking()
+            .Include(vector => vector.Chunk)
+            .Where(vector => vector.Chunk != null && vector.Chunk.BookId == bookId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows.Count(vector => vector.Chunk is not null &&
+            !string.Equals(
+                vector.SourceHash,
+                ComputeSourceHash(vector.Chunk, vector.Chunk.ChunkText ?? string.Empty),
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <inheritdoc />
     public async Task<int> DeleteAllAsync(CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -160,6 +183,13 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         var bytes = new byte[vector.Length * sizeof(float)];
         Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
         return bytes;
+    }
+
+    private static string ComputeSourceHash(SearchChunkRow chunk, string text)
+    {
+        byte[] data = Encoding.UTF8.GetBytes(
+            $"{chunk.BookId}|{chunk.ChunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{chunk.IndexVersion}|{chunk.ExtractionArtifactId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "none"}|{text}");
+        return Convert.ToHexStringLower(SHA256.HashData(data));
     }
 
     private static float[] Deserialize(byte[]? bytes, int dimensionCount)

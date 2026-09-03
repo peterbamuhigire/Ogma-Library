@@ -57,6 +57,12 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
             e is SemanticIndexEvent.EmbeddingGenerated generated &&
             generated.TotalEmbedded == 2 &&
             generated.TotalChunks == 2);
+
+        _context.SearchChunks.Single(chunk => chunk.BookId == bookId && chunk.ChunkIndex == 0).ChunkText =
+            "changed after embedding";
+        await _context.SaveChangesAsync();
+        Assert.Equal(1, await new EmbeddingVectorRepository(_context)
+            .GetStaleCountAsync(bookId, CancellationToken.None));
     }
 
     [Fact]

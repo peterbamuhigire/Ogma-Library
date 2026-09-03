@@ -29,6 +29,11 @@ public interface IEmbeddingVectorRepository
         string bookId,
         CancellationToken cancellationToken);
 
+    /// <summary>Counts vectors whose source fingerprint no longer matches its chunk.</summary>
+    Task<int> GetStaleCountAsync(
+        string bookId,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Deletes every stored embedding vector and returns the deleted row count.
     /// </summary>

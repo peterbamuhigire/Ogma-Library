@@ -18,6 +18,8 @@ Date: 2026-08-30
 - Added schema migration and tests for provenance, unavailable/non-local
   providers, invalid vectors, semantic compatibility and existing performance
   behavior.
+- Added a repository-level stale-count query that recomputes the current selected
+  chunk fingerprint and detects vectors whose source changed after generation.
 
 ## Verification
 
@@ -27,7 +29,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Complete source-hash comparison against every selected chunk version, explicit
+Explicit tombstones,
 tombstones, side-by-side vector index swap/resume, ANN/target-scale evidence,
 cost/cache telemetry, dimension-consistency policy across a rebuild, and UI
 stale-count/rebuild controls remain before phase 25 closure.
