@@ -20,7 +20,7 @@ Execution branch: `main`
 | 9 | Duplicate and Bibliographic Resolution | COMPLETE | 2026-09-04 | 2026-09-04 | Candidate blocking, conservative provider-conflict decisions, reversible grouping, canonical alias resolution, and catalogue/advisor group projection evidenced |
 | 10 | PDF Validation and Containment | IN PROGRESS | 2026-08-30 | — | Root-bounded validation broker delivered; sandbox/password/resource gates remain in phase-10-progress.md |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-09-04 | — | Versioned artifact lifecycle, page/TOC manifests, pipeline integration, and ranked ISBN evidence delivered; measured extraction resource/throughput evidence remains in phase-11-progress.md |
-| 12 | Canonical Metadata and Provenance | IN PROGRESS | 2026-08-30 | — | User override precedence and proposal validation delivered; canonical scope/provenance gates remain in phase-12-progress.md |
+| 12 | Canonical Metadata and Provenance | COMPLETE | 2026-09-04 | 2026-09-04 | Work/edition scope policy, override precedence, proposal-only enrichment, confidence-model versioning, and provenance-bearing review projections evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | 2026-08-30 | — | Durable normalized provider cache and failure isolation delivered; quota/backoff/conflict/privacy gates remain in phase-13-progress.md |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue and explicit review commands delivered; concurrency/undo/UI gates remain in phase-14-progress.md |
 | 15 | Safe Writeback and Override Protection | IN PROGRESS | 2026-08-30 | — | Canonical path and source-change guards delivered; durable plans/consent/invalidation gates remain in phase-15-progress.md |

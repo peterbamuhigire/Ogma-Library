@@ -25,7 +25,9 @@ public sealed record MetadataProposalDescriptor(
     IReadOnlyList<AlternativeFieldValue> Alternatives,
     MetadataProposalStatus Status,
     DateTimeOffset CreatedUtc,
-    DateTimeOffset? DecidedUtc);
+    DateTimeOffset? DecidedUtc,
+    MetadataFieldScope Scope = MetadataFieldScope.Edition,
+    string ConfidenceModelVersion = "confidence-v1");
 
 /// <summary>Command boundary for reviewable metadata curation.</summary>
 public interface IMetadataReviewService

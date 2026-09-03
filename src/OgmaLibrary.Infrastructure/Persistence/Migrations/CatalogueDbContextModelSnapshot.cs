@@ -2018,6 +2018,17 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ConfidenceModelVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("confidence-v1");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -2035,6 +2046,8 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_MetadataProposals_Confidence", "Confidence BETWEEN 0.0 AND 1.0");
 
                             t.HasCheckConstraint("CK_MetadataProposals_Status", "Status BETWEEN 0 AND 2");
+
+                            t.HasCheckConstraint("CK_MetadataProposals_Scope", "Scope IN (0, 1)");
                         });
                 });
 

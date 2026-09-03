@@ -35,4 +35,10 @@ public sealed class MetadataProposalRow
 
     /// <summary>UTC decision time.</summary>
     public DateTimeOffset? DecidedUtc { get; set; }
+
+    /// <summary>Canonical work or edition scope of the proposed field.</summary>
+    public int Scope { get; set; }
+
+    /// <summary>Version of the confidence calibration model.</summary>
+    public string ConfidenceModelVersion { get; set; } = "confidence-v1";
 }

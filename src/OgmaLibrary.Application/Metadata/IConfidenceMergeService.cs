@@ -33,13 +33,40 @@ public sealed record AlternativeFieldValue(string Value, string Provider, double
 /// <param name="Alternatives">
 /// Other candidates for the same field, ordered by descending confidence.
 /// </param>
+/// <param name="ConfidenceModelVersion">Version of the calibration formula.</param>
 public sealed record MergedMetadataProposal(
     string FieldName,
     string? ProposedValue,
     string? CurrentValue,
     double MergedConfidence,
     string WinningProvider,
-    IReadOnlyList<AlternativeFieldValue> Alternatives);
+    IReadOnlyList<AlternativeFieldValue> Alternatives,
+    string ConfidenceModelVersion = "confidence-v1");
+
+/// <summary>Canonical scope of a metadata field.</summary>
+public enum MetadataFieldScope
+{
+    /// <summary>Describes the intellectual work across editions.</summary>
+    Work = 0,
+
+    /// <summary>Describes one publication/edition.</summary>
+    Edition = 1,
+}
+
+/// <summary>Executable field dictionary for work/edition metadata scope.</summary>
+public static class MetadataFieldPolicy
+{
+    /// <summary>Returns the canonical scope for a normalized field name.</summary>
+    public static MetadataFieldScope ScopeFor(string fieldName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        return fieldName.Trim().ToUpperInvariant() switch
+        {
+            "TITLE" or "AUTHOR" or "DESCRIPTION" or "CATEGORIES" => MetadataFieldScope.Work,
+            _ => MetadataFieldScope.Edition,
+        };
+    }
+}
 
 /// <summary>
 /// An accepted proposal ready to be written to <c>BookMetadataFields</c>

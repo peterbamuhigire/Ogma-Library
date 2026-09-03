@@ -15,16 +15,14 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentService
 {
-    private const double AutoApplyThreshold = 0.70;
-
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly ILibrarySettingsService _settings;
     private readonly IIsbnDetectionService _isbnDetection;
     private readonly IMetadataProviderAggregator _providerAggregator;
     private readonly IConfidenceMergeService _mergeService;
-    private readonly IMetadataApplyService _applyService;
     private readonly IMetadataWriteBackService _writeBackService;
+    private readonly IMetadataReviewService _reviewService;
 
     /// <summary>Initializes a new instance of <see cref="BookMetadataEnrichmentService"/>.</summary>
     internal BookMetadataEnrichmentService(
@@ -34,7 +32,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         IMetadataProviderAggregator providerAggregator,
         IConfidenceMergeService mergeService,
         IMetadataApplyService applyService,
-        IMetadataWriteBackService writeBackService)
+        IMetadataWriteBackService writeBackService,
+        IMetadataReviewService reviewService)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(settings);
@@ -49,8 +48,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         _isbnDetection = isbnDetection;
         _providerAggregator = providerAggregator;
         _mergeService = mergeService;
-        _applyService = applyService;
         _writeBackService = writeBackService;
+        _reviewService = reviewService ?? throw new ArgumentNullException(nameof(reviewService));
     }
 
     /// <summary>Initializes a new instance of <see cref="BookMetadataEnrichmentService"/>.</summary>
@@ -61,7 +60,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         IMetadataProviderAggregator providerAggregator,
         IConfidenceMergeService mergeService,
         IMetadataApplyService applyService,
-        IMetadataWriteBackService writeBackService)
+        IMetadataWriteBackService writeBackService,
+        IMetadataReviewService reviewService)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(settings);
@@ -76,8 +76,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         _isbnDetection = isbnDetection;
         _providerAggregator = providerAggregator;
         _mergeService = mergeService;
-        _applyService = applyService;
         _writeBackService = writeBackService;
+        _reviewService = reviewService ?? throw new ArgumentNullException(nameof(reviewService));
     }
 
     /// <inheritdoc />
@@ -134,20 +134,12 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
                 .MergeAsync(bookId, results, cancellationToken)
                 .ConfigureAwait(false);
 
-            List<AcceptedFieldProposal> accepted = proposals
+            List<MergedMetadataProposal> changedProposals = proposals
                 .Where(p => !string.IsNullOrWhiteSpace(p.ProposedValue))
-                .Where(p => p.MergedConfidence >= AutoApplyThreshold)
-                .Where(p => !string.Equals(p.WinningProvider, "UserOverride", StringComparison.OrdinalIgnoreCase))
                 .Where(p => !string.Equals(p.ProposedValue, p.CurrentValue, StringComparison.Ordinal))
-                .Select(p => new AcceptedFieldProposal(
-                    p.FieldName,
-                    p.ProposedValue,
-                    p.WinningProvider,
-                    p.MergedConfidence,
-                    IsOverridden: false))
                 .ToList();
 
-            if (accepted.Count == 0)
+            if (changedProposals.Count == 0)
             {
                 await WriteAuditAsync(bookId, "MetadataEnrichmentNoChanges", new
                 {
@@ -157,14 +149,16 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
                 return (true, null);
             }
 
-            await _applyService.ApplyMergedMetadataAsync(bookId, accepted, cancellationToken)
+            await _reviewService.CreateAsync(bookId, changedProposals, cancellationToken)
                 .ConfigureAwait(false);
-
-            if (!string.IsNullOrWhiteSpace(pdfPath))
+            await WriteAuditAsync(bookId, "MetadataProposalsCreated", new
             {
-                await TryWriteBackAsync(bookId, pdfPath, accepted, cancellationToken)
-                    .ConfigureAwait(false);
-            }
+                proposalCount = changedProposals.Count,
+                confidenceModelVersion = changedProposals
+                    .Select(proposal => proposal.ConfidenceModelVersion)
+                    .Distinct(StringComparer.Ordinal)
+                    .SingleOrDefault() ?? "confidence-v1",
+            }, cancellationToken).ConfigureAwait(false);
 
             return (true, null);
         }

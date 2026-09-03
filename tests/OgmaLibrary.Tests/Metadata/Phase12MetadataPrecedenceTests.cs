@@ -8,6 +8,17 @@ namespace OgmaLibrary.Tests.Metadata;
 /// <summary>Phase 12 acceptance tests for canonical metadata precedence.</summary>
 public sealed class Phase12MetadataPrecedenceTests
 {
+    [Theory]
+    [InlineData("Title", MetadataFieldScope.Work)]
+    [InlineData("Author", MetadataFieldScope.Work)]
+    [InlineData("Description", MetadataFieldScope.Work)]
+    [InlineData("ISBN", MetadataFieldScope.Edition)]
+    [InlineData("Publisher", MetadataFieldScope.Edition)]
+    public void MetadataFieldPolicy_AssignsStableCanonicalScope(string field, MetadataFieldScope expected)
+    {
+        Assert.Equal(expected, MetadataFieldPolicy.ScopeFor(field));
+    }
+
     [Fact]
     public async Task ProviderProposalCannotOverwriteUserOverride()
     {

@@ -26,6 +26,9 @@ public sealed class Phase14MetadataReviewTests
         ]);
 
         Assert.Equal(2, created.Count);
+        Assert.Equal(MetadataFieldScope.Work, created[0].Scope);
+        Assert.Equal("confidence-v1", created[0].ConfidenceModelVersion);
+        Assert.Equal(MetadataFieldScope.Work, created[1].Scope);
         Assert.Equal(2, (await review.ListPendingAsync(bookId)).Count);
         Assert.Empty(context.BookMetadataFields);
 

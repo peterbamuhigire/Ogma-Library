@@ -71,6 +71,8 @@ public sealed class MetadataReviewService : IMetadataReviewService
                 AlternativesJson = alternatives,
                 Status = (int)MetadataProposalStatus.Pending,
                 CreatedUtc = DateTimeOffset.UtcNow,
+                Scope = (int)MetadataFieldPolicy.ScopeFor(proposal.FieldName),
+                ConfidenceModelVersion = proposal.ConfidenceModelVersion,
             });
         }
 
@@ -166,7 +168,9 @@ public sealed class MetadataReviewService : IMetadataReviewService
         DeserializeAlternatives(row.AlternativesJson),
         (MetadataProposalStatus)row.Status,
         row.CreatedUtc,
-        row.DecidedUtc);
+        row.DecidedUtc,
+        (MetadataFieldScope)row.Scope,
+        row.ConfidenceModelVersion);
 
     private static List<AlternativeFieldValue> DeserializeAlternatives(string json)
     {

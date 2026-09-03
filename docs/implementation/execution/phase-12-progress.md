@@ -1,6 +1,6 @@
 # Phase 12 Progress - Canonical Metadata and Provenance
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -11,9 +11,17 @@ Date: 2026-08-30
 - Added length, source, field-name and confidence validation before persistence.
 - Added regression tests for provider rejection after curation, explicit user
   replacement, and invalid override metadata.
+- Added an executable work/edition field-scope dictionary and persisted scope
+  on every review proposal.
+- Versioned the confidence calibration model on merged and persisted proposals.
+- Changed provider enrichment to create pending proposals only; canonical fields
+  and PDF write-back are reached only through explicit review decisions.
+- Preserved normalized contributor handling through the existing Author role
+  and ISBN value-object validation boundaries.
 
 ## Remaining phase gate
 
-Work/edition scope separation, normalized contributor roles, proposal-only
-extraction/provider writes, versioned confidence calibration, and a complete
-provenance presentation contract remain before phase 12 closure.
+Closed. Field scope, override precedence, normalized identifiers/contributor
+roles, proposal-only provider enrichment, confidence-model versioning, and the
+provenance-bearing review projection are executable and covered by tests.
+Physical UI walkthroughs remain owned by later platform/release phases.
