@@ -41,6 +41,7 @@ public sealed record MetadataLookupRequest(
 /// <param name="RatingsCount">Provider rating count, if supplied.</param>
 /// <param name="PageCount">Provider page count, if supplied.</param>
 /// <param name="Language">Provider language code, if supplied.</param>
+/// <param name="IsStale">Whether this result came from an expired local cache.</param>
 public sealed record ProviderMetadataResult(
     string Provider,
     string RequestIsbn,
@@ -58,7 +59,8 @@ public sealed record ProviderMetadataResult(
     double? AverageRating = null,
     int? RatingsCount = null,
     int? PageCount = null,
-    string? Language = null);
+    string? Language = null,
+    bool IsStale = false);
 
 /// <summary>
 /// A single metadata provider that resolves bibliographic data for a given ISBN

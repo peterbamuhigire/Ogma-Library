@@ -56,6 +56,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
             .ConfigureAwait(false);
         DateTimeOffset now = DateTimeOffset.UtcNow;
         var results = new List<ProviderMetadataResult>();
+        var staleResults = new Dictionary<string, IReadOnlyList<ProviderMetadataResult>>(StringComparer.Ordinal);
         var misses = new List<IMetadataProvider>();
         foreach (IMetadataProvider provider in _providers)
         {
@@ -63,6 +64,12 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
                 row => string.Equals(row.Provider, provider.ProviderName, StringComparison.Ordinal));
             if (entry is null || entry.ExpiresUtc < now)
             {
+                if (entry is not null && !entry.IsNegative)
+                {
+                    staleResults[provider.ProviderName] = Deserialize(entry.ResponseJson)
+                        .Select(result => result with { IsStale = true })
+                        .ToArray();
+                }
                 misses.Add(provider);
                 continue;
             }
@@ -119,6 +126,12 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
         foreach (IMetadataProvider provider in misses.Where(provider =>
                      !fetched.Any(result => result?.Provider == provider.ProviderName)))
         {
+            if (staleResults.TryGetValue(provider.ProviderName, out IReadOnlyList<ProviderMetadataResult>? stale))
+            {
+                results.AddRange(stale);
+                continue;
+            }
+
             ProviderCacheEntryRow? entry = cached.FirstOrDefault(
                 row => string.Equals(row.Provider, provider.ProviderName, StringComparison.Ordinal));
             if (entry is null)

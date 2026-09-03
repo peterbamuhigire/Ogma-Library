@@ -45,6 +45,25 @@ public sealed class Phase13ProviderGatewayTests : IDisposable
         Assert.Equal("[]", _context.ProviderCacheEntries.Single().ResponseJson);
     }
 
+    [Fact]
+    public async Task ExpiredCache_IsReturnedAsExplicitlyStaleWhenRefreshFails()
+    {
+        var provider = new FlakyProvider();
+        var gateway = new MetadataProviderGateway([provider], _context);
+        var request = new MetadataLookupRequest(null, "stale title", null);
+
+        IReadOnlyList<ProviderMetadataResult> fresh = await gateway.SearchAsync(request);
+        _context.ProviderCacheEntries.Single().ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(-1);
+        await _context.SaveChangesAsync();
+
+        IReadOnlyList<ProviderMetadataResult> stale = await gateway.SearchAsync(request);
+
+        Assert.Single(fresh);
+        Assert.Single(stale);
+        Assert.True(stale[0].IsStale);
+        Assert.Equal(2, provider.Calls);
+    }
+
     private sealed class CountingProvider : IMetadataProvider
     {
         public CountingProvider(string name) => ProviderName = name;
@@ -91,5 +110,42 @@ public sealed class Phase13ProviderGatewayTests : IDisposable
             MetadataLookupRequest request,
             CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException("provider offline");
+    }
+
+    private sealed class FlakyProvider : IMetadataProvider
+    {
+        public string ProviderName => "FlakyProvider";
+        public int Calls { get; private set; }
+
+        public Task<ProviderMetadataResult?> LookupAsync(
+            string isbn13,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<ProviderMetadataResult>> SearchAsync(
+            MetadataLookupRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            if (Calls > 1)
+            {
+                throw new InvalidOperationException("provider offline");
+            }
+
+            return Task.FromResult<IReadOnlyList<ProviderMetadataResult>>([new ProviderMetadataResult(
+                ProviderName,
+                string.Empty,
+                request.Title,
+                [],
+                null,
+                null,
+                null,
+                null,
+                [],
+                null,
+                0.8,
+                DateTimeOffset.UtcNow,
+                null)]);
+        }
     }
 }

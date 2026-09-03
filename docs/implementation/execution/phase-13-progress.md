@@ -1,6 +1,6 @@
 # Phase 13 Progress - Bibliographic Provider Gateway
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -13,9 +13,14 @@ Date: 2026-08-30
   document responses.
 - Added tests proving repeated normalized lookups use one provider call and
   failures create bounded negative cache entries.
+- Expired positive cache entries now remain available as explicitly marked
+  stale results when a provider refresh fails, preserving local catalogue
+  usefulness without presenting stale data as fresh.
+- Added regression coverage for stale fallback and refresh isolation.
 
 ## Remaining phase gate
 
 ETag/conditional requests, quota accounting, circuit-breaker/backoff telemetry,
-provider conflict aggregation, stale-cache UI status, and privacy disclosure
-evidence remain before phase 13 closure.
+provider conflict aggregation, and privacy disclosure evidence remain before
+phase 13 closure. Stale-cache status is now present in the provider result
+contract for the UI consumer.
