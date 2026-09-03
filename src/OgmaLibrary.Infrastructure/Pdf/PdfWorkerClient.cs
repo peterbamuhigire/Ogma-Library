@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.Json;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
@@ -20,6 +22,13 @@ public sealed class PdfWorkerClient
     public PdfWorkerClient(PdfWorkerOptions? options = null)
     {
         _options = options ?? new PdfWorkerOptions();
+        if (_options.Timeout <= TimeSpan.Zero ||
+            _options.CpuTimeLimit <= TimeSpan.Zero ||
+            _options.MaxMemoryBytes <= 0 ||
+            _options.MaxOutputBytes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Worker resource limits must be positive.");
+        }
     }
 
     /// <summary>
@@ -119,7 +128,11 @@ public sealed class PdfWorkerClient
                 cancellationToken)
             .ConfigureAwait(false);
 
-        byte[] pngBytes = await File.ReadAllBytesAsync(outputPath, cancellationToken).ConfigureAwait(false);
+        (byte[] pngBytes, _) = await ReadVerifiedOutputAsync(
+            outputPath,
+            sandbox.Path,
+            _options.MaxOutputBytes,
+            cancellationToken).ConfigureAwait(false);
         RenderPageResponse payload = envelope.Payload ?? new RenderPageResponse(595, 842);
         return new RenderResult(pngBytes, payload.PageWidthPoints, payload.PageHeightPoints, pageIndex);
     }
@@ -222,6 +235,7 @@ public sealed class PdfWorkerClient
             ],
             password: null,
             sandbox);
+        _ = VerifyOutput(workerOutputPath, sandbox.Path, _options.MaxOutputBytes);
         File.Copy(workerOutputPath, fullOutputPath, overwrite: true);
     }
 
@@ -272,7 +286,10 @@ public sealed class PdfWorkerClient
             process.Start();
             await SendPasswordAsync(process.StandardInput, password, closeAfterWrite: true)
                 .ConfigureAwait(false);
-            using WindowsChildProcessLimit? childProcessLimit = WindowsChildProcessLimit.TryAssign(process);
+            using WindowsChildProcessLimit? childProcessLimit = WindowsChildProcessLimit.TryAssign(
+                process,
+                _options.MaxMemoryBytes,
+                _options.CpuTimeLimit);
             Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
             Task<string> stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
@@ -353,14 +370,61 @@ public sealed class PdfWorkerClient
         return destination;
     }
 
+    private static async Task<(byte[] Bytes, PdfWorkerOutputManifest Manifest)> ReadVerifiedOutputAsync(
+        string outputPath,
+        string sandboxPath,
+        long maxOutputBytes,
+        CancellationToken cancellationToken)
+    {
+        string boundedPath = VerifyOutput(outputPath, sandboxPath, maxOutputBytes);
+        byte[] bytes = await File.ReadAllBytesAsync(boundedPath, cancellationToken).ConfigureAwait(false);
+        return (
+            bytes,
+            new PdfWorkerOutputManifest(
+                Path.GetFileName(boundedPath),
+                bytes.LongLength,
+                Convert.ToHexStringLower(SHA256.HashData(bytes))));
+    }
+
+    private static string VerifyOutput(string outputPath, string sandboxPath, long maxOutputBytes)
+    {
+        string boundedPath = PathGuard.EnsureWithinRoot(outputPath, sandboxPath);
+        if (!File.Exists(boundedPath))
+        {
+            throw new InvalidOperationException("The PDF worker did not produce the expected output.");
+        }
+
+        long length = new FileInfo(boundedPath).Length;
+        if (length <= 0 || length > maxOutputBytes)
+        {
+            throw new InvalidOperationException("The PDF worker output exceeded its bounded manifest policy.");
+        }
+
+        return boundedPath;
+    }
+
     private static async Task SendPasswordAsync(
         StreamWriter writer,
         char[]? password,
         bool closeAfterWrite)
     {
-        string encoded = password is null
-            ? string.Empty
-            : Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(password));
+        string encoded;
+        if (password is null)
+        {
+            encoded = string.Empty;
+        }
+        else
+        {
+            byte[] passwordBytes = System.Text.Encoding.UTF8.GetBytes(password);
+            try
+            {
+                encoded = Convert.ToBase64String(passwordBytes);
+            }
+            finally
+            {
+                Array.Clear(passwordBytes);
+            }
+        }
         await writer.WriteLineAsync(encoded).ConfigureAwait(false);
         await writer.FlushAsync().ConfigureAwait(false);
 
@@ -577,7 +641,10 @@ public sealed class PdfWorkerClient
 
                 _process = new Process { StartInfo = startInfo };
                 _process.Start();
-                _childProcessLimit = WindowsChildProcessLimit.TryAssign(_process);
+                _childProcessLimit = WindowsChildProcessLimit.TryAssign(
+                    _process,
+                    _client._options.MaxMemoryBytes,
+                    _client._options.CpuTimeLimit);
                 _reader = _process.StandardOutput;
                 _writer = _process.StandardInput;
                 SendPasswordAsync(_writer, _password, closeAfterWrite: false)
@@ -620,8 +687,11 @@ public sealed class PdfWorkerClient
                         outputName),
                     cancellationToken).ConfigureAwait(false);
                 string outputPath = Path.Combine(_sandbox.Path, outputName);
-                byte[] bytes = await File.ReadAllBytesAsync(outputPath, cancellationToken)
-                    .ConfigureAwait(false);
+                (byte[] bytes, _) = await ReadVerifiedOutputAsync(
+                    outputPath,
+                    _sandbox.Path,
+                    _client._options.MaxOutputBytes,
+                    cancellationToken).ConfigureAwait(false);
                 File.Delete(outputPath);
                 return new RenderResult(
                     bytes,
@@ -768,7 +838,19 @@ public sealed class PdfWorkerOptions
     /// Gets or sets the worker operation timeout.
     /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>Maximum worker process memory enforced by Windows Job Objects.</summary>
+    public long MaxMemoryBytes { get; set; } = 768L * 1024L * 1024L;
+
+    /// <summary>Maximum worker CPU time enforced by Windows Job Objects.</summary>
+    public TimeSpan CpuTimeLimit { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>Maximum size of one sandbox output artifact.</summary>
+    public long MaxOutputBytes { get; set; } = 64L * 1024L * 1024L;
 }
+
+/// <summary>Verified output metadata for one bounded worker artifact.</summary>
+public sealed record PdfWorkerOutputManifest(string RelativeName, long LengthBytes, string Sha256Hash);
 
 /// <summary>
 /// A diagnostic result returned by the PDF worker process.

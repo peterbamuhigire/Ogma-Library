@@ -10,6 +10,8 @@ internal sealed class WindowsChildProcessLimit : IDisposable
     private const int JobObjectExtendedLimitInformationClass = 9;
     private const uint JobObjectLimitKillOnJobClose = 0x00002000;
     private const uint JobObjectLimitActiveProcess = 0x00000008;
+    private const uint JobObjectLimitProcessTime = 0x00000002;
+    private const uint JobObjectLimitProcessMemory = 0x00000100;
 
     private readonly SafeFileHandle _handle;
 
@@ -18,7 +20,10 @@ internal sealed class WindowsChildProcessLimit : IDisposable
         _handle = handle;
     }
 
-    public static WindowsChildProcessLimit? TryAssign(Process process)
+    public static WindowsChildProcessLimit? TryAssign(
+        Process process,
+        long maxMemoryBytes,
+        TimeSpan cpuTimeLimit)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -35,9 +40,14 @@ internal sealed class WindowsChildProcessLimit : IDisposable
         {
             BasicLimitInformation = new JobObjectBasicLimitInformation
             {
-                LimitFlags = JobObjectLimitKillOnJobClose | JobObjectLimitActiveProcess,
+                LimitFlags = JobObjectLimitKillOnJobClose |
+                             JobObjectLimitActiveProcess |
+                             JobObjectLimitProcessTime |
+                             JobObjectLimitProcessMemory,
                 ActiveProcessLimit = 1,
+                PerProcessUserTimeLimit = cpuTimeLimit.Ticks,
             },
+            ProcessMemoryLimit = (nuint)maxMemoryBytes,
         };
 
         int length = Marshal.SizeOf<JobObjectExtendedLimitInformation>();

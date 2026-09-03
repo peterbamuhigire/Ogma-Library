@@ -18,10 +18,15 @@ Date: 2026-09-04
   environment and command-line arguments.
 - Added a persistent-worker regression proving rendering continues after the
   original source path is removed once the sandbox copy is opened.
+- Added sandbox-root-checked output reads with a positive-size ceiling and
+  SHA-256 output manifest calculation for page artifacts; asset outputs are
+  checked by the same sandbox/size policy before copy-out.
+- Added Windows Job Object process ceilings for active process count, CPU time,
+  and process memory, with configurable timeout, memory, CPU, and output limits.
+- Added an oversized-output acceptance test.
 
 ## Remaining phase gate
 
 The brokered copy and one-shot password transport gates are now implemented and
-tested. Verified output manifests, CPU/memory/time ceilings beyond the existing
-timeout/process cap, true Windows/macOS network and filesystem sandbox adapters,
-physical escape evidence, and independent security approval remain open.
+tested. True Windows/macOS network and filesystem sandbox adapters, physical
+escape evidence, and independent security approval remain open.
