@@ -40,6 +40,12 @@ public sealed class GoogleBooksProvider : IMetadataProvider
     public async Task<ProviderMetadataResult?> LookupAsync(
         string isbn13,
         CancellationToken cancellationToken = default)
+        => await LookupCoreAsync(isbn13, conditionalETag: null, cancellationToken).ConfigureAwait(false);
+
+    private async Task<ProviderMetadataResult?> LookupCoreAsync(
+        string isbn13,
+        string? conditionalETag,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(isbn13);
 
@@ -48,9 +54,17 @@ public sealed class GoogleBooksProvider : IMetadataProvider
         try
         {
             string url = $"volumes?q=isbn:{Uri.EscapeDataString(isbn13)}";
-            using var response = await _httpClient
-                .GetAsync(url, cancellationToken)
+            using HttpRequestMessage request = CreateRequest(url, conditionalETag);
+            using HttpResponseMessage response = await _httpClient
+                .SendAsync(request, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+            {
+                return new ProviderMetadataResult(
+                    ProviderName, isbn13, null, [], null, null, null, null, [], isbn13, 0,
+                    retrievedUtc, null, ETag: response.Headers.ETag?.Tag, NotModified: true);
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -60,7 +74,7 @@ public sealed class GoogleBooksProvider : IMetadataProvider
             string json = await response.Content.ReadAsStringAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            return ParseResponse(isbn13, json, retrievedUtc);
+            return ParseResponse(isbn13, json, retrievedUtc, response.Headers.ETag?.Tag);
         }
         catch (OperationCanceledException)
         {
@@ -81,7 +95,10 @@ public sealed class GoogleBooksProvider : IMetadataProvider
 
         if (!string.IsNullOrWhiteSpace(request.Isbn13))
         {
-            ProviderMetadataResult? isbnResult = await LookupAsync(request.Isbn13, cancellationToken)
+            ProviderMetadataResult? isbnResult = await LookupCoreAsync(
+                    request.Isbn13,
+                    request.ConditionalETag,
+                    cancellationToken)
                 .ConfigureAwait(false);
             return isbnResult is null ? [] : [isbnResult];
         }
@@ -97,9 +114,17 @@ public sealed class GoogleBooksProvider : IMetadataProvider
         try
         {
             string url = $"volumes?q={Uri.EscapeDataString(query)}&maxResults=5";
-            using var response = await _httpClient
-                .GetAsync(url, cancellationToken)
+            using HttpRequestMessage requestMessage = CreateRequest(url, request.ConditionalETag);
+            using HttpResponseMessage response = await _httpClient
+                .SendAsync(requestMessage, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+            {
+                return [new ProviderMetadataResult(
+                    ProviderName, string.Empty, null, [], null, null, null, null, [], null, 0,
+                    retrievedUtc, null, ETag: response.Headers.ETag?.Tag, NotModified: true)];
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -109,7 +134,7 @@ public sealed class GoogleBooksProvider : IMetadataProvider
             string json = await response.Content.ReadAsStringAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            return ParseSearchResponse(request, json, retrievedUtc);
+            return ParseSearchResponse(request, json, retrievedUtc, response.Headers.ETag?.Tag);
         }
         catch (OperationCanceledException)
         {
@@ -124,7 +149,8 @@ public sealed class GoogleBooksProvider : IMetadataProvider
     private ProviderMetadataResult? ParseResponse(
         string isbn13,
         string json,
-        DateTimeOffset retrievedUtc)
+        DateTimeOffset retrievedUtc,
+        string? etag = null)
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
@@ -243,13 +269,15 @@ public sealed class GoogleBooksProvider : IMetadataProvider
             AverageRating: averageRating,
             RatingsCount: ratingsCount,
             PageCount: pageCount,
-            Language: language);
+            Language: language,
+            ETag: etag);
     }
 
     private List<ProviderMetadataResult> ParseSearchResponse(
         MetadataLookupRequest request,
         string json,
-        DateTimeOffset retrievedUtc)
+        DateTimeOffset retrievedUtc,
+        string? etag = null)
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
@@ -278,7 +306,8 @@ public sealed class GoogleBooksProvider : IMetadataProvider
                 request,
                 vi,
                 itemJson,
-                retrievedUtc);
+                retrievedUtc,
+                etag);
 
             if (result is not null)
             {
@@ -295,7 +324,8 @@ public sealed class GoogleBooksProvider : IMetadataProvider
         MetadataLookupRequest request,
         JsonElement vi,
         string rawJson,
-        DateTimeOffset retrievedUtc)
+        DateTimeOffset retrievedUtc,
+        string? etag = null)
     {
         string? title = vi.TryGetProperty("title", out var t) ? t.GetString() : null;
         string? publisher = vi.TryGetProperty("publisher", out var pub) ? pub.GetString() : null;
@@ -372,7 +402,8 @@ public sealed class GoogleBooksProvider : IMetadataProvider
             AverageRating: averageRating,
             RatingsCount: ratingsCount,
             PageCount: pageCount,
-            Language: language);
+            Language: language,
+            ETag: etag);
     }
 
     private ProviderMetadataResult BuildFailureResult(
@@ -394,6 +425,17 @@ public sealed class GoogleBooksProvider : IMetadataProvider
             Confidence: 0.0,
             RetrievedUtc: retrievedUtc,
             RawJson: JsonSerializer.Serialize(new { error = errorMessage }));
+    }
+
+    private static HttpRequestMessage CreateRequest(string relativeUrl, string? conditionalETag)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, relativeUrl);
+        if (!string.IsNullOrWhiteSpace(conditionalETag))
+        {
+            request.Headers.TryAddWithoutValidation("If-None-Match", conditionalETag);
+        }
+
+        return request;
     }
 
     private static string BuildSearchQuery(MetadataLookupRequest request)

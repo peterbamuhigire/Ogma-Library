@@ -38,6 +38,12 @@ public sealed class OpenLibraryProvider : IMetadataProvider
     public async Task<ProviderMetadataResult?> LookupAsync(
         string isbn13,
         CancellationToken cancellationToken = default)
+        => await LookupCoreAsync(isbn13, conditionalETag: null, cancellationToken).ConfigureAwait(false);
+
+    private async Task<ProviderMetadataResult?> LookupCoreAsync(
+        string isbn13,
+        string? conditionalETag,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(isbn13);
 
@@ -46,9 +52,17 @@ public sealed class OpenLibraryProvider : IMetadataProvider
         try
         {
             string url = $"api/books?bibkeys=ISBN:{Uri.EscapeDataString(isbn13)}&format=json&jscmd=data";
-            using var response = await _httpClient
-                .GetAsync(url, cancellationToken)
+            using HttpRequestMessage request = CreateRequest(url, conditionalETag);
+            using HttpResponseMessage response = await _httpClient
+                .SendAsync(request, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+            {
+                return new ProviderMetadataResult(
+                    ProviderName, isbn13, null, [], null, null, null, null, [], isbn13, 0,
+                    retrievedUtc, null, ETag: response.Headers.ETag?.Tag, NotModified: true);
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -58,7 +72,7 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             string json = await response.Content.ReadAsStringAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            return ParseResponse(isbn13, json, retrievedUtc);
+            return ParseResponse(isbn13, json, retrievedUtc, response.Headers.ETag?.Tag);
         }
         catch (OperationCanceledException)
         {
@@ -79,7 +93,10 @@ public sealed class OpenLibraryProvider : IMetadataProvider
 
         if (!string.IsNullOrWhiteSpace(request.Isbn13))
         {
-            ProviderMetadataResult? isbnResult = await LookupAsync(request.Isbn13, cancellationToken)
+            ProviderMetadataResult? isbnResult = await LookupCoreAsync(
+                    request.Isbn13,
+                    request.ConditionalETag,
+                    cancellationToken)
                 .ConfigureAwait(false);
             return isbnResult is null ? [] : [isbnResult];
         }
@@ -108,9 +125,17 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             query.Add("fields=title,author_name,first_publish_year,publisher,isbn,cover_i,subject,language,number_of_pages_median,ratings_average,ratings_count");
 
             string url = "search.json?" + string.Join('&', query);
-            using var response = await _httpClient
-                .GetAsync(url, cancellationToken)
+            using HttpRequestMessage requestMessage = CreateRequest(url, request.ConditionalETag);
+            using HttpResponseMessage response = await _httpClient
+                .SendAsync(requestMessage, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+            {
+                return [new ProviderMetadataResult(
+                    ProviderName, string.Empty, null, [], null, null, null, null, [], null, 0,
+                    retrievedUtc, null, ETag: response.Headers.ETag?.Tag, NotModified: true)];
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -120,7 +145,7 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             string json = await response.Content.ReadAsStringAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            return ParseSearchResponse(request, json, retrievedUtc);
+            return ParseSearchResponse(request, json, retrievedUtc, response.Headers.ETag?.Tag);
         }
         catch (OperationCanceledException)
         {
@@ -135,7 +160,8 @@ public sealed class OpenLibraryProvider : IMetadataProvider
     private ProviderMetadataResult? ParseResponse(
         string isbn13,
         string json,
-        DateTimeOffset retrievedUtc)
+        DateTimeOffset retrievedUtc,
+        string? etag = null)
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
@@ -244,13 +270,15 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             Confidence: 0.80, // Provider weight per DECISIONS.md D-007
             RetrievedUtc: retrievedUtc,
             RawJson: json,
-            PageCount: pageCount);
+            PageCount: pageCount,
+            ETag: etag);
     }
 
     private List<ProviderMetadataResult> ParseSearchResponse(
         MetadataLookupRequest request,
         string json,
-        DateTimeOffset retrievedUtc)
+        DateTimeOffset retrievedUtc,
+        string? etag = null)
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
@@ -323,7 +351,8 @@ public sealed class OpenLibraryProvider : IMetadataProvider
                 AverageRating: averageRating,
                 RatingsCount: ratingsCount,
                 PageCount: pageCount,
-                Language: languages.FirstOrDefault()));
+                Language: languages.FirstOrDefault(),
+                ETag: etag));
         }
 
         return results
@@ -350,6 +379,17 @@ public sealed class OpenLibraryProvider : IMetadataProvider
             Confidence: 0.0,
             RetrievedUtc: retrievedUtc,
             RawJson: JsonSerializer.Serialize(new { error = errorMessage }));
+    }
+
+    private static HttpRequestMessage CreateRequest(string relativeUrl, string? conditionalETag)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, relativeUrl);
+        if (!string.IsNullOrWhiteSpace(conditionalETag))
+        {
+            request.Headers.TryAddWithoutValidation("If-None-Match", conditionalETag);
+        }
+
+        return request;
     }
 
     private static List<string> ReadStringArray(JsonElement parent, string propertyName)

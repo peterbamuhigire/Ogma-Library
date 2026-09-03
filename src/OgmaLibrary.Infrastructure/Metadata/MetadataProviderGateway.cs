@@ -57,6 +57,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
         DateTimeOffset now = DateTimeOffset.UtcNow;
         var results = new List<ProviderMetadataResult>();
         var staleResults = new Dictionary<string, IReadOnlyList<ProviderMetadataResult>>(StringComparer.Ordinal);
+        var validators = new Dictionary<string, string?>(StringComparer.Ordinal);
         var misses = new List<IMetadataProvider>();
         foreach (IMetadataProvider provider in _providers)
         {
@@ -64,6 +65,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
                 row => string.Equals(row.Provider, provider.ProviderName, StringComparison.Ordinal));
             if (entry is null || entry.ExpiresUtc < now)
             {
+                validators[provider.ProviderName] = entry?.ETag;
                 if (entry is not null && !entry.IsNegative)
                 {
                     staleResults[provider.ProviderName] = Deserialize(entry.ResponseJson)
@@ -82,7 +84,9 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
 
         ProviderMetadataResult?[] fetched = await Task.WhenAll(
             misses.Select(provider => FetchSafelyAsync(
-                provider, NormalizeRequest(request), cancellationToken)))
+                provider,
+                NormalizeRequest(request, validators.GetValueOrDefault(provider.ProviderName)),
+                cancellationToken)))
             .ConfigureAwait(false);
         foreach (ProviderMetadataResult? result in fetched)
         {
@@ -95,6 +99,21 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
             string providerName = result.Provider;
             ProviderCacheEntryRow? entry = cached.FirstOrDefault(
                 row => string.Equals(row.Provider, providerName, StringComparison.Ordinal));
+            if (result.NotModified && staleResults.TryGetValue(
+                    providerName,
+                    out IReadOnlyList<ProviderMetadataResult>? cachedResults))
+            {
+                results.Remove(result);
+                results.AddRange(cachedResults.Select(item => item with { IsStale = false }));
+                if (entry is not null)
+                {
+                    entry.RetrievedUtc = now;
+                    entry.ExpiresUtc = now.Add(SuccessTtl);
+                    entry.ETag = result.ETag ?? entry.ETag;
+                }
+
+                continue;
+            }
             string responseJson = JsonSerializer.Serialize(new[] { result });
             if (responseJson.Length > 262144)
             {
@@ -112,6 +131,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
                     RetrievedUtc = now,
                     ExpiresUtc = now.Add(SuccessTtl),
                     ContractVersion = ContractVersion,
+                    ETag = result.ETag,
                 });
             }
             else
@@ -120,6 +140,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
                 entry.IsNegative = false;
                 entry.RetrievedUtc = now;
                 entry.ExpiresUtc = now.Add(SuccessTtl);
+                entry.ETag = result.ETag;
             }
         }
 
@@ -194,10 +215,11 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
             $"title:{Normalize(request.Title)}",
             $"author:{Normalize(request.Author)}");
 
-    private static MetadataLookupRequest NormalizeRequest(MetadataLookupRequest request) => new(
+    private static MetadataLookupRequest NormalizeRequest(MetadataLookupRequest request, string? conditionalETag = null) => new(
         NormalizeNullable(request.Isbn13),
         NormalizeNullable(request.Title),
-        NormalizeNullable(request.Author));
+        NormalizeNullable(request.Author),
+        conditionalETag);
 
     private static string? NormalizeNullable(string? value)
     {

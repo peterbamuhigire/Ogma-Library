@@ -21,6 +21,7 @@ public sealed class ProviderCacheEntryConfiguration : IEntityTypeConfiguration<P
         builder.Property(row => row.Provider).IsRequired().HasMaxLength(128);
         builder.Property(row => row.QueryKey).IsRequired().HasMaxLength(2048);
         builder.Property(row => row.ResponseJson).IsRequired().HasMaxLength(262144);
+        builder.Property(row => row.ETag).HasMaxLength(512);
         builder.Property(row => row.ContractVersion).HasDefaultValue(1);
         builder.HasIndex(row => new { row.Provider, row.QueryKey })
             .IsUnique()

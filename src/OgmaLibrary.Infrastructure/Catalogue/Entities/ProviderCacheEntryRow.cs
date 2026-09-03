@@ -26,4 +26,7 @@ public sealed class ProviderCacheEntryRow
 
     /// <summary>Provider response contract version.</summary>
     public int ContractVersion { get; set; }
+
+    /// <summary>Provider validator used for conditional revalidation.</summary>
+    public string? ETag { get; set; }
 }

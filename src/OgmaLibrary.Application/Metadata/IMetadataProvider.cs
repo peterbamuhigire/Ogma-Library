@@ -8,10 +8,12 @@ namespace OgmaLibrary.Application.Metadata;
 /// <param name="Isbn13">The normalized ISBN-13/ISBN-10 value, digits only.</param>
 /// <param name="Title">The best known title candidate, if any.</param>
 /// <param name="Author">The best known primary author candidate, if any.</param>
+/// <param name="ConditionalETag">Previously observed provider ETag, if any.</param>
 public sealed record MetadataLookupRequest(
     string? Isbn13,
     string? Title,
-    string? Author)
+    string? Author,
+    string? ConditionalETag = null)
 {
     /// <summary>Returns true when the request has enough data for a provider search.</summary>
     public bool HasAnySearchKey =>
@@ -42,6 +44,8 @@ public sealed record MetadataLookupRequest(
 /// <param name="PageCount">Provider page count, if supplied.</param>
 /// <param name="Language">Provider language code, if supplied.</param>
 /// <param name="IsStale">Whether this result came from an expired local cache.</param>
+/// <param name="ETag">Provider validator for conditional revalidation, if supplied.</param>
+/// <param name="NotModified">Whether the provider confirmed the cached representation.</param>
 public sealed record ProviderMetadataResult(
     string Provider,
     string RequestIsbn,
@@ -60,7 +64,9 @@ public sealed record ProviderMetadataResult(
     int? RatingsCount = null,
     int? PageCount = null,
     string? Language = null,
-    bool IsStale = false);
+    bool IsStale = false,
+    string? ETag = null,
+    bool NotModified = false);
 
 /// <summary>
 /// A single metadata provider that resolves bibliographic data for a given ISBN

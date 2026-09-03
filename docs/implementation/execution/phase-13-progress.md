@@ -17,10 +17,14 @@ Date: 2026-09-04
   stale results when a provider refresh fails, preserving local catalogue
   usefulness without presenting stale data as fresh.
 - Added regression coverage for stale fallback and refresh isolation.
+- Added durable provider validators and conditional revalidation. Built-in
+  providers send `If-None-Match`; a `304 Not Modified` refreshes TTL without
+  replacing the cached representation.
+- Added focused conditional-cache regression coverage.
 
 ## Remaining phase gate
 
-ETag/conditional requests, quota accounting, circuit-breaker/backoff telemetry,
+Quota accounting, circuit-breaker/backoff telemetry,
 provider conflict aggregation, and privacy disclosure evidence remain before
 phase 13 closure. Stale-cache status is now present in the provider result
 contract for the UI consumer.
