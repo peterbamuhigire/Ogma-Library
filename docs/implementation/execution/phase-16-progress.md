@@ -17,6 +17,8 @@ Date: 2026-08-30
   relative path instead of returning `null` unconditionally.
 - Added focused tests for manifest durability, custom-cover precedence,
   invalidation, path safety and 2D read-model exposure.
+- Added output-side image decode and exact-dimension verification for worker
+  generated cover and spine assets before they leave the sandbox.
 
 ## Verification
 
@@ -26,6 +28,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Embedded/provider source acquisition, image decode/size validation, explicit
+Embedded/provider source acquisition, explicit
 garbage collection, lazy high/low variants, API authorization, UI journeys,
 and large-library asset budget testing remain before phase 16 closure.

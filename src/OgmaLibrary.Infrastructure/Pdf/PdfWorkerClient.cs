@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pathing;
+using SkiaSharp;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
@@ -235,7 +236,12 @@ public sealed class PdfWorkerClient
             ],
             password: null,
             sandbox);
-        _ = VerifyOutput(workerOutputPath, sandbox.Path, _options.MaxOutputBytes);
+        _ = VerifyOutput(
+            workerOutputPath,
+            sandbox.Path,
+            _options.MaxOutputBytes,
+            command == "cover" ? 200 : 7,
+            command == "cover" ? 300 : 100);
         File.Copy(workerOutputPath, fullOutputPath, overwrite: true);
     }
 
@@ -386,7 +392,12 @@ public sealed class PdfWorkerClient
                 Convert.ToHexStringLower(SHA256.HashData(bytes))));
     }
 
-    private static string VerifyOutput(string outputPath, string sandboxPath, long maxOutputBytes)
+    private static string VerifyOutput(
+        string outputPath,
+        string sandboxPath,
+        long maxOutputBytes,
+        int? expectedWidth = null,
+        int? expectedHeight = null)
     {
         string boundedPath = PathGuard.EnsureWithinRoot(outputPath, sandboxPath);
         if (!File.Exists(boundedPath))
@@ -398,6 +409,17 @@ public sealed class PdfWorkerClient
         if (length <= 0 || length > maxOutputBytes)
         {
             throw new InvalidOperationException("The PDF worker output exceeded its bounded manifest policy.");
+        }
+
+        if (expectedWidth is not null || expectedHeight is not null)
+        {
+            using SKBitmap? bitmap = SKBitmap.Decode(boundedPath);
+            if (bitmap is null ||
+                (expectedWidth is not null && bitmap.Width != expectedWidth) ||
+                (expectedHeight is not null && bitmap.Height != expectedHeight))
+            {
+                throw new InvalidOperationException("The PDF worker produced an invalid or unexpected asset image.");
+            }
         }
 
         return boundedPath;
