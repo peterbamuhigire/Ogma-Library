@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Tests.Catalogue;
 
@@ -60,5 +61,112 @@ public sealed class IdentityGroupingServiceTests : IDisposable
             "local-user"));
     }
 
+    [Fact]
+    public async Task FindBookMemberships_ResolvesEditionGroupsThroughCanonicalAliases()
+    {
+        string firstBook = "legacy-phase09-first";
+        string secondBook = "legacy-phase09-second";
+        string workId = IdentityId("work");
+        string editionId = IdentityId("edition");
+        string itemOne = IdentityId("item-one");
+        string itemTwo = IdentityId("item-two");
+        string rootId = IdentityId("root");
+        string firstOccurrence = Occurrence(5);
+        string secondOccurrence = Occurrence(6);
+
+        _context.LibraryRoots.Add(new LibraryRootRow
+        {
+            LibraryRootId = rootId,
+            DisplayName = "Phase 09 test root",
+            RootStatus = 0,
+            PermissionStatus = 0,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.CanonicalWorks.Add(new CanonicalWorkRow
+        {
+            WorkId = workId,
+            ResolutionState = 0,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.CanonicalEditions.Add(new CanonicalEditionRow
+        {
+            EditionId = editionId,
+            WorkId = workId,
+            ResolutionState = 0,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.CatalogueItems.AddRange(
+            new CatalogueItemRow
+            {
+                CatalogueItemId = itemOne,
+                WorkId = workId,
+                EditionId = editionId,
+                CreatedUtc = DateTimeOffset.UtcNow,
+            },
+            new CatalogueItemRow
+            {
+                CatalogueItemId = itemTwo,
+                WorkId = workId,
+                EditionId = editionId,
+                CreatedUtc = DateTimeOffset.UtcNow,
+            });
+        _context.FileOccurrences.AddRange(
+            new FileOccurrenceRow
+            {
+                FileOccurrenceId = firstOccurrence,
+                LibraryRootId = rootId,
+                RelativePath = "first.pdf",
+                NormalizedRelativePath = "first.pdf",
+                AvailabilityStatus = 0,
+            },
+            new FileOccurrenceRow
+            {
+                FileOccurrenceId = secondOccurrence,
+                LibraryRootId = rootId,
+                RelativePath = "second.pdf",
+                NormalizedRelativePath = "second.pdf",
+                AvailabilityStatus = 0,
+            });
+        _context.LegacyIdentityAliases.AddRange(
+            new LegacyIdentityAliasRow
+            {
+                LegacyBookId = firstBook,
+                CatalogueItemId = itemOne,
+                WorkId = workId,
+                EditionId = editionId,
+                MigrationVersion = 1,
+                CreatedUtc = DateTimeOffset.UtcNow,
+            },
+            new LegacyIdentityAliasRow
+            {
+                LegacyBookId = secondBook,
+                CatalogueItemId = itemTwo,
+                WorkId = workId,
+                EditionId = editionId,
+                MigrationVersion = 1,
+                CreatedUtc = DateTimeOffset.UtcNow,
+            });
+        _context.CatalogueItemOccurrences.AddRange(
+            new CatalogueItemOccurrenceRow { CatalogueItemId = itemOne, FileOccurrenceId = firstOccurrence },
+            new CatalogueItemOccurrenceRow { CatalogueItemId = itemTwo, FileOccurrenceId = secondOccurrence });
+        await _context.SaveChangesAsync();
+
+        await _service.CreateAsync(IdentityGroupKind.Edition, [firstOccurrence, secondOccurrence], "local-user");
+
+        IReadOnlyList<IdentityGroupBookMembership> memberships = await _service
+            .FindBookMembershipsAsync([firstBook, secondBook], includeWorkGroups: false);
+
+        Assert.Equal(2, memberships.Count);
+        Assert.All(memberships, membership =>
+        {
+            Assert.Equal(IdentityGroupKind.Edition, membership.Kind);
+            Assert.Equal(memberships[0].GroupId, membership.GroupId);
+        });
+        Assert.Equal([firstBook, secondBook], memberships.Select(item => item.BookId));
+    }
+
     private static string Occurrence(int index) => $"01P09GROUP{index:D16}";
+
+    private static string IdentityId(string suffix) =>
+        $"01P09{suffix}{Guid.NewGuid():N}"[..26];
 }

@@ -17,7 +17,7 @@ Execution branch: `main`
 | 7 | Discovery and Incremental Scanning | COMPLETE | 2026-09-04 | 2026-09-04 | Durable directory cursor/diagnostics, stable cross-session queue identity, migration, acceptance tests and 50k bounded benchmark recorded in phase-07-progress.md |
 | 8 | Filesystem Reconciliation and Recovery | COMPLETE | 2026-09-04 | 2026-09-04 | Grace-window absence evidence, exact-hash move/replacement handling, durable ambiguity review, audit summaries and downstream invalidation recorded in phase-08-progress.md |
 | 8 | Filesystem Reconciliation and Recovery | IN PROGRESS | 2026-08-30 | — | Evidence-gated presence reconciliation delivered; move/replacement/grace gates remain in phase-08-progress.md |
-| 9 | Duplicate and Bibliographic Resolution | IN PROGRESS | 2026-08-30 | — | Durable conservative decision recording delivered; merge/split and scale gates remain in phase-09-progress.md |
+| 9 | Duplicate and Bibliographic Resolution | COMPLETE | 2026-09-04 | 2026-09-04 | Candidate blocking, conservative provider-conflict decisions, reversible grouping, canonical alias resolution, and catalogue/advisor group projection evidenced |
 | 10 | PDF Validation and Containment | IN PROGRESS | 2026-08-30 | — | Root-bounded validation broker delivered; sandbox/password/resource gates remain in phase-10-progress.md |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-09-04 | — | Versioned artifact lifecycle, pipeline integration, page manifests, and ranked ISBN evidence delivered; TOC/resource/corpus evidence remains in phase-11-progress.md |
 | 12 | Canonical Metadata and Provenance | IN PROGRESS | 2026-08-30 | — | User override precedence and proposal validation delivered; canonical scope/provenance gates remain in phase-12-progress.md |

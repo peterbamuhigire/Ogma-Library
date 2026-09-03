@@ -171,6 +171,86 @@ public sealed class IdentityGroupingService : IIdentityGroupingService
         return ToDescriptor(group, active);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(
+        IReadOnlyList<string> bookIds,
+        bool includeWorkGroups,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(bookIds);
+        string[] normalizedBookIds = bookIds
+            .Where(bookId => !string.IsNullOrWhiteSpace(bookId))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (normalizedBookIds.Length == 0)
+        {
+            return [];
+        }
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        if (includeWorkGroups)
+        {
+            var query =
+                from alias in lease.Context.LegacyIdentityAliases.AsNoTracking()
+                join itemOccurrence in lease.Context.CatalogueItemOccurrences.AsNoTracking()
+                    on alias.CatalogueItemId equals itemOccurrence.CatalogueItemId
+                join member in lease.Context.IdentityGroupMembers.AsNoTracking()
+                    on itemOccurrence.FileOccurrenceId equals member.FileOccurrenceId
+                join identityGroup in lease.Context.IdentityGroups.AsNoTracking()
+                    on member.IdentityGroupId equals identityGroup.IdentityGroupId
+                where normalizedBookIds.Contains(alias.LegacyBookId) && member.IsActive
+                select new
+                {
+                    BookId = alias.LegacyBookId,
+                    GroupId = identityGroup.IdentityGroupId,
+                    Kind = identityGroup.Kind,
+                };
+
+            var rows = await query
+                .Distinct()
+                .OrderBy(item => item.GroupId)
+                .ThenBy(item => item.BookId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return rows
+                .Select(item => new IdentityGroupBookMembership(
+                    item.BookId,
+                    item.GroupId,
+                    (IdentityGroupKind)item.Kind))
+                .ToArray();
+        }
+
+        var editionQuery =
+            from alias in lease.Context.LegacyIdentityAliases.AsNoTracking()
+            join itemOccurrence in lease.Context.CatalogueItemOccurrences.AsNoTracking()
+                on alias.CatalogueItemId equals itemOccurrence.CatalogueItemId
+            join member in lease.Context.IdentityGroupMembers.AsNoTracking()
+                on itemOccurrence.FileOccurrenceId equals member.FileOccurrenceId
+            join identityGroup in lease.Context.IdentityGroups.AsNoTracking()
+                on member.IdentityGroupId equals identityGroup.IdentityGroupId
+            where normalizedBookIds.Contains(alias.LegacyBookId) &&
+                  member.IsActive &&
+                  identityGroup.Kind == (int)IdentityGroupKind.Edition
+            select new
+            {
+                BookId = alias.LegacyBookId,
+                GroupId = identityGroup.IdentityGroupId,
+                Kind = identityGroup.Kind,
+            };
+        var editionRows = await editionQuery
+            .Distinct()
+            .OrderBy(item => item.GroupId)
+            .ThenBy(item => item.BookId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return editionRows
+            .Select(item => new IdentityGroupBookMembership(
+                item.BookId,
+                item.GroupId,
+                (IdentityGroupKind)item.Kind))
+            .ToArray();
+    }
+
     private async Task<IdentityGroupDescriptor> MutateAsync(
         string groupId,
         IReadOnlyList<string> occurrenceIds,

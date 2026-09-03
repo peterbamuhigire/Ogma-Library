@@ -25,9 +25,17 @@ Date: 2026-09-04
   active groups.
 - Added acceptance tests proving merge/split/undo preservation and duplicate
   membership rejection.
+- Added canonical alias/occurrence/group read projection for legacy book IDs.
+- Catalogue summaries now collapse reviewed edition groups to a deterministic
+  representative, while advisor retrieval collapses reviewed work/edition
+  groups before ranking.
+- Added persistence-boundary coverage proving canonical alias resolution and
+  catalogue representative selection.
 
 ## Remaining phase gate
 
-Candidate blocking and reversible merge/split persistence are now evidenced.
-Provider-conflict decision tests, user-facing review consequences, and direct
-grouping behavior in search/advisor consumers remain before phase 9 closure.
+Closed. Candidate blocking, conservative provider-conflict decisions,
+reversible merge/split persistence, canonical alias resolution, catalogue
+representative selection, and advisor grouping behavior are now evidenced.
+Physical operator review screens and cross-platform UI walkthroughs remain
+release gates to be assessed in their owning platform/release phases.

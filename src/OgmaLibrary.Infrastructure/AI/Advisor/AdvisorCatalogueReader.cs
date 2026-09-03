@@ -14,12 +14,14 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalog
     private readonly ICatalogueReadModel _catalogue;
     private readonly IMetadataSearchService _metadataSearch;
     private readonly ISemanticSearchService? _semanticSearch;
+    private readonly IIdentityGroupingService? _identityGrouping;
 
     /// <summary>Initializes a new instance of <see cref="AdvisorCatalogueReader"/>.</summary>
     public AdvisorCatalogueReader(
         ICatalogueReadModel catalogue,
         IMetadataSearchService metadataSearch,
-        ISemanticSearchService? semanticSearch = null)
+        ISemanticSearchService? semanticSearch = null,
+        IIdentityGroupingService? identityGrouping = null)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(metadataSearch);
@@ -27,6 +29,7 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalog
         _catalogue = catalogue;
         _metadataSearch = metadataSearch;
         _semanticSearch = semanticSearch;
+        _identityGrouping = identityGrouping;
     }
 
     /// <inheritdoc />
@@ -39,6 +42,8 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalog
         List<BookMetadataDto> candidates = string.IsNullOrWhiteSpace(query.QueryText)
             ? await GetCatalogueCandidatesAsync(query, cancellationToken).ConfigureAwait(false)
             : await GetSearchCandidatesAsync(query, cancellationToken).ConfigureAwait(false);
+
+        candidates = await CollapseReviewedGroupsAsync(candidates, cancellationToken).ConfigureAwait(false);
 
         return AdvisorCandidateRanker.Rank(
                 candidates
@@ -209,6 +214,33 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalog
             .Where(item => !string.IsNullOrWhiteSpace(item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private async Task<List<BookMetadataDto>> CollapseReviewedGroupsAsync(
+        List<BookMetadataDto> candidates,
+        CancellationToken cancellationToken)
+    {
+        if (_identityGrouping is null || candidates.Count < 2)
+        {
+            return candidates;
+        }
+
+        IReadOnlyList<IdentityGroupBookMembership> memberships = await _identityGrouping
+            .FindBookMembershipsAsync(
+                candidates.Select(candidate => candidate.BookId).ToArray(),
+                includeWorkGroups: true,
+                cancellationToken)
+            .ConfigureAwait(false);
+        HashSet<string> hidden = memberships
+            .GroupBy(item => item.GroupId, StringComparer.Ordinal)
+            .SelectMany(group => group
+                .OrderBy(item => item.BookId, StringComparer.Ordinal)
+                .Skip(1))
+            .Select(item => item.BookId)
+            .ToHashSet(StringComparer.Ordinal);
+        return candidates
+            .Where(candidate => !hidden.Contains(candidate.BookId))
+            .ToList();
     }
 
     private static int? ReadIntField(IReadOnlyList<MetadataFieldProjection> fields, params string[] names)

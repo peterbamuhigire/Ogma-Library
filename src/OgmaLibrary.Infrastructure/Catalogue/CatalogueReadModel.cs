@@ -15,17 +15,23 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly CatalogueMigrator? _migrator;
+    private readonly IIdentityGroupingService? _identityGrouping;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueReadModel"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
     /// <param name="migrator">Optional schema migrator used to repair damaged catalogue projections before retrying.</param>
-    internal CatalogueReadModel(CatalogueDbContext context, CatalogueMigrator? migrator = null)
+    /// <param name="identityGrouping">Optional reviewed identity-group projection.</param>
+    internal CatalogueReadModel(
+        CatalogueDbContext context,
+        CatalogueMigrator? migrator = null,
+        IIdentityGroupingService? identityGrouping = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
         _migrator = migrator;
+        _identityGrouping = identityGrouping;
     }
 
     /// <summary>
@@ -33,14 +39,17 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
     /// </summary>
     /// <param name="contextFactory">The catalogue DB context factory.</param>
     /// <param name="migrator">Optional schema migrator used to repair damaged catalogue projections before retrying.</param>
+    /// <param name="identityGrouping">Optional reviewed identity-group projection.</param>
     [ActivatorUtilitiesConstructor]
     public CatalogueReadModel(
         IDbContextFactory<CatalogueDbContext> contextFactory,
-        CatalogueMigrator? migrator = null)
+        CatalogueMigrator? migrator = null,
+        IIdentityGroupingService? identityGrouping = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         _contextFactory = contextFactory;
         _migrator = migrator;
+        _identityGrouping = identityGrouping;
     }
 
     /// <inheritdoc />
@@ -144,6 +153,27 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         }
 
         var results = await projected.ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        if (_identityGrouping is not null && results.Count > 1)
+        {
+            IReadOnlyList<IdentityGroupBookMembership> memberships = await _identityGrouping
+                .FindBookMembershipsAsync(
+                    results.Select(item => item.BookId).ToArray(),
+                    includeWorkGroups: false,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            HashSet<string> hiddenBookIds = memberships
+                .GroupBy(item => item.GroupId, StringComparer.Ordinal)
+                .SelectMany(group => group
+                    .OrderBy(item => item.BookId, StringComparer.Ordinal)
+                    .Skip(1))
+                .Select(item => item.BookId)
+                .ToHashSet(StringComparer.Ordinal);
+            if (hiddenBookIds.Count > 0)
+            {
+                results = results.Where(item => !hiddenBookIds.Contains(item.BookId)).ToList();
+            }
+        }
 
         var summaries = new List<BookSummaryProjection>(results.Count);
         foreach (var item in results)

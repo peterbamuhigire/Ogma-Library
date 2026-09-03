@@ -10,6 +10,30 @@ namespace OgmaLibrary.Tests.Catalogue;
 public sealed class CatalogueReadModelTests
 {
     [Fact]
+    public async Task GetBookSummaries_CollapsesReviewedEditionGroupToDeterministicRepresentative()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.AddRange(
+            new BookRow { BookId = "GROUPED-BOOK-A", Title = "Grouped title", Status = 0 },
+            new BookRow { BookId = "GROUPED-BOOK-B", Title = "Grouped title", Status = 0 });
+        await context.SaveChangesAsync();
+
+        var grouping = new StubIdentityGroupingService(
+            new IdentityGroupBookMembership("GROUPED-BOOK-A", "GROUPED-EDITION-GROUP", IdentityGroupKind.Edition),
+            new IdentityGroupBookMembership("GROUPED-BOOK-B", "GROUPED-EDITION-GROUP", IdentityGroupKind.Edition));
+        var readModel = new CatalogueReadModel(context, identityGrouping: grouping);
+        var summaries = new List<BookSummaryProjection>();
+
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(new CatalogueFilter()))
+        {
+            summaries.Add(summary);
+        }
+
+        BookSummaryProjection visible = Assert.Single(summaries);
+        Assert.Equal("GROUPED-BOOK-A", visible.BookId);
+    }
+
+    [Fact]
     public async Task GetBookSummaries_UsesPrimaryFileName_WhenTitleMetadataIsMissing()
     {
         using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
@@ -129,5 +153,46 @@ public sealed class CatalogueReadModelTests
                 File.Delete(bak);
             }
         }
+    }
+
+    private sealed class StubIdentityGroupingService(params IdentityGroupBookMembership[] memberships)
+        : IIdentityGroupingService
+    {
+        public Task<IdentityGroupDescriptor> CreateAsync(
+            IdentityGroupKind kind,
+            IReadOnlyList<string> occurrenceIds,
+            string actor,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IdentityGroupDescriptor> MergeAsync(
+            string groupId,
+            IReadOnlyList<string> occurrenceIds,
+            string actor,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IdentityGroupDescriptor> SplitAsync(
+            string groupId,
+            IReadOnlyList<string> occurrenceIds,
+            string actor,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IdentityGroupDescriptor> UndoLastAsync(
+            string groupId,
+            string actor,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IdentityGroupDescriptor?> FindByOccurrenceAsync(
+            string occurrenceId,
+            CancellationToken cancellationToken = default) => Task.FromResult<IdentityGroupDescriptor?>(null);
+
+        public Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(
+            IReadOnlyList<string> bookIds,
+            bool includeWorkGroups,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<IdentityGroupBookMembership>>(
+                memberships
+                    .Where(item => bookIds.Contains(item.BookId, StringComparer.Ordinal))
+                    .Where(item => includeWorkGroups || item.Kind == IdentityGroupKind.Edition)
+                    .ToArray());
     }
 }

@@ -18,6 +18,12 @@ public sealed record IdentityGroupDescriptor(
     int Version,
     DateTimeOffset UpdatedUtc);
 
+/// <summary>Legacy-book projection of a reviewed group membership.</summary>
+public sealed record IdentityGroupBookMembership(
+    string BookId,
+    string GroupId,
+    IdentityGroupKind Kind);
+
 /// <summary>Audited, reversible identity grouping operations.</summary>
 public interface IIdentityGroupingService
 {
@@ -51,5 +57,11 @@ public interface IIdentityGroupingService
     /// <summary>Returns a deterministic group projection for an occurrence.</summary>
     Task<IdentityGroupDescriptor?> FindByOccurrenceAsync(
         string occurrenceId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Resolves reviewed groups for legacy book IDs through canonical aliases.</summary>
+    Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(
+        IReadOnlyList<string> bookIds,
+        bool includeWorkGroups,
         CancellationToken cancellationToken = default);
 }
