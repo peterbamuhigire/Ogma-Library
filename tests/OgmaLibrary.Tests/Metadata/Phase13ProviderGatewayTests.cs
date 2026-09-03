@@ -99,6 +99,24 @@ public sealed class Phase13ProviderGatewayTests : IDisposable
         Assert.True(_context.ProviderCacheEntries.Single().ExpiresUtc > DateTimeOffset.UtcNow);
     }
 
+    [Fact]
+    public void ProviderHealth_AccountsQuotaAndOpensCircuitAfterRepeatedFailures()
+    {
+        var health = new MetadataProviderHealth();
+        Assert.True(health.TryReserve("Provider"));
+        health.RecordFailure("Provider");
+        Assert.True(health.TryReserve("Provider"));
+        health.RecordFailure("Provider");
+        Assert.True(health.TryReserve("Provider"));
+        health.RecordFailure("Provider");
+
+        MetadataProviderHealthSnapshot snapshot = health.GetSnapshot("Provider");
+        Assert.True(snapshot.IsCircuitOpen);
+        Assert.Equal(3, snapshot.TotalFailures);
+        Assert.False(health.TryReserve("Provider"));
+        Assert.Equal(1, health.GetSnapshot("Provider").WindowRejected);
+    }
+
     private sealed class CountingProvider : IMetadataProvider
     {
         public CountingProvider(string name) => ProviderName = name;

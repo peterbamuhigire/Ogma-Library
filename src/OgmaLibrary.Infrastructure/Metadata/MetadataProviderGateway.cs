@@ -16,24 +16,29 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
     private readonly List<IMetadataProvider> _providers;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly IMetadataProviderHealth _health;
 
     /// <summary>Test constructor using an existing context.</summary>
     internal MetadataProviderGateway(
         IEnumerable<IMetadataProvider> providers,
-        CatalogueDbContext context)
+        CatalogueDbContext context,
+        IMetadataProviderHealth? health = null)
     {
         _providers = providers?.ToList() ?? throw new ArgumentNullException(nameof(providers));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _health = health ?? new MetadataProviderHealth();
     }
 
     /// <summary>DI constructor using independent contexts per operation.</summary>
     [ActivatorUtilitiesConstructor]
     public MetadataProviderGateway(
         IEnumerable<IMetadataProvider> providers,
-        IDbContextFactory<CatalogueDbContext> contextFactory)
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IMetadataProviderHealth health)
     {
         _providers = providers?.ToList() ?? throw new ArgumentNullException(nameof(providers));
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _health = health ?? throw new ArgumentNullException(nameof(health));
     }
 
     /// <inheritdoc />
@@ -86,6 +91,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
             misses.Select(provider => FetchSafelyAsync(
                 provider,
                 NormalizeRequest(request, validators.GetValueOrDefault(provider.ProviderName)),
+                _health,
                 cancellationToken)))
             .ConfigureAwait(false);
         foreach (ProviderMetadataResult? result in fetched)
@@ -177,14 +183,29 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
     private static async Task<ProviderMetadataResult?> FetchSafelyAsync(
         IMetadataProvider provider,
         MetadataLookupRequest request,
+        IMetadataProviderHealth health,
         CancellationToken cancellationToken)
     {
+        if (!health.TryReserve(provider.ProviderName))
+        {
+            return null;
+        }
+
         try
         {
             IReadOnlyList<ProviderMetadataResult> results = await provider
                 .SearchAsync(request, cancellationToken)
                 .ConfigureAwait(false);
-            return results.Count > 0 ? results[0] : null;
+            ProviderMetadataResult? result = results.FirstOrDefault(
+                item => item.NotModified || item.Confidence > 0.0);
+            if (result is null)
+            {
+                health.RecordFailure(provider.ProviderName);
+                return null;
+            }
+
+            health.RecordSuccess(provider.ProviderName);
+            return result;
         }
         catch (OperationCanceledException)
         {
@@ -192,6 +213,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
         }
         catch
         {
+            health.RecordFailure(provider.ProviderName);
             return null;
         }
     }

@@ -21,10 +21,16 @@ Date: 2026-09-04
   providers send `If-None-Match`; a `304 Not Modified` refreshes TTL without
   replacing the cached representation.
 - Added focused conditional-cache regression coverage.
+- Added bounded provider health state with per-minute request accounting,
+  rejection counts, consecutive-failure tracking, and a short circuit-open
+  window exposed through `IMetadataProviderHealth` snapshots.
+- Gateway calls now reserve quota, classify zero-confidence responses as
+  failures, and preserve stale cache behavior when the circuit blocks refresh.
 
 ## Remaining phase gate
 
-Quota accounting, circuit-breaker/backoff telemetry,
-provider conflict aggregation, and privacy disclosure evidence remain before
-phase 13 closure. Stale-cache status is now present in the provider result
+Provider backoff/retry telemetry, provider conflict aggregation, and privacy
+disclosure evidence
+remain before phase 13 closure. Quota and circuit state are now observable in
+the local health contract; stale-cache status is present in the provider result
 contract for the UI consumer.
