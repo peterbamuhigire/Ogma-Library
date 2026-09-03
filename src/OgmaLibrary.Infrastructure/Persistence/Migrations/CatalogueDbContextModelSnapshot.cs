@@ -1430,10 +1430,6 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("ExpiresUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ETag")
-                        .HasMaxLength(512)
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTimeOffset>("IssuedUtc")
                         .HasColumnType("TEXT");
 
@@ -2071,6 +2067,10 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(1);
+
+                    b.Property<string>("ETag")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("ExpiresUtc")
                         .HasColumnType("TEXT");

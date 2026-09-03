@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Data.Common;
 using System.Security.Cryptography;
 using OgmaLibrary.Application.Metadata;
@@ -262,6 +263,37 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
         Assert.Equal(["9780262033848", "0262033844"], evidence.Select(row => row.IsbnNormalized));
         Assert.True(evidence[0].IsBest);
         Assert.False(evidence[1].IsBest);
+    }
+
+    [Fact]
+    [Trait("Category", "Benchmark")]
+    public async Task ExtractionPipeline_MixedQualityBatch_RecordsThroughputBaseline()
+    {
+        const int bookCount = 32;
+        for (int index = 0; index < bookCount; index++)
+        {
+            SeedBook($"P11BENCHBOOK{index:000000000000}", new string((char)('a' + index % 26), 64));
+        }
+
+        var rendererFactory = new FakeRendererFactory([
+            new TextLayer(0, [Word("selectable"), Word("text")], ExtractionQuality.Full),
+            new TextLayer(1, [], ExtractionQuality.Scanned),
+            new TextLayer(2, [Word("partial")], ExtractionQuality.Partial),
+        ]);
+        ExtractionPipelineService service = CreateService(rendererFactory);
+
+        long allocatedBefore = GC.GetTotalAllocatedBytes(true);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        ExtractionBatchResult result = await service.IndexNextBatchAsync(bookCount, CancellationToken.None);
+        stopwatch.Stop();
+        long allocatedBytes = GC.GetTotalAllocatedBytes(true) - allocatedBefore;
+
+        Assert.Equal(bookCount, result.BooksIndexed);
+        Assert.Equal(bookCount * 3, result.PagesProcessed);
+        Assert.Equal(0, result.BooksFailed);
+        Console.WriteLine(
+            $"Phase11 mixed baseline: books={bookCount}, pages={result.PagesProcessed}, " +
+            $"elapsedMilliseconds={stopwatch.ElapsedMilliseconds}, allocatedBytes={allocatedBytes}");
     }
 
     private static Isbn ParseIsbn(string value) =>
