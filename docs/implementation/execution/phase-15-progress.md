@@ -10,9 +10,15 @@ Date: 2026-08-30
   writeback rejects the operation if the source changes before mutation.
 - Added regression coverage for source-change rejection while preserving the
   existing backup/restore workflow.
+- Preparation now writes a durable `WriteBackPrepared` audit event containing
+  the source hash and backup locator before any write is attempted.
+- The write path performs an exclusive-access check, resets derived search and
+  embedding statuses after a successful content change, and records whether a
+  failed operation restored the original bytes.
 
 ## Remaining phase gate
 
-Durable writeback plans/audit records, explicit consent UI, exclusive-file
-checks, atomic invalidation of content-derived artifacts, and restored-backup
-status remain before phase 15 closure.
+Explicit consent UI, a first-class durable writeback-plan/undo command, and
+physical interruption/permission evidence remain before phase 15 closure.
+Preparation audit records, exclusive-file checks, derived-index invalidation
+status, and restored-backup status are implemented and tested.

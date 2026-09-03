@@ -55,6 +55,8 @@ public sealed class PdfWriteBackTests
             Assert.True(File.Exists(token.BackupAbsolutePath),
                 $"Backup not found at {token.BackupAbsolutePath}");
             Assert.NotEmpty(token.OriginalSha256);
+            Assert.Contains(context.AuditEvents, e =>
+                e.EventType == "WriteBackPrepared" && e.EntityId == "WB01");
         }
         finally
         {
@@ -152,6 +154,7 @@ public sealed class PdfWriteBackTests
             var failedEvent = context.AuditEvents
                 .SingleOrDefault(e => e.EventType == "WriteBackFailed" && e.EntityId == "WB02B");
             Assert.NotNull(failedEvent);
+            Assert.Contains("\"restored\":true", failedEvent.AfterJson, StringComparison.Ordinal);
 
             // Original must be restored from backup (byte-identical).
             byte[] restoredBytes = await File.ReadAllBytesAsync(originalPath);
@@ -253,6 +256,10 @@ public sealed class PdfWriteBackTests
 
             Assert.Contains(context.AuditEvents, e => e.EventType == "WriteBackSucceeded" && e.EntityId == "WB04");
             Assert.NotNull(context.Books.Single(b => b.BookId == "WB04").Sha256Hash);
+            Assert.Equal((int)OgmaLibrary.Application.Search.SearchBookIndexStatus.NotIndexed,
+                context.Books.Single(b => b.BookId == "WB04").IndexStatus);
+            Assert.Equal((int)OgmaLibrary.Application.Search.SearchEmbeddingStatus.NotEmbedded,
+                context.Books.Single(b => b.BookId == "WB04").EmbeddingStatus);
         }
         finally
         {

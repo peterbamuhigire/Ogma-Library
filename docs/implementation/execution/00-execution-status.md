@@ -23,7 +23,7 @@ Execution branch: `main`
 | 12 | Canonical Metadata and Provenance | COMPLETE | 2026-09-04 | 2026-09-04 | Work/edition scope policy, override precedence, proposal-only enrichment, confidence-model versioning, and provenance-bearing review projections evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | 2026-09-04 | — | Durable normalized provider cache, stale fallback, response bounds, failure isolation, and conditional revalidation delivered; quota/circuit telemetry, conflict and privacy gates remain in phase-13-progress.md |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue, explicit review commands, concurrency token, and review-boundary sanitization delivered; bulk preview/undo, field dictionary, and accessible UI gates remain in phase-14-progress.md |
-| 15 | Safe Writeback and Override Protection | IN PROGRESS | 2026-08-30 | — | Canonical path and source-change guards delivered; durable plans/consent/invalidation gates remain in phase-15-progress.md |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | 2026-08-30 | — | Canonical path/source-change guards, preparation audit, exclusive check, derived-index invalidation status, and restore outcome delivered; consent/plan/undo and physical evidence remain in phase-15-progress.md |
 | 16 | Cover, Thumbnail and Spine Assets | NOT STARTED | â€” | â€” | â€” |
 | 17 | Worker Reliability and Observability | IN PROGRESS | 2026-08-30 | — | Durable leasing, worker claim routing, and heartbeat renewal delivered; remaining worker conversion, resource groups, dead-letter, observability, and load evidence remain in phase-17-progress.md |
 | 18 | Ogma Design System and Application Shell | NOT STARTED | â€” | â€” | â€” |

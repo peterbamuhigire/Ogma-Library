@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Pathing;
@@ -105,6 +106,26 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         await Task.Run(() => File.Copy(absoluteFilePath, backupPath, overwrite: true), cancellationToken)
             .ConfigureAwait(false);
 
+        using (CatalogueContextLease lease = await CatalogueContextLease
+                   .CreateAsync(_contextFactory, _context, cancellationToken)
+                   .ConfigureAwait(false))
+        {
+            lease.Context.AuditEvents.Add(new AuditEventRow
+            {
+                EventType = "WriteBackPrepared",
+                EntityId = bookId,
+                EntityType = "Book",
+                AfterJson = JsonSerializer.Serialize(new
+                {
+                    originalSha256 = sha256,
+                    backup = backupPath,
+                }),
+                Timestamp = DateTimeOffset.UtcNow,
+                IsLocalOnly = true,
+            });
+            await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         return new BackupToken(
             BackupAbsolutePath: backupPath,
             OriginalAbsolutePath: absoluteFilePath,
@@ -196,6 +217,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                     "The source PDF changed after the write-back preview. Create a new backup and review the diff.");
             }
 
+            EnsureExclusiveFileAccess(originalPath);
+
             // Write to temp file using PDFsharp.
             await Task.Run(() => WriteToPdfSharp(originalPath, tempPath, acceptedProposals), cancellationToken)
                 .ConfigureAwait(false);
@@ -231,6 +254,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             {
                 book.Sha256Hash = newSha256;
                 book.MtimeTicks = new System.IO.FileInfo(originalPath).LastWriteTimeUtc.Ticks;
+                book.IndexStatus = (int)SearchBookIndexStatus.NotIndexed;
+                book.EmbeddingStatus = (int)SearchEmbeddingStatus.NotEmbedded;
             }
 
             context.AuditEvents.Add(new AuditEventRow
@@ -314,6 +339,17 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         _ = doc.NumberOfPages;
     }
 
+    private static void EnsureExclusiveFileAccess(string filePath)
+    {
+        using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.None,
+            bufferSize: 1,
+            options: FileOptions.SequentialScan);
+    }
+
     private async Task CleanupAfterFailureAsync(
         string tempPath,
         BackupToken backupToken,
@@ -333,12 +369,15 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             // Best effort.
         }
 
+        bool restored = false;
+
         // Restore original from backup.
         try
         {
             if (File.Exists(backupToken.BackupAbsolutePath))
             {
                 File.Copy(backupToken.BackupAbsolutePath, backupToken.OriginalAbsolutePath, overwrite: true);
+                restored = true;
             }
         }
         catch (Exception)
@@ -362,6 +401,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 {
                     error = errorMessage,
                     backup = backupToken.BackupAbsolutePath,
+                    restored,
                 }),
                 Timestamp = DateTimeOffset.UtcNow,
                 IsLocalOnly = true,
