@@ -69,6 +69,22 @@ public sealed class PdfWorkerIsolationTests : IDisposable
         Assert.NotEmpty(result.PngBytes);
     }
 
+    [Fact]
+    public async Task IsolatedPdfRenderer_UsesSandboxCopyAfterSourceIsRemoved()
+    {
+        string pdfPath = CreateValidPdf("worker-copy.pdf");
+        using IPdfRenderer renderer = new IsolatedPdfRendererFactory(_client).Open(pdfPath);
+
+        File.Delete(pdfPath);
+        RenderResult result = await renderer.RenderPageAsync(
+            0,
+            new RenderRequest(300),
+            CancellationToken.None);
+
+        Assert.Equal(1, renderer.PageCount);
+        Assert.NotEmpty(result.PngBytes);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(Path.GetDirectoryName(_sandboxRoot)))

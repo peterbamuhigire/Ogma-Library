@@ -1,6 +1,6 @@
 # Phase 10 Progress - PDF Validation and Containment
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -11,9 +11,17 @@ Date: 2026-08-30
 - Registered the broker in the ingestion composition module.
 - Added tests for valid input, missing/extension failures, traversal, magic and
   size violations.
+- Added a brokered sandbox-local input copy for every worker operation; worker
+  arguments no longer carry the original source path.
+- Replaced the password environment variable with a one-shot stdin handshake;
+  decoded worker buffers are cleared and passwords are absent from process
+  environment and command-line arguments.
+- Added a persistent-worker regression proving rendering continues after the
+  original source path is removed once the sandbox copy is opened.
 
 ## Remaining phase gate
 
-The PDF worker still needs a brokered copy/input channel, secure one-shot password
-IPC, verified output manifests, CPU/memory limits, and true Windows/macOS network
-and filesystem sandbox adapters with physical escape evidence.
+The brokered copy and one-shot password transport gates are now implemented and
+tested. Verified output manifests, CPU/memory/time ceilings beyond the existing
+timeout/process cap, true Windows/macOS network and filesystem sandbox adapters,
+physical escape evidence, and independent security approval remain open.

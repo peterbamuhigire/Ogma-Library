@@ -32,6 +32,9 @@ internal static class PdfWorkerCommand
                 case "render-page":
                     await RenderPageAsync(parsed, sandbox).ConfigureAwait(false);
                     return 0;
+                case "server":
+                    await RunServerAsync(parsed, sandbox).ConfigureAwait(false);
+                    return 0;
                 case "rotation":
                     using (PdfiumAdapter renderer = GetRenderer(parsed))
                     {
@@ -98,6 +101,69 @@ internal static class PdfWorkerCommand
         WriteOk(new RenderPageResponse(result.PageWidthPoints, result.PageHeightPoints));
     }
 
+    /// <summary>
+    /// Serves one validated document over line-delimited JSON until the parent
+    /// closes stdin. Keeping this process and renderer alive removes the repeated
+    /// process start and PDF reload from interactive page turns.
+    /// </summary>
+    private static async Task RunServerAsync(ParsedArgs parsed, string sandbox)
+    {
+        using PdfiumAdapter renderer = GetRenderer(parsed);
+        WriteServerResponse(new ServerResponse("ok", PageCount: renderer.PageCount));
+
+        while (await Console.In.ReadLineAsync().ConfigureAwait(false) is { } line)
+        {
+            try
+            {
+                ServerRequest request = JsonSerializer.Deserialize<ServerRequest>(line, JsonOptions)
+                    ?? throw new ArgumentException("The worker request was empty.");
+
+                switch (request.Command)
+                {
+                    case "render-page":
+                        string outputPath = RequireInsideSandbox(
+                            sandbox,
+                            Path.Combine(sandbox, request.OutputName ?? string.Empty));
+                        RenderResult result = await renderer.RenderPageAsync(
+                                request.PageIndex,
+                                new RenderRequest(
+                                    request.WidthPx,
+                                    request.HeightPx,
+                                    request.Scale,
+                                    request.IsLowResPreview),
+                                CancellationToken.None)
+                            .ConfigureAwait(false);
+                        await File.WriteAllBytesAsync(outputPath, result.PngBytes)
+                            .ConfigureAwait(false);
+                        WriteServerResponse(new ServerResponse(
+                            "ok",
+                            PageWidthPoints: result.PageWidthPoints,
+                            PageHeightPoints: result.PageHeightPoints));
+                        break;
+                    case "rotation":
+                        WriteServerResponse(new ServerResponse(
+                            "ok",
+                            RotationDegrees: renderer.GetPageRotationDegrees(request.PageIndex)));
+                        break;
+                    case "text-layer":
+                        WriteServerResponse(new ServerResponse(
+                            "ok",
+                            TextLayer: renderer.ExtractTextLayer(request.PageIndex)));
+                        break;
+                    default:
+                        throw new ArgumentException($"Unknown worker session command '{request.Command}'.");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteServerResponse(new ServerResponse(
+                    "error",
+                    ErrorType: ex.GetType().Name,
+                    Error: ex.Message));
+            }
+        }
+    }
+
     private static PdfiumAdapter GetRenderer(ParsedArgs parsed)
     {
         string inputPath = RequireInput(parsed.GetRequired("--input"));
@@ -120,9 +186,24 @@ internal static class PdfWorkerCommand
     private static void RenderCover(ParsedArgs parsed, string sandbox)
     {
         string outputPath = RequireInsideSandbox(sandbox, parsed.GetRequired("--output"));
-        using SKBitmap rendered = RenderFirstPage(parsed.GetRequired("--input"), dpi: 144);
+        // Use the same byte-based PDFium adapter as page rendering. The previous
+        // stream overload could return a null native bitmap for valid PDFs, leaving
+        // the ingestion job failed with an unhelpful NullReferenceException.
+        using PdfiumAdapter renderer = GetRenderer(parsed);
+        RenderResult page = renderer.RenderPageAsync(
+                0,
+                new RenderRequest(200),
+                CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+        using SKBitmap? rendered = SKBitmap.Decode(page.PngBytes);
+        if (rendered is null)
+        {
+            throw new InvalidOperationException("The first PDF page could not be decoded for its cover image.");
+        }
+
         using SKSurface surface = SKSurface.Create(
-            new SKImageInfo(200, 300, SKColorType.Rgb888x, SKAlphaType.Opaque));
+            new SKImageInfo(200, 300, SKColorType.Rgba8888, SKAlphaType.Opaque));
         using SKCanvas canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
 
@@ -140,9 +221,21 @@ internal static class PdfWorkerCommand
     private static void RenderSpine(ParsedArgs parsed, string sandbox)
     {
         string outputPath = RequireInsideSandbox(sandbox, parsed.GetRequired("--output"));
-        using SKBitmap rendered = RenderFirstPage(parsed.GetRequired("--input"), dpi: 36);
+        using PdfiumAdapter renderer = GetRenderer(parsed);
+        RenderResult page = renderer.RenderPageAsync(
+                0,
+                new RenderRequest(200),
+                CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+        using SKBitmap? rendered = SKBitmap.Decode(page.PngBytes);
+        if (rendered is null)
+        {
+            throw new InvalidOperationException("The first PDF page could not be decoded for its spine image.");
+        }
+
         using SKSurface surface = SKSurface.Create(
-            new SKImageInfo(7, 100, SKColorType.Rgb888x, SKAlphaType.Opaque));
+            new SKImageInfo(7, 100, SKColorType.Rgba8888, SKAlphaType.Opaque));
         using SKCanvas canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
         canvas.DrawBitmap(rendered, new SKRect(0, 0, 7, 100));
@@ -150,20 +243,6 @@ internal static class PdfWorkerCommand
         SaveJpeg(surface, outputPath);
         WriteOk(new AssetResponse(outputPath));
     }
-
-#pragma warning disable CA1416
-    private static SKBitmap RenderFirstPage(string inputPath, int dpi)
-    {
-        string fullPath = RequireInput(inputPath);
-        using var pdfStream = File.OpenRead(fullPath);
-        return Conversion.ToImage(
-            pdfStream,
-            page: 0,
-            leaveOpen: false,
-            password: null,
-            options: new RenderOptions(Dpi: dpi));
-    }
-#pragma warning restore CA1416
 
     private static void SaveJpeg(SKSurface surface, string outputPath)
     {
@@ -205,14 +284,24 @@ internal static class PdfWorkerCommand
 
     private static char[]? ReadPassword()
     {
-        string? encoded = Environment.GetEnvironmentVariable("OGMA_PDF_WORKER_PASSWORD_B64");
+        // Password transport is a one-shot stdin handshake from the brokered
+        // parent. It is never placed in process environment or command-line
+        // arguments, and the decoded buffer is cleared by the caller.
+        string? encoded = Console.ReadLine();
         if (string.IsNullOrWhiteSpace(encoded))
         {
             return null;
         }
 
         byte[] bytes = Convert.FromBase64String(encoded);
-        return Encoding.UTF8.GetChars(bytes);
+        try
+        {
+            return Encoding.UTF8.GetChars(bytes);
+        }
+        finally
+        {
+            Array.Clear(bytes);
+        }
     }
 
     private static string RequireSandbox(string path)
@@ -264,6 +353,12 @@ internal static class PdfWorkerCommand
             JsonOptions));
     }
 
+    private static void WriteServerResponse(ServerResponse response)
+    {
+        Console.Out.WriteLine(JsonSerializer.Serialize(response, JsonOptions));
+        Console.Out.Flush();
+    }
+
     private sealed record PageCountResponse(int PageCount);
 
     private sealed record RenderPageResponse(double PageWidthPoints, double PageHeightPoints);
@@ -271,6 +366,25 @@ internal static class PdfWorkerCommand
     private sealed record RotationResponse(int RotationDegrees);
 
     private sealed record AssetResponse(string OutputPath);
+
+    private sealed record ServerRequest(
+        string Command,
+        int PageIndex,
+        int WidthPx = 0,
+        int HeightPx = 0,
+        double Scale = 1.0,
+        bool IsLowResPreview = false,
+        string? OutputName = null);
+
+    private sealed record ServerResponse(
+        string Status,
+        string? ErrorType = null,
+        string? Error = null,
+        int PageCount = 0,
+        int RotationDegrees = 0,
+        double PageWidthPoints = 595,
+        double PageHeightPoints = 842,
+        TextLayer? TextLayer = null);
 
     private sealed class ParsedArgs
     {

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using OgmaLibrary.Application.Reader;
 
@@ -68,6 +67,13 @@ public sealed class PdfWorkerClient
             password);
         return envelope.Payload?.PageCount ?? 0;
     }
+
+    /// <summary>Opens a worker-backed document session for repeated reader operations.</summary>
+    /// <param name="filePath">The absolute PDF path.</param>
+    /// <param name="password">Optional password characters copied for the session lifetime.</param>
+    /// <returns>A disposable session that keeps the document identity and password bounded.</returns>
+    public PdfWorkerSession OpenSession(string filePath, char[]? password = null) =>
+        new(this, RequireAbsoluteFile(filePath), password);
 
     /// <summary>
     /// Renders a single PDF page by invoking the worker process.
@@ -236,10 +242,12 @@ public sealed class PdfWorkerClient
         try
         {
             WorkerCommand command = ResolveWorkerCommand();
+            List<string> workerArguments = PrepareWorkerArguments(args, sandbox.Path);
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo(command.FileName)
             {
                 UseShellExecute = false,
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
@@ -254,14 +262,16 @@ public sealed class PdfWorkerClient
             process.StartInfo.ArgumentList.Add("pdf-worker");
             process.StartInfo.ArgumentList.Add("--sandbox");
             process.StartInfo.ArgumentList.Add(sandbox.Path);
-            foreach (string arg in args)
+            foreach (string arg in workerArguments)
             {
                 process.StartInfo.ArgumentList.Add(arg);
             }
 
-            SetSandboxEnvironment(process.StartInfo, sandbox.Path, password);
+            SetSandboxEnvironment(process.StartInfo, sandbox.Path);
 
             process.Start();
+            await SendPasswordAsync(process.StandardInput, password, closeAfterWrite: true)
+                .ConfigureAwait(false);
             using WindowsChildProcessLimit? childProcessLimit = WindowsChildProcessLimit.TryAssign(process);
             Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
             Task<string> stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
@@ -307,17 +317,56 @@ public sealed class PdfWorkerClient
         }
     }
 
-    private static void SetSandboxEnvironment(ProcessStartInfo startInfo, string sandboxPath, char[]? password)
+    private static void SetSandboxEnvironment(ProcessStartInfo startInfo, string sandboxPath)
     {
         startInfo.Environment["TMP"] = sandboxPath;
         startInfo.Environment["TEMP"] = sandboxPath;
         startInfo.Environment["TMPDIR"] = sandboxPath;
         startInfo.Environment["OGMA_PDF_WORKER_NETWORK"] = "disabled";
         startInfo.Environment["OGMA_PDF_WORKER_CHILD_PROCESSES"] = "disabled";
-        if (password is not null)
+    }
+
+    private static List<string> PrepareWorkerArguments(
+        IReadOnlyList<string> args,
+        string sandboxPath)
+    {
+        var prepared = args.ToList();
+        for (int index = 0; index < prepared.Count - 1; index++)
         {
-            startInfo.Environment["OGMA_PDF_WORKER_PASSWORD_B64"] =
-                Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+            if (!string.Equals(prepared[index], "--input", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string inputPath = RequireAbsoluteFile(prepared[index + 1]);
+            prepared[index + 1] = CopyInputToSandbox(inputPath, sandboxPath);
+            break;
+        }
+
+        return prepared;
+    }
+
+    private static string CopyInputToSandbox(string inputPath, string sandboxPath)
+    {
+        string destination = Path.Combine(sandboxPath, "input.pdf");
+        File.Copy(inputPath, destination, overwrite: false);
+        return destination;
+    }
+
+    private static async Task SendPasswordAsync(
+        StreamWriter writer,
+        char[]? password,
+        bool closeAfterWrite)
+    {
+        string encoded = password is null
+            ? string.Empty
+            : Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(password));
+        await writer.WriteLineAsync(encoded).ConfigureAwait(false);
+        await writer.FlushAsync().ConfigureAwait(false);
+
+        if (closeAfterWrite)
+        {
+            writer.Close();
         }
     }
 
@@ -479,6 +528,220 @@ public sealed class PdfWorkerClient
     private sealed record RotationResponse(int RotationDegrees);
 
     private sealed record AssetResponse(string OutputPath);
+
+    /// <summary>Persistent worker-backed operations for one validated PDF document.</summary>
+    public sealed class PdfWorkerSession : IDisposable
+    {
+        private readonly PdfWorkerClient _client;
+        private readonly PdfWorkerSandbox _sandbox;
+        private readonly Process _process;
+        private readonly WindowsChildProcessLimit? _childProcessLimit;
+        private readonly StreamReader _reader;
+        private readonly StreamWriter _writer;
+        private readonly SemaphoreSlim _requestGate = new(1, 1);
+        private readonly char[]? _password;
+        private bool _disposed;
+
+        internal PdfWorkerSession(PdfWorkerClient client, string filePath, char[]? password)
+        {
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _password = password?.ToArray();
+            _sandbox = client.CreateSandbox();
+
+            try
+            {
+                WorkerCommand command = client.ResolveWorkerCommand();
+                var startInfo = new ProcessStartInfo(command.FileName)
+                {
+                    UseShellExecute = false,
+                    RedirectStandardInput = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = _sandbox.Path,
+                };
+
+                foreach (string prefixArg in command.PrefixArguments)
+                {
+                    startInfo.ArgumentList.Add(prefixArg);
+                }
+
+                string sandboxInput = CopyInputToSandbox(filePath, _sandbox.Path);
+                startInfo.ArgumentList.Add("pdf-worker");
+                startInfo.ArgumentList.Add("--sandbox");
+                startInfo.ArgumentList.Add(_sandbox.Path);
+                startInfo.ArgumentList.Add("server");
+                startInfo.ArgumentList.Add("--input");
+                startInfo.ArgumentList.Add(sandboxInput);
+                SetSandboxEnvironment(startInfo, _sandbox.Path);
+
+                _process = new Process { StartInfo = startInfo };
+                _process.Start();
+                _childProcessLimit = WindowsChildProcessLimit.TryAssign(_process);
+                _reader = _process.StandardOutput;
+                _writer = _process.StandardInput;
+                SendPasswordAsync(_writer, _password, closeAfterWrite: false)
+                    .GetAwaiter()
+                    .GetResult();
+
+                ServerResponse ready = ReadResponseAsync().GetAwaiter().GetResult();
+                ThrowIfError(ready);
+                PageCount = ready.PageCount;
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        /// <summary>The page count reported by the persistent isolated worker.</summary>
+        public int PageCount { get; }
+
+        /// <summary>Renders a page through the persistent isolated worker.</summary>
+        public async Task<RenderResult> RenderPageAsync(
+            int pageIndex,
+            RenderRequest request,
+            CancellationToken cancellationToken)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                string outputName = $"page-{Guid.NewGuid():N}.png";
+                ServerResponse response = await SendAsync(
+                    new ServerRequest(
+                        "render-page",
+                        pageIndex,
+                        request.WidthPx,
+                        request.HeightPx,
+                        request.Scale,
+                        request.IsLowResPreview,
+                        outputName),
+                    cancellationToken).ConfigureAwait(false);
+                string outputPath = Path.Combine(_sandbox.Path, outputName);
+                byte[] bytes = await File.ReadAllBytesAsync(outputPath, cancellationToken)
+                    .ConfigureAwait(false);
+                File.Delete(outputPath);
+                return new RenderResult(
+                    bytes,
+                    response.PageWidthPoints,
+                    response.PageHeightPoints,
+                    pageIndex);
+            }
+            finally
+            {
+                _requestGate.Release();
+            }
+        }
+
+        /// <summary>Reads a page rotation through the persistent isolated worker.</summary>
+        public int GetPageRotationDegrees(int pageIndex) =>
+            SendSynchronously(new ServerRequest("rotation", pageIndex)).RotationDegrees;
+
+        /// <summary>Extracts a page text layer through the persistent isolated worker.</summary>
+        public TextLayer ExtractTextLayer(int pageIndex) =>
+            SendSynchronously(new ServerRequest("text-layer", pageIndex)).TextLayer
+            ?? new TextLayer(pageIndex, [], ExtractionQuality.Empty);
+
+        /// <summary>Stops the worker and deletes its private sandbox.</summary>
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            KillProcessTree(_process);
+            _childProcessLimit?.Dispose();
+            _requestGate.Dispose();
+            if (_password is not null)
+            {
+                Array.Clear(_password);
+            }
+
+            _sandbox.Dispose();
+            _process.Dispose();
+        }
+
+        private ServerResponse SendSynchronously(ServerRequest request)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _requestGate.Wait();
+            try
+            {
+                return SendAsync(request, CancellationToken.None).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                _requestGate.Release();
+            }
+        }
+
+        private async Task<ServerResponse> SendAsync(
+            ServerRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await _writer.WriteLineAsync(JsonSerializer.Serialize(request)).ConfigureAwait(false);
+            await _writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            ServerResponse response = await ReadResponseAsync()
+                .WaitAsync(_client._options.Timeout, CancellationToken.None)
+                .ConfigureAwait(false);
+            ThrowIfError(response);
+            return response;
+        }
+
+        private async Task<ServerResponse> ReadResponseAsync()
+        {
+            string? line = await _reader.ReadLineAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                throw new InvalidOperationException("The PDF worker session ended without a response.");
+            }
+
+            return JsonSerializer.Deserialize<ServerResponse>(line, JsonOptions)
+                ?? throw new InvalidOperationException("The PDF worker session returned invalid JSON.");
+        }
+
+        private static void ThrowIfError(ServerResponse response)
+        {
+            if (string.Equals(response.Status, "ok", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string message = string.IsNullOrWhiteSpace(response.Error)
+                ? "The PDF worker session failed."
+                : response.Error;
+            throw response.ErrorType switch
+            {
+                nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(message),
+                nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(message),
+                _ => new InvalidOperationException(message),
+            };
+        }
+
+        private sealed record ServerRequest(
+            string Command,
+            int PageIndex,
+            int WidthPx = 0,
+            int HeightPx = 0,
+            double Scale = 1.0,
+            bool IsLowResPreview = false,
+            string? OutputName = null);
+
+        private sealed record ServerResponse(
+            string Status,
+            string? ErrorType = null,
+            string? Error = null,
+            int PageCount = 0,
+            int RotationDegrees = 0,
+            double PageWidthPoints = 595,
+            double PageHeightPoints = 842,
+            TextLayer? TextLayer = null);
+    }
 }
 
 /// <summary>Redacted PDF worker prerequisite status.</summary>

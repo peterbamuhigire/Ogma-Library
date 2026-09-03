@@ -28,19 +28,15 @@ internal sealed class IsolatedPdfRendererFactory : IPdfRendererFactory
 
 internal sealed class IsolatedPdfRenderer : IPdfRenderer
 {
-    private readonly PdfWorkerClient _client;
-    private readonly string _filePath;
-    private readonly char[]? _password;
+    private readonly PdfWorkerClient.PdfWorkerSession _session;
     private bool _disposed;
 
     public IsolatedPdfRenderer(PdfWorkerClient client, string filePath, char[]? password)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        _client = client;
-        _filePath = Path.GetFullPath(filePath);
-        _password = password?.ToArray();
-        PageCount = _client.GetPageCount(_filePath, _password);
+        _session = client.OpenSession(filePath, password);
+        PageCount = _session.PageCount;
     }
 
     public int PageCount { get; }
@@ -50,7 +46,7 @@ internal sealed class IsolatedPdfRenderer : IPdfRenderer
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _client.RenderPageAsync(_filePath, pageIndex, request, _password, ct);
+        return _session.RenderPageAsync(pageIndex, request, ct);
     }
 
     public int GetPageRotationDegrees(int pageIndex)
@@ -58,7 +54,7 @@ internal sealed class IsolatedPdfRenderer : IPdfRenderer
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _client.GetPageRotationDegrees(_filePath, pageIndex, _password);
+        return _session.GetPageRotationDegrees(pageIndex);
     }
 
     public TextLayer ExtractTextLayer(int pageIndex)
@@ -66,16 +62,12 @@ internal sealed class IsolatedPdfRenderer : IPdfRenderer
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _client.ExtractTextLayer(_filePath, pageIndex, _password);
+        return _session.ExtractTextLayer(pageIndex);
     }
 
     public void Dispose()
     {
-        if (_password is not null)
-        {
-            Array.Clear(_password);
-        }
-
         _disposed = true;
+        _session.Dispose();
     }
 }
