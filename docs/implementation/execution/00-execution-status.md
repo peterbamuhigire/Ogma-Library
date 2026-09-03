@@ -25,7 +25,7 @@ Execution branch: `main`
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue, explicit review commands, concurrency token, and review-boundary sanitization delivered; bulk preview/undo, field dictionary, and accessible UI gates remain in phase-14-progress.md |
 | 15 | Safe Writeback and Override Protection | IN PROGRESS | 2026-08-30 | — | Canonical path and source-change guards delivered; durable plans/consent/invalidation gates remain in phase-15-progress.md |
 | 16 | Cover, Thumbnail and Spine Assets | NOT STARTED | â€” | â€” | â€” |
-| 17 | Worker Reliability and Observability | NOT STARTED | â€” | â€” | â€” |
+| 17 | Worker Reliability and Observability | IN PROGRESS | 2026-08-30 | — | Durable leasing, worker claim routing, and heartbeat renewal delivered; remaining worker conversion, resource groups, dead-letter, observability, and load evidence remain in phase-17-progress.md |
 | 18 | Ogma Design System and Application Shell | NOT STARTED | â€” | â€” | â€” |
 | 19 | Production 2D Catalogue | NOT STARTED | â€” | â€” | â€” |
 | 20 | Book Detail, Organisation and Reading State | NOT STARTED | â€” | â€” | Push checkpoint after completion |

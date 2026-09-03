@@ -13,6 +13,10 @@ Date: 2026-08-30
 - Retryable failures are returned to the queue with a bounded backoff; attempts
   become terminal failures at the configured maximum.
 - Expired leases are recoverable without deleting job history.
+- Converted `BookIngestionWorker` to claim, complete and fail through
+  `IJobRuntimeService` instead of directly polling/mutating job rows.
+- Added periodic lease renewal for long-running ingestion, with worker-owned
+  completion and bounded typed failure codes.
 - Added focused coverage for exclusive claims, owner enforcement, retry versus
   terminal failure, and expiry recovery.
 
@@ -24,7 +28,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The existing polling workers still need conversion to this runtime, including
-heartbeat renewal and resource-group limits. Poison/dead-letter handling,
+The remaining polling workers still need conversion to this runtime, and
+resource-group limits are not yet implemented. Poison/dead-letter handling,
 structured redacted events/metrics, diagnostics export, and kill/restart load
 evidence remain before phase 17 closure.

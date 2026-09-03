@@ -106,6 +106,25 @@ public sealed class JobRuntimeService : IJobRuntimeService
     }
 
     /// <inheritdoc />
+    public async Task RenewAsync(
+        long jobId,
+        string workerId,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken = default)
+    {
+        if (leaseDuration <= TimeSpan.Zero || leaseDuration > TimeSpan.FromHours(1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        }
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        JobRow job = await FindJobAsync(lease.Context, jobId, cancellationToken).ConfigureAwait(false);
+        EnsureOwner(job, workerId);
+        job.LeaseExpiresUtc = DateTimeOffset.UtcNow.Add(leaseDuration);
+        await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task FailAsync(
         long jobId,
         string workerId,

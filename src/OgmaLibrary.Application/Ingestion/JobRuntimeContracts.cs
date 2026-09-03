@@ -51,6 +51,13 @@ public interface IJobRuntimeService
         string workerId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Renews an active lease only when the worker still owns it.</summary>
+    Task RenewAsync(
+        long jobId,
+        string workerId,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Records a redacted failure and schedules retry or terminal failure.</summary>
     Task FailAsync(
         long jobId,

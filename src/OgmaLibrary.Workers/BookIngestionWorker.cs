@@ -19,6 +19,7 @@ namespace OgmaLibrary.Workers;
 public sealed class BookIngestionWorker : BackgroundService
 {
     private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
+    private readonly IJobRuntimeService _jobRuntime;
     private readonly IMetadataExtractionService _metadataExtraction;
     private readonly IThumbnailService _thumbnailService;
     private readonly ISpineService _spineService;
@@ -29,6 +30,7 @@ public sealed class BookIngestionWorker : BackgroundService
     /// Initializes a new instance of <see cref="BookIngestionWorker"/>.
     /// </summary>
     /// <param name="contextFactory">The catalogue DB context factory.</param>
+    /// <param name="jobRuntime">The durable lease runtime.</param>
     /// <param name="metadataExtraction">The metadata extraction service.</param>
     /// <param name="thumbnailService">The thumbnail generation service.</param>
     /// <param name="spineService">The spine generation service.</param>
@@ -36,6 +38,7 @@ public sealed class BookIngestionWorker : BackgroundService
     /// <param name="metadataEnrichment">The deterministic online metadata enrichment service.</param>
     public BookIngestionWorker(
         IDbContextFactory<CatalogueDbContext> contextFactory,
+        IJobRuntimeService jobRuntime,
         IMetadataExtractionService metadataExtraction,
         IThumbnailService thumbnailService,
         ISpineService spineService,
@@ -43,6 +46,7 @@ public sealed class BookIngestionWorker : BackgroundService
         IBookMetadataEnrichmentService metadataEnrichment)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
+        ArgumentNullException.ThrowIfNull(jobRuntime);
         ArgumentNullException.ThrowIfNull(metadataExtraction);
         ArgumentNullException.ThrowIfNull(thumbnailService);
         ArgumentNullException.ThrowIfNull(spineService);
@@ -50,6 +54,7 @@ public sealed class BookIngestionWorker : BackgroundService
         ArgumentNullException.ThrowIfNull(metadataEnrichment);
 
         _contextFactory = contextFactory;
+        _jobRuntime = jobRuntime;
         _metadataExtraction = metadataExtraction;
         _thumbnailService = thumbnailService;
         _spineService = spineService;
@@ -63,22 +68,13 @@ public sealed class BookIngestionWorker : BackgroundService
         // Poll the Jobs table for pending work.
         while (!stoppingToken.IsCancellationRequested)
         {
-            using CatalogueDbContext context = await _contextFactory
-                .CreateDbContextAsync(stoppingToken)
-                .ConfigureAwait(false);
+            JobLease? lease = await _jobRuntime.ClaimNextAsync(
+                ["MetadataExtraction", "Enrich", "ThumbnailGeneration", "SpineGeneration"],
+                WorkerId,
+                LeaseDuration,
+                stoppingToken).ConfigureAwait(false);
 
-            List<JobRow> pending = await context.Jobs
-                .Where(j => j.Status == 0 && // Pending
-                    (j.JobType == "MetadataExtraction" ||
-                     j.JobType == "Enrich" ||
-                     j.JobType == "ThumbnailGeneration" ||
-                     j.JobType == "SpineGeneration"))
-                .OrderBy(j => j.JobId)
-                .Take(10)
-                .ToListAsync(stoppingToken)
-                .ConfigureAwait(false);
-
-            if (pending.Count == 0)
+            if (lease is null)
             {
                 if (_progress.CurrentSnapshot.Phase == ScanPhase.GeneratingAssets)
                 {
@@ -92,114 +88,118 @@ public sealed class BookIngestionWorker : BackgroundService
 
             _progress.SetPhase(ScanPhase.GeneratingAssets);
 
-            foreach (JobRow job in pending)
-            {
-                if (stoppingToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                await ExecuteJobAsync(context, job, stoppingToken).ConfigureAwait(false);
-            }
+            await ExecuteJobAsync(lease, stoppingToken).ConfigureAwait(false);
         }
     }
 
-    private async Task ExecuteJobAsync(
-        CatalogueDbContext context,
-        JobRow job,
-        CancellationToken stoppingToken)
+    private async Task ExecuteJobAsync(JobLease lease, CancellationToken stoppingToken)
     {
-        // Mark as Running.
-        job.Status = 1;
-        job.StartedUtc = DateTimeOffset.UtcNow;
-        await context.SaveChangesAsync(stoppingToken).ConfigureAwait(false);
+        using var heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        Task heartbeat = RenewLeaseAsync(lease.JobId, heartbeatCancellation.Token);
 
         try
         {
+            using CatalogueDbContext context = await _contextFactory
+                .CreateDbContextAsync(stoppingToken)
+                .ConfigureAwait(false);
+            string? bookId = lease.BookId;
             string? contentHash = await context.Books
                 .AsNoTracking()
-                .Where(b => b.BookId == job.BookId)
+                .Where(b => b.BookId == bookId)
                 .Select(b => b.Sha256Hash)
                 .FirstOrDefaultAsync(stoppingToken)
                 .ConfigureAwait(false);
 
-            string filePath = ResolvePayloadFilePath(job.Payload);
+            string filePath = ResolvePayloadFilePath(lease.Payload);
             bool success;
             string? errorMessage;
 
-            if (job.JobType == "MetadataExtraction")
+            if (lease.JobType == "MetadataExtraction")
             {
                 (success, errorMessage) = await _metadataExtraction.ExtractAsync(
-                    job.BookId ?? string.Empty, filePath, stoppingToken).ConfigureAwait(false);
+                    bookId ?? string.Empty, filePath, stoppingToken).ConfigureAwait(false);
 
-                if (success && !string.IsNullOrWhiteSpace(job.BookId))
+                if (success && !string.IsNullOrWhiteSpace(bookId))
                 {
-                    TryAddEnrichJob(context, job.BookId, filePath, contentHash ?? filePath);
+                    TryAddEnrichJob(context, bookId, filePath, contentHash ?? filePath);
                 }
             }
-            else if (job.JobType == "Enrich")
+            else if (lease.JobType == "Enrich")
             {
                 (success, errorMessage) = await _metadataEnrichment.EnrichAsync(
-                    job.BookId ?? string.Empty, filePath, stoppingToken).ConfigureAwait(false);
+                    bookId ?? string.Empty, filePath, stoppingToken).ConfigureAwait(false);
             }
-            else if (job.JobType == "ThumbnailGeneration" && !string.IsNullOrEmpty(contentHash))
+            else if (lease.JobType == "ThumbnailGeneration" && !string.IsNullOrEmpty(contentHash))
             {
                 (success, errorMessage) = await _thumbnailService.GenerateCoverAsync(
-                    job.BookId ?? string.Empty, contentHash, filePath, stoppingToken)
+                    bookId ?? string.Empty, contentHash, filePath, stoppingToken)
                     .ConfigureAwait(false);
             }
-            else if (job.JobType == "SpineGeneration" && !string.IsNullOrEmpty(contentHash))
+            else if (lease.JobType == "SpineGeneration" && !string.IsNullOrEmpty(contentHash))
             {
                 (success, errorMessage) = await _spineService.GenerateSpineAsync(
-                    job.BookId ?? string.Empty, contentHash, filePath, stoppingToken)
+                    bookId ?? string.Empty, contentHash, filePath, stoppingToken)
                     .ConfigureAwait(false);
             }
             else
             {
                 success = false;
-                errorMessage = $"Unknown or incomplete job: type={job.JobType}, contentHash={(contentHash is null ? "null" : "present")}";
+                errorMessage = $"Unknown or incomplete job: type={lease.JobType}, contentHash={(contentHash is null ? "null" : "present")}";
             }
-
-            job.Status = success ? 2 : 3; // Completed or Failed
-            job.ErrorMessage = errorMessage;
-            job.CompletedUtc = DateTimeOffset.UtcNow;
 
             if (success)
             {
+                await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, stoppingToken).ConfigureAwait(false);
                 _progress.IncrementCompleted();
             }
             else
             {
+                await _jobRuntime.FailAsync(
+                    lease.JobId,
+                    WorkerId,
+                    new JobFailure("job_failed", errorMessage, Retryable: true),
+                    cancellationToken: stoppingToken).ConfigureAwait(false);
                 _progress.IncrementFailed();
             }
         }
         catch (OperationCanceledException)
         {
-            // Reset to Pending so recovery picks it up on next restart.
-            job.Status = 0;
-            job.StartedUtc = null;
             throw;
         }
         catch (Exception ex)
         {
-            // Per-file isolation: failure recorded, worker continues (NFR-PROD-006).
-            job.Status = 3; // Failed
-            job.ErrorMessage = ex.Message;
-            job.CompletedUtc = DateTimeOffset.UtcNow;
+            await _jobRuntime.FailAsync(
+                lease.JobId,
+                WorkerId,
+                new JobFailure("worker_exception", ex.Message, Retryable: true),
+                cancellationToken: CancellationToken.None).ConfigureAwait(false);
             _progress.IncrementFailed();
         }
         finally
         {
-            try
-            {
-                await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                // Swallow to prevent worker crash on DB save issues.
-            }
+            await heartbeatCancellation.CancelAsync().ConfigureAwait(false);
+            await heartbeat.ConfigureAwait(false);
         }
     }
+
+    private async Task RenewLeaseAsync(long jobId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(LeaseDuration / 2);
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await _jobRuntime.RenewAsync(jobId, WorkerId, LeaseDuration, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    private static string WorkerId => $"book-ingestion-{Environment.MachineName}-{Environment.ProcessId}";
+    private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(5);
 
     private static string ResolvePayloadFilePath(string? payload)
     {
