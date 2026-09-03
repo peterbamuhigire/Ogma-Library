@@ -50,27 +50,57 @@ public sealed class MetadataSearchService : IMetadataSearchService
             return [];
         }
 
+        ParsedMetadataQuery parsed = ParseQuery(normalizedQuery);
+        if (parsed.Text.Length == 0)
+        {
+            return [];
+        }
+
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
-        string likePattern = "%" + EscapeLike(normalizedQuery) + "%";
+        string likePattern = "%" + EscapeLike(parsed.Text) + "%";
 
-        List<BookRow> books = await context.Books
+        IQueryable<BookRow> bookQuery = context.Books
             .AsNoTracking()
             // Search is also consumed by the classroom Host; inactive catalogue
             // records must never become discoverable through that boundary.
-            .Where(book => book.Status == 0)
-            .Where(book =>
+            .Where(book => book.Status == 0);
+
+        bookQuery = parsed.Field switch
+        {
+            "title" => bookQuery.Where(book =>
+                EF.Functions.Like(book.Title ?? string.Empty, likePattern, "\\") ||
+                book.MetadataFields.Any(field => field.FieldName == "Title" &&
+                    EF.Functions.Like(field.Value ?? string.Empty, likePattern, "\\"))),
+            "author" => bookQuery.Where(book =>
+                book.BookAuthors.Any(author => author.Author != null &&
+                    EF.Functions.Like(author.Author.NormalizedName, likePattern, "\\")) ||
+                book.MetadataFields.Any(field => field.FieldName == "Author" &&
+                    EF.Functions.Like(field.Value ?? string.Empty, likePattern, "\\"))),
+            "isbn" => bookQuery.Where(book =>
+                EF.Functions.Like(book.IsbnNormalized ?? string.Empty, likePattern, "\\")),
+            "shelf" => bookQuery.Where(book => book.ShelfBooks.Any(shelfBook =>
+                shelfBook.Shelf != null &&
+                EF.Functions.Like(shelfBook.Shelf.Name, likePattern, "\\"))),
+            "description" => bookQuery.Where(book => book.MetadataFields.Any(field =>
+                (field.FieldName == "Description" || field.FieldName == "Descriptions") &&
+                EF.Functions.Like(field.Value ?? string.Empty, likePattern, "\\"))),
+            "tag" => bookQuery.Where(book => book.MetadataFields.Any(field =>
+                (field.FieldName == "Tag" || field.FieldName == "Tags") &&
+                EF.Functions.Like(field.Value ?? string.Empty, likePattern, "\\"))),
+            _ => bookQuery.Where(book =>
                 EF.Functions.Like(book.Title ?? string.Empty, likePattern, "\\") ||
                 EF.Functions.Like(book.IsbnNormalized ?? string.Empty, likePattern, "\\") ||
                 EF.Functions.Like(book.Doi ?? string.Empty, likePattern, "\\") ||
-                book.BookAuthors.Any(author =>
-                    author.Author != null &&
+                book.BookAuthors.Any(author => author.Author != null &&
                     EF.Functions.Like(author.Author.NormalizedName, likePattern, "\\")) ||
                 book.MetadataFields.Any(field =>
                     EF.Functions.Like(field.Value ?? string.Empty, likePattern, "\\")) ||
-                book.ShelfBooks.Any(shelfBook =>
-                    shelfBook.Shelf != null &&
-                    EF.Functions.Like(shelfBook.Shelf.Name, likePattern, "\\")))
+                book.ShelfBooks.Any(shelfBook => shelfBook.Shelf != null &&
+                    EF.Functions.Like(shelfBook.Shelf.Name, likePattern, "\\"))),
+        };
+
+        List<BookRow> books = await bookQuery
             .Include(b => b.BookAuthors)
             .ThenInclude(ba => ba.Author)
             .Include(b => b.MetadataFields)
@@ -80,7 +110,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
             .ConfigureAwait(false);
 
         List<MetadataSearchResult> exactResults = books
-            .Select(book => ScoreBook(book, normalizedQuery))
+            .Select(book => ScoreBook(book, parsed.Text))
             .Where(result => result.Score > 0)
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Title, StringComparer.OrdinalIgnoreCase)
@@ -93,7 +123,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
             return exactResults;
         }
 
-        return await FuzzyFallbackAsync(context, normalizedQuery, cancellationToken).ConfigureAwait(false);
+        return await FuzzyFallbackAsync(context, parsed.Text, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<IReadOnlyList<MetadataSearchResult>> FuzzyFallbackAsync(
@@ -266,6 +296,21 @@ public sealed class MetadataSearchService : IMetadataSearchService
 
     private static string NormalizeQuery(string? query) => (query ?? string.Empty).Trim();
 
+    private static ParsedMetadataQuery ParseQuery(string query)
+    {
+        int separator = query.IndexOf(':');
+        if (separator <= 0 || separator == query.Length - 1)
+        {
+            return new ParsedMetadataQuery(null, query);
+        }
+
+        string field = query[..separator].Trim().ToLowerInvariant();
+        string value = query[(separator + 1)..].Trim();
+        return field is "title" or "author" or "isbn" or "shelf" or "description" or "tag"
+            ? new ParsedMetadataQuery(field, value)
+            : new ParsedMetadataQuery(null, query);
+    }
+
     private static string EscapeLike(string value) =>
         value
             .Replace("\\", "\\\\", StringComparison.Ordinal)
@@ -284,6 +329,8 @@ public sealed class MetadataSearchService : IMetadataSearchService
 
     private static bool ContainsIgnoreCase(string? value, string query) =>
         value?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
+
+    private sealed record ParsedMetadataQuery(string? Field, string Text);
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

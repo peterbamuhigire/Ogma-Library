@@ -18,6 +18,11 @@ Date: 2026-08-30
   `title:fuzzy` or `author:fuzzy`.
 - Added a regression fixture proving that the typo `tolkein` finds a book by
   `J.R.R. Tolkien`.
+- Added bounded structured field parsing for `title:`, `author:`, `isbn:`,
+  `shelf:`, `description:`, and `tag:` queries while retaining the broad exact
+  and fuzzy fallback paths.
+- Added a regression fixture proving an author-scoped query does not match a
+  title-only occurrence.
 
 ## Verification
 
@@ -27,6 +32,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Structured field parsing, facets, paging, highlighting, type-ahead, richer
+Facets, paging, highlighting, type-ahead, richer
 correction suggestions, full-text fallback integration and the 50,000-book
 search benchmark remain before phase 22 closure.

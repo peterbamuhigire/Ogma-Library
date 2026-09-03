@@ -57,6 +57,21 @@ public sealed class MetadataSearchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task MetadataSearch_StructuredAuthorQuery_RestrictsField()
+    {
+        SeedBook("P22STRUCTURED000000001", "Political Learning", "Jean Jacques Rousseau");
+        SeedBook("P22STRUCTURED000000002", "Rousseau Bibliography", "Another Author");
+        var service = new MetadataSearchService(_context);
+
+        IReadOnlyList<MetadataSearchResult> results = await service.SearchAsync(
+            "author:rousseau",
+            CancellationToken.None);
+
+        Assert.Contains(results, result => result.BookId == "P22STRUCTURED000000001");
+        Assert.DoesNotContain(results, result => result.BookId == "P22STRUCTURED000000002");
+    }
+
+    [Fact]
     public async Task MetadataSearch_MetadataFieldsAndShelves_ContributeMatches()
     {
         SeedBook(
