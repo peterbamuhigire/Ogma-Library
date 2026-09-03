@@ -123,12 +123,14 @@ public sealed class MetadataSearchService : IMetadataSearchService
             return exactResults;
         }
 
-        return await FuzzyFallbackAsync(context, parsed.Text, cancellationToken).ConfigureAwait(false);
+        return await FuzzyFallbackAsync(context, parsed.Text, parsed.Field, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static async Task<IReadOnlyList<MetadataSearchResult>> FuzzyFallbackAsync(
         CatalogueDbContext context,
         string query,
+        string? field,
         CancellationToken cancellationToken)
     {
         // Select only title/first-author scalars for the bounded fallback. This
@@ -152,10 +154,14 @@ public sealed class MetadataSearchService : IMetadataSearchService
         return candidates
             .Select(candidate =>
             {
-                int titleDistance = LevenshteinDistance(candidate.Title, query);
-                int authorDistance = LevenshteinDistance(candidate.Author, query);
+                int titleDistance = field is null or "title"
+                    ? LevenshteinDistance(candidate.Title, query)
+                    : int.MaxValue;
+                int authorDistance = field is null or "author"
+                    ? LevenshteinDistance(candidate.Author, query)
+                    : int.MaxValue;
                 int distance = Math.Min(titleDistance, authorDistance);
-                string field = titleDistance <= authorDistance ? "title:fuzzy" : "author:fuzzy";
+                string matchedField = titleDistance <= authorDistance ? "title:fuzzy" : "author:fuzzy";
                 string? matchedValue = titleDistance <= authorDistance ? candidate.Title : candidate.Author;
                 return new
                 {
@@ -163,7 +169,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
                     candidate.Title,
                     candidate.Author,
                     distance,
-                    field,
+                    matchedField,
                     matchedValue,
                 };
             })
@@ -178,7 +184,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
                 candidate.Title,
                 candidate.Author,
                 Score: Math.Max(1, 45 - candidate.distance * 5),
-                MatchedFields: [candidate.field]))
+                MatchedFields: [candidate.matchedField]))
             .ToList();
     }
 
