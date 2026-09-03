@@ -17,6 +17,8 @@ Date: 2026-08-30
   `IJobRuntimeService` instead of directly polling/mutating job rows.
 - Added periodic lease renewal for long-running ingestion, with worker-owned
   completion and bounded typed failure codes.
+- Added an explicit `DeadLetter` lifecycle for poison/unsupported jobs so they
+  are quarantined without consuming retry attempts.
 - Added focused coverage for exclusive claims, owner enforcement, retry versus
   terminal failure, and expiry recovery.
 
@@ -29,6 +31,6 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 The remaining polling workers still need conversion to this runtime, and
-resource-group limits are not yet implemented. Poison/dead-letter handling,
+resource-group limits are not yet implemented. Structured redacted events,
 structured redacted events/metrics, diagnostics export, and kill/restart load
 evidence remain before phase 17 closure.

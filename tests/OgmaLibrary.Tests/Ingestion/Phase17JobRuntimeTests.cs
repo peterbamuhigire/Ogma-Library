@@ -96,5 +96,29 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.Equal(2, recovered.Attempt);
     }
 
+    [Fact]
+    public async Task PoisonFailure_IsQuarantinedWithoutRetry()
+    {
+        _fixture.Context.Jobs.Add(new JobRow
+        {
+            JobType = "Unknown",
+            IdempotencyKey = "phase17-poison",
+            Status = (int)JobRuntimeStatus.Pending,
+        });
+        await _fixture.Context.SaveChangesAsync();
+        var runtime = new JobRuntimeService(_fixture.Context);
+        JobLease claim = (await runtime.ClaimNextAsync(
+            ["Unknown"], "worker-a", TimeSpan.FromMinutes(1)))!;
+
+        await runtime.FailAsync(
+            claim.JobId,
+            "worker-a",
+            new JobFailure("unsupported_job", "The job type is not supported.", Retryable: false, DeadLetter: true));
+
+        JobRow row = await _fixture.Context.Jobs.SingleAsync(job => job.JobId == claim.JobId);
+        Assert.Equal((int)JobRuntimeStatus.DeadLetter, row.Status);
+        Assert.Null(row.NextAttemptUtc);
+    }
+
     public void Dispose() => _fixture.Dispose();
 }

@@ -143,8 +143,12 @@ public sealed class JobRuntimeService : IJobRuntimeService
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         JobRow job = await FindJobAsync(lease.Context, jobId, cancellationToken).ConfigureAwait(false);
         EnsureOwner(job, workerId);
-        bool retry = failure.Retryable && job.RetryCount < maxAttempts;
-        job.Status = (int)(retry ? JobRuntimeStatus.Pending : JobRuntimeStatus.Failed);
+        bool retry = !failure.DeadLetter && failure.Retryable && job.RetryCount < maxAttempts;
+        job.Status = (int)(failure.DeadLetter
+            ? JobRuntimeStatus.DeadLetter
+            : retry
+                ? JobRuntimeStatus.Pending
+                : JobRuntimeStatus.Failed);
         job.FailureCode = failure.Code.Trim();
         job.ErrorMessage = failure.SafeMessage;
         job.LeaseOwner = null;

@@ -19,7 +19,7 @@ public sealed class JobRow
     /// </summary>
     public string IdempotencyKey { get; set; } = string.Empty;
 
-    /// <summary>Job status (0=Pending, 1=Running, 2=Completed, 3=Failed, 4=Cancelled).</summary>
+    /// <summary>Job status (0=Pending, 1=Running, 2=Completed, 3=Failed, 4=Cancelled, 5=DeadLetter).</summary>
     public int Status { get; set; }
 
     /// <summary>Optional FK to the book this job operates on.</summary>

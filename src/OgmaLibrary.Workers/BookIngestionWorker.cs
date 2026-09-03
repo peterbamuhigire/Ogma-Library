@@ -161,7 +161,12 @@ public sealed class BookIngestionWorker : BackgroundService
                 await _jobRuntime.FailAsync(
                     lease.JobId,
                     WorkerId,
-                    new JobFailure("job_failed", errorMessage, Retryable: true),
+                    new JobFailure(
+                        "job_failed",
+                        errorMessage,
+                        Retryable: true,
+                        DeadLetter: lease.JobType is not (
+                            "MetadataExtraction" or "Enrich" or "ThumbnailGeneration" or "SpineGeneration")),
                     cancellationToken: stoppingToken).ConfigureAwait(false);
                 _progress.IncrementFailed();
             }

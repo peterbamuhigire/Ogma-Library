@@ -17,6 +17,9 @@ public enum JobRuntimeStatus
 
     /// <summary>Cancelled without deleting history.</summary>
     Cancelled = 4,
+
+    /// <summary>Quarantined because retrying cannot safely make progress.</summary>
+    DeadLetter = 5,
 }
 
 /// <summary>Safe lease handed to one worker for one job.</summary>
@@ -33,7 +36,8 @@ public sealed record JobLease(
 public sealed record JobFailure(
     string Code,
     string? SafeMessage,
-    bool Retryable);
+    bool Retryable,
+    bool DeadLetter = false);
 
 /// <summary>Durable claim/complete/failure contract for background jobs.</summary>
 public interface IJobRuntimeService
