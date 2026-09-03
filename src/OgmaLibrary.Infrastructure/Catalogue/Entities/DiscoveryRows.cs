@@ -46,6 +46,18 @@ public sealed class DirectoryCheckpointRow
     /// <summary>UTC completion timestamp.</summary>
     public DateTimeOffset LastCompletedUtc { get; set; }
 
+    /// <summary>UTC time at which the current or last pass started.</summary>
+    public DateTimeOffset? LastStartedUtc { get; set; }
+
+    /// <summary>The scan session that owns the current or last checkpoint.</summary>
+    public long? LastScanSessionId { get; set; }
+
+    /// <summary>0=complete, 1=running, 2=failed or incomplete.</summary>
+    public int ScanState { get; set; }
+
+    /// <summary>Last completed directory used to resume an interrupted root pass.</summary>
+    public string? ResumeCursorRelativeDirectory { get; set; }
+
     /// <summary>Number of PDF observations seen during the pass.</summary>
     public int LastObservedFileCount { get; set; }
 

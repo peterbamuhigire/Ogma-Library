@@ -130,6 +130,25 @@ public sealed class ProcessingStateService : IProcessingStateService
             .Select(candidate => candidate.ScanSessionId)
             .ToArrayAsync(cancellationToken)
             .ConfigureAwait(false);
+        StageExecutionRow? completed = await context.StageExecutions
+            .Where(stage => stage.StageName == stageName &&
+                            stage.SubjectKey == subjectKey &&
+                            stage.Status == (int)StageExecutionStatus.Completed)
+            .Join(
+                context.ScanSessions,
+                stage => stage.ScanSessionId,
+                candidate => candidate.ScanSessionId,
+                (stage, candidate) => new { Stage = stage, Session = candidate })
+            .Where(item => item.Session.LibraryRootId == rootId.Value)
+            .OrderBy(item => item.Stage.StageExecutionId)
+            .Select(item => item.Stage)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (completed is not null)
+        {
+            return completed.StageExecutionId;
+        }
+
         StageExecutionRow? existing = await context.StageExecutions
             .Where(stage => rootSessionIds.Contains(stage.ScanSessionId) &&
                             stage.StageName == stageName &&

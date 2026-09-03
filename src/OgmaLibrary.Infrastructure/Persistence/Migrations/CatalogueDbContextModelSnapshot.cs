@@ -944,6 +944,12 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("LastScanSessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("LastStartedUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("LastObservedFileCount")
                         .HasColumnType("INTEGER");
 
@@ -956,6 +962,13 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(4096)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("ResumeCursorRelativeDirectory")
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ScanState")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("DirectoryCheckpointId");
 

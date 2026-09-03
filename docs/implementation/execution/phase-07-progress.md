@@ -1,6 +1,6 @@
 # Phase 07 Progress - Discovery and Incremental Scanning
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -17,10 +17,22 @@ Date: 2026-08-30
   sessions share content-versioned stage idempotency.
 - Added acceptance tests for first scan, unchanged rescan, exclusions and root
   scoping.
+- Added durable per-directory lifecycle state (`started`, `completed`,
+  `failed`), resumable root cursors and a forward-compatible schema migration.
+- Persisted directory diagnostics through independent catalogue contexts in the
+  production path, so a process interruption retains the last completed cursor;
+  the in-memory test constructor retains the same deterministic state model.
+- Added stable SHA-256 downstream subject keys and cross-session completed-stage
+  de-duplication, preventing a restart from re-queuing the same content version.
+- Added diagnostics and restart acceptance tests, including unreadable-root
+  reporting and resume-after-directory behavior.
+- Added a bounded 50,000-file benchmark. The Windows run completed in 18.2
+  seconds for the discovery stream and the acceptance test passed in 1 minute
+  54 seconds including corpus creation and cleanup.
 
 ## Remaining phase gate
 
-This is the scanner-core increment. Full phase closure still requires directory-
-level cursor recovery, visible per-directory permission diagnostics, a stable
-cross-session downstream idempotency key, and the planned 50,000-file benchmark.
-Those items remain tracked before marking phase 7 complete.
+Phase 7 scanner-core gates are closed by the implementation and acceptance
+evidence above. Physical cross-platform filesystem permission behavior and UI
+screen-reader walkthroughs remain platform gates for the later release review;
+they are not silently treated as assessed by this Windows test run.

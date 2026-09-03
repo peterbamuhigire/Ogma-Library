@@ -132,7 +132,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
 
         // Start discovery on a background task.
         Task discoveryTask = _discovery.DiscoverAsync(
-            root, excluded, channel.Writer, cancellationToken);
+            root, excluded, channel.Writer, cancellationToken: cancellationToken);
 
         _progress.SetPhase(ScanPhase.Processing);
 

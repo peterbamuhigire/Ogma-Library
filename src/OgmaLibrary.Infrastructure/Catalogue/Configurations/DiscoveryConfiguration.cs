@@ -49,6 +49,9 @@ public sealed class DirectoryCheckpointConfiguration : IEntityTypeConfiguration<
         builder.Property(row => row.DirectoryCheckpointId).ValueGeneratedOnAdd();
         builder.Property(row => row.LibraryRootId).IsRequired().HasMaxLength(26);
         builder.Property(row => row.NormalizedRelativeDirectory).IsRequired().HasMaxLength(4096);
+        builder.Property(row => row.LastScanSessionId);
+        builder.Property(row => row.ScanState).IsRequired();
+        builder.Property(row => row.ResumeCursorRelativeDirectory).HasMaxLength(4096);
         builder.Property(row => row.LastErrorCode).HasMaxLength(128);
         builder.HasIndex(row => new { row.LibraryRootId, row.NormalizedRelativeDirectory })
             .IsUnique()

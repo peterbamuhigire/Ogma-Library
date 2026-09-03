@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Tests.Catalogue;
 
@@ -83,6 +84,71 @@ public sealed class Phase07IncrementalDiscoveryTests : IDisposable
         Assert.Equal(root.Id.Value, await _context.DiscoveryObservations
             .Select(observation => observation.LibraryRootId)
             .SingleAsync());
+    }
+
+    [Fact]
+    public async Task Scan_ResumesAfterDurableDirectoryCursor()
+    {
+        string first = Path.Combine(_rootPath, "a");
+        string second = Path.Combine(_rootPath, "b");
+        Directory.CreateDirectory(first);
+        Directory.CreateDirectory(second);
+        File.WriteAllBytes(Path.Combine(first, "first.pdf"), [1]);
+        File.WriteAllBytes(Path.Combine(second, "second.pdf"), [2]);
+        var rootService = new LibraryRootService(
+            _context,
+            new FileSystemLibraryRootPlatformAdapter());
+        LibraryRootDescriptor root = await rootService.AddAsync(_rootPath);
+
+        _context.DirectoryCheckpoints.Add(new DirectoryCheckpointRow
+        {
+            LibraryRootId = root.Id.Value,
+            NormalizedRelativeDirectory = string.Empty,
+            LastCompletedUtc = DateTimeOffset.UtcNow,
+            ScanState = 1,
+            ResumeCursorRelativeDirectory = "a",
+        });
+        await _context.SaveChangesAsync();
+
+        DiscoveryScanResult result = await _scanner.ScanAsync(root.Id);
+
+        Assert.Equal(1, result.FilesSeen);
+        Assert.Equal("b/second.pdf", await _context.DiscoveryObservations
+            .Select(observation => observation.NormalizedRelativePath)
+            .SingleAsync());
+        Assert.DoesNotContain(
+            result.Diagnostics,
+            diagnostic => diagnostic.RelativeDirectory == "a");
+        DirectoryCheckpointRow checkpoint = await _context.DirectoryCheckpoints
+            .SingleAsync(row => row.LibraryRootId == root.Id.Value &&
+                                row.NormalizedRelativeDirectory == string.Empty);
+        Assert.Equal(0, checkpoint.ScanState);
+        Assert.Null(checkpoint.ResumeCursorRelativeDirectory);
+    }
+
+    [Fact]
+    public async Task Scan_PersistsDirectoryLifecycleAndCompletionCursor()
+    {
+        Directory.CreateDirectory(Path.Combine(_rootPath, "nested"));
+        File.WriteAllBytes(Path.Combine(_rootPath, "nested", "book.pdf"), [1]);
+        var rootService = new LibraryRootService(
+            _context,
+            new FileSystemLibraryRootPlatformAdapter());
+        LibraryRootDescriptor root = await rootService.AddAsync(_rootPath);
+
+        DiscoveryScanResult result = await _scanner.ScanAsync(root.Id);
+
+        Assert.Contains(
+            result.Diagnostics,
+            diagnostic => diagnostic.RelativeDirectory == "nested" &&
+                          diagnostic.Status == DiscoveryDirectoryStatus.Completed);
+        DirectoryCheckpointRow nested = await _context.DirectoryCheckpoints
+            .SingleAsync(row => row.LibraryRootId == root.Id.Value &&
+                                row.NormalizedRelativeDirectory == "nested");
+        Assert.Equal(0, nested.ScanState);
+        Assert.Equal(1, nested.LastObservedFileCount);
+        Assert.NotNull(nested.LastStartedUtc);
+        Assert.NotEqual(DateTimeOffset.MinValue, nested.LastCompletedUtc);
     }
 
     private static string CreateRoot()

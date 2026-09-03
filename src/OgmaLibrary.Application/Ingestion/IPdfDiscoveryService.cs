@@ -17,10 +17,14 @@ public interface IPdfDiscoveryService
     /// <param name="rootPath">The absolute path to the library root.</param>
     /// <param name="excludedFolders">Folder names or relative sub-paths to exclude.</param>
     /// <param name="writer">The channel writer that receives discovered files.</param>
+    /// <param name="directoryDiagnosticSink">Optional sink for safe per-directory progress and error diagnostics.</param>
+    /// <param name="resumeAfterRelativeDirectory">Optional last completed directory from an interrupted pass.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task DiscoverAsync(
         string rootPath,
         IReadOnlyList<string> excludedFolders,
         ChannelWriter<DiscoveredFile> writer,
+        Func<DiscoveryDirectoryDiagnostic, ValueTask>? directoryDiagnosticSink = null,
+        string? resumeAfterRelativeDirectory = null,
         CancellationToken cancellationToken = default);
 }

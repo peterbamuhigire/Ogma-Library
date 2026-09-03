@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using System.Security.Cryptography;
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
@@ -67,97 +68,160 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
             .ConfigureAwait(false);
         var channel = Channel.CreateBounded<DiscoveredFile>(
             new BoundedChannelOptions(500) { FullMode = BoundedChannelFullMode.Wait });
-        Task discoveryTask = _discovery.DiscoverAsync(
-            root.CanonicalLocator,
-            excludedFolders ?? [],
-            channel.Writer,
-            cancellationToken);
-
         int seen = 0;
         int changed = 0;
         int unchanged = 0;
         int failed = 0;
-        HashSet<string> observedDirectories = [string.Empty];
+        var diagnostics = new ConcurrentQueue<DiscoveryDirectoryDiagnostic>();
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
         DirectoryCheckpointRow checkpoint = await GetCheckpointAsync(
             context, rootId, string.Empty, cancellationToken)
             .ConfigureAwait(false);
+        string? resumeAfterDirectory = checkpoint.ScanState is 1 or 2
+            ? checkpoint.ResumeCursorRelativeDirectory
+            : null;
+        checkpoint.LastStartedUtc = DateTimeOffset.UtcNow;
+        checkpoint.LastScanSessionId = session.Id;
+        checkpoint.ScanState = 1;
+        checkpoint.LastErrorCode = null;
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         DateTimeOffset completedUtc = DateTimeOffset.UtcNow;
-
-        await foreach (DiscoveredFile file in channel.Reader
-            .ReadAllAsync(cancellationToken)
-            .ConfigureAwait(false))
-        {
-            seen++;
-            string normalizedPath = NormalizeRelativePath(file.RelativePath);
-            try
+        Task discoveryTask = _discovery.DiscoverAsync(
+            root.CanonicalLocator,
+            excludedFolders ?? [],
+            channel.Writer,
+            async diagnostic =>
             {
-                DiscoveryObservationRow? observation = await context.DiscoveryObservations
-                    .FirstOrDefaultAsync(row => row.LibraryRootId == rootId.Value &&
-                                                row.NormalizedRelativePath == normalizedPath,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                bool isChanged = observation is null ||
-                    observation.SizeBytes != file.SizeBytes ||
-                    observation.ModifiedUtcTicks != file.MtimeTicks;
-                if (observation is null)
+                diagnostics.Enqueue(diagnostic);
+                if (_contextFactory is not null)
                 {
-                    observation = new DiscoveryObservationRow
-                    {
-                        LibraryRootId = rootId.Value,
-                        NormalizedRelativePath = normalizedPath,
-                        FirstSeenUtc = DateTimeOffset.UtcNow,
-                    };
-                    context.DiscoveryObservations.Add(observation);
-                }
-
-                observation.SizeBytes = file.SizeBytes;
-                observation.ModifiedUtcTicks = file.MtimeTicks;
-                observation.LastObservedScanSessionId = session.Id;
-                AddParentDirectories(observedDirectories, normalizedPath);
-                if (isChanged)
-                {
-                    observation.Sha256Hash = await ComputeSha256Async(
-                        file.AbsolutePath, cancellationToken).ConfigureAwait(false);
-                }
-                observation.LastSeenUtc = DateTimeOffset.UtcNow;
-                if (isChanged)
-                {
-                    changed++;
-                    await _processing.EnqueueStageForRootAsync(
+                    await PersistDirectoryDiagnosticAsync(
                         rootId,
                         session.Id,
-                        "FileProcessing",
-                        BuildSubjectKey(rootId, normalizedPath, file.SizeBytes, file.MtimeTicks),
+                        diagnostic,
                         cancellationToken).ConfigureAwait(false);
                 }
-                else
+            },
+            resumeAfterDirectory,
+            cancellationToken);
+
+        try
+        {
+            await foreach (DiscoveredFile file in channel.Reader
+                .ReadAllAsync(cancellationToken)
+                .ConfigureAwait(false))
+            {
+                seen++;
+                string normalizedPath = NormalizeRelativePath(file.RelativePath);
+                try
                 {
-                    unchanged++;
+                    DiscoveryObservationRow? observation = await context.DiscoveryObservations
+                        .FirstOrDefaultAsync(row => row.LibraryRootId == rootId.Value &&
+                                                    row.NormalizedRelativePath == normalizedPath,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    bool isChanged = observation is null ||
+                        observation.SizeBytes != file.SizeBytes ||
+                        observation.ModifiedUtcTicks != file.MtimeTicks;
+                    if (observation is null)
+                    {
+                        observation = new DiscoveryObservationRow
+                        {
+                            LibraryRootId = rootId.Value,
+                            NormalizedRelativePath = normalizedPath,
+                            FirstSeenUtc = DateTimeOffset.UtcNow,
+                        };
+                        context.DiscoveryObservations.Add(observation);
+                    }
+
+                    observation.SizeBytes = file.SizeBytes;
+                    observation.ModifiedUtcTicks = file.MtimeTicks;
+                    observation.LastObservedScanSessionId = session.Id;
+                    if (isChanged)
+                    {
+                        observation.Sha256Hash = await ComputeSha256Async(
+                            file.AbsolutePath, cancellationToken).ConfigureAwait(false);
+                    }
+                    observation.LastSeenUtc = DateTimeOffset.UtcNow;
+                    if (isChanged)
+                    {
+                        changed++;
+                        await _processing.EnqueueStageForRootAsync(
+                            rootId,
+                            session.Id,
+                            "FileProcessing",
+                            BuildSubjectKey(rootId, normalizedPath, file.SizeBytes, file.MtimeTicks),
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        unchanged++;
+                    }
+                }
+                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    failed++;
                 }
             }
-            catch (Exception) when (!cancellationToken.IsCancellationRequested)
-            {
-                failed++;
-            }
+
+            await discoveryTask.ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            checkpoint.ScanState = 2;
+            checkpoint.LastCompletedUtc = DateTimeOffset.UtcNow;
+            checkpoint.LastErrorCode = cancellationToken.IsCancellationRequested
+                ? "scan_cancelled"
+                : "discovery_scan_failed";
+            await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            throw;
         }
 
-        await discoveryTask.ConfigureAwait(false);
+        DiscoveryDirectoryDiagnostic[] diagnosticSnapshot = diagnostics.ToArray();
         completedUtc = DateTimeOffset.UtcNow;
-        foreach (string directory in observedDirectories)
+        foreach (DiscoveryDirectoryDiagnostic diagnostic in diagnosticSnapshot)
         {
-            DirectoryCheckpointRow directoryCheckpoint = directory == string.Empty
-                ? checkpoint
-                : await GetCheckpointAsync(context, rootId, directory, cancellationToken)
-                    .ConfigureAwait(false);
-            directoryCheckpoint.LastCompletedUtc = completedUtc;
-            directoryCheckpoint.LastObservedFileCount = seen;
-            directoryCheckpoint.LastErrorCode = failed == 0 ? null : "observation_persist_failed";
+            DirectoryCheckpointRow directoryCheckpoint = await GetCheckpointAsync(
+                    context,
+                    rootId,
+                    diagnostic.RelativeDirectory,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            directoryCheckpoint.LastScanSessionId = session.Id;
+            directoryCheckpoint.LastObservedFileCount = diagnostic.FilesSeen;
+            directoryCheckpoint.LastErrorCode = diagnostic.ErrorCode;
+            directoryCheckpoint.ScanState = diagnostic.Status == DiscoveryDirectoryStatus.Started
+                ? 1
+                : diagnostic.Status == DiscoveryDirectoryStatus.Completed ? 0 : 2;
+            directoryCheckpoint.LastStartedUtc ??= diagnostic.OccurredUtc;
+            if (diagnostic.Status == DiscoveryDirectoryStatus.Completed)
+            {
+                directoryCheckpoint.LastCompletedUtc = diagnostic.OccurredUtc;
+                checkpoint.ResumeCursorRelativeDirectory = diagnostic.RelativeDirectory;
+            }
+        }
+        bool directoryFailure = diagnosticSnapshot.Any(
+            diagnostic => diagnostic.Status == DiscoveryDirectoryStatus.Failed);
+        checkpoint.ScanState = directoryFailure ? 2 : 0;
+        checkpoint.LastCompletedUtc = completedUtc;
+        checkpoint.LastErrorCode = directoryFailure
+            ? "directory_discovery_incomplete"
+            : failed == 0 ? null : "observation_persist_failed";
+        if (!directoryFailure)
+        {
+            checkpoint.ResumeCursorRelativeDirectory = null;
         }
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await _roots.RecordSuccessfulScanAsync(rootId, cancellationToken).ConfigureAwait(false);
-        return new DiscoveryScanResult(session, seen, changed, unchanged, failed, completedUtc);
+        return new DiscoveryScanResult(
+            session,
+            seen,
+            changed,
+            unchanged,
+            failed,
+            completedUtc,
+            diagnosticSnapshot);
     }
 
     private static async Task<DirectoryCheckpointRow> GetCheckpointAsync(
@@ -166,6 +230,16 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
         string relativeDirectory,
         CancellationToken cancellationToken)
     {
+        DirectoryCheckpointRow? trackedCheckpoint = context.ChangeTracker
+            .Entries<DirectoryCheckpointRow>()
+            .Select(entry => entry.Entity)
+            .FirstOrDefault(row => row.LibraryRootId == rootId.Value &&
+                                   row.NormalizedRelativeDirectory == relativeDirectory);
+        if (trackedCheckpoint is not null)
+        {
+            return trackedCheckpoint;
+        }
+
         DirectoryCheckpointRow? checkpoint = await context.DirectoryCheckpoints
             .FirstOrDefaultAsync(row => row.LibraryRootId == rootId.Value &&
                                         row.NormalizedRelativeDirectory == relativeDirectory,
@@ -181,18 +255,55 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
             LibraryRootId = rootId.Value,
             NormalizedRelativeDirectory = relativeDirectory,
             LastCompletedUtc = DateTimeOffset.MinValue,
+            ScanState = 0,
         };
         context.DirectoryCheckpoints.Add(checkpoint);
         return checkpoint;
     }
 
-    private static void AddParentDirectories(HashSet<string> directories, string relativePath)
+    private async Task PersistDirectoryDiagnosticAsync(
+        LibraryRootId rootId,
+        long sessionId,
+        DiscoveryDirectoryDiagnostic diagnostic,
+        CancellationToken cancellationToken)
     {
-        int separator = relativePath.LastIndexOf('/');
-        while (separator > 0)
+        CatalogueDbContext context = await _contextFactory!
+            .CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (context.ConfigureAwait(false))
         {
-            directories.Add(relativePath[..separator]);
-            separator = relativePath.LastIndexOf('/', separator - 1);
+            DirectoryCheckpointRow directoryCheckpoint = await GetCheckpointAsync(
+                    context,
+                    rootId,
+                    diagnostic.RelativeDirectory,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            directoryCheckpoint.LastStartedUtc ??= diagnostic.OccurredUtc;
+            directoryCheckpoint.LastScanSessionId = sessionId;
+            directoryCheckpoint.LastObservedFileCount = diagnostic.FilesSeen;
+            directoryCheckpoint.LastErrorCode = diagnostic.ErrorCode;
+            directoryCheckpoint.ScanState = diagnostic.Status == DiscoveryDirectoryStatus.Started
+                ? 1
+                : diagnostic.Status == DiscoveryDirectoryStatus.Completed ? 0 : 2;
+            if (diagnostic.Status == DiscoveryDirectoryStatus.Completed)
+            {
+                directoryCheckpoint.LastCompletedUtc = diagnostic.OccurredUtc;
+            }
+
+            DirectoryCheckpointRow rootCheckpoint = await GetCheckpointAsync(
+                    context,
+                    rootId,
+                    string.Empty,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            rootCheckpoint.LastScanSessionId = sessionId;
+            rootCheckpoint.ScanState = diagnostic.Status == DiscoveryDirectoryStatus.Failed ? 2 : 1;
+            rootCheckpoint.LastErrorCode = diagnostic.ErrorCode;
+            if (diagnostic.Status == DiscoveryDirectoryStatus.Completed)
+            {
+                rootCheckpoint.ResumeCursorRelativeDirectory = diagnostic.RelativeDirectory;
+            }
+
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -200,8 +311,12 @@ public sealed class IncrementalDiscoveryService : IIncrementalDiscoveryService
         LibraryRootId rootId,
         string relativePath,
         long sizeBytes,
-        long modifiedUtcTicks) =>
-        $"{rootId.Value}:{relativePath}:{sizeBytes}:{modifiedUtcTicks}";
+        long modifiedUtcTicks)
+    {
+        string identity = $"discovery-v1|{rootId.Value}|{relativePath}|{sizeBytes}|{modifiedUtcTicks}";
+        return Convert.ToHexStringLower(SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(identity)));
+    }
 
     private static async Task<string> ComputeSha256Async(
         string path,
