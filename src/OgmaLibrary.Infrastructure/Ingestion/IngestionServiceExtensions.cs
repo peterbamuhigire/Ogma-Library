@@ -6,6 +6,7 @@ using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
@@ -40,6 +41,7 @@ public static class IngestionServiceExtensions
             sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
         services.AddSingleton<IIncrementalDiscoveryService, IncrementalDiscoveryService>();
         services.AddSingleton<IFilesystemReconciliationService, FilesystemReconciliationService>();
+        services.AddSingleton<IIdentityGroupingService, IdentityGroupingService>();
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
         services.AddSingleton<IVisualAssetService>(sp => new VisualAssetService(
             sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));

@@ -19,9 +19,15 @@ Date: 2026-09-04
   an unbounded all-pairs comparison while retaining deterministic pair output.
 - Added correctness and adversarial 10,000-profile scale tests for candidate
   blocking.
+- Added durable reviewed identity groups with explicit edition/work scope,
+  before/after change history, merge, split and exact undo operations. Active
+  membership is deterministic and an occurrence cannot be placed into two
+  active groups.
+- Added acceptance tests proving merge/split/undo preservation and duplicate
+  membership rejection.
 
 ## Remaining phase gate
 
-Candidate blocking is now evidenced. Reversible merge/split operations,
-provider-conflict decisions, user-facing review consequences, and grouping
-behavior in search/advisor consumers remain before phase 9 closure.
+Candidate blocking and reversible merge/split persistence are now evidenced.
+Provider-conflict decision tests, user-facing review consequences, and direct
+grouping behavior in search/advisor consumers remain before phase 9 closure.

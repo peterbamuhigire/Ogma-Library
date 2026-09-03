@@ -217,6 +217,15 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Pending review items for ambiguous filesystem relocations.</summary>
     public DbSet<ReconciliationReviewRow> ReconciliationReviews => Set<ReconciliationReviewRow>();
 
+    /// <summary>Reviewed work/edition identity groups.</summary>
+    public DbSet<IdentityGroupRow> IdentityGroups => Set<IdentityGroupRow>();
+
+    /// <summary>Occurrence membership rows for identity groups.</summary>
+    public DbSet<IdentityGroupMemberRow> IdentityGroupMembers => Set<IdentityGroupMemberRow>();
+
+    /// <summary>Before/after audit history for identity group changes.</summary>
+    public DbSet<IdentityGroupChangeRow> IdentityGroupChanges => Set<IdentityGroupChangeRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -264,6 +273,9 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new MetadataProposalConfiguration());
         modelBuilder.ApplyConfiguration(new VisualAssetManifestConfiguration());
         modelBuilder.ApplyConfiguration(new ReconciliationReviewConfiguration());
+        modelBuilder.ApplyConfiguration(new IdentityGroupConfiguration());
+        modelBuilder.ApplyConfiguration(new IdentityGroupMemberConfiguration());
+        modelBuilder.ApplyConfiguration(new IdentityGroupChangeConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());

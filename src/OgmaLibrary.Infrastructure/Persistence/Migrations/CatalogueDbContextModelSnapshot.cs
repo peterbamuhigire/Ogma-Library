@@ -1479,6 +1479,109 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupChangeRow", b =>
+                {
+                    b.Property<long>("IdentityGroupChangeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AfterMembersJson")
+                        .IsRequired()
+                        .HasMaxLength(262144)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BeforeMembersJson")
+                        .IsRequired()
+                        .HasMaxLength(262144)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IdentityGroupId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("IdentityGroupChangeId");
+
+                    b.HasIndex("IdentityGroupId", "IdentityGroupChangeId")
+                        .HasDatabaseName("IX_IdentityGroupChanges_Group_Order");
+
+                    b.ToTable("IdentityGroupChanges");
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupMemberRow", b =>
+                {
+                    b.Property<string>("IdentityGroupId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileOccurrenceId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("IdentityGroupId", "FileOccurrenceId");
+
+                    b.HasIndex("FileOccurrenceId", "IsActive")
+                        .HasDatabaseName("IX_IdentityGroupMembers_Occurrence_Active");
+
+                    b.ToTable("IdentityGroupMembers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IdentityGroupMembers_GroupId", "length(IdentityGroupId) = 26");
+
+                            t.HasCheckConstraint("CK_IdentityGroupMembers_OccurrenceId", "length(FileOccurrenceId) = 26");
+                        });
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupRow", b =>
+                {
+                    b.Property<string>("IdentityGroupId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
+                    b.HasKey("IdentityGroupId");
+
+                    b.ToTable("IdentityGroups", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IdentityGroups_Id", "length(IdentityGroupId) = 26");
+
+                            t.HasCheckConstraint("CK_IdentityGroups_Kind", "Kind BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_IdentityGroups_Version", "Version > 0");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityDecisionRow", b =>
                 {
                     b.Property<string>("IdentityDecisionId")
@@ -2810,6 +2913,24 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("LibraryRootId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupChangeRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("IdentityGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupMemberRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.IdentityGroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("IdentityGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
