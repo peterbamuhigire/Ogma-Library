@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 namespace OgmaLibrary.Domain;
 
 /// <summary>The relationship supported by identity evidence.</summary>
@@ -56,7 +59,10 @@ public sealed class IdentityEvidenceProfile
         FileOccurrenceId occurrenceId,
         ContentHash? contentHash,
         IEnumerable<BibliographicIdentifier>? identifiers = null,
-        ConfidenceScore? titleAuthorSimilarity = null)
+        ConfidenceScore? titleAuthorSimilarity = null,
+        string? normalizedTitle = null,
+        IEnumerable<string>? normalizedAuthors = null,
+        int? publicationYear = null)
     {
         StableIdentity.EnsureDefined(occurrenceId.Value, nameof(occurrenceId));
         if (contentHash is ContentHash hash)
@@ -78,6 +84,15 @@ public sealed class IdentityEvidenceProfile
         ContentHash = contentHash;
         Identifiers = materializedIdentifiers;
         TitleAuthorSimilarity = titleAuthorSimilarity;
+        NormalizedTitle = NormalizeBlockValue(normalizedTitle);
+        NormalizedAuthors = normalizedAuthors?
+            .Select(NormalizeBlockValue)
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray() ?? [];
+        PublicationYear = publicationYear;
     }
 
     /// <summary>The file occurrence being evaluated.</summary>
@@ -91,6 +106,120 @@ public sealed class IdentityEvidenceProfile
 
     /// <summary>Optional normalized title-and-author similarity.</summary>
     public ConfidenceScore? TitleAuthorSimilarity { get; }
+
+    /// <summary>Optional normalized title used only for candidate blocking.</summary>
+    public string? NormalizedTitle { get; }
+
+    /// <summary>Optional normalized author keys used only for candidate blocking.</summary>
+    public IReadOnlyList<string> NormalizedAuthors { get; }
+
+    /// <summary>Optional publication year used to narrow candidate blocks.</summary>
+    public int? PublicationYear { get; }
+
+    private static string? NormalizeBlockValue(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : string.Join(' ', value.Trim().Normalize(NormalizationForm.FormKC)
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                .ToUpperInvariant();
+}
+
+/// <summary>A deterministic candidate pair emitted by the blocking algorithm.</summary>
+public sealed record IdentityCandidatePair(
+    IdentityEvidenceProfile Subject,
+    IdentityEvidenceProfile Candidate,
+    string BlockKey);
+
+/// <summary>
+/// Produces bounded candidate pairs without comparing every catalogue item with
+/// every other item. Pair generation is deterministic and review-safe.
+/// </summary>
+public static class IdentityCandidateBlocking
+{
+    /// <summary>The maximum number of records considered from one broad block.</summary>
+    public const int DefaultMaximumBucketSize = 256;
+
+    /// <summary>
+    /// Blocks by exact scoped identifiers and normalized title/author/year keys.
+    /// The result is O(n + b²) per bounded block, with no unbounded all-pairs
+    /// comparison for a pathological common-title bucket.
+    /// </summary>
+    public static IReadOnlyList<IdentityCandidatePair> Build(
+        IEnumerable<IdentityEvidenceProfile> profiles,
+        int maximumBucketSize = DefaultMaximumBucketSize)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumBucketSize, 2);
+
+        IdentityEvidenceProfile[] materialized = profiles
+            .GroupBy(profile => profile.OccurrenceId.Value, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(profile => profile.OccurrenceId.Value, StringComparer.Ordinal)
+            .ToArray();
+        var blocks = new Dictionary<string, List<IdentityEvidenceProfile>>(StringComparer.Ordinal);
+        foreach (IdentityEvidenceProfile profile in materialized)
+        {
+            foreach (string key in GetBlockKeys(profile))
+            {
+                if (!blocks.TryGetValue(key, out List<IdentityEvidenceProfile>? bucket))
+                {
+                    bucket = [];
+                    blocks.Add(key, bucket);
+                }
+
+                bucket.Add(profile);
+            }
+        }
+
+        var pairs = new Dictionary<(string Subject, string Candidate), IdentityCandidatePair>();
+        foreach ((string key, List<IdentityEvidenceProfile> bucket) in blocks.OrderBy(
+                     pair => pair.Key,
+                     StringComparer.Ordinal))
+        {
+            IdentityEvidenceProfile[] bounded = bucket
+                .DistinctBy(profile => profile.OccurrenceId.Value)
+                .OrderBy(profile => profile.OccurrenceId.Value, StringComparer.Ordinal)
+                .Take(maximumBucketSize)
+                .ToArray();
+            for (int left = 0; left < bounded.Length; left++)
+            {
+                for (int right = left + 1; right < bounded.Length; right++)
+                {
+                    IdentityEvidenceProfile subject = bounded[left];
+                    IdentityEvidenceProfile candidate = bounded[right];
+                    pairs.TryAdd(
+                        (subject.OccurrenceId.Value, candidate.OccurrenceId.Value),
+                        new IdentityCandidatePair(subject, candidate, key));
+                }
+            }
+        }
+
+        return pairs.Values
+            .OrderBy(pair => pair.Subject.OccurrenceId.Value, StringComparer.Ordinal)
+            .ThenBy(pair => pair.Candidate.OccurrenceId.Value, StringComparer.Ordinal)
+            .ThenBy(pair => pair.BlockKey, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static IEnumerable<string> GetBlockKeys(IdentityEvidenceProfile profile)
+    {
+        foreach (BibliographicIdentifier identifier in profile.Identifiers.OrderBy(
+                     identifier => identifier.ToString(),
+                     StringComparer.Ordinal))
+        {
+            yield return $"identifier|{identifier.Scope}|{identifier.Kind}|{identifier.Source.ToUpperInvariant()}|{identifier.Value.ToUpperInvariant()}";
+        }
+
+        if (profile.NormalizedTitle is null)
+        {
+            yield break;
+        }
+
+        foreach (string author in profile.NormalizedAuthors.DefaultIfEmpty(string.Empty))
+        {
+            yield return $"bibliographic|{profile.NormalizedTitle}|{author}|{profile.PublicationYear?.ToString(CultureInfo.InvariantCulture) ?? "?"}";
+        }
+    }
 }
 
 /// <summary>A versioned, path-free identity decision suitable for persistence and audit.</summary>
