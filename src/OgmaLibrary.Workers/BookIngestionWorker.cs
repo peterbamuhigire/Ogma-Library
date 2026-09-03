@@ -147,6 +147,10 @@ public sealed class BookIngestionWorker : BackgroundService
                 errorMessage = $"Unknown or incomplete job: type={lease.JobType}, contentHash={(contentHash is null ? "null" : "present")}";
             }
 
+            // Persist any follow-up jobs (for example Enrich after successful
+            // metadata extraction) before the leased source job is completed.
+            await context.SaveChangesAsync(stoppingToken).ConfigureAwait(false);
+
             if (success)
             {
                 await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, stoppingToken).ConfigureAwait(false);
@@ -178,7 +182,13 @@ public sealed class BookIngestionWorker : BackgroundService
         finally
         {
             await heartbeatCancellation.CancelAsync().ConfigureAwait(false);
-            await heartbeat.ConfigureAwait(false);
+            try
+            {
+                await heartbeat.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (heartbeatCancellation.IsCancellationRequested)
+            {
+            }
         }
     }
 
