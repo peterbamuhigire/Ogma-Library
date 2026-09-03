@@ -1,4 +1,5 @@
 using System.Net;
+using OgmaLibrary.Application.Metadata;
 
 namespace OgmaLibrary.Infrastructure.Metadata.Providers;
 
@@ -32,18 +33,35 @@ public sealed class RateLimitedHttpClientHandler : DelegatingHandler
     ];
 
     private readonly MetadataProviderRateLimitPolicy _policy;
+    private readonly IMetadataProviderHealth? _health;
     private readonly Func<TimeSpan, CancellationToken, Task> _delayAsync;
     private readonly object _gate = new();
     private DateTimeOffset _nextAllowedUtc = DateTimeOffset.MinValue;
 
     /// <summary>Initializes a new instance of <see cref="RateLimitedHttpClientHandler"/>.</summary>
     public RateLimitedHttpClientHandler(MetadataProviderRateLimitPolicy policy)
-        : this(policy, static (delay, ct) => Task.Delay(delay, ct))
+        : this(policy, health: null, static (delay, ct) => Task.Delay(delay, ct))
+    {
+    }
+
+    /// <summary>Initializes a handler with observable provider health accounting.</summary>
+    public RateLimitedHttpClientHandler(
+        MetadataProviderRateLimitPolicy policy,
+        IMetadataProviderHealth health)
+        : this(policy, health, static (delay, ct) => Task.Delay(delay, ct))
     {
     }
 
     internal RateLimitedHttpClientHandler(
         MetadataProviderRateLimitPolicy policy,
+        Func<TimeSpan, CancellationToken, Task> delayAsync)
+        : this(policy, health: null, delayAsync)
+    {
+    }
+
+    private RateLimitedHttpClientHandler(
+        MetadataProviderRateLimitPolicy policy,
+        IMetadataProviderHealth? health,
         Func<TimeSpan, CancellationToken, Task> delayAsync)
     {
         ArgumentNullException.ThrowIfNull(policy);
@@ -54,6 +72,7 @@ public sealed class RateLimitedHttpClientHandler : DelegatingHandler
         }
 
         _policy = policy;
+        _health = health;
         _delayAsync = delayAsync;
     }
 
@@ -85,6 +104,7 @@ public sealed class RateLimitedHttpClientHandler : DelegatingHandler
             }
 
             TimeSpan delay = GetBackoffDelay(attempt, response);
+            _health?.RecordRetry(_policy.ProviderName);
             response.Dispose();
             await _delayAsync(delay, cancellationToken).ConfigureAwait(false);
         }

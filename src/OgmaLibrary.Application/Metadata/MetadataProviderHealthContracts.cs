@@ -7,6 +7,7 @@ public sealed record MetadataProviderHealthSnapshot(
     long WindowRejected,
     long ConsecutiveFailures,
     long TotalFailures,
+    long TotalRetries,
     DateTimeOffset WindowStartedUtc,
     DateTimeOffset? CircuitOpenUntilUtc)
 {
@@ -25,6 +26,9 @@ public interface IMetadataProviderHealth
 
     /// <summary>Records a failed response and updates circuit state.</summary>
     void RecordFailure(string provider);
+
+    /// <summary>Records a retryable provider response.</summary>
+    void RecordRetry(string provider);
 
     /// <summary>Returns the current redacted provider health snapshot.</summary>
     MetadataProviderHealthSnapshot GetSnapshot(string provider);

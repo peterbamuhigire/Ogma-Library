@@ -1,4 +1,5 @@
 using System.Net;
+using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Metadata.Providers;
 
 namespace OgmaLibrary.Tests.Metadata;
@@ -102,6 +103,30 @@ public sealed class RateLimitedHttpClientTests
             delays.Add(delay);
             return Task.CompletedTask;
         }
+    }
+
+    [Fact]
+    public async Task RateLimitedHttpClient_ReportsRetryTelemetry()
+    {
+        var health = new MetadataProviderHealth();
+        var policy = new MetadataProviderRateLimitPolicy(
+            "TelemetryProvider",
+            TimeSpan.Zero,
+            MaxRetries: 1,
+            BaseBackoff: TimeSpan.FromMilliseconds(1),
+            MaxBackoff: TimeSpan.FromMilliseconds(5));
+        var inner = new SequenceHandler(
+            new HttpResponseMessage(HttpStatusCode.ServiceUnavailable),
+            new HttpResponseMessage(HttpStatusCode.OK));
+        using var client = new HttpClient(new RateLimitedHttpClientHandler(policy, health)
+        {
+            InnerHandler = inner,
+        });
+
+        using HttpResponseMessage response = await client.GetAsync("https://metadata.test/books");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(1, health.GetSnapshot("TelemetryProvider").TotalRetries);
     }
 
     private sealed class SequenceHandler : HttpMessageHandler

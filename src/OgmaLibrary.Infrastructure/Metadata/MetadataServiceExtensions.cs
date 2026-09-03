@@ -50,8 +50,9 @@ public static class MetadataServiceExtensions
                     client.Timeout = TimeSpan.FromSeconds(10);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
                 })
-                .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
-                    MetadataProviderRateLimitPolicy.GoogleBooks));
+                .AddHttpMessageHandler(sp => new RateLimitedHttpClientHandler(
+                    MetadataProviderRateLimitPolicy.GoogleBooks,
+                    sp.GetRequiredService<IMetadataProviderHealth>()));
 
             services.AddHttpClient<OpenLibraryProvider>(
                 "OpenLibrary",
@@ -61,8 +62,9 @@ public static class MetadataServiceExtensions
                     client.Timeout = TimeSpan.FromSeconds(10);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("Ogma-Library/0.1 (+https://github.com/peterbamuhigire/Ogma-Library)");
                 })
-                .AddHttpMessageHandler(() => new RateLimitedHttpClientHandler(
-                    MetadataProviderRateLimitPolicy.OpenLibrary));
+                .AddHttpMessageHandler(sp => new RateLimitedHttpClientHandler(
+                    MetadataProviderRateLimitPolicy.OpenLibrary,
+                    sp.GetRequiredService<IMetadataProviderHealth>()));
 
             services.AddSingleton<IMetadataProvider, GoogleBooksProvider>(sp =>
                 sp.GetRequiredService<GoogleBooksProvider>());

@@ -12,6 +12,7 @@ Date: 2026-09-04
   zero-confidence responses as isolated failures.
 - Health snapshots contain provider name, request/rejection counts, failure
   counts, window start, and circuit expiry; they contain no query or secret data.
+- The provider HTTP backoff handler reports retry counts to the health tracker.
 
 ## Verification
 
@@ -19,8 +20,8 @@ Date: 2026-09-04
 dotnet build src/OgmaLibrary.Infrastructure/OgmaLibrary.Infrastructure.csproj --configuration Release --no-restore -p:BuildProjectReferences=false
   Passed: 0 warnings, 0 errors
 
-dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-restore -p:BuildProjectReferences=false --filter "FullyQualifiedName~Phase13ProviderGatewayTests" --verbosity minimal -m:1
-  Passed: 5, Failed: 0, Skipped: 0
+dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-restore -p:BuildProjectReferences=false --filter "FullyQualifiedName~RateLimitedHttpClientTests|FullyQualifiedName~Phase13ProviderGatewayTests" --verbosity minimal -m:1
+  Passed: 9, Failed: 0, Skipped: 0
 ```
 
 ## Open gates

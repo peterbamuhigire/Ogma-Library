@@ -76,8 +76,19 @@ public sealed class MetadataProviderHealth : IMetadataProviderHealth
                 state.WindowRejected,
                 state.ConsecutiveFailures,
                 state.TotalFailures,
+                state.TotalRetries,
                 state.WindowStartedUtc,
                 state.CircuitOpenUntilUtc);
+        }
+    }
+
+    /// <inheritdoc />
+    public void RecordRetry(string provider)
+    {
+        State state = GetOrCreate(provider);
+        lock (_gate)
+        {
+            state.TotalRetries++;
         }
     }
 
@@ -115,6 +126,7 @@ public sealed class MetadataProviderHealth : IMetadataProviderHealth
         public long WindowRejected { get; set; }
         public long ConsecutiveFailures { get; set; }
         public long TotalFailures { get; set; }
+        public long TotalRetries { get; set; }
         public DateTimeOffset WindowStartedUtc { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? CircuitOpenUntilUtc { get; set; }
     }

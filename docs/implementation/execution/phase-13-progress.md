@@ -27,6 +27,9 @@ Date: 2026-09-04
 - Gateway calls now reserve quota, classify zero-confidence responses as
   failures, and preserve stale cache behavior when the circuit blocks refresh.
 
+The shared rate-limited HTTP handler now reports retry counts into the same
+provider health snapshot.
+
 ## Remaining phase gate
 
 Provider backoff/retry telemetry, provider conflict aggregation, and privacy
