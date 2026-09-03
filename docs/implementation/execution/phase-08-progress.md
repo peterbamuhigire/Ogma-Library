@@ -1,6 +1,6 @@
 # Phase 08 Progress - Filesystem Reconciliation and Recovery
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -16,9 +16,19 @@ Date: 2026-08-30
   move an occurrence to its new path without duplicating identity; a same-path
   hash mismatch clears the stale asset binding and records a reprocessing need.
 - Added acceptance tests for restore, absence, outage and incomplete-scan paths.
+- Added a configurable 24-hour missing-file grace window with durable
+  `MissingSinceUtc` evidence; reappearance clears the pending absence.
+- Added a durable, path-local relocation review queue for ambiguous exact-hash
+  matches. Ambiguous candidates are never guessed or relinked automatically.
+- Added path-free counted audit summaries to reconciliation results and queued a
+  new versioned `FileProcessing` stage when a verified replacement invalidates
+  the previous content asset.
+- Added schema coverage and acceptance tests for grace, ambiguity review and
+  downstream invalidation.
 
 ## Remaining phase gate
 
-Grace windows, ambiguity review, full reconciliation audit summaries, and
-downstream asset-stage invalidation remain to be delivered before phase 8 can be
-marked complete.
+The Phase 8 implementation gates are closed by the acceptance evidence above.
+Physical disconnected-volume/ACL behavior, operator review UI, and cross-OS
+walkthroughs remain platform/release gates and are not silently treated as
+assessed by this Windows unit/integration run.

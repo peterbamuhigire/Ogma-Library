@@ -24,7 +24,14 @@ public sealed record ReconciliationResult(
     int MarkedUnavailableOccurrences,
     int MovedOccurrences,
     int ReplacementOccurrences,
-    DateTimeOffset EvaluatedUtc);
+    DateTimeOffset EvaluatedUtc,
+    int DeferredMissingOccurrences = 0,
+    int AmbiguousOccurrences = 0,
+    int InvalidatedStageExecutions = 0,
+    IReadOnlyList<ReconciliationAuditSummary>? AuditSummary = null);
+
+/// <summary>Counted, path-free explanation of reconciliation transitions.</summary>
+public sealed record ReconciliationAuditSummary(string ReasonCode, int Count);
 
 /// <summary>Reconciles occurrence availability from a completed root observation.</summary>
 public interface IFilesystemReconciliationService

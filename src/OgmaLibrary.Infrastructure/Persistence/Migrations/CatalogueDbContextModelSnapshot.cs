@@ -1353,6 +1353,9 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastSeenUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("MissingSinceUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LibraryRootId")
                         .IsRequired()
                         .HasMaxLength(26)
@@ -1911,6 +1914,58 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_ProviderCacheEntries_Contract", "ContractVersion > 0");
 
                             t.HasCheckConstraint("CK_ProviderCacheEntries_Response", "length(ResponseJson) <= 262144");
+                        });
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ReconciliationReviewRow", b =>
+                {
+                    b.Property<long>("ReconciliationReviewId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CandidatePathsJson")
+                        .IsRequired()
+                        .HasMaxLength(65536)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("DecidedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileOccurrenceId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LibraryRootId")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("ReconciliationReviewId");
+
+                    b.HasIndex("LibraryRootId", "FileOccurrenceId", "Status")
+                        .HasDatabaseName("IX_ReconciliationReviews_Occurrence_Status");
+
+                    b.ToTable("ReconciliationReviews", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReconciliationReviews_OccurrenceId", "length(FileOccurrenceId) = 26");
+
+                            t.HasCheckConstraint("CK_ReconciliationReviews_RootId", "length(LibraryRootId) = 26");
+
+                            t.HasCheckConstraint("CK_ReconciliationReviews_Status", "Status BETWEEN 0 AND 2");
                         });
                 });
 
@@ -2661,6 +2716,15 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.DirectoryCheckpointRow", b =>
+                {
+                    b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.LibraryRootRow", null)
+                        .WithMany()
+                        .HasForeignKey("LibraryRootId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.ReconciliationReviewRow", b =>
                 {
                     b.HasOne("OgmaLibrary.Infrastructure.Catalogue.Entities.LibraryRootRow", null)
                         .WithMany()

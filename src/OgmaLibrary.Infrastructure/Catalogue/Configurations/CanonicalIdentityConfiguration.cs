@@ -91,6 +91,7 @@ internal static class CanonicalIdentityConfiguration
         builder.Property(row => row.RelativePath).IsRequired().HasMaxLength(4096);
         builder.Property(row => row.NormalizedRelativePath).IsRequired().HasMaxLength(4096);
         builder.Property(row => row.PdfFingerprint).HasMaxLength(512);
+        builder.Property(row => row.MissingSinceUtc);
         builder.HasIndex(row => new { row.LibraryRootId, row.NormalizedRelativePath })
             .IsUnique()
             .HasDatabaseName("UX_FileOccurrences_Root_NormalizedPath");

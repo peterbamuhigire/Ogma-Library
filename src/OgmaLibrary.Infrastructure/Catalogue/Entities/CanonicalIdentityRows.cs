@@ -94,6 +94,9 @@ public sealed class FileOccurrenceRow
 
     /// <summary>UTC time the occurrence was last observed.</summary>
     public DateTimeOffset? LastSeenUtc { get; set; }
+
+    /// <summary>UTC time the occurrence was first absent after a healthy scan.</summary>
+    public DateTimeOffset? MissingSinceUtc { get; set; }
 }
 
 /// <summary>Persistence row for an intellectual work in the canonical model.</summary>

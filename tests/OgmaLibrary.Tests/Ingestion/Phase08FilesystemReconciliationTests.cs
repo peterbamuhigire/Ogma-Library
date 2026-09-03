@@ -41,7 +41,11 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         ScanSessionDescriptor session = await _processing.StartSessionAsync(_rootId);
         _context.FileOccurrences.AddRange(
             NewOccurrence("01PH08OCCURRENCE0000000001", "present.pdf", availability: 1),
-            NewOccurrence("01PH08OCCURRENCE0000000002", "missing.pdf", availability: 0));
+            NewOccurrence(
+                "01PH08OCCURRENCE0000000002",
+                "missing.pdf",
+                availability: 0,
+                missingSinceUtc: DateTimeOffset.UtcNow.AddDays(-2)));
         _context.DiscoveryObservations.Add(new DiscoveryObservationRow
         {
             LibraryRootId = _rootId.Value,
@@ -128,6 +132,7 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         Assert.Equal(ReconciliationOutcome.Applied, result.Outcome);
         Assert.Equal(1, result.MovedOccurrences);
         Assert.Equal(1, result.ReplacementOccurrences);
+        Assert.Equal(1, result.InvalidatedStageExecutions);
         FileOccurrenceRow moved = await _context.FileOccurrences
             .SingleAsync(row => row.FileOccurrenceId == "01PH08OCCURRENCE0000000004");
         FileOccurrenceRow replaced = await _context.FileOccurrences
@@ -135,13 +140,82 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         Assert.Equal("new.pdf", moved.NormalizedRelativePath);
         Assert.Equal(0, moved.AvailabilityStatus);
         Assert.Null(replaced.ContentAssetId);
+        Assert.Equal(
+            (int)StageExecutionStatus.Pending,
+            await _context.StageExecutions.Select(stage => stage.Status).SingleAsync());
+    }
+
+    [Fact]
+    public async Task MissingOccurrence_IsDeferredDuringGraceAndMarkedUnavailableAfterward()
+    {
+        ScanSessionDescriptor session = await _processing.StartSessionAsync(_rootId);
+        _context.FileOccurrences.Add(NewOccurrence(
+            "01PH08OCCURRENCE0000000006",
+            "grace.pdf",
+            availability: 0));
+        AddCompleteCheckpoint();
+        await _context.SaveChangesAsync();
+
+        ReconciliationResult first = await _reconciliation.ReconcileAsync(session.Id);
+
+        Assert.Equal(1, first.DeferredMissingOccurrences);
+        FileOccurrenceRow occurrence = await _context.FileOccurrences.SingleAsync();
+        Assert.Equal(0, occurrence.AvailabilityStatus);
+        Assert.NotNull(occurrence.MissingSinceUtc);
+
+        occurrence.MissingSinceUtc = DateTimeOffset.UtcNow.AddDays(-2);
+        await _context.SaveChangesAsync();
+        ReconciliationResult second = await _reconciliation.ReconcileAsync(session.Id);
+
+        Assert.Equal(1, second.MarkedUnavailableOccurrences);
+        Assert.Equal(1, (await _context.FileOccurrences.SingleAsync()).AvailabilityStatus);
+    }
+
+    [Fact]
+    public async Task AmbiguousExactHash_IsHeldForReviewWithoutGuessing()
+    {
+        const string assetId = "01PH08ASSET000000000000002";
+        const string hash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+        ScanSessionDescriptor session = await _processing.StartSessionAsync(_rootId);
+        _context.ContentAssets.Add(new ContentAssetRow
+        {
+            ContentAssetId = assetId,
+            Sha256Hash = hash,
+            FingerprintVersion = 1,
+            VerificationStatus = 1,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.FileOccurrences.Add(NewOccurrence(
+            "01PH08OCCURRENCE0000000007",
+            "old.pdf",
+            availability: 0,
+            assetId));
+        _context.DiscoveryObservations.AddRange(
+            NewObservation(session.Id, "candidate-a.pdf", hash),
+            NewObservation(session.Id, "candidate-b.pdf", hash));
+        AddCompleteCheckpoint();
+        await _context.SaveChangesAsync();
+
+        ReconciliationResult result = await _reconciliation.ReconcileAsync(session.Id);
+
+        Assert.Equal(1, result.AmbiguousOccurrences);
+        Assert.Equal(0, result.MovedOccurrences);
+        Assert.Equal(0, (await _context.FileOccurrences.SingleAsync()).AvailabilityStatus);
+        Assert.Contains(
+            result.AuditSummary ?? [],
+            summary => summary.ReasonCode == "ambiguous_relocation_review" && summary.Count == 1);
+        ReconciliationReviewRow review = await _context.ReconciliationReviews.SingleAsync();
+        Assert.Equal("ambiguous_relocation_review", review.ReasonCode);
+        Assert.Contains("candidate-a.pdf", review.CandidatePathsJson);
+        Assert.Contains("candidate-b.pdf", review.CandidatePathsJson);
     }
 
     private FileOccurrenceRow NewOccurrence(
         string id,
         string path,
         int availability,
-        string? assetId = null) => new()
+        string? assetId = null,
+        DateTimeOffset? missingSinceUtc = null) => new()
     {
         FileOccurrenceId = id,
         LibraryRootId = _rootId.Value,
@@ -149,6 +223,7 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         NormalizedRelativePath = path,
         AvailabilityStatus = availability,
         ContentAssetId = assetId,
+        MissingSinceUtc = missingSinceUtc,
     };
 
     private DiscoveryObservationRow NewObservation(long sessionId, string path, string hash) => new()

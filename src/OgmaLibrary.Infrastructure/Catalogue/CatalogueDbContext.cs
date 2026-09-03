@@ -214,6 +214,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Versioned visual asset manifests shared by 2D and 3D consumers.</summary>
     public DbSet<VisualAssetManifestRow> VisualAssetManifests => Set<VisualAssetManifestRow>();
 
+    /// <summary>Pending review items for ambiguous filesystem relocations.</summary>
+    public DbSet<ReconciliationReviewRow> ReconciliationReviews => Set<ReconciliationReviewRow>();
+
     // ── Configuration ────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -260,6 +263,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ProviderCacheEntryConfiguration());
         modelBuilder.ApplyConfiguration(new MetadataProposalConfiguration());
         modelBuilder.ApplyConfiguration(new VisualAssetManifestConfiguration());
+        modelBuilder.ApplyConfiguration(new ReconciliationReviewConfiguration());
 
         // Phase 09 — Annotations, Layers, Reading Memory.
         modelBuilder.ApplyConfiguration(new AnnotationLayerConfiguration());
