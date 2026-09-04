@@ -45,6 +45,8 @@ Date: 2026-09-04
 - Full isolated solution suite: 880 core + 41 architecture + 142 UI = 1,063
   passed, 0 failed, 0 skipped. See
   `evidence/phase-20-smart-shelf-2026-09-04.md`.
+- Current-HEAD full solution verification: 883 core + 41 architecture + 142
+  UI = 1,066 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
