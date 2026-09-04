@@ -23,6 +23,9 @@ Date: 2026-08-30
 - Verified structured semantic prefilters for active/indexed catalogue rows,
   configured model/version/provider, and query-vector dimension before cosine
   ranking; incompatible dimensions use the exact-search fallback.
+- Added an atomic app-data JSON store for versioned evaluation runs, including
+  ranked results, relevance judgments, reports, load, replacement, and delete
+  operations with path-safe run identifiers.
 
 ## Verification
 
@@ -33,7 +36,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Durable evaluation-run/judgment persistence,
 Recall@K/MRR/nDCG evidence from a representative corpus, true ANN or
 equivalent target-scale retrieval, diversity controls, latency/memory
 acceptance at 50,000 books, and final search-contract freeze remain before

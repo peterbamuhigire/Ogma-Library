@@ -59,3 +59,23 @@ public sealed record SearchEvaluationReport(
     double MeanReciprocalRank,
     double NdcgAtK,
     IReadOnlyList<SearchEvaluationCaseResult> Cases);
+
+/// <summary>Durable local evaluation run containing judgments and its report.</summary>
+public sealed record SearchEvaluationRun(
+    string RunId,
+    DateTimeOffset CapturedUtc,
+    IReadOnlyList<SearchEvaluationCase> Cases,
+    SearchEvaluationReport Report);
+
+/// <summary>Persists versioned local search evaluation runs outside catalogue data.</summary>
+public interface ISearchEvaluationStore
+{
+    /// <summary>Atomically creates or replaces one evaluation run.</summary>
+    Task SaveAsync(SearchEvaluationRun run, CancellationToken cancellationToken = default);
+
+    /// <summary>Loads an evaluation run, or null when it does not exist.</summary>
+    Task<SearchEvaluationRun?> GetAsync(string runId, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes an evaluation run and reports whether it existed.</summary>
+    Task<bool> DeleteAsync(string runId, CancellationToken cancellationToken = default);
+}

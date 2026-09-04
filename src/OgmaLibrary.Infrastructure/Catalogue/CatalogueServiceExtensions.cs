@@ -102,6 +102,8 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
         services.AddSingleton<IHybridRankingService, HybridRankingService>();
         services.AddSingleton<IMatchLocationService, MatchLocationService>();
+        services.AddSingleton<ISearchEvaluationStore>(_ => new JsonSearchEvaluationStore(
+            Path.Combine(dataDirectory, "search-evaluations")));
         services.AddSingleton<IEmbeddingErasureService, EmbeddingErasureService>();
         services.AddSingleton<IOcrJobQueueService>(sp => new OcrJobQueueService(
             sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>(),
