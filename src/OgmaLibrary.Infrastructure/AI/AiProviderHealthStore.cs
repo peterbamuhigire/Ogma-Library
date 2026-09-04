@@ -57,6 +57,10 @@ public sealed class JsonAiProviderHealthStore : IAiProviderHealthStore
         {
             return [];
         }
+        catch (UnauthorizedAccessException)
+        {
+            return [];
+        }
         catch (JsonException)
         {
             return [];
