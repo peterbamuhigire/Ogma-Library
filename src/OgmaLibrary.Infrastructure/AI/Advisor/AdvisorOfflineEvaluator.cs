@@ -39,6 +39,54 @@ public sealed class AdvisorOfflineEvaluator
             results);
     }
 
+    /// <summary>
+    /// Evaluates a human-labeled set against explicit release thresholds. An
+    /// empty set fails closed and never becomes an accidental approval.
+    /// </summary>
+    public static AdvisorEvaluationGateResult EvaluateGate(
+        IReadOnlyList<AdvisorEvaluationCase> cases,
+        AdvisorEvaluationThresholds thresholds)
+    {
+        ArgumentNullException.ThrowIfNull(cases);
+        ArgumentNullException.ThrowIfNull(thresholds);
+        thresholds.Validate();
+        AdvisorEvaluationReport report = Evaluate(cases);
+        var failures = new List<string>();
+        if (report.CaseCount == 0)
+        {
+            failures.Add("case-count");
+        }
+        if (report.PrecisionAtK < thresholds.PrecisionAtK)
+        {
+            failures.Add("precision-at-k");
+        }
+        if (report.RecallAtK < thresholds.RecallAtK)
+        {
+            failures.Add("recall-at-k");
+        }
+        if (report.MeanReciprocalRank < thresholds.MeanReciprocalRank)
+        {
+            failures.Add("mrr");
+        }
+        if (report.NdcgAtK < thresholds.NdcgAtK)
+        {
+            failures.Add("ndcg-at-k");
+        }
+        if (report.GroundingRate < thresholds.GroundingRate)
+        {
+            failures.Add("grounding");
+        }
+        if (report.ConstraintSatisfactionRate < thresholds.ConstraintSatisfactionRate)
+        {
+            failures.Add("constraints");
+        }
+        if (report.DiversityRate < thresholds.DiversityRate)
+        {
+            failures.Add("diversity");
+        }
+        return new AdvisorEvaluationGateResult(report, failures.Count == 0, failures);
+    }
+
     private static AdvisorEvaluationCaseResult Measure(
         AdvisorEvaluationCase evaluationCase,
         IReadOnlyList<BookMetadataDto> ranked,

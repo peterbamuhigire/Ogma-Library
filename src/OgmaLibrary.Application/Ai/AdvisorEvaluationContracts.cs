@@ -72,3 +72,39 @@ public sealed record AdvisorEvaluationReport(
     double ConstraintSatisfactionRate,
     double DiversityRate,
     IReadOnlyList<AdvisorEvaluationCaseResult> Cases);
+
+/// <summary>Approved lower bounds for a human-labeled offline evaluation set.</summary>
+public sealed record AdvisorEvaluationThresholds(
+    double PrecisionAtK,
+    double RecallAtK,
+    double MeanReciprocalRank,
+    double NdcgAtK,
+    double GroundingRate,
+    double ConstraintSatisfactionRate,
+    double DiversityRate)
+{
+    /// <summary>Validates all metric bounds are percentages in the unit interval.</summary>
+    public void Validate()
+    {
+        double[] values = [
+            PrecisionAtK,
+            RecallAtK,
+            MeanReciprocalRank,
+            NdcgAtK,
+            GroundingRate,
+            ConstraintSatisfactionRate,
+            DiversityRate,
+        ];
+        if (values.Any(value => double.IsNaN(value) || value is < 0 or > 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(AdvisorEvaluationThresholds),
+                "Evaluation thresholds must be between 0 and 1.");
+        }
+    }
+}
+
+/// <summary>Fail-closed outcome of comparing an offline report to thresholds.</summary>
+public sealed record AdvisorEvaluationGateResult(
+    AdvisorEvaluationReport Report,
+    bool Passed,
+    IReadOnlyList<string> FailedMetrics);

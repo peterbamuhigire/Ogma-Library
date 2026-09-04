@@ -41,6 +41,34 @@ public sealed class Phase30AdvisorQualityTests
     }
 
     [Fact]
+    public void OfflineEvaluatorGate_PassesOnlyAgainstExplicitThresholds()
+    {
+        AdvisorEvaluationCase evaluationCase = new(
+            "phase30-gate",
+            "systems",
+            [Candidate("BOOK-P30-001", "Systems Foundations", ["systems"], "A practical systems introduction.", "A")],
+            new HashSet<string>(["BOOK-P30-001"], StringComparer.Ordinal),
+            k: 1);
+        AdvisorEvaluationThresholds thresholds = new(1, 1, 1, 1, 1, 1, 1);
+
+        AdvisorEvaluationGateResult result = AdvisorOfflineEvaluator.EvaluateGate([evaluationCase], thresholds);
+
+        Assert.True(result.Passed);
+        Assert.Empty(result.FailedMetrics);
+    }
+
+    [Fact]
+    public void OfflineEvaluatorGate_FailsClosedForEmptyOrInsufficientEvidence()
+    {
+        AdvisorEvaluationGateResult result = AdvisorOfflineEvaluator.EvaluateGate(
+            [],
+            new AdvisorEvaluationThresholds(0, 0, 0, 0, 0, 0, 0));
+
+        Assert.False(result.Passed);
+        Assert.Contains("case-count", result.FailedMetrics);
+    }
+
+    [Fact]
     public void RecommendationPanel_ExposesInterpretedIntentWithoutNumericAiConfidence()
     {
         using RecommendationPanelViewModel viewModel = new(

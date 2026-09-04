@@ -22,6 +22,9 @@ Date: 2026-08-30
 - Added a Privacy Center save-file flow for advisor-history export with a JSON
   filename/type contract; cancellation and unavailable platform storage leave
   the user in place without creating a partial file.
+- Added explicit `AdvisorEvaluationThresholds` and a fail-closed evaluation
+  gate. Empty evaluation sets fail, every reported metric is checked against an
+  approved lower bound, and invalid thresholds are rejected.
 
 ## Design decisions
 
@@ -47,8 +50,8 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Feedback consent, human-labeled offline thresholds, quarantined live-provider
-evaluation, full-shell
-accessibility/keyboard evidence, and final AI retrieval freeze remain before
-Phase 30 closure. Physical file-picker walkthrough evidence is still a
-platform/release gate.
+The offline threshold gate is closed by focused tests; it is ready to consume a
+real human-labeled set without treating missing evidence as approval. Feedback
+consent, quarantined live-provider evaluation, full-shell accessibility/keyboard
+evidence, and final AI retrieval freeze remain before Phase 30 closure. Physical
+file-picker walkthrough evidence is still a platform/release gate.
