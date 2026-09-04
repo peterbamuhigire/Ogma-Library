@@ -18,6 +18,10 @@ Date: 2026-08-30
 - Preserved useful grounded results when semantic relevance is unavailable by
   labeling exact-text fallback uncertainty instead of presenting it as semantic
   certainty.
+- Added an untrusted-evidence boundary to provider payloads: metadata and
+  content passages are explicitly labeled as data, structural delimiters are
+  escaped, and prompt-injection fixture coverage proves embedded markup cannot
+  create a second provider message structure.
 
 ## Verification
 
@@ -30,6 +34,6 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 Provider-generated explanations from assembled source-labeled evidence, durable
-claim/citation validation traces, prompt-injection fixture corpus, answer UI
-citation navigation, content-tier consent wiring in the shell, and benchmark
-unsupported-claim/abstention evaluation remain for phases 29-30.
+claim/citation validation traces, answer UI citation navigation, content-tier
+consent wiring in the shell, and benchmark unsupported-claim/abstention
+evaluation remain for phases 29-30.
