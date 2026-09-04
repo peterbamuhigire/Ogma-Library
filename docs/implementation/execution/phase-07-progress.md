@@ -29,6 +29,9 @@ Date: 2026-09-04
 - Added a bounded 50,000-file benchmark. The Windows run completed in 18.2
   seconds for the discovery stream and the acceptance test passed in 1 minute
   54 seconds including corpus creation and cleanup.
+- Reduced large-scan filesystem overhead by reusing one `FileInfo` per ordinary
+  file and checking reparse-point attributes before applying canonical boundary
+  validation. The 50,000-file benchmark now completes without test-host crash.
 
 ## Remaining phase gate
 

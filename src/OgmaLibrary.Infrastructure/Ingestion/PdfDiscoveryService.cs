@@ -155,6 +155,7 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
 
                 // Path-traversal guard: skip anything outside the root.
                 string canonicalPath;
+                FileInfo info;
                 try
                 {
                     if (!IsLexicallyWithinRoot(fullPath, normalizedRoot))
@@ -162,18 +163,38 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
                         continue;
                     }
 
-                    FileInfo candidate = new(fullPath);
-                    canonicalPath = candidate.LinkTarget is null
+                    // Read file metadata once for the ordinary path. The prior
+                    // implementation queried LinkTarget and then constructed a
+                    // second FileInfo for every file, which made large scans
+                    // needlessly syscall-heavy. Reparse points still receive
+                    // the canonical boundary check before their metadata is read.
+                    info = new FileInfo(fullPath);
+                    if (!info.Exists)
+                    {
+                        continue;
+                    }
+
+                    canonicalPath = (info.Attributes & FileAttributes.ReparsePoint) == 0
                         ? fullPath
                         : PathGuard.EnsureWithinRoot(fullPath, normalizedRoot);
+                    if (!string.Equals(canonicalPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        info = new FileInfo(canonicalPath);
+                        if (!info.Exists)
+                        {
+                            continue;
+                        }
+                    }
                 }
                 catch (PathTraversalException)
                 {
                     continue;
                 }
-
-                var info = new FileInfo(canonicalPath);
-                if (!info.Exists)
+                catch (IOException)
+                {
+                    continue;
+                }
+                catch (UnauthorizedAccessException)
                 {
                     continue;
                 }
