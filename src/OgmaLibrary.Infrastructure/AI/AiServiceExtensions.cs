@@ -18,6 +18,7 @@ public static class AiServiceExtensions
         services.AddSingleton<IAiCostFormatter, AiCostFormatter>();
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
+        services.AddSingleton<AiProviderHealthRegistry>();
         services.AddSingleton<IAiAdvisorService, AdvisorService>();
         services.AddSingleton<IAnswerPipeline, LocalEvidenceAnswerPipeline>();
         services.AddSingleton<AdvisorCatalogueReader>();

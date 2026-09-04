@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Infrastructure.AI;
 
 namespace OgmaLibrary.Infrastructure.AI.Providers;
 
@@ -7,19 +8,23 @@ namespace OgmaLibrary.Infrastructure.AI.Providers;
 public sealed class AiProviderFactory : IAiProviderFactory
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly AiProviderHealthRegistry _health;
 
     /// <summary>Initializes a new instance of <see cref="AiProviderFactory"/>.</summary>
-    public AiProviderFactory(IHttpClientFactory httpClientFactory)
+    public AiProviderFactory(
+        IHttpClientFactory httpClientFactory,
+        AiProviderHealthRegistry? health = null)
     {
         ArgumentNullException.ThrowIfNull(httpClientFactory);
         _httpClientFactory = httpClientFactory;
+        _health = health ?? new AiProviderHealthRegistry();
     }
 
     /// <inheritdoc />
     public IAiProvider Create(AiProviderBinding binding)
     {
         ArgumentNullException.ThrowIfNull(binding);
-        return binding.ProviderKey.ToLowerInvariant() switch
+        IAiProvider provider = binding.ProviderKey.ToLowerInvariant() switch
         {
             "openai" => CreateOpenAi(binding, "openai"),
             "deepseek" => CreateOpenAi(binding, "deepseek"),
@@ -28,6 +33,9 @@ public sealed class AiProviderFactory : IAiProviderFactory
             "disabled" => new AiDisabledProvider(),
             _ => throw new NotSupportedException($"AI provider '{binding.ProviderKey}' is not supported."),
         };
+        return provider is AiDisabledProvider
+            ? provider
+            : new ResilientAiProvider(provider, _health);
     }
 
     private OpenAiCompatProvider CreateOpenAi(AiProviderBinding binding, string providerKey)

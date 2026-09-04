@@ -17,6 +17,10 @@ Date: 2026-08-30
   content chunk count and content chunk size.
 - Updated composition and architecture evidence to require the disabled gateway
   runtime rather than silently omitting gateway composition.
+- Added active provider resilience: bounded per-attempt timeouts, one
+  configurable transient retry, per-provider circuit opening, and observable
+  retry/failure snapshots. The provider factory applies this decorator to all
+  non-disabled providers.
 
 ## Verification
 
@@ -28,7 +32,6 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 Explicit user-configurable provider profiles, OS-backed secret references and
-rotation/deletion, durable token/cost budgets, connection-health caching,
-timeouts/retries/circuit state, full payload-preview UI wiring, retention and
-erasure journey, provider egress allowlists, and cloud-provider conformance
-remain before phase 27 closure.
+rotation/deletion, durable token/cost budgets, connection-health persistence,
+full payload-preview UI wiring, retention and erasure journey, provider egress
+allowlists, and cloud-provider conformance remain before phase 27 closure.
