@@ -32,10 +32,11 @@ provider health snapshot. Successful multi-provider aggregations now produce a
 field-level conflict report and a privacy-safe `ProviderConflict` audit event;
 candidate values remain available to review consumers but are excluded from the
 durable audit payload.
+- Provider backoff and retry telemetry is verified through the handler and
+  gateway health contracts, including retry counts and provider failure state.
 
 ## Remaining phase gate
 
-Provider backoff/retry telemetry and privacy disclosure evidence
-remain before phase 13 closure. Quota and circuit state are now observable in
+Privacy disclosure evidence remains before phase 13 closure. Quota and circuit state are now observable in
 the local health contract; stale-cache status is present in the provider result
 contract for the UI consumer.
