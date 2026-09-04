@@ -21,16 +21,15 @@ Date: 2026-09-04
   chunks linked to the extraction artifact.
 - Added durable TOC entry count/quality fields to the artifact manifest and
   malformed/Unicode outline acceptance coverage.
-- Added a reproducible mixed-quality batch benchmark covering 32 books and 96
-  pages (full, scanned, and partial page layers); the Windows run completed in
-  2.631 seconds and allocated 83,489,592 bytes.
-- Refreshed the mixed-quality baseline on 2026-09-04: 32 books and 96 pages
-  completed in 2.994 seconds with 84,820,632 allocated bytes.
+- Added a reproducible mixed-quality batch benchmark covering 500 books and
+  1,500 pages (full, scanned, and partial page layers). After bounding shared
+  context tracking, the Windows run completed in 9.190 seconds and allocated
+  296,590,296 bytes with no failed books.
 
 ## Remaining phase gate
 
 The extraction pipeline now calls the artifact, ISBN evidence, and TOC
 services; persists page-aware deterministic manifests; and records TOC quality.
-The refreshed benchmark is a local baseline, not target-scale acceptance.
-Phase 11 still needs measured resource/throughput evidence over the
-large/mixed corpus before it can be marked complete.
+The 500-book benchmark is a local synthetic baseline, not target-scale
+acceptance. Phase 11 still needs measured resource/throughput evidence over the
+large/mixed real-PDF corpus before it can be marked complete.
