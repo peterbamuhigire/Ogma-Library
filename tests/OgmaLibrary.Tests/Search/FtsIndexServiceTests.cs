@@ -193,7 +193,7 @@ public sealed class FtsIndexServiceTests : IDisposable
     [Fact]
     public async Task PerfBenchmark_FtsSearch_P95_LessThan500ms()
     {
-        const int bookCount = 2000;
+        const int bookCount = 50_000;
         const int queryCount = 50;
         var books = new List<BookRow>(bookCount);
         var chunks = new List<SearchChunkRow>(bookCount);

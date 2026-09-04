@@ -49,10 +49,12 @@ Date: 2026-08-30
 - `IndexManagerServiceTests`: 6 passed, covering durable rebuild checkpoint
   counters, status publication, failure/recovery lifecycle events, and
   rebuild-duration/read-model observability.
+- The 50,000-book FTS latency benchmark passed its p95 <=500 ms assertion on
+  the local Windows test environment.
 
 ## Remaining phase gate
 
-The complete phase still requires side-by-side rebuild swap and the
-50,000-book latency benchmark. Progress/no-index messaging and the observability
-subgates are closed by the evidence above. Physical assistive-technology
-walkthroughs remain `NOT ASSESSED`.
+The complete phase still requires side-by-side rebuild swap. The named
+50,000-book FTS latency sub-gate is closed locally; reference-hardware
+confirmation and physical assistive-technology walkthroughs remain
+`NOT ASSESSED`.
