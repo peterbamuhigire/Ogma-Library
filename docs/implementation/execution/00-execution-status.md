@@ -31,7 +31,7 @@ Ledger normalized: 2026-09-04
 | 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation and reading-state foundations delivered; detail controls, collections, file/relink, provenance and E2E open |
 | 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability work delivered; platform viewer, crash/cache, accessibility and budget evidence open |
 | 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback, debounced type-ahead and bounded candidate materialization delivered; facets/paging/highlighting/corrections/scale open |
-| 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets and desktop reader navigation delivered; progress, observability and scale open |
+| 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets, desktop reader navigation and observability events delivered; progress and scale open |
 | 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards, trained-data checksum and stable retry/resource failure codes delivered; accuracy/UI/cross-platform evidence open |
 | 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency, stale source detection and explicit tombstone lifecycle delivered; ANN/scale/cost/UI open |
 | 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, structured prefilters, dimension filtering, metric contract, durable local evaluation runs and author-diversity policy delivered; corpus, ANN and scale open |

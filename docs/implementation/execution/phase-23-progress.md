@@ -40,8 +40,12 @@ Date: 2026-08-30
 - `SearchViewModelTests`: 13 passed, including desktop full-text mode
   indication, result selection, reader navigation with page hint, and
   degraded exact-search behavior.
+- `IndexManagerServiceTests`: 6 passed, covering durable rebuild checkpoint
+  counters, status publication, failure/recovery lifecycle events, and
+  rebuild-duration/read-model observability.
 
 ## Remaining phase gate
 
-The complete phase still requires progress/no-index states, observability metrics,
-side-by-side rebuild swap, and the 50,000-book latency benchmark.
+The complete phase still requires progress/no-index states, side-by-side rebuild
+swap, and the 50,000-book latency benchmark. The observability subgate is closed
+by the durable checkpoint counters and lifecycle/read-model events above.
