@@ -289,6 +289,135 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<bool> RestoreBackupAsync(
+        string bookId,
+        BackupToken backupToken,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentNullException.ThrowIfNull(backupToken);
+        string backupRoot = await ValidateWriteTargetAsync(
+                bookId,
+                backupToken.OriginalAbsolutePath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        string backupPath = PathGuard.EnsureWithinRoot(
+            backupToken.BackupAbsolutePath,
+            Path.Combine(backupRoot, ".ogma", "backups"));
+        if (!File.Exists(backupPath))
+        {
+            throw new InvalidOperationException("The write-back backup is missing. Undo cannot proceed.");
+        }
+
+        string originalPath = backupToken.OriginalAbsolutePath;
+        string tempPath = originalPath + ".ogma_restore_tmp";
+        try
+        {
+            EnsureExclusiveFileAccess(originalPath);
+            await Task.Run(() => File.Copy(backupPath, tempPath, overwrite: true), cancellationToken)
+                .ConfigureAwait(false);
+            await Task.Run(() => VerifyPdf(tempPath), cancellationToken).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                if (File.Exists(originalPath))
+                {
+                    File.Delete(originalPath);
+                }
+
+                File.Move(tempPath, originalPath);
+            }, cancellationToken).ConfigureAwait(false);
+
+            string restoredSha256 = await ComputeSha256Async(originalPath, cancellationToken)
+                .ConfigureAwait(false);
+            using CatalogueContextLease lease = await CatalogueContextLease
+                .CreateAsync(_contextFactory, _context, cancellationToken)
+                .ConfigureAwait(false);
+            CatalogueDbContext context = lease.Context;
+            BookRow? book = await context.Books
+                .FirstOrDefaultAsync(row => row.BookId == bookId, cancellationToken)
+                .ConfigureAwait(false);
+            if (book is not null)
+            {
+                book.Sha256Hash = restoredSha256;
+                book.MtimeTicks = new FileInfo(originalPath).LastWriteTimeUtc.Ticks;
+                book.IndexStatus = (int)SearchBookIndexStatus.NotIndexed;
+                book.EmbeddingStatus = (int)SearchEmbeddingStatus.NotEmbedded;
+            }
+
+            context.AuditEvents.Add(new AuditEventRow
+            {
+                EventType = "WriteBackUndone",
+                EntityId = bookId,
+                EntityType = "Book",
+                AfterJson = JsonSerializer.Serialize(new
+                {
+                    backup = backupPath,
+                    restoredSha256,
+                    backupRetained = true,
+                }),
+                Timestamp = DateTimeOffset.UtcNow,
+                IsLocalOnly = true,
+            });
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            TryDelete(tempPath);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            TryDelete(tempPath);
+            await RecordUndoFailureAsync(bookId, backupPath, ex.Message).ConfigureAwait(false);
+            return false;
+        }
+    }
+
+    private async Task RecordUndoFailureAsync(string bookId, string backupPath, string errorMessage)
+    {
+        try
+        {
+            using CatalogueContextLease lease = await CatalogueContextLease
+                .CreateAsync(_contextFactory, _context, CancellationToken.None)
+                .ConfigureAwait(false);
+            lease.Context.AuditEvents.Add(new AuditEventRow
+            {
+                EventType = "WriteBackUndoFailed",
+                EntityId = bookId,
+                EntityType = "Book",
+                AfterJson = JsonSerializer.Serialize(new
+                {
+                    backup = backupPath,
+                    error = errorMessage.Length > 4096 ? errorMessage[..4096] : errorMessage,
+                }),
+                Timestamp = DateTimeOffset.UtcNow,
+                IsLocalOnly = true,
+            });
+            await lease.Context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // An undo failure must not hide the original operation error.
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception)
+        {
+            // Best effort cleanup; the audit remains the source of truth.
+        }
+    }
+
     private static void WriteToPdfSharp(
         string sourcePath,
         string destPath,

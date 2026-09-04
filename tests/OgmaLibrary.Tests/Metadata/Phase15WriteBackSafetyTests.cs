@@ -40,4 +40,60 @@ public sealed class Phase15WriteBackSafetyTests
             }
         }
     }
+
+    [Fact]
+    public async Task WriteBackUndo_RestoresPreparedBytesAndRetainsBackup()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-phase15-undo-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "book.pdf");
+        byte[] originalBytes;
+        using (var document = new PdfSharp.Pdf.PdfDocument())
+        {
+            document.Info.Title = "Original title";
+            document.AddPage();
+            using var stream = new MemoryStream();
+            document.Save(stream);
+            originalBytes = stream.ToArray();
+        }
+        await File.WriteAllBytesAsync(path, originalBytes);
+
+        try
+        {
+            using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "PHASE15UNDO000000000000001",
+                Status = 0,
+                RelativePath = "book.pdf",
+            });
+            await context.SaveChangesAsync();
+            var service = new PdfWriteBackService(context, new SidecarService(root), root);
+
+            BackupToken token = await service.PrepareBackupAsync(
+                "PHASE15UNDO000000000000001",
+                path);
+            bool written = await service.WriteAsync(
+                "PHASE15UNDO000000000000001",
+                [new AcceptedFieldProposal("Title", "Changed title", "UserOverride", 1.0, true)],
+                token);
+            bool undone = await service.RestoreBackupAsync(
+                "PHASE15UNDO000000000000001",
+                token);
+
+            Assert.True(written);
+            Assert.True(undone);
+            Assert.Equal(originalBytes, await File.ReadAllBytesAsync(path));
+            Assert.True(File.Exists(token.BackupAbsolutePath));
+            Assert.Contains(context.AuditEvents, audit =>
+                audit.EventType == "WriteBackUndone" && audit.EntityId == "PHASE15UNDO000000000000001");
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
 }

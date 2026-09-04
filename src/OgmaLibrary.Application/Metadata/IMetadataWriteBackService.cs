@@ -84,4 +84,17 @@ public interface IMetadataWriteBackService
         IReadOnlyList<AcceptedFieldProposal> acceptedProposals,
         BackupToken backupToken,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Restores the original PDF from a previously prepared backup. The backup is
+    /// retained after restoration so the operation can be audited and repeated.
+    /// </summary>
+    /// <param name="bookId">The catalogue book identifier.</param>
+    /// <param name="backupToken">The token returned by <see cref="PrepareBackupAsync"/>.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns><see langword="true"/> when the verified restore succeeds.</returns>
+    Task<bool> RestoreBackupAsync(
+        string bookId,
+        BackupToken backupToken,
+        CancellationToken cancellationToken = default);
 }

@@ -15,10 +15,13 @@ Date: 2026-08-30
 - The write path performs an exclusive-access check, resets derived search and
   embedding statuses after a successful content change, and records whether a
   failed operation restored the original bytes.
+- Added an explicit `RestoreBackupAsync` undo command that validates the trusted
+  backup location, verifies the restored PDF before replacement, resets derived
+  indexes, retains the backup, and records success/failure audit events.
 
 ## Remaining phase gate
 
-Explicit consent UI, a first-class durable writeback-plan/undo command, and
+Explicit consent UI, a first-class durable writeback-plan, and
 physical interruption/permission evidence remain before phase 15 closure.
 Preparation audit records, exclusive-file checks, derived-index invalidation
 status, and restored-backup status are implemented and tested.
