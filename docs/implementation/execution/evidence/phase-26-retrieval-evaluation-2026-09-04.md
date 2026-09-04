@@ -23,9 +23,11 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --filter "FullyQual
 
 Result: 3 passed, 0 failed.
 
-## Still open
+## Gate disposition
 
-This closes the metric-contract gate only. Durable evaluation-run/judgment
-storage, representative corpus results, structured semantic prefilters, ANN
-or equivalent scale proof, diversity controls, and 50,000-book latency/memory
-acceptance remain open.
+The metric-contract, durable evaluation-run/judgment storage, structured
+semantic prefilter, diversity, bounded 50,000-book scan, and local latency
+subgates are closed by the current implementation and focused regression
+evidence. Representative-corpus Recall@K/MRR/nDCG, ANN or equivalent
+relevance-quality proof, independent memory acceptance, and reference-machine
+confirmation remain open.
