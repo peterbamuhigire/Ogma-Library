@@ -21,7 +21,7 @@ Ledger normalized: 2026-09-04
 | 10 | PDF Validation and Containment | IN PROGRESS | Broker, password and resource gates delivered; OS sandbox/escape/security approval open |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC and ranked ISBN evidence delivered; target-scale corpus open |
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
-| 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry and conflict aggregation delivered; privacy-disclosure evidence open |
+| 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry, conflict aggregation and local privacy-disclosure evidence delivered; live terms/network evidence open |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency, boundary validation and canonical field dictionary delivered; bulk preview/undo and accessible UI open |
 | 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation, durable write-back plan and explicit backup undo delivered; consent and physical evidence open |
 | 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection, output validation and stale-asset GC delivered; acquisition/variants/UI/scale open |

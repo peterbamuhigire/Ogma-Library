@@ -34,9 +34,14 @@ candidate values remain available to review consumers but are excluded from the
 durable audit payload.
 - Provider backoff and retry telemetry is verified through the handler and
   gateway health contracts, including retry counts and provider failure state.
+- Closed the code-level privacy-disclosure subgate: recorded provider requests
+  contain only bibliographic lookup keys, use GET without a request body, and
+  exclude notes/content; normalized durable caching prevents repeated
+  disclosures for the same lookup.
 
 ## Remaining phase gate
 
-Privacy disclosure evidence remains before phase 13 closure. Quota and circuit state are now observable in
-the local health contract; stale-cache status is present in the provider result
-contract for the UI consumer.
+Live-provider terms/privacy review and physical/network evidence remain before
+phase 13 closure. Quota and circuit state are observable in the local health
+contract; stale-cache status is present in the provider result contract for the
+UI consumer.

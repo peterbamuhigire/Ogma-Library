@@ -121,6 +121,32 @@ public sealed class ProviderClientTests
         Assert.Equal("en", result.Language);
     }
 
+    [Fact]
+    public async Task GoogleBooksProvider_SearchPayload_ContainsOnlyBibliographicKeys()
+    {
+        const string json = """{"totalItems":0,"items":[]}""";
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, json);
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://www.googleapis.com/books/v1/"),
+        };
+        var provider = new GoogleBooksProvider(httpClient);
+
+        await provider.SearchAsync(
+            new MetadataLookupRequest(
+                Isbn13: null,
+                Title: "Domain Driven Design",
+                Author: "Eric Evans"));
+
+        Assert.NotNull(handler.LastRequest);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest!.Method);
+        Assert.Null(handler.LastRequest.Content);
+        Assert.Contains("intitle%3ADomain%20Driven%20Design", handler.LastRequest.RequestUri!.Query, StringComparison.Ordinal);
+        Assert.Contains("inauthor%3AEric%20Evans", handler.LastRequest.RequestUri.Query, StringComparison.Ordinal);
+        Assert.DoesNotContain("note", handler.LastRequest.RequestUri.Query, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("content", handler.LastRequest.RequestUri.Query, StringComparison.OrdinalIgnoreCase);
+    }
+
     // â”€â”€ Open Library client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
@@ -335,10 +361,13 @@ internal sealed class StubHttpMessageHandler : HttpMessageHandler
         _delay = delay;
     }
 
+    internal HttpRequestMessage? LastRequest { get; private set; }
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+        LastRequest = request;
         if (_delay > TimeSpan.Zero)
         {
             await Task.Delay(_delay, cancellationToken);
