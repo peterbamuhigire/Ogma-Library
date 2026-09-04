@@ -41,7 +41,7 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
         Assert.Contains("IsTombstoned", GetColumns("EmbeddingVectors"));
         Assert.Contains("TombstonedUtc", GetColumns("EmbeddingVectors"));
         Assert.True(IndexExists("IX_Books_EmbeddingStatus"));
-        Assert.True(IndexExists("UX_EmbeddingVectors_ChunkId_ModelName_ModelVersion"));
+        Assert.True(IndexExists("UX_EmbeddingVectors_ChunkId_ModelName_ModelVersion_IndexVersion"));
         Assert.True(IndexExists("IX_EmbeddingVectors_Tombstone_Model"));
     }
 

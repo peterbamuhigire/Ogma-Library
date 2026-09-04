@@ -59,6 +59,9 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         {
             throw new ArgumentException("Embedding source hash must be hexadecimal and at most 64 characters.", nameof(vector));
         }
+        string normalizedIndexVersion = string.IsNullOrWhiteSpace(vector.IndexVersion)
+            ? "fts5-v1"
+            : vector.IndexVersion;
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
@@ -83,7 +86,8 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
             .SingleOrDefaultAsync(row =>
                 row.ChunkId == vector.ChunkId &&
                 row.ModelName == vector.ModelName &&
-                row.ModelVersion == vector.ModelVersion,
+                row.ModelVersion == vector.ModelVersion &&
+                row.IndexVersion == normalizedIndexVersion,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -128,10 +132,12 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         long chunkId,
         string modelName,
         string modelVersion,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string indexVersion = "fts5-v1")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelName);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelVersion);
+        ArgumentException.ThrowIfNullOrWhiteSpace(indexVersion);
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
@@ -142,6 +148,7 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
                 vector.ChunkId == chunkId &&
                 vector.ModelName == modelName &&
                 vector.ModelVersion == modelVersion &&
+                vector.IndexVersion == indexVersion &&
                 !vector.IsTombstoned,
                 cancellationToken)
             .ConfigureAwait(false);

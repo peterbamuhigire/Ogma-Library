@@ -13,7 +13,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 /// calls the local Ollama embedding provider, and persists model-versioned
 /// vectors as a derived index.
 /// </summary>
-public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, ISemanticSearchReadModel
+public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IStagedEmbeddingGenerationService, ISemanticSearchReadModel
 {
     internal const string DefaultModelName = "nomic-embed-text";
     internal const string DefaultModelVersion = "nomic-embed-text:latest";
@@ -67,8 +67,20 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     public async Task<EmbeddingGenerationBatchResult> GenerateNextBatchAsync(
         int maxChunks,
         CancellationToken cancellationToken)
+        => await GenerateNextBatchAsync(maxChunks, "fts5-v1", cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async Task<EmbeddingGenerationBatchResult> GenerateNextBatchAsync(
+        int maxChunks,
+        string indexVersion,
+        CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChunks);
+        ArgumentException.ThrowIfNullOrWhiteSpace(indexVersion);
+        if (indexVersion.Length > 128 || indexVersion.Any(char.IsControl) || indexVersion.Any(char.IsWhiteSpace))
+        {
+            throw new ArgumentException("Semantic index version must be a bounded token.", nameof(indexVersion));
+        }
 
         if (!_provider.IsLocalOnly ||
             !await _provider.IsAvailableAsync(cancellationToken).ConfigureAwait(false))
@@ -77,7 +89,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             return new EmbeddingGenerationBatchResult(0, 0, 0, 0, ProviderUnavailable: true);
         }
 
-        IReadOnlyList<PendingChunk> chunks = await FindPendingChunksAsync(maxChunks, cancellationToken)
+        IReadOnlyList<PendingChunk> chunks = await FindPendingChunksAsync(maxChunks, indexVersion, cancellationToken)
             .ConfigureAwait(false);
         int embedded = 0;
         int failed = 0;
@@ -119,7 +131,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
 
                 embedded++;
                 await PublishProgressAsync(chunk, cancellationToken).ConfigureAwait(false);
-                await RefreshBookEmbeddingStatusAsync(chunk.BookId, cancellationToken).ConfigureAwait(false);
+                await RefreshBookEmbeddingStatusAsync(chunk.BookId, indexVersion, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -147,6 +159,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
 
     private async Task<IReadOnlyList<PendingChunk>> FindPendingChunksAsync(
         int maxChunks,
+        string indexVersion,
         CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -167,6 +180,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                     vector.ModelName == DefaultModelName &&
                     vector.ModelVersion == DefaultModelVersion &&
                     vector.ProviderKey == DefaultProviderKey &&
+                    vector.IndexVersion == indexVersion &&
                     vector.SourceHash.Length > 0))
             .OrderBy(chunk => chunk.ChunkId)
             .Select(chunk => new PendingChunk(
@@ -180,7 +194,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                     chunk.IndexVersion,
                     chunk.ExtractionArtifactId),
                 chunk.ExtractedPage == null ? "metadata-v1" : chunk.ExtractedPage.ExtractorVersion,
-                chunk.IndexVersion,
+                indexVersion,
                 chunk.ExtractionArtifactId))
             .Take(maxChunks)
             .ToListAsync(cancellationToken)
@@ -205,6 +219,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 vector.ModelName == DefaultModelName &&
                 vector.ModelVersion == DefaultModelVersion &&
                 vector.ProviderKey == DefaultProviderKey &&
+                vector.IndexVersion == chunk.IndexVersion &&
                 vector.SourceHash.Length > 0,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -218,6 +233,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
 
     private async Task RefreshBookEmbeddingStatusAsync(
         string bookId,
+        string indexVersion,
         CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -242,6 +258,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 vector.ModelName == DefaultModelName &&
                 vector.ModelVersion == DefaultModelVersion &&
                 vector.ProviderKey == DefaultProviderKey &&
+                vector.IndexVersion == indexVersion &&
                 vector.SourceHash.Length > 0,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -279,7 +296,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
-        string key = ComputeIdempotencyKey(chunk.BookId, chunk.ChunkId);
+        string key = ComputeIdempotencyKey(chunk.BookId, chunk.ChunkId, chunk.IndexVersion);
         JobRow? job = await context.Jobs
             .FirstOrDefaultAsync(row => row.IdempotencyKey == key, cancellationToken)
             .ConfigureAwait(false);
@@ -325,10 +342,10 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     private static string TrimError(string message) =>
         message.Length <= 4096 ? message : message[..4096];
 
-    private static string ComputeIdempotencyKey(string bookId, long chunkId)
+    private static string ComputeIdempotencyKey(string bookId, long chunkId, string indexVersion)
     {
         byte[] data = Encoding.UTF8.GetBytes(
-            $"{bookId}|EmbeddingFailed|{chunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{DefaultModelName}|{DefaultModelVersion}");
+            $"{bookId}|EmbeddingFailed|{chunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{DefaultModelName}|{DefaultModelVersion}|{indexVersion}");
         return Convert.ToHexStringLower(SHA256.HashData(data))[..32];
     }
 

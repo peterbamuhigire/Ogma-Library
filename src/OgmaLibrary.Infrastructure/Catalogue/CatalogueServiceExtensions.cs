@@ -89,12 +89,16 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IExtractedTextStore, ExtractedTextStore>();
         services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
         services.AddSingleton<IEmbeddingVectorRepository, EmbeddingVectorRepository>();
+        services.AddSingleton<IEmbeddingIndexLifecycleService, EmbeddingIndexLifecycleService>();
+        services.AddSingleton<IEmbeddingIndexRebuildService, EmbeddingIndexRebuildService>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
         services.AddSingleton<ICatalogueSearchService, CatalogueSearchService>();
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
         services.AddSingleton<ITocExtractionService, PdfTableOfContentsService>();
         services.AddSingleton<EmbeddingGenerationService>();
         services.AddSingleton<IEmbeddingGenerationService>(sp =>
+            sp.GetRequiredService<EmbeddingGenerationService>());
+        services.AddSingleton<IStagedEmbeddingGenerationService>(sp =>
             sp.GetRequiredService<EmbeddingGenerationService>());
         services.AddSingleton<ISemanticSearchReadModel>(sp =>
             sp.GetRequiredService<EmbeddingGenerationService>());

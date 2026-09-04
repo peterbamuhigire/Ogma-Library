@@ -20,7 +20,8 @@ public interface IEmbeddingVectorRepository
         long chunkId,
         string modelName,
         string modelVersion,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        string indexVersion = "fts5-v1");
 
     /// <summary>
     /// Returns every vector for chunks belonging to the given book.

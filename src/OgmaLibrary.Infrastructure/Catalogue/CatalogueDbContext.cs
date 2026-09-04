@@ -208,6 +208,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Durable resumable full-text rebuild checkpoints.</summary>
     public DbSet<SearchRebuildCheckpointRow> SearchRebuildCheckpoints => Set<SearchRebuildCheckpointRow>();
 
+    /// <summary>Durable active/staging pointer for semantic vector indexes.</summary>
+    public DbSet<EmbeddingIndexStateRow> EmbeddingIndexState => Set<EmbeddingIndexStateRow>();
+
     /// <summary>Cached external metadata provider responses.</summary>
     public DbSet<ProviderCacheEntryRow> ProviderCacheEntries => Set<ProviderCacheEntryRow>();
 
@@ -287,6 +290,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ReadingMemoryConfiguration());
         modelBuilder.ApplyConfiguration(new ReadingStateHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new SearchRebuildCheckpointConfiguration());
+        modelBuilder.ApplyConfiguration(new EmbeddingIndexStateConfiguration());
 
         base.OnModelCreating(modelBuilder);
     }

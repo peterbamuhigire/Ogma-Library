@@ -1,6 +1,6 @@
 # Phase 25 Progress - Versioned Embeddings and Vector Lifecycle
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -33,6 +33,11 @@ Date: 2026-08-30
 - Added a bounded five-minute in-memory query-embedding cache keyed by a
   SHA-256 digest, capped at 128 entries, with cache-hit telemetry in the
   semantic response and no raw-query persistence.
+- Added a durable active/staging semantic-index pointer and a side-by-side
+  rebuild coordinator. Vector uniqueness and repository lookup now include the
+  index generation, staged embedding batches are resumable after provider or
+  process interruption, promotion is an explicit atomic pointer transition,
+  and semantic retrieval reads only the active generation.
 
 ## Verification
 
@@ -49,12 +54,14 @@ Date: 2026-08-30
 - Query-embedding cache slice: 7 passed; latest full isolated solution suite:
   882 core + 41 architecture + 142 UI = 1,065 passed, 0 failed, 0 skipped. See
   `evidence/phase-25-query-embedding-cache-2026-09-04.md`.
+- Side-by-side lifecycle slice: 4 passed; schema/lifecycle regression slice:
+  10 passed, 0 failed, 0 skipped. See
+  `evidence/phase-25-side-by-side-vector-lifecycle-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Side-by-side vector index swap/resume, ANN/target-scale evidence, provider cost
-accounting, and target-scale UI performance remain before phase 25 closure. The
-stale-count/rebuild-status and bounded-memory exact-retrieval subgates are now
-closed locally, as is bounded query-cache telemetry; ANN index selection or
-equivalent relevance-quality evidence, cost, reference-corpus, and
-reference-machine evidence remain open.
+The side-by-side vector index swap/resume gate is now closed locally. ANN/
+target-scale relevance evidence, provider cost accounting, target-scale UI
+performance, reference-corpus and reference-machine evidence remain open. The
+stale-count/rebuild-status, bounded-memory exact-retrieval, and bounded
+query-cache telemetry subgates remain closed locally.

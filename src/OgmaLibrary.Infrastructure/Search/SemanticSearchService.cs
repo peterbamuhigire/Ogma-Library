@@ -27,6 +27,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private readonly ICombinedSearchService _exactSearch;
     private readonly IHybridRankingService _hybridRanking;
     private readonly IMatchLocationService _matchLocations;
+    private readonly IEmbeddingIndexLifecycleService? _indexLifecycle;
     private readonly object _queryEmbeddingCacheGate = new();
     private readonly Dictionary<string, CachedQueryEmbedding> _queryEmbeddingCache = new(StringComparer.Ordinal);
 
@@ -39,7 +40,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IOllamaEmbeddingProvider provider,
         ICombinedSearchService exactSearch,
         IHybridRankingService hybridRanking,
-        IMatchLocationService matchLocations)
+        IMatchLocationService matchLocations,
+        IEmbeddingIndexLifecycleService? indexLifecycle = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(provider);
@@ -52,6 +54,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _exactSearch = exactSearch;
         _hybridRanking = hybridRanking;
         _matchLocations = matchLocations;
+        _indexLifecycle = indexLifecycle;
     }
 
     internal SemanticSearchService(
@@ -59,7 +62,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IOllamaEmbeddingProvider provider,
         ICombinedSearchService exactSearch,
         IHybridRankingService? hybridRanking = null,
-        IMatchLocationService? matchLocations = null)
+        IMatchLocationService? matchLocations = null,
+        IEmbeddingIndexLifecycleService? indexLifecycle = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(provider);
@@ -70,6 +74,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _exactSearch = exactSearch;
         _hybridRanking = hybridRanking ?? new HybridRankingService();
         _matchLocations = matchLocations ?? new MatchLocationService();
+        _indexLifecycle = indexLifecycle;
     }
 
     /// <inheritdoc />
@@ -105,9 +110,13 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 availability: SemanticSearchAvailability.Degraded);
         }
 
+        string activeIndexVersion = _indexLifecycle is null
+            ? "fts5-v1"
+            : (await _indexLifecycle.GetStateAsync(cancellationToken).ConfigureAwait(false)).ActiveIndexVersion;
         IReadOnlyList<ScoredVectorCandidate> corpus = await LoadTopCorpusAsync(
                 query.Vector,
                 Math.Max(maxResults * OversampleMultiplier, maxResults),
+                activeIndexVersion,
                 cancellationToken)
             .ConfigureAwait(false);
         if (corpus.Count == 0)
@@ -321,6 +330,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private async Task<IReadOnlyList<ScoredVectorCandidate>> LoadTopCorpusAsync(
         float[] queryVector,
         int topK,
+        string activeIndexVersion,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(queryVector);
@@ -336,6 +346,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 vector.ModelName == EmbeddingGenerationService.DefaultModelName &&
                 vector.ModelVersion == EmbeddingGenerationService.DefaultModelVersion &&
                 vector.ProviderKey == EmbeddingGenerationService.DefaultProviderKey &&
+                vector.IndexVersion == activeIndexVersion &&
                 vector.DimensionCount == queryVector.Length)
             .Join(
                 context.SearchChunks.AsNoTracking(),
