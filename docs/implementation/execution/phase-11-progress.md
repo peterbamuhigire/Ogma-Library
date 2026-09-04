@@ -21,6 +21,10 @@ Date: 2026-09-04
   chunks linked to the extraction artifact.
 - Added durable TOC entry count/quality fields to the artifact manifest and
   malformed/Unicode outline acceptance coverage.
+- Added a reusable real-PDF adapter benchmark and processed seven local PDFs
+  covering 3,326 pages and 1,057,996 words with zero file errors in 27.1
+  seconds on the verification rerun. The benchmark is content-safe and
+  reports allocation telemetry.
 - Added a reproducible mixed-quality batch benchmark covering 500 books and
   1,500 pages (full, scanned, and partial page layers). After bounding shared
   context tracking, the Windows run completed in 9.190 seconds and allocated
@@ -30,6 +34,7 @@ Date: 2026-09-04
 
 The extraction pipeline now calls the artifact, ISBN evidence, and TOC
 services; persists page-aware deterministic manifests; and records TOC quality.
-The 500-book benchmark is a local synthetic baseline, not target-scale
-acceptance. Phase 11 still needs measured resource/throughput evidence over the
-large/mixed real-PDF corpus before it can be marked complete.
+The real-adapter corpus subgate is now evidenced, but the seven-file run is not
+target-scale database-pipeline acceptance. The 8.63 GB allocation measurement
+also needs an approved per-book ceiling and representative target-scale
+throughput run before Phase 11 can be marked complete.

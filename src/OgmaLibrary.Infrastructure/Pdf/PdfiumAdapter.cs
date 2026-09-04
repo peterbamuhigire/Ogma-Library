@@ -1,4 +1,4 @@
-using OgmaLibrary.Application.Reader;
+﻿using OgmaLibrary.Application.Reader;
 using PDFtoImage;
 using PDFtoImage.Exceptions;
 using SkiaSharp;
@@ -15,7 +15,7 @@ namespace OgmaLibrary.Infrastructure.Pdf;
 /// <remarks>
 /// Thread-safety: <see cref="RenderPageAsync"/> dispatches work on the thread pool
 /// and is safe for concurrent calls. <see cref="ExtractTextLayer"/> is synchronous
-/// but thread-safe because PdfPig opens a fresh document stream per call.
+/// but thread-safe because each adapter owns a document-scoped PdfPig parse.
 /// The native PDFium library is loaded once by PDFtoImage; this adapter holds no
 /// persistent native handle.
 /// </remarks>
@@ -26,6 +26,9 @@ public sealed class PdfiumAdapter : IPdfRenderer
     private readonly string _filePath;
     private readonly byte[] _fileBytes;
     private readonly char[]? _password;
+    private readonly Lazy<PdfDocument> _textDocument;
+    private readonly Lazy<IReadOnlyList<Page>> _textPages;
+    private readonly object _textExtractionGate = new();
     private bool _disposed;
 
     /// <summary>
@@ -53,6 +56,12 @@ public sealed class PdfiumAdapter : IPdfRenderer
         _filePath = filePath;
         _fileBytes = File.ReadAllBytes(filePath);
         _password = password is null ? null : copyPassword ? password.ToArray() : password;
+        _textDocument = new Lazy<PdfDocument>(
+            OpenPdfPigDocument,
+            LazyThreadSafetyMode.ExecutionAndPublication);
+        _textPages = new Lazy<IReadOnlyList<Page>>(
+            ReadTextPages,
+            LazyThreadSafetyMode.ExecutionAndPublication);
         PageCount = DetectPageCount();
     }
 
@@ -119,8 +128,10 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         try
         {
-            using var doc = OpenPdfPigDocument();
-            var page = doc.GetPages().Skip(pageIndex).FirstOrDefault();
+            lock (_textExtractionGate)
+            {
+                IReadOnlyList<Page> pages = _textPages.Value;
+            Page? page = pageIndex < pages.Count ? pages[pageIndex] : null;
             if (page is null)
             {
                 return new TextLayer(pageIndex, [], ExtractionQuality.Empty);
@@ -175,7 +186,8 @@ public sealed class PdfiumAdapter : IPdfRenderer
                 ? ExtractionQuality.Full
                 : ExtractionQuality.Partial;
 
-            return new TextLayer(pageIndex, words, extractionQuality);
+                return new TextLayer(pageIndex, words, extractionQuality);
+            }
         }
         catch (Exception)
         {
@@ -189,6 +201,11 @@ public sealed class PdfiumAdapter : IPdfRenderer
         if (_password is not null)
         {
             Array.Clear(_password);
+        }
+
+        if (_textDocument.IsValueCreated)
+        {
+            _textDocument.Value.Dispose();
         }
 
         _disposed = true;
@@ -276,6 +293,12 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
     private static int NormalizeRotation(int rotation) =>
         ((rotation % 360) + 360) % 360;
+
+    private List<Page> ReadTextPages()
+    {
+        PdfDocument document = _textDocument.Value;
+        return document.GetPages().ToList();
+    }
 
     private PdfDocument OpenPdfPigDocument()
     {
