@@ -26,10 +26,14 @@ Date: 2026-09-04
   edits and recalculates quality after apply and undo.
 - Added focused atomicity, stale-preview, restore, repeat-undo, and later-edit
   conflict tests; all 11 Phase 14 metadata tests pass locally.
+- Completed the previously missing bulk tag add/remove behavior with bounded,
+  normalized user metadata storage and tag-inclusive before/after audit state;
+  the Shelf integration suite passes 5/5.
 
 ## Remaining phase gate
 
-The backend bulk preview/apply/undo subgate is closed. Keyboard/screen-reader
+The backend bulk preview/apply/undo and tag-mutation subgates are closed.
+Keyboard/screen-reader
 UI journeys remain before phase 14 closure. Concurrency and review-boundary
 sanitization are implemented and tested; OS/browser accessibility evidence is
 not assessed by this service-layer increment.

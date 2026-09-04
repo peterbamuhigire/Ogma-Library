@@ -3,6 +3,7 @@
 ## Recent phase evidence
 
 - Phase 13: `docs/implementation/execution/evidence/phase-13-provider-terms-2026-09-04.md`
+- Phase 14/20 bulk tags: `docs/implementation/execution/evidence/phase-14-bulk-tags-2026-09-04.md`
 - Phase 16: `docs/implementation/execution/evidence/phase-16-detail-cover-ui-2026-09-04.md`
 - Phase 17: `docs/implementation/execution/phase-17-progress.md` and
   `tests/OgmaLibrary.Tests/Ingestion/Phase17StageWorkerTests.cs`

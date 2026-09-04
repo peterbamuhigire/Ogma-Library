@@ -248,6 +248,9 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             return;
         }
 
+        string[] tagsToAdd = NormalizeTags(command.TagsToAdd, nameof(command.TagsToAdd));
+        string[] tagsToRemove = NormalizeTags(command.TagsToRemove, nameof(command.TagsToRemove));
+
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
             .ConfigureAwait(false);
@@ -257,9 +260,28 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         var beforeBooks = await context.Books
             .AsNoTracking()
             .Where(b => command.BookIds.Contains(b.BookId))
-            .Select(b => new { b.BookId, b.Status, b.Rating })
+            .Select(b => new
+            {
+                b.BookId,
+                b.Status,
+                b.Rating,
+                Tags = b.MetadataFields
+                    .Where(field => field.FieldName == "Tag" || field.FieldName == "Tags")
+                    .Select(field => field.Value)
+                    .ToList(),
+            })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        if (tagsToAdd.Length > 0 || tagsToRemove.Length > 0)
+        {
+            await ApplyTagsAsync(
+                context,
+                command.BookIds,
+                tagsToAdd,
+                tagsToRemove,
+                cancellationToken).ConfigureAwait(false);
+        }
 
         // Apply status / rating overrides.
         if (command.NewStatus.HasValue || command.NewRating.HasValue)
@@ -321,7 +343,16 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         var afterBooks = await context.Books
             .AsNoTracking()
             .Where(b => command.BookIds.Contains(b.BookId))
-            .Select(b => new { b.BookId, b.Status, b.Rating })
+            .Select(b => new
+            {
+                b.BookId,
+                b.Status,
+                b.Rating,
+                Tags = b.MetadataFields
+                    .Where(field => field.FieldName == "Tag" || field.FieldName == "Tags")
+                    .Select(field => field.Value)
+                    .ToList(),
+            })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -338,4 +369,78 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             }),
         }, cancellationToken).ConfigureAwait(false);
     }
+
+    private static async Task ApplyTagsAsync(
+        CatalogueDbContext context,
+        IReadOnlyList<string> bookIds,
+        IReadOnlyList<string> tagsToAdd,
+        IReadOnlyList<string> tagsToRemove,
+        CancellationToken cancellationToken)
+    {
+        List<BookMetadataFieldRow> tagFields = await context.BookMetadataFields
+            .Where(field => bookIds.Contains(field.BookId) &&
+                            (field.FieldName == "Tag" || field.FieldName == "Tags"))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HashSet<string> remove = tagsToRemove.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string bookId in bookIds.Distinct(StringComparer.Ordinal))
+        {
+            List<BookMetadataFieldRow> bookFields = tagFields
+                .Where(field => string.Equals(field.BookId, bookId, StringComparison.Ordinal))
+                .ToList();
+            string[] current = bookFields
+                .SelectMany(field => ParseTags(field.Value))
+                .Where(tag => !remove.Contains(tag))
+                .Concat(tagsToAdd)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(tag => tag, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            string serialized = string.Join("; ", current);
+
+            BookMetadataFieldRow? userTags = bookFields
+                .FirstOrDefault(field => field.FieldName == "Tags" &&
+                                         string.Equals(field.Source, "User", StringComparison.Ordinal));
+            if (userTags is null)
+            {
+                userTags = new BookMetadataFieldRow
+                {
+                    BookId = bookId,
+                    FieldName = "Tags",
+                    Source = "User",
+                };
+                context.BookMetadataFields.Add(userTags);
+            }
+
+            userTags.Value = string.IsNullOrWhiteSpace(serialized) ? null : serialized;
+            userTags.IsOverridden = true;
+            userTags.SourceTimestamp = DateTimeOffset.UtcNow;
+        }
+    }
+
+    private static string[] NormalizeTags(IReadOnlyList<string> tags, string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+        if (tags.Count > 32)
+        {
+            throw new ArgumentException("A bulk edit may contain at most 32 tags per operation.", parameterName);
+        }
+
+        string[] normalized = tags
+            .Select(tag => tag?.Trim() ?? string.Empty)
+            .Where(tag => tag.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (normalized.Any(tag => tag.Length > 128 || tag.Contains(';') || tag.Contains('|')))
+        {
+            throw new ArgumentException("Tags must be non-empty, at most 128 characters, and contain no delimiters.", parameterName);
+        }
+
+        return normalized;
+    }
+
+    private static IEnumerable<string> ParseTags(string? value) =>
+        (value ?? string.Empty)
+            .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(tag => tag.Length > 0);
 }

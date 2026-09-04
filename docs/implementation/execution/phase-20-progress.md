@@ -17,6 +17,8 @@ Date: 2026-08-30
   status, 1–5 rating, and favourite controls. Each action is validated by the
   application service, refreshes the projection after persistence, and reports
   a localized success/failure state without exposing history text.
+- Implemented bounded bulk tag add/remove persistence and audit projection;
+  tag input is normalized case-insensitively and stored as user-owned metadata.
 
 ## Verification
 
@@ -27,7 +29,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Collections/tags UI, smart-shelf saved queries, file/relink actions, complete
+Tag-management UI and collections, smart-shelf saved queries, file/relink actions, complete
 status/history presentation, lazy TOC and provenance tabs, and
 accessibility/E2E evidence remain before phase 20 closure. The detail-view
 status/rating/favourite write-control sub-gate is closed by the curation UI

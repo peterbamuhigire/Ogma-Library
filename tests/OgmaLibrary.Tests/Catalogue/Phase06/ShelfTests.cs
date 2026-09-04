@@ -124,4 +124,38 @@ public sealed class ShelfTests : IDisposable
         var shelf = await _context.Shelves.FirstAsync(s => s.ShelfId == shelfId);
         Assert.Equal("New Name", shelf.Name);
     }
+
+    [Fact]
+    public async Task BulkEdit_Tags_AddsAndRemovesNormalizedUserTags()
+    {
+        string bookId = await AddBookAsync();
+
+        await _writeService.BulkEditAsync(new BulkEditCommand(
+            [bookId],
+            ["Systems", "reader", "systems"],
+            [],
+            null,
+            null,
+            null,
+            null));
+
+        BookMetadataFieldRow tags = await _context.BookMetadataFields
+            .SingleAsync(field => field.BookId == bookId && field.FieldName == "Tags");
+        Assert.Equal("reader; Systems", tags.Value);
+        Assert.Equal("User", tags.Source);
+        Assert.True(tags.IsOverridden);
+
+        await _writeService.BulkEditAsync(new BulkEditCommand(
+            [bookId],
+            [],
+            ["READER"],
+            null,
+            null,
+            null,
+            null));
+
+        tags = await _context.BookMetadataFields
+            .SingleAsync(field => field.BookId == bookId && field.FieldName == "Tags");
+        Assert.Equal("Systems", tags.Value);
+    }
 }

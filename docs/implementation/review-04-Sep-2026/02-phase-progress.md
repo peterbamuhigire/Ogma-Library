@@ -12,13 +12,13 @@ verified evidence and remaining gate summarized for decision use.
 | 11 | IN PROGRESS | Versioned extraction artifacts, ISBN evidence, TOC quality, 500-book synthetic baseline, bounded page-streamed text extraction | Real target-scale mixed-PDF corpus and native resource measurements |
 | 12 | COMPLETE | Scope policy, precedence, proposal-only enrichment, provenance review | Physical/release validation as applicable |
 | 13 | IN PROGRESS | Cache/TTL/stale/revalidation, health/quota/circuit, retry/conflicts, privacy disclosure, official terms constraints | Legal/privacy owner review, archive evidence, live network, attribution UI |
-| 14 | IN PROGRESS | Durable proposals, concurrency, validation, field dictionary, atomic bulk review/undo | Accessible UI acceptance |
+| 14 | IN PROGRESS | Durable proposals, concurrency, validation, field dictionary, atomic bulk review/undo, bounded tag mutation | Accessible UI acceptance |
 | 15 | IN PROGRESS | Hash guard, writeback preparation/audit, exclusivity, invalidation, backup undo | Consent journey and physical evidence |
 | 16 | IN PROGRESS | Asset manifests, precedence, validation, custom covers, stale GC, bounded lazy variants, allowlisted bounded provider-image client, atomic provider persistence, local detail cover UI | Resolver/embedded flow, API authorization, scale budget, physical accessibility |
 | 17 | IN PROGRESS | Durable leases/heartbeat, follow-ups, dead-letter, resource groups, redaction, search/embedding queue conversion, diagnostics | Kill/restart load evidence |
 | 18 | IN PROGRESS | Design controls, focus, typography | Localization, settings, palette/contrast, physical accessibility |
 | 19 | IN PROGRESS | Cover control, asset loading, functional directory view, visible filter/sort wiring, server paging, local 50k page performance | Persisted UI paging, parity/badges/auth/reference confirmation |
-| 20 | IN PROGRESS | Curation foundations and desktop status/rating/favourite detail controls | Collections, file/relink, provenance, E2E |
+| 20 | IN PROGRESS | Curation foundations, desktop status/rating/favourite detail controls, bounded tag mutation | Tag UI, collections, file/relink, provenance, E2E |
 | 21 | IN PROGRESS | Reader portability, cache/session, non-crash regression | Split/viewer, physical crash, accessibility, budget |
 | 22 | IN PROGRESS | Structured/fuzzy search, debounce, bounded candidates, facets/paging/highlighting, local 50k p95, local search UI/keyboard evidence | Reference-machine and physical accessibility gates |
 | 23 | IN PROGRESS | FTS filters, snippets, page-jump, staged side-by-side promotion, local p95 | Reference and accessibility evidence |
