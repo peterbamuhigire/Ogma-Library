@@ -96,4 +96,54 @@ public sealed class Phase15WriteBackSafetyTests
             }
         }
     }
+
+    [Fact]
+    public async Task WriteBackPlan_SurvivesServiceRecreation()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-phase15-plan-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "book.pdf");
+        using (var document = new PdfSharp.Pdf.PdfDocument())
+        {
+            document.AddPage();
+            using var stream = new MemoryStream();
+            document.Save(stream);
+            await File.WriteAllBytesAsync(path, stream.ToArray());
+        }
+
+        try
+        {
+            using CatalogueDbContext firstContext = CatalogueTestHelper.CreateInMemoryContext();
+            firstContext.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "PHASE15PLAN000000000000001",
+                Status = 0,
+                RelativePath = "book.pdf",
+            });
+            await firstContext.SaveChangesAsync();
+            var firstService = new PdfWriteBackService(firstContext, new SidecarService(root), root);
+
+            BackupToken prepared = await firstService.PrepareBackupAsync(
+                "PHASE15PLAN000000000000001",
+                path);
+
+            using CatalogueDbContext restartedContext = CatalogueTestHelper.CreateInMemoryContext();
+            var restartedService = new PdfWriteBackService(restartedContext, new SidecarService(root), root);
+            WriteBackPlan? plan = await restartedService.GetWriteBackPlanAsync(
+                "PHASE15PLAN000000000000001");
+
+            Assert.NotNull(plan);
+            Assert.Equal("prepared", plan.Status);
+            Assert.Equal(prepared.OriginalSha256, plan.BackupToken.OriginalSha256);
+            Assert.Equal(prepared.BackupAbsolutePath, plan.BackupToken.BackupAbsolutePath);
+            Assert.True(File.Exists(plan.BackupToken.BackupAbsolutePath));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
 }

@@ -23,7 +23,7 @@ Ledger normalized: 2026-09-04
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry and conflict aggregation delivered; privacy-disclosure evidence open |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency, boundary validation and canonical field dictionary delivered; bulk preview/undo and accessible UI open |
-| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation and explicit backup undo delivered; durable plan, consent and physical evidence open |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation, durable write-back plan and explicit backup undo delivered; consent and physical evidence open |
 | 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection, output validation and stale-asset GC delivered; acquisition/variants/UI/scale open |
 | 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence, poison quarantine, resource groups, redacted lifecycle events, OCR lease conversion, metrics and diagnostics export delivered; stage conversion and kill/restart load evidence open |
 | 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus and typography delivered; localization, settings, palette, contrast and physical accessibility open |

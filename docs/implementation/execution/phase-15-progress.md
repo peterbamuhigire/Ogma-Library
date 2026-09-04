@@ -18,10 +18,15 @@ Date: 2026-08-30
 - Added an explicit `RestoreBackupAsync` undo command that validates the trusted
   backup location, verifies the restored PDF before replacement, resets derived
   indexes, retains the backup, and records success/failure audit events.
+- Added an atomic, trusted `.ogma/writeback-plans` record that persists the
+  prepared backup token across service recreation and records prepared, written,
+  or restored lifecycle status. Plan loading validates book identity, status,
+  original-path policy, and backup containment before resumption.
 
 ## Remaining phase gate
 
-Explicit consent UI, a first-class durable writeback-plan, and
-physical interruption/permission evidence remain before phase 15 closure.
+Explicit consent UI and physical interruption/permission evidence remain before
+phase 15 closure. The first-class durable writeback-plan gate is closed by the
+restart-style and safety evidence above.
 Preparation audit records, exclusive-file checks, derived-index invalidation
 status, and restored-backup status are implemented and tested.

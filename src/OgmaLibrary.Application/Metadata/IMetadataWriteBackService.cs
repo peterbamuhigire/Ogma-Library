@@ -23,6 +23,13 @@ public sealed record BackupToken(
     string OriginalAbsolutePath,
     string OriginalSha256);
 
+/// <summary>Durable write-back plan that survives a desktop restart.</summary>
+public sealed record WriteBackPlan(
+    string BookId,
+    BackupToken BackupToken,
+    DateTimeOffset PreparedUtc,
+    string Status);
+
 /// <summary>
 /// Implements the reversible PDF DocInfo write-back protocol (FR-META-005, ADR-0008,
 /// NFR-PROD-010, R1). The sequence is: backup → diff → user confirm → write (temp) →
@@ -52,6 +59,11 @@ public interface IMetadataWriteBackService
     Task<BackupToken> PrepareBackupAsync(
         string bookId,
         string absoluteFilePath,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Loads the durable write-back plan for a book, when one exists.</summary>
+    Task<WriteBackPlan?> GetWriteBackPlanAsync(
+        string bookId,
         CancellationToken cancellationToken = default);
 
     /// <summary>

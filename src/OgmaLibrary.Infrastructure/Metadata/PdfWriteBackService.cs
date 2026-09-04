@@ -22,6 +22,11 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class PdfWriteBackService : IMetadataWriteBackService
 {
+    private static readonly JsonSerializerOptions PlanJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+    };
+
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly ISidecarService _sidecarService;
@@ -106,6 +111,17 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         await Task.Run(() => File.Copy(absoluteFilePath, backupPath, overwrite: true), cancellationToken)
             .ConfigureAwait(false);
 
+        DateTimeOffset preparedUtc = DateTimeOffset.UtcNow;
+        await SaveWriteBackPlanAsync(
+                new WriteBackPlan(
+                    bookId,
+                    new BackupToken(backupPath, absoluteFilePath, sha256),
+                    preparedUtc,
+                    "prepared"),
+                _libraryRoot,
+                cancellationToken)
+            .ConfigureAwait(false);
+
         using (CatalogueContextLease lease = await CatalogueContextLease
                    .CreateAsync(_contextFactory, _context, cancellationToken)
                    .ConfigureAwait(false))
@@ -120,7 +136,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                     originalSha256 = sha256,
                     backup = backupPath,
                 }),
-                Timestamp = DateTimeOffset.UtcNow,
+                Timestamp = preparedUtc,
                 IsLocalOnly = true,
             });
             await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -130,6 +146,43 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             BackupAbsolutePath: backupPath,
             OriginalAbsolutePath: absoluteFilePath,
             OriginalSha256: sha256);
+    }
+
+    /// <inheritdoc />
+    public async Task<WriteBackPlan?> GetWriteBackPlanAsync(
+        string bookId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        string planPath = GetPlanPath(bookId);
+        if (!File.Exists(planPath))
+        {
+            return null;
+        }
+
+        using FileStream stream = File.OpenRead(planPath);
+        WriteBackPlan? plan = await JsonSerializer.DeserializeAsync<WriteBackPlan>(
+                stream,
+                PlanJsonOptions,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (plan is null ||
+            !string.Equals(plan.BookId, bookId, StringComparison.Ordinal) ||
+            plan.BackupToken is null ||
+            plan.Status is not ("prepared" or "written" or "restored"))
+        {
+            throw new InvalidOperationException("The durable write-back plan is invalid or has been tampered with.");
+        }
+
+        string backupRoot = await ValidateWriteTargetAsync(
+                bookId,
+                plan.BackupToken.OriginalAbsolutePath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        _ = PathGuard.EnsureWithinRoot(
+            plan.BackupToken.BackupAbsolutePath,
+            Path.Combine(backupRoot, ".ogma", "backups"));
+        return plan;
     }
 
     /// <inheritdoc />
@@ -273,6 +326,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             });
 
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await UpdateWriteBackPlanStatusAsync(bookId, "written", cancellationToken)
+                .ConfigureAwait(false);
             return true;
         }
         catch (OperationCanceledException)
@@ -360,6 +415,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 IsLocalOnly = true,
             });
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await UpdateWriteBackPlanStatusAsync(bookId, "restored", cancellationToken)
+                .ConfigureAwait(false);
             return true;
         }
         catch (OperationCanceledException)
@@ -373,6 +430,55 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             await RecordUndoFailureAsync(bookId, backupPath, ex.Message).ConfigureAwait(false);
             return false;
         }
+    }
+
+    private static async Task SaveWriteBackPlanAsync(
+        WriteBackPlan plan,
+        string backupRoot,
+        CancellationToken cancellationToken)
+    {
+        string plansRoot = Path.Combine(backupRoot, ".ogma", "writeback-plans");
+        Directory.CreateDirectory(plansRoot);
+        string planPath = GetPlanPath(plan.BookId, backupRoot);
+        string temporaryPath = planPath + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            using (FileStream stream = File.Create(temporaryPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, plan, PlanJsonOptions, cancellationToken)
+                    .ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            File.Move(temporaryPath, planPath, overwrite: true);
+        }
+        finally
+        {
+            TryDelete(temporaryPath);
+        }
+    }
+
+    private async Task UpdateWriteBackPlanStatusAsync(
+        string bookId,
+        string status,
+        CancellationToken cancellationToken)
+    {
+        WriteBackPlan? plan = await GetWriteBackPlanAsync(bookId, cancellationToken).ConfigureAwait(false);
+        if (plan is null)
+        {
+            return;
+        }
+
+        await SaveWriteBackPlanAsync(plan with { Status = status }, _libraryRoot, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private string GetPlanPath(string bookId) => GetPlanPath(bookId, _libraryRoot);
+
+    private static string GetPlanPath(string bookId, string root)
+    {
+        string id = Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(bookId)));
+        return Path.Combine(root, ".ogma", "writeback-plans", id + ".json");
     }
 
     private async Task RecordUndoFailureAsync(string bookId, string backupPath, string errorMessage)
