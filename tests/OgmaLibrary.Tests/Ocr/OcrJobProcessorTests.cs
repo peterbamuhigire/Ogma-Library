@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
@@ -137,6 +138,22 @@ public sealed class OcrJobProcessorTests : IDisposable
         JobRow job = _context.Jobs.Single(job => job.JobType == OcrJobProcessor.JobType);
         Assert.Equal(2, job.Status);
         Assert.Equal(1, job.RetryCount);
+    }
+
+    [Fact]
+    public async Task OcrJob_ResourceLimitPersistsStableFailureCodeForRetryTelemetry()
+    {
+        string bookId = SeedBook("BOOKOCRLIMIT000000000001");
+        SeedOcrJob(bookId, 0, new OcrJobPayload("sample.pdf"));
+        var processor = CreateProcessor(new FakePdfRendererFactory(pageCount: 10_001), new FakeOcrProvider());
+
+        Assert.True(await processor.ProcessNextAsync(CancellationToken.None));
+
+        _context.ChangeTracker.Clear();
+        JobRow job = _context.Jobs.Single(row => row.JobType == OcrJobProcessor.JobType);
+        Assert.Equal((int)JobRuntimeStatus.Pending, job.Status);
+        Assert.Equal("ocr_page_limit", job.FailureCode);
+        Assert.DoesNotContain("10,001", job.ErrorMessage ?? string.Empty, StringComparison.Ordinal);
     }
 
     private OcrJobProcessor CreateProcessor(FakePdfRendererFactory rendererFactory, FakeOcrProvider provider)

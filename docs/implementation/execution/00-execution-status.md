@@ -32,7 +32,7 @@ Ledger normalized: 2026-09-04
 | 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability work delivered; platform viewer, crash/cache, accessibility and budget evidence open |
 | 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback, debounced type-ahead and bounded candidate materialization delivered; facets/paging/highlighting/corrections/scale open |
 | 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets and desktop reader navigation delivered; progress, observability and scale open |
-| 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards and trained-data checksum delivered; accuracy/telemetry/UI/cross-platform open |
+| 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards, trained-data checksum and stable retry/resource failure codes delivered; accuracy/UI/cross-platform evidence open |
 | 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency and stale source detection delivered; tombstones/ANN/scale/cost/UI open |
 | 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, structured prefilters, dimension filtering and metric contract delivered; durable runs, corpus, ANN, diversity and scale open |
 | 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, timeout/retry/circuit, health telemetry, egress allowlists and platform secret custody/rotation/deletion delivered; profiles/budgets/UI/retention/conformance open |

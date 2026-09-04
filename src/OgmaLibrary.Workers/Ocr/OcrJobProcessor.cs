@@ -95,8 +95,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             return true;
         }
 
-        bool succeeded = await ProcessAsync(context, job, cancellationToken).ConfigureAwait(false);
-        if (succeeded)
+        OcrProcessingResult processing = await ProcessAsync(context, job, cancellationToken).ConfigureAwait(false);
+        if (processing.Succeeded)
         {
             await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, cancellationToken)
                 .ConfigureAwait(false);
@@ -106,7 +106,10 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             await _jobRuntime.FailAsync(
                     lease.JobId,
                     WorkerId,
-                    new JobFailure("ocr_processing_failed", "OCR processing failed; the job was returned to the bounded retry policy.", Retryable: true),
+                new JobFailure(
+                    processing.FailureCode ?? "ocr_processing_failed",
+                    "OCR processing failed; the job was returned to the bounded retry policy.",
+                    Retryable: true),
                     cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -114,19 +117,22 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         return true;
     }
 
-    private async Task<bool> ProcessAsync(CatalogueDbContext context, JobRow job, CancellationToken cancellationToken)
+    private async Task<OcrProcessingResult> ProcessAsync(
+        CatalogueDbContext context,
+        JobRow job,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(job.BookId))
         {
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return false;
+            return OcrProcessingResult.Failed("ocr_invalid_payload");
         }
 
         OcrJobPayload payload = ParsePayload(job.Payload);
         if (string.IsNullOrWhiteSpace(payload.FilePath))
         {
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return false;
+            return OcrProcessingResult.Failed("ocr_invalid_payload");
         }
 
         job.StartedUtc ??= DateTimeOffset.UtcNow;
@@ -139,8 +145,7 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             int totalPages = renderer.PageCount;
             if (totalPages < 0 || totalPages > MaximumPagesPerJob)
             {
-                throw new InvalidOperationException(
-                    $"OCR page count exceeds the local limit of {MaximumPagesPerJob.ToString(System.Globalization.CultureInfo.InvariantCulture)}.");
+                throw new OcrResourceLimitException("ocr_page_limit");
             }
             string? contentHash = await context.Books
                 .Where(book => book.BookId == job.BookId)
@@ -179,7 +184,7 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                     .ConfigureAwait(false);
                 if (rendered.PngBytes.Length > MaximumRenderedImageBytes)
                 {
-                    throw new InvalidOperationException("Rendered OCR page exceeds the local memory limit.");
+                    throw new OcrResourceLimitException("ocr_render_limit");
                 }
 
                 using var image = new MemoryStream(rendered.PngBytes, writable: false);
@@ -206,16 +211,32 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
 
             job.ErrorMessage = null;
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return true;
+            return OcrProcessingResult.Success;
         }
         catch (OperationCanceledException)
         {
             throw;
         }
+        catch (OcrResourceLimitException error)
+        {
+            return OcrProcessingResult.Failed(error.Code);
+        }
         catch (Exception)
         {
-            return false;
+            return OcrProcessingResult.Failed("ocr_processing_failed");
         }
+    }
+
+    private sealed record OcrProcessingResult(bool Succeeded, string? FailureCode)
+    {
+        public static OcrProcessingResult Success { get; } = new(true, null);
+
+        public static OcrProcessingResult Failed(string code) => new(false, code);
+    }
+
+    private sealed class OcrResourceLimitException(string code) : InvalidOperationException
+    {
+        public string Code { get; } = code;
     }
 
     private async Task<int> ReplaceOcrSearchChunksAsync(string bookId, CancellationToken cancellationToken)

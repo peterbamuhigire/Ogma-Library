@@ -24,6 +24,10 @@ Date: 2026-08-30
   the restored `eng.traineddata` asset is allow-listed for the pinned
   `Tesseract.Data.English` package, while language packs without an approved
   checksum are rejected before OCR starts.
+- OCR invalid payloads and resource-limit failures now persist stable failure
+  codes (`ocr_invalid_payload`, `ocr_page_limit`, and `ocr_render_limit`) into
+  the shared retry/diagnostic runtime without exposing limit details as error
+  text.
 
 ## Verification
 
@@ -35,6 +39,5 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Real mixed-PDF accuracy and CPU/memory corpus evidence, complete retry/resource
-telemetry, OCR UI quality controls, and cross-platform packaged asset proof
-remain before phase 24 closure.
+Real mixed-PDF accuracy and CPU/memory corpus evidence, OCR UI quality controls,
+and cross-platform packaged asset proof remain before phase 24 closure.
