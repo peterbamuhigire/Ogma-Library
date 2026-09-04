@@ -1,6 +1,6 @@
 # Phase 19 Progress - Production 2D Catalogue
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Delivered in this increment
 
@@ -58,5 +58,8 @@ closure. The persisted-view-state, UI-pagination, directory-view, visible
 filter/sort wiring, and local 50k server-side page-performance sub-gates are
 closed. Named reference-hardware confirmation remains a release gate.
 
-- Current-HEAD full solution verification is green at 1,071 tests (885 core,
-  41 architecture, 145 UI), with 0 failures and 0 skips.
+- Current-HEAD full solution verification is green at 1,085 tests (893 core,
+  41 architecture, 151 UI), with 0 failures and 0 skips. The refreshed run
+  includes the current Phase 18 appearance/palette changes; it does not close
+  Phase 19's remaining badges, fallback, authorization, accessibility, or
+  reference-hardware gates.
