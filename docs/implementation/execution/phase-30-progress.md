@@ -59,6 +59,8 @@ Date: 2026-09-04
   ranked results, relevance judgments, reports, replacement, load, and delete.
 - Advisor view-model slice: 51 passed; headless recommendation/answer/feedback
   render: 1 passed; isolated Release build: 0 warnings and 0 errors.
+- Current-head local gate reconciliation is recorded in
+  `evidence/phase-30-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
