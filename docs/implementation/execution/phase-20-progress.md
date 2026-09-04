@@ -28,6 +28,9 @@ Date: 2026-09-04
 - Added closed-contract smart-shelf query parsing and validation, persisted
   smart-shelf evaluation in catalogue reads, post-evaluation paging, dynamic
   smart-shelf counts, and fail-closed handling for damaged queries.
+- Translated the closed smart-shelf condition set to server-side predicates for
+  bounded catalogue selection and count queries, retaining projection
+  evaluation as a defense-in-depth check.
 
 ## Verification
 

@@ -100,7 +100,8 @@ public static class SmartShelfQueryParser
                     !Enum.IsDefined(condition.Field) ||
                     !Enum.IsDefined(condition.Operator) ||
                     string.IsNullOrWhiteSpace(condition.Value) ||
-                    condition.Value.Length > MaxValueLength))
+                    condition.Value.Length > MaxValueLength ||
+                    !IsSemanticallyValid(condition)))
             {
                 return false;
             }
@@ -112,6 +113,22 @@ public static class SmartShelfQueryParser
         {
             return false;
         }
+    }
+
+    private static bool IsSemanticallyValid(SmartShelfCondition condition)
+    {
+        if (condition.Field == SmartShelfField.IsAvailable)
+        {
+            return condition.Operator is (SmartShelfOperator.Equals or SmartShelfOperator.NotEquals) &&
+                   bool.TryParse(condition.Value, out _);
+        }
+
+        return double.TryParse(
+                   condition.Value,
+                   System.Globalization.NumberStyles.Float,
+                   System.Globalization.CultureInfo.InvariantCulture,
+                   out double value) &&
+               double.IsFinite(value);
     }
 }
 

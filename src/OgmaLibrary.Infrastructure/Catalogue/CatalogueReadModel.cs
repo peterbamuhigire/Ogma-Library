@@ -1,7 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq.Expressions;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Infrastructure.Catalogue;
 
@@ -128,6 +130,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     // to the full catalogue. It fails closed to an empty result.
                     return [];
                 }
+
+                query = ApplySmartShelfConditions(query, smartConditions);
             }
             else
             {
@@ -500,8 +504,11 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             return 0;
         }
 
-        var books = await context.Books
-            .AsNoTracking()
+        var books = context.Books
+            .AsNoTracking();
+
+        books = ApplySmartShelfConditions(books, conditions);
+        var rows = await books
             .Select(book => new
             {
                 book.BookId,
@@ -516,7 +523,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var summaries = books.Select(book => new BookSummaryProjection(
+        var summaries = rows.Select(book => new BookSummaryProjection(
             BookId: book.BookId,
             Title: null,
             Authors: [],
@@ -529,6 +536,81 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             Year: book.Year));
 
         return SmartShelfEvaluator.Evaluate(summaries, conditions).Count;
+    }
+
+    private static IQueryable<BookRow> ApplySmartShelfConditions(
+        IQueryable<BookRow> query,
+        IReadOnlyList<SmartShelfCondition> conditions)
+    {
+        foreach (SmartShelfCondition condition in conditions)
+        {
+            if (condition.Field == SmartShelfField.IsAvailable)
+            {
+                bool expected = bool.Parse(condition.Value);
+                Expression<Func<BookRow, bool>> available = book =>
+                    book.BookFiles.Any(file => file.FileStatus == 0);
+                query = ApplyBooleanCondition(query, available, condition.Operator, expected);
+                continue;
+            }
+
+            double value = double.Parse(
+                condition.Value,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture);
+            Expression<Func<BookRow, double?>> field = condition.Field switch
+            {
+                SmartShelfField.Rating => book => book.Rating,
+                SmartShelfField.Status => book => book.Status,
+                SmartShelfField.Year => book => book.Year,
+                SmartShelfField.ReadingProgressPct => book => book.ReadingProgress == null
+                    ? null
+                    : book.ReadingProgress.CompletionPct,
+                _ => throw new InvalidOperationException("Unsupported smart-shelf field."),
+            };
+            query = ApplyNumericCondition(query, field, condition.Operator, value);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<BookRow> ApplyBooleanCondition(
+        IQueryable<BookRow> query,
+        Expression<Func<BookRow, bool>> field,
+        SmartShelfOperator operatorKind,
+        bool expected)
+    {
+        ParameterExpression parameter = field.Parameters[0];
+        Expression comparison = operatorKind == SmartShelfOperator.Equals
+            ? Expression.Equal(field.Body, Expression.Constant(expected))
+            : Expression.NotEqual(field.Body, Expression.Constant(expected));
+        return query.Where(Expression.Lambda<Func<BookRow, bool>>(comparison, parameter));
+    }
+
+    private static IQueryable<BookRow> ApplyNumericCondition(
+        IQueryable<BookRow> query,
+        Expression<Func<BookRow, double?>> field,
+        SmartShelfOperator operatorKind,
+        double expected)
+    {
+        ParameterExpression parameter = field.Parameters[0];
+        MemberExpression hasValue = Expression.Property(field.Body, nameof(Nullable<double>.HasValue));
+        UnaryExpression value = Expression.Convert(
+            Expression.Property(field.Body, nameof(Nullable<double>.Value)),
+            typeof(double));
+        ConstantExpression target = Expression.Constant(expected);
+        BinaryExpression comparison = operatorKind switch
+        {
+            SmartShelfOperator.Equals => Expression.Equal(value, target),
+            SmartShelfOperator.NotEquals => Expression.NotEqual(value, target),
+            SmartShelfOperator.GreaterThan => Expression.GreaterThan(value, target),
+            SmartShelfOperator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(value, target),
+            SmartShelfOperator.LessThan => Expression.LessThan(value, target),
+            SmartShelfOperator.LessThanOrEqual => Expression.LessThanOrEqual(value, target),
+            _ => throw new InvalidOperationException("Unsupported smart-shelf operator."),
+        };
+        return query.Where(Expression.Lambda<Func<BookRow, bool>>(
+            Expression.AndAlso(hasValue, comparison),
+            parameter));
     }
 
     /// <inheritdoc />

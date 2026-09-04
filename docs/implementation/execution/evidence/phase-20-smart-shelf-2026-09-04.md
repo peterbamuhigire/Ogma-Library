@@ -20,6 +20,9 @@ are accepted.
   against the projected catalogue, with paging applied after evaluation.
 - Smart-shelf book counts are calculated from the saved query rather than the
   manual `ShelfBooks` join table.
+- The closed condition set is translated to server-side predicates for rating,
+  status, year, availability, and reading progress before projection; the
+  in-memory evaluator remains as a defense-in-depth semantic check.
 - Damaged or untrusted smart-shelf queries fail closed to zero results and a
   zero displayed count.
 
@@ -35,10 +38,8 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --no-restore
   --results-directory tmp/phase20-smart-shelf-results/
 ```
 
-Result: 24 passed, 0 failed, 0 skipped.
-
-The write-path regression run passed 6 tests, including valid persistence and
-malformed-query rejection.
+Result: 25 passed, 0 failed, 0 skipped across the evaluator, read-model, and
+write-path tests.
 
 Full isolated solution validation:
 
@@ -50,7 +51,7 @@ dotnet test OgmaLibrary.sln --no-restore
 ```
 
 Result: 880 core + 41 architecture + 142 UI = 1,063 passed, 0 failed,
-0 skipped.
+0 skipped after the server-side predicate optimization.
 
 ## Remaining phase 20 gates
 
