@@ -73,6 +73,7 @@ public static class MetadataServiceExtensions
         }
 
         // Aggregator.
+        services.AddSingleton<IMetadataConflictDetector, MetadataConflictDetector>();
         services.AddSingleton<IMetadataProviderAggregator, MetadataProviderAggregator>();
         services.AddSingleton<IMetadataProviderHealth, MetadataProviderHealth>();
         services.AddSingleton<IMetadataProviderGateway, MetadataProviderGateway>();

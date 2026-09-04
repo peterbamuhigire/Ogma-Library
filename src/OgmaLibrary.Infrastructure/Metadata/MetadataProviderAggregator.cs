@@ -18,33 +18,42 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
     private readonly IReadOnlyList<IMetadataProvider> _providers;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly IMetadataConflictDetector _conflictDetector;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataProviderAggregator"/>.
     /// </summary>
     /// <param name="providers">All registered metadata providers.</param>
     /// <param name="context">The catalogue DB context for persisting lookup rows.</param>
+    /// <param name="conflictDetector">Optional field-level conflict detector.</param>
     internal MetadataProviderAggregator(
         IEnumerable<IMetadataProvider> providers,
-        CatalogueDbContext context)
+        CatalogueDbContext context,
+        IMetadataConflictDetector? conflictDetector = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(context);
         _providers = providers.ToList();
         _context = context;
+        _conflictDetector = conflictDetector ?? new MetadataConflictDetector();
     }
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataProviderAggregator"/>.
     /// </summary>
+    /// <param name="providers">All registered metadata providers.</param>
+    /// <param name="contextFactory">Factory for catalogue DB contexts.</param>
+    /// <param name="conflictDetector">Optional field-level conflict detector.</param>
     public MetadataProviderAggregator(
         IEnumerable<IMetadataProvider> providers,
-        IDbContextFactory<CatalogueDbContext> contextFactory)
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        IMetadataConflictDetector? conflictDetector = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(contextFactory);
         _providers = providers.ToList();
         _contextFactory = contextFactory;
+        _conflictDetector = conflictDetector ?? new MetadataConflictDetector();
     }
 
     /// <inheritdoc />
@@ -117,6 +126,34 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
                     confidence = result.Confidence,
                 }),
                 Timestamp = result.RetrievedUtc,
+                IsLocalOnly = true,
+            });
+        }
+
+        MetadataConflictReport conflictReport = _conflictDetector.Detect(results);
+        if (conflictReport.HasConflicts)
+        {
+            context.AuditEvents.Add(new AuditEventRow
+            {
+                EventType = "ProviderConflict",
+                EntityId = bookId,
+                EntityType = "Book",
+                AfterJson = JsonSerializer.Serialize(new
+                {
+                    fields = conflictReport.Conflicts.Select(conflict => new
+                    {
+                        field = conflict.FieldName,
+                        providers = conflict.Candidates
+                            .Select(candidate => candidate.Provider)
+                            .Distinct(StringComparer.Ordinal)
+                            .Order(StringComparer.Ordinal)
+                            .ToArray(),
+                        candidateCount = conflict.Candidates.Count,
+                    }).ToArray(),
+                    // Candidate values are intentionally excluded from this audit payload.
+                    containsRawValues = false,
+                }),
+                Timestamp = DateTimeOffset.UtcNow,
                 IsLocalOnly = true,
             });
         }

@@ -28,12 +28,14 @@ Date: 2026-09-04
   failures, and preserve stale cache behavior when the circuit blocks refresh.
 
 The shared rate-limited HTTP handler now reports retry counts into the same
-provider health snapshot.
+provider health snapshot. Successful multi-provider aggregations now produce a
+field-level conflict report and a privacy-safe `ProviderConflict` audit event;
+candidate values remain available to review consumers but are excluded from the
+durable audit payload.
 
 ## Remaining phase gate
 
-Provider backoff/retry telemetry, provider conflict aggregation, and privacy
-disclosure evidence
+Provider backoff/retry telemetry and privacy disclosure evidence
 remain before phase 13 closure. Quota and circuit state are now observable in
 the local health contract; stale-cache status is present in the provider result
 contract for the UI consumer.
