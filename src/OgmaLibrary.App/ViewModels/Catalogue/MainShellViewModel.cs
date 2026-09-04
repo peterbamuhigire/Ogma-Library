@@ -165,6 +165,7 @@ public sealed class MainShellViewModel :
         _classroomModeService = classroomModeService;
 
         _localization.CultureChanged += (_, _) => RaiseAllChanged();
+        Catalogue.PropertyChanged += Catalogue_PropertyChanged;
 
         if (_scanProgress is not null)
         {
@@ -864,6 +865,7 @@ public sealed class MainShellViewModel :
     /// <inheritdoc />
     public void Dispose()
     {
+        Catalogue.PropertyChanged -= Catalogue_PropertyChanged;
         _classroomConnectivitySubscription?.Dispose();
 
         if (HostSharing is not null)
@@ -879,6 +881,14 @@ public sealed class MainShellViewModel :
         Advisor?.Dispose();
         ReadingPlan?.Dispose();
         Bookshelf3D?.Dispose();
+    }
+
+    private void Catalogue_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(CatalogueViewModel.TotalFilteredCount) or nameof(CatalogueViewModel.FilteredCount))
+        {
+            OnPropertyChanged(nameof(CatalogueCountText));
+        }
     }
 
     private void OnProgressChanged(object? sender, ScanProgressSnapshot snapshot)
