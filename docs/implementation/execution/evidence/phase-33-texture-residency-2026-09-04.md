@@ -15,6 +15,9 @@ the scene focus from search/advisor results, and reduced-motion users do not
 trigger automatic camera movement.
 
 The shipped `shelf3d.js` bundle was rebuilt from `src/shelf3d/src/scene.ts`.
+Resident spine maps now use the bounded 192-slot shared atlas delivered in the
+Phase 32 increment; the 161-book focus band remains the upper bound on books
+that may be textured at once.
 
 ## Verification
 
@@ -29,7 +32,9 @@ Results: **PASS** — TypeScript typecheck, bundle build, Node syntax check, and
 31/31 Shelf3D tests passed. `npm run perf:budget` also passed for both layouts
 at 50, 250, 500, 1,000, 5,000, and 10,000 arithmetic layout inputs.
 The residency extension reported no more than 500 meshes and 161 textured
-books at each tested size.
+books at each tested size, with no more than 192 atlas slots allocated. The
+complete solution suite also passed 1,066 tests (883 core, 41 architecture,
+142 UI) with 0 failures and 0 skips after the atlas rebuild.
 
 ## Remaining gates
 

@@ -31,7 +31,10 @@ Date: 2026-09-04
 - C# bridge/3D and view-model tests: 31 passed after the final build; physical
   WebView/GPU evidence remains an environment gate.
 - Residency checks passed with at most 500 resident meshes and at most 161
-  textured books across 50, 250, 500, 1k, 5k, and 10k catalogue inputs.
+  textured books across 50, 250, 500, 1k, 5k, and 10k catalogue inputs; the
+  shared Phase 32 atlas provides 192 bounded slots for that focus band.
+- The complete solution suite passed 1,066 tests (883 core, 41 architecture,
+  142 UI), with 0 failures and 0 skips, after the atlas rebuild.
 
 ## Remaining phase gate
 
