@@ -312,13 +312,28 @@
               Padding="12,8">
         <StackPanel Orientation="Horizontal" Spacing="16">
           <TextBlock Text="Filters" FontSize="{DynamicResource Type.Size.Caption}" VerticalAlignment="Center" />
-          <ComboBox PlaceholderText="Sort by"
-                    Width="120">
-            <ComboBoxItem Content="Title" />
-            <ComboBoxItem Content="Author" />
-            <ComboBoxItem Content="Year" />
-            <ComboBoxItem Content="Rating" />
-          </ComboBox>
+          <TextBox Width="150"
+                   Text="{Binding Catalogue.Filter.TitleSearch, Mode=TwoWay}"
+                   Watermark="Title"
+                   AutomationProperties.Name="Filter by title" />
+          <TextBox Width="150"
+                   Text="{Binding Catalogue.Filter.AuthorSearch, Mode=TwoWay}"
+                   Watermark="Author"
+                   AutomationProperties.Name="Filter by author" />
+          <ComboBox Width="120"
+                    ItemsSource="{Binding Catalogue.Filter.SortOptions}"
+                    SelectedItem="{Binding Catalogue.Filter.SortField, Mode=TwoWay}"
+                    AutomationProperties.Name="Sort by" />
+          <Button Padding="8,4"
+                  Background="Transparent"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding Catalogue.Filter.SortDirectionText}"
+                  Click="ToggleSortDirection_Click">
+            <TextBlock Text="{Binding Catalogue.Filter.SortDirectionText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
           <Button Padding="8,4"
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="White"

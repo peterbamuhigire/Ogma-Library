@@ -6,6 +6,7 @@
 - Phase 17: `docs/implementation/execution/phase-17-progress.md` and
   `tests/OgmaLibrary.Tests/Ingestion/Phase17StageWorkerTests.cs`
 - Phase 19: `docs/implementation/execution/evidence/phase-19-directory-view-2026-09-04.md`
+- Phase 19 filter/sort: `docs/implementation/execution/evidence/phase-19-filter-sort-ui-2026-09-04.md`
 - Phase 20: `docs/implementation/execution/evidence/phase-20-curation-ui-2026-09-04.md`
 - Phase 22: `docs/implementation/execution/evidence/phase-22-search-ui-2026-09-04.md`
 - Phase 27: `docs/implementation/execution/evidence/phase-27-privacy-journey-2026-09-04.md`

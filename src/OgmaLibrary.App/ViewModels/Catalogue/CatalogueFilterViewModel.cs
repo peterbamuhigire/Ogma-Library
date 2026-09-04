@@ -32,6 +32,8 @@ public enum CatalogueSortField
 /// </summary>
 public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
 {
+    private readonly IReadOnlyList<CatalogueSortField> _availableSortFields =
+        Enum.GetValues<CatalogueSortField>();
     private int? _statusFilter;
     private int? _minRating;
     private int? _maxRating;
@@ -113,7 +115,27 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
     public bool SortAscending
     {
         get => _sortAscending;
-        set => SetField(ref _sortAscending, value);
+        set
+        {
+            if (_sortAscending != value)
+            {
+                _sortAscending = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SortDirectionText));
+            }
+        }
+    }
+
+    /// <summary>The validated sort fields exposed by the catalogue filter UI.</summary>
+    public IReadOnlyList<CatalogueSortField> SortOptions => _availableSortFields;
+
+    /// <summary>Accessible text for the current sort direction.</summary>
+    public string SortDirectionText => SortAscending ? "Ascending" : "Descending";
+
+    /// <summary>Toggles the direction of the current stable sort.</summary>
+    public void ToggleSortDirection()
+    {
+        SortAscending = !SortAscending;
     }
 
     /// <summary>True when at least one filter dimension is active.</summary>

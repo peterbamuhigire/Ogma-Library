@@ -52,6 +52,23 @@ public sealed class CatalogueDirectoryViewRenderTests
         viewModel.Dispose();
     }
 
+    [AvaloniaFact]
+    public void CatalogueFilter_ShellBindingsApplyTitleAuthorAndSortDirection()
+    {
+        var filter = new CatalogueFilterViewModel();
+        filter.TitleSearch = "systems";
+        filter.AuthorSearch = "Meadows";
+        filter.SortField = CatalogueSortField.Year;
+        filter.ToggleSortDirection();
+
+        Assert.Equal("systems", filter.TitleSearch);
+        Assert.Equal("Meadows", filter.AuthorSearch);
+        Assert.Equal(CatalogueSortField.Year, filter.SortField);
+        Assert.False(filter.SortAscending);
+        Assert.Equal("Descending", filter.SortDirectionText);
+        Assert.Contains(CatalogueSortField.Rating, filter.SortOptions);
+    }
+
     private sealed class NoOpNavigation : IBookDetailNavigationService
     {
         public Task OpenDetailAsync(string bookId, CancellationToken cancellationToken = default) =>

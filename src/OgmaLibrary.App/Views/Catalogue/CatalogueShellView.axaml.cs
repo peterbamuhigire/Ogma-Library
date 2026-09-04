@@ -103,6 +103,14 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void ToggleSortDirection_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.Catalogue.Filter.ToggleSortDirection();
+        }
+    }
+
     private void GridViewButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

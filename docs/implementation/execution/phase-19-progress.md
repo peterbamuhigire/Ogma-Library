@@ -24,6 +24,10 @@ Date: 2026-08-30
   projection. It renders library-root-relative paths in a virtualized list and
   opens the selected book in the reader on double-click; LAN projections remain
   explicit and do not inherit the desktop-only path field.
+- Bound the visible filter panel's title and author fields, validated sort-field
+  choices, and ascending/descending direction to the shared filter model. The
+  existing single clear action remains available and filtering stays
+  conjunctive.
 
 ## Verification
 
@@ -31,12 +35,16 @@ Date: 2026-08-30
   passed with 0 warnings and 0 errors.
 - `Phase19CatalogueAssetTests`: 2 passed.
 - `CatalogueGridTests`: 2 passed.
-- `CatalogueDirectoryViewRenderTests`: 1 passed.
+- `CatalogueDirectoryViewRenderTests`: 2 passed, including filter/sort state
+  binding coverage.
 
 ## Remaining phase gate
 
 Persisted filter/sort views, UI pagination wiring, processing/quality badges,
 complete cover-source fallback, API asset authorization, and keyboard/screen-
-reader journeys remain before phase 19 closure. The directory-view delivery
+reader journeys remain before phase 19 closure. The directory-view and visible
+filter/sort wiring sub-gates
 sub-gate and local 50k server-side page performance sub-gate are closed; named
-reference-hardware confirmation remains a release gate.
+directory-view, visible filter/sort wiring, and local 50k server-side page
+performance sub-gates are closed; named reference-hardware confirmation
+remains a release gate.

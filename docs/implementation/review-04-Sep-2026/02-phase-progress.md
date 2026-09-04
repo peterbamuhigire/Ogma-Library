@@ -17,7 +17,7 @@ verified evidence and remaining gate summarized for decision use.
 | 16 | IN PROGRESS | Asset manifests, precedence, validation, custom covers, stale GC, bounded lazy variants, allowlisted bounded provider-image client, atomic provider persistence | Resolver/embedded flow, API authorization, UI, scale budget |
 | 17 | IN PROGRESS | Durable leases/heartbeat, follow-ups, dead-letter, resource groups, redaction, search/embedding queue conversion, diagnostics | Kill/restart load evidence |
 | 18 | IN PROGRESS | Design controls, focus, typography | Localization, settings, palette/contrast, physical accessibility |
-| 19 | IN PROGRESS | Cover control, asset loading, functional directory view, server paging, local 50k page performance | UI paging/parity/filter/sort/badges/auth/reference confirmation |
+| 19 | IN PROGRESS | Cover control, asset loading, functional directory view, visible filter/sort wiring, server paging, local 50k page performance | Persisted UI paging, parity/badges/auth/reference confirmation |
 | 20 | IN PROGRESS | Curation foundations and desktop status/rating/favourite detail controls | Collections, file/relink, provenance, E2E |
 | 21 | IN PROGRESS | Reader portability, cache/session, non-crash regression | Split/viewer, physical crash, accessibility, budget |
 | 22 | IN PROGRESS | Structured/fuzzy search, debounce, bounded candidates, facets/paging/highlighting, local 50k p95, local search UI/keyboard evidence | Reference-machine and physical accessibility gates |
