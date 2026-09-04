@@ -27,4 +27,5 @@ The focused offline-cache slice additionally passed 8/8, including a crafted
 metadata path regression that preserved an external sentinel file.
 
 The Host PDF materializer slice passed 5/5, including replacement of a
-tampered local PDF before reuse.
+tampered local PDF before reuse. Its atomic PDF and metadata writes now remove
+temporary files after cancellation or I/O failure.

@@ -64,8 +64,15 @@ internal sealed class ClassroomBookFileMaterializer : IClassroomBookFileMaterial
             }
 
             string tempPdfPath = $"{pdfPath}.{Guid.NewGuid():N}.tmp";
-            await File.WriteAllBytesAsync(tempPdfPath, resource.Content, cancellationToken).ConfigureAwait(false);
-            File.Move(tempPdfPath, pdfPath, overwrite: true);
+            try
+            {
+                await File.WriteAllBytesAsync(tempPdfPath, resource.Content, cancellationToken).ConfigureAwait(false);
+                File.Move(tempPdfPath, pdfPath, overwrite: true);
+            }
+            finally
+            {
+                DeleteTemporaryFile(tempPdfPath);
+            }
 
             var metadata = new MaterializedBookFileMetadata
             {
@@ -80,13 +87,20 @@ internal sealed class ClassroomBookFileMaterializer : IClassroomBookFileMaterial
             };
 
             string tempMetadataPath = $"{metadataPath}.{Guid.NewGuid():N}.tmp";
-            using (FileStream stream = File.Create(tempMetadataPath))
+            try
             {
-                await JsonSerializer.SerializeAsync(stream, metadata, JsonOptions, cancellationToken)
-                    .ConfigureAwait(false);
-            }
+                using (FileStream stream = File.Create(tempMetadataPath))
+                {
+                    await JsonSerializer.SerializeAsync(stream, metadata, JsonOptions, cancellationToken)
+                        .ConfigureAwait(false);
+                }
 
-            File.Move(tempMetadataPath, metadataPath, overwrite: true);
+                File.Move(tempMetadataPath, metadataPath, overwrite: true);
+            }
+            finally
+            {
+                DeleteTemporaryFile(tempMetadataPath);
+            }
             return pdfPath;
         }
         finally
@@ -166,6 +180,23 @@ internal sealed class ClassroomBookFileMaterializer : IClassroomBookFileMaterial
         content[2] == (byte)'D' &&
         content[3] == (byte)'F' &&
         content[4] == (byte)'-';
+
+    private static void DeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
 
     private static string CreateStableKey(string hostKey, string resourceKey)
     {
