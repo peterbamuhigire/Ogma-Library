@@ -57,6 +57,22 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
+        int[] existingDimensions = await context.EmbeddingVectors
+            .AsNoTracking()
+            .Where(row => row.ModelName == vector.ModelName &&
+                         row.ModelVersion == vector.ModelVersion &&
+                         row.ProviderKey == vector.ProviderKey)
+            .Select(row => row.DimensionCount)
+            .Distinct()
+            .ToArrayAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (existingDimensions.Any(dimension => dimension != vector.Vector.Length))
+        {
+            throw new InvalidOperationException(
+                $"Embedding dimension {vector.Vector.Length} does not match the existing " +
+                $"model dimension for '{vector.ModelName}/{vector.ModelVersion}/{vector.ProviderKey}'.");
+        }
+
         EmbeddingVectorRow? existing = await context.EmbeddingVectors
             .SingleOrDefaultAsync(row =>
                 row.ChunkId == vector.ChunkId &&

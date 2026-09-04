@@ -74,6 +74,38 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
     }
 
     [Fact]
+    public async Task EmbeddingVectorRepository_RejectsDimensionDriftWithinModelVersion()
+    {
+        long firstChunkId = SeedChunk();
+        long secondChunkId = SeedChunk();
+        var repository = new EmbeddingVectorRepository(_context);
+        const string modelName = "nomic-embed-text";
+        const string modelVersion = "nomic-embed-text:latest";
+
+        await repository.CreateAsync(
+            new EmbeddingVectorRecord(
+                0,
+                firstChunkId,
+                modelName,
+                modelVersion,
+                [0.1f, 0.2f, 0.3f],
+                3,
+                DateTimeOffset.UtcNow),
+            CancellationToken.None);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repository.CreateAsync(
+            new EmbeddingVectorRecord(
+                0,
+                secondChunkId,
+                modelName,
+                modelVersion,
+                [0.1f, 0.2f],
+                2,
+                DateTimeOffset.UtcNow),
+            CancellationToken.None));
+    }
+
+    [Fact]
     public async Task OllamaEmbeddingAdapter_PostsOnlyToLoopbackEmbeddingEndpoint()
     {
         using var http = new HttpClient(new RecordingHandler(request =>

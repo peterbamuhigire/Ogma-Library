@@ -20,6 +20,8 @@ Date: 2026-08-30
   behavior.
 - Added a repository-level stale-count query that recomputes the current selected
   chunk fingerprint and detects vectors whose source changed after generation.
+- Enforced one vector dimension per model/version/provider tuple so rebuild drift
+  fails closed before a mixed semantic index can be persisted.
 
 ## Verification
 
@@ -29,7 +31,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Explicit tombstones,
-tombstones, side-by-side vector index swap/resume, ANN/target-scale evidence,
-cost/cache telemetry, dimension-consistency policy across a rebuild, and UI
-stale-count/rebuild controls remain before phase 25 closure.
+Explicit tombstones, side-by-side vector index swap/resume, ANN/target-scale
+evidence, cost/cache telemetry, and UI stale-count/rebuild controls remain before
+phase 25 closure.
