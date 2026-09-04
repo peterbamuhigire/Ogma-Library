@@ -1,6 +1,6 @@
 # Phase 32 Progress - Virtual Bookshelf Visuals and Interaction
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -16,6 +16,9 @@ Date: 2026-08-30
   validated outbound protocol versions in the packaged client.
 - Bounded title/author labels before they cross the C# to JavaScript boundary and
   rejected oversized scene labels in the renderer.
+- Recorded the local scene/interaction verification in
+  `evidence/phase-32-virtual-bookshelf-2026-09-04.md`; source-pipeline,
+  scale, reduced-motion, and physical evidence remain open.
 
 ## Verification
 
