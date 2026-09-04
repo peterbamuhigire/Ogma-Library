@@ -32,6 +32,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IMetadataReviewService? _metadataReviewService;
     private readonly IBookFileLocator? _fileLocator;
     private readonly ITocExtractionService? _tocExtraction;
+    private readonly IMetadataWriteBackService? _writeBackService;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -47,6 +48,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _isLoadingToc;
     private bool _tocLoaded;
     private bool _provenanceLoaded;
+    private bool _isPreparingWriteBack;
+    private bool _isWritingWriteBack;
     private bool _isVisible;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
@@ -56,11 +59,14 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private string? _tagsStatusText;
     private string? _metadataReviewStatusText;
     private string? _readingHistoryStatusText;
+    private string? _writeBackStatusText;
     private string _tagsText = string.Empty;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
     private string _readingMemoryOpenQuestions = string.Empty;
     private string _readingMemoryDispositionText = string.Empty;
+    private BackupToken? _writeBackToken;
+    private List<AcceptedFieldProposal> _writeBackProposals = [];
 
     /// <summary>
     /// Initializes a new instance of <see cref="BookDetailViewModel"/>.
@@ -78,6 +84,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="metadataReviewService">The pending metadata proposal review boundary.</param>
     /// <param name="fileLocator">The safe catalogue-backed PDF locator.</param>
     /// <param name="tocExtraction">The bounded PDF table-of-contents extractor.</param>
+    /// <param name="writeBackService">The reversible PDF metadata writeback boundary.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -91,7 +98,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         ICatalogueWriteService? catalogueWriteService = null,
         IMetadataReviewService? metadataReviewService = null,
         IBookFileLocator? fileLocator = null,
-        ITocExtractionService? tocExtraction = null)
+        ITocExtractionService? tocExtraction = null,
+        IMetadataWriteBackService? writeBackService = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -110,6 +118,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _metadataReviewService = metadataReviewService;
         _fileLocator = fileLocator;
         _tocExtraction = tocExtraction;
+        _writeBackService = writeBackService;
     }
 
     /// <inheritdoc />
@@ -250,6 +259,21 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>Localized available-file state.</summary>
     public string AvailableFileText => _localization["Catalogue.BookDetail.File.Available"];
 
+    /// <summary>Localized writeback section heading.</summary>
+    public string WriteBackHeadingText => _localization["Catalogue.BookDetail.WriteBack.Title"];
+
+    /// <summary>Localized writeback preview action.</summary>
+    public string PrepareWriteBackLabel => _localization["Catalogue.BookDetail.WriteBack.Prepare"];
+
+    /// <summary>Localized writeback confirmation action.</summary>
+    public string ConfirmWriteBackLabel => _localization["Catalogue.BookDetail.WriteBack.Confirm"];
+
+    /// <summary>Localized writeback cancellation action.</summary>
+    public string CancelWriteBackLabel => _localization["Catalogue.BookDetail.WriteBack.Cancel"];
+
+    /// <summary>Localized writeback restore action.</summary>
+    public string RestoreWriteBackLabel => _localization["Catalogue.BookDetail.WriteBack.Restore"];
+
     /// <summary>Localized enrichment section heading.</summary>
     public string EnrichmentHeadingText => _localization["Catalogue.BookDetail.EnrichmentHeading"];
 
@@ -388,6 +412,76 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Materialized metadata provenance rows; empty until explicitly requested.</summary>
     public ObservableCollection<string> ProvenanceRows { get; } = [];
+
+    /// <summary>Field-level PDF changes awaiting explicit user confirmation.</summary>
+    public ObservableCollection<string> WriteBackDiffRows { get; } = [];
+
+    /// <summary>True while the PDF writeback preview is being prepared.</summary>
+    public bool IsPreparingWriteBack
+    {
+        get => _isPreparingWriteBack;
+        private set
+        {
+            if (_isPreparingWriteBack != value)
+            {
+                _isPreparingWriteBack = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPrepareWriteBack));
+            }
+        }
+    }
+
+    /// <summary>True while the confirmed PDF writeback is running.</summary>
+    public bool IsWritingWriteBack
+    {
+        get => _isWritingWriteBack;
+        private set
+        {
+            if (_isWritingWriteBack != value)
+            {
+                _isWritingWriteBack = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanConfirmWriteBack));
+                OnPropertyChanged(nameof(CanRestoreWriteBack));
+            }
+        }
+    }
+
+    /// <summary>True when a safe preview can be requested for the loaded PDF.</summary>
+    public bool CanPrepareWriteBack => _book?.IsAvailable == true &&
+        _fileLocator is not null && _writeBackService is not null &&
+        !IsPreparingWriteBack && _writeBackToken is null;
+
+    /// <summary>True when the user has a preview that can be explicitly confirmed.</summary>
+    public bool CanConfirmWriteBack => _writeBackToken is not null &&
+        _writeBackProposals.Count > 0 && !IsWritingWriteBack;
+
+    /// <summary>True when the prepared PDF can be restored from its retained backup.</summary>
+    public bool CanRestoreWriteBack => _writeBackToken is not null && !IsWritingWriteBack;
+
+    /// <summary>True when a field-level writeback diff is available for review.</summary>
+    public bool HasWriteBackDiff => WriteBackDiffRows.Count > 0;
+
+    /// <summary>True when the current book has a prepared writeback awaiting consent.</summary>
+    public bool HasPreparedWriteBack => _writeBackToken is not null;
+
+    /// <summary>Current user-facing writeback status.</summary>
+    public string? WriteBackStatusText
+    {
+        get => _writeBackStatusText;
+        private set
+        {
+            if (_writeBackStatusText != value)
+            {
+                _writeBackStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasWriteBackStatus));
+            }
+        }
+    }
+
+    /// <summary>True when a writeback status message should be displayed.</summary>
+    public bool HasWriteBackStatus => !string.IsNullOrWhiteSpace(WriteBackStatusText);
 
     /// <summary>True while the table-of-contents extraction is running.</summary>
     public bool IsLoadingToc
@@ -603,6 +697,10 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                 TocRows.Clear();
                 _provenanceLoaded = false;
                 ProvenanceRows.Clear();
+                _writeBackToken = null;
+                _writeBackProposals = [];
+                WriteBackDiffRows.Clear();
+                WriteBackStatusText = null;
                 OnPropertyChanged(nameof(IsReadingHistoryLoaded));
                 OnPropertyChanged(nameof(HasNoReadingHistory));
                 OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
@@ -610,6 +708,11 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(HasNoToc));
                 OnPropertyChanged(nameof(ShowLoadTocButton));
                 OnPropertyChanged(nameof(ShowLoadProvenanceButton));
+                OnPropertyChanged(nameof(HasPreparedWriteBack));
+                OnPropertyChanged(nameof(HasWriteBackDiff));
+                OnPropertyChanged(nameof(CanPrepareWriteBack));
+                OnPropertyChanged(nameof(CanConfirmWriteBack));
+                OnPropertyChanged(nameof(CanRestoreWriteBack));
             }
             _tagsText = FormatTags(value);
             OnPropertyChanged();
@@ -917,6 +1020,191 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
 
         await _reader.OpenReaderAsync(_book.BookId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Builds a PDF metadata diff and prepares a retained backup. No PDF mutation
+    /// occurs until <see cref="ConfirmWriteBackAsync"/> is explicitly called.
+    /// </summary>
+    public async Task PrepareWriteBackAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanPrepareWriteBack || _book is null || _fileLocator is null || _writeBackService is null)
+        {
+            return;
+        }
+
+        string bookId = _book.BookId;
+        List<AcceptedFieldProposal> proposals = BuildWriteBackProposals(_book.MetadataFields);
+        if (proposals.Count == 0)
+        {
+            WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.NoFields"];
+            return;
+        }
+
+        IsPreparingWriteBack = true;
+        WriteBackStatusText = null;
+        try
+        {
+            string? filePath = await _fileLocator.LocateAsync(bookId, cancellationToken)
+                .ConfigureAwait(false);
+            if (filePath is null)
+            {
+                UpdateOnUiThread(() =>
+                {
+                    WriteBackStatusText = MissingFileText;
+                    IsPreparingWriteBack = false;
+                });
+                return;
+            }
+
+            IReadOnlyList<FieldDiff> diff = await _writeBackService
+                .BuildDiffAsync(filePath, proposals, cancellationToken)
+                .ConfigureAwait(false);
+            if (diff.Count == 0)
+            {
+                UpdateOnUiThread(() =>
+                {
+                    WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.NoChanges"];
+                    IsPreparingWriteBack = false;
+                });
+                return;
+            }
+
+            BackupToken token = await _writeBackService
+                .PrepareBackupAsync(bookId, filePath, cancellationToken)
+                .ConfigureAwait(false);
+            string[] rows = diff.Select(FormatWriteBackDiff).ToArray();
+            UpdateOnUiThread(() =>
+            {
+                if (!string.Equals(_book?.BookId, bookId, StringComparison.Ordinal))
+                {
+                    IsPreparingWriteBack = false;
+                    return;
+                }
+
+                _writeBackToken = token;
+                _writeBackProposals = proposals;
+                WriteBackDiffRows.Clear();
+                foreach (string row in rows)
+                {
+                    WriteBackDiffRows.Add(row);
+                }
+
+                WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Prepared"];
+                IsPreparingWriteBack = false;
+                OnPropertyChanged(nameof(HasPreparedWriteBack));
+                OnPropertyChanged(nameof(HasWriteBackDiff));
+                OnPropertyChanged(nameof(CanPrepareWriteBack));
+                OnPropertyChanged(nameof(CanConfirmWriteBack));
+                OnPropertyChanged(nameof(CanRestoreWriteBack));
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                WriteBackStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.WriteBack.FailedFormat"],
+                    ex.Message);
+                IsPreparingWriteBack = false;
+            });
+        }
+    }
+
+    /// <summary>Writes the previewed fields only after the user confirms the diff.</summary>
+    public async Task ConfirmWriteBackAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanConfirmWriteBack || _book is null || _writeBackService is null || _writeBackToken is null)
+        {
+            return;
+        }
+
+        string bookId = _book.BookId;
+        BackupToken token = _writeBackToken;
+        IReadOnlyList<AcceptedFieldProposal> proposals = _writeBackProposals;
+        IsWritingWriteBack = true;
+        try
+        {
+            bool written = await _writeBackService
+                .WriteAsync(bookId, proposals, token, cancellationToken)
+                .ConfigureAwait(false);
+            UpdateOnUiThread(() =>
+            {
+                WriteBackStatusText = written
+                    ? _localization["Catalogue.BookDetail.WriteBack.Complete"]
+                    : _localization["Catalogue.BookDetail.WriteBack.Failed"];
+                if (written)
+                {
+                    ClearWriteBackState();
+                }
+
+                IsWritingWriteBack = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                WriteBackStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.WriteBack.FailedFormat"],
+                    ex.Message);
+                IsWritingWriteBack = false;
+            });
+        }
+    }
+
+    /// <summary>Cancels pending consent without mutating the PDF.</summary>
+    public void CancelWriteBack()
+    {
+        if (_writeBackToken is null)
+        {
+            return;
+        }
+
+        ClearWriteBackState();
+        WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Cancelled"];
+    }
+
+    /// <summary>Restores the retained backup after a prepared or failed writeback.</summary>
+    public async Task RestoreWriteBackAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanRestoreWriteBack || _book is null || _writeBackService is null || _writeBackToken is null)
+        {
+            return;
+        }
+
+        IsWritingWriteBack = true;
+        try
+        {
+            bool restored = await _writeBackService
+                .RestoreBackupAsync(_book.BookId, _writeBackToken, cancellationToken)
+                .ConfigureAwait(false);
+            UpdateOnUiThread(() =>
+            {
+                WriteBackStatusText = restored
+                    ? _localization["Catalogue.BookDetail.WriteBack.Restored"]
+                    : _localization["Catalogue.BookDetail.WriteBack.RestoreFailed"];
+                if (restored)
+                {
+                    ClearWriteBackState();
+                }
+
+                IsWritingWriteBack = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                WriteBackStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.WriteBack.FailedFormat"],
+                    ex.Message);
+                IsWritingWriteBack = false;
+            });
+        }
     }
 
     /// <summary>
@@ -1686,6 +1974,40 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             : $"{field.FieldName}: {value} ({provenance})";
     }
 
+    private void ClearWriteBackState()
+    {
+        _writeBackToken = null;
+        _writeBackProposals = [];
+        WriteBackDiffRows.Clear();
+        OnPropertyChanged(nameof(HasPreparedWriteBack));
+        OnPropertyChanged(nameof(HasWriteBackDiff));
+        OnPropertyChanged(nameof(CanPrepareWriteBack));
+        OnPropertyChanged(nameof(CanConfirmWriteBack));
+        OnPropertyChanged(nameof(CanRestoreWriteBack));
+    }
+
+    private static List<AcceptedFieldProposal> BuildWriteBackProposals(
+        IReadOnlyList<MetadataFieldProjection> fields) =>
+        fields
+            .Where(field => WriteBackFieldNames.Contains(field.FieldName) &&
+                            !string.IsNullOrWhiteSpace(field.Value))
+            .GroupBy(field => field.FieldName, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Select(field => new AcceptedFieldProposal(
+                field.FieldName,
+                field.Value!.Trim(),
+                string.IsNullOrWhiteSpace(field.Source) ? "Catalogue" : field.Source.Trim(),
+                Math.Clamp(field.Confidence ?? 1.0, 0.0, 1.0),
+                field.IsOverridden))
+            .ToList();
+
+    private string FormatWriteBackDiff(FieldDiff diff) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Catalogue.BookDetail.WriteBack.DiffFormat"],
+        diff.FieldName,
+        Truncate(diff.OldValue, 160) ?? "-",
+        Truncate(diff.NewValue, 160) ?? "-");
+
     private static string FormatProvenance(MetadataFieldProjection field)
     {
         var parts = new List<string>();
@@ -1725,6 +2047,13 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         {
             "FileName", "RelativePath", "SizeBytes", "ModifiedUtc",
             "Format", "Pages", "PdfVersion", "IsEncrypted",
+        };
+
+    private static readonly HashSet<string> WriteBackFieldNames =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Title", "Author", "Publisher", "Description", "Categories",
+            "Keywords",
         };
 
     private static readonly HashSet<string> BiblioFieldNames =

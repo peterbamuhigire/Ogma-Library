@@ -91,6 +91,53 @@
                            FontSize="{DynamicResource Type.Size.Caption}"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <Button HorizontalAlignment="Left"
+                        Margin="0,8,0,0"
+                        IsVisible="{Binding CanPrepareWriteBack}"
+                        IsEnabled="{Binding CanPrepareWriteBack}"
+                        AutomationProperties.Name="{Binding PrepareWriteBackLabel}"
+                        Click="PrepareWriteBackButton_Click">
+                  <TextBlock Text="{Binding PrepareWriteBackLabel}" />
+                </Button>
+                <StackPanel Spacing="5"
+                            Margin="0,8,0,0"
+                            IsVisible="{Binding HasPreparedWriteBack}">
+                  <TextBlock Text="{Binding WriteBackHeadingText}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <ItemsControl ItemsSource="{Binding WriteBackDiffRows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                   TextWrapping="Wrap" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <WrapPanel Orientation="Horizontal" ItemSpacing="5" LineSpacing="5">
+                    <Button IsEnabled="{Binding CanConfirmWriteBack}"
+                            AutomationProperties.Name="{Binding ConfirmWriteBackLabel}"
+                            Click="ConfirmWriteBackButton_Click">
+                      <TextBlock Text="{Binding ConfirmWriteBackLabel}" />
+                    </Button>
+                    <Button IsEnabled="{Binding CanRestoreWriteBack}"
+                            AutomationProperties.Name="{Binding RestoreWriteBackLabel}"
+                            Click="RestoreWriteBackButton_Click">
+                      <TextBlock Text="{Binding RestoreWriteBackLabel}" />
+                    </Button>
+                    <Button IsEnabled="{Binding CanRestoreWriteBack}"
+                            AutomationProperties.Name="{Binding CancelWriteBackLabel}"
+                            Click="CancelWriteBackButton_Click">
+                      <TextBlock Text="{Binding CancelWriteBackLabel}" />
+                    </Button>
+                  </WrapPanel>
+                </StackPanel>
+                <TextBlock Text="{Binding WriteBackStatusText}"
+                           IsVisible="{Binding HasWriteBackStatus}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                           TextWrapping="Wrap" />
               </StackPanel>
             </TabItem>
 

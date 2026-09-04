@@ -1,9 +1,13 @@
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Localization;
@@ -77,6 +81,53 @@ public sealed class BookDetailFileAndProvenanceTests
         Assert.True(vm.IsTocLoaded);
         Assert.True(vm.HasNoToc);
         Assert.Equal("Curation book", vm.Title);
+    }
+
+    [AvaloniaFact]
+    public async Task WriteBackPreview_RequiresExplicitConfirmationBeforeMutation()
+    {
+        var locator = new RecordingFileLocator("C:\\library\\book.pdf");
+        var writeBack = new RecordingWriteBackService
+        {
+            Diff = [new FieldDiff("Title", "Old title", "New title")],
+        };
+        var vm = new BookDetailViewModel(
+            new SingleBookReadModel(CreateProjection("writeback-book")),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService(),
+            fileLocator: locator,
+            writeBackService: writeBack);
+
+        await vm.LoadBookAsync("writeback-book");
+        await vm.PrepareWriteBackAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(1, writeBack.DiffCalls);
+        Assert.Equal(1, writeBack.PrepareCalls);
+        Assert.Equal(0, writeBack.WriteCalls);
+        Assert.True(vm.HasPreparedWriteBack);
+        Assert.Contains("New title", Assert.Single(vm.WriteBackDiffRows));
+        Assert.Contains("confirm", vm.WriteBackStatusText, StringComparison.OrdinalIgnoreCase);
+
+        var view = new BookDetailView { DataContext = vm };
+        var window = new Window
+        {
+            Width = 420,
+            Height = 700,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(view.GetVisualDescendants().OfType<Button>(), button =>
+            button.Content is TextBlock text && text.Text == "Confirm and write to PDF");
+        window.Close();
+
+        await vm.ConfirmWriteBackAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(1, writeBack.WriteCalls);
+        Assert.False(vm.HasPreparedWriteBack);
+        Assert.Contains("successfully", vm.WriteBackStatusText, StringComparison.OrdinalIgnoreCase);
     }
 
     private static BookDetailViewModel CreateViewModel(
@@ -165,5 +216,53 @@ public sealed class BookDetailFileAndProvenanceTests
             Calls++;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class RecordingWriteBackService : IMetadataWriteBackService
+    {
+        public IReadOnlyList<FieldDiff> Diff { get; init; } = [];
+        public int DiffCalls { get; private set; }
+        public int PrepareCalls { get; private set; }
+        public int WriteCalls { get; private set; }
+
+        public Task<BackupToken> PrepareBackupAsync(
+            string bookId,
+            string absoluteFilePath,
+            CancellationToken cancellationToken = default)
+        {
+            PrepareCalls++;
+            return Task.FromResult(new BackupToken(
+                "C:\\library\\backup.pdf",
+                absoluteFilePath,
+                "hash"));
+        }
+
+        public Task<WriteBackPlan?> GetWriteBackPlanAsync(
+            string bookId,
+            CancellationToken cancellationToken = default) => Task.FromResult<WriteBackPlan?>(null);
+
+        public Task<IReadOnlyList<FieldDiff>> BuildDiffAsync(
+            string absoluteFilePath,
+            IReadOnlyList<AcceptedFieldProposal> acceptedProposals,
+            CancellationToken cancellationToken = default)
+        {
+            DiffCalls++;
+            return Task.FromResult(Diff);
+        }
+
+        public Task<bool> WriteAsync(
+            string bookId,
+            IReadOnlyList<AcceptedFieldProposal> acceptedProposals,
+            BackupToken backupToken,
+            CancellationToken cancellationToken = default)
+        {
+            WriteCalls++;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> RestoreBackupAsync(
+            string bookId,
+            BackupToken backupToken,
+            CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 }

@@ -23,10 +23,21 @@ Date: 2026-08-30
   or restored lifecycle status. Plan loading validates book identity, status,
   original-path policy, and backup containment before resumption.
 
+## Delivered in the current increment
+
+- Added an explicit desktop writeback-consent flow to book detail: users first
+  preview supported PDF metadata differences, then a backup is prepared, and
+  only a separate confirmation action calls the reversible write boundary.
+  Cancellation performs no PDF mutation; restore remains available for a
+  prepared or failed operation.
+
+## Current verification
+
+- Current-HEAD writeback-consent UI-model verification: 3 tests passed, 0
+  failed, 0 skipped. The application build passed with 0 warnings and 0 errors.
+
 ## Remaining phase gate
 
-Explicit consent UI and physical interruption/permission evidence remain before
-phase 15 closure. The first-class durable writeback-plan gate is closed by the
-restart-style and safety evidence above.
-Preparation audit records, exclusive-file checks, derived-index invalidation
-status, and restored-backup status are implemented and tested.
+Physical interruption/permission evidence remains before phase 15 closure. The
+first-class durable writeback-plan and explicit consent UI gates are closed by
+the restart-style, safety, and detail-panel evidence above.

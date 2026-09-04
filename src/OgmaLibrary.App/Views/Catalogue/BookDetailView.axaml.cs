@@ -87,6 +87,38 @@ public partial class BookDetailView : UserControl
         }
     }
 
+    private async void PrepareWriteBackButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.PrepareWriteBackAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void ConfirmWriteBackButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.ConfirmWriteBackAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void RestoreWriteBackButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.RestoreWriteBackAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void CancelWriteBackButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            vm.CancelWriteBack();
+        }
+    }
+
     private void LoadProvenanceButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is BookDetailViewModel vm)
