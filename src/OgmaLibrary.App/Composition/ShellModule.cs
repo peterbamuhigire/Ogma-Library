@@ -87,7 +87,7 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             currentShell?.Bookshelf3D is not null
                 ? shelf.FocusBookAsync(bookId, cancellationToken)
                 : Task.CompletedTask;
-        var reader = new ReaderViewModel(
+        ReaderViewModel CreateReader() => new(
             services.GetRequiredService<IReaderSessionService>(),
             services.GetRequiredService<IAnnotationService>(),
             services.GetRequiredService<IBookmarkService>(),
@@ -98,6 +98,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<ITextLayerService>(),
             services.GetRequiredService<IPageRenderCache>(),
             services.GetRequiredService<IReaderPortabilityService>());
+        var reader = CreateReader();
+        var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(
             services.GetRequiredService<ISemanticSearchService>(),
             navigation,
@@ -163,7 +165,7 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             search,
             indexManager,
             studentSmartSearch,
-            services.GetRequiredService<SplitViewViewModel>(),
+            splitView,
             hostSharing,
             services.GetRequiredService<IClassroomModeService>(),
             advisor,

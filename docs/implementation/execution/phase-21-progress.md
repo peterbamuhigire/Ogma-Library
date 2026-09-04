@@ -23,6 +23,10 @@ Date: 2026-09-04
   annotations and reading memory, and invalid or inaccessible files fail safely.
 - Added headless reader UI proof for the import/export action labels and existing
   scroll, navigation and magnification controls.
+- Replaced the split-view placeholder with two independent `ReaderViewModel`
+  sessions in the desktop shell. The left pane reuses the primary reader; the
+  right pane opens a user-entered book ID through its own session, preserving
+  independent page, annotation and reading-state context.
 
 ## Verification
 
@@ -40,10 +44,12 @@ Date: 2026-09-04
 - Current full solution verification after the Phase 19 increment: 885 core +
   41 architecture + 145 UI = 1,071 passed, 0 failed, 0 skipped. The focused
   reader UI proof passes after this increment.
+- Current-HEAD split-view route verification: 1 UI test passed, 0 failed, 0
+  skipped. The application build passed with 0 warnings and 0 errors.
 
 ## Remaining phase gate
 
-Functional split view, coordinate-version fallback, platform viewer actions,
+Coordinate-version fallback, platform viewer actions,
 physical Narrator/VoiceOver journeys, and cross-platform performance budgets
 remain before phase 21 closure. The local automated cache/session/non-crash and
 reader import/export UI sub-gates are closed; physical crash recovery evidence

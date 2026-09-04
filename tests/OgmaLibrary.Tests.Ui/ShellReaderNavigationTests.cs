@@ -573,7 +573,7 @@ public sealed class ShellReaderNavigationTests
     }
 
     [AvaloniaFact]
-    public void SplitView_Route_Exists_ShowsV2Placeholder()
+    public void SplitView_Route_Exists_ShowsIndependentReferenceEntry()
     {
         var localization = new InMemoryLocalizationService();
         var readModel = new EmptyCatalogueReadModel();
@@ -601,7 +601,8 @@ public sealed class ShellReaderNavigationTests
         Assert.False(shell.IsReaderActive);
         Assert.False(shell.IsCatalogueActive);
         Assert.False(shell.BookDetail.IsVisible);
-        Assert.Equal("Split view is coming in V2.", splitView.PlaceholderText);
+        Assert.Contains("reference reader", splitView.PlaceholderText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Open reference", splitView.OpenReferenceLabel);
 
         var window = new Window
         {

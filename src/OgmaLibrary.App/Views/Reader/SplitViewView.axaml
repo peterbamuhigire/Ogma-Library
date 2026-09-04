@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Reader"
+             xmlns:reader="using:OgmaLibrary.App.Views.Reader"
              x:Class="OgmaLibrary.App.Views.Reader.SplitViewView"
              x:DataType="vm:SplitViewViewModel"
              AutomationProperties.Name="{Binding AccessibleLabel}">
@@ -23,36 +24,25 @@
       <Border Padding="16"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,1,0">
-        <StackPanel Spacing="8"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    MaxWidth="360">
-          <TextBlock Text="{Binding LeftPaneText}"
-                     FontWeight="SemiBold"
-                     TextAlignment="Center"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          <TextBlock Text="{Binding PlaceholderText}"
-                     TextWrapping="Wrap"
-                     TextAlignment="Center"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        </StackPanel>
+        <reader:ReaderView DataContext="{Binding LeftReader}" />
       </Border>
 
       <Border Grid.Column="1"
-              Padding="16">
-        <StackPanel Spacing="8"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    MaxWidth="360">
-          <TextBlock Text="{Binding RightPaneText}"
-                     FontWeight="SemiBold"
-                     TextAlignment="Center"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          <TextBlock Text="{Binding PlaceholderText}"
-                     TextWrapping="Wrap"
-                     TextAlignment="Center"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        </StackPanel>
+              Padding="8">
+        <Grid RowDefinitions="Auto,*">
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
+            <TextBox Width="180"
+                     Text="{Binding ReferenceBookId, Mode=TwoWay}"
+                     Watermark="{Binding RightPaneText}"
+                     AutomationProperties.Name="{Binding RightPaneText}" />
+            <Button IsEnabled="{Binding CanOpenReference}"
+                    AutomationProperties.Name="{Binding OpenReferenceLabel}"
+                    Click="OpenReferenceButton_Click">
+              <TextBlock Text="{Binding OpenReferenceLabel}" />
+            </Button>
+          </StackPanel>
+          <reader:ReaderView Grid.Row="1" DataContext="{Binding RightReader}" />
+        </Grid>
       </Border>
     </Grid>
   </Grid>
