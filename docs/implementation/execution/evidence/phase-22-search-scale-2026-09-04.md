@@ -18,6 +18,11 @@ contract before client-side scoring. This preserves the existing deterministic
 ordering and prevents large entity graphs from dominating the interactive
 search path.
 
+Broad searches with at least 50 scalar title/ISBN/DOI candidates now use a
+faster scalar-only predicate path before the richer author/metadata/shelf
+fallback. The current Release metadata-search slice passed 8/8, including the
+50,000-book p95 <=150 ms assertion.
+
 ## Scope boundary
 
 This is a local Windows test-environment result, not named reference-machine

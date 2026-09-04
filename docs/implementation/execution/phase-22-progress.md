@@ -50,8 +50,13 @@ Date: 2026-09-04
   passed with 0 warnings and 0 errors.
 - `MetadataSearchServiceTests`: 8 passed, including the 50,000-book p95 <=150 ms
   benchmark.
+- The broad-search scalar fast path now keeps title/ISBN/DOI-heavy queries out
+  of correlated collection predicates; the Release metadata-search slice
+  passed 8/8 after this optimization.
 - Latest isolated full solution validation after Phases 20–21 increments:
   881 core + 41 architecture + 142 UI = 1,064 passed, 0 failed, 0 skipped.
+- Current-HEAD full solution verification: 884 core + 41 architecture + 143
+  UI = 1,068 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 

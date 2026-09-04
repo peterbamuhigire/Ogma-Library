@@ -61,6 +61,40 @@ public sealed class MetadataSearchService : IMetadataSearchService
         CatalogueDbContext context = lease.Context;
         string likePattern = "%" + EscapeLike(parsed.Text) + "%";
 
+        // Most interactive broad searches are satisfied by the indexed scalar
+        // fields (title, ISBN, or DOI). Keep this hot path free of correlated
+        // collection predicates; only fall through to the richer metadata,
+        // author, and shelf query when fewer than the bounded result window is
+        // available from scalar identity fields.
+        if (parsed.Field is null)
+        {
+            List<BookRow> scalarBooks = await context.Books
+                .AsNoTracking()
+                .Where(book => book.Status == 0 &&
+                    (EF.Functions.Like(book.Title ?? string.Empty, likePattern, "\\") ||
+                     EF.Functions.Like(book.IsbnNormalized ?? string.Empty, likePattern, "\\") ||
+                     EF.Functions.Like(book.Doi ?? string.Empty, likePattern, "\\")))
+                .OrderByDescending(book => book.Title == parsed.Text)
+                .ThenByDescending(book => book.IsbnNormalized == parsed.Text)
+                .ThenByDescending(book => book.Doi == parsed.Text)
+                .ThenByDescending(book => book.Title != null && book.Title.StartsWith(parsed.Text))
+                .ThenBy(book => book.Title ?? string.Empty)
+                .ThenBy(book => book.BookId)
+                .Take(MaxCandidateRows)
+                .Include(b => b.BookAuthors)
+                .ThenInclude(ba => ba.Author)
+                .Include(b => b.MetadataFields)
+                .Include(b => b.ShelfBooks)
+                .ThenInclude(sb => sb.Shelf)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (scalarBooks.Count == MaxCandidateRows)
+            {
+                return ScoreAndOrder(scalarBooks, parsed.Text);
+            }
+        }
+
         IQueryable<BookRow> bookQuery = context.Books
             .AsNoTracking()
             // Search is also consumed by the classroom Host; inactive catalogue
@@ -123,14 +157,7 @@ public sealed class MetadataSearchService : IMetadataSearchService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        List<MetadataSearchResult> exactResults = books
-            .Select(book => ScoreBook(book, parsed.Text))
-            .Where(result => result.Score > 0)
-            .OrderByDescending(result => result.Score)
-            .ThenBy(result => result.Title, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(result => result.BookId, StringComparer.Ordinal)
-            .Take(MaxResults)
-            .ToList();
+        List<MetadataSearchResult> exactResults = ScoreAndOrder(books, parsed.Text);
 
         if (exactResults.Count > 0)
         {
@@ -140,6 +167,17 @@ public sealed class MetadataSearchService : IMetadataSearchService
         return await FuzzyFallbackAsync(context, parsed.Text, parsed.Field, cancellationToken)
             .ConfigureAwait(false);
     }
+
+    private static List<MetadataSearchResult> ScoreAndOrder(
+        IEnumerable<BookRow> books,
+        string query) => books
+            .Select(book => ScoreBook(book, query))
+            .Where(result => result.Score > 0)
+            .OrderByDescending(result => result.Score)
+            .ThenBy(result => result.Title, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(result => result.BookId, StringComparer.Ordinal)
+            .Take(MaxResults)
+            .ToList();
 
     private static async Task<IReadOnlyList<MetadataSearchResult>> FuzzyFallbackAsync(
         CatalogueDbContext context,
