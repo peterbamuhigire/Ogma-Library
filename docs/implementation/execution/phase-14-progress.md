@@ -17,10 +17,12 @@ Date: 2026-09-04
 - Added tests proving proposals remain pending until explicit review and that
   accepted user edits become protected curation.
 - Added focused tests for version defaults and unsafe-value rejection.
+- Added a shared canonical field dictionary covering provider, review, catalogue,
+  and PDF write-back fields with explicit work/edition scope classification.
 
 ## Remaining phase gate
 
-Bulk preview/undo, complete field dictionary coverage, and keyboard/screen-reader
+Bulk preview/undo and keyboard/screen-reader
 UI journeys remain before phase 14 closure. Concurrency and review-boundary
 sanitization are implemented and tested; OS/browser accessibility evidence is
 not assessed by this service-layer increment.

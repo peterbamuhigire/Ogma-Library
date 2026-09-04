@@ -9,6 +9,23 @@ namespace OgmaLibrary.Tests.Metadata;
 public sealed class Phase14MetadataReviewTests
 {
     [Fact]
+    public void MetadataFieldPolicy_CoversProviderAndWriteBackFieldsWithStableScopes()
+    {
+        Assert.Equal(
+            [
+                "Title", "Author", "ISBN", "Year", "Publisher", "Description",
+                "Categories", "CoverUrl", "AverageRating", "RatingsCount", "PageCount",
+                "Language", "Subject", "Keywords",
+            ],
+            MetadataFieldPolicy.KnownFields);
+        Assert.All(MetadataFieldPolicy.KnownFields, field =>
+            Assert.True(MetadataFieldPolicy.IsKnown(field)));
+        Assert.Equal(MetadataFieldScope.Work, MetadataFieldPolicy.ScopeFor("description"));
+        Assert.Equal(MetadataFieldScope.Edition, MetadataFieldPolicy.ScopeFor("pagecount"));
+        Assert.Equal(MetadataFieldScope.Edition, MetadataFieldPolicy.ScopeFor("keywords"));
+    }
+
+    [Fact]
     public async Task ProposalsRemainPendingUntilExplicitDecision()
     {
         using var context = CatalogueTestHelper.CreateInMemoryContext();

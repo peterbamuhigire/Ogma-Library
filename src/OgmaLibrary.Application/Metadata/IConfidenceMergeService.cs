@@ -56,6 +56,36 @@ public enum MetadataFieldScope
 /// <summary>Executable field dictionary for work/edition metadata scope.</summary>
 public static class MetadataFieldPolicy
 {
+    /// <summary>
+    /// Canonical metadata fields shared by provider results, review proposals,
+    /// catalogue fields, and PDF write-back. The order is stable for UI and
+    /// export consumers.
+    /// </summary>
+    public static IReadOnlyList<string> KnownFields { get; } =
+    [
+        "Title",
+        "Author",
+        "ISBN",
+        "Year",
+        "Publisher",
+        "Description",
+        "Categories",
+        "CoverUrl",
+        "AverageRating",
+        "RatingsCount",
+        "PageCount",
+        "Language",
+        "Subject",
+        "Keywords",
+    ];
+
+    /// <summary>Returns true when the field is in the canonical dictionary.</summary>
+    public static bool IsKnown(string fieldName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        return KnownFields.Contains(fieldName.Trim(), StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>Returns the canonical scope for a normalized field name.</summary>
     public static MetadataFieldScope ScopeFor(string fieldName)
     {
@@ -63,6 +93,8 @@ public static class MetadataFieldPolicy
         return fieldName.Trim().ToUpperInvariant() switch
         {
             "TITLE" or "AUTHOR" or "DESCRIPTION" or "CATEGORIES" => MetadataFieldScope.Work,
+            "ISBN" or "YEAR" or "PUBLISHER" or "COVERURL" or "AVERAGERATING" or
+            "RATINGSCOUNT" or "PAGECOUNT" or "LANGUAGE" or "SUBJECT" or "KEYWORDS" => MetadataFieldScope.Edition,
             _ => MetadataFieldScope.Edition,
         };
     }
