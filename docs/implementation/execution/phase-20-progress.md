@@ -22,9 +22,9 @@ Date: 2026-08-30
 - Added a bounded book-detail tag editor that normalizes comma/semicolon/pipe
   input, persists through `ICatalogueWriteService.UpdateMetadataFieldAsync`,
   refreshes the projection, and exposes localized success/failure feedback.
-- Added localized sidebar collection create/delete controls with trimmed-name
-  validation, selected-shelf protection, reload-after-mutation, and failure
-  feedback through the existing catalogue write boundary.
+- Added localized sidebar collection create/rename/delete controls with
+  trimmed-name validation, selected-shelf protection, reload-after-mutation,
+  and failure feedback through the existing catalogue write boundary.
 
 ## Verification
 

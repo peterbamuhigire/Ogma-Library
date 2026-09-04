@@ -372,4 +372,12 @@ public partial class CatalogueShellView : UserControl
             await vm.ShelfSidebar.DeleteSelectedShelfAsync().ConfigureAwait(true);
         }
     }
+
+    private async void RenameShelf_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            await vm.ShelfSidebar.RenameSelectedShelfAsync().ConfigureAwait(true);
+        }
+    }
 }

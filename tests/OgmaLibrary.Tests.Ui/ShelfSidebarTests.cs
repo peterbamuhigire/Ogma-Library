@@ -34,6 +34,15 @@ public sealed class ShelfSidebarTests
 
         viewModel.SelectedShelf = shelf;
         Assert.True(viewModel.CanDeleteSelectedShelf);
+        viewModel.NewShelfName = "Reading list";
+        Assert.True(viewModel.CanRenameSelectedShelf);
+        await viewModel.RenameSelectedShelfAsync();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("Reading list", Assert.Single(viewModel.Shelves).Name);
+        Assert.Equal("Collection renamed.", viewModel.StatusText);
+
+        ShelfProjection renamedShelf = Assert.Single(viewModel.Shelves);
+        viewModel.SelectedShelf = renamedShelf;
         await viewModel.DeleteSelectedShelfAsync();
         Dispatcher.UIThread.RunJobs();
 
@@ -98,7 +107,15 @@ public sealed class ShelfSidebarTests
         public Task RenameShelfAsync(
             string shelfId,
             string newName,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
+            CancellationToken cancellationToken = default)
+        {
+            int index = readModel.Shelves.FindIndex(shelf => shelf.ShelfId == shelfId);
+            if (index >= 0)
+            {
+                readModel.Shelves[index] = readModel.Shelves[index] with { Name = newName };
+            }
+            return Task.CompletedTask;
+        }
 
         public Task DeleteShelfAsync(string shelfId, CancellationToken cancellationToken = default)
         {

@@ -18,7 +18,7 @@ verified evidence and remaining gate summarized for decision use.
 | 17 | IN PROGRESS | Durable leases/heartbeat, follow-ups, dead-letter, resource groups, redaction, search/embedding queue conversion, diagnostics | Kill/restart load evidence |
 | 18 | IN PROGRESS | Design controls, focus, typography | Localization, settings, palette/contrast, physical accessibility |
 | 19 | IN PROGRESS | Cover control, asset loading, functional directory view, visible filter/sort wiring, server paging, local 50k page performance | Persisted UI paging, parity/badges/auth/reference confirmation |
-| 20 | IN PROGRESS | Curation foundations, desktop status/rating/favourite controls, bounded bulk tag mutation, rendered detail tag editor, sidebar collection create/delete controls | Smart-shelf queries, file/relink, provenance, accessibility, E2E |
+| 20 | IN PROGRESS | Curation foundations, desktop status/rating/favourite controls, bounded bulk tag mutation, rendered detail tag editor, sidebar collection create/rename/delete controls | Smart-shelf queries, file/relink, provenance, accessibility, E2E |
 | 21 | IN PROGRESS | Reader portability, cache/session, non-crash regression | Split/viewer, physical crash, accessibility, budget |
 | 22 | IN PROGRESS | Structured/fuzzy search, debounce, bounded candidates, facets/paging/highlighting, local 50k p95, local search UI/keyboard evidence | Reference-machine and physical accessibility gates |
 | 23 | IN PROGRESS | FTS filters, snippets, page-jump, staged side-by-side promotion, local p95 | Reference and accessibility evidence |

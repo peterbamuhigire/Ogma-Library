@@ -62,6 +62,9 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
     /// <summary>Localized delete-collection action label.</summary>
     public string DeleteShelfLabel => _localization["Catalogue.Shelves.Delete"];
 
+    /// <summary>Localized rename-collection action label.</summary>
+    public string RenameShelfLabel => _localization["Catalogue.Shelves.Rename"];
+
     /// <summary>Localized collection-name prompt.</summary>
     public string NewShelfWatermark => _localization["Catalogue.Shelves.NameWatermark"];
 
@@ -76,6 +79,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
                 _newShelfName = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanCreateShelf));
+                OnPropertyChanged(nameof(CanRenameSelectedShelf));
             }
         }
     }
@@ -85,6 +89,9 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
 
     /// <summary>True when a collection is selected for deletion.</summary>
     public bool CanDeleteSelectedShelf => SelectedShelf is not null && !IsLoading;
+
+    /// <summary>True when a selected collection can be renamed.</summary>
+    public bool CanRenameSelectedShelf => SelectedShelf is not null && CanCreateShelf;
 
     /// <summary>Localized result of the latest collection mutation.</summary>
     public string? StatusText
@@ -116,6 +123,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 _filter.SelectedShelfId = value?.ShelfId;
                 OnPropertyChanged(nameof(CanDeleteSelectedShelf));
+                OnPropertyChanged(nameof(CanRenameSelectedShelf));
             }
         }
     }
@@ -132,6 +140,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanCreateShelf));
                 OnPropertyChanged(nameof(CanDeleteSelectedShelf));
+                OnPropertyChanged(nameof(CanRenameSelectedShelf));
             }
         }
     }
@@ -246,6 +255,37 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         {
             await DeleteShelfAsync(shelf.ShelfId, cancellationToken).ConfigureAwait(false);
             StatusText = _localization["Catalogue.Shelves.Deleted"];
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Catalogue.Shelves.FailedFormat"],
+                ex.Message);
+        }
+    }
+
+    /// <summary>Renames the selected user collection from the sidebar editor.</summary>
+    public async Task RenameSelectedShelfAsync(CancellationToken cancellationToken = default)
+    {
+        ShelfProjection? shelf = SelectedShelf;
+        if (shelf is null)
+        {
+            StatusText = _localization["Catalogue.Shelves.NoneSelected"];
+            return;
+        }
+
+        if (!CanRenameSelectedShelf)
+        {
+            StatusText = _localization["Catalogue.Shelves.NameRequired"];
+            return;
+        }
+
+        try
+        {
+            await RenameShelfAsync(shelf.ShelfId, NewShelfName.Trim(), cancellationToken)
+                .ConfigureAwait(false);
+            StatusText = _localization["Catalogue.Shelves.Renamed"];
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

@@ -54,6 +54,11 @@
                       Click="DeleteShelf_Click">
                 <TextBlock Text="{Binding ShelfSidebar.DeleteShelfLabel}" />
               </Button>
+              <Button AutomationProperties.Name="{Binding ShelfSidebar.RenameShelfLabel}"
+                      IsEnabled="{Binding ShelfSidebar.CanRenameSelectedShelf}"
+                      Click="RenameShelf_Click">
+                <TextBlock Text="{Binding ShelfSidebar.RenameShelfLabel}" />
+              </Button>
             </StackPanel>
             <TextBlock Text="{Binding ShelfSidebar.StatusText}"
                        IsVisible="{Binding ShelfSidebar.HasStatus}"
