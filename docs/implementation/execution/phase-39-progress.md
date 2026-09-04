@@ -1,6 +1,6 @@
 # Phase 39 Progress - Cross-Platform Release Acceptance and Handover
 
-Date: 2026-08-31
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -14,6 +14,8 @@ Date: 2026-08-31
   residual-risk gate is absent.
 - Kept the acceptance contract separate from candidate packaging so an unsigned
   or uninstalled build cannot be promoted by reusing a packaging result.
+- Recorded the fail-closed acceptance-contract evidence in
+  `evidence/phase-39-release-acceptance-2026-09-04.md`.
 
 ## Remaining handover gate
 
