@@ -1,6 +1,6 @@
 # Phase 23 Progress - Full-Text Pipeline and Search
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -58,9 +58,14 @@ Date: 2026-08-30
   place.
 - Added an integration regression proving the active index remains searchable
   during staging and that only the promoted generation is visible afterward.
+- Reconciled the local gate ledger after the current full solution run: the
+  progress/no-index UI, observability, side-by-side swap, and 50,000-book local
+  FTS latency sub-gates are all evidenced and closed.
 
 ## Remaining phase gate
 
-The side-by-side rebuild/swap backend subgate is closed by the staged pipeline
-and integration evidence. Reference-hardware confirmation and physical
-assistive-technology walkthroughs remain `NOT ASSESSED`.
+The progress/no-index UI, observability, side-by-side rebuild/swap backend, and
+50,000-book local latency sub-gates are closed. The current full solution run
+is green at 1,071 tests (885 core, 41 architecture, 145 UI), with 0 failures
+and 0 skips. Reference-hardware confirmation and physical assistive-technology
+walkthroughs remain `NOT ASSESSED`.
