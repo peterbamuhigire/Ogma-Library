@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
              x:Class="OgmaLibrary.App.Views.Catalogue.BookDetailView"
              x:DataType="vm:BookDetailViewModel"
              IsVisible="{Binding IsVisible}">
@@ -45,22 +46,11 @@
         <StackPanel Spacing="0" Margin="16,0,16,16">
 
           <!-- Cover placeholder -->
-          <Border Height="180"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  Background="{DynamicResource Brush.Accent.Ink}"
-                  Margin="0,0,0,16"
-                  ClipToBounds="True">
-            <TextBlock Text="{Binding Title}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       MaxWidth="260"
-                       Foreground="White"
-                       FontSize="{DynamicResource Type.Size.Body}"
-                       FontWeight="SemiBold"
-                       Margin="12" />
-          </Border>
+          <cat:CoverImageView Height="180"
+                              Margin="0,0,0,16"
+                              RelativePath="{Binding Book.CoverRelativePath}"
+                              RootPath="{Binding AssetRootPath}"
+                              Label="{Binding Title}" />
 
           <!-- Authors -->
           <TextBlock Text="{Binding AuthorsDisplay}"

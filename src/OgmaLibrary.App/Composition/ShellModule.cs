@@ -66,7 +66,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IReadingMemoryService>(),
             services.GetRequiredService<IOcrJobQueueService>(),
             services.GetRequiredService<IPasswordProvider>(),
-            services.GetRequiredService<IBookCurationService>());
+            services.GetRequiredService<IBookCurationService>(),
+            options.LibraryRoot);
         var reader = new ReaderViewModel(
             services.GetRequiredService<IReaderSessionService>(),
             services.GetRequiredService<IAnnotationService>(),

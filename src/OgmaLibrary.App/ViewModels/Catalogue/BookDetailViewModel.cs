@@ -25,6 +25,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IOcrJobQueueService? _ocrJobs;
     private readonly IPasswordProvider? _passwordProvider;
     private readonly IBookCurationService? _curation;
+    private readonly string? _assetRootPath;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -55,6 +56,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="ocrJobs">The OCR queue service for scanned PDFs.</param>
     /// <param name="passwordProvider">The OS credential provider for protected PDFs.</param>
     /// <param name="curation">The durable personal curation service.</param>
+    /// <param name="assetRootPath">The configured sidecar root used for local visual assets.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -63,7 +65,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         IReadingMemoryService? readingMemoryService = null,
         IOcrJobQueueService? ocrJobs = null,
         IPasswordProvider? passwordProvider = null,
-        IBookCurationService? curation = null)
+        IBookCurationService? curation = null,
+        string? assetRootPath = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -77,6 +80,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _ocrJobs = ocrJobs;
         _passwordProvider = passwordProvider;
         _curation = curation;
+        _assetRootPath = assetRootPath;
     }
 
     /// <inheritdoc />
@@ -376,6 +380,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>SHA-256 hex digest.</summary>
     public string? Sha256Hash => _book?.Sha256Hash;
+
+    /// <summary>Configured sidecar root used only for local cover loading.</summary>
+    public string? AssetRootPath => _assetRootPath;
 
     /// <summary>Whether the loaded book has OCR-derived searchable text.</summary>
     public bool IsOcrDerived => _book?.IsOcrDerived == true;

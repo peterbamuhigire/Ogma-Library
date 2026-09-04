@@ -22,14 +22,20 @@ Date: 2026-08-30
 - Added explicit stale-asset garbage collection that removes stale manifest rows,
   deletes only unreferenced `.ogma` files under the configured root, and retains
   files still referenced by another manifest entry.
+- Replaced the book-detail title placeholder with the shared safe cover control,
+  bound to the manifest-relative asset path and configured local sidecar root;
+  a headless render regression confirms the boundary.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase16VisualAssetTests`: 4 passed.
+- Detail cover UI regression: 2 passed.
 
 ## Remaining phase gate
 
-Embedded/provider source acquisition, lazy high/low variants, API authorization, UI journeys,
-and large-library asset budget testing remain before phase 16 closure.
+Embedded/provider source acquisition, lazy high/low variants, API authorization,
+remaining UI journeys, and large-library asset budget testing remain before
+phase 16 closure. The local detail cover-control wiring sub-gate is closed;
+physical accessibility and cross-platform evidence remain open.

@@ -1,6 +1,10 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Domain;
@@ -40,6 +44,37 @@ public sealed class BookDetailCurationTests
         Assert.Contains(curation.Calls, call => call.Rating == 5);
         Assert.Contains(curation.Calls, call => call.IsFavourite == true);
         Assert.Contains("saved", viewModel.CurationStatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [AvaloniaFact]
+    public async Task BookDetailView_UsesSafeManifestCoverControl()
+    {
+        const string relativeCover = ".ogma/covers/detail.png";
+        var readModel = new MutableReadModel(CreateProjection("PHASE20-COVER-BOOK") with
+        {
+            CoverRelativePath = relativeCover,
+        });
+        var viewModel = new BookDetailViewModel(
+            readModel,
+            new NoOpReaderNavigation(),
+            new InMemoryLocalizationService(),
+            assetRootPath: Path.GetTempPath());
+        await viewModel.LoadBookAsync("PHASE20-COVER-BOOK");
+
+        var view = new BookDetailView { DataContext = viewModel };
+        var window = new Window
+        {
+            Width = 420,
+            Height = 700,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        CoverImageView cover = Assert.Single(view.GetVisualDescendants().OfType<CoverImageView>());
+        Assert.Equal(relativeCover, cover.RelativePath);
+        Assert.Equal(Path.GetTempPath(), cover.RootPath);
+        window.Close();
     }
 
     private static BookDetailProjection CreateProjection(string bookId) => new(
