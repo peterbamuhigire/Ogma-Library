@@ -24,7 +24,11 @@ public sealed class AdvisorViewRenderTests
         var advisor = new FakeAdvisorService();
         var catalogue = new FakeCatalogueReadModel();
         var navigation = new RecordingNavigation();
-        using var recommendations = new RecommendationPanelViewModel(advisor, navigation, localization)
+        using var recommendations = new RecommendationPanelViewModel(
+            advisor,
+            navigation,
+            localization,
+            new NoOpFeedbackService())
         {
             Query = "systems",
         };
@@ -104,6 +108,21 @@ public sealed class AdvisorViewRenderTests
     {
         public Task OpenDetailAsync(string bookId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class NoOpFeedbackService : IAdvisorFeedbackService
+    {
+        public Task<AdvisorFeedbackEntry> SubmitAsync(
+            AdvisorFeedbackEntry entry,
+            bool consentGranted,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(entry);
+
+        public Task<IReadOnlyList<AdvisorFeedbackEntry>> ListAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AdvisorFeedbackEntry>>([]);
+
+        public Task<int> PurgeExpiredAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
     }
 
     private sealed class FakeCatalogueReadModel : ICatalogueReadModel

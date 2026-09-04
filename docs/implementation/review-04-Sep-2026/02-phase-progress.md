@@ -28,7 +28,7 @@ verified evidence and remaining gate summarized for decision use.
 | 27 | IN PROGRESS | Fail-closed gateway, payload/egress boundaries, health, budget, secret custody, provider profiles, local retention/erasure | Policy-editing UX, provider terms/conformance, physical accessibility |
 | 28 | IN PROGRESS | Intent, ranking, fallbacks, editable intent, privacy-safe traces | Reference resolution, benchmarks |
 | 29 | IN PROGRESS | Local evidence, desktop answer/citation display, durable safe traces, payload/provenance validation, untrusted boundary | Citation navigation, consent, benchmarks |
-| 30 | IN PROGRESS | Routes, intent UI, offline evaluation, durable runs/history export-delete, thresholds, feedback consent/minimization | Feedback UI, human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
+| 30 | IN PROGRESS | Routes, intent/answer UI, durable runs/history export-delete, thresholds, consented feedback UI/minimization | Human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
 | 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
 | 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification, source/build provenance | Atlas/LOD scale, search/advisor focus, reduced motion, physical interaction |
 | 33 | IN PROGRESS | Virtualization, bounded texture residency, runtime metrics, headless budgets, fallback, safe asynchronous texture eviction | GPU/WebView frame budgets, cross-platform accessibility |

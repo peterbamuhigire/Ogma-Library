@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Security.Cryptography;
+using System.Text;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.Application;
@@ -23,12 +25,17 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     private string? _errorText;
     private string _statusText;
     private string? _answerText;
+    private readonly IAdvisorFeedbackService? _feedbackService;
+    private bool _feedbackConsent;
+    private int _feedbackRating;
+    private string? _feedbackStatusText;
 
     /// <summary>Initializes a new instance of <see cref="RecommendationPanelViewModel"/>.</summary>
     public RecommendationPanelViewModel(
         IAiAdvisorService advisor,
         IBookDetailNavigationService navigation,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        IAdvisorFeedbackService? feedbackService = null)
     {
         ArgumentNullException.ThrowIfNull(advisor);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -37,6 +44,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         _advisor = advisor;
         _navigation = navigation;
         _localization = localization;
+        _feedbackService = feedbackService;
         _statusText = _localization["Ai.Advisor.Status.Ready"];
         _localization.CultureChanged += OnCultureChanged;
     }
@@ -99,12 +107,67 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
                 _answerText = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasAnswer));
+                OnPropertyChanged(nameof(IsFeedbackAvailable));
+                OnPropertyChanged(nameof(CanSubmitFeedback));
             }
         }
     }
 
     /// <summary>Whether an answer is available for display.</summary>
     public bool HasAnswer => !string.IsNullOrWhiteSpace(AnswerText);
+
+    /// <summary>Whether the configured local feedback store can receive feedback.</summary>
+    public bool IsFeedbackAvailable => _feedbackService is not null && HasAnswer;
+
+    /// <summary>Whether the user has explicitly consented to store feedback.</summary>
+    public bool FeedbackConsent
+    {
+        get => _feedbackConsent;
+        set
+        {
+            if (_feedbackConsent != value)
+            {
+                _feedbackConsent = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanSubmitFeedback));
+            }
+        }
+    }
+
+    /// <summary>Selected answer rating from one to five.</summary>
+    public int FeedbackRating
+    {
+        get => _feedbackRating;
+        private set
+        {
+            if (_feedbackRating != value)
+            {
+                _feedbackRating = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanSubmitFeedback));
+            }
+        }
+    }
+
+    /// <summary>Whether the feedback form is complete and consented.</summary>
+    public bool CanSubmitFeedback => IsFeedbackAvailable && FeedbackConsent && FeedbackRating is >= 1 and <= 5;
+
+    /// <summary>Status of the most recent feedback action.</summary>
+    public string? FeedbackStatusText
+    {
+        get => _feedbackStatusText;
+        private set
+        {
+            if (_feedbackStatusText != value)
+            {
+                _feedbackStatusText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Whether feedback status text is available to announce.</summary>
+    public bool HasFeedbackStatus => !string.IsNullOrWhiteSpace(FeedbackStatusText);
 
     /// <summary>Local-evidence citations for the current answer.</summary>
     public ObservableCollection<AnswerCitationViewModel> AnswerCitations { get; } = [];
@@ -218,6 +281,12 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     /// <summary>Localized answer citation label.</summary>
     public string CitationLabel => _localization["Ai.Advisor.Answer.Citation"];
 
+    /// <summary>Localized feedback consent label.</summary>
+    public string FeedbackConsentLabel => _localization["Ai.Advisor.Feedback.Consent"];
+
+    /// <summary>Localized feedback submit label.</summary>
+    public string FeedbackSubmitLabel => _localization["Ai.Advisor.Feedback.Submit"];
+
     /// <summary>Icon path for the panel.</summary>
     public string IconPath => _iconPath;
 
@@ -308,6 +377,54 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         }
     }
 
+    /// <summary>Sets a bounded rating selected by the feedback controls.</summary>
+    public void SetFeedbackRating(int rating)
+    {
+        if (rating is < 1 or > 5)
+        {
+            throw new ArgumentOutOfRangeException(nameof(rating), rating, "Feedback rating must be between 1 and 5.");
+        }
+
+        FeedbackRating = rating;
+    }
+
+    /// <summary>Stores consented, privacy-minimized answer feedback.</summary>
+    public async Task SubmitFeedbackAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanSubmitFeedback || _feedbackService is null)
+        {
+            return;
+        }
+
+        string requestHash = Convert.ToHexStringLower(
+            SHA256.HashData(Encoding.UTF8.GetBytes(Query.Trim())));
+        try
+        {
+            await _feedbackService.SubmitAsync(
+                    new AdvisorFeedbackEntry(
+                        $"feedback-{Guid.NewGuid():N}",
+                        requestHash,
+                        FeedbackRating,
+                        ReasonCode: null,
+                        SubmittedUtc: DateTimeOffset.UtcNow),
+                    consentGranted: true,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            FeedbackStatusText = _localization["Ai.Advisor.Feedback.Saved"];
+        }
+        catch (AdvisorFeedbackConsentRequiredException)
+        {
+            FeedbackStatusText = _localization["Ai.Advisor.Feedback.ConsentRequired"];
+        }
+        catch (InvalidOperationException ex)
+        {
+            FeedbackStatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Ai.Advisor.ErrorFormat"],
+                ex.Message);
+        }
+    }
+
     /// <summary>Opens the selected book detail.</summary>
     public Task OpenBookAsync(RecommendationCardViewModel card, CancellationToken cancellationToken = default)
     {
@@ -334,6 +451,8 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         OnPropertyChanged(nameof(AnswerTitle));
         OnPropertyChanged(nameof(AskLabel));
         OnPropertyChanged(nameof(CitationLabel));
+        OnPropertyChanged(nameof(FeedbackConsentLabel));
+        OnPropertyChanged(nameof(FeedbackSubmitLabel));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>

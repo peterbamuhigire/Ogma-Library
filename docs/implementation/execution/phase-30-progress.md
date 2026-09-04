@@ -29,6 +29,9 @@ Date: 2026-09-04
   only a request hash, rating, and bounded reason code, applies a 90-day local
   retention window and entry bound, and persists atomically; focused tests
   cover consent denial, bounds, reload, and raw-content exclusion.
+- Added an explicit consent and one-to-five rating control to the desktop
+  advisor answer surface. The UI submits only a SHA-256 request hash and the
+  bounded rating through the existing feedback service.
 
 ## Design decisions
 
@@ -51,12 +54,14 @@ Date: 2026-09-04
   export and Privacy Center export command coverage.
 - Evaluation-set/run persistence slice: 5 passed, covering versioned runs,
   ranked results, relevance judgments, reports, replacement, load, and delete.
+- Advisor view-model slice: 49 passed; headless recommendation/answer/feedback
+  render: 1 passed; isolated Release build: 0 warnings and 0 errors.
 
 ## Remaining phase gate
 
-The offline threshold and code-level feedback-consent gates are closed by
-focused tests; the evaluator is ready to consume a real human-labeled set
-without treating missing evidence as approval. Feedback UI, quarantined
-live-provider evaluation, full-shell accessibility/keyboard evidence, and
-final AI retrieval freeze remain before Phase 30 closure. Physical file-picker
-walkthrough evidence is still a platform/release gate.
+The offline threshold and feedback-consent/UI gates are closed by focused
+tests; the evaluator is ready to consume a real human-labeled set without
+treating missing evidence as approval. Quarantined live-provider evaluation,
+full-shell accessibility/keyboard evidence, and final AI retrieval freeze
+remain before Phase 30 closure. Physical file-picker walkthrough evidence is
+still a platform/release gate.

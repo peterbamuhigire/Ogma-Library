@@ -105,6 +105,32 @@ public sealed class AdvisorViewModelTests
         Assert.Equal("Answer prepared from 1 local citations", viewModel.StatusText);
     }
 
+    [Fact]
+    public async Task RecommendationPanel_SubmitsOnlyConsentedBoundedFeedback()
+    {
+        var feedback = new RecordingFeedbackService();
+        using var viewModel = new RecommendationPanelViewModel(
+            new FakeAdvisorService([], null, new AnswerResponse("Answer.", [], IsV2: true)),
+            new RecordingNavigation(),
+            new InMemoryLocalizationService(),
+            feedback)
+        {
+            Query = "What does the library say?",
+        };
+
+        await viewModel.AskAsync();
+        viewModel.SetFeedbackRating(5);
+        Assert.False(viewModel.CanSubmitFeedback);
+        viewModel.FeedbackConsent = true;
+        Assert.True(viewModel.CanSubmitFeedback);
+        await viewModel.SubmitFeedbackAsync();
+
+        AdvisorFeedbackEntry entry = Assert.Single(feedback.Entries);
+        Assert.Equal(5, entry.Rating);
+        Assert.DoesNotContain("What does the library say?", entry.RequestHash, StringComparison.Ordinal);
+        Assert.Equal("Rating saved without question or answer text", viewModel.FeedbackStatusText);
+    }
+
     private static RecommendationCard Recommendation(string bookId) =>
         new(
             new BookId(bookId),
@@ -168,6 +194,31 @@ public sealed class AdvisorViewModelTests
 
         public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
+    }
+
+    private sealed class RecordingFeedbackService : IAdvisorFeedbackService
+    {
+        public List<AdvisorFeedbackEntry> Entries { get; } = [];
+
+        public Task<AdvisorFeedbackEntry> SubmitAsync(
+            AdvisorFeedbackEntry entry,
+            bool consentGranted,
+            CancellationToken cancellationToken = default)
+        {
+            if (!consentGranted)
+            {
+                throw new AdvisorFeedbackConsentRequiredException();
+            }
+
+            Entries.Add(entry);
+            return Task.FromResult(entry);
+        }
+
+        public Task<IReadOnlyList<AdvisorFeedbackEntry>> ListAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AdvisorFeedbackEntry>>(Entries);
+
+        public Task<int> PurgeExpiredAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
     }
 
     private sealed class FakeCatalogueReadModel : ICatalogueReadModel

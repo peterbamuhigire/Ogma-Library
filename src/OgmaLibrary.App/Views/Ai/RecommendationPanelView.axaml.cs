@@ -27,6 +27,24 @@ public sealed partial class RecommendationPanelView : UserControl
         }
     }
 
+    private void FeedbackRating_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel is not null &&
+            sender is Button { Tag: string tag } &&
+            int.TryParse(tag, out int rating))
+        {
+            ViewModel.SetFeedbackRating(rating);
+        }
+    }
+
+    private async void SubmitFeedback_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.SubmitFeedbackAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void OpenBook_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (ViewModel is not null && sender is Control { DataContext: RecommendationCardViewModel card })
