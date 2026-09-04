@@ -1,3 +1,4 @@
+using System.Net;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -87,6 +88,31 @@ public sealed class Phase16VisualAssetTests : IDisposable
             VisualAssetVariants.Resolve(VisualAssetKind.Cover, "retina"));
         Assert.Throws<ArgumentException>(() =>
             VisualAssetVariants.Resolve(VisualAssetKind.Spine, "detail"));
+    }
+
+    [Fact]
+    public async Task ProviderCoverClient_AllowlistsEndpointAndValidatesDecodedImage()
+    {
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var handler = new StaticResponseHandler(png, "image/png");
+        using var httpClient = new HttpClient(handler);
+        var client = new ProviderCoverImageClient(httpClient);
+
+        ProviderCoverImage image = await client.DownloadAsync(
+            "https://covers.openlibrary.org/b/id/1-L.jpg");
+
+        Assert.Equal(1, image.WidthPx);
+        Assert.Equal(1, image.HeightPx);
+        Assert.Equal("png", image.Format);
+        Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(png)), image.Sha256);
+        Assert.Equal(1, handler.RequestCount);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => client.DownloadAsync(
+            "http://covers.openlibrary.org/b/id/1-L.jpg"));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.DownloadAsync(
+            "https://example.test/cover.png"));
+        Assert.Equal(1, handler.RequestCount);
     }
 
     [Fact]
@@ -228,5 +254,23 @@ public sealed class Phase16VisualAssetTests : IDisposable
     {
         _context.Dispose();
         CatalogueTestHelper.DeleteTempDb(_dbPath);
+    }
+
+    private sealed class StaticResponseHandler(byte[] bytes, string mediaType) : HttpMessageHandler
+    {
+        public int RequestCount { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            RequestCount++;
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(bytes),
+            };
+            response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mediaType);
+            return Task.FromResult(response);
+        }
     }
 }

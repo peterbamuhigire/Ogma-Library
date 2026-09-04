@@ -18,6 +18,10 @@ acceptance.
 - The isolated PDF worker accepts the requested dimensions, preserves cover
   aspect ratio with letterboxing, and validates the final image dimensions and
   bounded output before copying it from the worker sandbox.
+- `ProviderCoverImageClient` accepts only HTTPS requests to the approved Open
+  Library/Google Books image hosts, restricts response formats to JPEG/PNG/WebP,
+  enforces a 4 MiB encoded-byte ceiling and 4096-pixel decoded dimensions, and
+  records the downloaded SHA-256.
 - Sidecar variants use safe deterministic suffixes and retain manifest source
   hash, dimensions, format, version, and lifecycle status.
 
@@ -37,8 +41,8 @@ The Debug build completed without compiler errors.
 
 ## Remaining gates
 
-- Provider image acquisition still needs a physically tested allowlisted HTTP
-  client, content-type/byte limits, cache policy, and source/license metadata.
+- Provider image acquisition still needs integration with the resolver, cache
+  policy, source/license metadata, and physical network evidence.
 - Embedded-art extraction and deterministic source fallback remain unverified.
 - Catalogue/3D UI lazy requests and accessibility states require physical host
   evidence; no snapshot or two-display result is inferred from these unit tests.
