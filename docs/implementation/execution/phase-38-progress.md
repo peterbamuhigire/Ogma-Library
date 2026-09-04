@@ -42,6 +42,9 @@ Date: 2026-09-04
 - Windows `win-x64` candidate was published, zipped, hashed, and integrity
   verified locally; candidate zip was 109,548,465 bytes and was generated in a
   temporary directory rather than committed.
+- Fresh unsigned `win-x64` candidate generation and integrity verification
+  passed after the packaging script was corrected to omit empty signature-only
+  parameters; the temporary candidate was removed after verification.
 - PowerShell packaging scripts parsed successfully.
 - `actionlint` was not installed on the developer machine; workflow validation
   remains pending CI/actionlint execution.

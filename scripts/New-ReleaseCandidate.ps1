@@ -141,12 +141,16 @@ if ($RequireSignature -and [string]::IsNullOrWhiteSpace($PublicKeyPath)) {
     throw 'A protected public key is required when descriptor signature verification is required.'
 }
 
-& (Join-Path $PSScriptRoot 'Test-ReleaseCandidate.ps1') `
-    -DescriptorPath $descriptorPath `
-    -ArtifactPath $artifactPath `
-    -SignaturePath $(if (Test-Path $signaturePath) { $signaturePath } else { $null }) `
-    -PublicKeyPath $(if (Test-Path -LiteralPath $PublicKeyPath -PathType Leaf) { $PublicKeyPath } else { $null }) `
-    -RequireSignature:$RequireSignature
+$verificationParameters = @{
+    DescriptorPath = $descriptorPath
+    ArtifactPath = $artifactPath
+}
+if ($RequireSignature) {
+    $verificationParameters.SignaturePath = $signaturePath
+    $verificationParameters.PublicKeyPath = $PublicKeyPath
+    $verificationParameters.RequireSignature = $true
+}
+& (Join-Path $PSScriptRoot 'Test-ReleaseCandidate.ps1') @verificationParameters
 if ($LASTEXITCODE -ne 0) { throw "Release-candidate verification failed with exit code $LASTEXITCODE." }
 
 Write-Output "Release candidate created: $artifactPath"

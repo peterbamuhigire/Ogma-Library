@@ -36,3 +36,9 @@ key and temporary artifacts were deleted after verification.
 Rerun on 2026-09-04: `Test-ReleaseCandidate.ps1` accepted the valid descriptor
 and rejected the tampered descriptor (`valid descriptor accepted;
 tampered descriptor rejected`).
+
+A fresh unsigned `New-ReleaseCandidate.ps1 -Platform windows -Architecture x64`
+run also published, archived, hashed, and passed `Test-ReleaseCandidate.ps1`.
+The run exposed and then verified the fix for empty optional signature
+parameters; its temporary candidate directory was removed in the command's
+cleanup block. No signed or installed artifact is implied.
