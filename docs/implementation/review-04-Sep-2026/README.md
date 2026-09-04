@@ -42,7 +42,7 @@ independent security review, legal/provider approval, and owner acceptance.
 | --- | --- |
 | Requirement accountability | PASS: 101 FRs, 29 NFRs, 32 controls; all 162 IDs assigned |
 | Current branch | `main` |
-| Pushed head | `581ba21` |
+| Pushed head | `50effd8` |
 | Remote parity | `HEAD == origin/main` at last verification |
 | Agent-owned uncommitted changes | None |
 | User-owned uncommitted changes | Present and preserved; see appendix |
