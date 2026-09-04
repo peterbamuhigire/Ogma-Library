@@ -7,6 +7,7 @@
   `tests/OgmaLibrary.Tests/Ingestion/Phase17StageWorkerTests.cs`
 - Phase 19: `docs/implementation/execution/evidence/phase-19-directory-view-2026-09-04.md`
 - Phase 20: `docs/implementation/execution/evidence/phase-20-curation-ui-2026-09-04.md`
+- Phase 22: `docs/implementation/execution/evidence/phase-22-search-ui-2026-09-04.md`
 - Phase 27: `docs/implementation/execution/evidence/phase-27-privacy-journey-2026-09-04.md`
 - Phase 29: `docs/implementation/execution/evidence/phase-29-answer-ui-2026-09-04.md`
 - Phase 30: `docs/implementation/execution/evidence/phase-30-feedback-consent-2026-09-04.md`

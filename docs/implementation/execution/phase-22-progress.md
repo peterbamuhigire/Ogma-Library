@@ -40,6 +40,9 @@ Date: 2026-08-30
   ranges, and an explicit indexed full-text fallback when metadata has no hit.
 - Added validation for page bounds and literal wildcard queries so search input
   remains safe and predictable for UI and LAN consumers.
+- Fresh Avalonia evidence covers the desktop search UI's source chips,
+  confidence/degraded states, selected-result page navigation, and shell
+  keyboard route (14 tests passed).
 
 ## Verification
 
@@ -50,6 +53,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The backend facets/paging/highlighting/full-text-fallback subgate is closed by
-the new contract and focused tests. UI chips, keyboard result navigation, and
-reference-hardware confirmation remain before phase 22 closure.
+The backend facets/paging/highlighting/full-text-fallback subgate and the
+locally verifiable UI chips/selection/keyboard subgate are closed. Reference-
+hardware confirmation and physical assistive-technology walkthroughs remain
+before phase 22 closure.

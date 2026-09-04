@@ -20,7 +20,7 @@ verified evidence and remaining gate summarized for decision use.
 | 19 | IN PROGRESS | Cover control, asset loading, functional directory view, server paging, local 50k page performance | UI paging/parity/filter/sort/badges/auth/reference confirmation |
 | 20 | IN PROGRESS | Curation foundations and desktop status/rating/favourite detail controls | Collections, file/relink, provenance, E2E |
 | 21 | IN PROGRESS | Reader portability, cache/session, non-crash regression | Split/viewer, physical crash, accessibility, budget |
-| 22 | IN PROGRESS | Structured/fuzzy search, debounce, bounded candidates, facets/paging/highlighting, local 50k p95 | UI and reference-machine gates |
+| 22 | IN PROGRESS | Structured/fuzzy search, debounce, bounded candidates, facets/paging/highlighting, local 50k p95, local search UI/keyboard evidence | Reference-machine and physical accessibility gates |
 | 23 | IN PROGRESS | FTS filters, snippets, page-jump, staged side-by-side promotion, local p95 | Reference and accessibility evidence |
 | 24 | IN PROGRESS | Selective OCR policy/provenance/guards/checksum/failure codes, 500-book synthetic benchmark | Real mixed-PDF accuracy, CPU/memory, cross-platform evidence |
 | 25 | IN PROGRESS | Provenance, local-only policy, dimensions including payload metadata, stale detection, tombstones | ANN, scale, cost, UI |
