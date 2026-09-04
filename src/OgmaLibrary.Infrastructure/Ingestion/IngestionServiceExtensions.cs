@@ -25,10 +25,12 @@ public static class IngestionServiceExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="dataDirectory">The app-data directory for settings persistence.</param>
+    /// <param name="libraryRoot">The configured library root used for managed asset cleanup.</param>
     /// <returns>The same service collection for chaining.</returns>
     public static IServiceCollection AddIngestionPipeline(
         this IServiceCollection services,
-        string dataDirectory)
+        string dataDirectory,
+        string? libraryRoot = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
@@ -44,7 +46,8 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IIdentityGroupingService, IdentityGroupingService>();
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
         services.AddSingleton<IVisualAssetService>(sp => new VisualAssetService(
-            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>(),
+            libraryRoot));
         services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();

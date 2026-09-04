@@ -45,6 +45,12 @@ public sealed record VisualAssetDescriptor(
     bool IsCustom,
     DateTimeOffset UpdatedUtc);
 
+/// <summary>Result of one stale visual-asset garbage-collection pass.</summary>
+public sealed record VisualAssetGarbageCollectionResult(
+    int RemovedManifestEntries,
+    int DeletedFiles,
+    int RetainedReferencedFiles);
+
 /// <summary>Durable manifest and precedence boundary for visual assets.</summary>
 public interface IVisualAssetService
 {
@@ -83,5 +89,13 @@ public interface IVisualAssetService
     Task<int> InvalidateGeneratedAsync(
         string bookId,
         string? currentSourceContentHash,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes stale manifest entries and unreferenced sidecar files. A null book
+    /// ID collects stale generated assets across the library.
+    /// </summary>
+    Task<VisualAssetGarbageCollectionResult> CollectStaleAsync(
+        string? bookId = null,
         CancellationToken cancellationToken = default);
 }

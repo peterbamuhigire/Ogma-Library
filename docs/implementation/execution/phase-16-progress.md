@@ -19,15 +19,17 @@ Date: 2026-08-30
   invalidation, path safety and 2D read-model exposure.
 - Added output-side image decode and exact-dimension verification for worker
   generated cover and spine assets before they leave the sandbox.
+- Added explicit stale-asset garbage collection that removes stale manifest rows,
+  deletes only unreferenced `.ogma` files under the configured root, and retains
+  files still referenced by another manifest entry.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
-- `Phase16VisualAssetTests`: 3 passed.
+- `Phase16VisualAssetTests`: 4 passed.
 
 ## Remaining phase gate
 
-Embedded/provider source acquisition, explicit
-garbage collection, lazy high/low variants, API authorization, UI journeys,
+Embedded/provider source acquisition, lazy high/low variants, API authorization, UI journeys,
 and large-library asset budget testing remain before phase 16 closure.

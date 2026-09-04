@@ -100,6 +100,90 @@ public sealed class Phase16VisualAssetTests : IDisposable
             bookId, ".ogma/covers/../outside.png", 200, 300, "png"));
     }
 
+    [Fact]
+    public async Task GarbageCollection_RemovesStaleUnreferencedFiles_AndRetainsSharedFiles()
+    {
+        const string staleBook = "PHASE16-GC-STALE";
+        const string sharedBook = "PHASE16-GC-SHARED";
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-asset-gc-{Guid.NewGuid():N}");
+        string staleRelativePath = ".ogma/covers/gc/stale.jpg";
+        string sharedRelativePath = ".ogma/covers/gc/shared.jpg";
+        Directory.CreateDirectory(Path.Combine(root, ".ogma", "covers", "gc"));
+        await File.WriteAllBytesAsync(Path.Combine(root, staleRelativePath.Replace('/', Path.DirectorySeparatorChar)), [1]);
+        await File.WriteAllBytesAsync(Path.Combine(root, sharedRelativePath.Replace('/', Path.DirectorySeparatorChar)), [2]);
+
+        try
+        {
+            _context.Books.AddRange(
+                new BookRow { BookId = staleBook, Title = "Stale", Status = 0 },
+                new BookRow { BookId = sharedBook, Title = "Shared", Status = 0 });
+            _context.VisualAssetManifests.AddRange(
+                new VisualAssetManifestRow
+                {
+                    BookId = staleBook,
+                    Kind = (int)VisualAssetKind.Cover,
+                    Variant = "stale",
+                    RelativePath = staleRelativePath,
+                    Source = "generated",
+                    WidthPx = 100,
+                    HeightPx = 100,
+                    Format = "jpg",
+                    GenerationVersion = 1,
+                    Status = (int)VisualAssetStatus.Stale,
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                    CreatedUtc = DateTimeOffset.UtcNow,
+                },
+                new VisualAssetManifestRow
+                {
+                    BookId = staleBook,
+                    Kind = (int)VisualAssetKind.Cover,
+                    Variant = "shared-stale",
+                    RelativePath = sharedRelativePath,
+                    Source = "generated",
+                    WidthPx = 100,
+                    HeightPx = 100,
+                    Format = "jpg",
+                    GenerationVersion = 1,
+                    Status = (int)VisualAssetStatus.Stale,
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                    CreatedUtc = DateTimeOffset.UtcNow,
+                },
+                new VisualAssetManifestRow
+                {
+                    BookId = sharedBook,
+                    Kind = (int)VisualAssetKind.Cover,
+                    Variant = "ready",
+                    RelativePath = sharedRelativePath,
+                    Source = "generated",
+                    WidthPx = 100,
+                    HeightPx = 100,
+                    Format = "jpg",
+                    GenerationVersion = 1,
+                    Status = (int)VisualAssetStatus.Ready,
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                    CreatedUtc = DateTimeOffset.UtcNow,
+                });
+            await _context.SaveChangesAsync();
+
+            var service = new VisualAssetService(_context, root);
+            VisualAssetGarbageCollectionResult result = await service.CollectStaleAsync(staleBook);
+
+            Assert.Equal(2, result.RemovedManifestEntries);
+            Assert.Equal(1, result.DeletedFiles);
+            Assert.Equal(1, result.RetainedReferencedFiles);
+            Assert.False(File.Exists(Path.Combine(root, staleRelativePath.Replace('/', Path.DirectorySeparatorChar))));
+            Assert.True(File.Exists(Path.Combine(root, sharedRelativePath.Replace('/', Path.DirectorySeparatorChar))));
+            Assert.Single(_context.VisualAssetManifests.Where(asset => asset.BookId == sharedBook));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     public void Dispose()
     {
         _context.Dispose();

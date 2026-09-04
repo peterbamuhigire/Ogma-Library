@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Infrastructure.Assets;
 
@@ -17,20 +18,25 @@ public sealed class VisualAssetService : IVisualAssetService
     private const string CustomSource = "custom";
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly string? _libraryRoot;
 
     /// <summary>Creates a service backed by a factory for application use.</summary>
     [ActivatorUtilitiesConstructor]
-    public VisualAssetService(IDbContextFactory<CatalogueDbContext> contextFactory)
+    public VisualAssetService(
+        IDbContextFactory<CatalogueDbContext> contextFactory,
+        string? libraryRoot = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         _contextFactory = contextFactory;
+        _libraryRoot = NormalizeLibraryRoot(libraryRoot);
     }
 
     /// <summary>Creates a service backed by an explicit context for tests and migrations.</summary>
-    public VisualAssetService(CatalogueDbContext context)
+    public VisualAssetService(CatalogueDbContext context, string? libraryRoot = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+        _libraryRoot = NormalizeLibraryRoot(libraryRoot);
     }
 
     /// <inheritdoc />
@@ -214,6 +220,109 @@ public sealed class VisualAssetService : IVisualAssetService
         return rows.Count;
     }
 
+    /// <inheritdoc />
+    public async Task<VisualAssetGarbageCollectionResult> CollectStaleAsync(
+        string? bookId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrWhiteSpace(bookId))
+        {
+            ValidateBookId(bookId);
+        }
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        List<VisualAssetManifestRow> stale = await context.VisualAssetManifests
+            .Where(asset => !asset.IsCustom &&
+                            asset.Status == (int)VisualAssetStatus.Stale &&
+                            (bookId == null || asset.BookId == bookId))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (stale.Count == 0)
+        {
+            return new VisualAssetGarbageCollectionResult(0, 0, 0);
+        }
+
+        HashSet<string> stalePaths = stale
+            .Select(asset => asset.RelativePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        List<string> referencedPathRows = await context.VisualAssetManifests
+            .Where(asset => !stalePaths.Contains(asset.RelativePath) ||
+                            asset.Status != (int)VisualAssetStatus.Stale)
+            .Select(asset => asset.RelativePath)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        HashSet<string> referencedPaths = referencedPathRows
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        List<VisualAssetManifestRow> rowsToRemove = new();
+
+        int deletedFiles = 0;
+        int retainedReferencedFiles = 0;
+        foreach (string relativePath in stalePaths)
+        {
+            List<VisualAssetManifestRow> pathRows = stale
+                .Where(asset => string.Equals(asset.RelativePath, relativePath, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (referencedPaths.Contains(relativePath))
+            {
+                rowsToRemove.AddRange(pathRows);
+                retainedReferencedFiles++;
+                continue;
+            }
+
+            if (_libraryRoot is null)
+            {
+                rowsToRemove.AddRange(pathRows);
+                continue;
+            }
+
+            string absolutePath = PathGuard.EnsureWithinRoot(
+                Path.Combine(_libraryRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)),
+                _libraryRoot);
+            if (!absolutePath.StartsWith(
+                    Path.Combine(_libraryRoot, ".ogma") + Path.DirectorySeparatorChar,
+                    OperatingSystem.IsWindows()
+                        ? StringComparison.OrdinalIgnoreCase
+                        : StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!File.Exists(absolutePath))
+            {
+                rowsToRemove.AddRange(pathRows);
+                continue;
+            }
+
+            try
+            {
+                File.Delete(absolutePath);
+                rowsToRemove.AddRange(pathRows);
+                deletedFiles++;
+            }
+            catch (IOException)
+            {
+                // A locked asset remains represented for a later collection pass.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Permission failures are non-fatal; retain the manifest for retry.
+            }
+        }
+
+        if (rowsToRemove.Count > 0)
+        {
+            context.VisualAssetManifests.RemoveRange(rowsToRemove);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return new VisualAssetGarbageCollectionResult(
+            rowsToRemove.Count,
+            deletedFiles,
+            retainedReferencedFiles);
+    }
+
     private static VisualAssetDescriptor ToDescriptor(VisualAssetManifestRow row) =>
         new(
             row.BookId,
@@ -310,6 +419,9 @@ public sealed class VisualAssetService : IVisualAssetService
             ? normalized
             : throw new ArgumentException("Source content hash must be a SHA-256 hexadecimal value.", nameof(hash));
     }
+
+    private static string? NormalizeLibraryRoot(string? libraryRoot) =>
+        string.IsNullOrWhiteSpace(libraryRoot) ? null : Path.GetFullPath(libraryRoot);
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

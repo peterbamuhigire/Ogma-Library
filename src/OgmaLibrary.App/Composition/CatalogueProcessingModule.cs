@@ -26,7 +26,7 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
         {
             WorkerPath = options.PdfWorkerPath,
         }));
-        services.AddIngestionPipeline(options.DataDirectory);
+        services.AddIngestionPipeline(options.DataDirectory, options.LibraryRoot);
         services.AddMetadataEnrichment(
             options.LibraryRoot,
             options.EnableExternalMetadataProviders);
