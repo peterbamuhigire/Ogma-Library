@@ -27,8 +27,8 @@ verified evidence and remaining gate summarized for decision use.
 | 26 | IN PROGRESS | RRF hybrid retrieval, filters, tombstone/blob-integrity filtering, metric/eval, diversity, local 50k latency | Representative corpus, ANN/memory, reference confirmation |
 | 27 | IN PROGRESS | Fail-closed gateway, payload/egress boundaries, health, budget, secret custody, provider profiles, local retention/erasure | Policy-editing UX, provider terms/conformance, physical accessibility |
 | 28 | IN PROGRESS | Intent, ranking, fallbacks, editable intent, privacy-safe traces | Reference resolution, benchmarks |
-| 29 | IN PROGRESS | Local evidence, desktop answer/citation display/navigation, durable safe traces, payload/provenance validation, untrusted boundary | Consent, benchmarks |
-| 30 | IN PROGRESS | Routes, intent/answer UI, durable runs/history export-delete, thresholds, consented feedback UI/minimization | Human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
+| 29 | IN PROGRESS | Local evidence, desktop answer/citation display/navigation, content-aware consent, durable safe traces, payload/provenance validation, untrusted boundary | Benchmarks |
+| 30 | IN PROGRESS | Routes, intent/answer UI, content-aware consent, durable runs/history export-delete, thresholds, consented feedback UI/minimization | Human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
 | 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback, FocusBook command | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
 | 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification, source/build provenance | Atlas/LOD scale, search/advisor focus, reduced motion, physical interaction |
 | 33 | IN PROGRESS | Virtualization, bounded texture residency, runtime metrics, headless budgets, fallback, safe asynchronous texture eviction | GPU/WebView frame budgets, cross-platform accessibility |

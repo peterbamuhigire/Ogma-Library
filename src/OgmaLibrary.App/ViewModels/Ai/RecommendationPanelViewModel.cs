@@ -30,6 +30,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     private bool _feedbackConsent;
     private int _feedbackRating;
     private string? _feedbackStatusText;
+    private bool _contentAwareConsent;
 
     /// <summary>Initializes a new instance of <see cref="RecommendationPanelViewModel"/>.</summary>
     public RecommendationPanelViewModel(
@@ -98,6 +99,23 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
 
     /// <summary>Whether a local-evidence answer can be requested.</summary>
     public bool CanAsk => !IsLoading && !string.IsNullOrWhiteSpace(Query);
+
+    /// <summary>Whether the user explicitly permits local page/note evidence.</summary>
+    public bool ContentAwareConsent
+    {
+        get => _contentAwareConsent;
+        set
+        {
+            if (_contentAwareConsent != value)
+            {
+                _contentAwareConsent = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Localized content-aware evidence consent label.</summary>
+    public string ContentAwareConsentLabel => _localization["Ai.Advisor.Answer.ContentAwareConsent"];
 
     /// <summary>Latest local-evidence answer, when one has been requested.</summary>
     public string? AnswerText
@@ -352,7 +370,10 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         try
         {
             AnswerResponse response = await _advisor.GetAnswerAsync(
-                new AnswerRequest(Query.Trim(), maxCitations: 5, allowContentAwareTier: false),
+                new AnswerRequest(
+                    Query.Trim(),
+                    maxCitations: 5,
+                    allowContentAwareTier: ContentAwareConsent),
                 cancellationToken).ConfigureAwait(false);
 
             AnswerText = response.Answer;
@@ -471,6 +492,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         OnPropertyChanged(nameof(AnswerTitle));
         OnPropertyChanged(nameof(AskLabel));
         OnPropertyChanged(nameof(CitationLabel));
+        OnPropertyChanged(nameof(ContentAwareConsentLabel));
         OnPropertyChanged(nameof(FeedbackConsentLabel));
         OnPropertyChanged(nameof(FeedbackSubmitLabel));
     }

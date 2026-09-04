@@ -36,6 +36,9 @@ Date: 2026-09-04
   cited book in the reader and converts the validated one-based citation page
   to the reader's zero-based page hint, with a detail fallback for reduced
   compositions.
+- Added an explicit unchecked-by-default consent control for page and note
+  evidence; the user's choice is passed to the existing content-aware tier
+  boundary and is covered by a default-deny regression.
 
 ## Verification
 
@@ -51,11 +54,12 @@ Date: 2026-09-04
   1 passed; Release build: 0 warnings and 0 errors.
 - Fresh citation-navigation regression: 6 core advisor tests and 1 headless
   Advisor render test passed.
+- Content-aware consent regression: 7 advisor tests passed.
 
 ## Remaining phase gate
 
-Content-tier consent wiring in the shell and benchmark unsupported-
-claim/abstention evaluation remain for phases 29-30. The desktop
+Benchmark unsupported-claim/abstention evaluation remains for phases 29-30.
+The desktop
 answer display is now available and remains local/evidence-only; provider-
 generated explanations still receive assembled, versioned source-label
 evidence. Physical UI evidence remains unassessed.

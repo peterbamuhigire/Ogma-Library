@@ -4,7 +4,7 @@
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Ai.RecommendationPanelView"
              x:DataType="vm:RecommendationPanelViewModel">
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12" Margin="16">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12" Margin="16">
     <StackPanel Orientation="Horizontal" Spacing="8">
       <svg:Svg Width="22" Height="22" Path="{Binding IconPath}" />
       <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
@@ -27,7 +27,13 @@
               Click="Ask_Click" />
     </Grid>
 
-    <Border Grid.Row="2"
+    <CheckBox Grid.Row="2"
+              Grid.ColumnSpan="3"
+              IsChecked="{Binding ContentAwareConsent, Mode=TwoWay}"
+              Content="{Binding ContentAwareConsentLabel}"
+              AutomationProperties.Name="{Binding ContentAwareConsentLabel}" />
+
+    <Border Grid.Row="3"
             IsVisible="{Binding HasInterpretedIntent}"
             Background="{DynamicResource Brush.Surface.Footer}"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
@@ -39,7 +45,7 @@
                  AutomationProperties.Name="Interpreted reading preferences" />
     </Border>
 
-    <Border Grid.Row="3"
+    <Border Grid.Row="4"
             IsVisible="{Binding HasAnswer}"
             Background="{DynamicResource Brush.Surface.Footer}"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
@@ -116,7 +122,7 @@
       </StackPanel>
     </Border>
 
-    <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto">
       <ItemsControl ItemsSource="{Binding Recommendations}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:RecommendationCardViewModel">
@@ -184,7 +190,7 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <StackPanel Grid.Row="5" Spacing="4">
+    <StackPanel Grid.Row="6" Spacing="4">
       <TextBlock Text="{Binding ErrorText}"
                  IsVisible="{Binding HasError}"
                  Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />

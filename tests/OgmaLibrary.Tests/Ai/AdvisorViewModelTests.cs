@@ -136,6 +136,30 @@ public sealed class AdvisorViewModelTests
     }
 
     [Fact]
+    public async Task RecommendationPanel_ContentAwareEvidenceRequiresExplicitConsent()
+    {
+        var advisor = new FakeAdvisorService(
+            [],
+            null,
+            new AnswerResponse("Local answer.", [], IsV2: true));
+        using var viewModel = new RecommendationPanelViewModel(
+            advisor,
+            new RecordingNavigation(),
+            new InMemoryLocalizationService())
+        {
+            Query = "What does the library say?",
+        };
+
+        await viewModel.AskAsync();
+        Assert.NotNull(advisor.LastAnswerRequest);
+        Assert.False(advisor.LastAnswerRequest!.AllowContentAwareTier);
+
+        viewModel.ContentAwareConsent = true;
+        await viewModel.AskAsync();
+        Assert.True(advisor.LastAnswerRequest.AllowContentAwareTier);
+    }
+
+    [Fact]
     public async Task RecommendationPanel_SubmitsOnlyConsentedBoundedFeedback()
     {
         var feedback = new RecordingFeedbackService();
@@ -178,6 +202,7 @@ public sealed class AdvisorViewModelTests
         AnswerResponse? answer = null) : IAiAdvisorService
     {
         public bool IsEnabled => true;
+        public AnswerRequest? LastAnswerRequest { get; private set; }
 
         public Task<IReadOnlyList<RecommendationCard>> GetRecommendationsAsync(
             RecommendationQuery query,
@@ -191,8 +216,11 @@ public sealed class AdvisorViewModelTests
             CancellationToken cancellationToken) =>
             Task.FromResult(plan ?? throw new InvalidOperationException("No plan configured."));
 
-        public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken) =>
-            Task.FromResult(answer ?? throw new InvalidOperationException("No answer configured."));
+        public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken)
+        {
+            LastAnswerRequest = request;
+            return Task.FromResult(answer ?? throw new InvalidOperationException("No answer configured."));
+        }
     }
 
     private sealed class RecordingNavigation : IBookDetailNavigationService

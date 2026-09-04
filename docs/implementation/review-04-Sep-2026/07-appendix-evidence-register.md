@@ -12,6 +12,7 @@
 - Phase 27: `docs/implementation/execution/evidence/phase-27-privacy-journey-2026-09-04.md`
 - Phase 29: `docs/implementation/execution/evidence/phase-29-answer-ui-2026-09-04.md`
 - Phase 29 citation navigation: `docs/implementation/execution/evidence/phase-29-citation-navigation-2026-09-04.md`
+- Phase 29 consent: `docs/implementation/execution/evidence/phase-29-content-consent-2026-09-04.md`
 - Phase 30: `docs/implementation/execution/evidence/phase-30-feedback-consent-2026-09-04.md`
 - Phase 30 UI: `docs/implementation/execution/evidence/phase-30-feedback-ui-2026-09-04.md`
 - Phase 31: `docs/implementation/execution/evidence/phase-31-3d-host-contract-2026-09-04.md`
