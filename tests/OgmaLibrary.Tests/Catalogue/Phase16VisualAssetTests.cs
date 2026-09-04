@@ -3,6 +3,7 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Sidecar;
 
 namespace OgmaLibrary.Tests.Catalogue;
 
@@ -113,6 +114,49 @@ public sealed class Phase16VisualAssetTests : IDisposable
         await Assert.ThrowsAsync<ArgumentException>(() => client.DownloadAsync(
             "https://example.test/cover.png"));
         Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task ProviderCoverAssetService_PersistsJpegAndRegistersProviderProvenance()
+    {
+        const string bookId = "PHASE16-PROVIDER-ASSET";
+        const string hash = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+        _context.Books.Add(new BookRow { BookId = bookId, Title = "Provider Asset", Status = 0 });
+        await _context.SaveChangesAsync();
+
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-provider-asset-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            byte[] png = Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            using var httpClient = new HttpClient(new StaticResponseHandler(png, "image/png"));
+            var imageClient = new ProviderCoverImageClient(httpClient);
+            var assets = new VisualAssetService(_context, root);
+            var service = new ProviderCoverAssetService(
+                new SidecarService(root),
+                imageClient,
+                assets);
+
+            VisualAssetDescriptor descriptor = await service.PersistAsync(
+                bookId,
+                hash,
+                "https://covers.openlibrary.org/b/id/2-L.jpg");
+
+            Assert.Equal("provider", descriptor.Source);
+            Assert.Equal("provider", descriptor.Variant);
+            Assert.Equal("jpg", descriptor.Format);
+            Assert.EndsWith("_provider.jpg", descriptor.RelativePath, StringComparison.Ordinal);
+            Assert.True(File.Exists(Path.Combine(root, descriptor.RelativePath.Replace('/', Path.DirectorySeparatorChar))));
+            Assert.Equal(descriptor, await assets.GetVariantAsync(bookId, VisualAssetKind.Cover, "provider"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
     }
 
     [Fact]

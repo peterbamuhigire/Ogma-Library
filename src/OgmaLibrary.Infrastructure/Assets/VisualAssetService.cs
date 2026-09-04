@@ -102,8 +102,37 @@ public sealed class VisualAssetService : IVisualAssetService
         int generationVersion,
         CancellationToken cancellationToken = default)
     {
+        return await RegisterResolvedAsync(
+            bookId,
+            GeneratedSource,
+            sourceContentHash,
+            kind,
+            variant,
+            relativePath,
+            widthPx,
+            heightPx,
+            format,
+            generationVersion,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<VisualAssetDescriptor> RegisterResolvedAsync(
+        string bookId,
+        string source,
+        string? sourceContentHash,
+        VisualAssetKind kind,
+        string variant,
+        string relativePath,
+        int widthPx,
+        int heightPx,
+        string format,
+        int generationVersion,
+        CancellationToken cancellationToken = default)
+    {
         ValidateBookId(bookId);
         ValidateKind(kind);
+        string normalizedSource = ValidateResolvedSource(source);
         string normalizedVariant = ValidateVariant(variant);
         string normalizedPath = ValidateRelativePath(relativePath);
         ValidateDimensions(widthPx, heightPx);
@@ -140,7 +169,7 @@ public sealed class VisualAssetService : IVisualAssetService
         }
 
         row.RelativePath = normalizedPath;
-        row.Source = GeneratedSource;
+        row.Source = normalizedSource;
         row.SourceContentHash = NormalizeHash(sourceContentHash);
         row.WidthPx = widthPx;
         row.HeightPx = heightPx;
@@ -371,6 +400,15 @@ public sealed class VisualAssetService : IVisualAssetService
         "placeholder" => 10,
         _ => 0,
     };
+
+    private static string ValidateResolvedSource(string source)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        string normalized = source.Trim().ToLowerInvariant();
+        return normalized is "generated" or "embedded" or "provider" or "placeholder"
+            ? normalized
+            : throw new ArgumentException("Visual asset source is not approved.", nameof(source));
+    }
 
     private static void ValidateBookId(string bookId) =>
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);

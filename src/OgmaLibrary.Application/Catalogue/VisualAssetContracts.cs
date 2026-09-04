@@ -122,6 +122,20 @@ public interface IVisualAssetService
         int generationVersion,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Records a validated non-custom resolved asset such as provider art.</summary>
+    Task<VisualAssetDescriptor> RegisterResolvedAsync(
+        string bookId,
+        string source,
+        string? sourceContentHash,
+        VisualAssetKind kind,
+        string variant,
+        string relativePath,
+        int widthPx,
+        int heightPx,
+        string format,
+        int generationVersion,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Registers a user-selected cover and locks it against regeneration.</summary>
     Task<VisualAssetDescriptor> RegisterCustomCoverAsync(
         string bookId,

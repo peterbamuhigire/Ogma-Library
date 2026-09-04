@@ -23,6 +23,9 @@ acceptance.
   rejects redirect responses whose effective URI changes, enforces a 4 MiB
   encoded-byte ceiling and 4096-pixel decoded dimensions, and records the
   downloaded SHA-256.
+- `ProviderCoverAssetService` atomically persists validated provider art as a
+  deterministic JPEG and registers `provider` provenance through the manifest;
+  failed registration cleans up only a newly-created file.
 - Sidecar variants use safe deterministic suffixes and retain manifest source
   hash, dimensions, format, version, and lifecycle status.
 
@@ -42,8 +45,8 @@ The Debug build completed without compiler errors.
 
 ## Remaining gates
 
-- Provider image acquisition still needs integration with the resolver, cache
-  policy, source/license metadata, and physical network evidence.
+- Resolver precedence integration, cache policy, source/license metadata, and
+  physical network evidence remain open.
 - Embedded-art extraction and deterministic source fallback remain unverified.
 - Catalogue/3D UI lazy requests and accessibility states require physical host
   evidence; no snapshot or two-display result is inferred from these unit tests.
