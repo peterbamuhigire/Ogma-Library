@@ -24,6 +24,8 @@ Date: 2026-09-04
 - School Administration/managed-AI slice: 46 passed.
 - Provider failure, payload-preview, quota, rate-limit, DPIA, grounded citation,
   provider-key custody, and overlong-request paths are covered by focused tests.
+- Current-head local gate reconciliation is recorded in
+  `evidence/phase-36-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
