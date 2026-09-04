@@ -70,6 +70,7 @@ public sealed class MainShellViewModel :
     private readonly ILocalizationService _localization;
     private readonly ILibrarySettingsService? _settingsService;
     private readonly IIngestionOrchestrator? _orchestrator;
+    private readonly ILibraryRootService? _libraryRootService;
     private readonly IScanProgressService? _scanProgress;
     private readonly IDirectPdfOpenService? _directPdfOpenService;
     private readonly IClassroomModeService? _classroomModeService;
@@ -120,6 +121,7 @@ public sealed class MainShellViewModel :
     /// <param name="advisor">The recommendation advisor view model.</param>
     /// <param name="readingPlan">The reading-plan view model.</param>
     /// <param name="bookshelf3D">The capability-gated 3D bookshelf view model.</param>
+    /// <param name="libraryRootService">The durable library-root identity service.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -138,7 +140,8 @@ public sealed class MainShellViewModel :
         IClassroomModeService? classroomModeService = null,
         RecommendationPanelViewModel? advisor = null,
         ReadingPlanViewModel? readingPlan = null,
-        Bookshelf3DViewModel? bookshelf3D = null)
+        Bookshelf3DViewModel? bookshelf3D = null,
+        ILibraryRootService? libraryRootService = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -160,6 +163,7 @@ public sealed class MainShellViewModel :
         Bookshelf3D = bookshelf3D;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
+        _libraryRootService = libraryRootService;
         _scanProgress = scanProgress;
         _directPdfOpenService = directPdfOpenService;
         _classroomModeService = classroomModeService;
@@ -554,6 +558,12 @@ public sealed class MainShellViewModel :
 
         if (Reader is not null)
         {
+            // Switch immediately so the user gets reader feedback while the
+            // isolated worker opens and warms the selected PDF.
+            ActiveView = ShellView.Reader;
+            ReaderPlaceholderMessage = null;
+            BookDetail.IsVisible = false;
+            OnPropertyChanged(nameof(IsReaderActive));
             await Reader.OpenAsync(bookId, pageHint, cancellationToken).ConfigureAwait(false);
         }
 
@@ -668,6 +678,8 @@ public sealed class MainShellViewModel :
             return;
         }
 
+        string? previousRoot = await _settingsService.GetLibraryRootAsync().ConfigureAwait(true);
+
         if (topLevel is Avalonia.Controls.Window window)
         {
             window.Activate();
@@ -701,7 +713,37 @@ public sealed class MainShellViewModel :
         }
 
         string path = folders[0].Path.LocalPath;
-        await _settingsService.SetLibraryRootAsync(path).ConfigureAwait(true);
+        try
+        {
+            if (_libraryRootService is not null)
+            {
+                IReadOnlyList<LibraryRootDescriptor> roots = await _libraryRootService
+                    .ListAsync()
+                    .ConfigureAwait(true);
+                LibraryRootDescriptor? currentRoot = roots.FirstOrDefault(root =>
+                    SameRootPath(root.CanonicalLocator, previousRoot));
+                if (currentRoot is not null)
+                {
+                    await _libraryRootService.RelinkAsync(currentRoot.Id, path)
+                        .ConfigureAwait(true);
+                }
+                else
+                {
+                    await _libraryRootService.EnsureForLegacyPathAsync(path)
+                        .ConfigureAwait(true);
+                }
+            }
+
+            await _settingsService.SetLibraryRootAsync(path).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            SetStatusOverride(string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["MainWindow.FolderPicker.FailedFormat"],
+                ex.Message));
+            return;
+        }
         SetStatusOverride(_localization["MainWindow.FolderPicker.ScanStarting"]);
 
         _scanCts.Cancel();
@@ -881,6 +923,25 @@ public sealed class MainShellViewModel :
         Advisor?.Dispose();
         ReadingPlan?.Dispose();
         Bookshelf3D?.Dispose();
+    }
+
+    private static bool SameRootPath(string? first, string? second)
+    {
+        if (string.IsNullOrWhiteSpace(first) || string.IsNullOrWhiteSpace(second))
+        {
+            return false;
+        }
+
+        try
+        {
+            string left = Path.GetFullPath(first).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string right = Path.GetFullPath(second).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
     }
 
     private void Catalogue_PropertyChanged(object? sender, PropertyChangedEventArgs e)

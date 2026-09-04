@@ -34,6 +34,19 @@ Date: 2026-09-04
 - Added a bounded, SQLite-compatible reading-history query and a lazy detail-
   panel history load with localized loading, empty, error, status, favourite,
   and reason presentation.
+- Added explicit file-availability state to book detail and fail-closed reader
+  opening for missing files; catalogue metadata remains visible when the PDF
+  is unavailable.
+- Wired the existing safe `IBookFileLocator` and bounded
+  `ITocExtractionService` into the detail model. The TOC is loaded only after
+  the user requests it, is capped at 500 rows, and never parses when the file
+  locator reports the file missing.
+- Added a lazy provenance tab that materializes provenance-tracked metadata
+  rows only after the user requests them, with English and French labels.
+- Connected the folder-picker recovery path to `ILibraryRootService`: an
+  existing durable root is repointed with `RelinkAsync` when the selected
+  folder replaces its legacy settings path; otherwise the new root is ensured
+  before settings persistence and scanning continue.
 
 ## Verification
 
@@ -56,9 +69,17 @@ Date: 2026-09-04
 - Current-HEAD full solution verification: 883 core + 41 architecture + 142
   UI = 1,066 passed, 0 failed, 0 skipped.
 
+- Current-HEAD Phase 20 detail-file/provenance verification: 2 UI-model tests
+  passed, 0 failed, 0 skipped. The application build passed with 0 warnings
+  and 0 errors.
+- Current-HEAD shell/root-recovery verification: 15 focused UI tests passed,
+  0 failed, 0 skipped. This includes the shell navigation regression slice;
+  the OS folder-picker interaction itself remains platform evidence.
+
 ## Remaining phase gate
 
-File/relink actions, lazy TOC and provenance tabs, and accessibility/E2E
-evidence remain before phase 20 closure. The detail-view status/rating/
+Physical folder-picker/relink recovery, accessibility and E2E evidence remain
+before phase 20 closure. The detail-view status/rating/
 favourite, bounded tag, collection CRUD, and local status/history presentation
-sub-gates are closed by the curation/organisation UI increments.
+sub-gates, plus lazy TOC/provenance presentation, are closed by the curation/
+organisation UI increments.

@@ -71,7 +71,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IBookCurationService>(),
             options.LibraryRoot,
             writeService,
-            services.GetRequiredService<IMetadataReviewService>());
+            services.GetRequiredService<IMetadataReviewService>(),
+            services.GetRequiredService<IBookFileLocator>(),
+            services.GetRequiredService<ITocExtractionService>());
         var bookshelf3D = new Bookshelf3DViewModel(
             readModel,
             services.GetRequiredService<IWebViewBridge>(),
@@ -166,7 +168,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IClassroomModeService>(),
             advisor,
             readingPlan,
-            bookshelf3D);
+            bookshelf3D,
+            services.GetRequiredService<ILibraryRootService>());
 
         return shell;
     }

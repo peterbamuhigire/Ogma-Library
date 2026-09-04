@@ -79,6 +79,22 @@ public partial class BookDetailView : UserControl
         }
     }
 
+    private async void LoadTocButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.LoadTocAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void LoadProvenanceButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            vm.LoadProvenance();
+        }
+    }
+
     private async void CurationStatusButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not BookDetailViewModel vm || sender is not Button button ||

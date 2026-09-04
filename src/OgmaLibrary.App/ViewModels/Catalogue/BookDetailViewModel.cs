@@ -7,6 +7,7 @@ using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
@@ -29,6 +30,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly string? _assetRootPath;
     private readonly ICatalogueWriteService? _catalogueWriteService;
     private readonly IMetadataReviewService? _metadataReviewService;
+    private readonly IBookFileLocator? _fileLocator;
+    private readonly ITocExtractionService? _tocExtraction;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -41,6 +44,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _historyLoaded;
     private bool _isSavingTags;
     private bool _isReviewingMetadata;
+    private bool _isLoadingToc;
+    private bool _tocLoaded;
+    private bool _provenanceLoaded;
     private bool _isVisible;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
@@ -70,6 +76,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="assetRootPath">The configured sidecar root used for local visual assets.</param>
     /// <param name="catalogueWriteService">The catalogue write boundary for user-owned tags.</param>
     /// <param name="metadataReviewService">The pending metadata proposal review boundary.</param>
+    /// <param name="fileLocator">The safe catalogue-backed PDF locator.</param>
+    /// <param name="tocExtraction">The bounded PDF table-of-contents extractor.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -81,7 +89,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         IBookCurationService? curation = null,
         string? assetRootPath = null,
         ICatalogueWriteService? catalogueWriteService = null,
-        IMetadataReviewService? metadataReviewService = null)
+        IMetadataReviewService? metadataReviewService = null,
+        IBookFileLocator? fileLocator = null,
+        ITocExtractionService? tocExtraction = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -98,6 +108,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _assetRootPath = assetRootPath;
         _catalogueWriteService = catalogueWriteService;
         _metadataReviewService = metadataReviewService;
+        _fileLocator = fileLocator;
+        _tocExtraction = tocExtraction;
     }
 
     /// <inheritdoc />
@@ -213,6 +225,30 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Localized AI-detail tab header.</summary>
     public string AiTabText => _localization["Catalogue.BookDetail.Tab.Ai"];
+
+    /// <summary>Localized table-of-contents tab header.</summary>
+    public string TocTabText => _localization["Catalogue.BookDetail.Tab.Toc"];
+
+    /// <summary>Localized provenance tab header.</summary>
+    public string ProvenanceTabText => _localization["Catalogue.BookDetail.Tab.Provenance"];
+
+    /// <summary>Localized lazy table-of-contents action.</summary>
+    public string LoadTocLabel => _localization["Catalogue.BookDetail.Toc.Load"];
+
+    /// <summary>Localized table-of-contents loading message.</summary>
+    public string TocLoadingText => _localization["Catalogue.BookDetail.Toc.Loading"];
+
+    /// <summary>Localized empty table-of-contents message.</summary>
+    public string TocEmptyText => _localization["Catalogue.BookDetail.Toc.Empty"];
+
+    /// <summary>Localized provenance lazy-load action.</summary>
+    public string LoadProvenanceLabel => _localization["Catalogue.BookDetail.Provenance.Load"];
+
+    /// <summary>Localized missing-file state.</summary>
+    public string MissingFileText => _localization["Catalogue.BookDetail.File.Missing"];
+
+    /// <summary>Localized available-file state.</summary>
+    public string AvailableFileText => _localization["Catalogue.BookDetail.File.Available"];
 
     /// <summary>Localized enrichment section heading.</summary>
     public string EnrichmentHeadingText => _localization["Catalogue.BookDetail.EnrichmentHeading"];
@@ -346,6 +382,53 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Newest-first, redacted reading-state history for the loaded book.</summary>
     public ObservableCollection<string> ReadingHistoryRows { get; } = [];
+
+    /// <summary>Bounded, lazily extracted table-of-contents rows for the loaded book.</summary>
+    public ObservableCollection<string> TocRows { get; } = [];
+
+    /// <summary>Materialized metadata provenance rows; empty until explicitly requested.</summary>
+    public ObservableCollection<string> ProvenanceRows { get; } = [];
+
+    /// <summary>True while the table-of-contents extraction is running.</summary>
+    public bool IsLoadingToc
+    {
+        get => _isLoadingToc;
+        private set
+        {
+            if (_isLoadingToc != value)
+            {
+                _isLoadingToc = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanLoadToc));
+                OnPropertyChanged(nameof(ShowLoadTocButton));
+            }
+        }
+    }
+
+    /// <summary>True when the loaded book can request its bounded table of contents.</summary>
+    public bool CanLoadToc => _book is not null && _fileLocator is not null &&
+        _tocExtraction is not null && !IsLoadingToc;
+
+    /// <summary>True until the table-of-contents tab has completed its first load.</summary>
+    public bool ShowLoadTocButton => CanLoadToc && !_tocLoaded;
+
+    /// <summary>True when the table-of-contents tab completed its first load.</summary>
+    public bool IsTocLoaded => _tocLoaded;
+
+    /// <summary>True when the loaded book has no usable table-of-contents entries.</summary>
+    public bool HasNoToc => _tocLoaded && TocRows.Count == 0;
+
+    /// <summary>True until metadata provenance has been explicitly materialized.</summary>
+    public bool ShowLoadProvenanceButton => _book is not null && !_provenanceLoaded;
+
+    /// <summary>True after metadata provenance has been materialized.</summary>
+    public bool IsProvenanceLoaded => _provenanceLoaded;
+
+    /// <summary>Whether the loaded book still has a file that can be opened.</summary>
+    public bool CanOpenReader => _book?.IsAvailable == true;
+
+    /// <summary>Human-readable file availability state for the detail panel.</summary>
+    public string FileAvailabilityText => CanOpenReader ? AvailableFileText : MissingFileText;
 
     /// <summary>True while the lazy history tab load is running.</summary>
     public bool IsLoadingHistory
@@ -516,9 +599,17 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             {
                 _historyLoaded = false;
                 ReadingHistoryRows.Clear();
+                _tocLoaded = false;
+                TocRows.Clear();
+                _provenanceLoaded = false;
+                ProvenanceRows.Clear();
                 OnPropertyChanged(nameof(IsReadingHistoryLoaded));
                 OnPropertyChanged(nameof(HasNoReadingHistory));
                 OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
+                OnPropertyChanged(nameof(IsTocLoaded));
+                OnPropertyChanged(nameof(HasNoToc));
+                OnPropertyChanged(nameof(ShowLoadTocButton));
+                OnPropertyChanged(nameof(ShowLoadProvenanceButton));
             }
             _tagsText = FormatTags(value);
             OnPropertyChanged();
@@ -530,6 +621,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Isbn));
             OnPropertyChanged(nameof(Doi));
             OnPropertyChanged(nameof(RelativePath));
+            OnPropertyChanged(nameof(CanOpenReader));
+            OnPropertyChanged(nameof(FileAvailabilityText));
             OnPropertyChanged(nameof(SizeBytes));
             OnPropertyChanged(nameof(Sha256Hash));
             OnPropertyChanged(nameof(IsOcrDerived));
@@ -818,12 +911,86 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task OpenReaderAsync(CancellationToken cancellationToken = default)
     {
-        if (_book is null)
+        if (!CanOpenReader || _book is null)
         {
             return;
         }
 
         await _reader.OpenReaderAsync(_book.BookId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Lazily extracts a bounded table of contents from the currently available PDF.
+    /// Missing files remain a useful detail state and do not trigger an unsafe path access.
+    /// </summary>
+    public async Task LoadTocAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null || _fileLocator is null || _tocExtraction is null || _tocLoaded || IsLoadingToc)
+        {
+            return;
+        }
+
+        string bookId = _book.BookId;
+        IsLoadingToc = true;
+        try
+        {
+            string? filePath = await _fileLocator.LocateAsync(bookId, cancellationToken).ConfigureAwait(false);
+            TocExtractionResult result = filePath is null
+                ? new TocExtractionResult([], TocExtractionQuality.Empty, "file-unavailable")
+                : await _tocExtraction.ExtractAsync(filePath, cancellationToken).ConfigureAwait(false);
+            string[] rows = result.Entries
+                .Take(500)
+                .Select(entry => $"{new string(' ', Math.Min(entry.Level, 8) * 2)}{entry.Title} (p. {entry.PageIndex + 1})")
+                .ToArray();
+
+            UpdateOnUiThread(() =>
+            {
+                if (!string.Equals(_book?.BookId, bookId, StringComparison.Ordinal))
+                {
+                    IsLoadingToc = false;
+                    return;
+                }
+
+                TocRows.Clear();
+                foreach (string row in rows)
+                {
+                    TocRows.Add(row);
+                }
+
+                _tocLoaded = true;
+                IsLoadingToc = false;
+                OnPropertyChanged(nameof(IsTocLoaded));
+                OnPropertyChanged(nameof(HasNoToc));
+                OnPropertyChanged(nameof(ShowLoadTocButton));
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() => IsLoadingToc = false);
+            throw;
+        }
+    }
+
+    /// <summary>Materializes metadata provenance only when the user opens that tab.</summary>
+    public void LoadProvenance()
+    {
+        if (_book is null || _provenanceLoaded)
+        {
+            return;
+        }
+
+        ProvenanceRows.Clear();
+        foreach (MetadataFieldProjection field in _book.MetadataFields.Where(f =>
+                     !string.IsNullOrWhiteSpace(f.Value) ||
+                     !string.IsNullOrWhiteSpace(f.Source) ||
+                     f.Confidence is not null))
+        {
+            ProvenanceRows.Add(FormatField(field));
+        }
+
+        _provenanceLoaded = true;
+        OnPropertyChanged(nameof(IsProvenanceLoaded));
+        OnPropertyChanged(nameof(ShowLoadProvenanceButton));
     }
 
     /// <summary>

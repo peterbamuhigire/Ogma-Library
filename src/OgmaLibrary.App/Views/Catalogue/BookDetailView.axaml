@@ -8,7 +8,7 @@
 
   <!--
     Book-detail panel (FR-CAT-004). Slides in from the right.
-    Five tab groups: File, Bibliographic, Reading, Enrichment, AI.
+    Seven tab groups: File, Bibliographic, Reading, Enrichment, AI, TOC, Provenance.
     "Read" button routes through IReaderNavigationService.
     "Enrich" runs deterministic no-AI metadata provider lookup.
     "Run OCR" queues scanned PDFs for searchable text extraction.
@@ -87,6 +87,10 @@
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                            TextWrapping="Wrap"
                            Text="{Binding Sha256Hash}" />
+                <TextBlock Text="{Binding FileAvailabilityText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
               </StackPanel>
             </TabItem>
 
@@ -439,6 +443,64 @@
               </StackPanel>
             </TabItem>
 
+            <!-- Group 6: Lazy table of contents -->
+            <TabItem Header="{Binding TocTabText}">
+              <StackPanel Spacing="5" Margin="0,8,0,0">
+                <Button HorizontalAlignment="Left"
+                        IsVisible="{Binding ShowLoadTocButton}"
+                        IsEnabled="{Binding CanLoadToc}"
+                        AutomationProperties.Name="{Binding LoadTocLabel}"
+                        Click="LoadTocButton_Click">
+                  <TextBlock Text="{Binding LoadTocLabel}" />
+                </Button>
+                <TextBlock Text="{Binding TocLoadingText}"
+                           IsVisible="{Binding IsLoadingToc}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <ItemsControl ItemsSource="{Binding TocRows}"
+                              IsVisible="{Binding IsTocLoaded}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                 TextWrapping="Wrap"
+                                 Margin="0,1" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding TocEmptyText}"
+                           IsVisible="{Binding HasNoToc}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </TabItem>
+
+            <!-- Group 7: Lazy provenance -->
+            <TabItem Header="{Binding ProvenanceTabText}">
+              <StackPanel Spacing="5" Margin="0,8,0,0">
+                <Button HorizontalAlignment="Left"
+                        IsVisible="{Binding ShowLoadProvenanceButton}"
+                        AutomationProperties.Name="{Binding LoadProvenanceLabel}"
+                        Click="LoadProvenanceButton_Click">
+                  <TextBlock Text="{Binding LoadProvenanceLabel}" />
+                </Button>
+                <ItemsControl ItemsSource="{Binding ProvenanceRows}"
+                              IsVisible="{Binding IsProvenanceLoaded}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding}"
+                                 FontSize="{DynamicResource Type.Size.Caption}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                 TextWrapping="Wrap"
+                                 Margin="0,1" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </TabItem>
+
           </TabControl>
 
           <TextBlock Text="{Binding EnrichmentStatusText}"
@@ -491,6 +553,7 @@
                 Background="{DynamicResource Brush.Accent.Ink}"
                 Foreground="White"
                 CornerRadius="{DynamicResource Radius.S}"
+                IsEnabled="{Binding CanOpenReader}"
                 AutomationProperties.Name="Open reader"
                 Click="ReadButton_Click">
             <TextBlock Text="{Binding ReadText}" />
