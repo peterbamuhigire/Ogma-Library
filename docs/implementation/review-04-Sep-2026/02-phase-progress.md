@@ -31,7 +31,7 @@ verified evidence and remaining gate summarized for decision use.
 | 30 | IN PROGRESS | Routes, intent UI, offline evaluation, durable runs/history export-delete, thresholds, feedback consent/minimization | Feedback UI, human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
 | 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
 | 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification | Source/build provenance, atlas/LOD/focus/reduced motion, physical interaction |
-| 33 | IN PROGRESS | Virtualization, runtime metrics, headless budgets, fallback | GPU/WebView frame budgets, cross-platform accessibility |
+| 33 | IN PROGRESS | Virtualization, runtime metrics, headless budgets, fallback, safe asynchronous texture eviction | GPU/WebView frame budgets, cross-platform accessibility |
 | 34 | IN PROGRESS | Published scope, redaction, TLS/auth/RBAC, local concurrency smoke | Two-machine, firewall/mDNS, TOFU UX, hostile soak |
 | 35 | IN PROGRESS | Tamper-evident scoped cache, bounded sync, single-flight | Physical credential/pairing/reconnect, offline UX, isolation/load |
 | 36 | IN PROGRESS | Host-side keys, scope/quota/DPIA controls, metadata-only default, grounded citations | E2E, backup/restore, rotation/revocation, retention, accessibility, soak, formal DPIA |

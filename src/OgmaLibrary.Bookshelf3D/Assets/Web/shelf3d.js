@@ -28868,6 +28868,8 @@ void main() {
       return new Color(`hsl(${hash % 360}, 42%, 38%)`);
     }
     applySpineTexture(mesh, book) {
+      const textureRequestToken = {};
+      mesh.userData.textureRequestToken = textureRequestToken;
       const fallback = document.createElement("canvas");
       fallback.width = 256;
       fallback.height = 512;
@@ -28896,6 +28898,10 @@ void main() {
         const texture = new Texture(image);
         texture.colorSpace = SRGBColorSpace;
         texture.needsUpdate = true;
+        if (mesh.parent === null || mesh.userData.textureRequestToken !== textureRequestToken) {
+          texture.dispose();
+          return;
+        }
         mesh.material.map?.dispose();
         mesh.material.map = texture;
         mesh.material.needsUpdate = true;

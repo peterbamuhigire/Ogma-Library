@@ -398,6 +398,8 @@ export class Shelf3DScene {
   }
 
   private applySpineTexture(mesh: BookMesh, book: BookSceneItem): void {
+    const textureRequestToken = {};
+    mesh.userData.textureRequestToken = textureRequestToken;
     const fallback = document.createElement("canvas");
     fallback.width = 256;
     fallback.height = 512;
@@ -426,6 +428,10 @@ export class Shelf3DScene {
       const texture = new THREE.Texture(image);
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
+      if (mesh.parent === null || mesh.userData.textureRequestToken !== textureRequestToken) {
+        texture.dispose();
+        return;
+      }
       mesh.material.map?.dispose();
       mesh.material.map = texture;
       mesh.material.needsUpdate = true;
