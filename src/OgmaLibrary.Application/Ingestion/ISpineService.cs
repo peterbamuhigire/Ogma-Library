@@ -1,3 +1,5 @@
+using OgmaLibrary.Application.Catalogue;
+
 namespace OgmaLibrary.Application.Ingestion;
 
 /// <summary>
@@ -18,5 +20,13 @@ public interface ISpineService
         string bookId,
         string contentHash,
         string absoluteFilePath,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Generates one bounded named spine variant on demand.</summary>
+    Task<(bool Success, string? ErrorMessage)> GenerateSpineVariantAsync(
+        string bookId,
+        string contentHash,
+        string absoluteFilePath,
+        string variant,
         CancellationToken cancellationToken = default);
 }

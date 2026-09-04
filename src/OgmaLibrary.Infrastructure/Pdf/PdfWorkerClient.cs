@@ -187,7 +187,11 @@ public sealed class PdfWorkerClient
     /// <param name="filePath">The absolute PDF path.</param>
     /// <param name="outputPath">The final sidecar output path.</param>
     public void GenerateCover(string filePath, string outputPath) =>
-        GenerateAsset("cover", filePath, outputPath);
+        GenerateCover(filePath, outputPath, 200, 300);
+
+    /// <summary>Generates a cover at an explicitly bounded pixel size.</summary>
+    public void GenerateCover(string filePath, string outputPath, int widthPx, int heightPx) =>
+        GenerateAsset("cover", filePath, outputPath, widthPx, heightPx);
 
     /// <summary>
     /// Generates a spine asset in the worker sandbox and copies the completed file
@@ -196,7 +200,11 @@ public sealed class PdfWorkerClient
     /// <param name="filePath">The absolute PDF path.</param>
     /// <param name="outputPath">The final sidecar output path.</param>
     public void GenerateSpine(string filePath, string outputPath) =>
-        GenerateAsset("spine", filePath, outputPath);
+        GenerateSpine(filePath, outputPath, 7, 100);
+
+    /// <summary>Generates a spine at an explicitly bounded pixel size.</summary>
+    public void GenerateSpine(string filePath, string outputPath, int widthPx, int heightPx) =>
+        GenerateAsset("spine", filePath, outputPath, widthPx, heightPx);
 
     /// <summary>
     /// Runs a worker diagnostic used by security tests.
@@ -211,9 +219,13 @@ public sealed class PdfWorkerClient
         return envelope.Payload ?? new PdfWorkerDiagnosticResult("failed", "Worker returned no diagnostic payload.");
     }
 
-    private void GenerateAsset(string command, string filePath, string outputPath)
+    private void GenerateAsset(string command, string filePath, string outputPath, int widthPx, int heightPx)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        if (widthPx is <= 0 or > 4096 || heightPx is <= 0 or > 4096)
+        {
+            throw new ArgumentOutOfRangeException(nameof(widthPx), "Asset dimensions must be between 1 and 4096 pixels.");
+        }
 
         string fullOutputPath = Path.GetFullPath(outputPath);
         string? directory = Path.GetDirectoryName(fullOutputPath);
@@ -233,6 +245,10 @@ public sealed class PdfWorkerClient
                 RequireAbsoluteFile(filePath),
                 "--output",
                 workerOutputPath,
+                "--width",
+                widthPx.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "--height",
+                heightPx.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ],
             password: null,
             sandbox);
@@ -240,8 +256,8 @@ public sealed class PdfWorkerClient
             workerOutputPath,
             sandbox.Path,
             _options.MaxOutputBytes,
-            command == "cover" ? 200 : 7,
-            command == "cover" ? 300 : 100);
+            widthPx,
+            heightPx);
         File.Copy(workerOutputPath, fullOutputPath, overwrite: true);
     }
 

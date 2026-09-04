@@ -29,6 +29,45 @@ public enum VisualAssetStatus
     Stale = 3,
 }
 
+/// <summary>Deterministic dimensions for one generated visual-asset variant.</summary>
+public sealed record VisualAssetVariantDefinition(
+    string Name,
+    VisualAssetKind Kind,
+    int WidthPx,
+    int HeightPx);
+
+/// <summary>The bounded, on-demand visual-asset variants supported by the renderer.</summary>
+public static class VisualAssetVariants
+{
+    /// <summary>The existing 200x300 catalogue cover.</summary>
+    public static readonly VisualAssetVariantDefinition CoverDefault =
+        new("default", VisualAssetKind.Cover, 200, 300);
+
+    /// <summary>A 400x600 cover for detail and shelf focus states.</summary>
+    public static readonly VisualAssetVariantDefinition CoverDetail =
+        new("detail", VisualAssetKind.Cover, 400, 600);
+
+    /// <summary>A 7x100 spine texture for the normal 3D shelf.</summary>
+    public static readonly VisualAssetVariantDefinition SpineDefault =
+        new("default", VisualAssetKind.Spine, 7, 100);
+
+    /// <summary>A 14x200 spine texture for high-density displays.</summary>
+    public static readonly VisualAssetVariantDefinition SpineRetina =
+        new("retina", VisualAssetKind.Spine, 14, 200);
+
+    /// <summary>Resolves a supported generated variant and rejects unbounded requests.</summary>
+    public static VisualAssetVariantDefinition Resolve(VisualAssetKind kind, string variant) =>
+        (kind, variant.Trim().ToLowerInvariant()) switch
+        {
+            (VisualAssetKind.Cover, "default") => CoverDefault,
+            (VisualAssetKind.Cover, "detail") => CoverDetail,
+            (VisualAssetKind.Spine, "default") => SpineDefault,
+            (VisualAssetKind.Spine, "retina") => SpineRetina,
+            _ => throw new ArgumentException(
+                $"Unsupported generated {kind} variant '{variant}'.", nameof(variant)),
+        };
+}
+
 /// <summary>LAN-safe description of a resolved visual asset.</summary>
 public sealed record VisualAssetDescriptor(
     string BookId,
@@ -58,6 +97,13 @@ public interface IVisualAssetService
     Task<VisualAssetDescriptor?> GetPreferredAsync(
         string bookId,
         VisualAssetKind kind,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Returns one exact ready variant without falling back to another size.</summary>
+    Task<VisualAssetDescriptor?> GetVariantAsync(
+        string bookId,
+        VisualAssetKind kind,
+        string variant,
         CancellationToken cancellationToken = default);
 
     /// <summary>

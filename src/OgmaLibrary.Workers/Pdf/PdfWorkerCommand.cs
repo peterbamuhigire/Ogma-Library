@@ -202,16 +202,19 @@ internal static class PdfWorkerCommand
             throw new InvalidOperationException("The first PDF page could not be decoded for its cover image.");
         }
 
+        int widthPx = parsed.GetOptionalInt("--width", 200);
+        int heightPx = parsed.GetOptionalInt("--height", 300);
+        ValidateAssetDimensions(widthPx, heightPx);
         using SKSurface surface = SKSurface.Create(
-            new SKImageInfo(200, 300, SKColorType.Rgba8888, SKAlphaType.Opaque));
+            new SKImageInfo(widthPx, heightPx, SKColorType.Rgba8888, SKAlphaType.Opaque));
         using SKCanvas canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
 
-        float scale = Math.Min(200f / rendered.Width, 300f / rendered.Height);
+        float scale = Math.Min((float)widthPx / rendered.Width, (float)heightPx / rendered.Height);
         float drawW = rendered.Width * scale;
         float drawH = rendered.Height * scale;
-        float offsetX = (200 - drawW) / 2f;
-        float offsetY = (300 - drawH) / 2f;
+        float offsetX = (widthPx - drawW) / 2f;
+        float offsetY = (heightPx - drawH) / 2f;
         canvas.DrawBitmap(rendered, new SKRect(offsetX, offsetY, offsetX + drawW, offsetY + drawH));
 
         SaveJpeg(surface, outputPath);
@@ -234,11 +237,14 @@ internal static class PdfWorkerCommand
             throw new InvalidOperationException("The first PDF page could not be decoded for its spine image.");
         }
 
+        int widthPx = parsed.GetOptionalInt("--width", 7);
+        int heightPx = parsed.GetOptionalInt("--height", 100);
+        ValidateAssetDimensions(widthPx, heightPx);
         using SKSurface surface = SKSurface.Create(
-            new SKImageInfo(7, 100, SKColorType.Rgba8888, SKAlphaType.Opaque));
+            new SKImageInfo(widthPx, heightPx, SKColorType.Rgba8888, SKAlphaType.Opaque));
         using SKCanvas canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
-        canvas.DrawBitmap(rendered, new SKRect(0, 0, 7, 100));
+        canvas.DrawBitmap(rendered, new SKRect(0, 0, widthPx, heightPx));
 
         SaveJpeg(surface, outputPath);
         WriteOk(new AssetResponse(outputPath));
@@ -250,6 +256,14 @@ internal static class PdfWorkerCommand
         using SKData encoded = image.Encode(SKEncodedImageFormat.Jpeg, 85);
         using var outStream = File.Open(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
         encoded.SaveTo(outStream);
+    }
+
+    private static void ValidateAssetDimensions(int widthPx, int heightPx)
+    {
+        if (widthPx is <= 0 or > 4096 || heightPx is <= 0 or > 4096)
+        {
+            throw new ArgumentOutOfRangeException(nameof(widthPx), "Asset dimensions must be between 1 and 4096 pixels.");
+        }
     }
 
     private static PdfWorkerDiagnosticResult RunDiagnostic(string kind, string sandbox)
@@ -445,6 +459,11 @@ internal static class PdfWorkerCommand
 
         public int GetInt(string name) =>
             int.Parse(GetRequired(name), CultureInfo.InvariantCulture);
+
+        public int GetOptionalInt(string name, int fallback) =>
+            _values.TryGetValue(name, out string? value)
+                ? int.Parse(value, CultureInfo.InvariantCulture)
+                : fallback;
 
         public double GetDouble(string name) =>
             double.Parse(GetRequired(name), CultureInfo.InvariantCulture);

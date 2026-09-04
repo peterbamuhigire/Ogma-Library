@@ -67,6 +67,29 @@ public sealed class VisualAssetService : IVisualAssetService
     }
 
     /// <inheritdoc />
+    public async Task<VisualAssetDescriptor?> GetVariantAsync(
+        string bookId,
+        VisualAssetKind kind,
+        string variant,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateBookId(bookId);
+        ValidateKind(kind);
+        string normalizedVariant = ValidateVariant(variant);
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        VisualAssetManifestRow? row = await lease.Context.VisualAssetManifests
+            .AsNoTracking()
+            .SingleOrDefaultAsync(asset => asset.BookId == bookId &&
+                                           asset.Kind == (int)kind &&
+                                           asset.Variant == normalizedVariant &&
+                                           asset.Status == (int)VisualAssetStatus.Ready,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return row is null ? null : ToDescriptor(row);
+    }
+
+    /// <inheritdoc />
     public async Task<VisualAssetDescriptor> RegisterGeneratedAsync(
         string bookId,
         string? sourceContentHash,

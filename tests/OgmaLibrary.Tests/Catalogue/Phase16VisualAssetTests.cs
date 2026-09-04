@@ -50,6 +50,46 @@ public sealed class Phase16VisualAssetTests : IDisposable
     }
 
     [Fact]
+    public async Task Manifest_ResolvesExactNamedVariantWithoutSizeFallback()
+    {
+        const string bookId = "PHASE16-VARIANT-BOOK";
+        const string hash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+        _context.Books.Add(new BookRow { BookId = bookId, Title = "Variant Book", Status = 0 });
+        await _context.SaveChangesAsync();
+
+        var service = new VisualAssetService(_context);
+        await service.RegisterGeneratedAsync(
+            bookId, hash, VisualAssetKind.Cover, "default", ".ogma/covers/cc/default.jpg",
+            200, 300, "jpg", 1);
+        await service.RegisterGeneratedAsync(
+            bookId, hash, VisualAssetKind.Cover, "detail", ".ogma/covers/cc/detail.jpg",
+            400, 600, "jpg", 1);
+
+        VisualAssetDescriptor? detail = await service.GetVariantAsync(
+            bookId, VisualAssetKind.Cover, "detail");
+        Assert.NotNull(detail);
+        Assert.Equal("detail", detail.Variant);
+        Assert.Equal(400, detail.WidthPx);
+        Assert.Equal(600, detail.HeightPx);
+
+        Assert.Null(await service.GetVariantAsync(bookId, VisualAssetKind.Cover, "missing"));
+    }
+
+    [Fact]
+    public void VariantCatalog_RejectsUnboundedOrWrongFamilyRequests()
+    {
+        Assert.Equal((200, 300),
+            (VisualAssetVariants.CoverDefault.WidthPx, VisualAssetVariants.CoverDefault.HeightPx));
+        Assert.Equal((14, 200),
+            (VisualAssetVariants.Resolve(VisualAssetKind.Spine, "retina").WidthPx,
+             VisualAssetVariants.Resolve(VisualAssetKind.Spine, "retina").HeightPx));
+        Assert.Throws<ArgumentException>(() =>
+            VisualAssetVariants.Resolve(VisualAssetKind.Cover, "retina"));
+        Assert.Throws<ArgumentException>(() =>
+            VisualAssetVariants.Resolve(VisualAssetKind.Spine, "detail"));
+    }
+
+    [Fact]
     public async Task CatalogueReadModel_ProjectsPreferredReadyCoverForSummaryAndDetail()
     {
         const string bookId = "PHASE16-READMODEL-BOOK";
