@@ -125,6 +125,19 @@ public sealed class AiProviderAdapterTests
         Assert.IsType<AiDisabledProvider>(disabled);
     }
 
+    [Fact]
+    public void AiProviderFactory_RejectsUnapprovedCustomEndpoint()
+    {
+        var factory = new AiProviderFactory(new StubHttpClientFactory());
+
+        Assert.Throws<InvalidOperationException>(() => factory.Create(
+            new AiProviderBinding(
+                "openai",
+                "gpt-test",
+                ApiKey: "test-key",
+                BaseAddress: new Uri("https://example.invalid/v1/"))));
+    }
+
     private static AiRequest CreateRequest(
         string model = "gpt-test",
         AiPrivacyTier tier = AiPrivacyTier.MetadataOnly) =>

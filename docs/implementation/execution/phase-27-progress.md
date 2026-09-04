@@ -21,6 +21,8 @@ Date: 2026-08-30
   configurable transient retry, per-provider circuit opening, and observable
   retry/failure snapshots. The provider factory applies this decorator to all
   non-disabled providers.
+- Added provider-specific egress allowlists for custom endpoints and rejected
+  embedded endpoint credentials; Ollama custom endpoints remain loopback-only.
 
 ## Verification
 
@@ -33,5 +35,5 @@ Date: 2026-08-30
 
 Explicit user-configurable provider profiles, OS-backed secret references and
 rotation/deletion, durable token/cost budgets, connection-health persistence,
-full payload-preview UI wiring, retention and erasure journey, provider egress
-allowlists, and cloud-provider conformance remain before phase 27 closure.
+full payload-preview UI wiring, retention and erasure journey, and cloud-provider
+conformance remain before phase 27 closure.

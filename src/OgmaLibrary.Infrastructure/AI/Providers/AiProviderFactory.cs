@@ -61,10 +61,34 @@ public sealed class AiProviderFactory : IAiProviderFactory
         HttpClient client = _httpClientFactory.CreateClient($"ai:{binding.ProviderKey.ToLowerInvariant()}");
         if (binding.BaseAddress is not null)
         {
+            EnsureAllowedEndpoint(binding.ProviderKey, binding.BaseAddress);
             client.BaseAddress = binding.BaseAddress;
         }
 
         return client;
+    }
+
+    private static void EnsureAllowedEndpoint(string providerKey, Uri endpoint)
+    {
+        if (!endpoint.IsAbsoluteUri || endpoint.UserInfo.Length > 0)
+        {
+            throw new InvalidOperationException("AI provider endpoints must be absolute and contain no embedded credentials.");
+        }
+
+        string host = endpoint.Host.TrimEnd('.');
+        bool allowed = providerKey.Trim().ToLowerInvariant() switch
+        {
+            "openai" => string.Equals(host, "api.openai.com", StringComparison.OrdinalIgnoreCase),
+            "deepseek" => string.Equals(host, "api.deepseek.com", StringComparison.OrdinalIgnoreCase),
+            "anthropic" => string.Equals(host, "api.anthropic.com", StringComparison.OrdinalIgnoreCase),
+            "ollama" => endpoint.IsLoopback,
+            _ => false,
+        };
+        if (!allowed)
+        {
+            throw new InvalidOperationException(
+                $"AI provider endpoint '{endpoint.Host}' is not in the configured egress allowlist for '{providerKey}'.");
+        }
     }
 
     private static string RequireApiKey(AiProviderBinding binding) =>
