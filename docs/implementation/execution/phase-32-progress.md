@@ -17,8 +17,9 @@ Date: 2026-09-04
 - Bounded title/author labels before they cross the C# to JavaScript boundary and
   rejected oversized scene labels in the renderer.
 - Recorded the local scene/interaction verification in
-  `evidence/phase-32-virtual-bookshelf-2026-09-04.md`; source-pipeline,
-  scale, reduced-motion, and physical evidence remain open.
+  `evidence/phase-32-virtual-bookshelf-2026-09-04.md`; the TypeScript source
+  pipeline is now restored and its build emits a source/lockfile/bundle
+  provenance manifest.
 
 ## Verification
 
@@ -28,8 +29,8 @@ Date: 2026-09-04
 
 ## Remaining phase gate
 
-The repository has no checked-in TypeScript scene source or build manifest, so
-the current bundle remains a controlled generated-artifact edit until the source
-pipeline is restored. Texture-atlas/LOD scale testing, search/advisor focus
-commands, reduced-motion camera behavior, and physical Windows/macOS screenshot
-and interaction evidence remain for Phase 33 and the platform-host gate.
+Texture-atlas/LOD scale testing, search/advisor focus commands, reduced-motion
+camera behavior, and physical Windows/macOS screenshot and interaction
+evidence remain open. The build manifest proves the emitted bundle digest and
+records the source and lockfile digests; it does not replace a signed release
+commit or physical WebView evidence.

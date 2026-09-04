@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using OgmaLibrary.Bookshelf3D.Assets;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Bookshelf3D.Messages;
@@ -130,7 +132,9 @@ public sealed class BridgeMessageTests
         string sourceRoot = Path.Combine(root, "source");
         Directory.CreateDirectory(sourceRoot);
         await File.WriteAllTextAsync(Path.Combine(sourceRoot, "index.html"), "<html></html>");
-        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "shelf3d.js"), "window.ogmaShelf3D = {};");
+        string bundlePath = Path.Combine(sourceRoot, "shelf3d.js");
+        await File.WriteAllTextAsync(bundlePath, "window.ogmaShelf3D = {};");
+        await WriteBuildManifestAsync(sourceRoot, bundlePath);
         var host = new FakeWebViewHostAdapter();
         var bridge = new WebView2Bridge();
         var bootstrapper = new Shelf3DWebViewBootstrapper(
@@ -148,6 +152,7 @@ public sealed class BridgeMessageTests
             Assert.Equal("ogma://assets/js/index.html", host.NavigatedUri?.ToString());
             Assert.True(File.Exists(Path.Combine(root, "js", "index.html")));
             Assert.True(File.Exists(Path.Combine(root, "js", "shelf3d.js")));
+            Assert.True(File.Exists(Path.Combine(root, "js", "shelf3d.build.json")));
         }
         finally
         {
@@ -156,6 +161,23 @@ public sealed class BridgeMessageTests
                 Directory.Delete(root, recursive: true);
             }
         }
+    }
+
+    private static async Task WriteBuildManifestAsync(string sourceRoot, string bundlePath)
+    {
+        byte[] bundle = await File.ReadAllBytesAsync(bundlePath);
+        var manifest = new
+        {
+            schema = "ogma-shelf3d-build-v1",
+            entryPoint = "src/main.ts",
+            sourceFiles = new[] { "src/main.ts" },
+            sourceSha256 = new string('a', 64),
+            lockfileSha256 = new string('b', 64),
+            bundleSha256 = Convert.ToHexStringLower(SHA256.HashData(bundle)),
+        };
+        await File.WriteAllTextAsync(
+            Path.Combine(sourceRoot, "shelf3d.build.json"),
+            JsonSerializer.Serialize(manifest));
     }
 
 

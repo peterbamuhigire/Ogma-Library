@@ -1,0 +1,12 @@
+{
+  "schema": "ogma-shelf3d-build-v1",
+  "entryPoint": "src/main.ts",
+  "sourceFiles": [
+    "src/main.ts",
+    "src/messages.ts",
+    "src/scene.ts"
+  ],
+  "sourceSha256": "13dccb417495c66d209d07fae2b9173e9b0c808cd2313a80354a9c0675301450",
+  "lockfileSha256": "02d106366ededc7dc60ff917b3b89aa217c518f4124121797a4d271d95b976fc",
+  "bundleSha256": "0561a01874b8a14e9707b2961ac6731cc5936b8b5ada3800b32593ff485641aa"
+}

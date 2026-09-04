@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using OgmaLibrary.Bookshelf3D.Assets;
 
 namespace OgmaLibrary.Tests.Shelf3D;
@@ -82,7 +84,9 @@ public sealed class OgmaSchemeHandlerTests : IDisposable
         string sourceRoot = Path.Combine(_assetRoot, "source");
         Directory.CreateDirectory(sourceRoot);
         await File.WriteAllTextAsync(Path.Combine(sourceRoot, "index.html"), "<html></html>");
-        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "shelf3d.js"), "window.ogmaShelf3D = {};");
+        string bundlePath = Path.Combine(sourceRoot, "shelf3d.js");
+        await File.WriteAllTextAsync(bundlePath, "window.ogmaShelf3D = {};");
+        await WriteBuildManifestAsync(sourceRoot, bundlePath);
         var publisher = new Shelf3DAssetPublisher(sourceRoot);
 
         Uri bootstrapUri = await publisher.PublishAsync(_assetRoot);
@@ -90,6 +94,41 @@ public sealed class OgmaSchemeHandlerTests : IDisposable
         Assert.Equal("ogma://assets/js/index.html", bootstrapUri.ToString());
         Assert.True(File.Exists(Path.Combine(_assetRoot, "js", "index.html")));
         Assert.True(File.Exists(Path.Combine(_assetRoot, "js", "shelf3d.js")));
+        Assert.True(File.Exists(Path.Combine(_assetRoot, "js", "shelf3d.build.json")));
+    }
+
+    [Fact]
+    public async Task Shelf3DAssetPublisher_RejectsBundleTamperingAgainstBuildManifest()
+    {
+        string sourceRoot = Path.Combine(_assetRoot, "tampered-source");
+        Directory.CreateDirectory(sourceRoot);
+        await File.WriteAllTextAsync(Path.Combine(sourceRoot, "index.html"), "<html></html>");
+        string bundlePath = Path.Combine(sourceRoot, "shelf3d.js");
+        await File.WriteAllTextAsync(bundlePath, "window.ogmaShelf3D = {};");
+        await WriteBuildManifestAsync(sourceRoot, bundlePath);
+        await File.AppendAllTextAsync(bundlePath, "// tampered");
+
+        var publisher = new Shelf3DAssetPublisher(sourceRoot);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => publisher.PublishAsync(_assetRoot));
+        Assert.False(File.Exists(Path.Combine(_assetRoot, "js", "shelf3d.js")));
+    }
+
+    private static async Task WriteBuildManifestAsync(string sourceRoot, string bundlePath)
+    {
+        byte[] bundle = await File.ReadAllBytesAsync(bundlePath);
+        var manifest = new
+        {
+            schema = "ogma-shelf3d-build-v1",
+            entryPoint = "src/main.ts",
+            sourceFiles = new[] { "src/main.ts" },
+            sourceSha256 = new string('a', 64),
+            lockfileSha256 = new string('b', 64),
+            bundleSha256 = Convert.ToHexStringLower(SHA256.HashData(bundle)),
+        };
+        await File.WriteAllTextAsync(
+            Path.Combine(sourceRoot, "shelf3d.build.json"),
+            JsonSerializer.Serialize(manifest));
     }
 
     public void Dispose()
