@@ -29,7 +29,7 @@ Ledger normalized: 2026-09-04
 | 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus and typography delivered; localization, settings, palette, contrast and physical accessibility open |
 | 19 | Production 2D Catalogue | IN PROGRESS | Cover control, asset loading and server-side read-model paging delivered; UI paging, parity/filter/sort/badges/auth/scale open |
 | 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation and reading-state foundations delivered; detail controls, collections, file/relink, provenance and E2E open |
-| 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability work delivered; platform viewer, crash/cache, accessibility and budget evidence open |
+| 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability and local cache/session/non-crash regression evidence delivered; split/viewer, physical crash, accessibility and budget evidence open |
 | 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback, debounced type-ahead and bounded candidate materialization delivered; facets/paging/highlighting/corrections/scale open |
 | 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets, desktop reader navigation, observability events and explicit search states delivered; swap and scale open |
 | 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards, trained-data checksum, stable retry/resource failure codes and OCR control surface delivered; accuracy/cross-platform evidence open |
