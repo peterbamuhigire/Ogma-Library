@@ -273,6 +273,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         var rows = await context.EmbeddingVectors
             .AsNoTracking()
             .Where(vector =>
+                !vector.IsTombstoned &&
                 vector.ModelName == EmbeddingGenerationService.DefaultModelName &&
                 vector.ModelVersion == EmbeddingGenerationService.DefaultModelVersion &&
                 vector.ProviderKey == EmbeddingGenerationService.DefaultProviderKey &&
@@ -309,8 +310,9 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 row.Title,
                 (SearchChunkSource)row.Source,
                 row.ChunkText ?? string.Empty,
+                row.DimensionCount,
                 Deserialize(row.VectorBlob!, row.DimensionCount)))
-            .Where(row => row.Vector.Length > 0)
+            .Where(row => row.Vector.Length == row.DimensionCount)
             .ToList();
     }
 
@@ -348,6 +350,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         string? Title,
         SearchChunkSource Source,
         string Text,
+        int DimensionCount,
         float[] Vector);
 
     private sealed record BookSignalRow(

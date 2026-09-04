@@ -190,6 +190,44 @@ public sealed class SemanticSearchServiceTests : IDisposable
         Assert.Empty(response.Results);
     }
 
+    [Fact]
+    public async Task SemanticSearch_TombstonedVector_IsNotUsedAsAnIndex()
+    {
+        long chunkId = SeedBookChunk(
+            "P26TOMBSTONEDBOOK00001",
+            "Tombstoned Book",
+            "stale vector content");
+        _context.EmbeddingVectors.Add(new EmbeddingVectorRow
+        {
+            ChunkId = chunkId,
+            ModelName = EmbeddingGenerationService.DefaultModelName,
+            ModelVersion = EmbeddingGenerationService.DefaultModelVersion,
+            ProviderKey = EmbeddingGenerationService.DefaultProviderKey,
+            DimensionCount = 2,
+            VectorBlob = SerializeVector([1.0f, 0.0f]),
+            SourceHash = new string('a', 64),
+            IsTombstoned = true,
+            TombstonedUtc = DateTimeOffset.UtcNow,
+            GeneratedAtUtc = DateTimeOffset.UtcNow,
+        });
+        await _context.SaveChangesAsync();
+
+        var service = new SemanticSearchService(
+            _context,
+            new StubOllamaProvider { QueryVector = [1.0f, 0.0f] },
+            new StubExactSearch());
+
+        SemanticSearchResponse response = await service.SearchAsync(
+            "stale vector query",
+            5,
+            CancellationToken.None);
+
+        Assert.False(response.ProviderUnavailable);
+        Assert.True(response.UsedExactFallback);
+        Assert.Equal(SemanticSearchAvailability.NoIndex, response.Availability);
+        Assert.Empty(response.Results);
+    }
+
     private long SeedBookChunk(
         string bookId,
         string title,

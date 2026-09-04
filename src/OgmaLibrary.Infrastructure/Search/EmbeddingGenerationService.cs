@@ -163,6 +163,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                     book.IndexStatus == (int)SearchBookIndexStatus.Indexed) &&
                 !context.EmbeddingVectors.Any(vector =>
                     vector.ChunkId == chunk.ChunkId &&
+                    !vector.IsTombstoned &&
                     vector.ModelName == DefaultModelName &&
                     vector.ModelVersion == DefaultModelVersion &&
                     vector.ProviderKey == DefaultProviderKey &&
@@ -200,6 +201,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             .CountAsync(vector =>
                 vector.Chunk != null &&
                 vector.Chunk.BookId == chunk.BookId &&
+                !vector.IsTombstoned &&
                 vector.ModelName == DefaultModelName &&
                 vector.ModelVersion == DefaultModelVersion &&
                 vector.ProviderKey == DefaultProviderKey &&
@@ -236,6 +238,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             .CountAsync(vector =>
                 vector.Chunk != null &&
                 vector.Chunk.BookId == bookId &&
+                !vector.IsTombstoned &&
                 vector.ModelName == DefaultModelName &&
                 vector.ModelVersion == DefaultModelVersion &&
                 vector.ProviderKey == DefaultProviderKey &&
