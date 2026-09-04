@@ -49,6 +49,12 @@ public sealed class Phase28AdvisorTraceTests
         Assert.Equal(1, payload.RootElement.GetProperty("candidateCount").GetInt32());
         Assert.Equal("BOOK-P28-001", payload.RootElement.GetProperty("candidateBookIds")[0].GetString());
         Assert.Equal("advisor-intent-v1", payload.RootElement.GetProperty("intent").GetProperty("version").GetString());
+        JsonElement stageCounts = payload.RootElement.GetProperty("stageCounts");
+        Assert.Equal(1, stageCounts.GetProperty("catalogue").GetInt32());
+        Assert.Equal(1, stageCounts.GetProperty("payload").GetInt32());
+        Assert.Equal(1, stageCounts.GetProperty("provider").GetInt32());
+        Assert.Equal(1, stageCounts.GetProperty("validated").GetInt32());
+        Assert.Equal(1, stageCounts.GetProperty("final").GetInt32());
     }
 
     private sealed class StubCatalogueReader(IReadOnlyList<BookMetadataDto> candidates) : IAdvisorCatalogueReader

@@ -20,6 +20,10 @@ Date: 2026-08-30
 - Added a durable, privacy-preserving `advisor-trace-v1` audit event for
   recommendation runs, retaining query hash, interpreted intent, bounded
   candidate IDs, result IDs, provider/model and outcome without raw query text.
+- Extended the trace with bounded candidate-stage counts for catalogue,
+  payload, provider, provenance validation, hybrid ranking, and final results,
+  making empty or reduced recommendation runs diagnosable without retaining
+  raw prompts or provider content.
 - Updated the stale pre-V2 advisor scaffold test to assert its current honest
   unavailable response.
 
@@ -29,10 +33,12 @@ Date: 2026-08-30
   0 warnings and 0 errors.
 - Phase 28 intent/retrieval/ranking/fallback slice: 13 passed.
 - Adjacent advisor pipeline, composition and service slice: 23 passed.
+- Advisor stage-diagnostics trace slice: 1 passed.
 
 ## Remaining phase gate
 
-Editable interpreted intent UI, candidate-stage diagnostics, reference-book
-resolution beyond the deterministic comparison hint, source-labeled evidence
-assembly, benchmark Recall@K/nDCG evaluation, and final advisor UI/performance
-gates remain for phases 29-30.
+Editable interpreted intent UI, reference-book resolution beyond the
+deterministic comparison hint, source-labeled evidence assembly, benchmark
+Recall@K/nDCG evaluation, and final advisor UI/performance gates remain for
+phases 29-30. Candidate-stage diagnostics are closed by the versioned trace
+evidence above.

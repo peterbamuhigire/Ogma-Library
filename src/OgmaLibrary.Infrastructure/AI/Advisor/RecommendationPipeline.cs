@@ -64,7 +64,15 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         IReadOnlyList<BookMetadataDto> candidates = await _catalogueReader.GetCandidatesAsync(query, cancellationToken).ConfigureAwait(false);
         if (candidates.Count == 0)
         {
-            await RecordTraceAsync(query, options, candidates, [], "empty-candidate-set", cancellationToken).ConfigureAwait(false);
+            await RecordTraceAsync(
+                    query,
+                    options,
+                    candidates,
+                    [],
+                    "empty-candidate-set",
+                    new Dictionary<string, int> { ["catalogue"] = 0 },
+                    cancellationToken)
+                .ConfigureAwait(false);
             return [];
         }
 
@@ -99,7 +107,20 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         catch (AiDisabledException)
         {
             IReadOnlyList<RecommendationCard> fallback = DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
-            await RecordTraceAsync(query, options, candidates, fallback, "deterministic-fallback-disabled", cancellationToken).ConfigureAwait(false);
+            await RecordTraceAsync(
+                    query,
+                    options,
+                    candidates,
+                    fallback,
+                    "deterministic-fallback-disabled",
+                    new Dictionary<string, int>
+                    {
+                        ["catalogue"] = candidates.Count,
+                        ["payload"] = payload.Candidates.Count,
+                        ["final"] = fallback.Count,
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
             return fallback;
         }
         catch (AiTierViolationException)
@@ -108,7 +129,20 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             // the catalogue remains safe to rank without hiding explicit preview
             // cancellation or missing cloud consent.
             IReadOnlyList<RecommendationCard> fallback = DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
-            await RecordTraceAsync(query, options, candidates, fallback, "deterministic-fallback-tier", cancellationToken).ConfigureAwait(false);
+            await RecordTraceAsync(
+                    query,
+                    options,
+                    candidates,
+                    fallback,
+                    "deterministic-fallback-tier",
+                    new Dictionary<string, int>
+                    {
+                        ["catalogue"] = candidates.Count,
+                        ["payload"] = payload.Candidates.Count,
+                        ["final"] = fallback.Count,
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
             return fallback;
         }
         IReadOnlyList<RecommendationCard> parsed = _parser.Parse(completion.Text, options.Model, options.Tier);
@@ -118,11 +152,14 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             query.MaxResults,
             options.Model,
             options.Tier);
+        int validatedCount = localOnly.Count;
+        int hybridRankedCount = 0;
         if (options.AdvisorOptions.UseHybridRanking)
         {
             IReadOnlyList<RankedCandidate> rankedCandidates = await _hybridRanker
                 .RankAsync(query, payload.Candidates, cancellationToken)
                 .ConfigureAwait(false);
+            hybridRankedCount = rankedCandidates.Count;
             localOnly = _hybridMerger.Merge(localOnly, rankedCandidates, options.AdvisorOptions, query.MaxResults);
         }
 
@@ -132,7 +169,23 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             throw new AdvisorParseException(string.Join("; ", validation.Errors));
         }
 
-        await RecordTraceAsync(query, options, candidates, localOnly, "provider-success", cancellationToken).ConfigureAwait(false);
+        await RecordTraceAsync(
+                query,
+                options,
+                candidates,
+                localOnly,
+                "provider-success",
+                new Dictionary<string, int>
+                {
+                    ["catalogue"] = candidates.Count,
+                    ["payload"] = payload.Candidates.Count,
+                    ["provider"] = parsed.Count,
+                    ["validated"] = validatedCount,
+                    ["hybrid"] = hybridRankedCount,
+                    ["final"] = localOnly.Count,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
         return localOnly;
     }
 
@@ -142,6 +195,7 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         IReadOnlyList<BookMetadataDto> candidates,
         IReadOnlyList<RecommendationCard> results,
         string outcome,
+        IReadOnlyDictionary<string, int> stageCounts,
         CancellationToken cancellationToken)
     {
         if (_audit is null)
@@ -168,6 +222,7 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             candidateCount = candidates.Count,
             candidateBookIds = candidates.Take(50).Select(candidate => candidate.BookId).ToArray(),
             resultBookIds = results.Take(query.MaxResults).Select(result => result.BookId.Value).ToArray(),
+            stageCounts,
             outcome,
             provider = options.Provider,
             model = options.Model,
