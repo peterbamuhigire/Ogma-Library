@@ -21,7 +21,7 @@ Date: 2026-09-04
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors after the serial verification run.
-- Full LAN Host slice: 59 passed.
+- Full LAN Host slice: 61 passed.
 - Architecture suite: 41 passed.
 - Endpoint integration proof covers HTTPS, authentication, RBAC, session
   replay, pagination, search, TLS-backed page rendering, range/file policy,
@@ -29,6 +29,8 @@ Date: 2026-09-04
 - Local authenticated load-smoke coverage passed for 20 concurrent catalogue
   clients and 10 concurrent page-render clients, each under the encoded
   p95 <2-second assertion.
+- The catalogue concurrency smoke was rerun three consecutive times in
+  isolation and passed each time, followed by a clean 61-test LAN slice.
 
 ## Remaining phase gate
 
