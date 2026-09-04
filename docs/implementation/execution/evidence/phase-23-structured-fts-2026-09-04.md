@@ -19,7 +19,9 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Rel
   Passed: 7, Failed: 0, Skipped: 0
 ```
 
-## Open gates
+## Gate disposition
 
-Highlight-safe rendering/page-jump UI, progress/no-index states, observability,
-side-by-side rebuild swap, and 50,000-book latency evidence remain open.
+The local highlight-safe rendering/page-jump UI, progress/no-index states,
+observability, side-by-side rebuild swap, and 50,000-book latency subgates are
+closed by the current implementation and focused evidence. Reference-machine
+performance and physical assistive-technology walkthroughs remain open.
