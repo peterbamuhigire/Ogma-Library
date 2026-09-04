@@ -2,11 +2,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Workers.Ocr;
 
@@ -28,12 +30,14 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
     private const string OcrModelVersion = "tesseract-v1";
     private const int MaximumPagesPerJob = 10_000;
     private const int MaximumRenderedImageBytes = 64 * 1024 * 1024;
+    private const string WorkerId = "ocr-worker";
     private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
     private readonly IPdfRendererFactory _rendererFactory;
     private readonly IOcrProvider _ocrProvider;
     private readonly IExtractedTextStore _textStore;
     private readonly ISearchChunkRepository _chunkRepository;
     private readonly SearchChunker _chunker;
+    private readonly IJobRuntimeService _jobRuntime;
 
     /// <summary>Initializes a new instance of <see cref="OcrJobProcessor"/>.</summary>
     public OcrJobProcessor(
@@ -42,7 +46,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         IOcrProvider ocrProvider,
         IExtractedTextStore textStore,
         ISearchChunkRepository chunkRepository,
-        SearchChunker chunker)
+        SearchChunker chunker,
+        IJobRuntimeService? jobRuntime = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(rendererFactory);
@@ -57,53 +62,74 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         _textStore = textStore;
         _chunkRepository = chunkRepository;
         _chunker = chunker;
+        _jobRuntime = jobRuntime ?? new JobRuntimeService(contextFactory);
     }
 
     /// <inheritdoc />
     public async Task<bool> ProcessNextAsync(CancellationToken cancellationToken = default)
     {
-        using CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+        JobLease? lease = await _jobRuntime.ClaimNextAsync(
+                [JobType],
+                WorkerId,
+                TimeSpan.FromMinutes(15),
+                cancellationToken)
             .ConfigureAwait(false);
-
-        JobRow? job = await context.Jobs
-            .Where(j => j.JobType == JobType && (j.Status == 0 || j.Status == 1))
-            .OrderBy(j => j.JobId)
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        if (job is null)
+        if (lease is null)
         {
             return false;
         }
 
-        await ProcessAsync(context, job, cancellationToken).ConfigureAwait(false);
+        using CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        JobRow? job = await context.Jobs
+            .FirstOrDefaultAsync(j => j.JobId == lease.JobId, cancellationToken)
+            .ConfigureAwait(false);
+        if (job is null)
+        {
+            await _jobRuntime.FailAsync(
+                    lease.JobId,
+                    WorkerId,
+                    new JobFailure("job_missing", "The claimed OCR job no longer exists.", Retryable: false),
+                    cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        bool succeeded = await ProcessAsync(context, job, cancellationToken).ConfigureAwait(false);
+        if (succeeded)
+        {
+            await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            await _jobRuntime.FailAsync(
+                    lease.JobId,
+                    WorkerId,
+                    new JobFailure("ocr_processing_failed", "OCR processing failed; the job was returned to the bounded retry policy.", Retryable: true),
+                    cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return true;
     }
 
-    private async Task ProcessAsync(CatalogueDbContext context, JobRow job, CancellationToken cancellationToken)
+    private async Task<bool> ProcessAsync(CatalogueDbContext context, JobRow job, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(job.BookId))
         {
-            Fail(job, "OCR job has no BookId.");
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return;
+            return false;
         }
 
         OcrJobPayload payload = ParsePayload(job.Payload);
         if (string.IsNullOrWhiteSpace(payload.FilePath))
         {
-            Fail(job, "OCR job has no source file path.");
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return;
+            return false;
         }
 
-        bool isRecovery = job.Status == 1;
-        job.Status = 1;
         job.StartedUtc ??= DateTimeOffset.UtcNow;
-        if (isRecovery)
-        {
-            job.RetryCount += 1;
-        }
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -178,23 +204,17 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                 TryAddEmbeddingJob(context, job.BookId);
             }
 
-            job.Status = 2;
-            job.CompletedUtc = DateTimeOffset.UtcNow;
             job.ErrorMessage = null;
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
         }
         catch (OperationCanceledException)
         {
-            job.Status = 0;
-            job.StartedUtc = null;
-            job.RetryCount += 1;
-            await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Fail(job, ex.Message);
-            await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+            return false;
         }
     }
 
@@ -387,13 +407,6 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         }
 
         return JsonSerializer.Deserialize<OcrJobPayload>(payload) ?? new OcrJobPayload(string.Empty);
-    }
-
-    private static void Fail(JobRow job, string error)
-    {
-        job.Status = 3;
-        job.ErrorMessage = error;
-        job.CompletedUtc = DateTimeOffset.UtcNow;
     }
 
     private static string ComputeIdempotencyKey(string bookId, string jobType, string discriminator)

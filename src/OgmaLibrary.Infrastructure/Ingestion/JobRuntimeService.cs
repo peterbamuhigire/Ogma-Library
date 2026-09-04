@@ -76,7 +76,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
         foreach (JobRow candidate in candidates)
         {
             if ((candidate.Status != (int)JobRuntimeStatus.Pending &&
-                 (candidate.LeaseExpiresUtc is null || candidate.LeaseExpiresUtc >= now)) ||
+                 candidate.LeaseExpiresUtc is not null && candidate.LeaseExpiresUtc >= now) ||
                 (candidate.NextAttemptUtc is not null && candidate.NextAttemptUtc > now) ||
                 !await HasResourceCapacityAsync(context, candidate.JobType, now, cancellationToken)
                     .ConfigureAwait(false))

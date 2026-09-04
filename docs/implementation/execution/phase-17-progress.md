@@ -25,6 +25,9 @@ Date: 2026-08-30
 - Added bounded resource-group capacity during atomic claims for document
   rendering, metadata indexing, and semantic indexing; unknown job types default
   to one active lease per type.
+- Converted the OCR job processor from direct queue polling to the shared lease
+  runtime while preserving resumable page progress and safe retry/dead-letter
+  handling. Legacy running rows without lease metadata remain recoverable.
 - Added focused coverage for exclusive claims, owner enforcement, retry versus
   terminal failure, and expiry recovery.
 
@@ -36,6 +39,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The remaining polling workers still need conversion to this runtime, structured
-metrics, diagnostics export, and kill/restart load evidence remain before phase
-17 closure.
+The search-extraction and embedding workers remain stage-based rather than
+job-queue workers; structured metrics, diagnostics export, and kill/restart load
+evidence remain before phase 17 closure.
