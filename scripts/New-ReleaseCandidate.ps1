@@ -126,10 +126,13 @@ if ($SigningKeyPath) {
     $openssl = Get-Command openssl -ErrorAction SilentlyContinue
     if (-not $openssl) { throw 'openssl is required when SigningKeyPath is supplied.' }
     $rawSignaturePath = Join-Path $candidateRoot 'release-descriptor.sig.raw'
-    & $openssl.Source dgst -sha256 -sign $SigningKeyPath -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1 -out $rawSignaturePath $descriptorPath
-    if ($LASTEXITCODE -ne 0) { throw "Descriptor signing failed with exit code $LASTEXITCODE." }
-    [Convert]::ToBase64String([IO.File]::ReadAllBytes($rawSignaturePath)) | Set-Content -LiteralPath $signaturePath -NoNewline
-    Remove-Item -LiteralPath $rawSignaturePath -Force
+    try {
+        & $openssl.Source dgst -sha256 -sign $SigningKeyPath -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1 -out $rawSignaturePath $descriptorPath
+        if ($LASTEXITCODE -ne 0) { throw "Descriptor signing failed with exit code $LASTEXITCODE." }
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($rawSignaturePath)) | Set-Content -LiteralPath $signaturePath -NoNewline
+    } finally {
+        if (Test-Path -LiteralPath $rawSignaturePath) { Remove-Item -LiteralPath $rawSignaturePath -Force }
+    }
 } elseif ($RequireSignature) {
     throw 'A signing key is required for this release candidate. No private key is stored in the repository.'
 }

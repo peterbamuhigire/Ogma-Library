@@ -58,20 +58,23 @@ jobs:
           if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid release version: $version" }
           $arguments = @('-Platform', '${{ matrix.platform }}', '-Architecture', '${{ matrix.architecture }}', '-Version', $version)
           $keyPath = Join-Path $env:RUNNER_TEMP 'ogma-release-signing-key.pem'
-          if (-not [string]::IsNullOrWhiteSpace($env:OGMA_RELEASE_SIGNING_KEY)) {
-            [IO.File]::WriteAllText($keyPath, $env:OGMA_RELEASE_SIGNING_KEY, [Text.UTF8Encoding]::new($false))
-            $arguments += @('-SigningKeyPath', $keyPath)
-          }
           $publicKeyPath = Join-Path $env:RUNNER_TEMP 'ogma-release-public-key.pem'
-          if (-not [string]::IsNullOrWhiteSpace($env:OGMA_RELEASE_PUBLIC_KEY)) {
-            [IO.File]::WriteAllText($publicKeyPath, $env:OGMA_RELEASE_PUBLIC_KEY, [Text.UTF8Encoding]::new($false))
-            $arguments += @('-PublicKeyPath', $publicKeyPath)
+          try {
+            if (-not [string]::IsNullOrWhiteSpace($env:OGMA_RELEASE_SIGNING_KEY)) {
+              [IO.File]::WriteAllText($keyPath, $env:OGMA_RELEASE_SIGNING_KEY, [Text.UTF8Encoding]::new($false))
+              $arguments += @('-SigningKeyPath', $keyPath)
+            }
+            if (-not [string]::IsNullOrWhiteSpace($env:OGMA_RELEASE_PUBLIC_KEY)) {
+              [IO.File]::WriteAllText($publicKeyPath, $env:OGMA_RELEASE_PUBLIC_KEY, [Text.UTF8Encoding]::new($false))
+              $arguments += @('-PublicKeyPath', $publicKeyPath)
+            }
+            if ($env:REQUIRE_SIGNATURE -eq 'true') { $arguments += '-RequireSignature' }
+            & pwsh -NoProfile -File ./scripts/New-ReleaseCandidate.ps1 @arguments
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            if (Test-Path -LiteralPath $keyPath) { Remove-Item -LiteralPath $keyPath -Force }
+            if (Test-Path -LiteralPath $publicKeyPath) { Remove-Item -LiteralPath $publicKeyPath -Force }
           }
-          if ($env:REQUIRE_SIGNATURE -eq 'true') { $arguments += '-RequireSignature' }
-          & pwsh -NoProfile -File ./scripts/New-ReleaseCandidate.ps1 @arguments
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (Test-Path -LiteralPath $keyPath) { Remove-Item -LiteralPath $keyPath -Force }
-          if (Test-Path -LiteralPath $publicKeyPath) { Remove-Item -LiteralPath $publicKeyPath -Force }
 
       - name: Upload immutable candidate
         uses: actions/upload-artifact@v4
