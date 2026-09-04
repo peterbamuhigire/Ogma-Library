@@ -257,36 +257,49 @@ public sealed class JobRuntimeService : IJobRuntimeService
     public async Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
-        List<JobRow> jobs = await lease.Context.Jobs
-            .AsNoTracking()
-            .Select(job => new JobRow
-            {
-                JobId = job.JobId,
-                JobType = job.JobType,
-                Status = job.Status,
-                RetryCount = job.RetryCount,
-                LeaseExpiresUtc = job.LeaseExpiresUtc,
-            })
+        IQueryable<JobRow> jobs = lease.Context.Jobs.AsNoTracking();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        int pendingCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.Pending,
+            cancellationToken).ConfigureAwait(false);
+        int runningCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.Running,
+            cancellationToken).ConfigureAwait(false);
+        int completedCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.Completed,
+            cancellationToken).ConfigureAwait(false);
+        int failedCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.Failed,
+            cancellationToken).ConfigureAwait(false);
+        int deadLetterCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.DeadLetter,
+            cancellationToken).ConfigureAwait(false);
+        int totalAttempts = await jobs
+            .Select(job => (int?)job.RetryCount)
+            .SumAsync(cancellationToken)
+            .ConfigureAwait(false) ?? 0;
+        List<JobLeaseMetricRow> activeRows = await jobs
+            .Where(job => job.Status == (int)JobRuntimeStatus.Running && job.LeaseExpiresUtc != null)
+            .Select(job => new JobLeaseMetricRow(job.JobType, job.LeaseExpiresUtc))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-        Dictionary<string, int> activeByJobType = jobs
-            .Where(job => job.Status == (int)JobRuntimeStatus.Running &&
-                          job.LeaseExpiresUtc is not null &&
-                          job.LeaseExpiresUtc >= now)
-            .GroupBy(job => job.JobType, StringComparer.OrdinalIgnoreCase)
+        Dictionary<string, int> activeByJobType = activeRows
+            .Where(row => row.LeaseExpiresUtc >= now)
+            .GroupBy(row => row.JobType, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
 
         return new JobRuntimeMetrics(
             CapturedUtc: now,
-            PendingCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Pending),
-            RunningCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Running),
-            CompletedCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Completed),
-            FailedCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Failed),
-            DeadLetterCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.DeadLetter),
-            TotalAttempts: jobs.Sum(job => job.RetryCount),
+            PendingCount: pendingCount,
+            RunningCount: runningCount,
+            CompletedCount: completedCount,
+            FailedCount: failedCount,
+            DeadLetterCount: deadLetterCount,
+            TotalAttempts: totalAttempts,
             ActiveByJobType: activeByJobType);
     }
+
+    private sealed record JobLeaseMetricRow(string JobType, DateTimeOffset? LeaseExpiresUtc);
 
     /// <inheritdoc />
     public async Task<string> ExportDiagnosticsJsonAsync(CancellationToken cancellationToken = default)
