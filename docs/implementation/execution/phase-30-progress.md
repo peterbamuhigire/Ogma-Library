@@ -32,6 +32,9 @@ Date: 2026-09-04
 - Added an explicit consent and one-to-five rating control to the desktop
   advisor answer surface. The UI submits only a SHA-256 request hash and the
   bounded rating through the existing feedback service.
+- Added an explicit, unchecked-by-default consent control for local page and
+  note evidence; its request boundary is covered by default-deny and rendered
+  headless UI tests.
 
 ## Design decisions
 
@@ -54,7 +57,7 @@ Date: 2026-09-04
   export and Privacy Center export command coverage.
 - Evaluation-set/run persistence slice: 5 passed, covering versioned runs,
   ranked results, relevance judgments, reports, replacement, load, and delete.
-- Advisor view-model slice: 49 passed; headless recommendation/answer/feedback
+- Advisor view-model slice: 51 passed; headless recommendation/answer/feedback
   render: 1 passed; isolated Release build: 0 warnings and 0 errors.
 
 ## Remaining phase gate
