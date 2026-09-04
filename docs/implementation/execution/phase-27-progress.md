@@ -67,6 +67,9 @@ Date: 2026-09-04
 - Phase 27 usage-budget, provider-resilience and gateway slice: 17 passed,
   including gateway rejection before provider invocation.
 - School policy editor render/binding slice: 1 passed.
+- Local gate reconciliation completed; all repository-only Phase 27 controls
+  are covered by the evidence records listed in
+  `evidence/phase-27-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
