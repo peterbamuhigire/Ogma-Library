@@ -25,6 +25,8 @@ Date: 2026-09-04
 - Classroom-client slice: 107 passed.
 - Added tests for cache tamper rejection, certificate-rotation cache isolation,
   and oversized sync payload rejection.
+- Current-head local gate reconciliation is recorded in
+  `evidence/phase-35-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
