@@ -46,7 +46,7 @@ Ledger normalized: 2026-09-04
 | 35 | Classroom Client, Offline and Sync | IN PROGRESS | Tamper-evident cache, host scoping and bounded sync delivered; credential/pairing/reconnect/offline UX/isolation/load evidence open |
 | 36 | School Administration and Managed AI | IN PROGRESS | Host-side key custody, scopes, quotas and DPIA minimization delivered; E2E/backup/rotation/erasure/accessibility/soak/formal DPIA open |
 | 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity and audit minimization delivered; physical hostile/secret-store/penetration/soak evidence open |
-| 38 | Performance, Reliability, Packaging and Beta | IN PROGRESS | Release descriptors, candidate packaging and integrity gates delivered; signed installers, clean install, migration and rollback open |
+| 38 | Performance, Reliability, Packaging and Beta | IN PROGRESS | Release descriptors, candidate packaging, integrity gates and local migration compatibility delivered; signed installers, clean install, performance, recovery and rollback open |
 | 39 | Cross-Platform Release Acceptance and Handover | IN PROGRESS | Fail-closed acceptance contract delivered; physical reference-machine, signing, install, performance, rollback, backup and owner gates open |
 
 `COMPLETE` means the phase's explicit implementation gates are evidenced and

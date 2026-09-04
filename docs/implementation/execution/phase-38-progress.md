@@ -27,6 +27,9 @@ Date: 2026-08-31
   replaced the Phase 23 foreign-key column removal with a row-preserving table
   rebuild. The migration test class now passes forward, downgrade, remigration,
   and legacy backfill scenarios.
+- Closed the locally verifiable migration-compatibility subgate with the
+  migration test class passing 9/9. Physical upgrade/rollback drills remain
+  release-acceptance work.
 
 ## Verification
 
@@ -47,6 +50,6 @@ Date: 2026-08-31
 
 This phase is not complete. Final MSIX/installer production, Authenticode and
 Developer ID/notarization evidence, clean W-REF-01/M-REF-01 installation and
-performance runs, interrupted-upgrade recovery, migration compatibility, and
-physical rollback drills remain Phase 39 release-acceptance gates. No private
-signing key is stored in the repository.
+performance runs, interrupted-upgrade recovery, and physical rollback drills
+remain Phase 39 release-acceptance gates. No private signing key is stored in
+the repository.
