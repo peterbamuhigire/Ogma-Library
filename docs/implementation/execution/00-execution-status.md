@@ -5,146 +5,52 @@ Authority: [approved 39-phase roadmap](../../plans/aug-39/README.md)
 Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 
 Execution branch: `main`
+Ledger normalized: 2026-09-04
 
-| Phase | Name | Status | Started | Completed | Notes |
-| ----: | ---- | ------ | ------- | --------- | ----- |
-| 1 | Evidence Baseline and Scope Freeze | COMPLETE | 2026-08-20 | 2026-08-20 | Scope frozen; 162-ID accountability gate added |
-| 2 | Composition, Configuration and Startup | COMPLETE | 2026-08-20 | 2026-08-20 | Modular DI; non-blocking/recoverable startup; external capabilities disabled by default |
-| 3 | Canonical Library Identity Model | COMPLETE | 2026-08-20 | 2026-08-20 | Canonical root/occurrence/asset/edition/work contract; no fake hash |
-| 4 | Identity Schema and Data Migration | COMPLETE | 2026-08-20 | 2026-08-20 | Canonical schema, transactional backfill, aliases, verified local backup/restore |
-| 5 | Library Roots and Path Security | COMPLETE | 2026-08-30 | 2026-08-30 | Durable roots, bounded probes, relink semantics and canonical discovery guard; evidence in phase-05-completion.md |
-| 6 | Processing State Machine and Scan Sessions | COMPLETE | 2026-08-30 | 2026-08-30 | Durable sessions, leased stages, retries, cancellation and recovery; evidence in phase-06-completion.md |
-| 7 | Discovery and Incremental Scanning | COMPLETE | 2026-09-04 | 2026-09-04 | Durable directory cursor/diagnostics, stable cross-session queue identity, migration, acceptance tests and 50k bounded benchmark recorded in phase-07-progress.md |
-| 8 | Filesystem Reconciliation and Recovery | COMPLETE | 2026-09-04 | 2026-09-04 | Grace-window absence evidence, exact-hash move/replacement handling, durable ambiguity review, audit summaries and downstream invalidation recorded in phase-08-progress.md |
-| 8 | Filesystem Reconciliation and Recovery | IN PROGRESS | 2026-08-30 | — | Evidence-gated presence reconciliation delivered; move/replacement/grace gates remain in phase-08-progress.md |
-| 9 | Duplicate and Bibliographic Resolution | COMPLETE | 2026-09-04 | 2026-09-04 | Candidate blocking, conservative provider-conflict decisions, reversible grouping, canonical alias resolution, and catalogue/advisor group projection evidenced |
-| 10 | PDF Validation and Containment | IN PROGRESS | 2026-08-30 | — | Root-bounded validation broker delivered; sandbox/password/resource gates remain in phase-10-progress.md |
-| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | 2026-09-04 | — | Versioned artifact lifecycle, page/TOC manifests, pipeline integration, and ranked ISBN evidence delivered; measured extraction resource/throughput evidence remains in phase-11-progress.md |
-| 12 | Canonical Metadata and Provenance | COMPLETE | 2026-09-04 | 2026-09-04 | Work/edition scope policy, override precedence, proposal-only enrichment, confidence-model versioning, and provenance-bearing review projections evidenced |
-| 13 | Bibliographic Provider Gateway | IN PROGRESS | 2026-09-04 | — | Durable normalized provider cache, stale fallback, response bounds, failure isolation, and conditional revalidation delivered; quota/circuit telemetry, conflict and privacy gates remain in phase-13-progress.md |
-| 14 | Metadata Review and Manual Curation | IN PROGRESS | 2026-08-30 | — | Durable proposal queue, explicit review commands, concurrency token, and review-boundary sanitization delivered; bulk preview/undo, field dictionary, and accessible UI gates remain in phase-14-progress.md |
-| 15 | Safe Writeback and Override Protection | IN PROGRESS | 2026-08-30 | — | Canonical path/source-change guards, preparation audit, exclusive check, derived-index invalidation status, and restore outcome delivered; consent/plan/undo and physical evidence remain in phase-15-progress.md |
-| 16 | Cover, Thumbnail and Spine Assets | NOT STARTED | â€” | â€” | â€” |
-| 17 | Worker Reliability and Observability | IN PROGRESS | 2026-08-30 | — | Durable leasing, worker claim routing, and heartbeat renewal delivered; remaining worker conversion, resource groups, dead-letter, observability, and load evidence remain in phase-17-progress.md |
-| 18 | Ogma Design System and Application Shell | NOT STARTED | â€” | â€” | â€” |
-| 19 | Production 2D Catalogue | NOT STARTED | â€” | â€” | â€” |
-| 20 | Book Detail, Organisation and Reading State | NOT STARTED | â€” | â€” | Push checkpoint after completion |
-| 21 | Reader Completion and Portability | NOT STARTED | â€” | â€” | â€” |
-| 22 | Structured and Fuzzy Catalogue Search | NOT STARTED | â€” | â€” | â€” |
-| 23 | Full-Text Pipeline and Search | NOT STARTED | â€” | â€” | â€” |
-| 24 | Selective OCR and Extraction Quality | NOT STARTED | â€” | â€” | â€” |
-| 25 | Versioned Embeddings and Vector Lifecycle | NOT STARTED | â€” | â€” | Push checkpoint after completion |
-| 26 | Semantic and Hybrid Retrieval | NOT STARTED | â€” | â€” | Search freeze point |
-| 27 | AI Gateway, Privacy and Cost Runtime | NOT STARTED | â€” | â€” | â€” |
-| 28 | Advisor Intent, Candidates and Reranking | NOT STARTED | â€” | â€” | â€” |
-| 29 | Grounded Explanations and Answer Mode | NOT STARTED | â€” | â€” | â€” |
-| 30 | Advisor UX and Quality Evaluation | NOT STARTED | â€” | â€” | AI retrieval freeze and push checkpoint |
-| 31 | Native 3D Host and Catalogue Contract | NOT STARTED | â€” | â€” | â€” |
-| 32 | Virtual Bookshelf Visuals and Interaction | NOT STARTED | â€” | â€” | â€” |
-| 33 | 3D Scale, Accessibility and Performance | NOT STARTED | â€” | â€” | 3D contract freeze point |
-| 34 | Classroom Host Security and Read Model | NOT STARTED | â€” | â€” | â€” |
-| 35 | Classroom Client, Offline and Sync | NOT STARTED | â€” | â€” | Push checkpoint after completion |
-| 36 | School Administration and Managed AI | NOT STARTED | â€” | â€” | â€” |
-| 37 | Security, Privacy and Data Protection Hardening | NOT STARTED | â€” | â€” | â€” |
-| 38 | Performance, Reliability, Packaging and Beta | NOT STARTED | â€” | â€” | Schema/release freeze point |
-| 39 | Cross-Platform Release Acceptance and Handover | NOT STARTED | â€” | â€” | Final push after completion |
+| Phase | Name | Status | Evidence position |
+| ----: | ---- | ------ | ------------------ |
+| 1 | Evidence Baseline and Scope Freeze | COMPLETE | Scope frozen; 162-ID accountability gate added |
+| 2 | Composition, Configuration and Startup | COMPLETE | Modular DI; recoverable startup; external capabilities disabled by default |
+| 3 | Canonical Library Identity Model | COMPLETE | Canonical root, occurrence, asset, edition and work contract |
+| 4 | Identity Schema and Data Migration | COMPLETE | Canonical schema, transactional backfill, aliases and verified backup/restore |
+| 5 | Library Roots and Path Security | COMPLETE | Durable roots, bounded probes, relink semantics and discovery guard |
+| 6 | Processing State Machine and Scan Sessions | COMPLETE | Durable sessions, leased stages, retries, cancellation and recovery |
+| 7 | Discovery and Incremental Scanning | COMPLETE | Recovery gates closed; physical cross-platform/UI evidence remains NOT ASSESSED |
+| 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery and audit gates closed; physical ACL/operator/cross-OS evidence remains NOT ASSESSED |
+| 9 | Duplicate and Bibliographic Resolution | COMPLETE | Candidate blocking, grouping and consumer projections evidenced |
+| 10 | PDF Validation and Containment | IN PROGRESS | Broker, password and resource gates delivered; OS sandbox/escape/security approval open |
+| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC and ranked ISBN evidence delivered; target-scale corpus open |
+| 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
+| 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit and retry telemetry delivered; conflict/privacy evidence open |
+| 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency and boundary validation delivered; bulk undo, field dictionary and accessible UI open |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check and invalidation delivered; plan/undo/consent and physical evidence open |
+| 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection and output validation delivered; acquisition/GC/variants/UI/scale open |
+| 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence and poison quarantine delivered; remaining workers/observability/load open |
+| 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus and typography delivered; localization, settings, palette, contrast and physical accessibility open |
+| 19 | Production 2D Catalogue | IN PROGRESS | Cover control and asset loading delivered; parity/filter/sort/paging/badges/auth/scale open |
+| 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation and reading-state foundations delivered; detail controls, collections, file/relink, provenance and E2E open |
+| 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability work delivered; platform viewer, crash/cache, accessibility and budget evidence open |
+| 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries and scoped fuzzy fallback delivered; facets/paging/highlighting/typeahead/scale open |
+| 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters and rebuild foundations delivered; highlight UI, progress, observability and scale open |
+| 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards and trained-data checksum delivered; accuracy/telemetry/UI/cross-platform open |
+| 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimensions and stale source detection delivered; tombstones/ANN/scale/cost/UI open |
+| 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, dimension filtering and metric contract delivered; durable runs, corpus, ANN, diversity and scale open |
+| 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, timeout/retry/circuit and health telemetry delivered; profiles/secrets/budgets/UI/allowlist/conformance open |
+| 28 | Advisor Intent, Candidates and Reranking | IN PROGRESS | Intent, candidate ranking, fallbacks and durable privacy-preserving traces delivered; editable UI, diagnostics, reference resolution and benchmarks open |
+| 29 | Grounded Explanations and Answer Mode | IN PROGRESS | Source-labeled local evidence, provenance validation and untrusted-payload boundary delivered; provider explanations, citation UI/consent/benchmarks open |
+| 30 | Advisor UX and Quality Evaluation | IN PROGRESS | Routes, interpreted-intent UI and offline evaluation foundations delivered; durable evaluation sets, human thresholds, accessibility and freeze open |
+| 31 | Native 3D Host and Catalogue Contract | IN PROGRESS | Versioned bridge and accessible fallback delivered; native WebView adapters and physical integration open |
+| 32 | Virtual Bookshelf Visuals and Interaction | IN PROGRESS | Meshes, local assets, interaction and bounded labels delivered; source/atlas/LOD/focus/reduced-motion/physical evidence open |
+| 33 | 3D Scale, Accessibility and Performance | IN PROGRESS | Virtualization, metrics, headless budgets and fallback delivered; GPU/WebView/cross-platform accessibility evidence open |
+| 34 | Classroom Host Security and Read Model | IN PROGRESS | Published-scope enforcement and redaction delivered; two-machine/firewall/mDNS/TOFU/soak evidence open |
+| 35 | Classroom Client, Offline and Sync | IN PROGRESS | Tamper-evident cache, host scoping and bounded sync delivered; credential/pairing/reconnect/offline UX/isolation/load evidence open |
+| 36 | School Administration and Managed AI | IN PROGRESS | Host-side key custody, scopes, quotas and DPIA minimization delivered; E2E/backup/rotation/erasure/accessibility/soak/formal DPIA open |
+| 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity and audit minimization delivered; physical hostile/secret-store/penetration/soak evidence open |
+| 38 | Performance, Reliability, Packaging and Beta | IN PROGRESS | Release descriptors, candidate packaging and integrity gates delivered; signed installers, clean install, migration and rollback open |
+| 39 | Cross-Platform Release Acceptance and Handover | IN PROGRESS | Fail-closed acceptance contract delivered; physical reference-machine, signing, install, performance, rollback, backup and owner gates open |
 
-Status changes require implementation evidence, tests and a phase completion
-record. A historical phase label is not evidence of completion against this
-roadmap.
-
-Current evidence override: Phase 16 is IN PROGRESS as documented in
-`phase-16-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 17 is IN PROGRESS as documented in
-`phase-17-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 18 is IN PROGRESS as documented in
-`phase-18-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 19 is IN PROGRESS as documented in
-`phase-19-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 20 is IN PROGRESS as documented in
-`phase-20-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 21 is IN PROGRESS as documented in
-`phase-21-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 22 is IN PROGRESS as documented in
-`phase-22-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 23 is IN PROGRESS as documented in
-`phase-23-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 24 is IN PROGRESS as documented in
-`phase-24-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 25 is IN PROGRESS as documented in
-`phase-25-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 26 is IN PROGRESS as documented in
-`phase-26-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 27 is IN PROGRESS as documented in
-`phase-27-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 28 is IN PROGRESS as documented in
-`phase-28-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 29 is IN PROGRESS as documented in
-`phase-29-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 30 is IN PROGRESS as documented in
-`phase-30-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 31 is IN PROGRESS as documented in
-`phase-31-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 32 is IN PROGRESS as documented in
-`phase-32-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 33 is IN PROGRESS as documented in
-`phase-33-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 34 is IN PROGRESS as documented in
-`phase-34-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 35 is IN PROGRESS as documented in
-`phase-35-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 36 is IN PROGRESS as documented in
-`phase-36-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 37 is IN PROGRESS as documented in
-`phase-37-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 38 is IN PROGRESS as documented in
-`phase-38-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
-
-Current evidence override: Phase 39 is IN PROGRESS as documented in
-`phase-39-progress.md`; the legacy table row will be normalized with the next
-status-file encoding cleanup.
+`COMPLETE` means the phase's explicit implementation gates are evidenced and
+verified. `IN PROGRESS` means one or more explicit gates remain open; the
+per-phase progress record is authoritative for the exact list. Physical,
+platform-signing, reference-hardware, and independent-review gates are not
+converted to COMPLETE from source code or headless tests.
