@@ -35,6 +35,11 @@ Date: 2026-08-30
 - Reduced exact-path graph materialization to the 50-result contract after
   verifying the named 50,000-book performance corpus; the metadata search p95
   gate now passes at <=150 ms.
+- Added the additive `ICatalogueSearchService` contract and implementation for
+  bounded stable paging, explainable field facets, safe title/author highlight
+  ranges, and an explicit indexed full-text fallback when metadata has no hit.
+- Added validation for page bounds and literal wildcard queries so search input
+  remains safe and predictable for UI and LAN consumers.
 
 ## Verification
 
@@ -45,6 +50,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Facets, paging, highlighting, and full-text fallback integration remain before
-phase 22 closure. The named 50,000-book metadata-search performance sub-gate
-is closed locally; reference-hardware confirmation remains a release concern.
+The backend facets/paging/highlighting/full-text-fallback subgate is closed by
+the new contract and focused tests. UI chips, keyboard result navigation, and
+reference-hardware confirmation remain before phase 22 closure.

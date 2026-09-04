@@ -90,6 +90,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISearchChunkRepository, SearchChunkRepository>();
         services.AddSingleton<IEmbeddingVectorRepository, EmbeddingVectorRepository>();
         services.AddSingleton<IMetadataSearchService, MetadataSearchService>();
+        services.AddSingleton<ICatalogueSearchService, CatalogueSearchService>();
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
         services.AddSingleton<ITocExtractionService, PdfTableOfContentsService>();
         services.AddSingleton<EmbeddingGenerationService>();
