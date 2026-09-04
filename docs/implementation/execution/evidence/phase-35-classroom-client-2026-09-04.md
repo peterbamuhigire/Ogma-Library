@@ -8,7 +8,8 @@ Reviewer: Peter Bamuhigire, Lead Consultant
 The local offline-cache and sync-integrity subgate is closed. Cache entries
 are scoped to host and certificate identity, content and metadata are
 tamper-evident including an exact content-length check, sync payloads are bounded against oversized/compression-bomb
-inputs, cleanup rejects metadata paths outside the cache root, and sync is single-flight. Per-profile private storage, guest no-sync,
+inputs, cleanup rejects metadata paths outside the cache root, temporary cache,
+mode, and profile files are removed after failed writes, and sync is single-flight. Per-profile private storage, guest no-sync,
 TOFU, conflict semantics, and host-scoped eviction remain covered.
 
 Physical credential-store/pairing, renewed-session reconnect, offline reader
@@ -29,3 +30,7 @@ metadata path regression that preserved an external sentinel file.
 The Host PDF materializer slice passed 5/5, including replacement of a
 tampered local PDF before reuse. Its atomic PDF and metadata writes now remove
 temporary files after cancellation or I/O failure.
+
+The classroom credential, offline-cache, and materializer regression slice
+passed 19/19 after extending failed-write cleanup to credential, mode, profile,
+and cache-metadata persistence.

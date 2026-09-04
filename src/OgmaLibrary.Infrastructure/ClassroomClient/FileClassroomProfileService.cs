@@ -240,15 +240,39 @@ internal sealed class FileClassroomProfileService : IProfileService, IDisposable
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_storePath)!);
         string tempPath = $"{_storePath}.{Guid.NewGuid():N}.tmp";
-        using (FileStream stream = File.Create(tempPath))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, snapshot, JsonOptions, cancellationToken).ConfigureAwait(false);
-        }
+            using (FileStream stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, snapshot, JsonOptions, cancellationToken).ConfigureAwait(false);
+            }
 
-        File.Move(tempPath, _storePath, overwrite: true);
+            File.Move(tempPath, _storePath, overwrite: true);
+        }
+        finally
+        {
+            DeleteTemporaryFile(tempPath);
+        }
     }
 
     public void Dispose() => _gate.Dispose();
+
+    private static void DeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
 
     private static void ThrowIfEmptyProfileId(Guid profileId)
     {

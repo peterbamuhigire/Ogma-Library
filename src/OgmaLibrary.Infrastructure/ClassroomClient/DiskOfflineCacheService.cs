@@ -249,12 +249,36 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
         CancellationToken cancellationToken)
     {
         string tempPath = $"{metadataPath}.{Guid.NewGuid():N}.tmp";
-        using (FileStream stream = File.Create(tempPath))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, metadata, JsonOptions, cancellationToken).ConfigureAwait(false);
-        }
+            using (FileStream stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, metadata, JsonOptions, cancellationToken).ConfigureAwait(false);
+            }
 
-        File.Move(tempPath, metadataPath, overwrite: true);
+            File.Move(tempPath, metadataPath, overwrite: true);
+        }
+        finally
+        {
+            DeleteTemporaryFile(tempPath);
+        }
+    }
+
+    private static void DeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private void DeleteEntryFiles(string metadataPath, CacheMetadata? metadata)

@@ -8,7 +8,8 @@ Reviewer: Peter Bamuhigire, Lead Consultant
 The local code-safety and web-boundary subgate is closed. The repository has
 bounded PDF/host payloads, response security headers, per-address throttling,
 opaque blob integrity/size checks, cache cleanup path confinement, remote-IP
-audit minimization, and redacted secrets/tokens. No critical or high finding is recorded in the reviewed scan;
+audit minimization, redacted secrets/tokens, and failed-write cleanup for the
+file-backed credential fallback. No critical or high finding is recorded in the reviewed scan;
 conditional medium follow-ups remain tracked.
 
 Physical hostile-PDF execution, native secret-store and two-user erasure,

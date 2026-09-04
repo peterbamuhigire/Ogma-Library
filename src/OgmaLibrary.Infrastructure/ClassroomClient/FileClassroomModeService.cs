@@ -65,12 +65,19 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath)!);
             string tempPath = $"{_settingsPath}.{Guid.NewGuid():N}.tmp";
-            using (FileStream stream = File.Create(tempPath))
+            try
             {
-                await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, cancellationToken).ConfigureAwait(false);
-            }
+                using (FileStream stream = File.Create(tempPath))
+                {
+                    await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, cancellationToken).ConfigureAwait(false);
+                }
 
-            File.Move(tempPath, _settingsPath, overwrite: true);
+                File.Move(tempPath, _settingsPath, overwrite: true);
+            }
+            finally
+            {
+                DeleteTemporaryFile(tempPath);
+            }
         }
         finally
         {
@@ -113,13 +120,20 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_syncSettingsPath)!);
             string tempPath = $"{_syncSettingsPath}.{Guid.NewGuid():N}.tmp";
-            using (FileStream stream = File.Create(tempPath))
+            try
             {
-                await JsonSerializer.SerializeAsync(stream, normalized, JsonOptions, cancellationToken)
-                    .ConfigureAwait(false);
-            }
+                using (FileStream stream = File.Create(tempPath))
+                {
+                    await JsonSerializer.SerializeAsync(stream, normalized, JsonOptions, cancellationToken)
+                        .ConfigureAwait(false);
+                }
 
-            File.Move(tempPath, _syncSettingsPath, overwrite: true);
+                File.Move(tempPath, _syncSettingsPath, overwrite: true);
+            }
+            finally
+            {
+                DeleteTemporaryFile(tempPath);
+            }
         }
         finally
         {
@@ -145,6 +159,23 @@ internal sealed class FileClassroomModeService : IClassroomModeService, IDisposa
     }
 
     public void Dispose() => _gate.Dispose();
+
+    private static void DeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
 
     private static ClassroomSyncSettings Normalize(ClassroomSyncSettings settings) =>
         settings.IsEnabled ? settings : settings with { SyncOnReconnect = false };

@@ -517,14 +517,38 @@ internal sealed class FileClassroomSecretStore : IClassroomSecretStore, IDisposa
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
         string tempPath = $"{_path}.{Guid.NewGuid():N}.tmp";
-        using (FileStream stream = File.Create(tempPath))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, secrets, JsonOptions, cancellationToken)
-                .ConfigureAwait(false);
-        }
+            using (FileStream stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, secrets, JsonOptions, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
-        File.Move(tempPath, _path, overwrite: true);
-        RestrictUnixFile(_path);
+            File.Move(tempPath, _path, overwrite: true);
+            RestrictUnixFile(_path);
+        }
+        finally
+        {
+            DeleteTemporaryFile(tempPath);
+        }
+    }
+
+    private static void DeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private static void RestrictUnixFile(string path)
