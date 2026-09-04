@@ -1,6 +1,6 @@
 # Phase 26 Progress - Semantic and Hybrid Retrieval
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -36,6 +36,9 @@ Date: 2026-08-30
   and retain only a bounded top-K heap, removing all-vector corpus
   materialization while preserving deterministic cosine ordering and book-level
   deduplication.
+- Added a real-service local concept fixture with four judged queries, six
+  varied vectors, distractors, and a versioned Recall@3/MRR/nDCG quality gate.
+  The local fixture achieved 1.0 for all three metrics.
 
 ## Verification
 
@@ -44,11 +47,13 @@ Date: 2026-08-30
 - FTS/combined, hybrid-ranking, semantic retrieval and evaluation slice: 21
   passed.
 - Hybrid diversity policy regression slice: 8 passed.
+- Local concept-quality slice: 1 passed with Recall@3, MRR and nDCG all at
+  1.0. See `evidence/phase-26-local-retrieval-quality-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Recall@K/MRR/nDCG evidence from a representative corpus, true ANN or
-equivalent relevance-quality retrieval, independent memory acceptance at
-50,000 books, and final search-contract freeze remain before phase 26 closure.
-The bounded-memory 50,000-vector scan and latency sub-gates are closed locally;
-reference-machine confirmation remains a release gate.
+The local Recall@K/MRR/nDCG sub-gate is closed for the synthetic concept
+fixture. Approved representative/reference-corpus evidence, true ANN or
+equivalent target-scale relevance-quality retrieval, independent memory
+acceptance at 50,000 books, final search-contract freeze, and reference-machine
+confirmation remain open.
