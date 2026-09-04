@@ -30,5 +30,9 @@ PowerShell syntax parsing passed for `New-ReleaseCandidate.ps1`,
 `Test-ReleaseCandidate.ps1`, and `Test-ReleaseAcceptance.ps1`.
 
 An ephemeral end-to-end script check passed a valid RSA-PSS descriptor signature
-and rejected a tampered signature. The test key and temporary artifacts were
-deleted after verification.
+and rejected the same descriptor after its `releaseId` was tampered. The test
+key and temporary artifacts were deleted after verification.
+
+Rerun on 2026-09-04: `Test-ReleaseCandidate.ps1` accepted the valid descriptor
+and rejected the tampered descriptor (`valid descriptor accepted;
+tampered descriptor rejected`).
