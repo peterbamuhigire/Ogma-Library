@@ -49,8 +49,8 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Reference-book resolution beyond the deterministic comparison hint, benchmark
-Recall@K/nDCG evaluation, and final advisor UI/performance gates remain for
-phases 29-30. Editable intent, candidate-stage diagnostics, and source-labeled
-evidence assembly are closed by the versioned evidence records above and in
-Phase 29.
+Human-labelled benchmark Recall@K/nDCG evaluation, reference-machine
+confirmation, and final advisor UI/performance gates remain for phases 29-30.
+Local reference resolution, editable intent, candidate-stage diagnostics, and
+source-labelled evidence assembly are closed by the versioned evidence records
+above and in Phase 29.
