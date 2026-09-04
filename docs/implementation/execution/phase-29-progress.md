@@ -58,6 +58,8 @@ Date: 2026-09-04
 - Fresh citation-navigation regression: 6 core advisor tests and 1 headless
   Advisor render test passed.
 - Content-aware consent regression: 7 advisor tests passed.
+- Current-head local gate reconciliation is recorded in
+  `evidence/phase-29-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
