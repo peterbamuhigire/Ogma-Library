@@ -26,6 +26,9 @@ acceptance.
 - `ProviderCoverAssetService` atomically persists validated provider art as a
   deterministic JPEG and registers `provider` provenance through the manifest;
   failed registration cleans up only a newly-created file.
+- The image client and persistence service are composed only by
+  `AddMetadataEnrichment(..., enableExternalProviders: true)`; the default
+  composition registers neither and retains no-egress behavior.
 - Sidecar variants use safe deterministic suffixes and retain manifest source
   hash, dimensions, format, version, and lifecycle status.
 

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Metadata.Providers;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
@@ -42,6 +43,12 @@ public static class MetadataServiceExtensions
         // HTTP clients — named, routed through IHttpClientFactory (architecture rule SI-1).
         if (enableExternalProviders)
         {
+            services.AddHttpClient<ProviderCoverImageClient>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
+            services.AddSingleton<ProviderCoverAssetService>();
+
             services.AddHttpClient<GoogleBooksProvider>(
                 "GoogleBooks",
                 client =>
