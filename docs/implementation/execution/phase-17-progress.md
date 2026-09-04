@@ -30,15 +30,17 @@ Date: 2026-08-30
   handling. Legacy running rows without lease metadata remain recoverable.
 - Added focused coverage for exclusive claims, owner enforcement, retry versus
   terminal failure, and expiry recovery.
+- Added a payload-free runtime metrics snapshot exposing status totals, attempt
+  totals, and active leases grouped by job type for diagnostics and UI use.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
-- `Phase17JobRuntimeTests`: 3 passed.
+- `Phase17JobRuntimeTests`: 7 passed.
 
 ## Remaining phase gate
 
 The search-extraction and embedding workers remain stage-based rather than
-job-queue workers; structured metrics, diagnostics export, and kill/restart load
-evidence remain before phase 17 closure.
+job-queue workers; diagnostics export and kill/restart load evidence remain
+before phase 17 closure.

@@ -185,5 +185,60 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.Null(second);
     }
 
+    [Fact]
+    public async Task Metrics_ReturnRedactedStatusTotalsAndActiveLeaseCounts()
+    {
+        _fixture.Context.Jobs.AddRange(
+            new JobRow
+            {
+                JobType = "MetadataExtraction",
+                IdempotencyKey = "phase17-metrics-pending",
+                Status = (int)JobRuntimeStatus.Pending,
+                RetryCount = 2,
+            },
+            new JobRow
+            {
+                JobType = "OcrJob",
+                IdempotencyKey = "phase17-metrics-running",
+                Status = (int)JobRuntimeStatus.Running,
+                LeaseOwner = "metrics-worker",
+                LeaseExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(1),
+                RetryCount = 1,
+            },
+            new JobRow
+            {
+                JobType = "MetadataExtraction",
+                IdempotencyKey = "phase17-metrics-completed",
+                Status = (int)JobRuntimeStatus.Completed,
+                RetryCount = 3,
+            },
+            new JobRow
+            {
+                JobType = "MetadataExtraction",
+                IdempotencyKey = "phase17-metrics-failed",
+                Status = (int)JobRuntimeStatus.Failed,
+                RetryCount = 3,
+            },
+            new JobRow
+            {
+                JobType = "Unknown",
+                IdempotencyKey = "phase17-metrics-dead-letter",
+                Status = (int)JobRuntimeStatus.DeadLetter,
+                RetryCount = 1,
+            });
+        await _fixture.Context.SaveChangesAsync();
+
+        JobRuntimeMetrics metrics = await new JobRuntimeService(_fixture.Context)
+            .GetMetricsAsync();
+
+        Assert.Equal(1, metrics.PendingCount);
+        Assert.Equal(1, metrics.RunningCount);
+        Assert.Equal(1, metrics.CompletedCount);
+        Assert.Equal(1, metrics.FailedCount);
+        Assert.Equal(1, metrics.DeadLetterCount);
+        Assert.Equal(10, metrics.TotalAttempts);
+        Assert.Equal(1, metrics.ActiveByJobType["OcrJob"]);
+    }
+
     public void Dispose() => _fixture.Dispose();
 }

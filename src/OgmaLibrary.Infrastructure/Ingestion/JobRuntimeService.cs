@@ -249,6 +249,41 @@ public sealed class JobRuntimeService : IJobRuntimeService
         return expired.Count;
     }
 
+    /// <inheritdoc />
+    public async Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        List<JobRow> jobs = await lease.Context.Jobs
+            .AsNoTracking()
+            .Select(job => new JobRow
+            {
+                JobId = job.JobId,
+                JobType = job.JobType,
+                Status = job.Status,
+                RetryCount = job.RetryCount,
+                LeaseExpiresUtc = job.LeaseExpiresUtc,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Dictionary<string, int> activeByJobType = jobs
+            .Where(job => job.Status == (int)JobRuntimeStatus.Running &&
+                          job.LeaseExpiresUtc is not null &&
+                          job.LeaseExpiresUtc >= now)
+            .GroupBy(job => job.JobType, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+
+        return new JobRuntimeMetrics(
+            CapturedUtc: now,
+            PendingCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Pending),
+            RunningCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Running),
+            CompletedCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Completed),
+            FailedCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.Failed),
+            DeadLetterCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.DeadLetter),
+            TotalAttempts: jobs.Sum(job => job.RetryCount),
+            ActiveByJobType: activeByJobType);
+    }
+
     private static void AddAuditEvent(
         CatalogueDbContext context,
         string eventType,

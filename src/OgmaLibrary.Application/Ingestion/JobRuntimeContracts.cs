@@ -39,6 +39,17 @@ public sealed record JobFailure(
     bool Retryable,
     bool DeadLetter = false);
 
+/// <summary>Read-only operational snapshot of the durable job runtime.</summary>
+public sealed record JobRuntimeMetrics(
+    DateTimeOffset CapturedUtc,
+    int PendingCount,
+    int RunningCount,
+    int CompletedCount,
+    int FailedCount,
+    int DeadLetterCount,
+    int TotalAttempts,
+    IReadOnlyDictionary<string, int> ActiveByJobType);
+
 /// <summary>Durable claim/complete/failure contract for background jobs.</summary>
 public interface IJobRuntimeService
 {
@@ -72,4 +83,7 @@ public interface IJobRuntimeService
 
     /// <summary>Returns expired running jobs to the queue for deterministic recovery.</summary>
     Task<int> RecoverExpiredAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Returns status totals and active-lease metrics without exposing job payloads.</summary>
+    Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default);
 }
