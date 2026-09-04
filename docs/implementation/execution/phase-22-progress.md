@@ -57,6 +57,9 @@ Date: 2026-09-04
   881 core + 41 architecture + 142 UI = 1,064 passed, 0 failed, 0 skipped.
 - Current-HEAD full solution verification: 884 core + 41 architecture + 144
   UI = 1,069 passed, 0 failed, 0 skipped.
+- Current-HEAD structured/fuzzy search verification: 11 core tests and 14 UI
+  search tests passed, 0 failed, 0 skipped. The current full solution baseline
+  is 1,078 passed, 0 failed, 0 skipped (890 core, 41 architecture, 147 UI).
 
 ## Remaining phase gate
 
