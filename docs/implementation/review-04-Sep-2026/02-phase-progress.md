@@ -36,8 +36,8 @@ verified evidence and remaining gate summarized for decision use.
 | 35 | IN PROGRESS | Tamper-evident scoped cache, bounded sync, single-flight | Physical credential/pairing/reconnect, offline UX, isolation/load |
 | 36 | IN PROGRESS | Host-side keys, scope/quota/DPIA controls, metadata-only default, grounded citations | E2E, backup/restore, rotation/revocation, retention, accessibility, soak, formal DPIA |
 | 37 | IN PROGRESS | Code safety, headers, throttling, blob integrity, audit minimization, local security tests | Hostile PDF, native secret stores, penetration, network capture, backup/soak |
-| 38 | IN PROGRESS | Release descriptors, candidate packaging, integrity gates, migration compatibility | Signed installers, clean install, performance, interrupted recovery, rollback, actionlint/CI |
-| 39 | IN PROGRESS | Fail-closed acceptance schema and executable checks | W-REF-01/M-REF-01, signing/notarization, installed flows, performance/accessibility, rollback, backup, owner approval |
+| 38 | IN PROGRESS | Release descriptors, cryptographic detached-signature verification, candidate packaging, integrity gates, migration compatibility | Signed installers, clean install, performance, interrupted recovery, rollback, actionlint/CI |
+| 39 | IN PROGRESS | Fail-closed acceptance schema with strict artifact/reference-record validation and executable checks | W-REF-01/M-REF-01, signing/notarization, installed flows, performance/accessibility, rollback, backup, owner approval |
 
 ## Bottom line
 

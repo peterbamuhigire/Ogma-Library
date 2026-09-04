@@ -14,6 +14,7 @@ param(
     [string] $OutputDirectory,
     [string] $PublicKeyId = 'production-2026',
     [string] $SigningKeyPath,
+    [string] $PublicKeyPath,
     [switch] $RequireSignature,
     [switch] $RequirePlatformSigning,
     [string] $WindowsCertificateThumbprint,
@@ -133,10 +134,15 @@ if ($SigningKeyPath) {
     throw 'A signing key is required for this release candidate. No private key is stored in the repository.'
 }
 
+if ($RequireSignature -and [string]::IsNullOrWhiteSpace($PublicKeyPath)) {
+    throw 'A protected public key is required when descriptor signature verification is required.'
+}
+
 & (Join-Path $PSScriptRoot 'Test-ReleaseCandidate.ps1') `
     -DescriptorPath $descriptorPath `
     -ArtifactPath $artifactPath `
     -SignaturePath $(if (Test-Path $signaturePath) { $signaturePath } else { $null }) `
+    -PublicKeyPath $(if (Test-Path -LiteralPath $PublicKeyPath -PathType Leaf) { $PublicKeyPath } else { $null }) `
     -RequireSignature:$RequireSignature
 if ($LASTEXITCODE -ne 0) { throw "Release-candidate verification failed with exit code $LASTEXITCODE." }
 

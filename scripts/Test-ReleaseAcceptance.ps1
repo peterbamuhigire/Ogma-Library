@@ -12,11 +12,17 @@ function Assert-True([object] $value, [string] $message) {
 }
 
 if ($record.schema -ne 'ogma-release-acceptance-v1') { throw 'Unsupported acceptance record schema.' }
+if ([string]::IsNullOrWhiteSpace($record.releaseId) -or $record.releaseId.Length -gt 128 -or $record.releaseId -notmatch '^[A-Za-z0-9._-]+$') { throw 'Acceptance releaseId is missing or unsafe.' }
 if ($record.commitSha -notmatch '^[0-9a-fA-F]{40}$') { throw 'Acceptance record must bind to a full commit SHA.' }
-if ($record.artifacts.Count -lt 2) { throw 'Acceptance requires Windows and macOS artifacts.' }
-if (@($record.artifacts.platform) -notcontains 'windows' -or @($record.artifacts.platform) -notcontains 'macos') { throw 'Acceptance requires both platform records.' }
+$artifacts = @($record.artifacts)
+if ($artifacts.Count -ne 2) { throw 'Acceptance requires exactly one Windows and one macOS artifact.' }
+if (@($artifacts.platform) -notcontains 'windows' -or @($artifacts.platform) -notcontains 'macos') { throw 'Acceptance requires both platform records.' }
 
-foreach ($artifact in $record.artifacts) {
+foreach ($artifact in $artifacts) {
+    if ($artifact.platform -notin @('windows', 'macos')) { throw "Unsupported artifact platform '$($artifact.platform)'." }
+    if ($artifact.platform -eq 'windows' -and $artifact.runtimeIdentifier -notmatch '^win-(x64|arm64)$') { throw 'Windows artifact runtime identifier is invalid.' }
+    if ($artifact.platform -eq 'macos' -and $artifact.runtimeIdentifier -notmatch '^osx-(x64|arm64)$') { throw 'macOS artifact runtime identifier is invalid.' }
+    if ([string]::IsNullOrWhiteSpace($artifact.artifactName) -or $artifact.artifactName.Length -gt 255 -or $artifact.artifactName -match '[\/:]' -or $artifact.artifactName -match '\.\.') { throw "Unsafe artifact name for $($artifact.platform)." }
     if ($artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') { throw "Invalid artifact digest for $($artifact.platform)." }
     Assert-True $artifact.descriptorSignatureVerified "$($artifact.platform) descriptor signature is not verified."
     Assert-True $artifact.platformSigned "$($artifact.platform) platform signature is not verified."
@@ -27,7 +33,7 @@ foreach ($artifact in $record.artifacts) {
     if ($artifact.platform -eq 'macos') { Assert-True $artifact.developerIdAndNotarized 'macOS Developer ID/notarization evidence is required.' }
 }
 
-if ($record.hardware.Count -lt 2) { throw 'Acceptance requires both reference machine records.' }
+if (@($record.hardware).Count -ne 2) { throw 'Acceptance requires exactly both reference machine records.' }
 foreach ($machineId in @('W-REF-01', 'M-REF-01')) {
     $machine = @($record.hardware | Where-Object machineId -eq $machineId)
     if ($machine.Count -ne 1) { throw "Exactly one $machineId hardware record is required." }
@@ -36,9 +42,11 @@ foreach ($machineId in @('W-REF-01', 'M-REF-01')) {
     Assert-True $machine[0].accessibilityEvidence "$machineId accessibility evidence is required."
 }
 
+if ($null -eq $record.migration) { throw 'Acceptance migration evidence is required.' }
 foreach ($gate in @('upgrade', 'interruptedUpgradeRecovery', 'rollback', 'backupRestore')) {
     Assert-True $record.migration.$gate "Migration gate '$gate' is not verified."
 }
+if ($null -eq $record.approval) { throw 'Acceptance approval evidence is required.' }
 Assert-True $record.approval.residualRisksAccepted 'Owner residual-risk acceptance is required.'
 if ([string]::IsNullOrWhiteSpace($record.approval.owner)) { throw 'Acceptance owner is required.' }
 $approvedAt = [DateTimeOffset]::MinValue

@@ -24,9 +24,13 @@ scripts/Test-ReleaseCandidate.ps1
 scripts/New-ReleaseCandidate.ps1
 ```
 
-`Test-ReleaseAcceptance.ps1` requires a supplied record and rejects missing
-records before evaluating the platform, reference-machine, migration, and
-owner-approval assertions. No acceptance record was found in the repository.
+`Test-ReleaseAcceptance.ps1` requires a supplied record and rejects missing or
+ambiguous records before evaluating the platform, reference-machine, migration,
+and owner-approval assertions. It now requires exactly one supported Windows and
+macOS artifact, exactly W-REF-01 and M-REF-01 hardware records, safe release and
+artifact identifiers, and explicit migration/approval objects. Temporary tests
+passed for a valid record and rejected an extra artifact. No real acceptance
+record was found in the repository.
 
 ## Open handover gates
 

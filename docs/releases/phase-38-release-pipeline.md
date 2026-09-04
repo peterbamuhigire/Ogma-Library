@@ -22,7 +22,7 @@ then verifies RSA-PSS/SHA-256 using the protected public key.
 | --- | --- | --- |
 | Commit | locked restore, Release build, tests, analyzers, dependency and secret scans | CI run / engineering |
 | Candidate build | `New-ReleaseCandidate.ps1` for `win-x64` and `osx-arm64` | artifact digest / release engineer |
-| Integrity | `Test-ReleaseCandidate.ps1` and `RsaUpdateVerifierTests` | descriptor + digest / security |
+| Integrity | `Test-ReleaseCandidate.ps1` and `RsaUpdateVerifierTests` | descriptor + digest + cryptographic detached-signature verification / security |
 | Platform signing | Authenticode/MSIX and Developer ID/notarization in protected runners | signed artifact, certificate identity, notarization ticket / release owner |
 | Acceptance | clean install, launch, migration, upgrade, rollback, and critical-flow checks on W-REF-01 and M-REF-01 | signed run record / QA |
 | Promotion | immutable artifact and descriptor copied to the beta channel | release ID and digest / release owner |
@@ -36,8 +36,10 @@ secrets. Those are hard beta gates, not waived checklist items.
 
 No private signing key belongs in this repository. The packaging script accepts a
 key only through an operator-controlled path or protected CI secret and fails
-when `-RequireSignature` is used without one. The descriptor public-key ID must
-match the key pinned by the updater. Signing services should emit the key ID,
+when `-RequireSignature` is used without one. Signature verification also
+requires the protected public key and performs RSA-PSS/SHA-256 verification over
+the exact descriptor bytes; a base64-shaped but invalid signature is rejected.
+The descriptor public-key ID must match the key pinned by the updater. Signing services should emit the key ID,
 certificate chain, timestamp/notarization result, and artifact digest into the
 release evidence record.
 

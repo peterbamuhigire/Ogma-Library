@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory = $true)] [string] $DescriptorPath,
     [Parameter(Mandatory = $true)] [string] $ArtifactPath,
     [string] $SignaturePath,
+    [string] $PublicKeyPath,
     [switch] $RequireSignature
 )
 
@@ -25,9 +26,26 @@ if ($RequireSignature) {
     if ([string]::IsNullOrWhiteSpace($SignaturePath) -or -not (Test-Path -LiteralPath $SignaturePath -PathType Leaf)) {
         throw 'A detached descriptor signature is required.'
     }
+    if ([string]::IsNullOrWhiteSpace($PublicKeyPath) -or -not (Test-Path -LiteralPath $PublicKeyPath -PathType Leaf)) {
+        throw 'A protected public key is required to verify the descriptor signature.'
+    }
     $signature = Get-Content -LiteralPath $SignaturePath -Raw
     if ([string]::IsNullOrWhiteSpace($signature)) { throw 'Detached descriptor signature is empty.' }
-    try { [Convert]::FromBase64String($signature.Trim()) | Out-Null } catch { throw 'Detached descriptor signature is not base64.' }
+    try { $signatureBytes = [Convert]::FromBase64String($signature.Trim()) } catch { throw 'Detached descriptor signature is not base64.' }
+    if ($signatureBytes.Length -eq 0) { throw 'Detached descriptor signature is empty.' }
+
+    $openssl = Get-Command openssl -ErrorAction SilentlyContinue
+    if (-not $openssl) { throw 'openssl is required to verify a detached descriptor signature.' }
+    $rawSignaturePath = Join-Path ([IO.Path]::GetTempPath()) ("ogma-descriptor-signature-" + [guid]::NewGuid().ToString('N') + '.bin')
+    try {
+        [IO.File]::WriteAllBytes($rawSignaturePath, $signatureBytes)
+        $verificationOutput = & $openssl.Source dgst -sha256 -verify $PublicKeyPath -sigopt rsa_padding_mode:pss -sigopt rsa_pss_saltlen:-1 -signature $rawSignaturePath $DescriptorPath 2>&1
+        $verified = $LASTEXITCODE -eq 0 -and ($verificationOutput -match 'Verified OK')
+    } finally {
+        [Array]::Clear($signatureBytes, 0, $signatureBytes.Length)
+        if (Test-Path -LiteralPath $rawSignaturePath) { Remove-Item -LiteralPath $rawSignaturePath -Force }
+    }
+    if (-not $verified) { throw 'Release descriptor signature verification failed.' }
 }
 
 Write-Output "Release candidate integrity passed: $ArtifactPath"

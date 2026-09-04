@@ -52,6 +52,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
           REQUIRE_SIGNATURE: ${{ inputs.require_signature != false }}
           OGMA_RELEASE_SIGNING_KEY: ${{ secrets.OGMA_RELEASE_SIGNING_KEY }}
+          OGMA_RELEASE_PUBLIC_KEY: ${{ secrets.OGMA_RELEASE_PUBLIC_KEY }}
         run: |
           $version = $env:RELEASE_VERSION -replace '^v', ''
           if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid release version: $version" }
@@ -61,10 +62,16 @@ jobs:
             [IO.File]::WriteAllText($keyPath, $env:OGMA_RELEASE_SIGNING_KEY, [Text.UTF8Encoding]::new($false))
             $arguments += @('-SigningKeyPath', $keyPath)
           }
+          $publicKeyPath = Join-Path $env:RUNNER_TEMP 'ogma-release-public-key.pem'
+          if (-not [string]::IsNullOrWhiteSpace($env:OGMA_RELEASE_PUBLIC_KEY)) {
+            [IO.File]::WriteAllText($publicKeyPath, $env:OGMA_RELEASE_PUBLIC_KEY, [Text.UTF8Encoding]::new($false))
+            $arguments += @('-PublicKeyPath', $publicKeyPath)
+          }
           if ($env:REQUIRE_SIGNATURE -eq 'true') { $arguments += '-RequireSignature' }
           & pwsh -NoProfile -File ./scripts/New-ReleaseCandidate.ps1 @arguments
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path -LiteralPath $keyPath) { Remove-Item -LiteralPath $keyPath -Force }
+          if (Test-Path -LiteralPath $publicKeyPath) { Remove-Item -LiteralPath $publicKeyPath -Force }
 
       - name: Upload immutable candidate
         uses: actions/upload-artifact@v4
