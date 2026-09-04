@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -78,6 +79,16 @@ public sealed class JobRuntimeService : IJobRuntimeService
         job.LeaseOwner = workerId.Trim();
         job.LeaseExpiresUtc = now.Add(leaseDuration);
         job.NextAttemptUtc = null;
+        AddAuditEvent(
+            context,
+            "JobClaimed",
+            job,
+            new
+            {
+                jobType = job.JobType,
+                attempt = job.RetryCount,
+                leaseSeconds = (int)leaseDuration.TotalSeconds,
+            });
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return new JobLease(
@@ -102,6 +113,15 @@ public sealed class JobRuntimeService : IJobRuntimeService
         job.LeaseExpiresUtc = null;
         job.FailureCode = null;
         job.ErrorMessage = null;
+        AddAuditEvent(
+            lease.Context,
+            "JobCompleted",
+            job,
+            new
+            {
+                jobType = job.JobType,
+                attempt = job.RetryCount,
+            });
         await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -155,6 +175,18 @@ public sealed class JobRuntimeService : IJobRuntimeService
         job.LeaseExpiresUtc = null;
         job.NextAttemptUtc = retry ? DateTimeOffset.UtcNow.Add(DefaultRetryDelay) : null;
         job.CompletedUtc = retry ? null : DateTimeOffset.UtcNow;
+        AddAuditEvent(
+            lease.Context,
+            "JobFailed",
+            job,
+            new
+            {
+                jobType = job.JobType,
+                attempt = job.RetryCount,
+                failureCode = job.FailureCode,
+                retryScheduled = retry,
+                deadLetter = failure.DeadLetter,
+            });
         await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -178,6 +210,15 @@ public sealed class JobRuntimeService : IJobRuntimeService
             job.NextAttemptUtc = now;
             job.FailureCode = "lease_expired";
             job.ErrorMessage = "The previous worker lease expired and the job was returned to the queue.";
+            AddAuditEvent(
+                lease.Context,
+                "JobLeaseRecovered",
+                job,
+                new
+                {
+                    jobType = job.JobType,
+                    attempt = job.RetryCount,
+                });
         }
 
         if (expired.Count > 0)
@@ -186,6 +227,23 @@ public sealed class JobRuntimeService : IJobRuntimeService
         }
 
         return expired.Count;
+    }
+
+    private static void AddAuditEvent(
+        CatalogueDbContext context,
+        string eventType,
+        JobRow job,
+        object payload)
+    {
+        context.AuditEvents.Add(new AuditEventRow
+        {
+            EventType = eventType,
+            EntityId = job.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            EntityType = "Job",
+            AfterJson = JsonSerializer.Serialize(payload),
+            Timestamp = DateTimeOffset.UtcNow,
+            IsLocalOnly = true,
+        });
     }
 
     private static async Task<JobRow> FindJobAsync(

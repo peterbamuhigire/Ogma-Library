@@ -19,6 +19,9 @@ Date: 2026-08-30
   completion and bounded typed failure codes.
 - Added an explicit `DeadLetter` lifecycle for poison/unsupported jobs so they
   are quarantined without consuming retry attempts.
+- Added structured local lifecycle audit events for claim, completion, failure,
+  and expired-lease recovery. Event payloads contain job type, attempt, stable
+  failure code, and retry state, but never job payloads or exception text.
 - Added focused coverage for exclusive claims, owner enforcement, retry versus
   terminal failure, and expiry recovery.
 
@@ -31,6 +34,5 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 The remaining polling workers still need conversion to this runtime, and
-resource-group limits are not yet implemented. Structured redacted events,
-structured redacted events/metrics, diagnostics export, and kill/restart load
-evidence remain before phase 17 closure.
+resource-group limits, structured metrics, diagnostics export, and kill/restart
+load evidence remain before phase 17 closure.

@@ -1,6 +1,7 @@
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
+using System.Text.Json;
 
 namespace OgmaLibrary.Tests.Ingestion;
 
@@ -118,6 +119,42 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         JobRow row = await _fixture.Context.Jobs.SingleAsync(job => job.JobId == claim.JobId);
         Assert.Equal((int)JobRuntimeStatus.DeadLetter, row.Status);
         Assert.Null(row.NextAttemptUtc);
+    }
+
+    [Fact]
+    public async Task JobLifecycleEvents_AreStructuredAndRedacted()
+    {
+        _fixture.Context.Jobs.Add(new JobRow
+        {
+            JobType = "MetadataExtraction",
+            IdempotencyKey = "phase17-events",
+            Status = (int)JobRuntimeStatus.Pending,
+            Payload = "C:/private/library/book.pdf",
+        });
+        await _fixture.Context.SaveChangesAsync();
+        var runtime = new JobRuntimeService(_fixture.Context);
+
+        JobLease lease = (await runtime.ClaimNextAsync(
+            ["MetadataExtraction"], "worker-a", TimeSpan.FromMinutes(1)))!;
+        await runtime.FailAsync(
+            lease.JobId,
+            "worker-a",
+            new JobFailure("io_timeout", "C:/private/library/book.pdf: provider detail", Retryable: false));
+
+        string jobId = lease.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        AuditEventRow[] events = _fixture.Context.AuditEvents
+            .Where(audit => audit.EntityId == jobId)
+            .OrderBy(audit => audit.EventId)
+            .ToArray();
+        Assert.Equal(["JobClaimed", "JobFailed"], events.Select(audit => audit.EventType).ToArray());
+        Assert.All(events, audit =>
+        {
+            Assert.NotNull(audit.AfterJson);
+            using JsonDocument document = JsonDocument.Parse(audit.AfterJson!);
+            Assert.True(document.RootElement.TryGetProperty("jobType", out _));
+            Assert.DoesNotContain("private/library", audit.AfterJson, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("provider detail", audit.AfterJson, StringComparison.Ordinal);
+        });
     }
 
     public void Dispose() => _fixture.Dispose();
