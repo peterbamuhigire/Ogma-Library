@@ -83,6 +83,9 @@ public sealed class BookRegistrationService : IBookRegistrationService
         TryAddJob(context, bookId, "ThumbnailGeneration",
             ComputeIdempotencyKey(bookId, "ThumbnailGeneration", contentHash), discovered.AbsolutePath);
 
+        TryAddJob(context, bookId, "SearchExtraction",
+            ComputeIdempotencyKey(bookId, "SearchExtraction", contentHash), discovered.AbsolutePath);
+
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return bookId;
     }

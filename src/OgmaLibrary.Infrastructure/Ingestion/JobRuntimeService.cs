@@ -24,8 +24,10 @@ public sealed class JobRuntimeService : IJobRuntimeService
             ["OcrJob"] = ("document-render", 1),
             ["PdfRender"] = ("document-render", 1),
             ["EmbeddingGeneration"] = ("semantic-index", 1),
+            ["EmbeddingJob"] = ("semantic-index", 1),
             ["MetadataExtraction"] = ("metadata-index", 1),
             ["SearchExtraction"] = ("metadata-index", 1),
+            ["FtsReindexJob"] = ("metadata-index", 1),
         };
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;

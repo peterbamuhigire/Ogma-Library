@@ -1,6 +1,6 @@
 # Phase 17 Progress - Worker Reliability and Observability
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -38,6 +38,11 @@ Date: 2026-08-30
 - Refreshed the durable lease/runtime regression slice on 2026-09-04: all
   exclusive-claim, owner-enforcement, retry/dead-letter, expiry-recovery,
   resource-capacity, lifecycle-redaction, and metrics cases pass.
+- Converted search extraction and embedding workers to claim durable
+  `FtsReindexJob`/`SearchExtraction` and `EmbeddingJob`/`EmbeddingGeneration`
+  triggers with five-minute leases, renewal, typed redacted failure outcomes,
+  and a compatibility poll for legacy rows. New registrations enqueue search
+  work and successful extraction enqueues an idempotent embedding trigger.
 
 ## Verification
 
@@ -48,6 +53,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The local durable lease/runtime subgate is closed. Search-extraction and
-embedding workers remain stage-based rather than job-queue workers, and
-kill/restart load evidence remains before phase 17 closure.
+The local durable lease/runtime and queue-backed stage-worker subgates are
+closed. Kill/restart load evidence remains before phase 17 closure; the
+compatibility poll is retained for pre-queue catalogue rows and is not a
+substitute for production kill/restart evidence.

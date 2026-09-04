@@ -333,6 +333,11 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             await _artifactService.FailAsync(artifact.Id, cancellationToken).ConfigureAwait(false);
         }
         await SetBookStatusAsync(bookId, finalStatus, cancellationToken).ConfigureAwait(false);
+        if (finalStatus == SearchBookIndexStatus.Indexed)
+        {
+            await QueueEmbeddingJobAsync(bookId, book.ContentHash, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         return new ExtractionBookResult(
             bookId,
@@ -344,6 +349,36 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             finalStatus == SearchBookIndexStatus.Indexed
                 ? null
                 : $"{extracted.FailedPages.ToString(System.Globalization.CultureInfo.InvariantCulture)} page(s) failed extraction.");
+    }
+
+    private async Task QueueEmbeddingJobAsync(
+        string bookId,
+        string? contentHash,
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        string discriminator = contentHash ?? "none";
+        byte[] keyBytes = Encoding.UTF8.GetBytes($"{bookId}|EmbeddingJob|{discriminator}");
+        string idempotencyKey = Convert.ToHexStringLower(SHA256.HashData(keyBytes))[..32];
+        bool exists = await context.Jobs
+            .AsNoTracking()
+            .AnyAsync(job => job.IdempotencyKey == idempotencyKey, cancellationToken)
+            .ConfigureAwait(false);
+        if (exists)
+        {
+            return;
+        }
+
+        context.Jobs.Add(new JobRow
+        {
+            JobType = "EmbeddingJob",
+            IdempotencyKey = idempotencyKey,
+            Status = 0,
+            BookId = bookId,
+            Payload = "{\"source\":\"search-extraction\"}",
+        });
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<ExtractPagesResult> ExtractPagesAsync(
