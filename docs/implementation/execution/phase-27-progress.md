@@ -35,6 +35,12 @@ Date: 2026-08-30
   counters and circuit expiry. Startup restores operational state; persistence
   failures are swallowed so they cannot weaken fail-closed behavior or block a
   provider call.
+- Added a durable UTC-day AI usage ledger at the gateway boundary. Cloud calls
+  reserve a bounded token estimate after preview and consent, reconcile
+  provider-reported token usage and calculated cost after completion, and
+  release reservations on cancellation or failure. State is persisted through
+  atomic versioned JSON and the in-memory gate remains authoritative if storage
+  is unavailable.
 
 ## Verification
 
@@ -46,9 +52,9 @@ Date: 2026-08-30
 - Desktop app Debug build: 0 warnings, 0 errors.
 - Phase 02 composition and payload-preview model slice: 8 passed.
 - Provider resilience and health-persistence slice: 4 passed.
+- Phase 27 usage-budget, provider-resilience and gateway slice: 16 passed.
 
 ## Remaining phase gate
 
-Explicit user-configurable provider profiles, durable token/cost budgets,
-retention and erasure journey, and cloud-provider conformance remain before
-phase 27 closure.
+Explicit user-configurable provider profiles and policy editing, retention and
+erasure journey, and cloud-provider conformance remain before phase 27 closure.

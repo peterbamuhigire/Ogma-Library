@@ -18,6 +18,7 @@ public sealed class AiGateway : IAiGateway
     private readonly IAiAuditRepository _audit;
     private readonly IAiQueryHistoryRepository _history;
     private readonly IAiCostCalculator _costs;
+    private readonly IAiUsageBudgetService? _budget;
     private bool _previewRememberedForSession;
 
     /// <summary>Initializes a new instance of <see cref="AiGateway"/>.</summary>
@@ -28,7 +29,8 @@ public sealed class AiGateway : IAiGateway
         IAiPreviewGate previewGate,
         IAiAuditRepository audit,
         IAiQueryHistoryRepository history,
-        IAiCostCalculator costs)
+        IAiCostCalculator costs,
+        IAiUsageBudgetService? budget = null)
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(privacy);
@@ -45,6 +47,7 @@ public sealed class AiGateway : IAiGateway
         _audit = audit;
         _history = history;
         _costs = costs;
+        _budget = budget;
     }
 
     /// <inheritdoc />
@@ -75,13 +78,31 @@ public sealed class AiGateway : IAiGateway
 
         string historyId = CreateId("aihist");
         DateTimeOffset occurredAt = DateTimeOffset.UtcNow;
+        AiUsageBudgetReservation? reservation = null;
         try
         {
+            if (!isLocal && _budget is not null)
+            {
+                reservation = await _budget.ReserveAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             AiCompletion completion = await _provider.CompleteAsync(request, cancellationToken)
                 .ConfigureAwait(false);
             if (isLocal && !completion.IsLocal)
             {
                 throw new AiTierViolationException("A local AI request returned a non-local completion.");
+            }
+
+            if (reservation is not null)
+            {
+                await _budget!.FinalizeAsync(
+                    reservation,
+                    completion,
+                    _costs.EstimateCostUsd(request, completion),
+                    cancellationToken)
+                    .ConfigureAwait(false);
+                reservation = null;
             }
 
             if (!isLocal)
@@ -116,8 +137,14 @@ public sealed class AiGateway : IAiGateway
 
             return completion;
         }
+        catch (OperationCanceledException)
+        {
+            await TryReleaseBudgetAsync(reservation).ConfigureAwait(false);
+            throw;
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            await TryReleaseBudgetAsync(reservation).ConfigureAwait(false);
             if (!isLocal)
             {
                 await _audit.AppendAsync(
@@ -134,6 +161,23 @@ public sealed class AiGateway : IAiGateway
             }
 
             throw;
+        }
+    }
+
+    private async Task TryReleaseBudgetAsync(AiUsageBudgetReservation? reservation)
+    {
+        if (reservation is null || _budget is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _budget.ReleaseAsync(reservation, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // The budget service remains authoritative in memory; preserve the original gateway failure.
         }
     }
 

@@ -33,6 +33,9 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
             options.EnableExternalMetadataProviders);
         services.AddSingleton<IAiProviderHealthStore>(_ => new JsonAiProviderHealthStore(
             Path.Combine(options.DataDirectory, "ai-provider-health.json")));
+        services.AddSingleton<IAiUsageBudgetStore>(_ => new JsonAiUsageBudgetStore(
+            Path.Combine(options.DataDirectory, "ai-usage-budget.json")));
+        services.AddSingleton<IAiUsageBudgetService, AiUsageBudgetService>();
         services.AddAiGatewayCore().AddFailClosedAiRuntime();
 
         services.AddSingleton<JobRecoveryService>();
