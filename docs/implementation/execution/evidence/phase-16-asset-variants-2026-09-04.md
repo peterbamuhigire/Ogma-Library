@@ -20,8 +20,9 @@ acceptance.
   bounded output before copying it from the worker sandbox.
 - `ProviderCoverImageClient` accepts only HTTPS requests to the approved Open
   Library/Google Books image hosts, restricts response formats to JPEG/PNG/WebP,
-  enforces a 4 MiB encoded-byte ceiling and 4096-pixel decoded dimensions, and
-  records the downloaded SHA-256.
+  rejects redirect responses whose effective URI changes, enforces a 4 MiB
+  encoded-byte ceiling and 4096-pixel decoded dimensions, and records the
+  downloaded SHA-256.
 - Sidecar variants use safe deterministic suffixes and retain manifest source
   hash, dimensions, format, version, and lifecycle status.
 

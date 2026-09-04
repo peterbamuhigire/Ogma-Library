@@ -268,6 +268,7 @@ public sealed class Phase16VisualAssetTests : IDisposable
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new ByteArrayContent(bytes),
+                RequestMessage = request,
             };
             response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mediaType);
             return Task.FromResult(response);

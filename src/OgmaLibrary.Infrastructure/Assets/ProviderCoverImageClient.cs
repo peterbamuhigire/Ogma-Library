@@ -65,6 +65,15 @@ public sealed class ProviderCoverImageClient
                 response.StatusCode);
         }
 
+        // HttpClient handlers may follow redirects. The effective URI must stay
+        // exactly on the approved endpoint so a provider cannot turn this image
+        // fetch into an arbitrary-host request.
+        if (response.RequestMessage?.RequestUri is not Uri effectiveUri ||
+            !UriEquals(effectiveUri, sourceUri))
+        {
+            throw new InvalidDataException("Provider cover response redirected outside the approved endpoint.");
+        }
+
         string format = ValidateContentType(response.Content.Headers.ContentType?.MediaType);
         if (response.Content.Headers.ContentLength > MaximumBytes)
         {
@@ -108,15 +117,22 @@ public sealed class ProviderCoverImageClient
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceUrl);
         if (sourceUrl.Length > 2_048 || !Uri.TryCreate(sourceUrl, UriKind.Absolute, out Uri? uri) ||
-            !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
-            !AllowedHosts.Contains(uri.Host) || uri.IsDefaultPort is false ||
-            !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Fragment))
+            !IsApprovedUri(uri))
         {
             throw new ArgumentException("Provider cover URL is outside the approved HTTPS endpoints.", nameof(sourceUrl));
         }
 
         return uri;
     }
+
+    private static bool IsApprovedUri(Uri uri) =>
+        string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+        AllowedHosts.Contains(uri.Host) && uri.IsDefaultPort &&
+        string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Fragment);
+
+    private static bool UriEquals(Uri left, Uri right) =>
+        Uri.Compare(left, right, UriComponents.AbsoluteUri,
+            UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0;
 
     private static string ValidateContentType(string? mediaType) =>
         mediaType?.ToLowerInvariant() switch
