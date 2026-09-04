@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.Views.Ai;
 using OgmaLibrary.Application.Ai;
@@ -42,11 +43,12 @@ public sealed class AdvisorViewRenderTests
         await plan.GenerateAsync();
         Dispatcher.UIThread.RunJobs();
 
+        var recommendationView = new RecommendationPanelView { DataContext = recommendations };
         var content = new StackPanel
         {
             Children =
             {
-                new RecommendationPanelView { DataContext = recommendations },
+                recommendationView,
                 new ReadingPlanView { DataContext = plan },
             },
         };
@@ -59,6 +61,15 @@ public sealed class AdvisorViewRenderTests
 
         window.Show();
         Dispatcher.UIThread.RunJobs();
+
+        CheckBox contentAwareConsent =
+            recommendationView.GetVisualDescendants()
+                .OfType<CheckBox>()
+                .Single(checkBox => string.Equals(
+                    checkBox.Content?.ToString(),
+                    recommendations.ContentAwareConsentLabel,
+                    StringComparison.Ordinal));
+        Assert.False(contentAwareConsent.IsChecked);
 
         var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
