@@ -63,3 +63,15 @@ entry point. This is not an independent penetration test.
 
 No production credentials, external provider calls, untrusted PDF corpus,
 physical Windows/macOS native host, or independent penetration test was run.
+
+## Incremental follow-up — 2026-09-04
+
+The file-backed classroom credential fallback, classroom mode/profile stores,
+and offline-cache metadata writer now delete their temporary files in a
+`finally` path after cancellation or failed persistence. The change does not
+alter the existing secret redaction or platform-store boundary.
+
+The current classroom-client regression passed 107/107 tests, and the combined
+LAN-host, visual-asset, school-admin, and security slice passed 147/147. These
+are local executable checks; native secret-store, physical network, and
+independent penetration evidence remain `NOT ASSESSED`.

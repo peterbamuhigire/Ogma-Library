@@ -24,5 +24,9 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Deb
 
 Result: 34 passed, 0 failed, 0 skipped.
 
+Current classroom-client regression: 107 passed, 0 failed, 0 skipped. The
+combined LAN-host, visual-asset, school-admin, and security regression passed
+147/147 with no failures or skips.
+
 The repository also records a prior `npm audit --omit=dev` result with zero
 vulnerabilities and a NuGet vulnerable-package scan with none reported.
