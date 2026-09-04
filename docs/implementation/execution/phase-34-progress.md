@@ -31,6 +31,8 @@ Date: 2026-09-04
   p95 <2-second assertion.
 - The catalogue concurrency smoke was rerun three consecutive times in
   isolation and passed each time, followed by a clean 61-test LAN slice.
+- Current-head local gate reconciliation is recorded in
+  `evidence/phase-34-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
