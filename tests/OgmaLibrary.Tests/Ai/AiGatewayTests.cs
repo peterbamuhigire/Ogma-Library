@@ -265,6 +265,9 @@ public sealed class AiGatewayTests
         public Task<bool> SoftDeleteAsync(string id, CancellationToken cancellationToken) =>
             Task.FromResult(Entries.Any(entry => entry.Id == id));
 
+        public Task ExportToJsonAsync(Stream output, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
         public Task<int> HardDeleteAllAsync(CancellationToken cancellationToken)
         {
             int count = Entries.Count;

@@ -113,6 +113,9 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Localized export audit label.</summary>
     public string ExportAuditLabel => _localization["Ai.Privacy.ExportAudit"];
 
+    /// <summary>Localized export-history label.</summary>
+    public string ExportHistoryLabel => _localization["Ai.Privacy.ExportHistory"];
+
     /// <summary>Icon path for Privacy Center.</summary>
     public string PrivacyIconPath => _privacyIconPath;
 
@@ -172,6 +175,14 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
         StatusText = _localization["Ai.Privacy.Status.AuditExported"];
     }
 
+    /// <summary>Exports erasable advisor history without deleted rows.</summary>
+    public async Task ExportHistoryAsync(Stream output, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        await _history.ExportToJsonAsync(output, cancellationToken).ConfigureAwait(false);
+        StatusText = _localization["Ai.Privacy.Status.HistoryExported"];
+    }
+
     /// <inheritdoc />
     public void Dispose() => _localization.CultureChanged -= OnCultureChanged;
 
@@ -190,6 +201,7 @@ public sealed class PrivacyCenterViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(DeleteHistoryLabel));
         OnPropertyChanged(nameof(EraseEmbeddingsLabel));
         OnPropertyChanged(nameof(ExportAuditLabel));
+        OnPropertyChanged(nameof(ExportHistoryLabel));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>

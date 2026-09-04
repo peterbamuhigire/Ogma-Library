@@ -10,7 +10,7 @@
       <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
     </StackPanel>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
       <StackPanel>
         <TextBlock Text="{Binding ActiveTierLabel}" FontWeight="SemiBold" />
         <ComboBox ItemsSource="{Binding Tiers}"
@@ -20,6 +20,7 @@
       <Button Grid.Column="1" Click="DeleteHistory_Click" Content="{Binding DeleteHistoryLabel}" />
       <Button Grid.Column="2" Click="EraseEmbeddings_Click" Content="{Binding EraseEmbeddingsLabel}" />
       <Button Grid.Column="3" Click="ExportAudit_Click" Content="{Binding ExportAuditLabel}" />
+      <Button Grid.Column="4" Click="ExportHistory_Click" Content="{Binding ExportHistoryLabel}" />
     </Grid>
 
     <Border Grid.Row="2"

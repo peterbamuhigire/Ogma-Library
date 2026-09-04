@@ -17,6 +17,11 @@ Date: 2026-08-30
   versioned labeled cases.
 - Added UI and offline-metric regression coverage, including accessible labels,
   degraded local behavior and route rendering.
+- Added caller-owned JSON export for non-deleted advisor history, preserving
+  the existing hard-delete path and keeping immutable audit export separate.
+- Added a Privacy Center save-file flow for advisor-history export with a JSON
+  filename/type contract; cancellation and unavailable platform storage leave
+  the user in place without creating a partial file.
 
 ## Design decisions
 
@@ -35,10 +40,13 @@ Date: 2026-08-30
 - Offline quality and interpreted-intent slice: 5 passed.
 - Advisor VM slice: 3 passed.
 - Advisor/plan rendered UI slice: 1 passed.
+- AI persistence/privacy slice: 11 passed, including visible-history-only
+  export and Privacy Center export command coverage.
 
 ## Remaining phase gate
 
-Durable advisor history/export/delete and feedback consent, evaluation-set/run
-persistence, human-labeled offline thresholds, quarantined live-provider
-evaluation, full-shell accessibility/keyboard evidence, and final AI retrieval
-freeze remain before Phase 30 closure.
+Feedback consent, evaluation-set/run persistence, human-labeled offline
+thresholds, quarantined live-provider evaluation, full-shell
+accessibility/keyboard evidence, and final AI retrieval freeze remain before
+Phase 30 closure. Physical file-picker walkthrough evidence is still a
+platform/release gate.

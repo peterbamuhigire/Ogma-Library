@@ -38,7 +38,7 @@ Ledger normalized: 2026-09-04
 | 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, timeout/retry/circuit, health telemetry, egress allowlists and platform secret custody/rotation/deletion delivered; profiles/budgets/UI/retention/conformance open |
 | 28 | Advisor Intent, Candidates and Reranking | IN PROGRESS | Intent, candidate ranking, fallbacks and durable privacy-preserving traces delivered; editable UI, diagnostics, reference resolution and benchmarks open |
 | 29 | Grounded Explanations and Answer Mode | IN PROGRESS | Source-labeled local evidence, provenance validation and untrusted-payload boundary delivered; provider explanations, citation UI/consent/benchmarks open |
-| 30 | Advisor UX and Quality Evaluation | IN PROGRESS | Routes, interpreted-intent UI and offline evaluation foundations delivered; durable evaluation sets, human thresholds, accessibility and freeze open |
+| 30 | Advisor UX and Quality Evaluation | IN PROGRESS | Routes, interpreted-intent UI, offline evaluation foundations and erasable advisor-history export/delete delivered; feedback consent, human thresholds, accessibility and freeze open |
 | 31 | Native 3D Host and Catalogue Contract | IN PROGRESS | Versioned bridge and accessible fallback delivered; native WebView adapters and physical integration open |
 | 32 | Virtual Bookshelf Visuals and Interaction | IN PROGRESS | Meshes, local assets, interaction and bounded labels delivered; source/atlas/LOD/focus/reduced-motion/physical evidence open |
 | 33 | 3D Scale, Accessibility and Performance | IN PROGRESS | Virtualization, metrics, headless budgets and fallback delivered; GPU/WebView/cross-platform accessibility evidence open |

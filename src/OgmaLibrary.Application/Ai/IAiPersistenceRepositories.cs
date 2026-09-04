@@ -41,6 +41,9 @@ public interface IAiQueryHistoryRepository
     /// <summary>Lists non-deleted query-history entries by page.</summary>
     Task<IReadOnlyList<AiQueryHistoryEntry>> ListAsync(int page, int pageSize, CancellationToken cancellationToken);
 
+    /// <summary>Exports non-deleted query-history entries as JSON to a caller-owned stream.</summary>
+    Task ExportToJsonAsync(Stream output, CancellationToken cancellationToken);
+
     /// <summary>Soft-deletes a history entry.</summary>
     Task<bool> SoftDeleteAsync(string id, CancellationToken cancellationToken);
 

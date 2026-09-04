@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.Domain.Ai;
 
@@ -46,6 +47,44 @@ public sealed partial class PrivacyCenterView : UserControl
         {
             using var stream = new MemoryStream();
             await ViewModel.ExportAuditAsync(stream).ConfigureAwait(true);
+        }
+    }
+
+    private async void ExportHistory_Click(object? sender, RoutedEventArgs e)
+    {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (ViewModel is null || topLevel?.StorageProvider.CanSave != true)
+        {
+            return;
+        }
+
+        IStorageFile? file = await topLevel.StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                SuggestedFileName = "ogma-ai-history.json",
+                DefaultExtension = "json",
+                FileTypeChoices =
+                [
+                    new FilePickerFileType("JSON")
+                    {
+                        Patterns = ["*.json"],
+                        MimeTypes = ["application/json"],
+                    },
+                ],
+            }).ConfigureAwait(true);
+        if (file is null)
+        {
+            return;
+        }
+
+        Stream stream = await file.OpenWriteAsync().ConfigureAwait(false);
+        try
+        {
+            await ViewModel.ExportHistoryAsync(stream).ConfigureAwait(true);
+        }
+        finally
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

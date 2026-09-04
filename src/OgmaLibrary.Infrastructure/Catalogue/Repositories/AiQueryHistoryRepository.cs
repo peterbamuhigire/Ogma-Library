@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Domain.Ai;
@@ -8,6 +9,11 @@ namespace OgmaLibrary.Infrastructure.Catalogue.Repositories;
 /// <summary>EF Core implementation of <see cref="IAiQueryHistoryRepository"/>.</summary>
 public sealed class AiQueryHistoryRepository : IAiQueryHistoryRepository
 {
+    private static readonly JsonSerializerOptions ExportOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+    };
+
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -59,6 +65,28 @@ public sealed class AiQueryHistoryRepository : IAiQueryHistoryRepository
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
         return rows.Select(ToDomain).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task ExportToJsonAsync(Stream output, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        using CatalogueContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        List<AiQueryHistoryRow> rows = await lease.Context.AiQueryHistory
+            .AsNoTracking()
+            .Where(row => !row.IsDeleted)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        IEnumerable<AiQueryHistoryEntry> entries = rows
+            .OrderBy(row => row.CreatedUtc)
+            .ThenBy(row => row.QueryId)
+            .Select(ToDomain);
+        await JsonSerializer.SerializeAsync(
+                output,
+                entries,
+                ExportOptions,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc />

@@ -33,6 +33,19 @@ public sealed class PrivacyCenterViewModelTests
     }
 
     [Fact]
+    public async Task PrivacyCenter_ExportsErasableHistory()
+    {
+        var history = new FakeHistoryRepository();
+        using var viewModel = CreateViewModel(history: history);
+        await using var stream = new MemoryStream();
+
+        await viewModel.ExportHistoryAsync(stream);
+
+        Assert.True(history.ExportCalled);
+        Assert.Contains("history", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task PrivacyCenter_SetTier_UpdatesPrivacyService()
     {
         var consents = new FakeConsentRepository();
@@ -154,6 +167,8 @@ public sealed class PrivacyCenterViewModelTests
     {
         public int DeleteCount { get; init; }
 
+        public bool ExportCalled { get; private set; }
+
         public Task AddAsync(AiQueryHistoryEntry entry, CancellationToken cancellationToken) =>
             Task.CompletedTask;
 
@@ -165,6 +180,12 @@ public sealed class PrivacyCenterViewModelTests
 
         public Task<bool> SoftDeleteAsync(string id, CancellationToken cancellationToken) =>
             Task.FromResult(false);
+
+        public Task ExportToJsonAsync(Stream output, CancellationToken cancellationToken)
+        {
+            ExportCalled = true;
+            return Task.CompletedTask;
+        }
 
         public Task<int> HardDeleteAllAsync(CancellationToken cancellationToken) =>
             Task.FromResult(DeleteCount);

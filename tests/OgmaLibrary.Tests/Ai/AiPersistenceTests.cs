@@ -93,6 +93,28 @@ public sealed class AiPersistenceTests : IDisposable
     }
 
     [Fact]
+    public async Task QueryHistoryRepository_ExportsOnlyVisibleHistory()
+    {
+        var history = new AiQueryHistoryRepository(_context);
+        await history.AddAsync(
+            new AiQueryHistoryEntry("history-visible", DateTimeOffset.UtcNow, "recommendation", "systems", "summary"),
+            CancellationToken.None);
+        await history.AddAsync(
+            new AiQueryHistoryEntry("history-deleted", DateTimeOffset.UtcNow.AddMinutes(1), "answer", "secret", "hidden"),
+            CancellationToken.None);
+        await history.SoftDeleteAsync("history-deleted", CancellationToken.None);
+
+        await using var stream = new MemoryStream();
+        await history.ExportToJsonAsync(stream, CancellationToken.None);
+        stream.Position = 0;
+        using JsonDocument document = await JsonDocument.ParseAsync(stream);
+
+        JsonElement entry = Assert.Single(document.RootElement.EnumerateArray());
+        Assert.Equal("history-visible", entry.GetProperty("id").GetString());
+        Assert.DoesNotContain("secret", document.RootElement.GetRawText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task QueryHistoryRepository_HardDelete_LeavesAuditIntact()
     {
         var history = new AiQueryHistoryRepository(_context);
