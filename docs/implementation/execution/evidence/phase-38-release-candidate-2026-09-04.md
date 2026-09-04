@@ -16,7 +16,8 @@ fail-closed when signing, public-key, or platform tooling is absent.
 Final MSIX/installer production, Authenticode/Developer ID/notarization, clean
 reference-machine installation and performance runs, interrupted-upgrade
 recovery, and physical rollback remain Phase 39 gates. `actionlint` was not
-available on this machine and CI validation remains open.
+validated locally with `actionlint` 1.7.12; the tracked workflow lint gate is
+closed.
 
 ## Verification
 
@@ -25,6 +26,9 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Deb
 ```
 
 Result: 12 passed, 0 failed, 0 skipped.
+
+The current rerun also passed `actionlint` 1.7.12 for both tracked workflows
+(`ci.yml` and `release-candidate.yml`) with exit code 0.
 
 PowerShell syntax parsing passed for `New-ReleaseCandidate.ps1`,
 `Test-ReleaseCandidate.ps1`, and `Test-ReleaseAcceptance.ps1`.
