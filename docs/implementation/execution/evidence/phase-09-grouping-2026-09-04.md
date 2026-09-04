@@ -9,5 +9,8 @@
 
 The schema migration is `20260904100000_Phase09IdentityGrouping`.
 
-Phase 9 remains open for provider-conflict review presentation and direct
-search/advisor group-collapse consumers. No phase-completion status is claimed.
+The Phase 9 implementation gate is closed. Provider-conflict decisions are
+conservative and review-required, while the search/catalogue and advisor
+consumers now apply canonical alias/group projections. Physical operator
+review screens and cross-platform UI walkthroughs remain release gates owned
+by later platform phases.
