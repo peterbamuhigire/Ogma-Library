@@ -14,6 +14,15 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 public sealed class JobRuntimeService : IJobRuntimeService
 {
     private static readonly TimeSpan DefaultRetryDelay = TimeSpan.FromSeconds(5);
+    private static readonly Dictionary<string, (string Group, int Maximum)> ResourceGroups =
+        new Dictionary<string, (string Group, int Maximum)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["OcrJob"] = ("document-render", 1),
+            ["PdfRender"] = ("document-render", 1),
+            ["EmbeddingGeneration"] = ("semantic-index", 1),
+            ["MetadataExtraction"] = ("metadata-index", 1),
+            ["SearchExtraction"] = ("metadata-index", 1),
+        };
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -63,10 +72,21 @@ public sealed class JobRuntimeService : IJobRuntimeService
             .Take(100)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        JobRow? job = candidates.FirstOrDefault(candidate =>
-            (candidate.Status == (int)JobRuntimeStatus.Pending ||
-             (candidate.LeaseExpiresUtc is not null && candidate.LeaseExpiresUtc < now)) &&
-            (candidate.NextAttemptUtc is null || candidate.NextAttemptUtc <= now));
+        JobRow? job = null;
+        foreach (JobRow candidate in candidates)
+        {
+            if ((candidate.Status != (int)JobRuntimeStatus.Pending &&
+                 (candidate.LeaseExpiresUtc is null || candidate.LeaseExpiresUtc >= now)) ||
+                (candidate.NextAttemptUtc is not null && candidate.NextAttemptUtc > now) ||
+                !await HasResourceCapacityAsync(context, candidate.JobType, now, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                continue;
+            }
+
+            job = candidate;
+            break;
+        }
         if (job is null)
         {
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -254,6 +274,33 @@ public sealed class JobRuntimeService : IJobRuntimeService
         JobRow? job = await context.Jobs.FirstOrDefaultAsync(row => row.JobId == jobId, cancellationToken)
             .ConfigureAwait(false);
         return job ?? throw new KeyNotFoundException($"Job '{jobId}' was not found.");
+    }
+
+    private static async Task<bool> HasResourceCapacityAsync(
+        CatalogueDbContext context,
+        string jobType,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        (string group, int maximum) = ResourceGroups.TryGetValue(
+            jobType,
+            out (string Group, int Maximum) policy)
+            ? policy
+            : (jobType, 1);
+        string[] groupedTypes = ResourceGroups
+            .Where(pair => string.Equals(pair.Value.Group, group, StringComparison.OrdinalIgnoreCase))
+            .Select(pair => pair.Key)
+            .Append(jobType)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        List<JobRow> running = await context.Jobs
+            .Where(job => groupedTypes.Contains(job.JobType) &&
+                          job.Status == (int)JobRuntimeStatus.Running)
+            .Take(maximum + 1)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        int active = running.Count(job => job.LeaseExpiresUtc is not null && job.LeaseExpiresUtc >= now);
+        return active < maximum;
     }
 
     private static void EnsureOwner(JobRow job, string workerId)

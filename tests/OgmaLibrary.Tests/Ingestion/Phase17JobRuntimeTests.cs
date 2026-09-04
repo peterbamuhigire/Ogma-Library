@@ -157,5 +157,33 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         });
     }
 
+    [Fact]
+    public async Task Claim_EnforcesHeavyWorkResourceGroupCapacity()
+    {
+        _fixture.Context.Jobs.AddRange(
+            new JobRow
+            {
+                JobType = "OcrJob",
+                IdempotencyKey = "phase17-resource-ocr",
+                Status = (int)JobRuntimeStatus.Pending,
+            },
+            new JobRow
+            {
+                JobType = "PdfRender",
+                IdempotencyKey = "phase17-resource-pdf",
+                Status = (int)JobRuntimeStatus.Pending,
+            });
+        await _fixture.Context.SaveChangesAsync();
+        var runtime = new JobRuntimeService(_fixture.Context);
+
+        JobLease? first = await runtime.ClaimNextAsync(
+            ["OcrJob", "PdfRender"], "worker-a", TimeSpan.FromMinutes(1));
+        JobLease? second = await runtime.ClaimNextAsync(
+            ["OcrJob", "PdfRender"], "worker-b", TimeSpan.FromMinutes(1));
+
+        Assert.NotNull(first);
+        Assert.Null(second);
+    }
+
     public void Dispose() => _fixture.Dispose();
 }

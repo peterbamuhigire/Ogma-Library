@@ -22,6 +22,9 @@ Date: 2026-08-30
 - Added structured local lifecycle audit events for claim, completion, failure,
   and expired-lease recovery. Event payloads contain job type, attempt, stable
   failure code, and retry state, but never job payloads or exception text.
+- Added bounded resource-group capacity during atomic claims for document
+  rendering, metadata indexing, and semantic indexing; unknown job types default
+  to one active lease per type.
 - Added focused coverage for exclusive claims, owner enforcement, retry versus
   terminal failure, and expiry recovery.
 
@@ -33,6 +36,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The remaining polling workers still need conversion to this runtime, and
-resource-group limits, structured metrics, diagnostics export, and kill/restart
-load evidence remain before phase 17 closure.
+The remaining polling workers still need conversion to this runtime, structured
+metrics, diagnostics export, and kill/restart load evidence remain before phase
+17 closure.
