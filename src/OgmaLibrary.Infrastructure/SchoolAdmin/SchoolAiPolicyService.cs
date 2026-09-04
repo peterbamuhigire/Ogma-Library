@@ -246,7 +246,8 @@ internal sealed class SchoolAiPolicyService : ISchoolAiPolicyService, IDisposabl
             policy.ContentAwareEnabled ||
             policy.AnswerModeEnabled)
         {
-            throw new InvalidOperationException("Classroom AI tier and answer-mode policy storage is not implemented yet.");
+            throw new InvalidOperationException(
+                "Classroom AI currently supports metadata-only requests without answer mode.");
         }
 
         if (policy.PerStudentDailyTokenBudget < 0)

@@ -69,7 +69,9 @@ physical Windows/macOS native host, or independent penetration test was run.
 The file-backed classroom credential fallback, classroom mode/profile stores,
 and offline-cache metadata writer now delete their temporary files in a
 `finally` path after cancellation or failed persistence. The change does not
-alter the existing secret redaction or platform-store boundary.
+alter the existing secret redaction or platform-store boundary. The unused
+throw-all Host-client placeholder was also removed, and the classroom AI
+policy rejection now names the supported metadata-only boundary.
 
 The current classroom-client regression passed 107/107 tests, and the combined
 LAN-host, visual-asset, school-admin, and security slice passed 147/147. These

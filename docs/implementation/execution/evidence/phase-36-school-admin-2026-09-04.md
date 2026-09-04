@@ -23,3 +23,8 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Deb
 ```
 
 Result: 46 passed, 0 failed, 0 skipped.
+
+The policy boundary is explicit in the implementation: classroom AI accepts
+metadata-only requests and rejects content-aware or answer-mode policy changes
+closed-loop rather than reporting a missing implementation as a user-facing
+state.
