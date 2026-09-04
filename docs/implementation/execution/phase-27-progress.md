@@ -1,6 +1,6 @@
 # Phase 27 Progress - AI Gateway, Privacy and Cost Runtime
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -46,6 +46,10 @@ Date: 2026-08-30
   atomically replace the settings file, and support deterministic listing and
   deletion. The desktop composition registers the store under the runtime data
   directory.
+- Verified and closed the local retention/erasure journey: Privacy Center
+  history export/deletion, immutable-audit preservation, local embedding
+  erasure, and provider-profile deletion are wired and test-backed; see
+  `evidence/phase-27-privacy-journey-2026-09-04.md`.
 
 ## Verification
 
@@ -62,6 +66,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The provider-profile persistence and validation subgate is closed by focused
-tests. Policy-editing UX, retention and erasure journey, and cloud-provider
-conformance remain before phase 27 closure.
+The provider-profile persistence/validation and local retention/erasure
+subgates are closed by focused tests. Policy-editing UX, provider-specific
+retention/terms acceptance, cloud-provider conformance, and physical
+accessibility evidence remain before phase 27 closure.
