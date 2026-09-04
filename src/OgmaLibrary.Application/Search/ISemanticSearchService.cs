@@ -20,7 +20,8 @@ public sealed record SemanticSearchResponse(
     bool ProviderUnavailable,
     bool UsedExactFallback,
     IReadOnlyList<SemanticSearchResult> Results,
-    SemanticSearchAvailability Availability = SemanticSearchAvailability.Ready);
+    SemanticSearchAvailability Availability = SemanticSearchAvailability.Ready,
+    bool EmbeddingCacheHit = false);
 
 /// <summary>Explains whether semantic search is ready, degraded, or unavailable.</summary>
 public enum SemanticSearchAvailability

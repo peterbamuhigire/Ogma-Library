@@ -7,8 +7,8 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-04
 
-Automated validation refresh: the isolated full solution suite passed 1,064
-tests (881 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
+Automated validation refresh: the isolated full solution suite passed 1,065
+tests (882 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
 refresh closes only the repaired automated gates; per-phase platform, physical,
 legal, signing, reference, and owner gates remain governed by their explicit
 progress records.
@@ -39,7 +39,7 @@ progress records.
 | 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback, debounced type-ahead, bounded 50-result candidate materialization, local 50k p95, backend facets/paging/highlighting/full-text fallback, and local search UI/keyboard evidence delivered; reference/accessibility gates open |
 | 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets, desktop reader navigation, observability events, explicit search states, local 50k FTS p95, and staged side-by-side promotion delivered; reference/accessibility gates open |
 | 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards, trained-data checksum, stable retry/resource failure codes, OCR control surface, and local 500-book mixed benchmark delivered; accuracy/cross-platform evidence open |
-| 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency including payload metadata, stale detection/tombstones, localized stale-count/rebuild-status UI, and bounded-memory 50,000-vector scan delivered; ANN/relevance-quality, cost, reference-corpus and reference-machine gates open |
+| 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency including payload metadata, stale detection/tombstones, localized stale-count/rebuild-status UI, bounded-memory 50,000-vector scan, and bounded hashed query-embedding cache with hit telemetry delivered; ANN/relevance-quality, provider cost accounting, reference-corpus and reference-machine gates open |
 | 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, structured prefilters, dimension filtering, tombstone/blob-integrity filtering, metric contract, durable local evaluation runs, author-diversity policy, bounded-memory 50k scan and local latency evidence delivered; representative corpus/ANN-quality/memory/reference confirmation open |
 | 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, desktop preview, timeout/retry/circuit, persisted health telemetry, durable daily token/cost enforcement, egress allowlists, platform secret custody/rotation/deletion, provider profiles and local retention/erasure journey delivered; policy UX, terms/conformance and physical evidence open |
 | 28 | Advisor Intent, Candidates and Reranking | IN PROGRESS | Intent, candidate ranking, fallbacks, editable intent UI and durable privacy-preserving stage-diagnostics traces delivered; reference resolution and benchmarks open |

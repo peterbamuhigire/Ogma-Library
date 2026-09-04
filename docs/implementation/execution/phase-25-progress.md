@@ -30,6 +30,9 @@ Date: 2026-08-30
 - Exposed a streamed, metadata-only global stale-vector count through the Index
   Manager contract and rendered it with a localized, named status control so
   users can see why a rebuild may be needed without loading vector blobs.
+- Added a bounded five-minute in-memory query-embedding cache keyed by a
+  SHA-256 digest, capped at 128 entries, with cache-hit telemetry in the
+  semantic response and no raw-query persistence.
 
 ## Verification
 
@@ -43,11 +46,15 @@ Date: 2026-08-30
 - Semantic retrieval now streams the bounded 50,000-vector target window and
   retains only top-K scored candidates; the vector corpus is not materialized
   as an in-memory list.
+- Query-embedding cache slice: 7 passed; latest full isolated solution suite:
+  882 core + 41 architecture + 142 UI = 1,065 passed, 0 failed, 0 skipped. See
+  `evidence/phase-25-query-embedding-cache-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Side-by-side vector index swap/resume, ANN/target-scale evidence, cost/cache
-telemetry, and target-scale UI performance remain before phase 25 closure. The
+Side-by-side vector index swap/resume, ANN/target-scale evidence, provider cost
+accounting, and target-scale UI performance remain before phase 25 closure. The
 stale-count/rebuild-status and bounded-memory exact-retrieval subgates are now
-closed locally; ANN index selection or equivalent relevance-quality evidence,
-cost, reference-corpus, and reference-machine evidence remain open.
+closed locally, as is bounded query-cache telemetry; ANN index selection or
+equivalent relevance-quality evidence, cost, reference-corpus, and
+reference-machine evidence remain open.

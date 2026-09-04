@@ -105,6 +105,33 @@ public sealed class SemanticSearchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SemanticSearch_ReusesBoundedInMemoryQueryEmbedding()
+    {
+        long chunkId = SeedBookChunk(
+            "P25QUERYCACHE000000001",
+            "Cached query book",
+            "local embedding cache");
+        await new EmbeddingVectorRepository(_context).CreateAsync(
+            NewVector(chunkId, [1.0f, 0.0f]),
+            CancellationToken.None);
+        var provider = new StubOllamaProvider { QueryVector = [1.0f, 0.0f] };
+        var service = new SemanticSearchService(_context, provider, new StubExactSearch());
+
+        SemanticSearchResponse first = await service.SearchAsync(
+            "same query",
+            5,
+            CancellationToken.None);
+        SemanticSearchResponse second = await service.SearchAsync(
+            " same query ",
+            5,
+            CancellationToken.None);
+
+        Assert.False(first.EmbeddingCacheHit);
+        Assert.True(second.EmbeddingCacheHit);
+        Assert.Equal(1, provider.EmbedCalls);
+    }
+
+    [Fact]
     public async Task PerfBenchmark_SemanticSearch_P95_LessThan1500ms()
     {
         const int bookCount = 50_000;
@@ -322,6 +349,8 @@ public sealed class SemanticSearchServiceTests : IDisposable
 
         public float[] QueryVector { get; init; } = [1f, 0f];
 
+        public int EmbedCalls { get; private set; }
+
         public string ProviderKey => "ollama";
 
         public bool IsLocalOnly => true;
@@ -329,11 +358,14 @@ public sealed class SemanticSearchServiceTests : IDisposable
         public Task<OllamaEmbeddingResult> EmbedAsync(
             string text,
             string modelName,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new OllamaEmbeddingResult(
+            CancellationToken cancellationToken)
+        {
+            EmbedCalls++;
+            return Task.FromResult(new OllamaEmbeddingResult(
                 modelName,
                 EmbeddingGenerationService.DefaultModelVersion,
                 QueryVector));
+        }
 
         public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
             Task.FromResult(Available);

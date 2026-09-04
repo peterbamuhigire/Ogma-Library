@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Search;
@@ -16,6 +18,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private const int ActiveBookStatus = 0;
     private const int OversampleMultiplier = 4;
     private const int MaxCorpusVectors = 50_000;
+    private const int MaxQueryEmbeddingCacheEntries = 128;
+    private static readonly TimeSpan QueryEmbeddingCacheTtl = TimeSpan.FromMinutes(5);
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -23,6 +27,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private readonly ICombinedSearchService _exactSearch;
     private readonly IHybridRankingService _hybridRanking;
     private readonly IMatchLocationService _matchLocations;
+    private readonly object _queryEmbeddingCacheGate = new();
+    private readonly Dictionary<string, CachedQueryEmbedding> _queryEmbeddingCache = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Initializes a new instance of <see cref="SemanticSearchService"/>.
@@ -84,8 +90,9 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IReadOnlyList<CombinedSearchResult> exact = await _exactSearch
             .SearchAsync(queryText, maxResults * OversampleMultiplier, cancellationToken)
             .ConfigureAwait(false);
-        OllamaEmbeddingResult query = await _provider
-            .EmbedAsync(queryText, EmbeddingGenerationService.DefaultModelName, cancellationToken)
+        (OllamaEmbeddingResult query, bool embeddingCacheHit) = await GetQueryEmbeddingAsync(
+                queryText,
+                cancellationToken)
             .ConfigureAwait(false);
         if (query.Vector.Length == 0 ||
             query.Vector.Length > 4096 ||
@@ -156,7 +163,58 @@ public sealed class SemanticSearchService : ISemanticSearchService
             Results: results,
             Availability: results.Count == 0
                 ? SemanticSearchAvailability.NoMatches
-                : SemanticSearchAvailability.Ready);
+                : SemanticSearchAvailability.Ready,
+            EmbeddingCacheHit: embeddingCacheHit);
+    }
+
+    private async Task<(OllamaEmbeddingResult Result, bool CacheHit)> GetQueryEmbeddingAsync(
+        string queryText,
+        CancellationToken cancellationToken)
+    {
+        string normalized = queryText.Trim();
+        string cacheKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)));
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        lock (_queryEmbeddingCacheGate)
+        {
+            if (_queryEmbeddingCache.TryGetValue(cacheKey, out CachedQueryEmbedding? cached) &&
+                now - cached.CreatedUtc <= QueryEmbeddingCacheTtl)
+            {
+                return (new OllamaEmbeddingResult(
+                    cached.ModelName,
+                    cached.ModelVersion,
+                    [.. cached.Vector]), true);
+            }
+
+            _queryEmbeddingCache.Remove(cacheKey);
+        }
+
+        OllamaEmbeddingResult result = await _provider
+            .EmbedAsync(normalized, EmbeddingGenerationService.DefaultModelName, cancellationToken)
+            .ConfigureAwait(false);
+
+        lock (_queryEmbeddingCacheGate)
+        {
+            if (_queryEmbeddingCache.Count >= MaxQueryEmbeddingCacheEntries)
+            {
+                string? oldestKey = _queryEmbeddingCache
+                    .OrderBy(pair => pair.Value.CreatedUtc)
+                    .Select(pair => pair.Key)
+                    .FirstOrDefault();
+                if (oldestKey is not null)
+                {
+                    _queryEmbeddingCache.Remove(oldestKey);
+                }
+            }
+
+            _queryEmbeddingCache[cacheKey] = new CachedQueryEmbedding(
+                result.ModelName,
+                result.ModelVersion,
+                [.. result.Vector],
+                now);
+        }
+
+        return (result, false);
     }
 
     private async Task<SemanticSearchResponse> ExactFallbackAsync(
@@ -401,6 +459,12 @@ public sealed class SemanticSearchService : ISemanticSearchService
         DateTimeOffset? LastReadUtc,
         ReadingStatus? ReadingStatus,
         int? Rating);
+
+    private sealed record CachedQueryEmbedding(
+        string ModelName,
+        string ModelVersion,
+        float[] Vector,
+        DateTimeOffset CreatedUtc);
 
     private readonly struct ContextLease : IDisposable
     {
