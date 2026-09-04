@@ -1,6 +1,6 @@
 # Phase 21 Progress - Reader Completion and Portability
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -16,6 +16,8 @@ Date: 2026-08-30
 - Verified the local reader cache/session safety slice: cache hit, eviction,
   prefetch, cancellation, memory-budget, session navigation/close, and
   malformed-PDF non-crash behavior all pass in the focused regression run.
+- Added bounded reader-import cardinality checks and normalized malformed JSON
+  failures to `InvalidDataException` while preserving omitted-array compatibility.
 
 ## Verification
 
@@ -23,6 +25,9 @@ Date: 2026-08-30
   passed with 0 warnings and 0 errors.
 - `Phase21ReaderPortabilityTests`: 2 passed.
 - Page-render cache, reader-session, and PDF-worker isolation slice: 27 passed.
+- Portability bounds slice: 3 passed; full isolated solution suite: 881 core +
+  41 architecture + 142 UI = 1,064 passed, 0 failed, 0 skipped. See
+  `evidence/phase-21-portability-bounds-2026-09-04.md`.
 
 ## Remaining phase gate
 

@@ -10,6 +10,7 @@
 - Phase 16: `docs/implementation/execution/evidence/phase-16-detail-cover-ui-2026-09-04.md`
 - Phase 17: `docs/implementation/execution/phase-17-progress.md` and
   `tests/OgmaLibrary.Tests/Ingestion/Phase17StageWorkerTests.cs`
+- Phase 21 reader portability bounds: `docs/implementation/execution/evidence/phase-21-portability-bounds-2026-09-04.md`
 - Phase 19: `docs/implementation/execution/evidence/phase-19-directory-view-2026-09-04.md`
 - Phase 19 filter/sort: `docs/implementation/execution/evidence/phase-19-filter-sort-ui-2026-09-04.md`
 - Phase 20: `docs/implementation/execution/evidence/phase-20-curation-ui-2026-09-04.md`

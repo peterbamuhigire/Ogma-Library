@@ -87,6 +87,21 @@ public sealed class Phase21ReaderPortabilityTests : IDisposable
         await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(BookId, stream));
     }
 
+    [Fact]
+    public async Task Import_RejectsMalformedJsonAndExcessiveEntryCount()
+    {
+        var service = new ReaderPortabilityService(_context);
+        await using var malformed = new MemoryStream(Encoding.UTF8.GetBytes("{not-json"));
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(BookId, malformed));
+
+        string oversized = "{\"schemaVersion\":1,\"bookId\":\"" + BookId +
+            "\",\"bookmarks\":[" + string.Join(',', Enumerable.Repeat(
+                "{\"bookmarkId\":1,\"page\":1}", 10_001)) +
+            "],\"annotations\":[]}";
+        await using var excessive = new MemoryStream(Encoding.UTF8.GetBytes(oversized));
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(BookId, excessive));
+    }
+
     public void Dispose()
     {
         _context.Dispose();

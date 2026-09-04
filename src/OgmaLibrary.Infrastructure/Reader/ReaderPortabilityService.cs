@@ -15,6 +15,8 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
 {
     private const int CurrentSchemaVersion = 1;
     private const int MaxDocumentBytes = 8 * 1024 * 1024;
+    private const int MaxBookmarks = 10_000;
+    private const int MaxAnnotations = 2_000;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -138,9 +140,18 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
         }
 
         bounded.Position = 0;
-        ReaderStateDocument document = await JsonSerializer.DeserializeAsync<ReaderStateDocument>(
-            bounded, JsonOptions, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidDataException("Reader export is empty or invalid.");
+        ReaderStateDocument document;
+        try
+        {
+            document = await JsonSerializer.DeserializeAsync<ReaderStateDocument>(
+                bounded, JsonOptions, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Reader export is empty or invalid.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("Reader export is not valid JSON.", ex);
+        }
+
         if (document.SchemaVersion != CurrentSchemaVersion)
         {
             throw new InvalidDataException("Reader export schema version is not supported.");
@@ -149,6 +160,12 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
         if (!string.Equals(document.BookId, bookId, StringComparison.Ordinal))
         {
             throw new InvalidDataException("Reader export belongs to a different book.");
+        }
+
+        if ((document.Bookmarks?.Count ?? 0) > MaxBookmarks ||
+            (document.Annotations?.Count ?? 0) > MaxAnnotations)
+        {
+            throw new InvalidDataException("Reader export contains too many reader-state entries.");
         }
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
