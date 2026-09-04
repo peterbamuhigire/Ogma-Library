@@ -15,6 +15,7 @@
 | Phase 36 school admin | 46 tests passed |
 | Phase 37 security filter | 34 tests passed |
 | Phase 38 migration/update trust | 12 tests passed |
+| Combined Phase 16/34/36/37 regression slice | 147 tests passed |
 | Whole-repository format | Known baseline failures unrelated to these increments; do not claim clean |
 | Whole Release build/test | Can be affected by active app/worker output locks; isolated slices are the reliable evidence |
 | Full Debug discovery suite | Historically aborts at the 50k discovery test; not claimed green |
