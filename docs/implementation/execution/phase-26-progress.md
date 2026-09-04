@@ -32,6 +32,10 @@ Date: 2026-08-30
   metadata does not collapse unrelated books into one group.
 - Expanded the semantic retrieval latency benchmark to 50,000 books and
   verified the approved p95 <=1,500 ms local assertion.
+- Reworked semantic candidate loading to stream the 50,000-vector target window
+  and retain only a bounded top-K heap, removing all-vector corpus
+  materialization while preserving deterministic cosine ordering and book-level
+  deduplication.
 
 ## Verification
 
@@ -44,7 +48,7 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 Recall@K/MRR/nDCG evidence from a representative corpus, true ANN or
-equivalent target-scale retrieval, memory acceptance at 50,000 books, and
-final search-contract freeze remain before phase 26 closure. The approved
-50,000-book latency sub-gate is closed locally; reference-machine confirmation
-remains a release gate.
+equivalent relevance-quality retrieval, independent memory acceptance at
+50,000 books, and final search-contract freeze remain before phase 26 closure.
+The bounded-memory 50,000-vector scan and latency sub-gates are closed locally;
+reference-machine confirmation remains a release gate.

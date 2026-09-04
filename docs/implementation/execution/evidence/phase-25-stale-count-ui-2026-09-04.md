@@ -21,12 +21,15 @@ truthful status path for the rebuild decision.
 - `SearchViewModelTests`: stale count and localized summary assertions pass.
 - `IndexManagerServiceTests` and the embedding schema/tombstone tests (including
   the library-wide streamed count) pass through the full suite.
+- Semantic retrieval retains only a bounded top-K window while scanning the
+  50,000-vector target window; its existing 50,000-book p95 benchmark remains
+  the performance oracle.
 - Full solution suite: 877 core + 41 architecture + 142 UI = 1,060 passed;
   0 failed and 0 skipped.
 
 ## Boundary
 
-This closes the local stale-count/rebuild-status subgate. It does not prove
-ANN or target-scale memory behavior, cost/cache telemetry, representative
-Recall/MRR/nDCG quality, reference-machine performance, or physical
-accessibility.
+This closes the local stale-count/rebuild-status and bounded-memory exact
+retrieval subgates. It does not prove ANN-equivalent quality, cost/cache
+telemetry, representative Recall/MRR/nDCG quality, reference-machine
+performance, or physical accessibility.

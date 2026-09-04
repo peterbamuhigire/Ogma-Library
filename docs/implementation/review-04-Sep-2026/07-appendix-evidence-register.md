@@ -16,6 +16,7 @@
 - Phase 20 tag editor: `docs/implementation/execution/evidence/phase-20-tags-ui-2026-09-04.md`
 - Phase 20 collection controls: `docs/implementation/execution/evidence/phase-20-collections-ui-2026-09-04.md`
 - Phase 25 stale-vector status UI: `docs/implementation/execution/evidence/phase-25-stale-count-ui-2026-09-04.md`
+- Phase 25 bounded retrieval memory: `docs/implementation/execution/evidence/phase-25-bounded-retrieval-2026-09-04.md`
 - Phase 22: `docs/implementation/execution/evidence/phase-22-search-ui-2026-09-04.md`
 - Phase 27: `docs/implementation/execution/evidence/phase-27-privacy-journey-2026-09-04.md`
 - Phase 29: `docs/implementation/execution/evidence/phase-29-answer-ui-2026-09-04.md`

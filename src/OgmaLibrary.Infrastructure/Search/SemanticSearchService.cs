@@ -7,14 +7,15 @@ using OgmaLibrary.Infrastructure.Catalogue;
 namespace OgmaLibrary.Infrastructure.Search;
 
 /// <summary>
-/// Brute-force semantic search over locally stored embedding vectors. ANN is
-/// intentionally deferred by Phase 11 until the spike/ADR gate.
+/// Bounded exact semantic search over locally stored embedding vectors. The
+/// candidate scan is streamed and retains only the requested top-K window, so
+/// target-scale searches do not materialize the vector corpus in memory.
 /// </summary>
 public sealed class SemanticSearchService : ISemanticSearchService
 {
     private const int ActiveBookStatus = 0;
     private const int OversampleMultiplier = 4;
-    private const int MaxCorpusVectors = 10_000;
+    private const int MaxCorpusVectors = 50_000;
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -97,7 +98,10 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 availability: SemanticSearchAvailability.Degraded);
         }
 
-        IReadOnlyList<VectorCandidateRow> corpus = await LoadCorpusAsync(query.Vector.Length, cancellationToken)
+        IReadOnlyList<ScoredVectorCandidate> corpus = await LoadTopCorpusAsync(
+                query.Vector,
+                Math.Max(maxResults * OversampleMultiplier, maxResults),
+                cancellationToken)
             .ConfigureAwait(false);
         if (corpus.Count == 0)
         {
@@ -108,20 +112,13 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 availability: SemanticSearchAvailability.NoIndex);
         }
 
-        IReadOnlyList<VectorSearchHit> hits = CosineSimilarityService.TopK(
-            query.Vector,
-            corpus.Select(row => new VectorSearchCandidate(row.ChunkId, row.Vector)),
-            Math.Max(maxResults * OversampleMultiplier, maxResults));
-        Dictionary<long, VectorCandidateRow> byChunk = corpus.ToDictionary(row => row.ChunkId);
-
-        List<SemanticSearchResult> semanticResults = hits
-            .Select(hit => (Hit: hit, Row: byChunk[hit.ChunkId]))
+        List<SemanticSearchResult> semanticResults = corpus
             .GroupBy(item => item.Row.BookId, StringComparer.Ordinal)
             .Select(group => group
-                .OrderByDescending(item => item.Hit.Score)
+                .OrderByDescending(item => item.Score)
                 .ThenBy(item => item.Row.ChunkId)
                 .First())
-            .OrderByDescending(item => item.Hit.Score)
+            .OrderByDescending(item => item.Score)
             .ThenBy(item => item.Row.BookId, StringComparer.Ordinal)
             .Take(maxResults)
             .Select(item => new SemanticSearchResult(
@@ -130,7 +127,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 item.Row.ChunkId,
                 item.Row.Source,
                 CreateSnippet(item.Row.Text),
-                item.Hit.Score,
+                item.Score,
                 ExactFallback: false))
             .ToList();
 
@@ -263,21 +260,25 @@ public sealed class SemanticSearchService : ISemanticSearchService
             StringComparer.Ordinal);
     }
 
-    private async Task<IReadOnlyList<VectorCandidateRow>> LoadCorpusAsync(
-        int queryDimension,
+    private async Task<IReadOnlyList<ScoredVectorCandidate>> LoadTopCorpusAsync(
+        float[] queryVector,
+        int topK,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(queryVector);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(topK);
+
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        var rows = await context.EmbeddingVectors
+        var rows = context.EmbeddingVectors
             .AsNoTracking()
             .Where(vector =>
                 !vector.IsTombstoned &&
                 vector.ModelName == EmbeddingGenerationService.DefaultModelName &&
                 vector.ModelVersion == EmbeddingGenerationService.DefaultModelVersion &&
                 vector.ProviderKey == EmbeddingGenerationService.DefaultProviderKey &&
-                vector.DimensionCount == queryDimension)
+                vector.DimensionCount == queryVector.Length)
             .Join(
                 context.SearchChunks.AsNoTracking(),
                 vector => vector.ChunkId,
@@ -299,20 +300,47 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 })
             .OrderBy(row => row.ChunkId)
             .Take(MaxCorpusVectors)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
+            .AsAsyncEnumerable()
+            .WithCancellation(cancellationToken);
 
-        return rows
-            .Where(row => row.VectorBlob is not null && row.VectorBlob.Length > 0)
-            .Select(row => new VectorCandidateRow(
+        var top = new PriorityQueue<VectorCandidateRow, VectorScorePriority>();
+        await foreach (var row in rows.ConfigureAwait(false))
+        {
+            if (row.VectorBlob is null || row.VectorBlob.Length == 0)
+            {
+                continue;
+            }
+
+            VectorCandidateRow candidate = new(
                 row.ChunkId,
                 row.BookId,
                 row.Title,
                 (SearchChunkSource)row.Source,
                 row.ChunkText ?? string.Empty,
                 row.DimensionCount,
-                Deserialize(row.VectorBlob!, row.DimensionCount)))
-            .Where(row => row.Vector.Length == row.DimensionCount)
+                Deserialize(row.VectorBlob, row.DimensionCount));
+            if (candidate.Vector.Length != candidate.DimensionCount)
+            {
+                continue;
+            }
+
+            float score = CosineSimilarityService.Score(queryVector, candidate.Vector);
+            var priority = new VectorScorePriority(score, candidate.ChunkId);
+            if (top.Count < topK)
+            {
+                top.Enqueue(candidate, priority);
+            }
+            else if (top.TryPeek(out _, out VectorScorePriority worst) &&
+                     priority.CompareTo(worst) > 0)
+            {
+                top.DequeueEnqueue(candidate, priority);
+            }
+        }
+
+        return top.UnorderedItems
+            .Select(item => new ScoredVectorCandidate(item.Element, item.Priority.Score))
+            .OrderByDescending(item => item.Score)
+            .ThenBy(item => item.Row.ChunkId)
             .ToList();
     }
 
@@ -352,6 +380,21 @@ public sealed class SemanticSearchService : ISemanticSearchService
         string Text,
         int DimensionCount,
         float[] Vector);
+
+    private sealed record ScoredVectorCandidate(
+        VectorCandidateRow Row,
+        float Score);
+
+    private readonly record struct VectorScorePriority(float Score, long ChunkId) : IComparable<VectorScorePriority>
+    {
+        public int CompareTo(VectorScorePriority other)
+        {
+            int scoreComparison = Score.CompareTo(other.Score);
+            return scoreComparison != 0
+                ? scoreComparison
+                : other.ChunkId.CompareTo(ChunkId);
+        }
+    }
 
     private sealed record BookSignalRow(
         string BookId,

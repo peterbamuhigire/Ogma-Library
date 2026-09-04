@@ -40,10 +40,14 @@ Date: 2026-08-30
   `Phase11EmbeddingSchemaTests`: 7 passed.
 - Full solution suite: 1,060 passed, 0 failed, 0 skipped; stale-count UI
   coverage is included in the 142-test Avalonia suite.
+- Semantic retrieval now streams the bounded 50,000-vector target window and
+  retains only top-K scored candidates; the vector corpus is not materialized
+  as an in-memory list.
 
 ## Remaining phase gate
 
 Side-by-side vector index swap/resume, ANN/target-scale evidence, cost/cache
 telemetry, and target-scale UI performance remain before phase 25 closure. The
-stale-count/rebuild-status subgate is now closed locally; ANN/memory, cost,
-reference-corpus, and reference-machine evidence remain open.
+stale-count/rebuild-status and bounded-memory exact-retrieval subgates are now
+closed locally; ANN index selection or equivalent relevance-quality evidence,
+cost, reference-corpus, and reference-machine evidence remain open.
