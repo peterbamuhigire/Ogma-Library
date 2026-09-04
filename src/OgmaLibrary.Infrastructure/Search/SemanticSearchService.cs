@@ -182,7 +182,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
                     HybridScore: null,
                     MatchLocations: _matchLocations.GetLocations(result, semanticResult: null),
                     ConfidenceLabel: null,
-                    PageIndex: result.FtsHits.Count > 0 ? result.FtsHits[0].PageIndex : null))
+                    PageIndex: result.FtsHits.Count > 0 ? result.FtsHits[0].PageIndex : null,
+                    PageJumpTarget: result.FtsHits.Count > 0 ? result.FtsHits[0].PageJumpTarget : null))
                 .Take(maxResults)
                 .ToList());
     }
@@ -205,7 +206,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
             HybridScore: result.HybridScore,
             MatchLocations: enrichment.MatchLocations,
             ConfidenceLabel: enrichment.ConfidenceLabel,
-            PageIndex: semantic?.PageIndex ?? fts?.PageIndex);
+            PageIndex: semantic?.PageIndex ?? fts?.PageIndex,
+            PageJumpTarget: semantic?.PageJumpTarget ?? fts?.PageJumpTarget);
     }
 
     private async Task<IReadOnlyDictionary<string, HybridBookSignals>> LoadBookSignalsAsync(

@@ -171,7 +171,10 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         }
 
         await _navigation
-            .OpenReaderAsync(SelectedResult.BookId, SelectedResult.PageIndex, cancellationToken)
+            .OpenReaderAsync(
+                SelectedResult.BookId,
+                SelectedResult.PageJumpTarget?.PageIndex ?? SelectedResult.PageIndex,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -272,7 +275,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         string confidenceIconPath = result.ConfidenceLabel.HasValue
             ? GetConfidenceIconPath(result.ConfidenceLabel.Value)
             : string.Empty;
-        string snippet = result.Snippet ?? string.Empty;
+        SearchSnippet snippet = SearchSnippetParser.Parse(result.Snippet);
         SearchResultBadge[] matchBadges = CreateMatchBadges(result);
         string matchLocations = string.Join(" · ", matchBadges.Select(badge => badge.Label));
         return new SearchResultItem(
@@ -281,11 +284,12 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             result.Title ?? "Untitled",
             subtitle,
             confidenceIconPath,
-            snippet,
+            snippet.Text,
             matchLocations,
             matchBadges,
             result.PageIndex,
-            result.HybridScore ?? result.SemanticScore ?? 0);
+            result.HybridScore ?? result.SemanticScore ?? 0,
+            result.PageJumpTarget);
     }
 
     private SearchResultBadge[] CreateMatchBadges(SemanticSearchResult result)
@@ -392,7 +396,8 @@ public sealed record SearchResultItem(
     string MatchLocations,
     IReadOnlyList<SearchResultBadge> MatchBadges,
     int? PageIndex,
-    double Score)
+    double Score,
+    SearchPageJumpTarget? PageJumpTarget = null)
 {
     /// <summary>Whether a confidence icon should be shown.</summary>
     public bool HasConfidence => !string.IsNullOrWhiteSpace(ConfidenceIconPath);

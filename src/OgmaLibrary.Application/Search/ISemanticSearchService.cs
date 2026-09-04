@@ -33,4 +33,5 @@ public sealed record SemanticSearchResult(
     double? HybridScore = null,
     IReadOnlyList<MatchLocation>? MatchLocations = null,
     ConfidenceLabel? ConfidenceLabel = null,
-    int? PageIndex = null);
+    int? PageIndex = null,
+    SearchPageJumpTarget? PageJumpTarget = null);

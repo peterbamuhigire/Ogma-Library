@@ -24,6 +24,9 @@ Date: 2026-08-30
   `description:`, and `toc:` queries, applied as a SQL source filter.
 - Added regression coverage proving source prefixes do not mix page and note
   matches.
+- FTS snippets now expose plain text plus bounded highlight spans instead of
+  passing markup through the result contract. Page-derived hits also expose an
+  explicit validated reader page-jump target.
 
 ## Verification
 
@@ -33,10 +36,10 @@ Date: 2026-08-30
 - `Phase11ExtractionArtifactTests`: 2 passed.
 - `FtsIndexServiceTests`: 6 passed.
 - `IndexManagerServiceTests`: 6 passed.
+- `SearchSnippetParserTests`: 2 passed.
 
 ## Remaining phase gate
 
-The complete phase still requires
-highlight-safe snippets with explicit page-jump contracts, UI full-text mode
-and reader navigation, progress/no-index states, observability metrics,
+The complete phase still requires UI full-text mode and reader navigation,
+progress/no-index states, observability metrics,
 side-by-side rebuild swap, and the 50,000-book latency benchmark.

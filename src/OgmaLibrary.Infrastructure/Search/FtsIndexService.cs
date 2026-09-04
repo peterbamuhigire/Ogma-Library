@@ -112,16 +112,26 @@ public sealed class FtsIndexService : IFtsIndexService
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             double rank = reader.GetDouble(8);
+            string markedSnippet = reader.IsDBNull(7) ? string.Empty : reader.GetString(7);
+            SearchSnippet highlightedSnippet = SearchSnippetParser.Parse(markedSnippet);
+            long chunkId = reader.GetInt64(3);
+            int? pageIndex = reader.IsDBNull(4) ? null : reader.GetInt32(4);
+            SearchChunkSource source = (SearchChunkSource)reader.GetInt32(6);
+            string bookId = reader.GetString(0);
             results.Add(new FtsSearchResult(
-                BookId: reader.GetString(0),
+                BookId: bookId,
                 Title: reader.IsDBNull(1) ? null : reader.GetString(1),
                 Author: reader.IsDBNull(2) ? null : reader.GetString(2),
-                ChunkId: reader.GetInt64(3),
-                PageIndex: reader.IsDBNull(4) ? null : reader.GetInt32(4),
+                ChunkId: chunkId,
+                PageIndex: pageIndex,
                 ChunkIndex: reader.GetInt32(5),
-                Source: (SearchChunkSource)reader.GetInt32(6),
-                Snippet: reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
-                Score: -rank));
+                Source: source,
+                Snippet: highlightedSnippet.Text,
+                Score: -rank,
+                HighlightedSnippet: highlightedSnippet,
+                PageJumpTarget: source == SearchChunkSource.Page && pageIndex is int page
+                    ? new SearchPageJumpTarget(bookId, chunkId, page)
+                    : null));
         }
 
         return results;

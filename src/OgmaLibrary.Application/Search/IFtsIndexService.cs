@@ -35,7 +35,20 @@ public sealed record FtsSearchResult(
     int ChunkIndex,
     SearchChunkSource Source,
     string Snippet,
-    double Score);
+    double Score,
+    SearchSnippet? HighlightedSnippet = null,
+    SearchPageJumpTarget? PageJumpTarget = null);
+
+/// <summary>Plain-text search snippet with ranges that may be rendered as highlights.</summary>
+public sealed record SearchSnippet(
+    string Text,
+    IReadOnlyList<SearchSnippetSpan> Spans);
+
+/// <summary>Zero-based plain-text range marked as a search match.</summary>
+public sealed record SearchSnippetSpan(int Start, int Length);
+
+/// <summary>Validated reader destination for a page-derived search result.</summary>
+public sealed record SearchPageJumpTarget(string BookId, long ChunkId, int PageIndex);
 
 /// <summary>Result of checking the FTS5 derived index.</summary>
 public sealed record FtsIntegrityResult(bool IsHealthy, string? ErrorMessage);

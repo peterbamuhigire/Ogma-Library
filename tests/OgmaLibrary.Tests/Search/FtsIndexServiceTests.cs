@@ -35,6 +35,22 @@ public sealed class FtsIndexServiceTests : IDisposable
         string secondBook = SeedBook("P10FTSBOOK000000000002", "Quiet Library Notes", "Grace Reader");
         await SaveChunksAsync(firstBook, SearchChunkSource.Page, "introductory chapter rareftskeyword classroom reading", "other page text");
         await SaveChunksAsync(secondBook, SearchChunkSource.Page, "rareftskeyword appears once");
+        var page = new ExtractedPageRow
+        {
+            BookId = firstBook,
+            PageNumber = 7,
+            TextContent = "introductory chapter rareftskeyword classroom reading",
+            ExtractionQuality = 0,
+            WordCount = 6,
+        };
+        _context.ExtractedPages.Add(page);
+        await _context.SaveChangesAsync();
+        SearchChunkRow firstChunk = _context.SearchChunks
+            .Where(chunk => chunk.BookId == firstBook)
+            .OrderBy(chunk => chunk.ChunkIndex)
+            .First();
+        firstChunk.ExtractedPageId = page.ExtractedPageId;
+        await _context.SaveChangesAsync();
         var service = new FtsIndexService(_context);
 
         IReadOnlyList<FtsSearchResult> results = await service.SearchAsync(
@@ -47,7 +63,13 @@ public sealed class FtsIndexServiceTests : IDisposable
         Assert.Equal("Ogma Search Handbook", firstBookResult.Title);
         Assert.Equal("Ada Indexer", firstBookResult.Author);
         Assert.Equal(SearchChunkSource.Page, firstBookResult.Source);
-        Assert.Contains("<b>rareftskeyword</b>", firstBookResult.Snippet, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<b>", firstBookResult.Snippet, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("</b>", firstBookResult.Snippet, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("rareftskeyword", firstBookResult.Snippet, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(firstBookResult.Snippet, firstBookResult.HighlightedSnippet?.Text);
+        Assert.Single(firstBookResult.HighlightedSnippet?.Spans ?? []);
+        Assert.NotNull(firstBookResult.PageJumpTarget);
+        Assert.Equal(7, firstBookResult.PageJumpTarget?.PageIndex);
         Assert.True(results[0].Score >= results[^1].Score);
     }
 
