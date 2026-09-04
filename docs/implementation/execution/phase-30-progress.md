@@ -42,11 +42,13 @@ Date: 2026-08-30
 - Advisor/plan rendered UI slice: 1 passed.
 - AI persistence/privacy slice: 11 passed, including visible-history-only
   export and Privacy Center export command coverage.
+- Evaluation-set/run persistence slice: 5 passed, covering versioned runs,
+  ranked results, relevance judgments, reports, replacement, load, and delete.
 
 ## Remaining phase gate
 
-Feedback consent, evaluation-set/run persistence, human-labeled offline
-thresholds, quarantined live-provider evaluation, full-shell
+Feedback consent, human-labeled offline thresholds, quarantined live-provider
+evaluation, full-shell
 accessibility/keyboard evidence, and final AI retrieval freeze remain before
 Phase 30 closure. Physical file-picker walkthrough evidence is still a
 platform/release gate.
