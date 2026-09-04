@@ -33,11 +33,19 @@ public sealed class AvaloniaPreviewGate : IAiPreviewGate
         Window owner = _ownerProvider()
             ?? throw new InvalidOperationException("Payload preview requires an active owner window.");
         PayloadPreviewDialog dialog = _dialogFactory();
-        dialog.DataContext = new PayloadPreviewViewModel(preview, _localization);
-        AiPreviewDecision? decision = await dialog
-            .ShowDialog<AiPreviewDecision?>(owner)
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(false);
-        return decision ?? AiPreviewDecision.Cancel;
+        using var viewModel = new PayloadPreviewViewModel(preview, _localization);
+        dialog.DataContext = viewModel;
+        try
+        {
+            AiPreviewDecision? decision = await dialog
+                .ShowDialog<AiPreviewDecision?>(owner)
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return decision ?? AiPreviewDecision.Cancel;
+        }
+        finally
+        {
+            dialog.DataContext = null;
+        }
     }
 }

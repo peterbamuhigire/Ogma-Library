@@ -3,9 +3,12 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.App.Ai;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.Views;
+using OgmaLibrary.Application;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Infrastructure.Localization;
 
 namespace OgmaLibrary.App;
@@ -51,7 +54,9 @@ public sealed class App : Avalonia.Application, IDisposable
     {
         try
         {
-            ComposedRuntime runtime = await Task.Run(ComposeRuntime, cancellationToken)
+            ComposedRuntime runtime = await Task.Run(
+                    () => ComposeRuntime(window),
+                    cancellationToken)
                 .ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested)
             {
@@ -95,11 +100,21 @@ public sealed class App : Avalonia.Application, IDisposable
         }
     }
 
-    private static ComposedRuntime ComposeRuntime()
+    private static ComposedRuntime ComposeRuntime(DesktopShellWindow ownerWindow)
     {
         OgmaRuntimeOptions options = OgmaRuntimeOptions.FromEnvironment();
-        ServiceProvider services = new ServiceCollection()
-            .AddOgmaLibrary(options)
+        var serviceCollection = new ServiceCollection()
+            .AddOgmaLibrary(options);
+
+        // Infrastructure composition remains fail-closed for workers and tests.
+        // The interactive desktop shell is the only boundary allowed to replace
+        // that gate with a visible, user-controlled payload preview.
+        serviceCollection.AddSingleton<IAiPreviewGate>(serviceProvider =>
+            new AvaloniaPreviewGate(
+                serviceProvider.GetRequiredService<ILocalizationService>(),
+                () => ownerWindow));
+
+        ServiceProvider services = serviceCollection
             .BuildServiceProvider(new ServiceProviderOptions
             {
                 ValidateOnBuild = true,

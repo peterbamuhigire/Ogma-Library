@@ -27,6 +27,10 @@ Date: 2026-08-30
   gate: provider keys are stored through the platform credential abstraction,
   returned only as configured/timestamp status, replaced through save, deleted
   explicitly, and cleared from mutable input buffers.
+- Wired the interactive desktop composition to `AvaloniaPreviewGate`, so the
+  exact payload-preview dialog is reached before cloud egress. Background and
+  test composition remains fail-closed, and each modal preview disposes its
+  localization subscription when closed.
 
 ## Verification
 
@@ -35,9 +39,11 @@ Date: 2026-08-30
 - AI gateway/contract/privacy and composition slice: 19 passed.
 - Architecture suite: 41 passed.
 - `SchoolAdminScaffoldTests` and `ClassroomCredentialStoreTests`: 17 passed.
+- Desktop app Debug build: 0 warnings, 0 errors.
+- Phase 02 composition and payload-preview model slice: 8 passed.
 
 ## Remaining phase gate
 
-Explicit user-configurable provider profiles, durable token/cost budgets, connection-health persistence,
-full payload-preview UI wiring, retention and erasure journey, and cloud-provider
+Explicit user-configurable provider profiles, durable token/cost budgets,
+connection-health persistence, retention and erasure journey, and cloud-provider
 conformance remain before phase 27 closure.
