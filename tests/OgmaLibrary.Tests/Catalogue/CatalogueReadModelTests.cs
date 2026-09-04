@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
@@ -9,6 +10,43 @@ namespace OgmaLibrary.Tests.Catalogue;
 /// <summary>Regression tests for catalogue projection repair behavior.</summary>
 public sealed class CatalogueReadModelTests
 {
+    [Fact]
+    public async Task GetBookSummaries_50kServerSidePage_CompletesWithinTwoSeconds()
+    {
+        (CatalogueDbContext context, string dbPath) = CatalogueTestHelper.CreateTempFileContext();
+        try
+        {
+            await context.Database.MigrateAsync();
+            context.Books.AddRange(Enumerable.Range(0, 50_000).Select(index => new BookRow
+            {
+                BookId = $"PH19PERF{index:000000}",
+                Title = $"Catalogue Performance Book {index:000000}",
+                Status = 0,
+            }));
+            await context.SaveChangesAsync();
+
+            var readModel = new CatalogueReadModel(context);
+            var stopwatch = Stopwatch.StartNew();
+            var summaries = new List<BookSummaryProjection>();
+            await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(
+                new CatalogueFilter(MaxResults: 100)))
+            {
+                summaries.Add(summary);
+            }
+
+            stopwatch.Stop();
+            Assert.Equal(100, summaries.Count);
+            Assert.True(
+                stopwatch.Elapsed <= TimeSpan.FromSeconds(2),
+                $"50k catalogue page took {stopwatch.Elapsed.TotalMilliseconds:F0} ms.");
+        }
+        finally
+        {
+            context.Dispose();
+            CatalogueTestHelper.DeleteTempDb(dbPath);
+        }
+    }
+
     [Fact]
     public async Task GetBookSummaries_AppliesOrderedServerSidePage()
     {

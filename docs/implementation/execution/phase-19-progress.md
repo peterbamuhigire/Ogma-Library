@@ -18,6 +18,8 @@ Date: 2026-08-30
   catalogue read-model projection, with validation for negative paging values.
 - Added focused tests for successful local decoding and traversal rejection;
   existing grid/list render tests continue to pass.
+- Added a 50,000-record SQLite read-model page benchmark; the server-side
+  100-result catalogue page passed the <=2-second local assertion.
 
 ## Verification
 
@@ -30,5 +32,6 @@ Date: 2026-08-30
 
 Directory view parity, persisted filter/sort views, UI pagination wiring,
 processing/quality badges, complete cover-source fallback, API asset
-authorization, keyboard/screen-reader journeys, and 50k-record performance
-evidence remain before phase 19 closure.
+authorization, and keyboard/screen-reader journeys remain before phase 19
+closure. The local 50k server-side page performance sub-gate is closed;
+named reference-hardware confirmation remains a release gate.
