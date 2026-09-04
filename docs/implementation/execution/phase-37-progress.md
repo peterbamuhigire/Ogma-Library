@@ -29,6 +29,8 @@ Date: 2026-09-04
 - NuGet vulnerable-package scan: no vulnerable packages reported.
 - Fresh verification on 2026-09-04 again reported 0 npm audit vulnerabilities
   and no vulnerable NuGet packages across the solution.
+- Current-head security/migration regression and script-parser reconciliation
+  are recorded in `evidence/phase-37-local-security-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
