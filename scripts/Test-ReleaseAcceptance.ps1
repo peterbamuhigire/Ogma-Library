@@ -22,7 +22,7 @@ foreach ($artifact in $artifacts) {
     if ($artifact.platform -notin @('windows', 'macos')) { throw "Unsupported artifact platform '$($artifact.platform)'." }
     if ($artifact.platform -eq 'windows' -and $artifact.runtimeIdentifier -notmatch '^win-(x64|arm64)$') { throw 'Windows artifact runtime identifier is invalid.' }
     if ($artifact.platform -eq 'macos' -and $artifact.runtimeIdentifier -notmatch '^osx-(x64|arm64)$') { throw 'macOS artifact runtime identifier is invalid.' }
-    if ([string]::IsNullOrWhiteSpace($artifact.artifactName) -or $artifact.artifactName.Length -gt 255 -or $artifact.artifactName -match '[\/:]' -or $artifact.artifactName -match '\.\.') { throw "Unsafe artifact name for $($artifact.platform)." }
+    if ([string]::IsNullOrWhiteSpace($artifact.artifactName) -or $artifact.artifactName.Length -gt 255 -or $artifact.artifactName -match '[\\/:]' -or $artifact.artifactName -match '\.\.') { throw "Unsafe artifact name for $($artifact.platform)." }
     if ($artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') { throw "Invalid artifact digest for $($artifact.platform)." }
     Assert-True $artifact.descriptorSignatureVerified "$($artifact.platform) descriptor signature is not verified."
     Assert-True $artifact.platformSigned "$($artifact.platform) platform signature is not verified."

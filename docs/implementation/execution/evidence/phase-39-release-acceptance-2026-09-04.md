@@ -29,8 +29,9 @@ ambiguous records before evaluating the platform, reference-machine, migration,
 and owner-approval assertions. It now requires exactly one supported Windows and
 macOS artifact, exactly W-REF-01 and M-REF-01 hardware records, safe release and
 artifact identifiers, and explicit migration/approval objects. Temporary tests
-passed for a valid record and rejected an extra artifact. No real acceptance
-record was found in the repository.
+passed for a valid record, rejected an extra artifact, and rejected a Windows
+backslash path separator in an artifact name. No real acceptance record was
+found in the repository.
 
 ## Open handover gates
 
