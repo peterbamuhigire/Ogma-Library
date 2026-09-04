@@ -24,7 +24,10 @@ The tests cover durable round-trip and deletion, raw-secret rejection,
 untrusted-endpoint rejection, and regression coverage for the existing budget
 and resilience services.
 
-## Still open
+## Gate disposition
 
-Policy-editing UI, retention/erasure journey, live cloud-provider conformance,
-and physical accessibility evidence remain open.
+Provider-profile validation and persistence are closed locally. The policy-
+editing UI and retention/erasure journey are covered by the later Phase 27
+evidence and current implementation. Live cloud-provider conformance,
+provider-specific terms acceptance, and physical accessibility evidence remain
+open.
