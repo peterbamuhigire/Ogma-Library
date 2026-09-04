@@ -1,6 +1,6 @@
 # Phase 16 Progress - Cover, Thumbnail and Spine Assets
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -25,6 +25,11 @@ Date: 2026-08-30
 - Replaced the book-detail title placeholder with the shared safe cover control,
   bound to the manifest-relative asset path and configured local sidecar root;
   a headless render regression confirms the boundary.
+- Narrowed LAN visual-asset variants to the published contract (`provider` and
+  `detail` for covers, `retina` for spines, and the default thumbnail route),
+  preventing arbitrary safe-looking suffixes from addressing sidecar files.
+- Added an authenticated endpoint regression proving unsupported variants fail
+  closed before file resolution.
 
 ## Verification
 
@@ -35,7 +40,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Embedded/provider source acquisition, lazy high/low variants, API authorization,
-remaining UI journeys, and large-library asset budget testing remain before
-phase 16 closure. The local detail cover-control wiring sub-gate is closed;
+Embedded/provider source acquisition, lazy high/low variants, remaining UI
+journeys, and large-library asset budget testing remain before phase 16 closure.
+The local detail cover-control and LAN asset-authorization sub-gates are closed;
 physical accessibility and cross-platform evidence remain open.

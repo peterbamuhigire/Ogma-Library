@@ -160,6 +160,8 @@ public sealed class LanHostEndpointTests
             byte[] downloadedSyncBlob = await downloadSync.Content.ReadAsByteArrayAsync();
             using HttpResponseMessage asset = await http.GetAsync($"/api/v1/assets/covers/{assetHash}");
             byte[] servedAsset = await asset.Content.ReadAsByteArrayAsync();
+            using HttpResponseMessage unsupportedVariant = await http.GetAsync(
+                $"/api/v1/assets/covers/{assetHash}?variant=_unpublished");
             using HttpResponseMessage unpublishedAsset = await http.GetAsync($"/api/v1/assets/covers/{new string('e', 64)}");
             using HttpResponseMessage page = await http.GetAsync("/api/v1/books/01LANENDPOINT000000000001/page/1?widthPx=800");
             byte[] renderedPage = await page.Content.ReadAsByteArrayAsync();
@@ -207,6 +209,7 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.NoContent, uploadSync.StatusCode);
             Assert.Equal(HttpStatusCode.OK, downloadSync.StatusCode);
             Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, unsupportedVariant.StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, unpublishedAsset.StatusCode);
             Assert.Equal(HttpStatusCode.OK, page.StatusCode);
             Assert.Equal(assetBytes, servedAsset);

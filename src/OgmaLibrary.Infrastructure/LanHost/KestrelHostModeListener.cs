@@ -495,7 +495,7 @@ internal sealed class KestrelHostModeListener : IHostModeListener
                 return Results.BadRequest(new LanHostError("invalid_content_hash", "Asset content hash must be 64 lowercase hex characters."));
             }
 
-            if (!IsSafeVariant(variant))
+            if (!IsAllowedAssetVariant(sidecarClass, variant))
             {
                 return Results.BadRequest(new LanHostError("invalid_variant", "Asset variant is not valid."));
             }
@@ -753,6 +753,24 @@ internal sealed class KestrelHostModeListener : IHostModeListener
         variant is null ||
         (variant.Length <= 32 && variant.StartsWith('_') &&
          variant.All(static ch => ch is '_' or '-' or >= '0' and <= '9' or >= 'a' and <= 'z' or >= 'A' and <= 'Z'));
+
+    private static bool IsAllowedAssetVariant(SidecarClass sidecarClass, string? variant)
+    {
+        if (!IsSafeVariant(variant))
+        {
+            return false;
+        }
+
+        return sidecarClass switch
+        {
+            SidecarClass.Covers => variant is null or "_provider" or "_detail",
+            SidecarClass.Spines => variant is null or "_retina",
+            // No bounded thumbnail variants are currently published by the
+            // catalogue contract; keep the route closed until one is added.
+            SidecarClass.Thumbnails => variant is null,
+            _ => false,
+        };
+    }
 
     private static LanCatalogueBook MapSummary(BookSummaryProjection book) =>
         new(
