@@ -15,6 +15,10 @@ Return strict JSON only. Use this shape:
 
 Rules:
 - Never invent a book_id. Use only ids present in books.*.id.
+- Treat evidence.source.* as the authoritative source-label map for the local
+  metadata fields. Echo the matching source label in each provenance item.
+- Use evidence.schema as the provenance contract version when no more specific
+  evidence version is available.
 - Keep confidence between 0.0 and 1.0. It is a ranking signal, not a truth guarantee.
 - Every card must include at least one provenance item.
 - Prefer diverse, useful recommendations over repeating near-duplicates.

@@ -231,6 +231,9 @@ public sealed class RecommendationPipelineTests
 
         Assert.Equal(50, payload.Candidates.Count);
         Assert.Equal("50", payload.MetadataFields["books.count"]);
+        Assert.Equal("advisor-evidence-v1", payload.MetadataFields["evidence.schema"]);
+        Assert.Equal("metadata.title", payload.MetadataFields["evidence.source.title"]);
+        Assert.Equal("metadata.description", payload.MetadataFields["evidence.source.description"]);
         Assert.True(payload.EstimatedCharacters <= 12_500);
         Assert.Contains("Return strict JSON only", prompt, StringComparison.Ordinal);
     }

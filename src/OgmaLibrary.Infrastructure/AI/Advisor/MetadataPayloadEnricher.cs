@@ -20,6 +20,13 @@ public sealed class MetadataPayloadEnricher : IMetadataPayloadEnricher
         int estimated = 0;
 
         Add("schema", "phase13.recommendation.metadata.v1", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.schema", "advisor-evidence-v1", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.source.title", "metadata.title", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.source.author", "metadata.author", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.source.tags", "metadata.tags", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.source.categories", "metadata.categories", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.source.description", "metadata.description", ShortFieldLimit, fields, ref estimated);
+        Add("evidence.source.notes", "metadata.notes", ShortFieldLimit, fields, ref estimated);
         foreach (BookMetadataDto candidate in candidates.Take(CandidateLimit))
         {
             int index = selected.Count;

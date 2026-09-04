@@ -22,6 +22,10 @@ Date: 2026-08-30
   content passages are explicitly labeled as data, structural delimiters are
   escaped, and prompt-injection fixture coverage proves embedded markup cannot
   create a second provider message structure.
+- Added a versioned source-label map to recommendation payloads and prompt
+  instructions requiring provider provenance to echo the local evidence source;
+  the existing field-level validator remains the final authority before any
+  claim reaches the user.
 
 ## Verification
 
@@ -30,10 +34,13 @@ Date: 2026-08-30
   path is covered by the focused test build.
 - Phase 29 grounded evidence and answer slice: 6 passed.
 - Existing local answer regression slice: 6 passed.
+- Source-labeled recommendation payload slice: 10 passed across recommendation
+  pipeline and grounded-evidence tests.
 
 ## Remaining phase gate
 
-Provider-generated explanations from assembled source-labeled evidence, durable
-claim/citation validation traces, answer UI citation navigation, content-tier
-consent wiring in the shell, and benchmark unsupported-claim/abstention
-evaluation remain for phases 29-30.
+Durable claim/citation validation traces, answer UI citation navigation,
+content-tier consent wiring in the shell, and benchmark unsupported-claim/
+abstention evaluation remain for phases 29-30. Provider-generated explanations
+now receive assembled, versioned source-label evidence; physical UI evidence
+remains unassessed.
