@@ -32,6 +32,9 @@ Date: 2026-08-30
   terminal failure, and expiry recovery.
 - Added a payload-free runtime metrics snapshot exposing status totals, attempt
   totals, and active leases grouped by job type for diagnostics and UI use.
+- Added a bounded JSON diagnostics export containing only operational metrics
+  and recent lifecycle fields; payloads, lease owners, and error text are
+  excluded.
 
 ## Verification
 
@@ -42,5 +45,4 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 The search-extraction and embedding workers remain stage-based rather than
-job-queue workers; diagnostics export and kill/restart load evidence remain
-before phase 17 closure.
+job-queue workers; kill/restart load evidence remains before phase 17 closure.

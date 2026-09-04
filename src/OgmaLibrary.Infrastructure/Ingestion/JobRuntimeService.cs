@@ -14,6 +14,10 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 public sealed class JobRuntimeService : IJobRuntimeService
 {
     private static readonly TimeSpan DefaultRetryDelay = TimeSpan.FromSeconds(5);
+    private static readonly JsonSerializerOptions DiagnosticsJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+    };
     private static readonly Dictionary<string, (string Group, int Maximum)> ResourceGroups =
         new Dictionary<string, (string Group, int Maximum)>(StringComparer.OrdinalIgnoreCase)
         {
@@ -282,6 +286,31 @@ public sealed class JobRuntimeService : IJobRuntimeService
             DeadLetterCount: jobs.Count(job => job.Status == (int)JobRuntimeStatus.DeadLetter),
             TotalAttempts: jobs.Sum(job => job.RetryCount),
             ActiveByJobType: activeByJobType);
+    }
+
+    /// <inheritdoc />
+    public async Task<string> ExportDiagnosticsJsonAsync(CancellationToken cancellationToken = default)
+    {
+        JobRuntimeMetrics metrics = await GetMetricsAsync(cancellationToken).ConfigureAwait(false);
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        List<JobRuntimeDiagnostic> recentJobs = await lease.Context.Jobs
+            .AsNoTracking()
+            .OrderByDescending(job => job.JobId)
+            .Take(100)
+            .Select(job => new JobRuntimeDiagnostic(
+                job.JobId,
+                job.JobType,
+                (JobRuntimeStatus)job.Status,
+                job.RetryCount,
+                job.FailureCode,
+                job.StartedUtc,
+                job.CompletedUtc))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return JsonSerializer.Serialize(
+            new JobRuntimeDiagnostics(metrics, recentJobs),
+            DiagnosticsJsonOptions);
     }
 
     private static void AddAuditEvent(

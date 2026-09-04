@@ -238,6 +238,13 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.Equal(1, metrics.DeadLetterCount);
         Assert.Equal(10, metrics.TotalAttempts);
         Assert.Equal(1, metrics.ActiveByJobType["OcrJob"]);
+
+        string diagnostics = await new JobRuntimeService(_fixture.Context)
+            .ExportDiagnosticsJsonAsync();
+        Assert.DoesNotContain("phase17-metrics", diagnostics, StringComparison.Ordinal);
+        Assert.DoesNotContain("payload", diagnostics, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("leaseOwner", diagnostics, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("deadLetterCount", diagnostics, StringComparison.Ordinal);
     }
 
     public void Dispose() => _fixture.Dispose();

@@ -50,6 +50,21 @@ public sealed record JobRuntimeMetrics(
     int TotalAttempts,
     IReadOnlyDictionary<string, int> ActiveByJobType);
 
+/// <summary>Safe per-job diagnostic projection with no payload or secret fields.</summary>
+public sealed record JobRuntimeDiagnostic(
+    long JobId,
+    string JobType,
+    JobRuntimeStatus Status,
+    int Attempt,
+    string? FailureCode,
+    DateTimeOffset? StartedUtc,
+    DateTimeOffset? CompletedUtc);
+
+/// <summary>Exportable job diagnostics composed only of operational fields.</summary>
+public sealed record JobRuntimeDiagnostics(
+    JobRuntimeMetrics Metrics,
+    IReadOnlyList<JobRuntimeDiagnostic> RecentJobs);
+
 /// <summary>Durable claim/complete/failure contract for background jobs.</summary>
 public interface IJobRuntimeService
 {
@@ -86,4 +101,7 @@ public interface IJobRuntimeService
 
     /// <summary>Returns status totals and active-lease metrics without exposing job payloads.</summary>
     Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Exports a bounded JSON diagnostic snapshot without job payloads or error text.</summary>
+    Task<string> ExportDiagnosticsJsonAsync(CancellationToken cancellationToken = default);
 }
