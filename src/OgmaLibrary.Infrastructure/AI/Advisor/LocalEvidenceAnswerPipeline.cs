@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
@@ -15,11 +18,13 @@ public sealed class LocalEvidenceAnswerPipeline : IAnswerPipeline
     private const int MaximumExcerptLength = 512;
 
     private readonly ISemanticSearchService _search;
+    private readonly IAuditRepository? _audit;
 
     /// <summary>Initializes the local-evidence pipeline.</summary>
-    public LocalEvidenceAnswerPipeline(ISemanticSearchService search)
+    public LocalEvidenceAnswerPipeline(ISemanticSearchService search, IAuditRepository? audit = null)
     {
         _search = search ?? throw new ArgumentNullException(nameof(search));
+        _audit = audit;
     }
 
     /// <inheritdoc />
@@ -63,7 +68,55 @@ public sealed class LocalEvidenceAnswerPipeline : IAnswerPipeline
               string.Join(" ", citations.Select((citation, index) =>
                   $"[{index + 1}: {citation.SourceLabel}] {citation.RelevantText}"));
 
+        await RecordTraceAsync(request, searchResponse, citations, cancellationToken)
+            .ConfigureAwait(false);
+
         return new AnswerResponse(answer, citations, IsV2: true);
+    }
+
+    private async Task RecordTraceAsync(
+        AnswerRequest request,
+        SemanticSearchResponse searchResponse,
+        List<AnswerCitation> citations,
+        CancellationToken cancellationToken)
+    {
+        if (_audit is null)
+        {
+            return;
+        }
+
+        var trace = new
+        {
+            traceVersion = "answer-evidence-trace-v1",
+            questionHash = Convert.ToHexStringLower(
+                SHA256.HashData(Encoding.UTF8.GetBytes(request.Question))),
+            requestedCitationCount = request.MaxCitations,
+            allowContentAwareTier = request.AllowContentAwareTier,
+            searchResultCount = searchResponse.Results.Count,
+            citationCount = citations.Count,
+            outcome = citations.Count == 0 ? "no-local-evidence" : "extractive-local-evidence",
+            evidenceVersion = EvidenceVersion,
+            citations = citations.Select(citation => new
+            {
+                bookId = citation.BookId.Value,
+                pageNumber = citation.PageNumber,
+                chunkId = citation.ChunkId,
+                sourceLabel = citation.SourceLabel,
+                evidenceVersion = citation.EvidenceVersion,
+                uncertainty = citation.UncertaintyLabel,
+            }).ToArray(),
+        };
+
+        await _audit.AppendAsync(
+                new AuditEvent
+                {
+                    Id = $"answer-evidence-trace-{Guid.NewGuid():N}",
+                    EventType = "AnswerEvidenceTrace",
+                    TimestampUtc = DateTimeOffset.UtcNow,
+                    Payload = JsonSerializer.Serialize(trace),
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static AnswerCitation ToCitation(SemanticSearchResult result)

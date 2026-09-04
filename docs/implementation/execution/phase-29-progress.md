@@ -26,6 +26,9 @@ Date: 2026-08-30
   instructions requiring provider provenance to echo the local evidence source;
   the existing field-level validator remains the final authority before any
   claim reaches the user.
+- Added a durable, privacy-safe answer-evidence trace. It records a hashed
+  question identity, bounded search/citation counts, outcome, and citation
+  provenance without storing the question, answer text, or evidence excerpts.
 
 ## Verification
 
@@ -36,11 +39,11 @@ Date: 2026-08-30
 - Existing local answer regression slice: 6 passed.
 - Source-labeled recommendation payload slice: 10 passed across recommendation
   pipeline and grounded-evidence tests.
+- Durable answer-evidence trace and grounded citation slice: 6 passed.
 
 ## Remaining phase gate
 
-Durable claim/citation validation traces, answer UI citation navigation,
-content-tier consent wiring in the shell, and benchmark unsupported-claim/
-abstention evaluation remain for phases 29-30. Provider-generated explanations
-now receive assembled, versioned source-label evidence; physical UI evidence
-remains unassessed.
+Answer UI citation navigation, content-tier consent wiring in the shell, and
+benchmark unsupported-claim/abstention evaluation remain for phases 29-30.
+Provider-generated explanations now receive assembled, versioned source-label
+evidence; physical UI evidence remains unassessed.
