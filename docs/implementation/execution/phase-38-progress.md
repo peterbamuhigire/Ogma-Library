@@ -51,6 +51,8 @@ Date: 2026-09-04
   `evidence/phase-38-workflow-lint-2026-09-04.md`.
 - SQLite migration test class: 9 passed, including the previously failing
   Phase 18 downgrade and Phase 12 legacy-history rollback scenarios.
+- Current-head release-gate reconciliation is recorded in
+  `evidence/phase-38-local-release-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
