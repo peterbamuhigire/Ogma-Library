@@ -23,7 +23,7 @@ verified evidence and remaining gate summarized for decision use.
 | 22 | IN PROGRESS | Structured/fuzzy search, debounce, bounded candidates, facets/paging/highlighting, local 50k p95 | UI and reference-machine gates |
 | 23 | IN PROGRESS | FTS filters, snippets, page-jump, staged side-by-side promotion, local p95 | Reference and accessibility evidence |
 | 24 | IN PROGRESS | Selective OCR policy/provenance/guards/checksum/failure codes, 500-book synthetic benchmark | Real mixed-PDF accuracy, CPU/memory, cross-platform evidence |
-| 25 | IN PROGRESS | Provenance, local-only policy, dimensions, stale detection, tombstones | ANN, scale, cost, UI |
+| 25 | IN PROGRESS | Provenance, local-only policy, dimensions including payload metadata, stale detection, tombstones | ANN, scale, cost, UI |
 | 26 | IN PROGRESS | RRF hybrid retrieval, filters, metric/eval, diversity, local 50k latency | Representative corpus, ANN/memory, reference confirmation |
 | 27 | IN PROGRESS | Fail-closed gateway, payload/egress boundaries, health, budget, secret custody, provider profiles, local retention/erasure | Policy-editing UX, provider terms/conformance, physical accessibility |
 | 28 | IN PROGRESS | Intent, ranking, fallbacks, editable intent, privacy-safe traces | Reference resolution, benchmarks |

@@ -44,6 +44,12 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         {
             throw new ArgumentException("Embedding vector must contain at least one dimension.", nameof(vector));
         }
+        if (vector.DimensionCount != vector.Vector.Length)
+        {
+            throw new ArgumentException(
+                "Embedding dimension count must match the vector payload length.",
+                nameof(vector));
+        }
         if (vector.Vector.Length > 4096 || vector.Vector.Any(value => !float.IsFinite(value)))
         {
             throw new ArgumentException("Embedding vector dimensions or values are invalid.", nameof(vector));

@@ -109,6 +109,25 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
     }
 
     [Fact]
+    public async Task EmbeddingVectorRepository_RejectsDimensionCountMetadataDrift()
+    {
+        var repository = new EmbeddingVectorRepository(_context);
+        EmbeddingVectorRecord vector = new(
+            0,
+            ChunkId: 1,
+            "nomic-embed-text",
+            "v1",
+            [0.1f, 0.2f],
+            DimensionCount: 3,
+            DateTimeOffset.UtcNow,
+            SourceHash: new string('a', 64));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.CreateAsync(
+            vector,
+            CancellationToken.None));
+    }
+
+    [Fact]
     public async Task EmbeddingVectorRepository_TombstonesStaleVectors_AndReactivationClearsTombstone()
     {
         long chunkId = SeedChunk();
