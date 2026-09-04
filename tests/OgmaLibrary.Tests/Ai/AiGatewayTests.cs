@@ -112,6 +112,20 @@ public sealed class AiGatewayTests
     }
 
     [Fact]
+    public async Task AiGateway_RejectsExhaustedBudgetBeforeProviderCall()
+    {
+        var provider = new FakeProvider();
+        var budget = new RejectingBudgetService();
+        AiGateway gateway = CreateGateway(provider, budget: budget);
+
+        await Assert.ThrowsAsync<AiUsageBudgetExceededException>(() =>
+            gateway.SendAsync(CreateRequest(), CancellationToken.None));
+
+        Assert.Equal(1, budget.ReserveCount);
+        Assert.Equal(0, provider.CallCount);
+    }
+
+    [Fact]
     public async Task AiGateway_RejectsProviderMismatchBeforeEgress()
     {
         var provider = new FakeProvider();
@@ -146,7 +160,8 @@ public sealed class AiGatewayTests
         FakeAuditRepository? audit = null,
         FakeHistoryRepository? history = null,
         IAiCostCalculator? costs = null,
-        AiPrivacyTier activeTier = AiPrivacyTier.MetadataOnly) =>
+        AiPrivacyTier activeTier = AiPrivacyTier.MetadataOnly,
+        IAiUsageBudgetService? budget = null) =>
         new(
             provider ?? new FakeProvider(),
             privacy ?? new FakePrivacyService(activeTier),
@@ -154,7 +169,8 @@ public sealed class AiGatewayTests
             preview ?? new FakePreviewGate(),
             audit ?? new FakeAuditRepository(),
             history ?? new FakeHistoryRepository(),
-            costs ?? new AiCostCalculator());
+            costs ?? new AiCostCalculator(),
+            budget);
 
     private static AiRequest CreateRequest(string query = "recommend") =>
         new(
@@ -274,5 +290,31 @@ public sealed class AiGatewayTests
             Entries.Clear();
             return Task.FromResult(count);
         }
+    }
+
+    private sealed class RejectingBudgetService : IAiUsageBudgetService
+    {
+        public int ReserveCount { get; private set; }
+
+        public Task<AiUsageBudgetSnapshot> GetSnapshotAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<AiUsageBudgetReservation> ReserveAsync(
+            AiRequest request,
+            CancellationToken cancellationToken)
+        {
+            ReserveCount++;
+            throw new AiUsageBudgetExceededException("budget exhausted");
+        }
+
+        public Task FinalizeAsync(
+            AiUsageBudgetReservation reservation,
+            AiCompletion completion,
+            decimal? costUsd,
+            CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task ReleaseAsync(
+            AiUsageBudgetReservation reservation,
+            CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

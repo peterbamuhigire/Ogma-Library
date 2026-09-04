@@ -52,7 +52,8 @@ Date: 2026-08-30
 - Desktop app Debug build: 0 warnings, 0 errors.
 - Phase 02 composition and payload-preview model slice: 8 passed.
 - Provider resilience and health-persistence slice: 4 passed.
-- Phase 27 usage-budget, provider-resilience and gateway slice: 16 passed.
+- Phase 27 usage-budget, provider-resilience and gateway slice: 17 passed,
+  including gateway rejection before provider invocation.
 
 ## Remaining phase gate
 

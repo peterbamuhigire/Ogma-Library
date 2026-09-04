@@ -8,7 +8,7 @@ Date: 2026-09-04
 dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~Phase27UsageBudgetTests|FullyQualifiedName~Phase27ProviderResilienceTests|FullyQualifiedName~AiGatewayTests|FullyQualifiedName~AiGatewayIntegrationTests" --verbosity minimal -m:1
 ```
 
-Result: 16 passed, 0 failed.
+Result: 17 passed, 0 failed.
 
 The implementation provides:
 
