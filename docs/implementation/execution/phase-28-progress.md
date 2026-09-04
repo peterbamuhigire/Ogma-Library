@@ -17,6 +17,9 @@ Date: 2026-08-30
 - Added grounded `local-advisor-v1` cards when the AI provider is disabled or
   violates the active provider boundary. Explicit preview cancellation and
   missing cloud consent remain visible policy decisions.
+- Added a durable, privacy-preserving `advisor-trace-v1` audit event for
+  recommendation runs, retaining query hash, interpreted intent, bounded
+  candidate IDs, result IDs, provider/model and outcome without raw query text.
 - Updated the stale pre-V2 advisor scaffold test to assert its current honest
   unavailable response.
 
@@ -29,8 +32,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Durable versioned advisor request/intent/candidate traces, editable interpreted
-intent UI, candidate-stage diagnostics, reference-book resolution beyond the
-deterministic comparison hint, source-labeled evidence assembly, benchmark
-Recall@K/nDCG evaluation, and final advisor UI/performance gates remain for
-phases 29-30.
+Editable interpreted intent UI, candidate-stage diagnostics, reference-book
+resolution beyond the deterministic comparison hint, source-labeled evidence
+assembly, benchmark Recall@K/nDCG evaluation, and final advisor UI/performance
+gates remain for phases 29-30.

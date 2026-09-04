@@ -1,4 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Domain.Ai;
 
 namespace OgmaLibrary.Infrastructure.AI.Advisor;
@@ -14,6 +18,7 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
     private readonly IRecommendationStructuralValidator _structuralValidator;
     private readonly IHybridRankerConsumer _hybridRanker;
     private readonly IHybridRecommendationMerger _hybridMerger;
+    private readonly IAuditRepository? _audit;
 
     /// <summary>Initializes a new instance of <see cref="RecommendationPipeline"/>.</summary>
     public RecommendationPipeline(
@@ -24,7 +29,8 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         IRecommendationProvenanceValidator provenanceValidator,
         IRecommendationStructuralValidator structuralValidator,
         IHybridRankerConsumer hybridRanker,
-        IHybridRecommendationMerger hybridMerger)
+        IHybridRecommendationMerger hybridMerger,
+        IAuditRepository? audit = null)
     {
         ArgumentNullException.ThrowIfNull(catalogueReader);
         ArgumentNullException.ThrowIfNull(payloadEnricher);
@@ -43,6 +49,7 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         _structuralValidator = structuralValidator;
         _hybridRanker = hybridRanker;
         _hybridMerger = hybridMerger;
+        _audit = audit;
     }
 
     /// <inheritdoc />
@@ -57,6 +64,7 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         IReadOnlyList<BookMetadataDto> candidates = await _catalogueReader.GetCandidatesAsync(query, cancellationToken).ConfigureAwait(false);
         if (candidates.Count == 0)
         {
+            await RecordTraceAsync(query, options, candidates, [], "empty-candidate-set", cancellationToken).ConfigureAwait(false);
             return [];
         }
 
@@ -90,14 +98,18 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
         }
         catch (AiDisabledException)
         {
-            return DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
+            IReadOnlyList<RecommendationCard> fallback = DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
+            await RecordTraceAsync(query, options, candidates, fallback, "deterministic-fallback-disabled", cancellationToken).ConfigureAwait(false);
+            return fallback;
         }
         catch (AiTierViolationException)
         {
             // A disabled/mismatched provider is a local availability condition;
             // the catalogue remains safe to rank without hiding explicit preview
             // cancellation or missing cloud consent.
-            return DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
+            IReadOnlyList<RecommendationCard> fallback = DeterministicAdvisorFallback.Build(candidates, query.Intent, query.MaxResults, options.Tier);
+            await RecordTraceAsync(query, options, candidates, fallback, "deterministic-fallback-tier", cancellationToken).ConfigureAwait(false);
+            return fallback;
         }
         IReadOnlyList<RecommendationCard> parsed = _parser.Parse(completion.Text, options.Model, options.Tier);
         IReadOnlyList<RecommendationCard> localOnly = _provenanceValidator.Validate(
@@ -120,6 +132,55 @@ public sealed class RecommendationPipeline : IRecommendationPipeline
             throw new AdvisorParseException(string.Join("; ", validation.Errors));
         }
 
+        await RecordTraceAsync(query, options, candidates, localOnly, "provider-success", cancellationToken).ConfigureAwait(false);
         return localOnly;
+    }
+
+    private async Task RecordTraceAsync(
+        RecommendationQuery query,
+        RecommendationGenerationOptions options,
+        IReadOnlyList<BookMetadataDto> candidates,
+        IReadOnlyList<RecommendationCard> results,
+        string outcome,
+        CancellationToken cancellationToken)
+    {
+        if (_audit is null)
+        {
+            return;
+        }
+
+        var intent = new
+        {
+            version = query.Intent.Version,
+            positiveTerms = query.Intent.PositiveTerms,
+            negativeTerms = query.Intent.NegativeTerms,
+            moodTerms = query.Intent.MoodTerms,
+            difficulty = query.Intent.Difficulty?.ToString(),
+            length = query.Intent.Length.ToString(),
+            comparisonReference = query.Intent.ComparisonReference,
+            broadDiscovery = query.Intent.IsBroadDiscovery,
+        };
+        var trace = new
+        {
+            traceVersion = "advisor-trace-v1",
+            queryHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(query.QueryText))),
+            intent,
+            candidateCount = candidates.Count,
+            candidateBookIds = candidates.Take(50).Select(candidate => candidate.BookId).ToArray(),
+            resultBookIds = results.Take(query.MaxResults).Select(result => result.BookId.Value).ToArray(),
+            outcome,
+            provider = options.Provider,
+            model = options.Model,
+        };
+
+        await _audit.AppendAsync(
+            new AuditEvent
+            {
+                Id = $"advisor-trace-{Guid.NewGuid():N}",
+                EventType = "AdvisorExecutionTrace",
+                TimestampUtc = DateTimeOffset.UtcNow,
+                Payload = JsonSerializer.Serialize(trace),
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 }
