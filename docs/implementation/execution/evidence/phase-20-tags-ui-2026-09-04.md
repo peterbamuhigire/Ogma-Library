@@ -19,9 +19,10 @@ boundary is not composed.
 dotnet test tests/OgmaLibrary.Tests.Ui/OgmaLibrary.Tests.Ui.csproj --no-restore -p:BaseOutputPath=tmp/phase20-tags-ui-build-3/ --filter "FullyQualifiedName~BookDetailCurationTests" --logger "console;verbosity=minimal" --results-directory tmp/phase20-tags-ui-results-3
 ```
 
-Result: 3 passed, 0 failed. The tag-specific test verifies normalized input,
+Result: 4 passed, 0 failed. The tag-specific test verifies normalized input,
 the exact write-boundary call, refreshed tags and localized status, and the
-rendered textbox and save button after selecting the Bibliographic tab.
+rendered textbox and save button after selecting the Bibliographic tab. The
+focused test class also carries the curation and metadata-review UI proofs.
 
 ## Gate disposition
 

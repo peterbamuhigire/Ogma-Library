@@ -28,8 +28,9 @@ Date: 2026-08-30
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase20BookCurationTests`: 2 passed.
-- `BookDetailCurationTests`: 3 passed, including rendered tag-editor controls
-  and the write-boundary/refresh path.
+- `BookDetailCurationTests`: 4 passed, including rendered tag-editor controls
+  and the write-boundary/refresh path; the class also contains the Phase 14
+  review-panel proof.
 
 ## Remaining phase gate
 
