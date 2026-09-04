@@ -50,6 +50,9 @@ Date: 2026-09-04
   history export/deletion, immutable-audit preservation, local embedding
   erasure, and provider-profile deletion are wired and test-backed; see
   `evidence/phase-27-privacy-journey-2026-09-04.md`.
+- Verified the rendered school AI policy editor: all three bounded policy
+  inputs, save action, and service-boundary persistence are covered by the
+  Avalonia render test; see `evidence/phase-27-policy-ui-2026-09-04.md`.
 
 ## Verification
 
@@ -63,10 +66,11 @@ Date: 2026-09-04
 - Provider resilience and health-persistence slice: 4 passed.
 - Phase 27 usage-budget, provider-resilience and gateway slice: 17 passed,
   including gateway rejection before provider invocation.
+- School policy editor render/binding slice: 1 passed.
 
 ## Remaining phase gate
 
-The provider-profile persistence/validation and local retention/erasure
-subgates are closed by focused tests. Policy-editing UX, provider-specific
+The provider-profile persistence/validation, local retention/erasure, and
+policy-editing UX subgates are closed by focused tests. Provider-specific
 retention/terms acceptance, cloud-provider conformance, and physical
 accessibility evidence remain before phase 27 closure.

@@ -18,12 +18,13 @@ public sealed class SchoolAdminPanelRenderTests
     [AvaloniaFact]
     public async Task SharingSettingsView_WithSchoolAdminServices_RendersAdminConsole()
     {
+        var policyService = new FakeSchoolAiPolicyService();
         var viewModel = new HostSharingViewModel(
             new FakeLibraryHostService(),
             new FakeHostModeSettingsRepository(),
             profileEnrollmentService: new FakeProfileEnrollmentService(),
             schoolAiKeyProvider: new FakeSchoolAiKeyProvider(),
-            schoolAiPolicyService: new FakeSchoolAiPolicyService(),
+            schoolAiPolicyService: policyService,
             usageDashboardService: new FakeUsageDashboardService(),
             schoolAiHistoryManagementService: new FakeSchoolAiHistoryManagementService(),
             auditRepository: new FakeAuditRepository());
@@ -54,6 +55,19 @@ public sealed class SchoolAdminPanelRenderTests
         Assert.Contains("Export CSV", visibleText);
         Assert.Contains("Purge AI history", visibleText);
         Assert.Contains("Amina Reader", visibleText);
+        Assert.Equal(3, window.GetVisualDescendants().OfType<NumericUpDown>().Count());
+        Assert.Contains("Save policy", visibleText);
+        Assert.True(viewModel.CanSaveSchoolAiPolicy);
+
+        viewModel.PerStudentDailyTokenBudget = 500;
+        viewModel.ClassDailyTokenBudget = 2_000;
+        viewModel.PerStudentQueriesPerMinute = 10;
+        await viewModel.SaveSchoolAiPolicyAsync();
+
+        Assert.NotNull(policyService.LastSavedPolicy);
+        Assert.Equal(500, policyService.LastSavedPolicy.PerStudentDailyTokenBudget);
+        Assert.Equal(2_000, policyService.LastSavedPolicy.ClassDailyTokenBudget);
+        Assert.Equal(10, policyService.LastSavedPolicy.PerStudentQueriesPerMinute);
     }
 
     private sealed class FakeHostModeSettingsRepository : IHostModeSettingsRepository
@@ -129,6 +143,8 @@ public sealed class SchoolAdminPanelRenderTests
 
     private sealed class FakeSchoolAiPolicyService : ISchoolAiPolicyService
     {
+        public SchoolAiPolicy? LastSavedPolicy { get; private set; }
+
         public Task<SchoolAiPolicy> GetPolicyAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(new SchoolAiPolicy(
                 AiPrivacyTier.MetadataOnly,
@@ -138,8 +154,11 @@ public sealed class SchoolAdminPanelRenderTests
                 PerStudentQueriesPerMinute: 7,
                 AnswerModeEnabled: false));
 
-        public Task SavePolicyAsync(SchoolAiPolicy policy, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public Task SavePolicyAsync(SchoolAiPolicy policy, CancellationToken cancellationToken = default)
+        {
+            LastSavedPolicy = policy;
+            return Task.CompletedTask;
+        }
 
         public Task<SchoolAiQuotaDecision> CheckAndReserveQuotaAsync(
             Guid profileId,
