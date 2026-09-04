@@ -43,6 +43,8 @@ Date: 2026-09-04
   triggers with five-minute leases, renewal, typed redacted failure outcomes,
   and a compatibility poll for legacy rows. New registrations enqueue search
   work and successful extraction enqueues an idempotent embedding trigger.
+- Added restart-style recovery/load evidence: an orphaned lease is recovered
+  after context disposal and 64 queued jobs drain through recreated workers.
 
 ## Verification
 
@@ -53,7 +55,7 @@ Date: 2026-09-04
 
 ## Remaining phase gate
 
-The local durable lease/runtime and queue-backed stage-worker subgates are
-closed. Kill/restart load evidence remains before phase 17 closure; the
-compatibility poll is retained for pre-queue catalogue rows and is not a
-substitute for production kill/restart evidence.
+The local durable lease/runtime, queue-backed stage-worker, and restart-style
+recovery/load subgates are closed. Physical process-kill, crash, and soak
+evidence remain before phase 17 closure; the compatibility poll is retained
+for pre-queue catalogue rows and is not a substitute for production evidence.

@@ -8,6 +8,7 @@
 | Phase 11 real PDF adapter corpus | 7 PDFs, 3,326 pages, 0 file errors; 27.1 s rerun |
 | Phase 13 provider evidence | Official pages verified 2026-09-04; legal/network still open |
 | Phase 17 lease/runtime and stage workers | 16 focused tests passed |
+| Phase 17 restart/recovery load | 8 focused tests passed; 64-job drain |
 | Phase 27 local privacy journey | 13 focused tests passed |
 | Phase 30 feedback/quality/privacy | 14 focused tests passed |
 | Phase 31 bridge/3D/fallback | 24 focused tests passed; JavaScript syntax passed |

@@ -33,3 +33,4 @@ The audit evidence itself is intended to be committed as a documentation-only
 increment. After commit, verify `git status`, `git diff --cached --check`, and
 remote parity. The user-owned files above must remain outside the commit.
 - Phase 11 real PDF adapter corpus: `docs/implementation/execution/evidence/phase-11-real-pdf-corpus-2026-09-04.md`
+- Phase 17 restart/recovery load: `docs/implementation/execution/evidence/phase-17-restart-recovery-load-2026-09-04.md`
