@@ -139,7 +139,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
             signals,
             HybridRankingWeights.Default,
             DateTimeOffset.UtcNow,
-            maxResults);
+            maxResults,
+            HybridDiversityPolicy.Default);
         List<SemanticSearchResult> results = ranked
             .Select(ToSemanticSearchResult)
             .ToList();

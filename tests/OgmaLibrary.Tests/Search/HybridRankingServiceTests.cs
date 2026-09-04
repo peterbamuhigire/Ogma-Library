@@ -142,8 +142,35 @@ public sealed class HybridRankingServiceTests
         }
     }
 
+    [Fact]
+    public void HybridRanking_DiversityPolicy_InterleavesKnownAuthorsDeterministically()
+    {
+        var service = new HybridRankingService();
+        var exact = new[]
+        {
+            ExactWithAuthor("book-a", "Author A", 10),
+            ExactWithAuthor("book-b", "Author A", 9),
+            ExactWithAuthor("book-c", "Author A", 8),
+            ExactWithAuthor("book-d", "Author B", 7),
+        };
+
+        IReadOnlyList<HybridRankedResult> results = service.Rank(
+            exact,
+            [],
+            new Dictionary<string, HybridBookSignals>(StringComparer.Ordinal),
+            HybridRankingWeights.Default,
+            Now,
+            limit: 2,
+            diversityPolicy: new HybridDiversityPolicy(MaxResultsPerAuthor: 1));
+
+        Assert.Equal(["book-a", "book-d"], results.Select(result => result.BookId).ToArray());
+    }
+
     private static CombinedSearchResult Exact(string bookId, double score) =>
         new(bookId, Title: bookId, Author: "Author", Score: score, MatchedFields: [], FtsHits: []);
+
+    private static CombinedSearchResult ExactWithAuthor(string bookId, string author, double score) =>
+        new(bookId, Title: bookId, Author: author, Score: score, MatchedFields: [], FtsHits: []);
 
     private static SemanticSearchResult Semantic(string bookId, float score) =>
         new(bookId, Title: bookId, ChunkId: null, Source: null, Snippet: null, SemanticScore: score, ExactFallback: false);

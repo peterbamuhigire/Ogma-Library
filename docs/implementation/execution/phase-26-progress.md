@@ -26,6 +26,10 @@ Date: 2026-08-30
 - Added an atomic app-data JSON store for versioned evaluation runs, including
   ranked results, relevance judgments, reports, load, replacement, and delete
   operations with path-safe run identifiers.
+- Added a caller-controlled author-diversity policy to hybrid ranking, with a
+  conservative default wired into semantic retrieval and a pure-score opt-out
+  for callers that require it. Unknown authors remain independent so missing
+  metadata does not collapse unrelated books into one group.
 
 ## Verification
 
@@ -33,10 +37,10 @@ Date: 2026-08-30
   passed with 0 warnings and 0 errors.
 - FTS/combined, hybrid-ranking, semantic retrieval and evaluation slice: 21
   passed.
+- Hybrid diversity policy regression slice: 8 passed.
 
 ## Remaining phase gate
 
 Recall@K/MRR/nDCG evidence from a representative corpus, true ANN or
-equivalent target-scale retrieval, diversity controls, latency/memory
-acceptance at 50,000 books, and final search-contract freeze remain before
-phase 26 closure.
+equivalent target-scale retrieval, latency/memory acceptance at 50,000 books,
+and final search-contract freeze remain before phase 26 closure.

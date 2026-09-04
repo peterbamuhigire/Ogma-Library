@@ -17,13 +17,21 @@ public sealed class HybridRankingService : IHybridRankingService
         IReadOnlyDictionary<string, HybridBookSignals> bookSignals,
         HybridRankingWeights weights,
         DateTimeOffset nowUtc,
-        int limit)
+        int limit,
+        HybridDiversityPolicy? diversityPolicy = null)
     {
         ArgumentNullException.ThrowIfNull(exactResults);
         ArgumentNullException.ThrowIfNull(semanticResults);
         ArgumentNullException.ThrowIfNull(bookSignals);
         ArgumentNullException.ThrowIfNull(weights);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        HybridDiversityPolicy activeDiversity = diversityPolicy ?? HybridDiversityPolicy.None;
+        if (activeDiversity.MaxResultsPerAuthor < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(diversityPolicy),
+                "Maximum results per author must be positive.");
+        }
 
         HybridRankingWeights activeWeights = NormalizeWeights(
             weights,
@@ -56,7 +64,7 @@ public sealed class HybridRankingService : IHybridRankingService
             .Concat(bookSignals.Keys)
             .Distinct(StringComparer.Ordinal);
 
-        return bookIds
+        List<HybridRankedResult> ordered = bookIds
             .Select(bookId => RankBook(
                 bookId,
                 exactByBook.GetValueOrDefault(bookId),
@@ -67,8 +75,33 @@ public sealed class HybridRankingService : IHybridRankingService
                 nowUtc))
             .OrderByDescending(result => result.HybridScore)
             .ThenBy(result => result.BookId, StringComparer.Ordinal)
-            .Take(limit)
             .ToList();
+
+        if (activeDiversity == HybridDiversityPolicy.None)
+        {
+            return ordered.Take(limit).ToList();
+        }
+
+        var authorCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        List<HybridRankedResult> diverse = [];
+        foreach (HybridRankedResult result in ordered)
+        {
+            string authorKey = AuthorKey(result);
+            authorCounts.TryGetValue(authorKey, out int count);
+            if (count >= activeDiversity.MaxResultsPerAuthor)
+            {
+                continue;
+            }
+
+            diverse.Add(result);
+            authorCounts[authorKey] = count + 1;
+            if (diverse.Count == limit)
+            {
+                break;
+            }
+        }
+
+        return diverse;
     }
 
     /// <summary>Computes the exponential-decay recency score.</summary>
@@ -196,5 +229,8 @@ public sealed class HybridRankingService : IHybridRankingService
 
     private static double ValidWeight(double weight) =>
         double.IsFinite(weight) && weight > 0.0 ? weight : 0.0;
+
+    private static string AuthorKey(HybridRankedResult result) =>
+        string.IsNullOrWhiteSpace(result.Author) ? result.BookId : result.Author.Trim();
 }
 

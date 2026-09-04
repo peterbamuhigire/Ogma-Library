@@ -18,7 +18,8 @@ public interface IHybridRankingService
         IReadOnlyDictionary<string, HybridBookSignals> bookSignals,
         HybridRankingWeights weights,
         DateTimeOffset nowUtc,
-        int limit);
+        int limit,
+        HybridDiversityPolicy? diversityPolicy = null);
 }
 
 /// <summary>Hybrid ranking weights before active-weight normalization.</summary>
@@ -31,6 +32,16 @@ public sealed record HybridRankingWeights(
 {
     /// <summary>Phase 11 default weighting from FR-SEARCH-005.</summary>
     public static HybridRankingWeights Default { get; } = new(0.35, 0.10, 0.10, 0.10, 0.35);
+}
+
+/// <summary>Controls deterministic author diversity in the ranked result window.</summary>
+public sealed record HybridDiversityPolicy(int MaxResultsPerAuthor)
+{
+    /// <summary>Default user-facing cap for repeated known authors.</summary>
+    public static HybridDiversityPolicy Default { get; } = new(3);
+
+    /// <summary>Disables diversity filtering for callers that need pure score order.</summary>
+    public static HybridDiversityPolicy None { get; } = new(int.MaxValue);
 }
 
 /// <summary>Reader and metadata signals used by hybrid ranking.</summary>
