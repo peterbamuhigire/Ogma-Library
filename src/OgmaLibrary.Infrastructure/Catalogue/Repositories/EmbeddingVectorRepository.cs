@@ -110,6 +110,8 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         existing.ProviderKey = string.IsNullOrWhiteSpace(vector.ProviderKey)
             ? "ollama"
             : vector.ProviderKey;
+        existing.IsTombstoned = false;
+        existing.TombstonedUtc = null;
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return MapToRecord(existing);
@@ -133,7 +135,8 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
             .SingleOrDefaultAsync(vector =>
                 vector.ChunkId == chunkId &&
                 vector.ModelName == modelName &&
-                vector.ModelVersion == modelVersion,
+                vector.ModelVersion == modelVersion &&
+                !vector.IsTombstoned,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -153,7 +156,9 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         List<EmbeddingVectorRow> rows = await context.EmbeddingVectors
             .AsNoTracking()
             .Include(vector => vector.Chunk)
-            .Where(vector => vector.Chunk != null && vector.Chunk.BookId == bookId)
+            .Where(vector => !vector.IsTombstoned &&
+                             vector.Chunk != null &&
+                             vector.Chunk.BookId == bookId)
             .OrderBy(vector => vector.ChunkId)
             .ThenBy(vector => vector.ModelName)
             .ThenBy(vector => vector.ModelVersion)
@@ -173,7 +178,9 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         List<EmbeddingVectorRow> rows = await lease.Context.EmbeddingVectors
             .AsNoTracking()
             .Include(vector => vector.Chunk)
-            .Where(vector => vector.Chunk != null && vector.Chunk.BookId == bookId)
+            .Where(vector => !vector.IsTombstoned &&
+                             vector.Chunk != null &&
+                             vector.Chunk.BookId == bookId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -182,6 +189,40 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
                 vector.SourceHash,
                 ComputeSourceHash(vector.Chunk, vector.Chunk.ChunkText ?? string.Empty),
                 StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <inheritdoc />
+    public async Task<int> TombstoneStaleAsync(string bookId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        List<EmbeddingVectorRow> rows = await lease.Context.EmbeddingVectors
+            .Include(vector => vector.Chunk)
+            .Where(vector => !vector.IsTombstoned &&
+                             vector.Chunk != null &&
+                             vector.Chunk.BookId == bookId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        List<EmbeddingVectorRow> stale = rows
+            .Where(vector => vector.Chunk is not null &&
+                !string.Equals(
+                    vector.SourceHash,
+                    ComputeSourceHash(vector.Chunk, vector.Chunk.ChunkText ?? string.Empty),
+                    StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        foreach (EmbeddingVectorRow row in stale)
+        {
+            row.IsTombstoned = true;
+            row.TombstonedUtc = now;
+        }
+
+        if (stale.Count > 0)
+        {
+            await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return stale.Count;
     }
 
     /// <inheritdoc />
@@ -234,7 +275,9 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
             row.ExtractorVersion,
             row.ChunkerVersion,
             row.IndexVersion,
-            row.ProviderKey);
+            row.ProviderKey,
+            row.IsTombstoned,
+            row.TombstonedUtc);
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {

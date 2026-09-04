@@ -44,6 +44,12 @@ public sealed class EmbeddingVectorRow
     /// <summary>Provider identity that generated the vector.</summary>
     public string ProviderKey { get; set; } = "ollama";
 
+    /// <summary>Whether this derived vector has been logically invalidated.</summary>
+    public bool IsTombstoned { get; set; }
+
+    /// <summary>UTC time when this vector was logically invalidated.</summary>
+    public DateTimeOffset? TombstonedUtc { get; set; }
+
     /// <summary>Navigation: the source chunk.</summary>
     public SearchChunkRow? Chunk { get; set; }
 }

@@ -38,8 +38,11 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
         Assert.Contains("ModelName", GetColumns("EmbeddingVectors"));
         Assert.Contains("ModelVersion", GetColumns("EmbeddingVectors"));
         Assert.Contains("GeneratedAtUtc", GetColumns("EmbeddingVectors"));
+        Assert.Contains("IsTombstoned", GetColumns("EmbeddingVectors"));
+        Assert.Contains("TombstonedUtc", GetColumns("EmbeddingVectors"));
         Assert.True(IndexExists("IX_Books_EmbeddingStatus"));
         Assert.True(IndexExists("UX_EmbeddingVectors_ChunkId_ModelName_ModelVersion"));
+        Assert.True(IndexExists("IX_EmbeddingVectors_Tombstone_Model"));
     }
 
     [Fact]
@@ -102,6 +105,62 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
                 [0.1f, 0.2f],
                 2,
                 DateTimeOffset.UtcNow),
+            CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task EmbeddingVectorRepository_TombstonesStaleVectors_AndReactivationClearsTombstone()
+    {
+        long chunkId = SeedChunk();
+        var repository = new EmbeddingVectorRepository(_context);
+        const string modelName = "nomic-embed-text";
+        const string modelVersion = "nomic-embed-text:latest";
+        var stale = new EmbeddingVectorRecord(
+            0,
+            chunkId,
+            modelName,
+            modelVersion,
+            [0.25f, -0.5f, 0.75f],
+            3,
+            DateTimeOffset.UtcNow,
+            SourceHash: "a");
+
+        await repository.CreateAsync(stale, CancellationToken.None);
+
+        Assert.Equal(1, await repository.GetStaleCountAsync(
+            "P11EMBEDBOOK000000000001",
+            CancellationToken.None));
+        Assert.Equal(1, await repository.TombstoneStaleAsync(
+            "P11EMBEDBOOK000000000001",
+            CancellationToken.None));
+        Assert.Equal(0, await repository.GetStaleCountAsync(
+            "P11EMBEDBOOK000000000001",
+            CancellationToken.None));
+        Assert.Null(await repository.GetForChunkAsync(
+            chunkId,
+            modelName,
+            modelVersion,
+            CancellationToken.None));
+        Assert.Empty(await repository.GetAllForBookAsync(
+            "P11EMBEDBOOK000000000001",
+            CancellationToken.None));
+
+        EmbeddingVectorRow tombstoned = await _context.EmbeddingVectors
+            .AsNoTracking()
+            .SingleAsync(row => row.ChunkId == chunkId);
+        Assert.True(tombstoned.IsTombstoned);
+        Assert.NotNull(tombstoned.TombstonedUtc);
+
+        EmbeddingVectorRecord regenerated = await repository.CreateAsync(
+            stale with { SourceHash = new string('b', 64) },
+            CancellationToken.None);
+
+        Assert.False(regenerated.IsTombstoned);
+        Assert.Null(regenerated.TombstonedUtc);
+        Assert.NotNull(await repository.GetForChunkAsync(
+            chunkId,
+            modelName,
+            modelVersion,
             CancellationToken.None));
     }
 

@@ -22,15 +22,21 @@ Date: 2026-08-30
   chunk fingerprint and detects vectors whose source changed after generation.
 - Enforced one vector dimension per model/version/provider tuple so rebuild drift
   fails closed before a mixed semantic index can be persisted.
+- Added migration-backed tombstone state for stale vectors, including the
+  invalidation timestamp and a model-scoped retrieval index.
+- Added an explicit stale-tombstone operation; tombstoned vectors are excluded
+  from stale counts and repository retrieval, while successful regeneration
+  clears the tombstone state on the existing model-scoped row.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - Embedding, schema, semantic and performance regression slice: 13 passed.
+- Tombstone migration and lifecycle regression slice:
+  `Phase11EmbeddingSchemaTests`: 6 passed.
 
 ## Remaining phase gate
 
-Explicit tombstones, side-by-side vector index swap/resume, ANN/target-scale
-evidence, cost/cache telemetry, and UI stale-count/rebuild controls remain before
-phase 25 closure.
+Side-by-side vector index swap/resume, ANN/target-scale evidence, cost/cache
+telemetry, and UI stale-count/rebuild controls remain before phase 25 closure.

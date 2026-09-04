@@ -34,6 +34,11 @@ public interface IEmbeddingVectorRepository
         string bookId,
         CancellationToken cancellationToken);
 
+    /// <summary>Marks stale vectors for a book as tombstoned without deleting their audit state.</summary>
+    Task<int> TombstoneStaleAsync(
+        string bookId,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Deletes every stored embedding vector and returns the deleted row count.
     /// </summary>
@@ -55,4 +60,6 @@ public sealed record EmbeddingVectorRecord(
     string ExtractorVersion = "unknown",
     string ChunkerVersion = SearchChunker.CurrentVersion,
     string IndexVersion = "fts5-v1",
-    string ProviderKey = "ollama");
+    string ProviderKey = "ollama",
+    bool IsTombstoned = false,
+    DateTimeOffset? TombstonedUtc = null);
