@@ -17,6 +17,8 @@ Date: 2026-08-30
   WebGL is unavailable or sustained performance degradation is reported.
 - Added protocol parsing and validation for performance metrics, with tests for
   accepted bounds and resident-window overflow rejection.
+- Added bounded texture residency around the focused index; distant resident
+  books retain generated spines and are promoted only as focus moves.
 
 ## Verification
 

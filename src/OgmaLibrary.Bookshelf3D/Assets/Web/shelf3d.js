@@ -28539,6 +28539,7 @@ void main() {
   var SHELF_COLUMNS = 18;
   var SHELF_ROW_HEIGHT = 0.27;
   var MAX_RESIDENT_BOOKS = 500;
+  var TEXTURE_RESIDENT_RADIUS = 80;
   var BRIDGE_MESSAGE_BOOK_LIMIT = 1e5;
   var Shelf3DScene = class {
     constructor(canvas) {
@@ -28870,6 +28871,8 @@ void main() {
     applySpineTexture(mesh, book) {
       const textureRequestToken = {};
       mesh.userData.textureRequestToken = textureRequestToken;
+      const textureResident = this.isTextureResident(mesh.userData.bookIndex);
+      mesh.userData.textureResident = textureResident;
       const fallback = document.createElement("canvas");
       fallback.width = 256;
       fallback.height = 512;
@@ -28890,9 +28893,10 @@ void main() {
       const fallbackTexture = new Texture(fallback);
       fallbackTexture.colorSpace = SRGBColorSpace;
       fallbackTexture.needsUpdate = true;
+      mesh.material.map?.dispose();
       mesh.material.map = fallbackTexture;
       mesh.material.needsUpdate = true;
-      if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
+      if (!textureResident || typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
       const image = new Image();
       image.onload = () => {
         const texture = new Texture(image);
@@ -28914,6 +28918,7 @@ void main() {
       this.focusedIndex = Math.max(0, Math.min(index, this.books.length - 1));
       if (this.focusedIndex < this.residentStart || this.focusedIndex >= this.residentEnd) this.rebuildResidentWindow();
       this.applyFocusScale();
+      this.refreshTextureResidency();
       const focusedBook = this.books[this.focusedIndex];
       if (moveCamera) this.focusCamera(this.focusedIndex);
       if (announce && focusedBook !== void 0) this.post({ type: "BookHovered", bookId: focusedBook.bookId });
@@ -28924,6 +28929,18 @@ void main() {
         const focused = mesh.userData.bookIndex === this.focusedIndex;
         mesh.scale.setScalar(focused ? 1.08 : 1);
       }
+    }
+    refreshTextureResidency() {
+      for (const mesh of this.bookMeshes) {
+        const index = mesh.userData.bookIndex;
+        const textureResident = this.isTextureResident(index);
+        if (mesh.userData.textureResident === textureResident) continue;
+        const book = this.books[index];
+        if (book !== void 0) this.applySpineTexture(mesh, book);
+      }
+    }
+    isTextureResident(index) {
+      return Math.abs(index - this.focusedIndex) <= TEXTURE_RESIDENT_RADIUS;
     }
     focusCamera(index) {
       const target = this.layout === "shelf" ? this.shelfPosition(index) : this.gridPosition(index);

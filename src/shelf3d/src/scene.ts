@@ -26,6 +26,9 @@ const BOOK_DEPTH = 0.13;
 const SHELF_COLUMNS = 18;
 const SHELF_ROW_HEIGHT = 0.27;
 const MAX_RESIDENT_BOOKS = 500;
+// Keep local image uploads near the current selection; distant books retain
+// their deterministic generated spine until keyboard or pointer focus moves.
+const TEXTURE_RESIDENT_RADIUS = 80;
 const BRIDGE_MESSAGE_BOOK_LIMIT = 100_000;
 
 export class Shelf3DScene {
@@ -400,6 +403,8 @@ export class Shelf3DScene {
   private applySpineTexture(mesh: BookMesh, book: BookSceneItem): void {
     const textureRequestToken = {};
     mesh.userData.textureRequestToken = textureRequestToken;
+    const textureResident = this.isTextureResident(mesh.userData.bookIndex as number);
+    mesh.userData.textureResident = textureResident;
     const fallback = document.createElement("canvas");
     fallback.width = 256;
     fallback.height = 512;
@@ -420,9 +425,10 @@ export class Shelf3DScene {
     const fallbackTexture = new THREE.Texture(fallback);
     fallbackTexture.colorSpace = THREE.SRGBColorSpace;
     fallbackTexture.needsUpdate = true;
+    mesh.material.map?.dispose();
     mesh.material.map = fallbackTexture;
     mesh.material.needsUpdate = true;
-    if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
+    if (!textureResident || typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
     const image = new Image();
     image.onload = () => {
       const texture = new THREE.Texture(image);
@@ -445,6 +451,7 @@ export class Shelf3DScene {
     this.focusedIndex = Math.max(0, Math.min(index, this.books.length - 1));
     if (this.focusedIndex < this.residentStart || this.focusedIndex >= this.residentEnd) this.rebuildResidentWindow();
     this.applyFocusScale();
+    this.refreshTextureResidency();
     const focusedBook = this.books[this.focusedIndex];
     if (moveCamera) this.focusCamera(this.focusedIndex);
     if (announce && focusedBook !== undefined) this.post({ type: "BookHovered", bookId: focusedBook.bookId });
@@ -456,6 +463,20 @@ export class Shelf3DScene {
       const focused = mesh.userData.bookIndex === this.focusedIndex;
       mesh.scale.setScalar(focused ? 1.08 : 1);
     }
+  }
+
+  private refreshTextureResidency(): void {
+    for (const mesh of this.bookMeshes) {
+      const index = mesh.userData.bookIndex as number;
+      const textureResident = this.isTextureResident(index);
+      if (mesh.userData.textureResident === textureResident) continue;
+      const book = this.books[index];
+      if (book !== undefined) this.applySpineTexture(mesh, book);
+    }
+  }
+
+  private isTextureResident(index: number): boolean {
+    return Math.abs(index - this.focusedIndex) <= TEXTURE_RESIDENT_RADIUS;
   }
 
   private focusCamera(index: number): void {
