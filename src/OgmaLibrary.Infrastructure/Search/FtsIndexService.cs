@@ -46,7 +46,8 @@ public sealed class FtsIndexService : IFtsIndexService
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
-        string matchQuery = BuildMatchQuery(query);
+        ParsedFtsQuery parsed = ParseQuery(query);
+        string matchQuery = BuildMatchQuery(parsed.Text);
         if (matchQuery.Length == 0)
         {
             return [];
@@ -88,6 +89,7 @@ public sealed class FtsIndexService : IFtsIndexService
             WHERE SearchFts5 MATCH $query
               AND b.Status = 0
               AND c.IndexVersion = $indexVersion
+              AND ($source IS NULL OR c.Source = $source)
               AND (
                   c.ExtractionArtifactId IS NULL
                   OR (
@@ -102,6 +104,7 @@ public sealed class FtsIndexService : IFtsIndexService
         AddParameter(command, "$limit", effectiveLimit);
         AddParameter(command, "$indexVersion", CurrentIndexVersion);
         AddParameter(command, "$completedArtifactStatus", CompletedArtifactStatus);
+        AddParameter(command, "$source", parsed.Source is null ? DBNull.Value : (int)parsed.Source.Value);
 
         var results = new List<FtsSearchResult>();
         using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
@@ -201,6 +204,32 @@ public sealed class FtsIndexService : IFtsIndexService
             : "\"" + string.Join(' ', tokens) + "\"";
     }
 
+    private static ParsedFtsQuery ParseQuery(string? query)
+    {
+        string normalized = query?.Trim() ?? string.Empty;
+        int separator = normalized.IndexOf(':');
+        if (separator <= 0 || separator == normalized.Length - 1)
+        {
+            return new ParsedFtsQuery(null, normalized);
+        }
+
+        string field = normalized[..separator].Trim().ToLowerInvariant();
+        string text = normalized[(separator + 1)..].Trim();
+        SearchChunkSource? source = field switch
+        {
+            "page" or "text" => SearchChunkSource.Page,
+            "note" or "notes" => SearchChunkSource.Note,
+            "tag" or "tags" => SearchChunkSource.Tag,
+            "description" => SearchChunkSource.Description,
+            "toc" or "contents" => SearchChunkSource.Toc,
+            _ => null,
+        };
+
+        return source is null
+            ? new ParsedFtsQuery(null, normalized)
+            : new ParsedFtsQuery(source, text);
+    }
+
     private static IEnumerable<string> Tokenize(string? query)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -227,6 +256,8 @@ public sealed class FtsIndexService : IFtsIndexService
             yield return token.ToString();
         }
     }
+
+    private sealed record ParsedFtsQuery(SearchChunkSource? Source, string Text);
 
     private static void AddParameter(DbCommand command, string name, object value)
     {

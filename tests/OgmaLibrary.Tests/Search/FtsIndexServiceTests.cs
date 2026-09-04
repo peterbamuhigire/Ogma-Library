@@ -73,6 +73,23 @@ public sealed class FtsIndexServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task FtsIndex_Search_StructuredSourcePrefixRestrictsMatches()
+    {
+        string bookId = SeedBook("P23STRUCTURED0000001", "Structured FTS", "Reader");
+        await SaveChunksAsync(bookId, SearchChunkSource.Page, "scopedmarker page text");
+        await SaveChunksAsync(bookId, SearchChunkSource.Note, "scopedmarker note text");
+        var service = new FtsIndexService(_context);
+
+        IReadOnlyList<FtsSearchResult> results = await service.SearchAsync(
+            "note:scopedmarker",
+            10,
+            CancellationToken.None);
+
+        Assert.NotEmpty(results);
+        Assert.All(results, result => Assert.Equal(SearchChunkSource.Note, result.Source));
+    }
+
+    [Fact]
     public async Task FtsIndex_Search_SanitizesInvalidInputAndIntegrityCheckPasses()
     {
         string bookId = SeedBook("P10FTSBOOK000000000004", "Integrity Book", null);

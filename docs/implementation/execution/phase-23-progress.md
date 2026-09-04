@@ -20,6 +20,10 @@ Date: 2026-08-30
   migration recreates the triggers and rebuilds FTS content.
 - Full-text results now reject inactive books, stale artifact hashes and old
   index versions while preserving legacy unversioned rows.
+- Added bounded source-scoped full-text grammar for `page:`, `note:`, `tag:`,
+  `description:`, and `toc:` queries, applied as a SQL source filter.
+- Added regression coverage proving source prefixes do not mix page and note
+  matches.
 
 ## Verification
 
@@ -32,7 +36,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-The complete phase still requires structured full-text query grammar,
+The complete phase still requires
 highlight-safe snippets with explicit page-jump contracts, UI full-text mode
 and reader navigation, progress/no-index states, observability metrics,
 side-by-side rebuild swap, and the 50,000-book latency benchmark.
