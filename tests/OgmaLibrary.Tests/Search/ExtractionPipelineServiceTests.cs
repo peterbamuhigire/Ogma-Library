@@ -269,7 +269,7 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
     [Trait("Category", "Benchmark")]
     public async Task ExtractionPipeline_MixedQualityBatch_RecordsThroughputBaseline()
     {
-        const int bookCount = 32;
+        const int bookCount = 500;
         for (int index = 0; index < bookCount; index++)
         {
             SeedBook($"P11BENCHBOOK{index:000000000000}", new string((char)('a' + index % 26), 64));

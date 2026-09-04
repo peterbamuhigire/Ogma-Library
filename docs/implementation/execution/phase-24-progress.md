@@ -31,6 +31,8 @@ Date: 2026-08-30
 - The desktop Index Manager exposes OCR state, bounded page progress, pause,
   cancel, and retry actions with bound accessible names and safe state-based
   enablement.
+- Expanded the deterministic mixed-quality extraction benchmark from 32 to 500
+  books (1,500 pages) to provide a larger local throughput/allocation baseline.
 
 ## Verification
 
@@ -44,7 +46,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Real mixed-PDF accuracy and CPU/memory corpus evidence, and cross-platform
-packaged asset proof remain before phase 24 closure. OCR UI quality controls are
-closed by the tested Index Manager state/progress/actions; physical assistive
-technology evidence remains `NOT ASSESSED`.
+The local synthetic 500-book mixed-quality throughput/allocation subgate is
+covered by the benchmark. Real mixed-PDF accuracy and CPU/memory corpus
+evidence, cross-platform packaged asset proof, and physical assistive
+technology evidence remain before phase 24 closure.
