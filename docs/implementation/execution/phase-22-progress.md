@@ -23,6 +23,9 @@ Date: 2026-08-30
   and fuzzy fallback paths.
 - Added a regression fixture proving an author-scoped query does not match a
   title-only occurrence.
+- Verified the global search view's 150 ms type-ahead debounce, cancellation,
+  stale-result suppression, and selected-result navigation in an Avalonia UI
+  regression test.
 
 ## Verification
 
@@ -32,6 +35,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Facets, paging, highlighting, type-ahead, richer
+Facets, paging, highlighting, richer
 correction suggestions, full-text fallback integration and the 50,000-book
 search benchmark remain before phase 22 closure.
