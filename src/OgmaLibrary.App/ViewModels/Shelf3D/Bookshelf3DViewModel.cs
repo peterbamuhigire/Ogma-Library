@@ -204,6 +204,25 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Moves the 3D scene focus to a book selected by search or advisor UI.</summary>
+    public async Task FocusBookAsync(string bookId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        if (!Books.Any(book => string.Equals(book.BookId, bookId, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        try
+        {
+            await _bridge.PostMessageAsync(new FocusBookMessage(bookId), cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException)
+        {
+            IsWebGl2Supported = false;
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

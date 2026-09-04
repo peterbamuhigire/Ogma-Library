@@ -35,3 +35,7 @@ public sealed record SetThemeMessage(
 /// <summary>Switches between supported Three.js shelf layouts.</summary>
 public sealed record SetLayoutMessage(
     [property: JsonPropertyName("layout")] string Layout) : OutboundMessage("SetLayout");
+
+/// <summary>Moves the visual and keyboard focus to a catalogue book.</summary>
+public sealed record FocusBookMessage(
+    [property: JsonPropertyName("bookId")] string BookId) : OutboundMessage("FocusBook");

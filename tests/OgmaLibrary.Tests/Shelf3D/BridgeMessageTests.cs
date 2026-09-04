@@ -24,6 +24,20 @@ public sealed class BridgeMessageTests
     }
 
     [Fact]
+    public async Task WebView2Bridge_FocusBook_SerializesCorrectly()
+    {
+        var host = new FakeWebViewHostAdapter();
+        var bridge = new WebView2Bridge();
+        await bridge.InitializeAsync(host, CancellationToken.None);
+
+        await bridge.PostMessageAsync(new FocusBookMessage(ValidBookId), CancellationToken.None);
+
+        Assert.Equal(
+            """{"bookId":"01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7","type":"FocusBook","version":"shelf3d-v1"}""",
+            host.LastPostedJson);
+    }
+
+    [Fact]
     public async Task WKWebViewBridge_PostMessage_SerializesCorrectly()
     {
         var host = new FakeWebViewHostAdapter();

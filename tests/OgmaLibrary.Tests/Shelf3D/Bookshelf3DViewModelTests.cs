@@ -110,6 +110,31 @@ public sealed class Bookshelf3DViewModelTests
     }
 
     [Fact]
+    public async Task Bookshelf3DViewModel_FocusBook_PostsFocusMessageForKnownBook()
+    {
+        var bridge = new FakeBridge();
+        using var viewModel = CreateViewModel(bridge, new RecordingNavigation());
+        await viewModel.LoadAsync();
+
+        await viewModel.FocusBookAsync("01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7");
+
+        FocusBookMessage focus = Assert.IsType<FocusBookMessage>(bridge.PostedMessages[^1]);
+        Assert.Equal("01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7", focus.BookId);
+    }
+
+    [Fact]
+    public async Task Bookshelf3DViewModel_FocusBook_IgnoresUnknownBook()
+    {
+        var bridge = new FakeBridge();
+        using var viewModel = CreateViewModel(bridge, new RecordingNavigation());
+        await viewModel.LoadAsync();
+
+        await viewModel.FocusBookAsync("01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z8");
+
+        Assert.DoesNotContain(bridge.PostedMessages, message => message is FocusBookMessage);
+    }
+
+    [Fact]
     public void Bookshelf3DViewModel_Labels_AreLocalized()
     {
         var localization = new InMemoryLocalizationService();

@@ -93,6 +93,9 @@ export class Shelf3DScene {
         this.layout = message.layout;
         this.rebuildResidentWindow();
         return;
+      case "FocusBook":
+        this.focusBook(message.bookId);
+        return;
       default:
         assertNever(message);
     }
@@ -405,6 +408,14 @@ export class Shelf3DScene {
     mesh.userData.textureRequestToken = textureRequestToken;
     const textureResident = this.isTextureResident(mesh.userData.bookIndex as number);
     mesh.userData.textureResident = textureResident;
+    mesh.material.map?.dispose();
+    mesh.material.map = null;
+    mesh.material.color.copy(this.fallbackColor(book.bookId));
+    mesh.material.needsUpdate = true;
+    // Distant books deliberately use a flat-color LOD. This keeps the full
+    // catalogue addressable while bounding generated and decoded textures to
+    // the focused window.
+    if (!textureResident) return;
     const fallback = document.createElement("canvas");
     fallback.width = 256;
     fallback.height = 512;
@@ -425,10 +436,9 @@ export class Shelf3DScene {
     const fallbackTexture = new THREE.Texture(fallback);
     fallbackTexture.colorSpace = THREE.SRGBColorSpace;
     fallbackTexture.needsUpdate = true;
-    mesh.material.map?.dispose();
     mesh.material.map = fallbackTexture;
     mesh.material.needsUpdate = true;
-    if (!textureResident || typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
+    if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
     const image = new Image();
     image.onload = () => {
       const texture = new THREE.Texture(image);
@@ -453,7 +463,7 @@ export class Shelf3DScene {
     this.applyFocusScale();
     this.refreshTextureResidency();
     const focusedBook = this.books[this.focusedIndex];
-    if (moveCamera) this.focusCamera(this.focusedIndex);
+    if (moveCamera && !this.reducedMotion) this.focusCamera(this.focusedIndex);
     if (announce && focusedBook !== undefined) this.post({ type: "BookHovered", bookId: focusedBook.bookId });
     if (focusedBook !== undefined) this.setStatus(`${focusedBook.title} — ${focusedBook.author}`);
   }
@@ -477,6 +487,11 @@ export class Shelf3DScene {
 
   private isTextureResident(index: number): boolean {
     return Math.abs(index - this.focusedIndex) <= TEXTURE_RESIDENT_RADIUS;
+  }
+
+  private focusBook(bookId: string): void {
+    const index = this.books.findIndex((book) => book.bookId === bookId);
+    if (index >= 0) this.setFocusedIndex(index);
   }
 
   private focusCamera(index: number): void {

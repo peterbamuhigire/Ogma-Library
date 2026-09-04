@@ -16,6 +16,10 @@ Date: 2026-09-04
   validated outbound protocol versions in the packaged client.
 - Bounded title/author labels before they cross the C# to JavaScript boundary and
   rejected oversized scene labels in the renderer.
+- Added a flat-colour distant-book LOD so only the focused 161-book band allocates
+  generated or decoded spine textures.
+- Added a versioned `FocusBook` bridge command for search/advisor callers and
+  suppressed automatic focus-camera movement when reduced motion is requested.
 - Recorded the local scene/interaction verification in
   `evidence/phase-32-virtual-bookshelf-2026-09-04.md`; the TypeScript source
   pipeline is now restored and its build emits a source/lockfile/bundle
@@ -24,13 +28,16 @@ Date: 2026-09-04
 ## Verification
 
 - `node --check src/OgmaLibrary.Bookshelf3D/Assets/Web/shelf3d.js` passed.
-- Bridge and 3D view-model slice: 14 passed.
+- Bridge and 3D view-model slice: 31 Shelf3D tests passed.
 - Headless rendered 3D fallback slice: 1 passed.
+- TypeScript typecheck, bundle syntax, layout budget, and mesh/texture residency
+  bounds passed for 50, 250, 500, 1k, 5k, and 10k inputs.
 
 ## Remaining phase gate
 
-Texture-atlas/LOD scale testing, search/advisor focus commands, reduced-motion
-camera behavior, and physical Windows/macOS screenshot and interaction
-evidence remain open. The build manifest proves the emitted bundle digest and
-records the source and lockfile digests; it does not replace a signed release
-commit or physical WebView evidence.
+Texture-atlas implementation/scale testing, search/advisor UI wiring and
+reference confirmation, and physical Windows/macOS screenshot and interaction
+evidence remain open. The local bridge command, LOD bound, and reduced-motion
+policy are now executable subgates. The build manifest proves the emitted
+bundle digest and records the source and lockfile digests; it does not replace
+a signed release commit or physical WebView evidence.

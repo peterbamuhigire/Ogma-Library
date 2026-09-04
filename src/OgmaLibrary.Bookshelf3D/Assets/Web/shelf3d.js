@@ -28602,6 +28602,9 @@ void main() {
           this.layout = message.layout;
           this.rebuildResidentWindow();
           return;
+        case "FocusBook":
+          this.focusBook(message.bookId);
+          return;
         default:
           assertNever(message);
       }
@@ -28873,6 +28876,11 @@ void main() {
       mesh.userData.textureRequestToken = textureRequestToken;
       const textureResident = this.isTextureResident(mesh.userData.bookIndex);
       mesh.userData.textureResident = textureResident;
+      mesh.material.map?.dispose();
+      mesh.material.map = null;
+      mesh.material.color.copy(this.fallbackColor(book.bookId));
+      mesh.material.needsUpdate = true;
+      if (!textureResident) return;
       const fallback = document.createElement("canvas");
       fallback.width = 256;
       fallback.height = 512;
@@ -28893,10 +28901,9 @@ void main() {
       const fallbackTexture = new Texture(fallback);
       fallbackTexture.colorSpace = SRGBColorSpace;
       fallbackTexture.needsUpdate = true;
-      mesh.material.map?.dispose();
       mesh.material.map = fallbackTexture;
       mesh.material.needsUpdate = true;
-      if (!textureResident || typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
+      if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
       const image = new Image();
       image.onload = () => {
         const texture = new Texture(image);
@@ -28920,7 +28927,7 @@ void main() {
       this.applyFocusScale();
       this.refreshTextureResidency();
       const focusedBook = this.books[this.focusedIndex];
-      if (moveCamera) this.focusCamera(this.focusedIndex);
+      if (moveCamera && !this.reducedMotion) this.focusCamera(this.focusedIndex);
       if (announce && focusedBook !== void 0) this.post({ type: "BookHovered", bookId: focusedBook.bookId });
       if (focusedBook !== void 0) this.setStatus(`${focusedBook.title} \u2014 ${focusedBook.author}`);
     }
@@ -28941,6 +28948,10 @@ void main() {
     }
     isTextureResident(index) {
       return Math.abs(index - this.focusedIndex) <= TEXTURE_RESIDENT_RADIUS;
+    }
+    focusBook(bookId) {
+      const index = this.books.findIndex((book) => book.bookId === bookId);
+      if (index >= 0) this.setFocusedIndex(index);
     }
     focusCamera(index) {
       const target = this.layout === "shelf" ? this.shelfPosition(index) : this.gridPosition(index);

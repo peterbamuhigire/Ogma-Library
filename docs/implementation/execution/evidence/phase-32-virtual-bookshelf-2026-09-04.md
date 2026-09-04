@@ -13,9 +13,10 @@ accessible live status messaging.
 The checked-in TypeScript source is now the build input, and the build emits a
 manifest containing source, lockfile, and bundle SHA-256 digests. The asset
 publisher rejects a missing or bundle-mismatched manifest; the tamper case is
-covered by an executable test. Atlas/LOD scale tests, reduced-motion camera
-evidence, search/advisor focus commands, and physical Windows/macOS
-interaction evidence remain open.
+covered by an executable test. The local LOD bound, reduced-motion camera
+policy, and `FocusBook` bridge command are also executable and covered below.
+Texture-atlas implementation/scale, search/advisor UI wiring and reference
+confirmation, and physical Windows/macOS interaction evidence remain open.
 
 ## Verification
 
@@ -24,6 +25,7 @@ node --check src/OgmaLibrary.Bookshelf3D/Assets/Web/shelf3d.js
 dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Debug --no-build --filter "FullyQualifiedName~BridgeMessageTests|FullyQualifiedName~Bookshelf3DViewModelTests|FullyQualifiedName~OgmaSchemeHandlerTests" --verbosity minimal -m:1
 ```
 
-Result: JavaScript syntax check passed; 28 C# bridge/3D tests passed, with 0
+Result: JavaScript syntax check passed; 31 C# bridge/3D tests passed, with 0
 failures and 0 skips. `npm run typecheck`, `npm run build`, and the generated
-`shelf3d.build.json` bundle digest check also passed.
+`shelf3d.build.json` bundle digest check also passed. `npm run perf:budget`
+passed with the mesh and texture residency bounds at all six catalogue sizes.

@@ -26,7 +26,8 @@ export type OutboundMessage =
   | (Versioned & Readonly<{ type: "RemoveBook"; bookId: string }>)
   | (Versioned & Readonly<{ type: "SetCamera"; camera: CameraState }>)
   | (Versioned & Readonly<{ type: "SetTheme"; themeKey: "light" | "dark" }>)
-  | (Versioned & Readonly<{ type: "SetLayout"; layout: "shelf" | "grid3d" }>);
+  | (Versioned & Readonly<{ type: "SetLayout"; layout: "shelf" | "grid3d" }>)
+  | (Versioned & Readonly<{ type: "FocusBook"; bookId: string }>);
 
 export type InboundMessage =
   | Readonly<{ type: "BookClicked"; bookId: string }>
