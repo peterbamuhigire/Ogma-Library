@@ -28,7 +28,7 @@ dotnet test OgmaLibrary.sln --no-restore
   --results-directory tmp/full-suite-results-2026-09-04-phase25-query-cache/
 ```
 
-Result: 882 core + 41 architecture + 142 UI = 1,065 passed, 0 failed,
+Result: 883 core + 41 architecture + 142 UI = 1,066 passed, 0 failed,
 0 skipped.
 
 ## Gate disposition
