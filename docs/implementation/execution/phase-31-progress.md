@@ -20,6 +20,9 @@ Date: 2026-09-04
 - Recorded the code-level host-contract and accessible-fallback evidence in
   `evidence/phase-31-3d-host-contract-2026-09-04.md`; native adapters and
   physical platform evidence remain explicitly unassessed.
+- Reconciled the current phase record: no repository-only host-contract work is
+  open; native adapter and physical platform gates remain **NOT ASSESSED**.
+  See `evidence/phase-31-host-contract-reconciliation-2026-09-04.md`.
 
 ## Verification
 
