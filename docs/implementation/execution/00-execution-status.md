@@ -45,9 +45,9 @@ Ledger normalized: 2026-09-04
 | 34 | Classroom Host Security and Read Model | IN PROGRESS | Published-scope enforcement, redaction, local authenticated concurrency smoke and host-boundary evidence delivered; two-machine/firewall/mDNS/TOFU/hostile-soak evidence open |
 | 35 | Classroom Client, Offline and Sync | IN PROGRESS | Tamper-evident cache, host scoping, bounded sync and local 104-test evidence delivered; credential/pairing/reconnect/offline UX/isolation/load evidence open |
 | 36 | School Administration and Managed AI | IN PROGRESS | Host-side key custody, scopes, quotas, DPIA minimization and local managed-AI evidence delivered; E2E/backup/rotation/erasure/accessibility/soak/formal DPIA open |
-| 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity and audit minimization delivered; physical hostile/secret-store/penetration/soak evidence open |
-| 38 | Performance, Reliability, Packaging and Beta | IN PROGRESS | Release descriptors, candidate packaging, integrity gates and local migration compatibility delivered; signed installers, clean install, performance, recovery and rollback open |
-| 39 | Cross-Platform Release Acceptance and Handover | IN PROGRESS | Fail-closed acceptance contract delivered; physical reference-machine, signing, install, performance, rollback, backup and owner gates open |
+| 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity, audit minimization and local security verification delivered; physical hostile/secret-store/penetration/soak evidence open |
+| 38 | Performance, Reliability, Packaging and Beta | IN PROGRESS | Release descriptors, candidate packaging, integrity gates, local migration compatibility and script verification delivered; signed installers, clean install, performance, recovery and rollback open |
+| 39 | Cross-Platform Release Acceptance and Handover | IN PROGRESS | Fail-closed acceptance contract and release-gate evidence delivered; physical reference-machine, signing, install, performance, rollback, backup and owner gates open |
 
 `COMPLETE` means the phase's explicit implementation gates are evidenced and
 verified. `IN PROGRESS` means one or more explicit gates remain open; the

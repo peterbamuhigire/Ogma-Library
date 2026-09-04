@@ -1,6 +1,6 @@
 # Phase 37 Progress - Security, Privacy and Data Protection Hardening
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -15,6 +15,8 @@ Date: 2026-08-30
 - Minimized LAN audit identity data to a one-way remote-IP fingerprint and
   preserved secret/token redaction.
 - Added tamper, oversize, and response-header regression tests.
+- Recorded the current local hardening evidence in
+  `evidence/phase-37-security-hardening-2026-09-04.md`.
 
 ## Verification
 
