@@ -22,6 +22,9 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Deb
 
 Result: 61 passed, 0 failed, 0 skipped.
 
+Post-Phase-32 current-HEAD rerun on 2026-09-04 also passed the complete
+`LanHost` slice: 61 passed, 0 failed, and 0 skipped.
+
 The passing slice covers HTTPS/authentication/RBAC, session replay, paging,
 search, TLS-backed page rendering, range/file policy, profile sync, sidecar
 delivery (including provider-only cover fallback), unpublished/private
