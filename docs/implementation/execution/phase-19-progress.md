@@ -20,6 +20,10 @@ Date: 2026-08-30
   existing grid/list render tests continue to pass.
 - Added a 50,000-record SQLite read-model page benchmark; the server-side
   100-result catalogue page passed the <=2-second local assertion.
+- Added a functional directory catalogue view backed by the shared filtered
+  projection. It renders library-root-relative paths in a virtualized list and
+  opens the selected book in the reader on double-click; LAN projections remain
+  explicit and do not inherit the desktop-only path field.
 
 ## Verification
 
@@ -27,11 +31,12 @@ Date: 2026-08-30
   passed with 0 warnings and 0 errors.
 - `Phase19CatalogueAssetTests`: 2 passed.
 - `CatalogueGridTests`: 2 passed.
+- `CatalogueDirectoryViewRenderTests`: 1 passed.
 
 ## Remaining phase gate
 
-Directory view parity, persisted filter/sort views, UI pagination wiring,
-processing/quality badges, complete cover-source fallback, API asset
-authorization, and keyboard/screen-reader journeys remain before phase 19
-closure. The local 50k server-side page performance sub-gate is closed;
-named reference-hardware confirmation remains a release gate.
+Persisted filter/sort views, UI pagination wiring, processing/quality badges,
+complete cover-source fallback, API asset authorization, and keyboard/screen-
+reader journeys remain before phase 19 closure. The directory-view delivery
+sub-gate and local 50k server-side page performance sub-gate are closed; named
+reference-hardware confirmation remains a release gate.

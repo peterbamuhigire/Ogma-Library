@@ -205,7 +205,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ReadingProgressPct: item.Progress?.CompletionPct,
                 IsAvailable: item.HasPresentFile,
                 Year: item.Year,
-                Sha256Hash: item.Sha256Hash));
+                Sha256Hash: item.Sha256Hash,
+                RelativePath: item.PrimaryRelativePath));
         }
 
         return summaries;

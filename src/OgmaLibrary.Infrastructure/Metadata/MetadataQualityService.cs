@@ -172,6 +172,10 @@ public sealed class MetadataQualityService : IMetadataQualityService
                 ShelfIds = b.ShelfBooks
                     .Select(sb => sb.ShelfId)
                     .ToList(),
+                PrimaryRelativePath = b.BookFiles
+                    .OrderBy(f => f.RelativePath)
+                    .Select(f => f.RelativePath)
+                    .FirstOrDefault(),
                 Progress = b.ReadingProgress,
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
             })
@@ -190,7 +194,8 @@ public sealed class MetadataQualityService : IMetadataQualityService
                 ShelfIds: item.ShelfIds,
                 ReadingProgressPct: item.Progress?.CompletionPct,
                 IsAvailable: item.HasPresentFile,
-                Year: item.Year);
+                Year: item.Year,
+                RelativePath: item.PrimaryRelativePath);
         }
     }
 }

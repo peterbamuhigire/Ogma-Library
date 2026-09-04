@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:app="using:OgmaLibrary.Application.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueDirectoryView"
+             x:DataType="vm:CatalogueViewModel">
+  <ListBox ItemsSource="{Binding FilteredItems}"
+           SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
+           SelectionMode="Single"
+           Background="Transparent"
+           BorderThickness="0">
+    <ListBox.ItemsPanel>
+      <ItemsPanelTemplate>
+        <VirtualizingStackPanel />
+      </ItemsPanelTemplate>
+    </ListBox.ItemsPanel>
+    <ListBox.ItemTemplate>
+      <DataTemplate x:DataType="app:BookSummaryProjection">
+        <Border Padding="10,7"
+                AutomationProperties.Name="{Binding Title}"
+                Cursor="Hand"
+                PointerPressed="BookRow_PointerPressed">
+          <Grid ColumnDefinitions="2*,*,*,Auto" ColumnSpacing="12">
+            <TextBlock Text="{Binding RelativePath, FallbackValue='(path unavailable)'}"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding RelativePath}"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1"
+                       Text="{Binding Title, FallbackValue='Untitled'}"
+                       TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2"
+                       Text="{Binding Authors[0], FallbackValue='Unknown author'}"
+                       TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3"
+                       Text="{Binding Year}"
+                       VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ListBox.ItemTemplate>
+  </ListBox>
+</UserControl>

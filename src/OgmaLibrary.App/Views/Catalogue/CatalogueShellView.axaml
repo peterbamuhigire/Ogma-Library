@@ -343,14 +343,10 @@
             <cat:CatalogueListView DataContext="{Binding Catalogue}" />
           </Panel>
 
-          <!-- Directory view placeholder -->
-          <Border IsVisible="{Binding Catalogue.IsDirectoryView}"
-                  VerticalAlignment="Center"
-                  HorizontalAlignment="Center">
-            <TextBlock Text="Directory view (coming soon)"
-                       FontSize="{DynamicResource Type.Size.Body}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          </Border>
+          <!-- Directory view: virtualized library-root-relative paths. -->
+          <Panel IsVisible="{Binding Catalogue.IsDirectoryView}">
+            <cat:CatalogueDirectoryView DataContext="{Binding Catalogue}" />
+          </Panel>
 
           <!-- Empty state -->
           <Border IsVisible="{Binding Catalogue.IsEmpty}"

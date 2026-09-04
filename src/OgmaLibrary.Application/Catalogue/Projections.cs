@@ -18,6 +18,7 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="Year">Publication year, or null if unknown.</param>
 /// <param name="Sha256Hash">SHA-256 hex digest of the file content, or null if not available.</param>
 /// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
+/// <param name="RelativePath">Desktop-only library-root-relative source path; never expose in LAN projections.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -30,7 +31,8 @@ public sealed record BookSummaryProjection(
     bool IsAvailable,
     int? Year,
     string? Sha256Hash = null,
-    bool IsFavourite = false);
+    bool IsFavourite = false,
+    string? RelativePath = null);
 
 /// <summary>
 /// A full detail projection of a book across all five metadata groups, used by the
