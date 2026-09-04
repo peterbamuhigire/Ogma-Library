@@ -518,6 +518,24 @@ public sealed class MainShellViewModel :
     /// <summary>Sort label.</summary>
     public string SortLabel => _localization["Icon.ic_cat_sort.Label"];
 
+    /// <summary>Localized filter-panel heading.</summary>
+    public string FiltersText => _localization["Catalogue.Filter.Filters"];
+
+    /// <summary>Localized title-filter watermark.</summary>
+    public string FilterTitleWatermark => _localization["Catalogue.Filter.Title"];
+
+    /// <summary>Localized author-filter watermark.</summary>
+    public string FilterAuthorWatermark => _localization["Catalogue.Filter.Author"];
+
+    /// <summary>Localized clear-filter action.</summary>
+    public string ClearFiltersText => _localization["Catalogue.Filter.ClearAll"];
+
+    /// <summary>Localized count of all items matching the active filter.</summary>
+    public string CatalogueCountText => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Catalogue.CountFormat"],
+        Catalogue.TotalFilteredCount);
+
     // ── Navigation service implementations ────────────────────────────────────
 
     /// <inheritdoc />
@@ -1037,6 +1055,11 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(StudentSmartSearchIconPath));
         OnPropertyChanged(nameof(SortLabel));
+        OnPropertyChanged(nameof(FiltersText));
+        OnPropertyChanged(nameof(FilterTitleWatermark));
+        OnPropertyChanged(nameof(FilterAuthorWatermark));
+        OnPropertyChanged(nameof(ClearFiltersText));
+        OnPropertyChanged(nameof(CatalogueCountText));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>

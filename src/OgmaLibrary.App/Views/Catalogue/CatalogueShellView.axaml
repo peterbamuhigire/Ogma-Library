@@ -311,9 +311,7 @@
                      FontSize="{DynamicResource Type.Size.Caption}"
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
             <TextBlock.Text>
-              <MultiBinding StringFormat="{}{0} books">
-                <Binding Path="Catalogue.FilteredCount" />
-              </MultiBinding>
+              <Binding Path="CatalogueCountText" />
             </TextBlock.Text>
           </TextBlock>
 
@@ -338,15 +336,17 @@
               BorderThickness="0,0,0,1"
               Padding="12,8">
         <StackPanel Orientation="Horizontal" Spacing="16">
-          <TextBlock Text="Filters" FontSize="{DynamicResource Type.Size.Caption}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding FiltersText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     VerticalAlignment="Center" />
           <TextBox Width="150"
                    Text="{Binding Catalogue.Filter.TitleSearch, Mode=TwoWay}"
-                   Watermark="Title"
-                   AutomationProperties.Name="Filter by title" />
+                   Watermark="{Binding FilterTitleWatermark}"
+                   AutomationProperties.Name="{Binding FilterTitleWatermark}" />
           <TextBox Width="150"
                    Text="{Binding Catalogue.Filter.AuthorSearch, Mode=TwoWay}"
-                   Watermark="Author"
-                   AutomationProperties.Name="Filter by author" />
+                   Watermark="{Binding FilterAuthorWatermark}"
+                   AutomationProperties.Name="{Binding FilterAuthorWatermark}" />
           <ComboBox Width="120"
                     ItemsSource="{Binding Catalogue.Filter.SortOptions}"
                     SelectedItem="{Binding Catalogue.Filter.SortField, Mode=TwoWay}"
@@ -366,7 +366,8 @@
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
                   Click="ClearFilters_Click">
-            <TextBlock Text="Clear all" FontSize="{DynamicResource Type.Size.Caption}" />
+            <TextBlock Text="{Binding ClearFiltersText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
         </StackPanel>
       </Border>
