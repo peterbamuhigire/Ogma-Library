@@ -21,21 +21,21 @@ Ledger normalized: 2026-09-04
 | 10 | PDF Validation and Containment | IN PROGRESS | Broker, password and resource gates delivered; OS sandbox/escape/security approval open |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC and ranked ISBN evidence delivered; target-scale corpus open |
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
-| 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit and retry telemetry delivered; conflict/privacy evidence open |
-| 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency and boundary validation delivered; bulk undo, field dictionary and accessible UI open |
-| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check and invalidation delivered; plan/undo/consent and physical evidence open |
+| 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry and conflict aggregation delivered; privacy-disclosure evidence open |
+| 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency, boundary validation and canonical field dictionary delivered; bulk preview/undo and accessible UI open |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation and explicit backup undo delivered; durable plan, consent and physical evidence open |
 | 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection and output validation delivered; acquisition/GC/variants/UI/scale open |
-| 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence and poison quarantine delivered; remaining workers/observability/load open |
+| 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence, poison quarantine, resource groups, redacted lifecycle events and OCR lease conversion delivered; metrics/diagnostics/load evidence open |
 | 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus and typography delivered; localization, settings, palette, contrast and physical accessibility open |
-| 19 | Production 2D Catalogue | IN PROGRESS | Cover control and asset loading delivered; parity/filter/sort/paging/badges/auth/scale open |
+| 19 | Production 2D Catalogue | IN PROGRESS | Cover control, asset loading and server-side read-model paging delivered; UI paging, parity/filter/sort/badges/auth/scale open |
 | 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation and reading-state foundations delivered; detail controls, collections, file/relink, provenance and E2E open |
 | 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability work delivered; platform viewer, crash/cache, accessibility and budget evidence open |
-| 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries and scoped fuzzy fallback delivered; facets/paging/highlighting/typeahead/scale open |
+| 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback and debounced type-ahead delivered; facets/paging/highlighting/corrections/scale open |
 | 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters and rebuild foundations delivered; highlight UI, progress, observability and scale open |
 | 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards and trained-data checksum delivered; accuracy/telemetry/UI/cross-platform open |
-| 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimensions and stale source detection delivered; tombstones/ANN/scale/cost/UI open |
-| 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, dimension filtering and metric contract delivered; durable runs, corpus, ANN, diversity and scale open |
-| 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, timeout/retry/circuit and health telemetry delivered; profiles/secrets/budgets/UI/allowlist/conformance open |
+| 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency and stale source detection delivered; tombstones/ANN/scale/cost/UI open |
+| 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, structured prefilters, dimension filtering and metric contract delivered; durable runs, corpus, ANN, diversity and scale open |
+| 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, timeout/retry/circuit, health telemetry and egress allowlists delivered; profiles/secrets/budgets/UI/retention/conformance open |
 | 28 | Advisor Intent, Candidates and Reranking | IN PROGRESS | Intent, candidate ranking, fallbacks and durable privacy-preserving traces delivered; editable UI, diagnostics, reference resolution and benchmarks open |
 | 29 | Grounded Explanations and Answer Mode | IN PROGRESS | Source-labeled local evidence, provenance validation and untrusted-payload boundary delivered; provider explanations, citation UI/consent/benchmarks open |
 | 30 | Advisor UX and Quality Evaluation | IN PROGRESS | Routes, interpreted-intent UI and offline evaluation foundations delivered; durable evaluation sets, human thresholds, accessibility and freeze open |
