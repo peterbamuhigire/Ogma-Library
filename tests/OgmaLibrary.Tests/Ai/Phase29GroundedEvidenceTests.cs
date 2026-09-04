@@ -103,6 +103,60 @@ public sealed class Phase29GroundedEvidenceTests
         Assert.NotNull(provenance.UncertaintyLabel);
     }
 
+    [Fact]
+    public async Task UnsupportedClaimAbstentionBenchmark_FailsClosedAcrossBoundedFixtures()
+    {
+        BookMetadataDto candidate = new(
+            "BOOK-P29-BENCHMARK",
+            "Local title",
+            ["Local author"],
+            ["systems"],
+            ["Education"],
+            "Local description.",
+            null,
+            2026,
+            [],
+            null);
+        var validator = new RecommendationProvenanceValidator();
+        int markedUncertain = 0;
+
+        for (int index = 0; index < 24; index++)
+        {
+            RecommendationCard card = new(
+                new BookId(candidate.BookId),
+                1,
+                new ConfidenceScore(0.9),
+                new RecommendationExplanation(
+                    "Unsupported provider claim.",
+                    [new ProvenanceItem(
+                        new BookId(candidate.BookId),
+                        RecommendationMatchField.Title,
+                        $"Fabricated title {index}")],
+                    "benchmark-provider",
+                    AiPrivacyTier.MetadataOnly));
+
+            RecommendationCard sanitized = Assert.Single(validator.Validate(
+                [card],
+                [candidate],
+                1,
+                "benchmark-provider",
+                AiPrivacyTier.MetadataOnly));
+            ProvenanceItem provenance = Assert.Single(sanitized.Explanation.ProvenanceItems);
+            Assert.Equal("Local title", provenance.FieldValue);
+            Assert.NotNull(provenance.UncertaintyLabel);
+            markedUncertain++;
+        }
+
+        Assert.Equal(24, markedUncertain);
+
+        LocalEvidenceAnswerPipeline abstentionPipeline = new(new FakeSemanticSearch([]));
+        AnswerResponse abstention = await abstentionPipeline.GetAnswerAsync(
+            new AnswerRequest("benchmark query with no evidence", 5),
+            CancellationToken.None);
+        Assert.Empty(abstention.Citations);
+        Assert.Contains("No matching local evidence", abstention.Answer, StringComparison.Ordinal);
+    }
+
     private sealed class FakeSemanticSearch(IReadOnlyList<SemanticSearchResult> results) : ISemanticSearchService
     {
         public Task<SemanticSearchResponse> SearchAsync(string queryText, int maxResults, CancellationToken cancellationToken) =>

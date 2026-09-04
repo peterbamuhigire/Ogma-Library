@@ -39,6 +39,9 @@ Date: 2026-09-04
 - Added an explicit unchecked-by-default consent control for page and note
   evidence; the user's choice is passed to the existing content-aware tier
   boundary and is covered by a default-deny regression.
+- Added a deterministic unsupported-claim/abstention benchmark covering 24
+  fabricated provenance fixtures plus a no-local-evidence case; every fixture
+  is marked uncertain or abstains without citations.
 
 ## Verification
 
@@ -58,8 +61,7 @@ Date: 2026-09-04
 
 ## Remaining phase gate
 
-Benchmark unsupported-claim/abstention evaluation remains for phases 29-30.
-The desktop
-answer display is now available and remains local/evidence-only; provider-
-generated explanations still receive assembled, versioned source-label
-evidence. Physical UI evidence remains unassessed.
+The bounded unsupported-claim/abstention benchmark is closed. The desktop
+answer display remains local/evidence-only; provider-generated explanations
+still receive assembled, versioned source-label evidence. Physical UI evidence
+remains unassessed.
