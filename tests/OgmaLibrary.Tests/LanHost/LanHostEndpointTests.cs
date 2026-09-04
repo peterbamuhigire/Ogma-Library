@@ -36,7 +36,7 @@ public sealed class LanHostEndpointTests
             await SeedBookAsync(services);
             string assetHash = new string('d', 64);
             byte[] assetBytes = [0xFF, 0xD8, 0xFF, 0xD9];
-            string assetPath = new SidecarService(dataDirectory).Resolve(assetHash, SidecarClass.Covers);
+            string assetPath = new SidecarService(dataDirectory).Resolve(assetHash, SidecarClass.Covers, "_provider");
             await File.WriteAllBytesAsync(assetPath, assetBytes);
             string unpublishedAssetPath = new SidecarService(dataDirectory).Resolve(new string('e', 64), SidecarClass.Covers);
             await File.WriteAllBytesAsync(unpublishedAssetPath, assetBytes);

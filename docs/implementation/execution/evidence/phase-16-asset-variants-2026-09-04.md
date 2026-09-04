@@ -31,6 +31,9 @@ acceptance.
   composition registers neither and retains no-egress behavior.
 - Sidecar variants use safe deterministic suffixes and retain manifest source
   hash, dimensions, format, version, and lifecycle status.
+- The HTTPS classroom Host endpoint resolves the bounded `_provider` cover
+  variant when the legacy default cover URL has no generated/default file, so
+  a published provider-only cover does not become a 404 for clients.
 
 ## Verification
 

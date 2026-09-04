@@ -24,5 +24,5 @@ Result: 61 passed, 0 failed, 0 skipped.
 
 The passing slice covers HTTPS/authentication/RBAC, session replay, paging,
 search, TLS-backed page rendering, range/file policy, profile sync, sidecar
-delivery, unpublished/private rejection, throttling, headers, tamper, and
-oversize controls.
+delivery (including provider-only cover fallback), unpublished/private
+rejection, throttling, headers, tamper, and oversize controls.

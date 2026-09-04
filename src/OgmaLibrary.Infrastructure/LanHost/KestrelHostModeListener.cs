@@ -506,6 +506,18 @@ internal sealed class KestrelHostModeListener : IHostModeListener
             }
 
             string path = _sidecarService.Resolve(contentHash, sidecarClass, variant);
+            if (!File.Exists(path) &&
+                variant is null &&
+                sidecarClass == SidecarClass.Covers)
+            {
+                // Provider art is recorded as a distinct higher-precedence
+                // variant so it cannot silently replace a generated/custom
+                // default. The legacy classroom URL has no variant query, so
+                // resolve that URL to provider art only when the default is
+                // absent.
+                path = _sidecarService.Resolve(contentHash, sidecarClass, "_provider");
+            }
+
             if (!File.Exists(path))
             {
                 return Results.NotFound(new LanHostError("asset_not_found", "The requested asset was not found."));
