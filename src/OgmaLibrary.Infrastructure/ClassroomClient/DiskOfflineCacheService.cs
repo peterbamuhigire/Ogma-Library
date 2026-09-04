@@ -48,17 +48,19 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
 
             CacheMetadata? metadata = await ReadMetadataAsync(metadataPath, cancellationToken).ConfigureAwait(false);
             string expectedCacheKey = CreateCacheKey(hostId, resourceKey);
+            string? contentPath = metadata is null ? null : GetSafeContentPath(metadata);
             if (metadata is null ||
                 !string.Equals(metadata.HostId, hostId, StringComparison.Ordinal) ||
                 !string.Equals(metadata.ResourceKey, resourceKey, StringComparison.Ordinal) ||
                 !string.Equals(metadata.ContentFile, $"{expectedCacheKey}.bin", StringComparison.Ordinal) ||
-                !File.Exists(GetContentPath(metadata)))
+                contentPath is null ||
+                !File.Exists(contentPath))
             {
                 DeleteEntryFiles(metadataPath, metadata);
                 return null;
             }
 
-            byte[] content = await File.ReadAllBytesAsync(GetContentPath(metadata), cancellationToken)
+            byte[] content = await File.ReadAllBytesAsync(contentPath, cancellationToken)
                 .ConfigureAwait(false);
             if (metadata.ContentLength < 0 || metadata.ContentLength != content.LongLength)
             {
@@ -168,7 +170,8 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
         foreach (string metadataPath in EnumerateMetadataFiles())
         {
             CacheMetadata? metadata = await ReadMetadataAsync(metadataPath, cancellationToken).ConfigureAwait(false);
-            if (metadata is null || !File.Exists(GetContentPath(metadata)))
+            string? contentPath = metadata is null ? null : GetSafeContentPath(metadata);
+            if (metadata is null || contentPath is null || !File.Exists(contentPath))
             {
                 DeleteEntryFiles(metadataPath, metadata);
                 continue;
@@ -200,8 +203,24 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
     private string GetMetadataPath(string hostId, string resourceKey) =>
         Path.Combine(_cacheRoot, $"{CreateCacheKey(hostId, resourceKey)}.json");
 
-    private string GetContentPath(CacheMetadata metadata) =>
-        Path.Combine(_cacheRoot, metadata.ContentFile);
+    private string? GetSafeContentPath(CacheMetadata metadata)
+    {
+        if (string.IsNullOrWhiteSpace(metadata.ContentFile) ||
+            Path.IsPathRooted(metadata.ContentFile) ||
+            !string.Equals(Path.GetFileName(metadata.ContentFile), metadata.ContentFile, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string path = Path.GetFullPath(Path.Combine(_cacheRoot, metadata.ContentFile));
+        string rootPrefix = _cacheRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+            Path.DirectorySeparatorChar;
+        return path.StartsWith(rootPrefix, OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal)
+            ? path
+            : null;
+    }
 
     private static async Task<CacheMetadata?> ReadMetadataAsync(
         string metadataPath,
@@ -242,8 +261,8 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
     {
         if (metadata is not null)
         {
-            string contentPath = GetContentPath(metadata);
-            if (File.Exists(contentPath))
+            string? contentPath = GetSafeContentPath(metadata);
+            if (contentPath is not null && File.Exists(contentPath))
             {
                 File.Delete(contentPath);
             }

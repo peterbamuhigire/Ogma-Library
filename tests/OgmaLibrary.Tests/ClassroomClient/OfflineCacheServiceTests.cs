@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 
@@ -183,6 +184,53 @@ public sealed class OfflineCacheServiceTests
             await File.WriteAllTextAsync(metadataPath, metadata);
 
             Assert.Null(await cache.GetAsync("host-1", "catalogue"));
+            Assert.False(File.Exists(metadataPath));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task DiskOfflineCache_RejectsMetadataPathOutsideCacheWithoutDeletingIt()
+    {
+        string dataDirectory = CreateTempDirectory();
+        string externalPath = Path.Combine(dataDirectory, "must-survive.bin");
+
+        try
+        {
+            using var cache = new DiskOfflineCacheService(dataDirectory);
+            await cache.PutAsync(new OfflineCacheEntry("host-1", "catalogue", "etag", [1, 2, 3], Now));
+
+            string cacheRoot = Path.Combine(dataDirectory, "classroom", "cache");
+            string metadataPath = Directory.EnumerateFiles(cacheRoot, "*.json", SearchOption.TopDirectoryOnly).Single();
+            await File.WriteAllBytesAsync(externalPath, [7, 7, 7]);
+            string metadata = await File.ReadAllTextAsync(metadataPath);
+            using JsonDocument document = JsonDocument.Parse(metadata);
+            using var output = new MemoryStream();
+            await using (var writer = new Utf8JsonWriter(output))
+            {
+                writer.WriteStartObject();
+                foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                {
+                    if (property.NameEquals("contentFile"))
+                    {
+                        writer.WriteString("contentFile", externalPath);
+                    }
+                    else
+                    {
+                        property.WriteTo(writer);
+                    }
+                }
+
+                writer.WriteEndObject();
+            }
+
+            await File.WriteAllBytesAsync(metadataPath, output.ToArray());
+
+            Assert.Null(await cache.GetAsync("host-1", "catalogue"));
+            Assert.True(File.Exists(externalPath));
             Assert.False(File.Exists(metadataPath));
         }
         finally
