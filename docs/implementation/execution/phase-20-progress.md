@@ -13,15 +13,22 @@ Date: 2026-08-30
   relative-path and LAN-safe projection boundary.
 - Added focused tests for persistence, progress-row creation, history capture,
   projection visibility, invalid rating and unknown-book handling.
+- Wired the durable curation service into the desktop book-detail panel with
+  status, 1–5 rating, and favourite controls. Each action is validated by the
+  application service, refreshes the projection after persistence, and reports
+  a localized success/failure state without exposing history text.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase20BookCurationTests`: 2 passed.
+- `BookDetailCurationTests`: 1 passed.
 
 ## Remaining phase gate
 
-Detail-view write controls, collections/tags/favourites UI, smart-shelf saved
-queries, file/relink actions, complete status/history presentation, lazy TOC and
-provenance tabs, and accessibility/E2E evidence remain before phase 20 closure.
+Collections/tags UI, smart-shelf saved queries, file/relink actions, complete
+status/history presentation, lazy TOC and provenance tabs, and
+accessibility/E2E evidence remain before phase 20 closure. The detail-view
+status/rating/favourite write-control sub-gate is closed by the curation UI
+increment.

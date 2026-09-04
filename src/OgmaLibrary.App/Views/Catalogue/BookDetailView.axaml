@@ -103,6 +103,54 @@
             <!-- Group 2: Bibliographic -->
             <TabItem Header="Biblio">
               <StackPanel Spacing="6" Margin="0,8,0,0">
+                <StackPanel Spacing="5"
+                            IsVisible="{Binding CanUpdateCuration}">
+                  <TextBlock Text="{Binding CurationStatusLabel}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4">
+                    <Button Tag="Unread"
+                            Click="CurationStatusButton_Click"
+                            AutomationProperties.Name="{Binding CurationUnreadText}">
+                      <TextBlock Text="{Binding CurationUnreadText}" />
+                    </Button>
+                    <Button Tag="Reading"
+                            Click="CurationStatusButton_Click"
+                            AutomationProperties.Name="{Binding CurationReadingText}">
+                      <TextBlock Text="{Binding CurationReadingText}" />
+                    </Button>
+                    <Button Tag="Finished"
+                            Click="CurationStatusButton_Click"
+                            AutomationProperties.Name="{Binding CurationFinishedText}">
+                      <TextBlock Text="{Binding CurationFinishedText}" />
+                    </Button>
+                    <Button Tag="Abandoned"
+                            Click="CurationStatusButton_Click"
+                            AutomationProperties.Name="{Binding CurationAbandonedText}">
+                      <TextBlock Text="{Binding CurationAbandonedText}" />
+                    </Button>
+                  </WrapPanel>
+                  <TextBlock Text="{Binding CurationRatingLabel}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                  <WrapPanel Orientation="Horizontal" ItemSpacing="4">
+                    <Button Tag="1" Click="RatingButton_Click" AutomationProperties.Name="1 star"><TextBlock Text="1" /></Button>
+                    <Button Tag="2" Click="RatingButton_Click" AutomationProperties.Name="2 stars"><TextBlock Text="2" /></Button>
+                    <Button Tag="3" Click="RatingButton_Click" AutomationProperties.Name="3 stars"><TextBlock Text="3" /></Button>
+                    <Button Tag="4" Click="RatingButton_Click" AutomationProperties.Name="4 stars"><TextBlock Text="4" /></Button>
+                    <Button Tag="5" Click="RatingButton_Click" AutomationProperties.Name="5 stars"><TextBlock Text="5" /></Button>
+                    <Button Click="FavouriteButton_Click"
+                            AutomationProperties.Name="{Binding FavouriteButtonText}">
+                      <TextBlock Text="{Binding FavouriteButtonText}" />
+                    </Button>
+                  </WrapPanel>
+                  <TextBlock Text="{Binding CurationStatusText}"
+                             IsVisible="{Binding HasCurationStatus}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
                 <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
                   <TextBlock.Text>

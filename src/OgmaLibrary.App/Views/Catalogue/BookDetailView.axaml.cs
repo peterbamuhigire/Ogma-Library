@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.App.Views.Catalogue;
 
@@ -66,6 +67,36 @@ public partial class BookDetailView : UserControl
         if (DataContext is BookDetailViewModel vm)
         {
             await vm.SaveReadingMemoryAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void CurationStatusButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not BookDetailViewModel vm || sender is not Button button ||
+            !Enum.TryParse(button.Tag?.ToString(), out ReadingStatus status))
+        {
+            return;
+        }
+
+        await vm.SetReadingStatusAsync(status).ConfigureAwait(true);
+    }
+
+    private async void RatingButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not BookDetailViewModel vm || sender is not Button button ||
+            !int.TryParse(button.Tag?.ToString(), out int rating))
+        {
+            return;
+        }
+
+        await vm.SetRatingAsync(rating).ConfigureAwait(true);
+    }
+
+    private async void FavouriteButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.ToggleFavouriteAsync().ConfigureAwait(true);
         }
     }
 }

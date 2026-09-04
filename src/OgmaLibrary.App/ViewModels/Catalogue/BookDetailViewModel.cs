@@ -24,6 +24,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IReadingMemoryService? _readingMemoryService;
     private readonly IOcrJobQueueService? _ocrJobs;
     private readonly IPasswordProvider? _passwordProvider;
+    private readonly IBookCurationService? _curation;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -31,11 +32,13 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _isEnriching;
     private bool _isQueueingOcr;
     private bool _isSavingReadingMemory;
+    private bool _isUpdatingCuration;
     private bool _isVisible;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
     private string? _passwordStatusText;
     private string? _readingMemoryStatusText;
+    private string? _curationStatusText;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
     private string _readingMemoryOpenQuestions = string.Empty;
@@ -51,6 +54,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="readingMemoryService">The reading-memory persistence service.</param>
     /// <param name="ocrJobs">The OCR queue service for scanned PDFs.</param>
     /// <param name="passwordProvider">The OS credential provider for protected PDFs.</param>
+    /// <param name="curation">The durable personal curation service.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -58,7 +62,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         IBookMetadataEnrichmentService? metadataEnrichment = null,
         IReadingMemoryService? readingMemoryService = null,
         IOcrJobQueueService? ocrJobs = null,
-        IPasswordProvider? passwordProvider = null)
+        IPasswordProvider? passwordProvider = null,
+        IBookCurationService? curation = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -71,6 +76,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _readingMemoryService = readingMemoryService;
         _ocrJobs = ocrJobs;
         _passwordProvider = passwordProvider;
+        _curation = curation;
     }
 
     /// <inheritdoc />
@@ -148,6 +154,24 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _passwordProvider is not null &&
         !string.IsNullOrWhiteSpace(_book.Sha256Hash);
 
+    /// <summary>True when the loaded book has a durable curation service available.</summary>
+    public bool CanUpdateCuration => _book is not null && _curation is not null && !IsUpdatingCuration;
+
+    /// <summary>True while a status, rating, or favourite update is being persisted.</summary>
+    public bool IsUpdatingCuration
+    {
+        get => _isUpdatingCuration;
+        private set
+        {
+            if (_isUpdatingCuration != value)
+            {
+                _isUpdatingCuration = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanUpdateCuration));
+            }
+        }
+    }
+
     /// <summary>Localized button label for deterministic metadata enrichment.</summary>
     public string EnrichText => _localization["Catalogue.BookDetail.Enrich"];
 
@@ -165,6 +189,56 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Localized tooltip for clearing a stored PDF password.</summary>
     public string ForgetPasswordTooltip => _localization["Catalogue.BookDetail.ForgetPasswordTooltip"];
+
+    /// <summary>Localized curation status label.</summary>
+    public string CurationStatusLabel => _localization["Catalogue.BookDetail.Curation.Status"];
+
+    /// <summary>Localized curation rating label.</summary>
+    public string CurationRatingLabel => _localization["Catalogue.BookDetail.Curation.Rating"];
+
+    /// <summary>Localized unread status label.</summary>
+    public string CurationUnreadText => _localization["Catalogue.BookDetail.Curation.Unread"];
+
+    /// <summary>Localized reading status label.</summary>
+    public string CurationReadingText => _localization["Catalogue.BookDetail.Curation.Reading"];
+
+    /// <summary>Localized finished status label.</summary>
+    public string CurationFinishedText => _localization["Catalogue.BookDetail.Curation.Finished"];
+
+    /// <summary>Localized abandoned status label.</summary>
+    public string CurationAbandonedText => _localization["Catalogue.BookDetail.Curation.Abandoned"];
+
+    /// <summary>Localized favourite toggle label.</summary>
+    public string FavouriteButtonText => _book?.IsFavourite == true
+        ? _localization["Catalogue.BookDetail.Curation.RemoveFavourite"]
+        : _localization["Catalogue.BookDetail.Curation.AddFavourite"];
+
+    /// <summary>Current reading status, defaulting to unread when no progress exists.</summary>
+    public ReadingStatus CurrentReadingStatus =>
+        _book?.ReadingProgress is { } progress
+            ? (ReadingStatus)progress.Status
+            : OgmaLibrary.Domain.ReadingStatus.Unread;
+
+    /// <summary>Current personal favourite state.</summary>
+    public bool IsFavourite => _book?.IsFavourite == true;
+
+    /// <summary>Current user-facing curation status, if any.</summary>
+    public string? CurationStatusText
+    {
+        get => _curationStatusText;
+        private set
+        {
+            if (_curationStatusText != value)
+            {
+                _curationStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasCurationStatus));
+            }
+        }
+    }
+
+    /// <summary>True when a curation result message should be displayed.</summary>
+    public bool HasCurationStatus => !string.IsNullOrWhiteSpace(CurationStatusText);
 
     /// <summary>Current user-facing enrichment status, if any.</summary>
     public string? EnrichmentStatusText
@@ -266,6 +340,10 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CanEnrich));
             OnPropertyChanged(nameof(CanRunOcr));
             OnPropertyChanged(nameof(CanForgetPassword));
+            OnPropertyChanged(nameof(CanUpdateCuration));
+            OnPropertyChanged(nameof(CurrentReadingStatus));
+            OnPropertyChanged(nameof(IsFavourite));
+            OnPropertyChanged(nameof(FavouriteButtonText));
         }
     }
 
@@ -522,6 +600,20 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         await _reader.OpenReaderAsync(_book.BookId, null, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Persists a personal reading status and refreshes the detail projection.</summary>
+    public Task SetReadingStatusAsync(
+        ReadingStatus status,
+        CancellationToken cancellationToken = default) =>
+        UpdateCurationAsync(readingStatus: status, cancellationToken: cancellationToken);
+
+    /// <summary>Persists a validated personal rating and refreshes the detail projection.</summary>
+    public Task SetRatingAsync(int rating, CancellationToken cancellationToken = default) =>
+        UpdateCurationAsync(rating: rating, cancellationToken: cancellationToken);
+
+    /// <summary>Toggles the personal favourite flag and refreshes the detail projection.</summary>
+    public Task ToggleFavouriteAsync(CancellationToken cancellationToken = default) =>
+        UpdateCurationAsync(isFavourite: !IsFavourite, cancellationToken: cancellationToken);
+
     /// <summary>Runs deterministic provider metadata enrichment for the loaded book.</summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task EnrichMetadataAsync(CancellationToken cancellationToken = default)
@@ -734,6 +826,51 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             {
                 ReadingMemoryStatusText = ex.Message;
                 IsSavingReadingMemory = false;
+            });
+        }
+    }
+
+    private async Task UpdateCurationAsync(
+        ReadingStatus? readingStatus = null,
+        int? rating = null,
+        bool? isFavourite = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (_book is null || _curation is null || IsUpdatingCuration)
+        {
+            return;
+        }
+
+        IsUpdatingCuration = true;
+        CurationStatusText = null;
+        try
+        {
+            await _curation.UpdateReadingStateAsync(
+                _book.BookId,
+                readingStatus,
+                rating,
+                isFavourite,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            BookDetailProjection? detail = await _readModel
+                .GetBookDetailAsync(_book.BookId, cancellationToken)
+                .ConfigureAwait(false);
+            UpdateOnUiThread(() =>
+            {
+                Book = detail ?? _book;
+                CurationStatusText = _localization["Catalogue.BookDetail.Curation.Saved"];
+                IsUpdatingCuration = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                CurationStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.Curation.FailedFormat"],
+                    ex.Message);
+                IsUpdatingCuration = false;
             });
         }
     }
