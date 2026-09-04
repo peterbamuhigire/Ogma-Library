@@ -36,7 +36,9 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
         services.AddSingleton<IAiUsageBudgetStore>(_ => new JsonAiUsageBudgetStore(
             Path.Combine(options.DataDirectory, "ai-usage-budget.json")));
         services.AddSingleton<IAiUsageBudgetService, AiUsageBudgetService>();
-        services.AddAiGatewayCore(Path.Combine(options.DataDirectory, "ai-provider-profiles.json"))
+        services.AddAiGatewayCore(
+                Path.Combine(options.DataDirectory, "ai-provider-profiles.json"),
+                Path.Combine(options.DataDirectory, "advisor-feedback.json"))
             .AddFailClosedAiRuntime();
 
         services.AddSingleton<JobRecoveryService>();

@@ -12,7 +12,8 @@ public static class AiServiceExtensions
     /// <summary>Registers provider-neutral AI gateway support services.</summary>
     public static IServiceCollection AddAiGatewayCore(
         this IServiceCollection services,
-        string? providerProfilesPath = null)
+        string? providerProfilesPath = null,
+        string? advisorFeedbackPath = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IAiPayloadBuilder, AiPayloadBuilder>();
@@ -24,6 +25,11 @@ public static class AiServiceExtensions
         {
             services.AddSingleton<IAiProviderProfileService>(_ =>
                 new AiProviderProfileService(providerProfilesPath));
+        }
+        if (!string.IsNullOrWhiteSpace(advisorFeedbackPath))
+        {
+            services.AddSingleton<IAdvisorFeedbackService>(_ =>
+                new AdvisorFeedbackService(advisorFeedbackPath));
         }
         services.AddSingleton<AiProviderHealthRegistry>();
         services.AddSingleton<IAiAdvisorService, AdvisorService>();
