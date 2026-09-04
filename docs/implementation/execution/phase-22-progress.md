@@ -26,6 +26,9 @@ Date: 2026-08-30
 - Verified the global search view's 150 ms type-ahead debounce, cancellation,
   stale-result suppression, and selected-result navigation in an Avalonia UI
   regression test.
+- Bounded exact-path navigation-graph materialization to 1,000 relevance-oriented
+  candidates before client-side scoring, preventing common queries from loading
+  an unbounded catalogue.
 
 ## Verification
 

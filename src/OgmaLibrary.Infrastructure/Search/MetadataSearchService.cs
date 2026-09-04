@@ -14,6 +14,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 public sealed class MetadataSearchService : IMetadataSearchService
 {
     private const int MaxResults = 50;
+    private const int MaxCandidateRows = 1_000;
     private const int MaxQueryLength = 128;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -99,6 +100,20 @@ public sealed class MetadataSearchService : IMetadataSearchService
                 book.ShelfBooks.Any(shelfBook => shelfBook.Shelf != null &&
                     EF.Functions.Like(shelfBook.Shelf.Name, likePattern, "\\"))),
         };
+
+        // Keep the exact path bounded before loading navigation graphs. The
+        // client-side scorer still ranks this deterministic candidate window,
+        // while exact/prefix/identifier matches are preferentially retained for
+        // common queries over large catalogues.
+        bookQuery = bookQuery
+            .OrderByDescending(book => book.Title == parsed.Text)
+            .ThenByDescending(book => book.IsbnNormalized == parsed.Text)
+            .ThenByDescending(book => book.Doi == parsed.Text)
+            .ThenByDescending(book => book.Title != null && book.Title.StartsWith(parsed.Text))
+            .ThenByDescending(book => book.Title != null && book.Title.Contains(parsed.Text))
+            .ThenBy(book => book.Title ?? string.Empty)
+            .ThenBy(book => book.BookId)
+            .Take(MaxCandidateRows);
 
         List<BookRow> books = await bookQuery
             .Include(b => b.BookAuthors)
