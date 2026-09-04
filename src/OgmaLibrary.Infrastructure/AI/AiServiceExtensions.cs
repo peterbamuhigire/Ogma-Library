@@ -10,7 +10,9 @@ namespace OgmaLibrary.Infrastructure.AI;
 public static class AiServiceExtensions
 {
     /// <summary>Registers provider-neutral AI gateway support services.</summary>
-    public static IServiceCollection AddAiGatewayCore(this IServiceCollection services)
+    public static IServiceCollection AddAiGatewayCore(
+        this IServiceCollection services,
+        string? providerProfilesPath = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IAiPayloadBuilder, AiPayloadBuilder>();
@@ -18,6 +20,11 @@ public static class AiServiceExtensions
         services.AddSingleton<IAiCostFormatter, AiCostFormatter>();
         services.AddSingleton<IAiPrivacyService, AiPrivacyService>();
         services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
+        if (!string.IsNullOrWhiteSpace(providerProfilesPath))
+        {
+            services.AddSingleton<IAiProviderProfileService>(_ =>
+                new AiProviderProfileService(providerProfilesPath));
+        }
         services.AddSingleton<AiProviderHealthRegistry>();
         services.AddSingleton<IAiAdvisorService, AdvisorService>();
         services.AddSingleton<IAnswerPipeline, LocalEvidenceAnswerPipeline>();

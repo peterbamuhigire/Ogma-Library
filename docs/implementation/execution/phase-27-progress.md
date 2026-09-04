@@ -41,6 +41,11 @@ Date: 2026-08-30
   release reservations on cancellation or failure. State is persisted through
   atomic versioned JSON and the in-memory gate remains authoritative if storage
   is unavailable.
+- Added durable user-configurable provider profiles. Profiles persist only
+  platform credential references, validate provider-specific endpoint allowlists,
+  atomically replace the settings file, and support deterministic listing and
+  deletion. The desktop composition registers the store under the runtime data
+  directory.
 
 ## Verification
 
@@ -57,5 +62,6 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Explicit user-configurable provider profiles and policy editing, retention and
-erasure journey, and cloud-provider conformance remain before phase 27 closure.
+The provider-profile persistence and validation subgate is closed by focused
+tests. Policy-editing UX, retention and erasure journey, and cloud-provider
+conformance remain before phase 27 closure.
