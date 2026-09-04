@@ -25,3 +25,6 @@ Result: 104 passed, 0 failed, 0 skipped.
 
 The focused offline-cache slice additionally passed 8/8, including a crafted
 metadata path regression that preserved an external sentinel file.
+
+The Host PDF materializer slice passed 5/5, including replacement of a
+tampered local PDF before reuse.

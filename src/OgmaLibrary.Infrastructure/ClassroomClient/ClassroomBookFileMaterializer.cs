@@ -50,7 +50,14 @@ internal sealed class ClassroomBookFileMaterializer : IClassroomBookFileMaterial
         try
         {
             Directory.CreateDirectory(_filesRoot);
-            if (await CanReuseAsync(metadataPath, pdfPath, resource, contentHash, cancellationToken)
+            if (await CanReuseAsync(
+                    metadataPath,
+                    pdfPath,
+                    hostKey,
+                    bookId,
+                    resource,
+                    contentHash,
+                    cancellationToken)
                     .ConfigureAwait(false))
             {
                 return pdfPath;
@@ -91,6 +98,8 @@ internal sealed class ClassroomBookFileMaterializer : IClassroomBookFileMaterial
     private static async Task<bool> CanReuseAsync(
         string metadataPath,
         string pdfPath,
+        string hostKey,
+        string bookId,
         LibraryHostResource resource,
         string contentHash,
         CancellationToken cancellationToken)
@@ -107,10 +116,23 @@ internal sealed class ClassroomBookFileMaterializer : IClassroomBookFileMaterial
                 .DeserializeAsync<MaterializedBookFileMetadata>(stream, JsonOptions, cancellationToken)
                 .ConfigureAwait(false);
 
-            return metadata is not null &&
-                metadata.ResourceKey == resource.ResourceKey &&
-                metadata.ETag == resource.ETag &&
-                metadata.ContentHash == contentHash;
+            if (metadata is null ||
+                metadata.HostId != hostKey ||
+                metadata.BookId != bookId ||
+                metadata.ResourceKey != resource.ResourceKey ||
+                metadata.ETag != resource.ETag ||
+                metadata.ContentHash != contentHash ||
+                metadata.FileName != Path.GetFileName(pdfPath))
+            {
+                return false;
+            }
+
+            using FileStream existingPdf = File.OpenRead(pdfPath);
+            string actualHash = Convert.ToHexStringLower(await SHA256.HashDataAsync(
+                    existingPdf,
+                    cancellationToken)
+                .ConfigureAwait(false));
+            return string.Equals(actualHash, contentHash, StringComparison.Ordinal);
         }
         catch (JsonException)
         {

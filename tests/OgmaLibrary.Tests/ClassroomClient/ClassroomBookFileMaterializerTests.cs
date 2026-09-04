@@ -75,6 +75,35 @@ public sealed class ClassroomBookFileMaterializerTests
     }
 
     [Fact]
+    public async Task Materializer_ReplacesTamperedPdfBeforeReuse()
+    {
+        string dataDirectory = CreateTempDirectory();
+        byte[] expected = "%PDF-1.7\n% Ogma classroom fixture\n"u8.ToArray();
+        var client = new RecordingHostClient
+        {
+            Resource = new LibraryHostResource("books/book-1/file", "application/pdf", "\"v1\"", expected),
+        };
+        using var materializer = new ClassroomBookFileMaterializer(dataDirectory, client);
+        var request = new ClassroomJoinRequest("192.168.1.13", 7473, Fingerprint);
+
+        try
+        {
+            string path = await materializer.MaterializeAsync(request, "session-token", "book-1");
+            await File.WriteAllBytesAsync(path, "tampered"u8.ToArray());
+
+            string reusedPath = await materializer.MaterializeAsync(request, "session-token", "book-1");
+
+            Assert.Equal(path, reusedPath);
+            Assert.Equal(expected, await File.ReadAllBytesAsync(path));
+            Assert.Equal(2, client.FileStreamCalls);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task Materializer_RejectsNonPdfResource()
     {
         string dataDirectory = CreateTempDirectory();
