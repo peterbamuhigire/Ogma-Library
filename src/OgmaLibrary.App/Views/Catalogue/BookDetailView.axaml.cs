@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Domain;
 
 namespace OgmaLibrary.App.Views.Catalogue;
@@ -105,6 +106,24 @@ public partial class BookDetailView : UserControl
         if (DataContext is BookDetailViewModel vm)
         {
             await vm.SaveTagsAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void AcceptMetadataProposalButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: MetadataProposalItemViewModel proposal } &&
+            DataContext is BookDetailViewModel vm)
+        {
+            await vm.AcceptMetadataProposalAsync(proposal).ConfigureAwait(true);
+        }
+    }
+
+    private async void RejectMetadataProposalButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: MetadataProposalItemViewModel proposal } &&
+            DataContext is BookDetailViewModel vm)
+        {
+            await vm.RejectMetadataProposalAsync(proposal).ConfigureAwait(true);
         }
     }
 }

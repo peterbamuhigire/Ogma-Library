@@ -12,7 +12,7 @@ verified evidence and remaining gate summarized for decision use.
 | 11 | IN PROGRESS | Versioned extraction artifacts, ISBN evidence, TOC quality, 500-book synthetic baseline, bounded page-streamed text extraction | Real target-scale mixed-PDF corpus and native resource measurements |
 | 12 | COMPLETE | Scope policy, precedence, proposal-only enrichment, provenance review | Physical/release validation as applicable |
 | 13 | IN PROGRESS | Cache/TTL/stale/revalidation, health/quota/circuit, retry/conflicts, privacy disclosure, official terms constraints | Legal/privacy owner review, archive evidence, live network, attribution UI |
-| 14 | IN PROGRESS | Durable proposals, concurrency, validation, field dictionary, atomic bulk review/undo, bounded tag mutation | Accessible UI acceptance |
+| 14 | IN PROGRESS | Durable proposals, concurrency, validation, field dictionary, atomic bulk review/undo, bounded tag mutation, keyboard-addressable review UI | Physical accessibility evidence |
 | 15 | IN PROGRESS | Hash guard, writeback preparation/audit, exclusivity, invalidation, backup undo | Consent journey and physical evidence |
 | 16 | IN PROGRESS | Asset manifests, precedence, validation, custom covers, stale GC, bounded lazy variants, allowlisted bounded provider-image client, atomic provider persistence, local detail cover UI | Resolver/embedded flow, API authorization, scale budget, physical accessibility |
 | 17 | IN PROGRESS | Durable leases/heartbeat, follow-ups, dead-letter, resource groups, redaction, search/embedding queue conversion, diagnostics | Kill/restart load evidence |

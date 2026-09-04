@@ -29,11 +29,14 @@ Date: 2026-09-04
 - Completed the previously missing bulk tag add/remove behavior with bounded,
   normalized user metadata storage and tag-inclusive before/after audit state;
   the Shelf integration suite passes 5/5.
+- Added a book-scoped metadata review panel with localized accept/reject
+  controls, editable values, explicit user-override routing for edits, and
+  stale/validation failure feedback. Controls expose automation names and
+  accept keyboard focus.
 
 ## Remaining phase gate
 
-The backend bulk preview/apply/undo and tag-mutation subgates are closed.
-Keyboard/screen-reader
-UI journeys remain before phase 14 closure. Concurrency and review-boundary
-sanitization are implemented and tested; OS/browser accessibility evidence is
-not assessed by this service-layer increment.
+The backend bulk preview/apply/undo and tag-mutation subgates are closed. The
+service-layer and desktop review UI sub-gates are also closed. Concurrency and
+review-boundary sanitization are implemented and tested; physical
+OS/browser/screen-reader evidence remains outside this local headless proof.

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.Application;
@@ -27,6 +28,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IBookCurationService? _curation;
     private readonly string? _assetRootPath;
     private readonly ICatalogueWriteService? _catalogueWriteService;
+    private readonly IMetadataReviewService? _metadataReviewService;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -36,6 +38,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _isSavingReadingMemory;
     private bool _isUpdatingCuration;
     private bool _isSavingTags;
+    private bool _isReviewingMetadata;
     private bool _isVisible;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
@@ -43,6 +46,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private string? _readingMemoryStatusText;
     private string? _curationStatusText;
     private string? _tagsStatusText;
+    private string? _metadataReviewStatusText;
     private string _tagsText = string.Empty;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
@@ -62,6 +66,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="curation">The durable personal curation service.</param>
     /// <param name="assetRootPath">The configured sidecar root used for local visual assets.</param>
     /// <param name="catalogueWriteService">The catalogue write boundary for user-owned tags.</param>
+    /// <param name="metadataReviewService">The pending metadata proposal review boundary.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -72,7 +77,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         IPasswordProvider? passwordProvider = null,
         IBookCurationService? curation = null,
         string? assetRootPath = null,
-        ICatalogueWriteService? catalogueWriteService = null)
+        ICatalogueWriteService? catalogueWriteService = null,
+        IMetadataReviewService? metadataReviewService = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -88,6 +94,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _curation = curation;
         _assetRootPath = assetRootPath;
         _catalogueWriteService = catalogueWriteService;
+        _metadataReviewService = metadataReviewService;
     }
 
     /// <inheritdoc />
@@ -307,6 +314,51 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>True when tag save status should be displayed.</summary>
     public bool HasTagsStatus => !string.IsNullOrWhiteSpace(TagsStatusText);
 
+    /// <summary>Pending metadata proposals for the loaded book.</summary>
+    public ObservableCollection<MetadataProposalItemViewModel> PendingMetadataProposals { get; } = [];
+
+    /// <summary>True when the loaded book can review pending metadata proposals.</summary>
+    public bool CanReviewMetadata => _book is not null && _metadataReviewService is not null && !IsReviewingMetadata;
+
+    /// <summary>True while a metadata decision is being persisted.</summary>
+    public bool IsReviewingMetadata
+    {
+        get => _isReviewingMetadata;
+        private set
+        {
+            if (_isReviewingMetadata != value)
+            {
+                _isReviewingMetadata = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanReviewMetadata));
+            }
+        }
+    }
+
+    /// <summary>Localized metadata review heading.</summary>
+    public string MetadataReviewLabel => _localization["Catalogue.BookDetail.MetadataReview.Title"];
+
+    /// <summary>Localized proposal value label.</summary>
+    public string ProposedValueLabel => _localization["Catalogue.BookDetail.MetadataReview.Proposed"];
+
+    /// <summary>Review status text shown after a decision or failure.</summary>
+    public string? MetadataReviewStatusText
+    {
+        get => _metadataReviewStatusText;
+        private set
+        {
+            if (_metadataReviewStatusText != value)
+            {
+                _metadataReviewStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasMetadataReviewStatus));
+            }
+        }
+    }
+
+    /// <summary>True when a metadata review status should be displayed.</summary>
+    public bool HasMetadataReviewStatus => !string.IsNullOrWhiteSpace(MetadataReviewStatusText);
+
     /// <summary>Current user-facing enrichment status, if any.</summary>
     public string? EnrichmentStatusText
     {
@@ -414,6 +466,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(FavouriteButtonText));
             OnPropertyChanged(nameof(CanEditTags));
             OnPropertyChanged(nameof(TagsText));
+            OnPropertyChanged(nameof(CanReviewMetadata));
         }
     }
 
@@ -738,6 +791,80 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Accepts one pending proposal, optionally applying an edited value.</summary>
+    /// <param name="proposal">The proposal card selected by the user.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public Task AcceptMetadataProposalAsync(
+        MetadataProposalItemViewModel proposal,
+        CancellationToken cancellationToken = default) =>
+        DecideMetadataProposalAsync(proposal, accept: true, cancellationToken);
+
+    /// <summary>Rejects one pending proposal without changing catalogue metadata.</summary>
+    /// <param name="proposal">The proposal card selected by the user.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public Task RejectMetadataProposalAsync(
+        MetadataProposalItemViewModel proposal,
+        CancellationToken cancellationToken = default) =>
+        DecideMetadataProposalAsync(proposal, accept: false, cancellationToken);
+
+    private async Task DecideMetadataProposalAsync(
+        MetadataProposalItemViewModel proposal,
+        bool accept,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+        if (_book is null || _metadataReviewService is null || IsReviewingMetadata)
+        {
+            return;
+        }
+
+        string? editedValue = accept &&
+            !string.Equals(
+                proposal.EditableValue,
+                proposal.Proposal.ProposedValue ?? string.Empty,
+                StringComparison.Ordinal)
+            ? proposal.EditableValue
+            : null;
+        IsReviewingMetadata = true;
+        MetadataReviewStatusText = null;
+        try
+        {
+            await _metadataReviewService.DecideAsync(
+                proposal.ProposalId,
+                accept,
+                editedValue,
+                userOverride: editedValue is not null,
+                cancellationToken).ConfigureAwait(false);
+            BookDetailProjection? detail = await _readModel
+                .GetBookDetailAsync(_book.BookId, cancellationToken)
+                .ConfigureAwait(false);
+            IReadOnlyList<MetadataProposalDescriptor> proposals = await LoadPendingMetadataAsync(
+                _book.BookId,
+                cancellationToken).ConfigureAwait(false);
+            UpdateOnUiThread(() =>
+            {
+                Book = detail ?? _book;
+                ReplacePendingMetadataProposals(proposals);
+                MetadataReviewStatusText = _localization[
+                    accept
+                        ? "Catalogue.BookDetail.MetadataReview.Accepted"
+                        : "Catalogue.BookDetail.MetadataReview.Rejected"];
+                IsReviewingMetadata = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                MetadataReviewStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.MetadataReview.FailedFormat"],
+                    ex.Message);
+                IsReviewingMetadata = false;
+            });
+        }
+    }
+
     /// <summary>Runs deterministic provider metadata enrichment for the loaded book.</summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task EnrichMetadataAsync(CancellationToken cancellationToken = default)
@@ -1008,6 +1135,47 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(tag => tag, StringComparer.OrdinalIgnoreCase));
 
+    private async Task<IReadOnlyList<MetadataProposalDescriptor>> LoadPendingMetadataAsync(
+        string bookId,
+        CancellationToken cancellationToken)
+    {
+        if (_metadataReviewService is null)
+        {
+            return [];
+        }
+
+        try
+        {
+            return await _metadataReviewService.ListPendingAsync(bookId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() => MetadataReviewStatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Catalogue.BookDetail.MetadataReview.FailedFormat"],
+                ex.Message));
+            return [];
+        }
+    }
+
+    private void ReplacePendingMetadataProposals(IReadOnlyList<MetadataProposalDescriptor> proposals)
+    {
+        PendingMetadataProposals.Clear();
+        foreach (MetadataProposalDescriptor proposal in proposals)
+        {
+            PendingMetadataProposals.Add(new MetadataProposalItemViewModel(
+                proposal,
+                _localization["Catalogue.BookDetail.MetadataReview.Accept"],
+                _localization["Catalogue.BookDetail.MetadataReview.Reject"],
+                _localization["Catalogue.BookDetail.MetadataReview.Proposed"],
+                _localization["Catalogue.BookDetail.MetadataReview.Current"],
+                _localization["Catalogue.BookDetail.MetadataReview.Source"],
+                _localization["Catalogue.BookDetail.MetadataReview.Confidence"]));
+        }
+        OnPropertyChanged(nameof(PendingMetadataProposals));
+    }
+
     private static string[] NormalizeTags(string value)
     {
         string[] tags = value
@@ -1055,10 +1223,14 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                 .ConfigureAwait(false);
             ReadingMemory? memory = await LoadEditableReadingMemoryAsync(detail, cancellationToken)
                 .ConfigureAwait(false);
+            IReadOnlyList<MetadataProposalDescriptor> proposals = await LoadPendingMetadataAsync(
+                bookId,
+                cancellationToken).ConfigureAwait(false);
 
             UpdateOnUiThread(() =>
             {
                 Book = detail;
+                ReplacePendingMetadataProposals(proposals);
                 SetEditableReadingMemory(memory);
                 IsLoading = false;
             });
@@ -1087,10 +1259,14 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             .ConfigureAwait(false);
         ReadingMemory? memory = await LoadEditableReadingMemoryAsync(detail, cancellationToken)
             .ConfigureAwait(false);
+        IReadOnlyList<MetadataProposalDescriptor> proposals = await LoadPendingMetadataAsync(
+            bookId,
+            cancellationToken).ConfigureAwait(false);
 
         UpdateOnUiThread(() =>
         {
             Book = detail;
+            ReplacePendingMetadataProposals(proposals);
             SetEditableReadingMemory(memory);
         });
     }

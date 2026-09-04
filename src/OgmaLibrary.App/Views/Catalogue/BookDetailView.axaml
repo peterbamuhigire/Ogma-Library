@@ -188,6 +188,66 @@
                              Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                              TextWrapping="Wrap" />
                 </StackPanel>
+                <StackPanel Spacing="5"
+                            Margin="0,12,0,0"
+                            IsVisible="{Binding CanReviewMetadata}">
+                  <TextBlock Text="{Binding MetadataReviewLabel}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <ItemsControl ItemsSource="{Binding PendingMetadataProposals}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border Background="{DynamicResource Brush.Surface.Footer}"
+                                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                                BorderThickness="1"
+                                Padding="8"
+                                Margin="0,2">
+                          <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding FieldName}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                            <TextBlock Text="{Binding ProposedValueLabel}"
+                                       FontSize="{DynamicResource Type.Size.Caption}"
+                                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                            <TextBox Text="{Binding EditableValue, Mode=TwoWay}"
+                                     AutomationProperties.Name="{Binding FieldName}" />
+                            <TextBlock Text="{Binding CurrentValue}"
+                                       ToolTip.Tip="{Binding CurrentValueLabel}"
+                                       FontSize="{DynamicResource Type.Size.Caption}"
+                                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                       TextWrapping="Wrap" />
+                            <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                              <Run Text="{Binding SourceLabel}" />
+                              <Run Text=": " />
+                              <Run Text="{Binding Source}" />
+                              <Run Text=" · " />
+                              <Run Text="{Binding ConfidenceLabel}" />
+                              <Run Text=": " />
+                              <Run Text="{Binding Confidence}" />
+                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                              <Button AutomationProperties.Name="{Binding AcceptLabel}"
+                                      Click="AcceptMetadataProposalButton_Click">
+                                <TextBlock Text="{Binding AcceptLabel}" />
+                              </Button>
+                              <Button AutomationProperties.Name="{Binding RejectLabel}"
+                                      Click="RejectMetadataProposalButton_Click">
+                                <TextBlock Text="{Binding RejectLabel}" />
+                              </Button>
+                            </StackPanel>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Text="{Binding MetadataReviewStatusText}"
+                             IsVisible="{Binding HasMetadataReviewStatus}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
               </StackPanel>
             </TabItem>
 

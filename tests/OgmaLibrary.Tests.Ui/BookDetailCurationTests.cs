@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Automation;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -6,6 +7,7 @@ using Avalonia.VisualTree;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Localization;
@@ -124,6 +126,59 @@ public sealed class BookDetailCurationTests
             textBox.Watermark == "tag, another tag");
         Assert.Contains(view.GetVisualDescendants().OfType<Button>(), button =>
             button.Content is TextBlock text && text.Text == "Save tags");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task MetadataReview_LoadsEditsAndDecidesThroughAccessibleControls()
+    {
+        const string bookId = "PHASE14-REVIEW-BOOK";
+        var readModel = new MutableReadModel(CreateProjection(bookId));
+        var reviewService = new RecordingMetadataReviewService(bookId);
+        var viewModel = new BookDetailViewModel(
+            readModel,
+            new NoOpReaderNavigation(),
+            new InMemoryLocalizationService(),
+            metadataReviewService: reviewService);
+
+        await viewModel.LoadBookAsync(bookId);
+        MetadataProposalItemViewModel proposal = Assert.Single(viewModel.PendingMetadataProposals);
+        Assert.True(viewModel.CanReviewMetadata);
+        Assert.Equal("Proposed title", proposal.EditableValue);
+
+        var view = new BookDetailView { DataContext = viewModel };
+        var window = new Window
+        {
+            Width = 420,
+            Height = 700,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        TabControl tabs = Assert.Single(view.GetVisualDescendants().OfType<TabControl>());
+        tabs.SelectedIndex = 1;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains(view.GetVisualDescendants().OfType<TextBox>(), textBox =>
+            textBox.GetValue(AutomationProperties.NameProperty) == "Title");
+        Button acceptButton = Assert.Single(view.GetVisualDescendants().OfType<Button>(), button =>
+            button.Content is TextBlock text && text.Text == "Accept");
+        Button rejectButton = Assert.Single(view.GetVisualDescendants().OfType<Button>(), button =>
+            button.Content is TextBlock text && text.Text == "Reject");
+        acceptButton.Focus();
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(acceptButton.IsFocused);
+        rejectButton.Focus();
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(rejectButton.IsFocused);
+
+        proposal.EditableValue = "Curated title";
+        await viewModel.AcceptMetadataProposalAsync(proposal);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Empty(viewModel.PendingMetadataProposals);
+        Assert.Equal((1L, true, "Curated title", true), reviewService.Decisions[0]);
+        Assert.Equal("Metadata proposal accepted.", viewModel.MetadataReviewStatusText);
         window.Close();
     }
 
@@ -260,6 +315,57 @@ public sealed class BookDetailCurationTests
 
         public Task BulkEditAsync(BulkEditCommand command, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class RecordingMetadataReviewService(string bookId) : IMetadataReviewService
+    {
+        private readonly List<MetadataProposalDescriptor> _pending =
+        [
+            new MetadataProposalDescriptor(
+                1,
+                bookId,
+                "Title",
+                "Proposed title",
+                "Original title",
+                0.91,
+                "GoogleBooks",
+                [new AlternativeFieldValue("Alternative title", "OpenLibrary", 0.72)],
+                MetadataProposalStatus.Pending,
+                DateTimeOffset.UtcNow,
+                null),
+        ];
+
+        public List<(long Id, bool Accept, string? EditedValue, bool UserOverride)> Decisions { get; } = [];
+
+        public Task<IReadOnlyList<MetadataProposalDescriptor>> CreateAsync(
+            string requestedBookId,
+            IReadOnlyList<MergedMetadataProposal> proposals,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<MetadataProposalDescriptor>>([]);
+
+        public Task<IReadOnlyList<MetadataProposalDescriptor>> ListPendingAsync(
+            string requestedBookId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<MetadataProposalDescriptor>>(
+                _pending.Where(proposal => proposal.BookId == requestedBookId).ToList());
+
+        public Task<MetadataProposalDescriptor> DecideAsync(
+            long proposalId,
+            bool accept,
+            string? editedValue = null,
+            bool userOverride = false,
+            CancellationToken cancellationToken = default)
+        {
+            MetadataProposalDescriptor proposal = _pending.Single(proposal => proposal.Id == proposalId);
+            Decisions.Add((proposalId, accept, editedValue, userOverride));
+            _pending.Remove(proposal);
+            return Task.FromResult(proposal with
+            {
+                Status = accept ? MetadataProposalStatus.Accepted : MetadataProposalStatus.Rejected,
+                DecidedUtc = DateTimeOffset.UtcNow,
+                Version = proposal.Version + 1,
+            });
+        }
     }
 
     private sealed class NoOpReaderNavigation : IReaderNavigationService

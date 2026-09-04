@@ -2,6 +2,7 @@
 
 ## Recent phase evidence
 
+- Phase 14 review UI evidence: docs/implementation/execution/evidence/phase-14-review-ui-2026-09-04.md
 - Phase 13: `docs/implementation/execution/evidence/phase-13-provider-terms-2026-09-04.md`
 - Phase 14/20 bulk tags: `docs/implementation/execution/evidence/phase-14-bulk-tags-2026-09-04.md`
 - Phase 16: `docs/implementation/execution/evidence/phase-16-detail-cover-ui-2026-09-04.md`
