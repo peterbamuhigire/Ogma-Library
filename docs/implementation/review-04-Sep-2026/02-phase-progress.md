@@ -27,7 +27,7 @@ verified evidence and remaining gate summarized for decision use.
 | 26 | IN PROGRESS | RRF hybrid retrieval, filters, tombstone/blob-integrity filtering, metric/eval, diversity, local 50k latency | Representative corpus, ANN/memory, reference confirmation |
 | 27 | IN PROGRESS | Fail-closed gateway, payload/egress boundaries, health, budget, secret custody, provider profiles, local retention/erasure | Policy-editing UX, provider terms/conformance, physical accessibility |
 | 28 | IN PROGRESS | Intent, ranking, fallbacks, editable intent, privacy-safe traces | Reference resolution, benchmarks |
-| 29 | IN PROGRESS | Local evidence, durable safe traces, payload/provenance validation, untrusted boundary | Citation UI, consent, benchmarks |
+| 29 | IN PROGRESS | Local evidence, desktop answer/citation display, durable safe traces, payload/provenance validation, untrusted boundary | Citation navigation, consent, benchmarks |
 | 30 | IN PROGRESS | Routes, intent UI, offline evaluation, durable runs/history export-delete, thresholds, feedback consent/minimization | Feedback UI, human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
 | 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
 | 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification, source/build provenance | Atlas/LOD scale, search/advisor focus, reduced motion, physical interaction |

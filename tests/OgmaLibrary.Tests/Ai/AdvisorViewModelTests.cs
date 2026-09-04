@@ -75,6 +75,36 @@ public sealed class AdvisorViewModelTests
         Assert.True(viewModel.CanLoad);
     }
 
+    [Fact]
+    public async Task RecommendationPanel_AnswersWithLocalEvidenceAndCitations()
+    {
+        AnswerResponse answer = new(
+            "Local evidence answer.",
+            [new AnswerCitation(
+                new BookId("BOOK-P13-UI-001"),
+                4,
+                "42",
+                "A local passage.",
+                new ConfidenceScore(0.9),
+                "page",
+                "advisor-evidence-v1")],
+            IsV2: true);
+        using var viewModel = new RecommendationPanelViewModel(
+            new FakeAdvisorService([], null, answer),
+            new RecordingNavigation(),
+            new InMemoryLocalizationService())
+        {
+            Query = "What does the library say?",
+        };
+
+        await viewModel.AskAsync();
+
+        Assert.Equal("Local evidence answer.", viewModel.AnswerText);
+        Assert.True(viewModel.HasAnswer);
+        Assert.Equal("page 4", Assert.Single(viewModel.AnswerCitations).CitationText);
+        Assert.Equal("Answer prepared from 1 local citations", viewModel.StatusText);
+    }
+
     private static RecommendationCard Recommendation(string bookId) =>
         new(
             new BookId(bookId),
@@ -88,7 +118,8 @@ public sealed class AdvisorViewModelTests
 
     private sealed class FakeAdvisorService(
         IReadOnlyList<RecommendationCard> recommendations,
-        ReadingPlan? plan) : IAiAdvisorService
+        ReadingPlan? plan,
+        AnswerResponse? answer = null) : IAiAdvisorService
     {
         public bool IsEnabled => true;
 
@@ -105,7 +136,7 @@ public sealed class AdvisorViewModelTests
             Task.FromResult(plan ?? throw new InvalidOperationException("No plan configured."));
 
         public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            Task.FromResult(answer ?? throw new InvalidOperationException("No answer configured."));
     }
 
     private sealed class RecordingNavigation : IBookDetailNavigationService

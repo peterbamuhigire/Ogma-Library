@@ -1,6 +1,6 @@
 # Phase 29 Progress - Grounded Explanations and Answer Mode
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -29,6 +29,9 @@ Date: 2026-08-30
 - Added a durable, privacy-safe answer-evidence trace. It records a hashed
   question identity, bounded search/citation counts, outcome, and citation
   provenance without storing the question, answer text, or evidence excerpts.
+- Added a desktop local-answer action to the Advisor surface. It sends only a
+  metadata-only `AnswerRequest`, renders the bounded local answer and citation
+  excerpts, and preserves explicit no-evidence output.
 
 ## Verification
 
@@ -40,10 +43,13 @@ Date: 2026-08-30
 - Source-labeled recommendation payload slice: 10 passed across recommendation
   pipeline and grounded-evidence tests.
 - Durable answer-evidence trace and grounded citation slice: 6 passed.
+- Advisor view-model answer slice: 48 passed; headless answer-surface render:
+  1 passed; Release build: 0 warnings and 0 errors.
 
 ## Remaining phase gate
 
-Answer UI citation navigation, content-tier consent wiring in the shell, and
-benchmark unsupported-claim/abstention evaluation remain for phases 29-30.
-Provider-generated explanations now receive assembled, versioned source-label
-evidence; physical UI evidence remains unassessed.
+Citation navigation, content-tier consent wiring in the shell, and benchmark
+unsupported-claim/abstention evaluation remain for phases 29-30. The desktop
+answer display is now available and remains local/evidence-only; provider-
+generated explanations still receive assembled, versioned source-label
+evidence. Physical UI evidence remains unassessed.

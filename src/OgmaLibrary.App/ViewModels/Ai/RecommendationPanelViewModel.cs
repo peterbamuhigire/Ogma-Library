@@ -22,6 +22,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     private bool _isLoading;
     private string? _errorText;
     private string _statusText;
+    private string? _answerText;
 
     /// <summary>Initializes a new instance of <see cref="RecommendationPanelViewModel"/>.</summary>
     public RecommendationPanelViewModel(
@@ -61,6 +62,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(InterpretedIntentText));
                 OnPropertyChanged(nameof(HasInterpretedIntent));
+                OnPropertyChanged(nameof(CanAsk));
             }
         }
     }
@@ -82,6 +84,30 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
 
     /// <summary>Whether the load action is available.</summary>
     public bool CanLoad => !IsLoading;
+
+    /// <summary>Whether a local-evidence answer can be requested.</summary>
+    public bool CanAsk => !IsLoading && !string.IsNullOrWhiteSpace(Query);
+
+    /// <summary>Latest local-evidence answer, when one has been requested.</summary>
+    public string? AnswerText
+    {
+        get => _answerText;
+        private set
+        {
+            if (_answerText != value)
+            {
+                _answerText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasAnswer));
+            }
+        }
+    }
+
+    /// <summary>Whether an answer is available for display.</summary>
+    public bool HasAnswer => !string.IsNullOrWhiteSpace(AnswerText);
+
+    /// <summary>Local-evidence citations for the current answer.</summary>
+    public ObservableCollection<AnswerCitationViewModel> AnswerCitations { get; } = [];
 
     /// <summary>Latest error text, if any.</summary>
     public string? ErrorText
@@ -183,6 +209,15 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     /// <summary>Localized open-book label.</summary>
     public string OpenBookLabel => _localization["Ai.Advisor.OpenBook"];
 
+    /// <summary>Localized answer title.</summary>
+    public string AnswerTitle => _localization["Ai.Advisor.Answer.Title"];
+
+    /// <summary>Localized answer action label.</summary>
+    public string AskLabel => _localization["Ai.Advisor.Answer.Ask"];
+
+    /// <summary>Localized answer citation label.</summary>
+    public string CitationLabel => _localization["Ai.Advisor.Answer.Citation"];
+
     /// <summary>Icon path for the panel.</summary>
     public string IconPath => _iconPath;
 
@@ -229,6 +264,50 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         }
     }
 
+    /// <summary>Answers the current question using local indexed evidence only.</summary>
+    public async Task AskAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanAsk)
+        {
+            return;
+        }
+
+        IsLoading = true;
+        ErrorText = null;
+        AnswerText = null;
+        AnswerCitations.Clear();
+        StatusText = _localization["Ai.Advisor.Status.Loading"];
+        try
+        {
+            AnswerResponse response = await _advisor.GetAnswerAsync(
+                new AnswerRequest(Query.Trim(), maxCitations: 5, allowContentAwareTier: false),
+                cancellationToken).ConfigureAwait(false);
+
+            AnswerText = response.Answer;
+            foreach (AnswerCitation citation in response.Citations)
+            {
+                AnswerCitations.Add(new AnswerCitationViewModel(citation, _localization));
+            }
+
+            StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Ai.Advisor.Status.AnswerLoadedFormat"],
+                AnswerCitations.Count);
+        }
+        catch (Exception ex) when (ex is AiDisabledException or AdvisorParseException)
+        {
+            ErrorText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Ai.Advisor.ErrorFormat"],
+                ex.Message);
+            StatusText = ErrorText;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
     /// <summary>Opens the selected book detail.</summary>
     public Task OpenBookAsync(RecommendationCardViewModel card, CancellationToken cancellationToken = default)
     {
@@ -252,6 +331,9 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         OnPropertyChanged(nameof(LoadLabel));
         OnPropertyChanged(nameof(EmptyText));
         OnPropertyChanged(nameof(OpenBookLabel));
+        OnPropertyChanged(nameof(AnswerTitle));
+        OnPropertyChanged(nameof(AskLabel));
+        OnPropertyChanged(nameof(CitationLabel));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
@@ -354,4 +436,39 @@ public sealed record ProvenanceChipViewModel(ProvenanceItem Provenance)
 {
     /// <summary>Chip text.</summary>
     public string Text => $"{Provenance.SourceLabel ?? Provenance.MatchField.ToString()}: {Provenance.FieldValue}";
+}
+
+/// <summary>Display model for one grounded local-evidence citation.</summary>
+public sealed class AnswerCitationViewModel
+{
+    private readonly AnswerCitation _citation;
+    private readonly ILocalizationService _localization;
+
+    /// <summary>Initializes a citation display model.</summary>
+    public AnswerCitationViewModel(AnswerCitation citation, ILocalizationService localization)
+    {
+        ArgumentNullException.ThrowIfNull(citation);
+        ArgumentNullException.ThrowIfNull(localization);
+        _citation = citation;
+        _localization = localization;
+    }
+
+    /// <summary>Short source and location label.</summary>
+    public string CitationText => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Ai.Advisor.Answer.CitationFormat"],
+        _citation.SourceLabel ?? _localization["Ai.Advisor.Answer.LocalSource"],
+        _citation.PageNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "—");
+
+    /// <summary>Evidence excerpt.</summary>
+    public string RelevantText => _citation.RelevantText;
+
+    /// <summary>Uncertainty note, when the source has a limitation.</summary>
+    public string? UncertaintyText => _citation.UncertaintyLabel;
+
+    /// <summary>Whether the citation carries an uncertainty note.</summary>
+    public bool HasUncertainty => !string.IsNullOrWhiteSpace(UncertaintyText);
+
+    /// <summary>Accessible citation label.</summary>
+    public string AccessibleLabel => $"{CitationText}: {RelevantText}";
 }

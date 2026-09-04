@@ -19,6 +19,14 @@ public sealed partial class RecommendationPanelView : UserControl
         }
     }
 
+    private async void Ask_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.AskAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void OpenBook_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (ViewModel is not null && sender is Control { DataContext: RecommendationCardViewModel card })

@@ -34,6 +34,7 @@ public sealed class AdvisorViewRenderTests
         };
 
         await recommendations.LoadAsync();
+        await recommendations.AskAsync();
         await plan.GenerateAsync();
         Dispatcher.UIThread.RunJobs();
 
@@ -60,6 +61,7 @@ public sealed class AdvisorViewRenderTests
         Assert.True(frame!.Size.Width > 100);
         Assert.True(frame.Size.Height > 100);
         Assert.Contains("BOOK-P13-UI-001", recommendations.Recommendations[0].BookId, StringComparison.Ordinal);
+        Assert.Equal("Local answer from the library.", recommendations.AnswerText);
         Assert.Equal("Thinking in Systems", plan.Steps[0].BookTitle);
         window.Close();
     }
@@ -95,7 +97,7 @@ public sealed class AdvisorViewRenderTests
                 [new Checkpoint(0, "Summarize the core idea.")]));
 
         public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
+            Task.FromResult(new AnswerResponse("Local answer from the library.", [], IsV2: true));
     }
 
     private sealed class RecordingNavigation : IBookDetailNavigationService
