@@ -15,6 +15,9 @@ Date: 2026-08-30
 - Preserved exact/FTS fallback when the local semantic provider is unavailable,
   the semantic corpus is empty, the query vector is invalid, or dimensions do
   not match.
+- Added a versioned offline retrieval-evaluation contract for captured ranked
+  results and relevance judgments, calculating bounded Recall@K, MRR and nDCG
+  with deterministic empty-judgment conventions.
 - Added regression coverage for fusion metadata, dimension mismatch fallback,
   hybrid determinism, semantic relevance and performance.
 
@@ -22,11 +25,13 @@ Date: 2026-08-30
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
-- FTS/combined, hybrid-ranking and semantic retrieval slice: 18 passed.
+- FTS/combined, hybrid-ranking, semantic retrieval and evaluation slice: 21
+  passed.
 
 ## Remaining phase gate
 
-Structured prefilters, evaluation-run/judgment persistence, Recall@K/MRR/nDCG
-corpus evidence, true ANN or equivalent target-scale retrieval, diversity
-controls, latency/memory acceptance at 50,000 books, and final search-contract
-freeze remain before phase 26 closure.
+Structured prefilters, durable evaluation-run/judgment persistence,
+Recall@K/MRR/nDCG evidence from a representative corpus, true ANN or
+equivalent target-scale retrieval, diversity controls, latency/memory
+acceptance at 50,000 books, and final search-contract freeze remain before
+phase 26 closure.
