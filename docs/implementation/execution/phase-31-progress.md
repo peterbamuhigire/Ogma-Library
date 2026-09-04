@@ -1,6 +1,6 @@
 # Phase 31 Progress - Native 3D Host and Catalogue Contract
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -15,6 +15,9 @@ Date: 2026-08-30
   3D view is attached to the visual tree.
 - Kept local CSP, `ogma://` scheme containment, typed message validation and
   existing WebView bridge tests intact.
+- Recorded the code-level host-contract and accessible-fallback evidence in
+  `evidence/phase-31-3d-host-contract-2026-09-04.md`; native adapters and
+  physical platform evidence remain explicitly unassessed.
 
 ## Verification
 
