@@ -7,6 +7,12 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-04
 
+Automated validation refresh: the isolated full solution suite passed 1,060
+tests (877 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
+refresh closes only the repaired automated gates; per-phase platform, physical,
+legal, signing, reference, and owner gates remain governed by their explicit
+progress records.
+
 | Phase | Name | Status | Evidence position |
 | ----: | ---- | ------ | ------------------ |
 | 1 | Evidence Baseline and Scope Freeze | COMPLETE | Scope frozen; 162-ID accountability gate added |

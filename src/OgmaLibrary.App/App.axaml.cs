@@ -54,9 +54,9 @@ public sealed class App : Avalonia.Application, IDisposable
     {
         try
         {
-            ComposedRuntime runtime = await Task.Run(
-                    () => ComposeRuntime(window),
-                    cancellationToken)
+            ComposedRuntime ComposeRuntime() => App.ComposeRuntime(window);
+
+            ComposedRuntime runtime = await Task.Run(ComposeRuntime, cancellationToken)
                 .ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested)
             {

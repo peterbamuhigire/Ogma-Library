@@ -1,4 +1,5 @@
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Infrastructure.Metadata.Providers;
 using OgmaLibrary.Infrastructure.Sidecar;
 using SkiaSharp;
 

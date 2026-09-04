@@ -1,5 +1,6 @@
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Tests;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
@@ -58,7 +59,6 @@ public sealed class IconCatalogPhase14Tests
         const string prefix = "avares://OgmaLibrary.App/";
         Assert.StartsWith(prefix, avaresPath, StringComparison.Ordinal);
         string relative = avaresPath[prefix.Length..].Replace('/', Path.DirectorySeparatorChar);
-        return Path.GetFullPath(
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "OgmaLibrary.App", relative));
+        return Path.Combine(RepositoryTestPaths.Root, "src", "OgmaLibrary.App", relative);
     }
 }

@@ -110,7 +110,6 @@ public sealed class MetadataSearchService : IMetadataSearchService
             .ThenByDescending(book => book.IsbnNormalized == parsed.Text)
             .ThenByDescending(book => book.Doi == parsed.Text)
             .ThenByDescending(book => book.Title != null && book.Title.StartsWith(parsed.Text))
-            .ThenByDescending(book => book.Title != null && book.Title.Contains(parsed.Text))
             .ThenBy(book => book.Title ?? string.Empty)
             .ThenBy(book => book.BookId)
             .Take(MaxCandidateRows);

@@ -1512,17 +1512,12 @@ public sealed class Phase09AnnotationTests : IDisposable
 
     private static RotatedAnnotationFixture LoadRotatedAnnotationFixture()
     {
-        string path = Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
-            "..",
+        string path = Path.Combine(
+            RepositoryTestPaths.Root,
             "tests",
             "GoldenCorpus",
             "annotations",
-            "rotated-page-annotation.json"));
+            "rotated-page-annotation.json");
         string json = File.ReadAllText(path);
         return System.Text.Json.JsonSerializer.Deserialize<RotatedAnnotationFixture>(
             json,

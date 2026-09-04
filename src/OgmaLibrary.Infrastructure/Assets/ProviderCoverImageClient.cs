@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using SkiaSharp;
 
-namespace OgmaLibrary.Infrastructure.Assets;
+namespace OgmaLibrary.Infrastructure.Metadata.Providers;
 
 /// <summary>Validated provider cover bytes ready for local sidecar persistence.</summary>
 public sealed record ProviderCoverImage(

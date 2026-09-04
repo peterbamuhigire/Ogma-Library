@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Tests;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
@@ -230,18 +231,13 @@ public sealed class IconCatalogPhase09Tests
 
     private static Dictionary<string, string> LoadPhase09Resources(string fileName)
     {
-        string path = Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
-            "..",
+        string path = Path.Combine(
+            RepositoryTestPaths.Root,
             "src",
             "OgmaLibrary.App",
             "Assets",
             "Strings",
-            fileName));
+            fileName);
 
         XDocument document = XDocument.Load(path);
         return document
@@ -258,17 +254,12 @@ public sealed class IconCatalogPhase09Tests
     {
         const string Prefix = "avares://OgmaLibrary.App/Assets/icons/";
         string relativePath = avaresPath[Prefix.Length..].Replace('/', Path.DirectorySeparatorChar);
-        return Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
-            "..",
+        return Path.Combine(
+            RepositoryTestPaths.Root,
             "src",
             "OgmaLibrary.App",
             "Assets",
             "icons",
-            relativePath));
+            relativePath);
     }
 }
