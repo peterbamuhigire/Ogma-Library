@@ -172,7 +172,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             advisor,
             readingPlan,
             bookshelf3D,
-            services.GetRequiredService<ILibraryRootService>());
+            services.GetRequiredService<ILibraryRootService>(),
+            services.GetRequiredService<IUserPreferencesService>());
 
         return shell;
     }

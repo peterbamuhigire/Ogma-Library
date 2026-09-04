@@ -31,6 +31,15 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Startup.Export.Failed"] = "Startup diagnostics could not be exported. Check access to the Ogma data folder and try again.",
         ["Navigation.Library"] = "Library",
         ["Navigation.BackToLibrary"] = "Back to Library",
+        ["CommandPalette.Title"] = "Command palette",
+        ["CommandPalette.Watermark"] = "Search commands",
+        ["CommandPalette.Library"] = "Return to library",
+        ["CommandPalette.Search"] = "Open search",
+        ["CommandPalette.SplitView"] = "Open split reader",
+        ["CommandPalette.Advisor"] = "Open advisor",
+        ["CommandPalette.ReadingPlan"] = "Open reading plan",
+        ["CommandPalette.ToggleTheme"] = "Cycle theme",
+        ["CommandPalette.ToggleDensity"] = "Toggle density",
         ["MainWindow.Status.Skeleton"] = "Skeleton build — Phase 02",
 
         // Phase 03 icon accessible labels (en)
@@ -610,6 +619,15 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Startup.Export.Failed"] = "Le diagnostic n'a pas pu être exporté. Vérifiez l'accès au dossier de données Ogma, puis réessayez.",
         ["Navigation.Library"] = "Bibliotheque",
         ["Navigation.BackToLibrary"] = "Retour a la bibliotheque",
+        ["CommandPalette.Title"] = "Palette de commandes",
+        ["CommandPalette.Watermark"] = "Rechercher des commandes",
+        ["CommandPalette.Library"] = "Retourner a la bibliotheque",
+        ["CommandPalette.Search"] = "Ouvrir la recherche",
+        ["CommandPalette.SplitView"] = "Ouvrir le lecteur partage",
+        ["CommandPalette.Advisor"] = "Ouvrir le conseiller",
+        ["CommandPalette.ReadingPlan"] = "Ouvrir le plan de lecture",
+        ["CommandPalette.ToggleTheme"] = "Changer de theme",
+        ["CommandPalette.ToggleDensity"] = "Changer la densite",
         ["MainWindow.Status.Skeleton"] = "Version squelette — Phase 02",
 
         // Phase 03 icon accessible labels (fr)

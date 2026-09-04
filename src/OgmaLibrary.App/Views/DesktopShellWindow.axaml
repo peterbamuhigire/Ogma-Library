@@ -5,6 +5,7 @@
         x:Class="OgmaLibrary.App.Views.DesktopShellWindow"
         x:DataType="vm:StartupShellViewModel"
         Title="{Binding Title}"
+        KeyDown="DesktopShellWindow_KeyDown"
         Icon="/Assets/app.png"
         Width="1180" Height="760"
         MinWidth="860" MinHeight="560"
@@ -15,6 +16,57 @@
       <cat:CatalogueShellView DataContext="{Binding MainShell}"
                               x:CompileBindings="False" />
     </Grid>
+
+    <!-- The palette is hosted at window level so it remains available across
+         catalogue, reader, advisor, and classroom routes. -->
+    <Border IsVisible="{Binding MainShell.IsCommandPaletteOpen}"
+            DataContext="{Binding MainShell}"
+            x:CompileBindings="False"
+            Width="520"
+            MaxHeight="520"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="0,72,0,0"
+            Padding="12"
+            Background="{DynamicResource Brush.Surface.Card}"
+            BorderBrush="{DynamicResource Brush.Focus}"
+            BorderThickness="2"
+            CornerRadius="{DynamicResource Radius.L}"
+            AutomationProperties.Name="{Binding CommandPaletteTitle}">
+      <StackPanel Spacing="8">
+        <TextBlock Text="{Binding CommandPaletteTitle}"
+                   FontSize="{DynamicResource Type.Size.Subtitle}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <TextBox x:Name="CommandPaletteBox"
+                 Text="{Binding CommandPaletteQuery, Mode=TwoWay}"
+                 Watermark="{Binding CommandPaletteWatermark}"
+                 AutomationProperties.Name="{Binding CommandPaletteWatermark}"
+                 KeyDown="CommandPaletteBox_KeyDown" />
+        <ScrollViewer MaxHeight="400">
+          <ItemsControl ItemsSource="{Binding CommandPaletteItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Button HorizontalContentAlignment="Stretch"
+                        Padding="10,8"
+                        AutomationProperties.Name="{Binding Label}"
+                        Click="CommandPaletteItem_Click">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Label}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Hint}"
+                               Margin="16,0,0,0"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+    </Border>
 
     <Border IsVisible="{Binding IsLoadingVisible}"
             HorizontalAlignment="Center"

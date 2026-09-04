@@ -8,6 +8,7 @@ using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Security;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.App.Composition;
 
@@ -19,6 +20,8 @@ internal sealed class CorePlatformModule : IOgmaModuleRegistrar
     {
         services.AddSingleton<IBenchmarkContext, StopwatchBenchmarkContext>();
         services.AddSingleton<ILocalizationService, InMemoryLocalizationService>();
+        services.AddSingleton<IUserPreferencesService>(_ =>
+            new FileUserPreferencesService(options.DataDirectory));
         services.AddSingleton<IWebViewBridge>(_ =>
             RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? new WKWebViewBridge()

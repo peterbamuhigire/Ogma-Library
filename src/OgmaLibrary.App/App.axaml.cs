@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Ai;
@@ -65,6 +66,12 @@ public sealed class App : Avalonia.Application, IDisposable
             }
 
             _services = runtime.Services;
+            runtime.StartupShell.MainShell?.UserPreferencesChanged +=
+                (_, preferences) => ApplyUserPreferences(preferences);
+            if (runtime.StartupShell.MainShell is { } mainShell)
+            {
+                await mainShell.InitializePreferencesAsync(cancellationToken).ConfigureAwait(true);
+            }
             window.DataContext = runtime.StartupShell;
             StartupShellViewModel startupShell = runtime.StartupShell;
             await startupShell.StartAsync(cancellationToken).ConfigureAwait(true);
@@ -97,6 +104,42 @@ public sealed class App : Avalonia.Application, IDisposable
                     bootstrapLocalization,
                     "Ogma application services could not be loaded safely. No PDF files were changed. Correct the application settings and restart Ogma.");
             }
+        }
+    }
+
+    private void ApplyUserPreferences(UserPreferences preferences)
+    {
+        RequestedThemeVariant = preferences.Theme switch
+        {
+            UserTheme.Dark => ThemeVariant.Dark,
+            UserTheme.System => ThemeVariant.Default,
+            _ => ThemeVariant.Light,
+        };
+
+        double scale = preferences.Density == UserDensity.Compact ? 0.9 : 1.0;
+        if (Resources is null)
+        {
+            return;
+        }
+
+        foreach ((string key, double value) in new Dictionary<string, double>
+        {
+            ["Type.Size.Caption"] = 11,
+            ["Type.Size.Small"] = 12,
+            ["Type.Size.Body"] = 14,
+            ["Type.Size.BodyMedium"] = 15,
+            ["Type.Size.Subtitle"] = 16,
+            ["Type.Size.Title"] = 20,
+            ["Type.Size.Display"] = 30,
+            ["Spacing.XXS"] = 4,
+            ["Spacing.XS"] = 8,
+            ["Spacing.S"] = 12,
+            ["Spacing.M"] = 16,
+            ["Spacing.L"] = 24,
+            ["Spacing.XL"] = 32,
+        })
+        {
+            Resources[key] = value * scale;
         }
     }
 

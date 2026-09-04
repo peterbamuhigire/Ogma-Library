@@ -224,6 +224,40 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task CommandPalette_FiltersAndExecutesKnownCommands()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var navigation = new RecordingReaderNavigation();
+        var catalogue = new CatalogueViewModel(readModel, navigation, localization);
+        var bookDetail = new BookDetailViewModel(readModel, navigation, localization);
+        var shelfSidebar = new ShelfSidebarViewModel(
+            readModel,
+            writeService,
+            localization,
+            new CatalogueFilterViewModel());
+        using var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar);
+
+        shell.OpenCommandPalette();
+        Assert.True(shell.IsCommandPaletteOpen);
+        Assert.Contains(shell.CommandPaletteItems, item => item.Id == "search");
+
+        shell.CommandPaletteQuery = "density";
+        Assert.Single(shell.CommandPaletteItems);
+        Assert.Equal("toggle-density", shell.CommandPaletteItems[0].Id);
+
+        shell.CommandPaletteQuery = string.Empty;
+        await shell.ExecuteCommandAsync("search");
+        Assert.True(shell.IsSearchPanelOpen);
+        Assert.False(shell.IsCommandPaletteOpen);
+    }
+
+    [AvaloniaFact]
     public async Task IndexManager_RebuildButton_ShowsProgress()
     {
         var service = new SlowIndexManagerService();

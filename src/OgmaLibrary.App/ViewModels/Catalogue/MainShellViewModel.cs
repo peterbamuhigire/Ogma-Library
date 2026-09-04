@@ -55,6 +55,9 @@ public interface IShellNavigationTarget :
 {
 }
 
+/// <summary>A bounded, searchable shell command exposed by the command palette.</summary>
+public sealed record CommandPaletteItem(string Id, string Label, string Hint);
+
 /// <summary>
 /// The shell view model for Phase 06. Owns the three-pane layout (sidebar /
 /// content / status bar), the view-toggle state, and is the concrete
@@ -74,6 +77,7 @@ public sealed class MainShellViewModel :
     private readonly IScanProgressService? _scanProgress;
     private readonly IDirectPdfOpenService? _directPdfOpenService;
     private readonly IClassroomModeService? _classroomModeService;
+    private readonly IUserPreferencesService? _userPreferencesService;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
     private readonly string _studentSmartSearchIconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
@@ -90,6 +94,9 @@ public sealed class MainShellViewModel :
     private bool _isFilterPanelOpen;
     private bool _isSearchPanelOpen;
     private bool _isIndexManagerOpen;
+    private bool _isCommandPaletteOpen;
+    private string _commandPaletteQuery = string.Empty;
+    private UserPreferences _userPreferences = new();
     private string? _statusOverride;
     private string? _readerPlaceholderMessage;
     private ShellView _activeView = ShellView.Catalogue;
@@ -122,6 +129,7 @@ public sealed class MainShellViewModel :
     /// <param name="readingPlan">The reading-plan view model.</param>
     /// <param name="bookshelf3D">The capability-gated 3D bookshelf view model.</param>
     /// <param name="libraryRootService">The durable library-root identity service.</param>
+    /// <param name="userPreferencesService">The persisted desktop appearance preference service.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -141,7 +149,8 @@ public sealed class MainShellViewModel :
         RecommendationPanelViewModel? advisor = null,
         ReadingPlanViewModel? readingPlan = null,
         Bookshelf3DViewModel? bookshelf3D = null,
-        ILibraryRootService? libraryRootService = null)
+        ILibraryRootService? libraryRootService = null,
+        IUserPreferencesService? userPreferencesService = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -167,6 +176,7 @@ public sealed class MainShellViewModel :
         _scanProgress = scanProgress;
         _directPdfOpenService = directPdfOpenService;
         _classroomModeService = classroomModeService;
+        _userPreferencesService = userPreferencesService;
 
         _localization.CultureChanged += (_, _) => RaiseAllChanged();
         Catalogue.PropertyChanged += Catalogue_PropertyChanged;
@@ -209,6 +219,9 @@ public sealed class MainShellViewModel :
 
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>Raised whenever persisted appearance preferences change.</summary>
+    public event EventHandler<UserPreferences>? UserPreferencesChanged;
 
     // ── Child view models ─────────────────────────────────────────────────────
 
@@ -540,6 +553,104 @@ public sealed class MainShellViewModel :
         System.Globalization.CultureInfo.CurrentCulture,
         _localization["Catalogue.CountFormat"],
         Catalogue.TotalFilteredCount);
+
+    /// <summary>Command palette heading.</summary>
+    public string CommandPaletteTitle => _localization["CommandPalette.Title"];
+
+    /// <summary>Command palette query watermark.</summary>
+    public string CommandPaletteWatermark => _localization["CommandPalette.Watermark"];
+
+    /// <summary>Current persisted theme choice.</summary>
+    public UserTheme Theme => _userPreferences.Theme;
+
+    /// <summary>Current persisted density choice.</summary>
+    public UserDensity Density => _userPreferences.Density;
+
+    /// <summary>Loads appearance preferences before the ready shell is shown.</summary>
+    public async Task InitializePreferencesAsync(CancellationToken cancellationToken = default)
+    {
+        if (_userPreferencesService is null)
+        {
+            return;
+        }
+
+        _userPreferences = await _userPreferencesService.GetAsync(cancellationToken)
+            .ConfigureAwait(true);
+        OnPropertyChanged(nameof(Theme));
+        OnPropertyChanged(nameof(Density));
+        UserPreferencesChanged?.Invoke(this, _userPreferences);
+    }
+
+    /// <summary>Opens the command palette and clears the previous query.</summary>
+    public void OpenCommandPalette()
+    {
+        CommandPaletteQuery = string.Empty;
+        IsCommandPaletteOpen = true;
+    }
+
+    /// <summary>Closes the command palette and clears transient query text.</summary>
+    public void CloseCommandPalette()
+    {
+        IsCommandPaletteOpen = false;
+        CommandPaletteQuery = string.Empty;
+    }
+
+    /// <summary>Executes a palette command and closes the palette on success.</summary>
+    public async Task ExecuteCommandAsync(
+        string commandId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandId);
+        switch (commandId)
+        {
+            case "library":
+                await ReturnToLibraryAsync(cancellationToken).ConfigureAwait(true);
+                break;
+            case "search":
+                IsSearchPanelOpen = true;
+                break;
+            case "split-view":
+                OpenSplitViewScaffold();
+                break;
+            case "advisor":
+                OpenAdvisor();
+                break;
+            case "reading-plan":
+                OpenReadingPlan();
+                break;
+            case "toggle-theme":
+                await ToggleThemeAsync(cancellationToken).ConfigureAwait(true);
+                break;
+            case "toggle-density":
+                await ToggleDensityAsync(cancellationToken).ConfigureAwait(true);
+                break;
+            default:
+                throw new ArgumentException("The selected command is not supported.", nameof(commandId));
+        }
+
+        CloseCommandPalette();
+    }
+
+    /// <summary>Cycles Light, Dark, and System theme choices.</summary>
+    public Task ToggleThemeAsync(CancellationToken cancellationToken = default) =>
+        SavePreferencesAsync(_userPreferences with
+        {
+            Theme = _userPreferences.Theme switch
+            {
+                UserTheme.Light => UserTheme.Dark,
+                UserTheme.Dark => UserTheme.System,
+                _ => UserTheme.Light,
+            },
+        }, cancellationToken);
+
+    /// <summary>Toggles between comfortable and compact density.</summary>
+    public Task ToggleDensityAsync(CancellationToken cancellationToken = default) =>
+        SavePreferencesAsync(_userPreferences with
+        {
+            Density = _userPreferences.Density == UserDensity.Comfortable
+                ? UserDensity.Compact
+                : UserDensity.Comfortable,
+        }, cancellationToken);
 
     // ── Navigation service implementations ────────────────────────────────────
 
@@ -944,6 +1055,52 @@ public sealed class MainShellViewModel :
         }
     }
 
+    /// <summary>Whether the keyboard command palette is visible.</summary>
+    public bool IsCommandPaletteOpen
+    {
+        get => _isCommandPaletteOpen;
+        set
+        {
+            if (_isCommandPaletteOpen != value)
+            {
+                _isCommandPaletteOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Search text entered in the command palette.</summary>
+    public string CommandPaletteQuery
+    {
+        get => _commandPaletteQuery;
+        set
+        {
+            string normalized = value ?? string.Empty;
+            if (string.Equals(_commandPaletteQuery, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _commandPaletteQuery = normalized;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CommandPaletteItems));
+        }
+    }
+
+    /// <summary>Commands matching the current palette query.</summary>
+    public IReadOnlyList<CommandPaletteItem> CommandPaletteItems
+    {
+        get
+        {
+            string query = CommandPaletteQuery.Trim();
+            return AllCommandPaletteItems()
+                .Where(item => query.Length == 0 ||
+                               item.Label.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
+                               item.Hint.Contains(query, StringComparison.CurrentCultureIgnoreCase))
+                .ToList();
+        }
+    }
+
     private void Catalogue_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(CatalogueViewModel.TotalFilteredCount) or nameof(CatalogueViewModel.FilteredCount))
@@ -1090,6 +1247,35 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(StatusText));
     }
 
+    private IReadOnlyList<CommandPaletteItem> AllCommandPaletteItems() =>
+    [
+        new("library", _localization["CommandPalette.Library"], "L"),
+        new("search", _localization["CommandPalette.Search"], "Ctrl+F"),
+        new("split-view", _localization["CommandPalette.SplitView"], ""),
+        new("advisor", _localization["CommandPalette.Advisor"], ""),
+        new("reading-plan", _localization["CommandPalette.ReadingPlan"], ""),
+        new("toggle-theme", _localization["CommandPalette.ToggleTheme"], Theme.ToString()),
+        new("toggle-density", _localization["CommandPalette.ToggleDensity"], Density.ToString()),
+    ];
+
+    private async Task SavePreferencesAsync(
+        UserPreferences preferences,
+        CancellationToken cancellationToken)
+    {
+        if (_userPreferencesService is null)
+        {
+            return;
+        }
+
+        await _userPreferencesService.SaveAsync(preferences, cancellationToken)
+            .ConfigureAwait(true);
+        _userPreferences = preferences;
+        OnPropertyChanged(nameof(Theme));
+        OnPropertyChanged(nameof(Density));
+        OnPropertyChanged(nameof(CommandPaletteItems));
+        UserPreferencesChanged?.Invoke(this, _userPreferences);
+    }
+
     private void RaiseAllChanged()
     {
         OnPropertyChanged(nameof(Title));
@@ -1131,6 +1317,11 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(FilterAuthorWatermark));
         OnPropertyChanged(nameof(ClearFiltersText));
         OnPropertyChanged(nameof(CatalogueCountText));
+        OnPropertyChanged(nameof(CommandPaletteItems));
+        OnPropertyChanged(nameof(Theme));
+        OnPropertyChanged(nameof(Density));
+        OnPropertyChanged(nameof(CommandPaletteTitle));
+        OnPropertyChanged(nameof(CommandPaletteWatermark));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
