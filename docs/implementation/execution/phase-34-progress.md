@@ -26,10 +26,15 @@ Date: 2026-08-30
 - Endpoint integration proof covers HTTPS, authentication, RBAC, session
   replay, pagination, search, TLS-backed page rendering, range/file policy,
   profile sync, sidecar delivery, and unpublished/private-scope rejection.
+- Local authenticated load-smoke coverage passed for 20 concurrent catalogue
+  clients and 10 concurrent page-render clients, each under the encoded
+  p95 <2-second assertion.
 
 ## Remaining phase gate
 
 Physical two-machine Windows/macOS acceptance, firewall behavior, mDNS failure
 and manual fallback, certificate TOFU UX, sustained hostile/load/soak evidence,
 and privacy-capture review remain release gates. Standalone mode remains
-listener-free by default and classroom enablement remains opt-in.
+listener-free by default and classroom enablement remains opt-in. The local
+concurrency smoke sub-gate is closed; it is not a substitute for the physical
+two-machine or sustained soak gates.

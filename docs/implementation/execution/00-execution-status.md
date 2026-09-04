@@ -42,7 +42,7 @@ Ledger normalized: 2026-09-04
 | 31 | Native 3D Host and Catalogue Contract | IN PROGRESS | Versioned bridge and accessible fallback delivered; native WebView adapters and physical integration open |
 | 32 | Virtual Bookshelf Visuals and Interaction | IN PROGRESS | Meshes, local assets, interaction and bounded labels delivered; source/atlas/LOD/focus/reduced-motion/physical evidence open |
 | 33 | 3D Scale, Accessibility and Performance | IN PROGRESS | Virtualization, metrics, headless budgets and fallback delivered; GPU/WebView/cross-platform accessibility evidence open |
-| 34 | Classroom Host Security and Read Model | IN PROGRESS | Published-scope enforcement and redaction delivered; two-machine/firewall/mDNS/TOFU/soak evidence open |
+| 34 | Classroom Host Security and Read Model | IN PROGRESS | Published-scope enforcement, redaction and local authenticated concurrency smoke evidence delivered; two-machine/firewall/mDNS/TOFU/hostile-soak evidence open |
 | 35 | Classroom Client, Offline and Sync | IN PROGRESS | Tamper-evident cache, host scoping and bounded sync delivered; credential/pairing/reconnect/offline UX/isolation/load evidence open |
 | 36 | School Administration and Managed AI | IN PROGRESS | Host-side key custody, scopes, quotas and DPIA minimization delivered; E2E/backup/rotation/erasure/accessibility/soak/formal DPIA open |
 | 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity and audit minimization delivered; physical hostile/secret-store/penetration/soak evidence open |
