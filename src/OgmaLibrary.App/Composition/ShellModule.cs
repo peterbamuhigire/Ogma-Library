@@ -57,7 +57,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             readModel,
             navigation,
             localization,
-            services.GetRequiredService<ILibrarySettingsService>());
+            services.GetRequiredService<ILibrarySettingsService>(),
+            options.LibraryRoot,
+            services.GetRequiredService<ICatalogueViewStateStore>());
         var bookDetail = new BookDetailViewModel(
             readModel,
             navigation,

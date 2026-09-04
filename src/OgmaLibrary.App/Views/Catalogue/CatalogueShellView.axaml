@@ -98,7 +98,7 @@
     <!-- ─── Main content area ─────────────────────────────────────── -->
     <Grid Grid.Row="0"
           Grid.Column="1"
-          RowDefinitions="Auto,Auto,Auto,Auto,*">
+          RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
 
       <!-- Toolbar: view toggle + sort + filter -->
       <Border Grid.Row="0"
@@ -428,7 +428,41 @@
               </StackPanel>
             </StackPanel>
           </Border>
+      </Grid>
+
+      <!-- Bounded catalogue paging keeps large result sets responsive while
+           retaining the same virtualized grid/list/directory surfaces. -->
+      <Border Grid.Row="5"
+              IsVisible="{Binding IsCatalogueActive}"
+              Background="{DynamicResource Brush.Surface.Footer}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="0,1,0,0"
+              Padding="12,6">
+        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+          <Button Grid.Column="0"
+                  Padding="10,5"
+                  IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
+                  AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
+                  Click="PreviousPage_Click">
+            <TextBlock Text="{Binding Catalogue.PreviousPageText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+          <TextBlock Grid.Column="1"
+                     Text="{Binding Catalogue.PageSummaryText}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          <Button Grid.Column="2"
+                  Padding="10,5"
+                  IsEnabled="{Binding Catalogue.CanGoToNextPage}"
+                  AutomationProperties.Name="{Binding Catalogue.NextPageText}"
+                  Click="NextPage_Click">
+            <TextBlock Text="{Binding Catalogue.NextPageText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
         </Grid>
+      </Border>
 
         <Panel IsVisible="{Binding IsReaderActive}">
           <Grid RowDefinitions="Auto,*">

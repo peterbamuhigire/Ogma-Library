@@ -36,6 +36,7 @@ public static class IngestionServiceExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
         services.AddSingleton<ILibrarySettingsService>(_ => new LibrarySettingsService(dataDirectory));
+        services.AddSingleton<ICatalogueViewStateStore>(_ => new FileCatalogueViewStateStore(dataDirectory));
         services.AddSingleton<ILibraryRootPlatformAdapter, FileSystemLibraryRootPlatformAdapter>();
         services.AddSingleton<ILibraryRootService, LibraryRootService>();
         services.AddSingleton<IProcessingStateService, ProcessingStateService>();

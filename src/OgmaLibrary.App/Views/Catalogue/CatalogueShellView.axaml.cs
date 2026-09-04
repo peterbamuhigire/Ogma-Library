@@ -111,6 +111,22 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void PreviousPage_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.Catalogue.GoToPreviousPage();
+        }
+    }
+
+    private void NextPage_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.Catalogue.GoToNextPage();
+        }
+    }
+
     private void GridViewButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

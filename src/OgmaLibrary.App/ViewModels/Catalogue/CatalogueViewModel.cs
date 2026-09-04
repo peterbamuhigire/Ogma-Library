@@ -17,10 +17,13 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// </summary>
 public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 {
+    private const int PageSize = 100;
     private readonly ICatalogueReadModel _readModel;
     private readonly IBookDetailNavigationService _navigation;
     private readonly ILocalizationService _localization;
     private readonly ILibrarySettingsService? _settings;
+    private readonly ICatalogueViewStateStore? _viewStateStore;
+    private readonly string? _assetRootPath;
 
     private readonly List<BookSummaryProjection> _allItems = [];
     private readonly ObservableCollection<BookSummaryProjection> _filteredItems = [];
@@ -29,6 +32,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private CatalogueView _currentView = CatalogueView.Grid;
     private bool _isLoading;
     private string? _libraryRootPath;
+    private int _currentPage = 1;
+    private int _totalFilteredCount;
+    private CancellationTokenSource? _viewStateSaveCts;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CatalogueViewModel"/>.
@@ -37,11 +43,15 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <param name="navigation">The book-detail navigation service.</param>
     /// <param name="localization">The localization service.</param>
     /// <param name="settings">Optional persisted settings used to resolve local assets.</param>
+    /// <param name="assetRootPath">The configured sidecar root used for local visual assets.</param>
+    /// <param name="viewStateStore">Optional store for persisted catalogue presentation state.</param>
     public CatalogueViewModel(
         ICatalogueReadModel readModel,
         IBookDetailNavigationService navigation,
         ILocalizationService localization,
-        ILibrarySettingsService? settings = null)
+        ILibrarySettingsService? settings = null,
+        string? assetRootPath = null,
+        ICatalogueViewStateStore? viewStateStore = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -51,6 +61,8 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         _navigation = navigation;
         _localization = localization;
         _settings = settings;
+        _assetRootPath = assetRootPath;
+        _viewStateStore = viewStateStore;
 
         Filter = new CatalogueFilterViewModel();
         Filter.PropertyChanged += (_, _) => ApplyFilterAndSort();
@@ -96,6 +108,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
                 OnPropertyChanged(nameof(IsGridView));
                 OnPropertyChanged(nameof(IsListView));
                 OnPropertyChanged(nameof(IsDirectoryView));
+                ScheduleViewStateSave();
             }
         }
     }
@@ -123,7 +136,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    /// <summary>Configured local library root used only for cover image loading.</summary>
+    /// <summary>Configured sidecar root used only for local cover image loading.</summary>
     public string? LibraryRootPath
     {
         get => _libraryRootPath;
@@ -139,6 +152,61 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>The number of items currently shown after filtering.</summary>
     public int FilteredCount => _filteredItems.Count;
+
+    /// <summary>The number of items matching the active filter across all pages.</summary>
+    public int TotalFilteredCount => _totalFilteredCount;
+
+    /// <summary>The one-based page currently shown in the catalogue.</summary>
+    public int CurrentPage => _currentPage;
+
+    /// <summary>The number of pages required for the current filter.</summary>
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(_totalFilteredCount / (double)PageSize));
+
+    /// <summary>Whether a previous catalogue page is available.</summary>
+    public bool CanGoToPreviousPage => _currentPage > 1;
+
+    /// <summary>Whether a next catalogue page is available.</summary>
+    public bool CanGoToNextPage => _currentPage < TotalPages;
+
+    /// <summary>Localized page summary for the catalogue footer.</summary>
+    public string PageSummaryText => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Catalogue.Paging.PageFormat"],
+        _currentPage,
+        TotalPages,
+        _totalFilteredCount);
+
+    /// <summary>Localized previous-page label.</summary>
+    public string PreviousPageText => _localization["Catalogue.Paging.Previous"];
+
+    /// <summary>Localized next-page label.</summary>
+    public string NextPageText => _localization["Catalogue.Paging.Next"];
+
+    /// <summary>Moves to the previous bounded page when one exists.</summary>
+    public void GoToPreviousPage()
+    {
+        if (!CanGoToPreviousPage)
+        {
+            return;
+        }
+
+        _currentPage--;
+        ApplyFilterAndSort(resetPage: false);
+        ScheduleViewStateSave();
+    }
+
+    /// <summary>Moves to the next bounded page when one exists.</summary>
+    public void GoToNextPage()
+    {
+        if (!CanGoToNextPage)
+        {
+            return;
+        }
+
+        _currentPage++;
+        ApplyFilterAndSort(resetPage: false);
+        ScheduleViewStateSave();
+    }
 
     /// <summary>The total number of books (before any filter).</summary>
     public int TotalCount => _allItems.Count;
@@ -157,7 +225,13 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            if (_settings is not null)
+            await RestoreViewStateAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!string.IsNullOrWhiteSpace(_assetRootPath))
+            {
+                LibraryRootPath = _assetRootPath;
+            }
+            else if (_settings is not null)
             {
                 LibraryRootPath = await _settings.GetLibraryRootAsync(cancellationToken)
                     .ConfigureAwait(false);
@@ -172,7 +246,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
                 _allItems.Add(book);
             }
 
-            ApplyFilterAndSort();
+            ApplyFilterAndSort(resetPage: false);
         }
         finally
         {
@@ -198,8 +272,15 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// the content of <see cref="FilteredItems"/>. Runs synchronously on the caller's
     /// thread; for 2,000 items this completes well within 150 ms (NFR-OGMA-003).
     /// </summary>
-    public void ApplyFilterAndSort()
+    public void ApplyFilterAndSort() => ApplyFilterAndSort(resetPage: true);
+
+    private void ApplyFilterAndSort(bool resetPage)
     {
+        if (resetPage)
+        {
+            _currentPage = 1;
+        }
+
         var query = _allItems.AsEnumerable();
 
         // Title substring filter.
@@ -270,6 +351,17 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         };
 
         var results = query.ToList();
+        _totalFilteredCount = results.Count;
+        int totalPages = TotalPages;
+        if (_currentPage > totalPages)
+        {
+            _currentPage = totalPages;
+        }
+
+        results = results
+            .Skip((_currentPage - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
 
         void UpdateFiltered()
         {
@@ -280,6 +372,12 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             }
 
             OnPropertyChanged(nameof(FilteredCount));
+            OnPropertyChanged(nameof(TotalFilteredCount));
+            OnPropertyChanged(nameof(CurrentPage));
+            OnPropertyChanged(nameof(TotalPages));
+            OnPropertyChanged(nameof(CanGoToPreviousPage));
+            OnPropertyChanged(nameof(CanGoToNextPage));
+            OnPropertyChanged(nameof(PageSummaryText));
             OnPropertyChanged(nameof(IsEmpty));
         }
 
@@ -291,12 +389,97 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(UpdateFiltered);
         }
+
+        if (resetPage)
+        {
+            ScheduleViewStateSave();
+        }
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
+        _viewStateSaveCts?.Cancel();
+        _viewStateSaveCts?.Dispose();
         // No unmanaged resources; Filter subscription uses a lambda so no explicit removal needed.
+    }
+
+    private async Task RestoreViewStateAsync(CancellationToken cancellationToken)
+    {
+        if (_viewStateStore is null)
+        {
+            return;
+        }
+
+        CatalogueViewState? state = await _viewStateStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (state is null)
+        {
+            return;
+        }
+
+        if (Enum.TryParse(state.View, ignoreCase: true, out CatalogueView view))
+        {
+            _currentView = view;
+            OnPropertyChanged(nameof(CurrentView));
+            OnPropertyChanged(nameof(IsGridView));
+            OnPropertyChanged(nameof(IsListView));
+            OnPropertyChanged(nameof(IsDirectoryView));
+        }
+
+        Filter.TitleSearch = state.TitleSearch;
+        Filter.AuthorSearch = state.AuthorSearch;
+        Filter.StatusFilter = state.StatusFilter;
+        Filter.MinRating = state.MinRating;
+        Filter.MaxRating = state.MaxRating;
+        Filter.AvailabilityFilter = state.AvailabilityFilter;
+        Filter.SelectedShelfId = state.SelectedShelfId;
+        if (Enum.TryParse(state.SortField, ignoreCase: true, out CatalogueSortField sortField))
+        {
+            Filter.SortField = sortField;
+        }
+
+        Filter.SortAscending = state.SortAscending;
+        _currentPage = Math.Max(1, state.CurrentPage);
+    }
+
+    private void ScheduleViewStateSave()
+    {
+        if (_viewStateStore is null)
+        {
+            return;
+        }
+
+        _viewStateSaveCts?.Cancel();
+        _viewStateSaveCts?.Dispose();
+        _viewStateSaveCts = new CancellationTokenSource();
+        CancellationToken cancellationToken = _viewStateSaveCts.Token;
+        _ = SaveViewStateAfterDelayAsync(cancellationToken);
+    }
+
+    private async Task SaveViewStateAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+            await _viewStateStore!.SaveAsync(
+                new CatalogueViewState(
+                    CurrentView.ToString(),
+                    Filter.TitleSearch,
+                    Filter.AuthorSearch,
+                    Filter.StatusFilter,
+                    Filter.MinRating,
+                    Filter.MaxRating,
+                    Filter.AvailabilityFilter,
+                    Filter.SelectedShelfId,
+                    Filter.SortField.ToString(),
+                    Filter.SortAscending,
+                    _currentPage),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer view change superseded this save.
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>

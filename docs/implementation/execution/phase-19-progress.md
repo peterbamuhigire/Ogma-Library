@@ -1,6 +1,6 @@
 # Phase 19 Progress - Production 2D Catalogue
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -28,25 +28,35 @@ Date: 2026-08-30
   choices, and ascending/descending direction to the shared filter model. The
   existing single clear action remains available and filtering stays
   conjunctive.
+- Added a crash-tolerant, atomic JSON store for non-sensitive catalogue view
+  state; view mode, filter/sort choices and the current page restore on startup.
+- Added debounced state persistence so typing in the filter panel does not write
+  on every keystroke.
+- Added bounded 100-item UI paging with localized page summaries and accessible
+  previous/next controls shared by grid, list and directory surfaces.
 
 ## Verification
 
-- `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
-  passed with 0 warnings and 0 errors.
+- Isolated `dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj
+  --configuration Release --no-restore` passed with 0 warnings and 0 errors;
+  the normal solution output was locked by already-running application/worker
+  processes and was not disturbed.
 - `Phase19CatalogueAssetTests`: 2 passed.
 - `CatalogueGridTests`: 2 passed.
 - `CatalogueDirectoryViewRenderTests`: 2 passed, including filter/sort state
   binding coverage.
+- `Phase19CataloguePagingTests`: 1 passed, covering restore, 205-row paging,
+  boundary navigation and debounced persistence.
+- `Phase19CatalogueViewStateStoreTests`: 1 passed, covering atomic round-trip
+  and corrupt-preference recovery.
 
 ## Remaining phase gate
 
-Persisted filter/sort views, UI pagination wiring, processing/quality badges,
-complete cover-source fallback, API asset authorization, and keyboard/screen-
-reader journeys remain before phase 19 closure. The directory-view and visible
-filter/sort wiring sub-gates
-  sub-gate and local 50k server-side page performance sub-gate are closed;
-  named directory-view, visible filter/sort wiring, and local 50k server-side
-  page performance sub-gates are closed; named reference-hardware confirmation
-  remains a release gate.
-- Current-HEAD full solution verification remains green at 1,066 tests (883
-  core, 41 architecture, 142 UI), with 0 failures and 0 skips.
+Processing/quality badges, complete cover-source fallback, API asset
+authorization, and keyboard/screen-reader journeys remain before phase 19
+closure. The persisted-view-state, UI-pagination, directory-view, visible
+filter/sort wiring, and local 50k server-side page-performance sub-gates are
+closed. Named reference-hardware confirmation remains a release gate.
+
+- Current-HEAD full solution verification is green at 1,071 tests (885 core,
+  41 architecture, 145 UI), with 0 failures and 0 skips.
