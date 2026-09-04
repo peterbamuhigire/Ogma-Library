@@ -46,8 +46,9 @@ Date: 2026-09-04
   passed after the packaging script was corrected to omit empty signature-only
   parameters; the temporary candidate was removed after verification.
 - PowerShell packaging scripts parsed successfully.
-- `actionlint` was not installed on the developer machine; workflow validation
-  remains pending CI/actionlint execution.
+- `actionlint` 1.7.12 passed both tracked workflows (`ci.yml` and
+  `release-candidate.yml`) with exit code 0; see
+  `evidence/phase-38-workflow-lint-2026-09-04.md`.
 - SQLite migration test class: 9 passed, including the previously failing
   Phase 18 downgrade and Phase 12 legacy-history rollback scenarios.
 

@@ -37,6 +37,7 @@
 - Phase 36: `docs/implementation/execution/evidence/phase-36-school-admin-2026-09-04.md`
 - Phase 37: `docs/implementation/execution/evidence/phase-37-security-hardening-2026-09-04.md`
 - Phase 38: `docs/implementation/execution/evidence/phase-38-release-candidate-2026-09-04.md`
+- Phase 38 workflow lint: `docs/implementation/execution/evidence/phase-38-workflow-lint-2026-09-04.md`
 - Phase 39: `docs/implementation/execution/evidence/phase-39-release-acceptance-2026-09-04.md`
 
 ## Preserved user worktree files
