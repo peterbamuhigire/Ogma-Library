@@ -1,6 +1,6 @@
 # Phase 22 Progress - Structured and Fuzzy Catalogue Search
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -50,6 +50,8 @@ Date: 2026-08-30
   passed with 0 warnings and 0 errors.
 - `MetadataSearchServiceTests`: 8 passed, including the 50,000-book p95 <=150 ms
   benchmark.
+- Latest isolated full solution validation after Phases 20–21 increments:
+  881 core + 41 architecture + 142 UI = 1,064 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
