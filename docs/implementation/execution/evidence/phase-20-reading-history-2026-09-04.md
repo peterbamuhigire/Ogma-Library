@@ -21,7 +21,7 @@ Reviewer: Peter Bamuhigire, Lead Consultant
 ```text
 Phase20BookCurationTests: 3 passed, 0 failed, 0 skipped
 BookDetailCurationTests: 5 passed, 0 failed, 0 skipped
-Full solution: 884 core + 41 architecture + 143 UI = 1,068 passed,
+Full solution: 884 core + 41 architecture + 144 UI = 1,069 passed,
 0 failed, 0 skipped
 ```
 

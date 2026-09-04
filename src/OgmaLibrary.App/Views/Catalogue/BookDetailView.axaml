@@ -69,7 +69,7 @@
           <TabControl>
 
             <!-- Group 1: File -->
-            <TabItem Header="File">
+            <TabItem Header="{Binding FileTabText}">
               <StackPanel Spacing="6" Margin="0,8,0,0">
                 <TextBlock Text="{Binding RelativePath}"
                            FontSize="{DynamicResource Type.Size.Caption}"
@@ -91,7 +91,7 @@
             </TabItem>
 
             <!-- Group 2: Bibliographic -->
-            <TabItem Header="Biblio">
+            <TabItem Header="{Binding BiblioTabText}">
               <StackPanel Spacing="6" Margin="0,8,0,0">
                 <StackPanel Spacing="5"
                             IsVisible="{Binding CanUpdateCuration}">
@@ -252,7 +252,7 @@
             </TabItem>
 
             <!-- Group 3: Reading -->
-            <TabItem Header="Reading">
+            <TabItem Header="{Binding ReadingTabText}">
               <StackPanel Spacing="6" Margin="0,8,0,0">
                 <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
@@ -404,9 +404,9 @@
             </TabItem>
 
             <!-- Group 4: Enrichment -->
-            <TabItem Header="Enrichment">
+            <TabItem Header="{Binding EnrichmentTabText}">
               <StackPanel Spacing="4" Margin="0,8,0,0">
-                <TextBlock Text="Enrichment data (Phase 07)"
+                <TextBlock Text="{Binding EnrichmentHeadingText}"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
                 <ItemsControl ItemsSource="{Binding EnrichmentFieldDisplayRows}">
@@ -423,9 +423,9 @@
             </TabItem>
 
             <!-- Group 5: AI -->
-            <TabItem Header="AI">
+            <TabItem Header="{Binding AiTabText}">
               <StackPanel Spacing="4" Margin="0,8,0,0">
-                <TextBlock Text="AI insights (Phase 13)"
+                <TextBlock Text="{Binding AiHeadingText}"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Accent.Plum}" />
                 <ItemsControl ItemsSource="{Binding AiFields}">
@@ -493,7 +493,7 @@
                 CornerRadius="{DynamicResource Radius.S}"
                 AutomationProperties.Name="Open reader"
                 Click="ReadButton_Click">
-          <TextBlock Text="Read" />
+            <TextBlock Text="{Binding ReadText}" />
         </Button>
 
         <!-- Enrich button -->

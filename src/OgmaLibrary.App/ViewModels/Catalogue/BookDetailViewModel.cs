@@ -193,8 +193,32 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Localized button label for opening the reader.</summary>
+    public string ReadText => _localization["Catalogue.BookDetail.Read"];
+
     /// <summary>Localized button label for deterministic metadata enrichment.</summary>
     public string EnrichText => _localization["Catalogue.BookDetail.Enrich"];
+
+    /// <summary>Localized file-detail tab header.</summary>
+    public string FileTabText => _localization["Catalogue.BookDetail.Tab.File"];
+
+    /// <summary>Localized bibliographic-detail tab header.</summary>
+    public string BiblioTabText => _localization["Catalogue.BookDetail.Tab.Biblio"];
+
+    /// <summary>Localized reading-detail tab header.</summary>
+    public string ReadingTabText => _localization["Catalogue.BookDetail.Tab.Reading"];
+
+    /// <summary>Localized enrichment-detail tab header.</summary>
+    public string EnrichmentTabText => _localization["Catalogue.BookDetail.Tab.Enrichment"];
+
+    /// <summary>Localized AI-detail tab header.</summary>
+    public string AiTabText => _localization["Catalogue.BookDetail.Tab.Ai"];
+
+    /// <summary>Localized enrichment section heading.</summary>
+    public string EnrichmentHeadingText => _localization["Catalogue.BookDetail.EnrichmentHeading"];
+
+    /// <summary>Localized AI section heading.</summary>
+    public string AiHeadingText => _localization["Catalogue.BookDetail.AiHeading"];
 
     /// <summary>Localized tooltip for deterministic metadata enrichment.</summary>
     public string EnrichTooltip => _localization["Catalogue.BookDetail.EnrichTooltip"];

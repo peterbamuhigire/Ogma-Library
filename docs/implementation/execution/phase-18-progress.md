@@ -11,12 +11,16 @@ Date: 2026-08-30
   views inherit the same interaction baseline.
 - Added headless UI proof for resource availability and the 36-pixel button
   target-size baseline.
+- Extracted book-detail tab and section headings into English/French resources;
+  the pseudo-locale now expands the same keys automatically.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase18DesignSystemTests`: 1 passed.
+- Current detail localization/design slice: 7 passed; current full solution:
+  884 core + 41 architecture + 144 UI = 1,069 passed, 0 failed, 0 skips.
 
 ## Remaining phase gate
 
