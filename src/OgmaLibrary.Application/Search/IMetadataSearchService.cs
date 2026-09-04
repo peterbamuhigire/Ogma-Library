@@ -26,9 +26,11 @@ public interface IMetadataSearchService
 /// <param name="Author">The first display author, or null.</param>
 /// <param name="Score">Deterministic relevance score.</param>
 /// <param name="MatchedFields">Fields that contributed to the score.</param>
+/// <param name="CorrectionSuggestion">The local value that matched a fuzzy query, if any.</param>
 public sealed record MetadataSearchResult(
     string BookId,
     string? Title,
     string? Author,
     int Score,
-    IReadOnlyList<string> MatchedFields);
+    IReadOnlyList<string> MatchedFields,
+    string? CorrectionSuggestion = null);

@@ -125,6 +125,7 @@ public sealed class MetadataSearchServiceTests : IDisposable
         MetadataSearchResult match = Assert.Single(results);
         Assert.Equal("P22FUZZYTOLKIEN0000001", match.BookId);
         Assert.Contains("author:fuzzy", match.MatchedFields);
+        Assert.Equal("J.R.R. Tolkien", match.CorrectionSuggestion);
     }
 
     [Fact]

@@ -199,7 +199,8 @@ public sealed class MetadataSearchService : IMetadataSearchService
                 candidate.Title,
                 candidate.Author,
                 Score: Math.Max(1, 45 - candidate.distance * 5),
-                MatchedFields: [candidate.matchedField]))
+                MatchedFields: [candidate.matchedField],
+                CorrectionSuggestion: candidate.matchedValue))
             .ToList();
     }
 

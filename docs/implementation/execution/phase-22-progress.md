@@ -29,6 +29,9 @@ Date: 2026-08-30
 - Bounded exact-path navigation-graph materialization to 1,000 relevance-oriented
   candidates before client-side scoring, preventing common queries from loading
   an unbounded catalogue.
+- Fuzzy fallback results now expose the local candidate value that matched as an
+  explicit correction suggestion, while exact results leave the suggestion
+  empty.
 
 ## Verification
 
@@ -38,6 +41,5 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Facets, paging, highlighting, richer
-correction suggestions, full-text fallback integration and the 50,000-book
-search benchmark remain before phase 22 closure.
+Facets, paging, highlighting, full-text fallback integration and the
+50,000-book search benchmark remain before phase 22 closure.
