@@ -12,7 +12,7 @@
 | Phase 31 bridge/3D/fallback | 24 focused tests passed; JavaScript syntax passed |
 | Phase 32 Shelf3D provenance/publisher | 28 focused tests passed; TypeScript/build/bundle syntax passed; tamper rejection passed |
 | Phase 34 LAN/security filter | 61 tests passed |
-| Phase 35 classroom client | 104 tests passed |
+| Phase 35 classroom client | 107 tests passed |
 | Phase 36 school admin | 46 tests passed |
 | Phase 37 security filter | 34 tests passed |
 | Phase 38 migration/update trust | 12 tests passed |

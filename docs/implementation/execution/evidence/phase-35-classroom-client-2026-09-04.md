@@ -22,7 +22,7 @@ cross-machine load evidence remain open.
 dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Debug --no-build --filter "FullyQualifiedName~ClassroomClient" --verbosity minimal -m:1
 ```
 
-Result: 104 passed, 0 failed, 0 skipped.
+Result: 107 passed, 0 failed, 0 skipped.
 
 The focused offline-cache slice additionally passed 8/8, including a crafted
 metadata path regression that preserved an external sentinel file.

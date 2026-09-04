@@ -22,7 +22,7 @@ Date: 2026-09-04
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors.
-- Classroom-client slice: 104 passed.
+- Classroom-client slice: 107 passed.
 - Added tests for cache tamper rejection, certificate-rotation cache isolation,
   and oversized sync payload rejection.
 
