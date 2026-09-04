@@ -15,6 +15,7 @@
 - Phase 20: `docs/implementation/execution/evidence/phase-20-curation-ui-2026-09-04.md`
 - Phase 20 tag editor: `docs/implementation/execution/evidence/phase-20-tags-ui-2026-09-04.md`
 - Phase 20 collection controls: `docs/implementation/execution/evidence/phase-20-collections-ui-2026-09-04.md`
+- Phase 20 smart-shelf query evaluation: `docs/implementation/execution/evidence/phase-20-smart-shelf-2026-09-04.md`
 - Phase 25 stale-vector status UI: `docs/implementation/execution/evidence/phase-25-stale-count-ui-2026-09-04.md`
 - Phase 25 bounded retrieval memory: `docs/implementation/execution/evidence/phase-25-bounded-retrieval-2026-09-04.md`
 - Phase 22: `docs/implementation/execution/evidence/phase-22-search-ui-2026-09-04.md`

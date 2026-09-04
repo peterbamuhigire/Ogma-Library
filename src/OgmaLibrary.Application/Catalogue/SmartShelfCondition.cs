@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace OgmaLibrary.Application.Catalogue;
 
 /// <summary>
@@ -60,6 +63,57 @@ public sealed record SmartShelfCondition(
     SmartShelfField Field,
     SmartShelfOperator Operator,
     string Value);
+
+/// <summary>
+/// Parses the persisted smart-shelf query contract without accepting executable
+/// expressions or open-ended field names. The canonical JSON shape is an array
+/// of <see cref="SmartShelfCondition"/> objects.
+/// </summary>
+public static class SmartShelfQueryParser
+{
+    private const int MaxConditions = 32;
+    private const int MaxValueLength = 128;
+
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    /// <summary>Attempts to parse and validate a saved smart-shelf query.</summary>
+    public static bool TryParse(
+        string? json,
+        out IReadOnlyList<SmartShelfCondition> conditions)
+    {
+        conditions = [];
+        if (string.IsNullOrWhiteSpace(json) || json.Length > 4096)
+        {
+            return false;
+        }
+
+        try
+        {
+            List<SmartShelfCondition>? parsed = JsonSerializer.Deserialize<List<SmartShelfCondition>>(
+                json,
+                Options);
+            if (parsed is null || parsed.Count > MaxConditions || parsed.Any(condition =>
+                    !Enum.IsDefined(condition.Field) ||
+                    !Enum.IsDefined(condition.Operator) ||
+                    string.IsNullOrWhiteSpace(condition.Value) ||
+                    condition.Value.Length > MaxValueLength))
+            {
+                return false;
+            }
+
+            conditions = parsed;
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+}
 
 /// <summary>
 /// Evaluates a list of <see cref="SmartShelfCondition"/> records against an

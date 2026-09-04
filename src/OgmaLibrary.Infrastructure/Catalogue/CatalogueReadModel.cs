@@ -81,6 +81,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         CatalogueDbContext context = lease.Context;
 
         var query = context.Books.AsNoTracking();
+        IReadOnlyList<SmartShelfCondition>? smartConditions = null;
 
         if (!string.IsNullOrWhiteSpace(filter.TitleContains))
         {
@@ -107,7 +108,31 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
 
         if (!string.IsNullOrWhiteSpace(filter.ShelfId))
         {
-            query = query.Where(b => b.ShelfBooks.Any(sb => sb.ShelfId == filter.ShelfId));
+            var shelf = await context.Shelves
+                .AsNoTracking()
+                .Where(s => s.ShelfId == filter.ShelfId)
+                .Select(s => new { s.ShelfType, s.Query })
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (shelf is null)
+            {
+                return [];
+            }
+
+            if (shelf.ShelfType == 1)
+            {
+                if (!SmartShelfQueryParser.TryParse(shelf.Query, out smartConditions))
+                {
+                    // A damaged or untrusted saved query must never broaden a shelf
+                    // to the full catalogue. It fails closed to an empty result.
+                    return [];
+                }
+            }
+            else
+            {
+                query = query.Where(b => b.ShelfBooks.Any(sb => sb.ShelfId == filter.ShelfId));
+            }
         }
 
         if (filter.Status.HasValue)
@@ -153,12 +178,12 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .ToList(),
             });
 
-        if (filter.SkipCount > 0)
+        if (smartConditions is null && filter.SkipCount > 0)
         {
             projected = projected.Skip(filter.SkipCount);
         }
 
-        if (filter.MaxResults > 0)
+        if (smartConditions is null && filter.MaxResults > 0)
         {
             projected = projected.Take(filter.MaxResults);
         }
@@ -207,6 +232,20 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 Year: item.Year,
                 Sha256Hash: item.Sha256Hash,
                 RelativePath: item.PrimaryRelativePath));
+        }
+
+        if (smartConditions is not null)
+        {
+            summaries = SmartShelfEvaluator.Evaluate(summaries, smartConditions).ToList();
+            if (filter.SkipCount > 0)
+            {
+                summaries = summaries.Skip(filter.SkipCount).ToList();
+            }
+
+            if (filter.MaxResults > 0)
+            {
+                summaries = summaries.Take(filter.MaxResults).ToList();
+            }
         }
 
         return summaries;
@@ -427,18 +466,69 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 s.ShelfId,
                 s.Name,
                 s.ShelfType,
+                s.Query,
                 BookCount = s.ShelfBooks.Count,
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return shelves
-            .Select(s => new ShelfProjection(
-                ShelfId: s.ShelfId,
-                Name: s.Name,
-                IsSmart: s.ShelfType == 1,
-                BookCount: s.BookCount))
-            .ToList();
+        var projections = new List<ShelfProjection>(shelves.Count);
+        foreach (var shelf in shelves)
+        {
+            int bookCount = shelf.ShelfType == 1
+                ? await GetSmartShelfBookCountAsync(context, shelf.Query, cancellationToken)
+                    .ConfigureAwait(false)
+                : shelf.BookCount;
+
+            projections.Add(new ShelfProjection(
+                ShelfId: shelf.ShelfId,
+                Name: shelf.Name,
+                IsSmart: shelf.ShelfType == 1,
+                BookCount: bookCount));
+        }
+
+        return projections;
+    }
+
+    private static async Task<int> GetSmartShelfBookCountAsync(
+        CatalogueDbContext context,
+        string? query,
+        CancellationToken cancellationToken)
+    {
+        if (!SmartShelfQueryParser.TryParse(query, out IReadOnlyList<SmartShelfCondition>? conditions))
+        {
+            return 0;
+        }
+
+        var books = await context.Books
+            .AsNoTracking()
+            .Select(book => new
+            {
+                book.BookId,
+                book.Status,
+                book.Rating,
+                book.Year,
+                HasPresentFile = book.BookFiles.Any(file => file.FileStatus == 0),
+                ProgressPct = book.ReadingProgress == null
+                    ? null
+                    : (double?)book.ReadingProgress.CompletionPct,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var summaries = books.Select(book => new BookSummaryProjection(
+            BookId: book.BookId,
+            Title: null,
+            Authors: [],
+            CoverRelativePath: null,
+            Status: book.Status,
+            Rating: book.Rating,
+            ShelfIds: [],
+            ReadingProgressPct: book.ProgressPct,
+            IsAvailable: book.HasPresentFile,
+            Year: book.Year));
+
+        return SmartShelfEvaluator.Evaluate(summaries, conditions).Count;
     }
 
     /// <inheritdoc />

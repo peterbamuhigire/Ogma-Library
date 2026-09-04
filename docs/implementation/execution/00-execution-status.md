@@ -7,8 +7,8 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-04
 
-Automated validation refresh: the isolated full solution suite passed 1,060
-tests (877 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
+Automated validation refresh: the isolated full solution suite passed 1,063
+tests (880 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
 refresh closes only the repaired automated gates; per-phase platform, physical,
 legal, signing, reference, and owner gates remain governed by their explicit
 progress records.
@@ -34,7 +34,7 @@ progress records.
 | 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence, poison quarantine, resource groups, redacted lifecycle events, OCR/search/embedding lease conversion, metrics and diagnostics export plus local lease/runtime and restart-style load evidence delivered; physical kill/crash/soak evidence open |
 | 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus and typography delivered; localization, settings, palette, contrast and physical accessibility open |
 | 19 | Production 2D Catalogue | IN PROGRESS | Cover control, asset loading, functional directory view, visible filter/sort wiring, server-side read-model paging and local 50k page performance evidence delivered; persisted UI paging, parity/badges/auth/reference confirmation open |
-| 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation foundations, desktop status/rating/favourite controls, bounded bulk tag mutation, rendered detail tag editor, and sidebar collection create/rename/delete controls delivered; smart-shelf queries, file/relink, provenance, accessibility and E2E open |
+| 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation foundations, desktop status/rating/favourite controls, bounded bulk tag mutation, rendered detail tag editor, sidebar collection create/rename/delete controls, and closed-contract smart-shelf persistence/evaluation/counts delivered; file/relink, complete status/history presentation, lazy TOC/provenance, accessibility and E2E open |
 | 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability and local cache/session/non-crash regression evidence delivered; split/viewer, physical crash, accessibility and budget evidence open |
 | 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback, debounced type-ahead, bounded 50-result candidate materialization, local 50k p95, backend facets/paging/highlighting/full-text fallback, and local search UI/keyboard evidence delivered; reference/accessibility gates open |
 | 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets, desktop reader navigation, observability events, explicit search states, local 50k FTS p95, and staged side-by-side promotion delivered; reference/accessibility gates open |

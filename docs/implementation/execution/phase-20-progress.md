@@ -1,6 +1,6 @@
 # Phase 20 Progress - Book Detail, Organisation and Reading State
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -25,6 +25,9 @@ Date: 2026-08-30
 - Added localized sidebar collection create/rename/delete controls with
   trimmed-name validation, selected-shelf protection, reload-after-mutation,
   and failure feedback through the existing catalogue write boundary.
+- Added closed-contract smart-shelf query parsing and validation, persisted
+  smart-shelf evaluation in catalogue reads, post-evaluation paging, dynamic
+  smart-shelf counts, and fail-closed handling for damaged queries.
 
 ## Verification
 
@@ -34,11 +37,16 @@ Date: 2026-08-30
 - `BookDetailCurationTests`: 4 passed, including rendered tag-editor controls
   and the write-boundary/refresh path; the class also contains the Phase 14
   review-panel proof.
+- Smart-shelf focused verification: 24 passed; write-path shelf verification:
+  6 passed.
+- Full isolated solution suite: 880 core + 41 architecture + 142 UI = 1,063
+  passed, 0 failed, 0 skipped. See
+  `evidence/phase-20-smart-shelf-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Smart-shelf saved queries, file/relink actions, complete
-status/history presentation, lazy TOC and provenance tabs, and
-accessibility/E2E evidence remain before phase 20 closure. The detail-view
+File/relink actions, complete status/history presentation, lazy TOC and
+provenance tabs, and accessibility/E2E evidence remain before phase 20
+closure. The detail-view
 status/rating/favourite, bounded tag, and basic collection CRUD sub-gates are
 closed by the curation/organisation UI increments.

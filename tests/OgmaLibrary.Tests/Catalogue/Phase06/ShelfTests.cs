@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -123,6 +124,32 @@ public sealed class ShelfTests : IDisposable
 
         var shelf = await _context.Shelves.FirstAsync(s => s.ShelfId == shelfId);
         Assert.Equal("New Name", shelf.Name);
+    }
+
+    [Fact]
+    public async Task SmartShelf_Create_ValidatesAndPersistsClosedQueryContract()
+    {
+        string query = JsonSerializer.Serialize(new[]
+        {
+            new SmartShelfCondition(
+                SmartShelfField.Rating,
+                SmartShelfOperator.GreaterThanOrEqual,
+                "4"),
+        });
+
+        string shelfId = await _writeService.CreateShelfAsync(
+            "Highly Rated",
+            isSmart: true,
+            query: query);
+
+        ShelfRow shelf = await _context.Shelves.SingleAsync(row => row.ShelfId == shelfId);
+        Assert.Equal(1, shelf.ShelfType);
+        Assert.Equal(query, shelf.Query);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _writeService.CreateShelfAsync(
+            "Damaged Smart Shelf",
+            isSmart: true,
+            query: "{\"status\":0}"));
     }
 
     [Fact]

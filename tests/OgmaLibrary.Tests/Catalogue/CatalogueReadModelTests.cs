@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
@@ -67,6 +68,89 @@ public sealed class CatalogueReadModelTests
 
         BookSummaryProjection pageItem = Assert.Single(summaries);
         Assert.Equal("PAGE-BOOK-B", pageItem.BookId);
+    }
+
+    [Fact]
+    public async Task GetBookSummaries_EvaluatesSavedSmartShelfBeforePaging()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.AddRange(
+            new BookRow { BookId = "SMART-BOOK-A", Title = "Alpha", Status = 0, Rating = 5, Year = 2020 },
+            new BookRow { BookId = "SMART-BOOK-B", Title = "Bravo", Status = 0, Rating = 3, Year = 2020 },
+            new BookRow { BookId = "SMART-BOOK-C", Title = "Charlie", Status = 0, Rating = 5, Year = 2019 });
+        context.Shelves.Add(new ShelfRow
+        {
+            ShelfId = "SMART-SHELF",
+            Name = "Five Star Books",
+            ShelfType = 1,
+            Query = JsonSerializer.Serialize(new[]
+            {
+                new SmartShelfCondition(
+                    SmartShelfField.Rating,
+                    SmartShelfOperator.Equals,
+                    "5"),
+            }),
+        });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+        var page = new List<BookSummaryProjection>();
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(
+            new CatalogueFilter(ShelfId: "SMART-SHELF", MaxResults: 1, SkipCount: 1)))
+        {
+            page.Add(summary);
+        }
+
+        BookSummaryProjection item = Assert.Single(page);
+        Assert.Equal("SMART-BOOK-C", item.BookId);
+
+        List<ShelfProjection> shelves = [];
+        await foreach (ShelfProjection shelf in readModel.GetShelvesAsync())
+        {
+            shelves.Add(shelf);
+        }
+
+        ShelfProjection smartShelf = Assert.Single(shelves);
+        Assert.True(smartShelf.IsSmart);
+        Assert.Equal(2, smartShelf.BookCount);
+    }
+
+    [Fact]
+    public async Task GetBookSummaries_InvalidSavedSmartShelfQueryFailsClosed()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow { BookId = "SMART-DAMAGED-BOOK", Title = "Should not appear", Status = 0 });
+        context.Shelves.Add(new ShelfRow
+        {
+            ShelfId = "SMART-DAMAGED",
+            Name = "Damaged Smart Shelf",
+            ShelfType = 1,
+            Query = "{\"field\":\"Status\",\"operator\":\"Equals\",\"value\":\"0\"}",
+        });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+        var results = new List<BookSummaryProjection>();
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(
+            new CatalogueFilter(ShelfId: "SMART-DAMAGED")))
+        {
+            results.Add(summary);
+        }
+
+        Assert.Empty(results);
+        ShelfProjection shelf = Assert.Single(await CollectShelvesAsync(readModel));
+        Assert.Equal(0, shelf.BookCount);
+    }
+
+    private static async Task<List<ShelfProjection>> CollectShelvesAsync(CatalogueReadModel readModel)
+    {
+        var shelves = new List<ShelfProjection>();
+        await foreach (ShelfProjection shelf in readModel.GetShelvesAsync())
+        {
+            shelves.Add(shelf);
+        }
+
+        return shelves;
     }
 
     [Fact]

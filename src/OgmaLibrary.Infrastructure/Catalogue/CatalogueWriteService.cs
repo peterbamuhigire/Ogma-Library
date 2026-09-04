@@ -52,6 +52,13 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
+        if (isSmart && !SmartShelfQueryParser.TryParse(query, out _))
+        {
+            throw new ArgumentException(
+                "Smart shelf queries must be a valid JSON array of supported conditions.",
+                nameof(query));
+        }
+
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
             .ConfigureAwait(false);
@@ -63,7 +70,7 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             ShelfId = id,
             Name = name,
             ShelfType = isSmart ? 1 : 0,
-            Query = query,
+            Query = isSmart ? query : null,
             CreatedUtc = DateTimeOffset.UtcNow,
         };
 
