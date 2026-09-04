@@ -12,7 +12,8 @@ Verification:
 - `SearchSnippetParserTests`: 2 passed.
 - `FtsIndexServiceTests`: 8 passed, including plain-text snippet and page-jump
   assertions.
+- `SearchViewModelTests`: 13 passed, including full-text mode indication,
+  result selection, reader page navigation, and exact-search degradation.
 
-Remaining Phase 23 gates cover full-text UI mode/reader journeys, no-index and
-progress states, observability, side-by-side rebuild swap, and 50,000-book
-latency evidence.
+Remaining Phase 23 gates cover no-index and progress states, observability,
+side-by-side rebuild swap, and 50,000-book latency evidence.

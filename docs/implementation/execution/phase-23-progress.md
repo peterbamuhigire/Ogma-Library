@@ -37,9 +37,11 @@ Date: 2026-08-30
 - `FtsIndexServiceTests`: 6 passed.
 - `IndexManagerServiceTests`: 6 passed.
 - `SearchSnippetParserTests`: 2 passed.
+- `SearchViewModelTests`: 13 passed, including desktop full-text mode
+  indication, result selection, reader navigation with page hint, and
+  degraded exact-search behavior.
 
 ## Remaining phase gate
 
-The complete phase still requires UI full-text mode and reader navigation,
-progress/no-index states, observability metrics,
+The complete phase still requires progress/no-index states, observability metrics,
 side-by-side rebuild swap, and the 50,000-book latency benchmark.
