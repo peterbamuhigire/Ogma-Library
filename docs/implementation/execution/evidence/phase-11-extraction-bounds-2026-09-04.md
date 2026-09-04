@@ -26,6 +26,9 @@ The existing Phase 11 suite verifies versioned/idempotent artifacts, ranked ISBN
 evidence, bounded Unicode TOC extraction, and malformed-PDF handling. The Debug
 build completed without compiler errors.
 
+Current-HEAD rerun of the Phase 10 broker/isolation and Phase 11 extraction
+selectors passed 27 combined tests, with 0 failures and 0 skips.
+
 ## Remaining gates
 
 - A representative real 500-book mixed-quality corpus is still required.
