@@ -28,6 +28,9 @@ Date: 2026-08-30
   codes (`ocr_invalid_payload`, `ocr_page_limit`, and `ocr_render_limit`) into
   the shared retry/diagnostic runtime without exposing limit details as error
   text.
+- The desktop Index Manager exposes OCR state, bounded page progress, pause,
+  cancel, and retry actions with bound accessible names and safe state-based
+  enablement.
 
 ## Verification
 
@@ -36,8 +39,12 @@ Date: 2026-08-30
 - Phase 24 policy and OCR integrity tests: 7 passed in the focused regression
   slice; the restored English asset passed the approved checksum check.
 - OCR/golden/schema regression slice: 13 passed.
+- OCR control and progress UI slice: 2 focused tests passed, with the broader
+  Avalonia search/index suite passing 14 tests.
 
 ## Remaining phase gate
 
-Real mixed-PDF accuracy and CPU/memory corpus evidence, OCR UI quality controls,
-and cross-platform packaged asset proof remain before phase 24 closure.
+Real mixed-PDF accuracy and CPU/memory corpus evidence, and cross-platform
+packaged asset proof remain before phase 24 closure. OCR UI quality controls are
+closed by the tested Index Manager state/progress/actions; physical assistive
+technology evidence remains `NOT ASSESSED`.
