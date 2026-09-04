@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 
 namespace OgmaLibrary.Infrastructure.Search;
 
@@ -26,6 +27,7 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     private readonly CatalogueDbContext? _context;
     private readonly IExtractionPipelineService _pipeline;
     private readonly IFtsIndexService _ftsIndex;
+    private readonly IEmbeddingVectorRepository _vectors;
     private readonly SemaphoreSlim _rebuildGate = new(1, 1);
     private readonly ObservableEvents<IndexStatusUpdate> _events = new();
     private readonly ObservableEvents<SearchIndexEvent> _searchEvents = new();
@@ -37,15 +39,18 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     public IndexManagerService(
         IDbContextFactory<CatalogueDbContext> contextFactory,
         IExtractionPipelineService pipeline,
-        IFtsIndexService ftsIndex)
+        IFtsIndexService ftsIndex,
+        IEmbeddingVectorRepository vectors)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(ftsIndex);
+        ArgumentNullException.ThrowIfNull(vectors);
 
         _contextFactory = contextFactory;
         _pipeline = pipeline;
         _ftsIndex = ftsIndex;
+        _vectors = vectors;
     }
 
     /// <summary>
@@ -64,6 +69,7 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
         _context = context;
         _pipeline = pipeline;
         _ftsIndex = ftsIndex;
+        _vectors = new EmbeddingVectorRepository(context);
     }
 
     /// <inheritdoc />
@@ -114,6 +120,9 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
             .ConfigureAwait(false);
         SmartShelfQueryStats smartShelfStats = await LoadSmartShelfStatsAsync(context, cancellationToken)
             .ConfigureAwait(false);
+        int staleEmbeddingCount = await _vectors
+            .GetStaleCountAsync(null, cancellationToken)
+            .ConfigureAwait(false);
 
         IndexManagerStatus status = new(
             TotalBooks: bookRows.Count,
@@ -136,7 +145,8 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                     book.PendingOcrPageCount))
                 .ToList(),
             OcrJobs: ocrJobs,
-            SmartShelfStats: smartShelfStats);
+            SmartShelfStats: smartShelfStats,
+            StaleEmbeddingCount: staleEmbeddingCount);
 
         _events.Publish(new IndexStatusUpdate.StatusChanged(status));
         return status;

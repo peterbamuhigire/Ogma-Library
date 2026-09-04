@@ -176,25 +176,50 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
 
     /// <inheritdoc />
     public async Task<int> GetStaleCountAsync(
-        string bookId,
+        string? bookId,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        if (bookId is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        }
+
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
-        List<EmbeddingVectorRow> rows = await lease.Context.EmbeddingVectors
+        var query = lease.Context.EmbeddingVectors
             .AsNoTracking()
-            .Include(vector => vector.Chunk)
             .Where(vector => !vector.IsTombstoned &&
                              vector.Chunk != null &&
-                             vector.Chunk.BookId == bookId)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return rows.Count(vector => vector.Chunk is not null &&
-            !string.Equals(
+                             (bookId == null || vector.Chunk.BookId == bookId))
+            .Select(vector => new
+            {
                 vector.SourceHash,
-                ComputeSourceHash(vector.Chunk, vector.Chunk.ChunkText ?? string.Empty),
-                StringComparison.OrdinalIgnoreCase));
+                vector.Chunk!.BookId,
+                vector.Chunk.ChunkId,
+                vector.Chunk.IndexVersion,
+                vector.Chunk.ExtractionArtifactId,
+                vector.Chunk.ChunkText,
+            })
+            .AsAsyncEnumerable()
+            .WithCancellation(cancellationToken);
+
+        int staleCount = 0;
+        await foreach (var row in query.ConfigureAwait(false))
+        {
+            if (!string.Equals(
+                    row.SourceHash,
+                    ComputeSourceHash(
+                        row.BookId,
+                        row.ChunkId,
+                        row.IndexVersion,
+                        row.ExtractionArtifactId,
+                        row.ChunkText ?? string.Empty),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                staleCount++;
+            }
+        }
+
+        return staleCount;
     }
 
     /// <inheritdoc />
@@ -214,7 +239,12 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
             .Where(vector => vector.Chunk is not null &&
                 !string.Equals(
                     vector.SourceHash,
-                    ComputeSourceHash(vector.Chunk, vector.Chunk.ChunkText ?? string.Empty),
+                    ComputeSourceHash(
+                        vector.Chunk.BookId,
+                        vector.Chunk.ChunkId,
+                        vector.Chunk.IndexVersion,
+                        vector.Chunk.ExtractionArtifactId,
+                        vector.Chunk.ChunkText ?? string.Empty),
                     StringComparison.OrdinalIgnoreCase))
             .ToList();
         foreach (EmbeddingVectorRow row in stale)
@@ -248,10 +278,15 @@ public sealed class EmbeddingVectorRepository : IEmbeddingVectorRepository
         return bytes;
     }
 
-    private static string ComputeSourceHash(SearchChunkRow chunk, string text)
+    private static string ComputeSourceHash(
+        string bookId,
+        long chunkId,
+        string indexVersion,
+        long? extractionArtifactId,
+        string text)
     {
         byte[] data = Encoding.UTF8.GetBytes(
-            $"{chunk.BookId}|{chunk.ChunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{chunk.IndexVersion}|{chunk.ExtractionArtifactId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "none"}|{text}");
+            $"{bookId}|{chunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{indexVersion}|{extractionArtifactId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "none"}|{text}");
         return Convert.ToHexStringLower(SHA256.HashData(data));
     }
 

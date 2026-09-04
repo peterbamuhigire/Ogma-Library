@@ -127,6 +127,8 @@ public sealed class SearchViewModelTests
         Assert.False(vm.IsRebuilding);
         Assert.Contains("complete", vm.StatusText, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Size: 256 B", vm.SizeSummary);
+        Assert.Equal(3, vm.StaleEmbeddingCount);
+        Assert.Equal("Stale embeddings: 3", vm.StaleEmbeddingSummary);
         Assert.Equal("Integrity: healthy", vm.IntegritySummary);
         Assert.True(vm.HasOcrJobs);
         Assert.Equal(1, vm.ActiveOcrJobs);
@@ -508,6 +510,7 @@ public sealed class SearchViewModelTests
                 SearchChunkCount: 4,
                 IndexSizeBytes: 256,
                 Integrity: new FtsIntegrityResult(true, null),
+                StaleEmbeddingCount: 3,
                 Books:
                 [
                     new BookIndexStatusItem(

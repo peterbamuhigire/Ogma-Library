@@ -43,7 +43,8 @@ public sealed record IndexManagerStatus(
     FtsIntegrityResult Integrity,
     IReadOnlyList<BookIndexStatusItem> Books,
     IReadOnlyList<OcrJobStatusItem> OcrJobs,
-    SmartShelfQueryStats SmartShelfStats);
+    SmartShelfQueryStats SmartShelfStats,
+    int StaleEmbeddingCount = 0);
 
 /// <summary>Per-book row for the Index Manager status list.</summary>
 public sealed record BookIndexStatusItem(

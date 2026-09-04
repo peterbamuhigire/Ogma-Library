@@ -153,12 +153,14 @@
                    AutomationProperties.Name="{Binding StatusText}" />
 
       <UniformGrid Grid.Row="4"
-                   Columns="4"
+                   Columns="5"
                    Margin="0,10,0,0">
         <TextBlock Text="{Binding IndexedSummary}" />
         <TextBlock Text="{Binding FailedSummary}" />
         <TextBlock Text="{Binding PendingOcrSummary}" />
         <TextBlock Text="{Binding ChunkSummary}" />
+        <TextBlock Text="{Binding StaleEmbeddingSummary}"
+                   AutomationProperties.Name="{Binding StaleEmbeddingSummary}" />
       </UniformGrid>
 
       <UniformGrid Grid.Row="5"

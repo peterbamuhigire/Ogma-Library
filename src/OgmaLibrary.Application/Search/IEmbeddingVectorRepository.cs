@@ -29,9 +29,13 @@ public interface IEmbeddingVectorRepository
         string bookId,
         CancellationToken cancellationToken);
 
-    /// <summary>Counts vectors whose source fingerprint no longer matches its chunk.</summary>
+    /// <summary>
+    /// Counts vectors whose source fingerprint no longer matches its chunk. A
+    /// null book ID checks the whole local vector index through a streamed,
+    /// metadata-only projection.
+    /// </summary>
     Task<int> GetStaleCountAsync(
-        string bookId,
+        string? bookId,
         CancellationToken cancellationToken);
 
     /// <summary>Marks stale vectors for a book as tombstoned without deleting their audit state.</summary>

@@ -149,6 +149,9 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
         Assert.Equal(1, await repository.GetStaleCountAsync(
             "P11EMBEDBOOK000000000001",
             CancellationToken.None));
+        Assert.Equal(1, await repository.GetStaleCountAsync(
+            null,
+            CancellationToken.None));
         Assert.Equal(1, await repository.TombstoneStaleAsync(
             "P11EMBEDBOOK000000000001",
             CancellationToken.None));

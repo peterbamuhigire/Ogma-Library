@@ -90,6 +90,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <summary>Search chunks currently stored.</summary>
     public int SearchChunkCount { get; private set; }
 
+    /// <summary>Vectors whose source fingerprint no longer matches local text.</summary>
+    public int StaleEmbeddingCount { get; private set; }
+
     /// <summary>Approximate index text size.</summary>
     public long IndexSizeBytes { get; private set; }
 
@@ -334,6 +337,12 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         _localization["IndexManager.Summary.ChunksFormat"],
         SearchChunkCount);
 
+    /// <summary>Localized stale-embedding summary.</summary>
+    public string StaleEmbeddingSummary => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["IndexManager.Summary.StaleEmbeddingsFormat"],
+        StaleEmbeddingCount);
+
     /// <summary>Opens rebuild confirmation.</summary>
     public void RequestRebuildConfirmation()
     {
@@ -576,6 +585,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             PendingOcrPages = status.PendingOcrPages;
             FailedExtractionPages = status.FailedExtractionPages;
             SearchChunkCount = status.SearchChunkCount;
+            StaleEmbeddingCount = status.StaleEmbeddingCount;
             IndexSizeBytes = status.IndexSizeBytes;
             IntegrityHealthy = status.Integrity.IsHealthy;
             _ocrJobs = status.OcrJobs;
@@ -657,6 +667,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(FailedExtractionPages));
         OnPropertyChanged(nameof(ActiveOcrJobs));
         OnPropertyChanged(nameof(SearchChunkCount));
+        OnPropertyChanged(nameof(StaleEmbeddingCount));
         OnPropertyChanged(nameof(IndexSizeBytes));
         OnPropertyChanged(nameof(IntegrityHealthy));
         OnPropertyChanged(nameof(SmartShelfIndexesHealthy));
@@ -665,6 +676,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         OnPropertyChanged(nameof(PendingOcrSummary));
         OnPropertyChanged(nameof(OcrJobsSummary));
         OnPropertyChanged(nameof(ChunkSummary));
+        OnPropertyChanged(nameof(StaleEmbeddingSummary));
         OnPropertyChanged(nameof(SizeSummary));
         OnPropertyChanged(nameof(FailedPagesSummary));
         OnPropertyChanged(nameof(IntegritySummary));
