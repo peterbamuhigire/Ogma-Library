@@ -5,16 +5,16 @@ Reviewer: Peter Bamuhigire, Lead Consultant
 
 ## Decision
 
-The real-PDF adapter corpus subgate is closed for the locally available
-Windows corpus. The reusable benchmark processed seven PDFs without a file
-error, covering text-heavy, standards, illustrated, and duplicate-content
-documents. The benchmark reports resource measurements without persisting
-extracted private content.
+The real-PDF adapter and database-backed extraction-pipeline corpus subgates
+are closed for the locally available Windows corpus. The reusable benchmark
+processed seven PDFs without a file error, covering text-heavy, standards,
+illustrated, and duplicate-content documents. The benchmark reports resource
+measurements without persisting extracted private content.
 
 This does not close the full Phase 11 gate: the roadmap still requires a
-representative target-scale corpus and an approved per-book allocation ceiling
-for the complete database-backed extraction pipeline. Those facts are not
-invented from this seven-file adapter run.
+representative 500-book target-scale corpus and an approved per-book
+allocation ceiling for the complete pipeline. Those facts are not invented
+from this seven-file run.
 
 ## Verification
 
@@ -23,6 +23,7 @@ Command:
 ```text
 dotnet build scripts/Phase11RealPdfBenchmark/Phase11RealPdfBenchmark.csproj --configuration Release --no-restore --nologo -m:1
 dotnet run --project scripts/Phase11RealPdfBenchmark/Phase11RealPdfBenchmark.csproj --configuration Release --no-build --no-restore -- C:\Users\Peter\Downloads
+dotnet run --project scripts/Phase11RealPdfBenchmark/Phase11RealPdfBenchmark.csproj --configuration Release --no-build --no-restore -- C:\Users\Peter\Downloads --pipeline
 ```
 
 Result:
@@ -45,3 +46,17 @@ The focused PDF/extraction regression slice passed 11/11 with no failures or
 skips after the adapter changed to reuse a document-scoped PdfPig page parse
 and serialize access to it. A verification rerun completed the same corpus in
 27.149 seconds with 8,628,472,328 allocated bytes and zero file errors.
+
+The database-backed pipeline rerun completed with:
+
+```text
+booksAttempted=7
+booksIndexed=7
+booksFailed=0
+pagesProcessed=3326
+failedPages=0
+extractedPages=3326
+extractionArtifacts=7
+searchChunks=5096
+elapsedMilliseconds=40152
+```

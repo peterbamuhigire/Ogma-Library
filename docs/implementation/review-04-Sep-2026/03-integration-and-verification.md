@@ -5,7 +5,7 @@
 | Area | Result |
 | --- | --- |
 | Requirement accountability | 162/162 assigned |
-| Phase 11 real PDF adapter corpus | 7 PDFs, 3,326 pages, 0 file errors; 27.1 s rerun |
+| Phase 11 real PDF corpus/pipeline | 7 PDFs, 3,326 pages, 0 file errors; 7/7 pipeline books and 5,096 chunks |
 | Phase 13 provider evidence | Official pages verified 2026-09-04; legal/network still open |
 | Phase 17 lease/runtime and stage workers | 16 focused tests passed |
 | Phase 17 restart/recovery load | 8 focused tests passed; 64-job drain |

@@ -25,6 +25,9 @@ Date: 2026-09-04
   covering 3,326 pages and 1,057,996 words with zero file errors in 27.1
   seconds on the verification rerun. The benchmark is content-safe and
   reports allocation telemetry.
+- Added database-backed real-corpus mode and indexed all seven PDFs: 3,326
+  pages, 7 extraction artifacts, 5,096 search chunks, and zero failed books or
+  pages in 40.2 seconds, including clean SQLite teardown.
 - Added a reproducible mixed-quality batch benchmark covering 500 books and
   1,500 pages (full, scanned, and partial page layers). After bounding shared
   context tracking, the Windows run completed in 9.190 seconds and allocated
@@ -34,7 +37,8 @@ Date: 2026-09-04
 
 The extraction pipeline now calls the artifact, ISBN evidence, and TOC
 services; persists page-aware deterministic manifests; and records TOC quality.
-The real-adapter corpus subgate is now evidenced, but the seven-file run is not
-target-scale database-pipeline acceptance. The 8.63 GB allocation measurement
-also needs an approved per-book ceiling and representative target-scale
-throughput run before Phase 11 can be marked complete.
+The real-adapter and database-pipeline corpus subgates are now evidenced, but
+the seven-file run is not target-scale acceptance. The 8.63 GB adapter
+allocation measurement also needs an approved per-book ceiling and a
+representative 500-book pipeline throughput run before Phase 11 can be marked
+complete.

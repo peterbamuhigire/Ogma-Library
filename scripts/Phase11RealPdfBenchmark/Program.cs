@@ -1,12 +1,19 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Search;
+using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Pdf;
 
 if (args.Length is < 1 or > 2)
 {
-    Console.Error.WriteLine("Usage: Phase11RealPdfBenchmark <pdf-directory> [max-files]");
+    Console.Error.WriteLine("Usage: Phase11RealPdfBenchmark <pdf-directory> [max-files|--pipeline]");
     return 2;
 }
 
@@ -17,6 +24,8 @@ if (!Directory.Exists(root))
     return 2;
 }
 
+bool runPipeline = args.Length == 2 &&
+    args[1].Equals("--pipeline", StringComparison.OrdinalIgnoreCase);
 int maxFiles = args.Length == 2 && int.TryParse(args[1], out int parsedMax)
     ? parsedMax
     : int.MaxValue;
@@ -34,6 +43,11 @@ if (files.Length == 0)
 {
     Console.Error.WriteLine("No PDF files were found.");
     return 2;
+}
+
+if (runPipeline)
+{
+    return await RunPipelineAsync(files).ConfigureAwait(false);
 }
 
 long allocatedBefore = GC.GetTotalAllocatedBytes(true);
@@ -117,6 +131,107 @@ var report = new
 
 Console.WriteLine(JsonSerializer.Serialize(report));
 return report.filesWithErrors == 0 ? 0 : 1;
+
+static async Task<int> RunPipelineAsync(IReadOnlyList<string> files)
+{
+    string dataDirectory = Path.Combine(
+        Path.GetTempPath(),
+        "ogma-phase11-pipeline-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(dataDirectory);
+
+    var fileMap = new Dictionary<string, string>(StringComparer.Ordinal);
+    var services = new ServiceCollection();
+    services.AddCatalogueContext(dataDirectory, Path.GetDirectoryName(files[0])!);
+    services.AddMetadataEnrichment(Path.GetDirectoryName(files[0])!, enableExternalProviders: false);
+    services.AddSingleton<IPdfRendererFactory, PdfiumAdapterFactory>();
+    services.AddSingleton<IBookFileLocator>(_ => new CorpusFileLocator(fileMap));
+    ServiceProvider provider = services.BuildServiceProvider();
+
+    try
+    {
+        IDbContextFactory<CatalogueDbContext> contextFactory =
+            provider.GetRequiredService<IDbContextFactory<CatalogueDbContext>>();
+        using (CatalogueDbContext setupContext = contextFactory.CreateDbContext())
+        {
+            await setupContext.Database.MigrateAsync().ConfigureAwait(false);
+            for (int index = 0; index < files.Count; index++)
+            {
+                string file = files[index];
+                string bookId = $"P11REAL{index:000000000000}";
+                fileMap[bookId] = file;
+                setupContext.Books.Add(new BookRow
+                {
+                    BookId = bookId,
+                    Title = Path.GetFileNameWithoutExtension(file),
+                    Sha256Hash = ComputeSha256(file),
+                    SizeBytes = new FileInfo(file).Length,
+                    Status = 0,
+                    IndexStatus = 0,
+                });
+            }
+
+            await setupContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        IExtractionPipelineService pipeline = provider.GetRequiredService<IExtractionPipelineService>();
+        ExtractionBatchResult result = await pipeline
+            .IndexNextBatchAsync(files.Count, CancellationToken.None)
+            .ConfigureAwait(false);
+        stopwatch.Stop();
+
+        int extractedPages;
+        int extractionArtifacts;
+        int searchChunks;
+        using (CatalogueDbContext verificationContext = contextFactory.CreateDbContext())
+        {
+            extractedPages = await verificationContext.ExtractedPages.CountAsync().ConfigureAwait(false);
+            extractionArtifacts = await verificationContext.ExtractionArtifacts.CountAsync().ConfigureAwait(false);
+            searchChunks = await verificationContext.SearchChunks.CountAsync().ConfigureAwait(false);
+        }
+        var report = new
+        {
+            schema = "ogma-phase11-real-pipeline-benchmark-v1",
+            fileCount = files.Count,
+            booksAttempted = result.BooksAttempted,
+            booksIndexed = result.BooksIndexed,
+            booksFailed = result.BooksFailed,
+            pagesProcessed = result.PagesProcessed,
+            failedPages = result.FailedPages,
+            extractedPages,
+            extractionArtifacts,
+            searchChunks,
+            elapsedMilliseconds = stopwatch.ElapsedMilliseconds,
+            files = files.Select(Path.GetFileName).ToArray(),
+        };
+        Console.WriteLine(JsonSerializer.Serialize(report));
+        return result.BooksFailed == 0 && result.FailedPages == 0 ? 0 : 1;
+    }
+    finally
+    {
+        provider.Dispose();
+        SqliteConnection.ClearAllPools();
+        if (Directory.Exists(dataDirectory))
+        {
+            Directory.Delete(dataDirectory, recursive: true);
+        }
+    }
+}
+
+static string ComputeSha256(string path)
+{
+    using FileStream stream = File.OpenRead(path);
+    return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+}
+
+internal sealed class CorpusFileLocator(IReadOnlyDictionary<string, string> files) : IBookFileLocator
+{
+    public Task<string?> LocateAsync(string bookId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(files.TryGetValue(bookId, out string? path) ? path : null);
+    }
+}
 
 internal sealed record FileResult(
     string FileName,
