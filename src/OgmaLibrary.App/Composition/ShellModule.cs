@@ -72,6 +72,19 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             options.LibraryRoot,
             writeService,
             services.GetRequiredService<IMetadataReviewService>());
+        var bookshelf3D = new Bookshelf3DViewModel(
+            readModel,
+            services.GetRequiredService<IWebViewBridge>(),
+            navigation,
+            localization);
+        static Task FocusShelfBookAsync(
+            string bookId,
+            CancellationToken cancellationToken,
+            MainShellViewModel? currentShell,
+            Bookshelf3DViewModel shelf) =>
+            currentShell?.Bookshelf3D is not null
+                ? shelf.FocusBookAsync(bookId, cancellationToken)
+                : Task.CompletedTask;
         var reader = new ReaderViewModel(
             services.GetRequiredService<IReaderSessionService>(),
             services.GetRequiredService<IAnnotationService>(),
@@ -86,7 +99,12 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         var search = new SearchViewModel(
             services.GetRequiredService<ISemanticSearchService>(),
             navigation,
-            localization);
+            localization,
+            (bookId, cancellationToken) => FocusShelfBookAsync(
+                bookId,
+                cancellationToken,
+                shell,
+                bookshelf3D));
         var indexManager = new IndexManagerViewModel(
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),
@@ -101,15 +119,15 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             navigation,
             localization,
             services.GetService<IAdvisorFeedbackService>(),
-            navigation);
+            navigation,
+            (bookId, cancellationToken) => FocusShelfBookAsync(
+                bookId,
+                cancellationToken,
+                shell,
+                bookshelf3D));
         var readingPlan = new ReadingPlanViewModel(
             services.GetRequiredService<IAiAdvisorService>(),
             readModel,
-            navigation,
-            localization);
-        var bookshelf3D = new Bookshelf3DViewModel(
-            readModel,
-            services.GetRequiredService<IWebViewBridge>(),
             navigation,
             localization);
         HostSharingViewModel? hostSharing = options.EnableClassroomHost

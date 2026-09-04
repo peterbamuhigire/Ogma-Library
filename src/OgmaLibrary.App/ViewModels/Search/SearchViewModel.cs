@@ -17,6 +17,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private readonly ISemanticSearchService _searchService;
     private readonly IReaderNavigationService _navigation;
     private readonly ILocalizationService _localization;
+    private readonly Func<string, CancellationToken, Task>? _focusBook;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _resultBookIconPath = IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty;
     private CancellationTokenSource? _debounceCts;
@@ -33,7 +34,8 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     public SearchViewModel(
         ISemanticSearchService searchService,
         IReaderNavigationService navigation,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        Func<string, CancellationToken, Task>? focusBook = null)
     {
         ArgumentNullException.ThrowIfNull(searchService);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -42,6 +44,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         _searchService = searchService;
         _navigation = navigation;
         _localization = localization;
+        _focusBook = focusBook;
         _statusText = _localization["Search.Status.Ready"];
         _localization.CultureChanged += OnCultureChanged;
     }
@@ -176,6 +179,10 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 SelectedResult.PageJumpTarget?.PageIndex ?? SelectedResult.PageIndex,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (_focusBook is not null)
+        {
+            await _focusBook(SelectedResult.BookId, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <inheritdoc />

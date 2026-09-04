@@ -25,11 +25,18 @@ public sealed class AdvisorViewRenderTests
         var advisor = new FakeAdvisorService();
         var catalogue = new FakeCatalogueReadModel();
         var navigation = new RecordingNavigation();
+        List<string> focusedBooks = [];
         using var recommendations = new RecommendationPanelViewModel(
             advisor,
             navigation,
             localization,
-            new NoOpFeedbackService())
+            new NoOpFeedbackService(),
+            readerNavigation: null,
+            focusBook: (bookId, _) =>
+            {
+                focusedBooks.Add(bookId);
+                return Task.CompletedTask;
+            })
         {
             Query = "systems",
         };
@@ -39,6 +46,7 @@ public sealed class AdvisorViewRenderTests
         };
 
         await recommendations.LoadAsync();
+        await recommendations.OpenBookAsync(recommendations.Recommendations[0]);
         await recommendations.AskAsync();
         await plan.GenerateAsync();
         Dispatcher.UIThread.RunJobs();
@@ -76,6 +84,7 @@ public sealed class AdvisorViewRenderTests
         Assert.True(frame!.Size.Width > 100);
         Assert.True(frame.Size.Height > 100);
         Assert.Contains("BOOK-P13-UI-001", recommendations.Recommendations[0].BookId, StringComparison.Ordinal);
+        Assert.Equal(["BOOK-P13-UI-001"], focusedBooks);
         Assert.Equal("Local answer from the library.", recommendations.AnswerText);
         Assert.Equal("Thinking in Systems", plan.Steps[0].BookTitle);
         window.Close();

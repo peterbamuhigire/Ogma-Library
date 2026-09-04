@@ -19,6 +19,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     private readonly IBookDetailNavigationService _navigation;
     private readonly IReaderNavigationService? _readerNavigation;
     private readonly ILocalizationService _localization;
+    private readonly Func<string, CancellationToken, Task>? _focusBook;
     private readonly string _iconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
     private string _query = string.Empty;
     private AdvisorIntent? _interpretedIntent;
@@ -38,7 +39,8 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         IBookDetailNavigationService navigation,
         ILocalizationService localization,
         IAdvisorFeedbackService? feedbackService = null,
-        IReaderNavigationService? readerNavigation = null)
+        IReaderNavigationService? readerNavigation = null,
+        Func<string, CancellationToken, Task>? focusBook = null)
     {
         ArgumentNullException.ThrowIfNull(advisor);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -47,6 +49,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         _advisor = advisor;
         _navigation = navigation;
         _readerNavigation = readerNavigation;
+        _focusBook = focusBook;
         _localization = localization;
         _feedbackService = feedbackService;
         _statusText = _localization["Ai.Advisor.Status.Ready"];
@@ -453,7 +456,17 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     public Task OpenBookAsync(RecommendationCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        return _navigation.OpenDetailAsync(card.BookId, cancellationToken);
+        return OpenBookCoreAsync(card.BookId, cancellationToken);
+    }
+
+    private async Task OpenBookCoreAsync(string bookId, CancellationToken cancellationToken)
+    {
+        if (_focusBook is not null)
+        {
+            await _focusBook(bookId, cancellationToken).ConfigureAwait(false);
+        }
+
+        await _navigation.OpenDetailAsync(bookId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Opens a grounded answer citation at its validated reader page.</summary>
@@ -462,6 +475,11 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(citation);
+        if (_focusBook is not null)
+        {
+            return OpenCitationCoreAsync(citation, cancellationToken);
+        }
+
         if (_readerNavigation is not null)
         {
             int? pageHint = citation.PageNumber is > 0
@@ -471,6 +489,24 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         }
 
         return _navigation.OpenDetailAsync(citation.BookId, cancellationToken);
+    }
+
+    private async Task OpenCitationCoreAsync(
+        AnswerCitationViewModel citation,
+        CancellationToken cancellationToken)
+    {
+        await _focusBook!(citation.BookId, cancellationToken).ConfigureAwait(false);
+        if (_readerNavigation is not null)
+        {
+            int? pageHint = citation.PageNumber is > 0
+                ? citation.PageNumber.Value - 1
+                : null;
+            await _readerNavigation.OpenReaderAsync(citation.BookId, pageHint, cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        await _navigation.OpenDetailAsync(citation.BookId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

@@ -27,6 +27,9 @@ Date: 2026-09-04
 - Replaced per-book resident spine textures with a bounded shared 192-slot
   atlas, slot-scoped UVs, asynchronous local-image updates, and stale-slot
   clearing; see `evidence/phase-32-texture-atlas-2026-09-04.md`.
+- Wired search and advisor open/citation actions to the typed `FocusBook` bridge
+  through an optional desktop callback; the focus path remains safe when the
+  native host is absent. See `evidence/phase-32-search-advisor-focus-2026-09-04.md`.
 
 ## Verification
 
@@ -43,7 +46,7 @@ Date: 2026-09-04
 
 ## Remaining phase gate
 
-Search/advisor UI wiring and reference confirmation, and physical
+Reference confirmation and physical
 Windows/macOS screenshot and interaction evidence remain open. The local
 texture-atlas capacity, bridge command, LOD bound, and reduced-motion
 policy are now executable subgates. The build manifest proves the emitted

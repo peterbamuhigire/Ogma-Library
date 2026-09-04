@@ -34,7 +34,16 @@ public sealed class SearchViewModelTests
     {
         var search = new StubSemanticSearchService();
         var navigation = new RecordingReaderNavigation();
-        using var vm = new SearchViewModel(search, navigation, new InMemoryLocalizationService());
+        List<string> focusedBooks = [];
+        using var vm = new SearchViewModel(
+            search,
+            navigation,
+            new InMemoryLocalizationService(),
+            (bookId, _) =>
+            {
+                focusedBooks.Add(bookId);
+                return Task.CompletedTask;
+            });
 
         vm.Query = "ogma";
         await WaitForAsync(() => vm.Results.Count == 1);
@@ -51,6 +60,7 @@ public sealed class SearchViewModelTests
         Assert.All(vm.Results[0].MatchBadges, badge => Assert.False(string.IsNullOrWhiteSpace(badge.IconPath)));
         Assert.Equal("BOOKSEARCH00000000000001", navigation.OpenedBookId);
         Assert.Equal(3, navigation.OpenedPageHint);
+        Assert.Equal(["BOOKSEARCH00000000000001"], focusedBooks);
     }
 
     [AvaloniaFact]
