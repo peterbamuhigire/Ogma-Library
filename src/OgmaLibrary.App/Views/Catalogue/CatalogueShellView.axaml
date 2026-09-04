@@ -34,11 +34,33 @@
       <Grid RowDefinitions="Auto,*">
 
         <!-- Sidebar header -->
-        <Border Grid.Row="0" Padding="16,12">
-          <TextBlock Text="Shelves"
-                     FontSize="{DynamicResource Type.Size.Subtitle}"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <Border Grid.Row="0" Padding="12,10">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding ShelfSidebar.ShelvesLabel}"
+                       FontSize="{DynamicResource Type.Size.Subtitle}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <TextBox Text="{Binding ShelfSidebar.NewShelfName, Mode=TwoWay}"
+                     Watermark="{Binding ShelfSidebar.NewShelfWatermark}"
+                     AutomationProperties.Name="{Binding ShelfSidebar.NewShelfWatermark}" />
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Button AutomationProperties.Name="{Binding ShelfSidebar.CreateShelfLabel}"
+                      IsEnabled="{Binding ShelfSidebar.CanCreateShelf}"
+                      Click="CreateShelf_Click">
+                <TextBlock Text="{Binding ShelfSidebar.CreateShelfLabel}" />
+              </Button>
+              <Button AutomationProperties.Name="{Binding ShelfSidebar.DeleteShelfLabel}"
+                      IsEnabled="{Binding ShelfSidebar.CanDeleteSelectedShelf}"
+                      Click="DeleteShelf_Click">
+                <TextBlock Text="{Binding ShelfSidebar.DeleteShelfLabel}" />
+              </Button>
+            </StackPanel>
+            <TextBlock Text="{Binding ShelfSidebar.StatusText}"
+                       IsVisible="{Binding ShelfSidebar.HasStatus}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
         </Border>
 
         <!-- Shelf list -->

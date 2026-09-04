@@ -22,6 +22,9 @@ Date: 2026-08-30
 - Added a bounded book-detail tag editor that normalizes comma/semicolon/pipe
   input, persists through `ICatalogueWriteService.UpdateMetadataFieldAsync`,
   refreshes the projection, and exposes localized success/failure feedback.
+- Added localized sidebar collection create/delete controls with trimmed-name
+  validation, selected-shelf protection, reload-after-mutation, and failure
+  feedback through the existing catalogue write boundary.
 
 ## Verification
 
@@ -34,8 +37,8 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Collections, smart-shelf saved queries, file/relink actions, complete
+Smart-shelf saved queries, file/relink actions, complete
 status/history presentation, lazy TOC and provenance tabs, and
 accessibility/E2E evidence remain before phase 20 closure. The detail-view
-status/rating/favourite and bounded tag write-control sub-gates are closed by
-the curation UI increment.
+status/rating/favourite, bounded tag, and basic collection CRUD sub-gates are
+closed by the curation/organisation UI increments.

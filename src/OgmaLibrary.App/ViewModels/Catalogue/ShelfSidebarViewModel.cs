@@ -20,6 +20,8 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
 
     private ShelfProjection? _selectedShelf;
     private bool _isLoading;
+    private string _newShelfName = string.Empty;
+    private string? _statusText;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ShelfSidebarViewModel"/>.
@@ -51,6 +53,57 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
     /// <summary>The list of all shelves (virtual + smart).</summary>
     public ObservableCollection<ShelfProjection> Shelves { get; } = [];
 
+    /// <summary>Localized shelves heading.</summary>
+    public string ShelvesLabel => _localization["Catalogue.Shelves.Title"];
+
+    /// <summary>Localized create-collection action label.</summary>
+    public string CreateShelfLabel => _localization["Catalogue.Shelves.Create"];
+
+    /// <summary>Localized delete-collection action label.</summary>
+    public string DeleteShelfLabel => _localization["Catalogue.Shelves.Delete"];
+
+    /// <summary>Localized collection-name prompt.</summary>
+    public string NewShelfWatermark => _localization["Catalogue.Shelves.NameWatermark"];
+
+    /// <summary>New collection name entered in the sidebar.</summary>
+    public string NewShelfName
+    {
+        get => _newShelfName;
+        set
+        {
+            if (_newShelfName != value)
+            {
+                _newShelfName = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanCreateShelf));
+            }
+        }
+    }
+
+    /// <summary>True when a valid collection name can be submitted.</summary>
+    public bool CanCreateShelf => !string.IsNullOrWhiteSpace(NewShelfName) && !IsLoading;
+
+    /// <summary>True when a collection is selected for deletion.</summary>
+    public bool CanDeleteSelectedShelf => SelectedShelf is not null && !IsLoading;
+
+    /// <summary>Localized result of the latest collection mutation.</summary>
+    public string? StatusText
+    {
+        get => _statusText;
+        private set
+        {
+            if (_statusText != value)
+            {
+                _statusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasStatus));
+            }
+        }
+    }
+
+    /// <summary>True when a collection mutation status should be displayed.</summary>
+    public bool HasStatus => !string.IsNullOrWhiteSpace(StatusText);
+
     /// <summary>The currently selected shelf; <see langword="null"/> means "All books".</summary>
     public ShelfProjection? SelectedShelf
     {
@@ -62,6 +115,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
                 _selectedShelf = value;
                 OnPropertyChanged();
                 _filter.SelectedShelfId = value?.ShelfId;
+                OnPropertyChanged(nameof(CanDeleteSelectedShelf));
             }
         }
     }
@@ -76,6 +130,8 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
             {
                 _isLoading = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanCreateShelf));
+                OnPropertyChanged(nameof(CanDeleteSelectedShelf));
             }
         }
     }
@@ -120,6 +176,33 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         await LoadAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Creates the named user collection from the sidebar editor.</summary>
+    public async Task CreateNewShelfAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanCreateShelf)
+        {
+            StatusText = _localization["Catalogue.Shelves.NameRequired"];
+            return;
+        }
+
+        try
+        {
+            await CreateShelfAsync(NewShelfName.Trim(), cancellationToken).ConfigureAwait(false);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                NewShelfName = string.Empty;
+                StatusText = _localization["Catalogue.Shelves.Created"];
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Catalogue.Shelves.FailedFormat"],
+                ex.Message);
+        }
+    }
+
     /// <summary>Renames the specified shelf.</summary>
     /// <param name="shelfId">The shelf to rename.</param>
     /// <param name="newName">The new name.</param>
@@ -147,6 +230,30 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         }
 
         await LoadAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Deletes the selected user collection and clears its filter.</summary>
+    public async Task DeleteSelectedShelfAsync(CancellationToken cancellationToken = default)
+    {
+        ShelfProjection? shelf = SelectedShelf;
+        if (shelf is null)
+        {
+            StatusText = _localization["Catalogue.Shelves.NoneSelected"];
+            return;
+        }
+
+        try
+        {
+            await DeleteShelfAsync(shelf.ShelfId, cancellationToken).ConfigureAwait(false);
+            StatusText = _localization["Catalogue.Shelves.Deleted"];
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Catalogue.Shelves.FailedFormat"],
+                ex.Message);
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>

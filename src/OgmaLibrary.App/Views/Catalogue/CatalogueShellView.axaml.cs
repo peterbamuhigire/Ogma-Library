@@ -356,4 +356,20 @@ public partial class CatalogueShellView : UserControl
 
         return null;
     }
+
+    private async void CreateShelf_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            await vm.ShelfSidebar.CreateNewShelfAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void DeleteShelf_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            await vm.ShelfSidebar.DeleteSelectedShelfAsync().ConfigureAwait(true);
+        }
+    }
 }
