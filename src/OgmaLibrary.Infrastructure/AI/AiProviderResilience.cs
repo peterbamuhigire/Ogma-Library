@@ -58,6 +58,28 @@ public sealed class AiProviderHealthRegistry
 {
     private readonly object _gate = new();
     private readonly Dictionary<string, State> _states = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IAiProviderHealthStore? _store;
+
+    /// <summary>Initializes the health registry and restores redacted state when available.</summary>
+    public AiProviderHealthRegistry(IAiProviderHealthStore? store = null)
+    {
+        _store = store;
+        foreach (AiProviderHealthSnapshot snapshot in store?.Load() ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(snapshot.ProviderKey))
+            {
+                continue;
+            }
+
+            _states[snapshot.ProviderKey.Trim()] = new State
+            {
+                ConsecutiveFailures = Math.Max(0, snapshot.ConsecutiveFailures),
+                TotalFailures = Math.Max(0, snapshot.TotalFailures),
+                TotalRetries = Math.Max(0, snapshot.TotalRetries),
+                CircuitOpenUntilUtc = snapshot.CircuitOpenUntilUtc,
+            };
+        }
+    }
 
     internal bool IsCircuitOpen(string providerKey)
     {
@@ -75,6 +97,7 @@ public sealed class AiProviderHealthRegistry
         {
             state.ConsecutiveFailures = 0;
             state.CircuitOpenUntilUtc = null;
+            PersistLocked();
         }
     }
 
@@ -89,6 +112,8 @@ public sealed class AiProviderHealthRegistry
             {
                 state.CircuitOpenUntilUtc = DateTimeOffset.UtcNow.Add(options.CircuitOpenDuration);
             }
+
+            PersistLocked();
         }
     }
 
@@ -98,6 +123,7 @@ public sealed class AiProviderHealthRegistry
         lock (_gate)
         {
             state.TotalRetries++;
+            PersistLocked();
         }
     }
 
@@ -131,6 +157,33 @@ public sealed class AiProviderHealthRegistry
             }
 
             return state;
+        }
+    }
+
+    private void PersistLocked()
+    {
+        if (_store is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _store.Save(_states.Select(pair => new AiProviderHealthSnapshot(
+                pair.Key,
+                pair.Value.ConsecutiveFailures,
+                pair.Value.TotalFailures,
+                pair.Value.TotalRetries,
+                pair.Value.CircuitOpenUntilUtc)).ToArray());
+        }
+        catch (IOException)
+        {
+            // Health persistence must never make a provider call fail open or
+            // turn an otherwise isolated provider failure into app failure.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The next process start can safely reconstruct an empty snapshot.
         }
     }
 

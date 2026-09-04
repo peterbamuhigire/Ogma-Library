@@ -10,6 +10,45 @@ namespace OgmaLibrary.Tests.Ai;
 public sealed class Phase27ProviderResilienceTests
 {
     [Fact]
+    public void ProviderHealthStore_RestoresRedactedOperationalState()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"ogma-ai-health-{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new JsonAiProviderHealthStore(path);
+            store.Save(
+            [
+                new AiProviderHealthSnapshot(
+                    "openai",
+                    ConsecutiveFailures: 2,
+                    TotalFailures: 7,
+                    TotalRetries: 3,
+                    CircuitOpenUntilUtc: DateTimeOffset.UtcNow.AddMinutes(1)),
+            ]);
+
+            var registry = new AiProviderHealthRegistry(store);
+            AiProviderHealthSnapshot snapshot = registry.GetSnapshot("openai");
+
+            Assert.Equal(2, snapshot.ConsecutiveFailures);
+            Assert.Equal(7, snapshot.TotalFailures);
+            Assert.Equal(3, snapshot.TotalRetries);
+            Assert.True(snapshot.CircuitOpenUntilUtc > DateTimeOffset.UtcNow);
+            string persisted = File.ReadAllText(path);
+            Assert.DoesNotContain("prompt", persisted, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("response", persisted, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("apiKey", persisted, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("endpoint", persisted, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public async Task ResilientProvider_RetriesTransientFailureAndRecordsTelemetry()
     {
         var health = new AiProviderHealthRegistry();

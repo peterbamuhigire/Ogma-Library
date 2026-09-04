@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -30,6 +31,8 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
         services.AddMetadataEnrichment(
             options.LibraryRoot,
             options.EnableExternalMetadataProviders);
+        services.AddSingleton<IAiProviderHealthStore>(_ => new JsonAiProviderHealthStore(
+            Path.Combine(options.DataDirectory, "ai-provider-health.json")));
         services.AddAiGatewayCore().AddFailClosedAiRuntime();
 
         services.AddSingleton<JobRecoveryService>();

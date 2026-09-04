@@ -31,6 +31,10 @@ Date: 2026-08-30
   exact payload-preview dialog is reached before cloud egress. Background and
   test composition remains fail-closed, and each modal preview disposes its
   localization subscription when closed.
+- Added versioned, atomic JSON persistence for redacted provider health
+  counters and circuit expiry. Startup restores operational state; persistence
+  failures are swallowed so they cannot weaken fail-closed behavior or block a
+  provider call.
 
 ## Verification
 
@@ -41,9 +45,10 @@ Date: 2026-08-30
 - `SchoolAdminScaffoldTests` and `ClassroomCredentialStoreTests`: 17 passed.
 - Desktop app Debug build: 0 warnings, 0 errors.
 - Phase 02 composition and payload-preview model slice: 8 passed.
+- Provider resilience and health-persistence slice: 4 passed.
 
 ## Remaining phase gate
 
 Explicit user-configurable provider profiles, durable token/cost budgets,
-connection-health persistence, retention and erasure journey, and cloud-provider
-conformance remain before phase 27 closure.
+retention and erasure journey, and cloud-provider conformance remain before
+phase 27 closure.
