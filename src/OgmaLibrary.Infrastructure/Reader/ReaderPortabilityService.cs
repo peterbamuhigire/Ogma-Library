@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -103,6 +104,7 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
                 {
                     AnnotationId = annotation.AnnotationId,
                     LayerId = annotation.LayerId,
+                    CoordinateVersion = annotation.CoordinateVersion,
                     Type = annotation.Type,
                     RegionsJson = annotation.RegionsJson,
                     ColorKey = annotation.ColorKey,
@@ -249,6 +251,13 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
                 continue;
             }
 
+            string coordinateVersion = AnnotationCoordinateContract.NormalizeVersion(
+                annotation.CoordinateVersion);
+            if (!AnnotationCoordinateContract.IsSupported(coordinateVersion))
+            {
+                continue;
+            }
+
             AnnotationV2Row? row = await context.AnnotationsV2.FirstOrDefaultAsync(
                 candidate => candidate.AnnotationId == annotation.AnnotationId && candidate.BookId == bookId,
                 cancellationToken).ConfigureAwait(false);
@@ -259,6 +268,7 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
             }
 
             row.LayerId = annotation.LayerId;
+            row.CoordinateVersion = coordinateVersion;
             row.Type = annotation.Type is 0 or 1 ? annotation.Type : 0;
             row.RegionsJson = Limit(annotation.RegionsJson, 65536) ?? "[]";
             row.ColorKey = Limit(annotation.ColorKey, 32);
@@ -352,6 +362,7 @@ public sealed class ReaderPortabilityService : IReaderPortabilityService
     {
         public string AnnotationId { get; set; } = string.Empty;
         public string? LayerId { get; set; }
+        public string? CoordinateVersion { get; set; }
         public int Type { get; set; }
         public string? RegionsJson { get; set; }
         public string? ColorKey { get; set; }

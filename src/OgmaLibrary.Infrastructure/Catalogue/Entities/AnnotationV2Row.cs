@@ -1,3 +1,5 @@
+using OgmaLibrary.Domain;
+
 namespace OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 /// <summary>
@@ -12,6 +14,9 @@ public sealed class AnnotationV2Row
 
     /// <summary>FK to the owning book.</summary>
     public string BookId { get; set; } = string.Empty;
+
+    /// <summary>Version of the serialized coordinate representation.</summary>
+    public string CoordinateVersion { get; set; } = AnnotationCoordinateContract.CurrentVersion;
 
     /// <summary>FK to the annotation layer, or <see langword="null"/> for the implicit default layer.</summary>
     public string? LayerId { get; set; }

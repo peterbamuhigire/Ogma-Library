@@ -81,6 +81,12 @@ public sealed class AnnotationV2
     /// <summary>The stable identifier of the owning book.</summary>
     public required string BookId { get; init; }
 
+    /// <summary>
+    /// Version of the coordinate representation. Missing legacy values are treated
+    /// as <see cref="AnnotationCoordinateContract.CurrentVersion"/> by persistence.
+    /// </summary>
+    public string CoordinateVersion { get; set; } = AnnotationCoordinateContract.CurrentVersion;
+
     /// <summary>The stable identifier of the layer this annotation belongs to, or <see langword="null"/> for the default layer.</summary>
     public string? LayerId { get; set; }
 

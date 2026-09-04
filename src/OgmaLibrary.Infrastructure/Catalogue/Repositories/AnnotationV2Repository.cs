@@ -117,6 +117,7 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
         {
             AnnotationId = annotation.Id,
             BookId = annotation.BookId,
+            CoordinateVersion = AnnotationCoordinateContract.NormalizeVersion(annotation.CoordinateVersion),
             LayerId = annotation.LayerId,
             Type = (int)annotation.Kind,
             RegionsJson = SerializeRegions(annotation.Regions),
@@ -180,6 +181,7 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
                 row.NoteText = annotation.NoteText;
                 row.QuoteText = annotation.QuoteText;
                 row.RegionsJson = SerializeRegions(annotation.Regions);
+                row.CoordinateVersion = AnnotationCoordinateContract.NormalizeVersion(annotation.CoordinateVersion);
                 row.ModifiedUtc = annotation.ModifiedUtc;
 
                 await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -235,9 +237,12 @@ public sealed class AnnotationV2Repository : IAnnotationV2Repository
         {
             Id = row.AnnotationId,
             BookId = row.BookId,
+            CoordinateVersion = AnnotationCoordinateContract.NormalizeVersion(row.CoordinateVersion),
             LayerId = row.LayerId,
             Kind = row.Type == 0 ? AnnotationKind.Highlight : AnnotationKind.Note,
-            Regions = DeserializeRegions(row.RegionsJson),
+            Regions = AnnotationCoordinateContract.IsSupported(row.CoordinateVersion)
+                ? DeserializeRegions(row.RegionsJson)
+                : [],
             HighlightColor = row.ColorKey,
             QuoteText = row.QuoteText,
             NoteText = row.NoteText,

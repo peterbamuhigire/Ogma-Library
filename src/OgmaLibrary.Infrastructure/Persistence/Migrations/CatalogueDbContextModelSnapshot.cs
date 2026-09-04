@@ -335,6 +335,13 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasMaxLength(26)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CoordinateVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("normalized-v1");
+
                     b.Property<string>("ColorKey")
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");

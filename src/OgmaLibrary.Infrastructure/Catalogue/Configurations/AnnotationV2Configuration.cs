@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Infrastructure.Catalogue.Configurations;
@@ -19,6 +20,10 @@ public sealed class AnnotationV2Configuration : IEntityTypeConfiguration<Annotat
         builder.HasKey(a => a.AnnotationId);
         builder.Property(a => a.AnnotationId).IsRequired().HasMaxLength(26);
         builder.Property(a => a.BookId).IsRequired().HasMaxLength(26);
+        builder.Property(a => a.CoordinateVersion)
+            .IsRequired()
+            .HasMaxLength(32)
+            .HasDefaultValue(AnnotationCoordinateContract.CurrentVersion);
         builder.Property(a => a.LayerId).HasMaxLength(26);
         builder.Property(a => a.Type).IsRequired();
         builder.Property(a => a.RegionsJson).IsRequired().HasDefaultValue("[]");

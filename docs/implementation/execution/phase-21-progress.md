@@ -27,6 +27,11 @@ Date: 2026-09-04
   sessions in the desktop shell. The left pane reuses the primary reader; the
   right pane opens a user-entered book ID through its own session, preserving
   independent page, annotation and reading-state context.
+- Added the versioned `normalized-v1` annotation-coordinate contract and a
+  migration for existing rows. Omitted legacy versions fall back to the
+  normalized representation; unsupported versions retain their marker but
+  expose no regions, preventing incorrect overlays. Portable reader-state
+  exports carry the coordinate version and imports reject unsupported data.
 
 ## Verification
 
@@ -46,10 +51,13 @@ Date: 2026-09-04
   reader UI proof passes after this increment.
 - Current-HEAD split-view route verification: 1 UI test passed, 0 failed, 0
   skipped. The application build passed with 0 warnings and 0 errors.
+- Current-HEAD annotation coordinate/migration verification: 36 reader tests
+  passed, 0 failed, 0 skipped, including the Phase 09 persistence regression
+  and Phase 21 legacy/unsupported-version cases.
 
 ## Remaining phase gate
 
-Coordinate-version fallback, platform viewer actions,
+Platform viewer actions,
 physical Narrator/VoiceOver journeys, and cross-platform performance budgets
 remain before phase 21 closure. The local automated cache/session/non-crash and
 reader import/export UI sub-gates are closed; physical crash recovery evidence
