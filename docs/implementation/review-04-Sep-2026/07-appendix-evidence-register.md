@@ -32,3 +32,4 @@ The audit did not stage or alter these existing user-owned changes:
 The audit evidence itself is intended to be committed as a documentation-only
 increment. After commit, verify `git status`, `git diff --cached --check`, and
 remote parity. The user-owned files above must remain outside the commit.
+- Phase 11 real PDF adapter corpus: `docs/implementation/execution/evidence/phase-11-real-pdf-corpus-2026-09-04.md`
