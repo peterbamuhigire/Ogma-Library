@@ -99,4 +99,12 @@ public partial class BookDetailView : UserControl
             await vm.ToggleFavouriteAsync().ConfigureAwait(true);
         }
     }
+
+    private async void SaveTagsButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.SaveTagsAsync().ConfigureAwait(true);
+        }
+    }
 }

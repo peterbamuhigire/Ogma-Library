@@ -167,6 +167,27 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <StackPanel Spacing="5"
+                            Margin="0,8,0,0"
+                            IsVisible="{Binding CanEditTags}">
+                  <TextBlock Text="{Binding TagsLabel}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <TextBox Text="{Binding TagsText, Mode=TwoWay}"
+                           Watermark="tag, another tag"
+                           AutomationProperties.Name="{Binding TagsLabel}" />
+                  <Button HorizontalAlignment="Left"
+                          IsEnabled="{Binding CanEditTags}"
+                          AutomationProperties.Name="{Binding SaveTagsLabel}"
+                          Click="SaveTagsButton_Click">
+                    <TextBlock Text="{Binding SaveTagsLabel}" />
+                  </Button>
+                  <TextBlock Text="{Binding TagsStatusText}"
+                             IsVisible="{Binding HasTagsStatus}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
               </StackPanel>
             </TabItem>
 

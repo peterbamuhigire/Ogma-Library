@@ -77,6 +77,56 @@ public sealed class BookDetailCurationTests
         window.Close();
     }
 
+    [AvaloniaFact]
+    public async Task BookDetailTags_SaveThroughTheCatalogueWriteBoundaryAndRenderEditor()
+    {
+        const string bookId = "PHASE20-TAGS-BOOK";
+        var readModel = new MutableReadModel(CreateProjection(bookId) with
+        {
+            MetadataFields =
+            [
+                new MetadataFieldProjection("Tags", "Systems; Reader", "System", 1.0, false),
+            ],
+        });
+        var writeService = new RecordingCatalogueWriteService(readModel);
+        var viewModel = new BookDetailViewModel(
+            readModel,
+            new NoOpReaderNavigation(),
+            new InMemoryLocalizationService(),
+            catalogueWriteService: writeService);
+
+        await viewModel.LoadBookAsync(bookId);
+        viewModel.TagsText = "Systems, reader, Systems";
+        await viewModel.SaveTagsAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.CanEditTags);
+        Assert.Equal("reader, Systems", viewModel.TagsText);
+        Assert.Equal("Tags saved.", viewModel.TagsStatusText);
+        Assert.Single(writeService.Calls);
+        Assert.Equal((bookId, "Tags", "Systems; reader"), writeService.Calls[0]);
+
+        var view = new BookDetailView { DataContext = viewModel };
+        var window = new Window
+        {
+            Width = 420,
+            Height = 700,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        TabControl tabs = Assert.Single(view.GetVisualDescendants().OfType<TabControl>());
+        tabs.SelectedIndex = 1;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains(view.GetVisualDescendants().OfType<TextBox>(), textBox =>
+            textBox.Watermark == "tag, another tag");
+        Assert.Contains(view.GetVisualDescendants().OfType<Button>(), button =>
+            button.Content is TextBlock text && text.Text == "Save tags");
+        window.Close();
+    }
+
     private static BookDetailProjection CreateProjection(string bookId) => new(
         bookId,
         "Curation book",
@@ -136,6 +186,16 @@ public sealed class BookDetailCurationTests
                 ReadingProgress = status is null ? progress : progress with { Status = (int)status.Value },
             };
         }
+
+        public void ApplyTags(string? value)
+        {
+            IReadOnlyList<MetadataFieldProjection> fields =
+                _projection.MetadataFields
+                    .Where(field => field.FieldName is not ("Tag" or "Tags"))
+                    .Append(new MetadataFieldProjection("Tags", value, "User", null, true))
+                    .ToArray();
+            _projection = _projection with { MetadataFields = fields };
+        }
     }
 
     private sealed class RecordingCurationService(MutableReadModel readModel) : IBookCurationService
@@ -157,6 +217,50 @@ public sealed class BookDetailCurationTests
     }
 
     private sealed record CurationCall(ReadingStatus? Status, int? Rating, bool? IsFavourite);
+
+    private sealed class RecordingCatalogueWriteService(MutableReadModel readModel) : ICatalogueWriteService
+    {
+        public List<(string BookId, string FieldName, string? Value)> Calls { get; } = [];
+
+        public Task<string> CreateShelfAsync(
+            string name,
+            bool isSmart = false,
+            string? query = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult("shelf-001");
+
+        public Task RenameShelfAsync(
+            string shelfId,
+            string newName,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task DeleteShelfAsync(string shelfId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task AddBookToShelfAsync(
+            string shelfId,
+            string bookId,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task RemoveBookFromShelfAsync(
+            string shelfId,
+            string bookId,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task UpdateMetadataFieldAsync(
+            string bookId,
+            string fieldName,
+            string? value,
+            CancellationToken cancellationToken = default)
+        {
+            Calls.Add((bookId, fieldName, value));
+            readModel.ApplyTags(value);
+            return Task.CompletedTask;
+        }
+
+        public Task BulkEditAsync(BulkEditCommand command, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
 
     private sealed class NoOpReaderNavigation : IReaderNavigationService
     {

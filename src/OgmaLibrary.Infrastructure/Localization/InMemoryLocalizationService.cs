@@ -328,6 +328,10 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Catalogue.BookDetail.Curation.RemoveFavourite"] = "Remove favourite",
         ["Catalogue.BookDetail.Curation.Saved"] = "Reading preferences saved.",
         ["Catalogue.BookDetail.Curation.FailedFormat"] = "Reading preferences could not be saved: {0}",
+        ["Catalogue.BookDetail.Curation.Tags"] = "Tags",
+        ["Catalogue.BookDetail.Curation.SaveTags"] = "Save tags",
+        ["Catalogue.BookDetail.Curation.TagsSaved"] = "Tags saved.",
+        ["Catalogue.BookDetail.Curation.TagsFailedFormat"] = "Tags could not be saved: {0}",
         ["Catalogue.Empty.NoResults"] = "No books match the current filters",
         ["Catalogue.Empty.NoShelfBooks"] = "This shelf has no books yet",
 
@@ -824,6 +828,10 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["Catalogue.BookDetail.Curation.RemoveFavourite"] = "Retirer des favoris",
         ["Catalogue.BookDetail.Curation.Saved"] = "Préférences de lecture enregistrées.",
         ["Catalogue.BookDetail.Curation.FailedFormat"] = "Impossible d'enregistrer les préférences : {0}",
+        ["Catalogue.BookDetail.Curation.Tags"] = "Tags",
+        ["Catalogue.BookDetail.Curation.SaveTags"] = "Enregistrer les tags",
+        ["Catalogue.BookDetail.Curation.TagsSaved"] = "Tags enregistrés.",
+        ["Catalogue.BookDetail.Curation.TagsFailedFormat"] = "Impossible d'enregistrer les tags : {0}",
         ["Catalogue.Empty.NoResults"] = "Aucun livre ne correspond aux filtres actuels",
         ["Catalogue.Empty.NoShelfBooks"] = "Cette étagère ne contient pas encore de livres",
 

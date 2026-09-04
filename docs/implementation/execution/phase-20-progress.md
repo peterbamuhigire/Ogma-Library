@@ -19,18 +19,22 @@ Date: 2026-08-30
   a localized success/failure state without exposing history text.
 - Implemented bounded bulk tag add/remove persistence and audit projection;
   tag input is normalized case-insensitively and stored as user-owned metadata.
+- Added a bounded book-detail tag editor that normalizes comma/semicolon/pipe
+  input, persists through `ICatalogueWriteService.UpdateMetadataFieldAsync`,
+  refreshes the projection, and exposes localized success/failure feedback.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase20BookCurationTests`: 2 passed.
-- `BookDetailCurationTests`: 1 passed.
+- `BookDetailCurationTests`: 3 passed, including rendered tag-editor controls
+  and the write-boundary/refresh path.
 
 ## Remaining phase gate
 
-Tag-management UI and collections, smart-shelf saved queries, file/relink actions, complete
+Collections, smart-shelf saved queries, file/relink actions, complete
 status/history presentation, lazy TOC and provenance tabs, and
 accessibility/E2E evidence remain before phase 20 closure. The detail-view
-status/rating/favourite write-control sub-gate is closed by the curation UI
-increment.
+status/rating/favourite and bounded tag write-control sub-gates are closed by
+the curation UI increment.

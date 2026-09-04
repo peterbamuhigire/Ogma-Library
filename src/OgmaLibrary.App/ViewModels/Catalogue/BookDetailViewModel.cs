@@ -26,6 +26,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private readonly IPasswordProvider? _passwordProvider;
     private readonly IBookCurationService? _curation;
     private readonly string? _assetRootPath;
+    private readonly ICatalogueWriteService? _catalogueWriteService;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -34,12 +35,15 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _isQueueingOcr;
     private bool _isSavingReadingMemory;
     private bool _isUpdatingCuration;
+    private bool _isSavingTags;
     private bool _isVisible;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
     private string? _passwordStatusText;
     private string? _readingMemoryStatusText;
     private string? _curationStatusText;
+    private string? _tagsStatusText;
+    private string _tagsText = string.Empty;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
     private string _readingMemoryOpenQuestions = string.Empty;
@@ -57,6 +61,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <param name="passwordProvider">The OS credential provider for protected PDFs.</param>
     /// <param name="curation">The durable personal curation service.</param>
     /// <param name="assetRootPath">The configured sidecar root used for local visual assets.</param>
+    /// <param name="catalogueWriteService">The catalogue write boundary for user-owned tags.</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -66,7 +71,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         IOcrJobQueueService? ocrJobs = null,
         IPasswordProvider? passwordProvider = null,
         IBookCurationService? curation = null,
-        string? assetRootPath = null)
+        string? assetRootPath = null,
+        ICatalogueWriteService? catalogueWriteService = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -81,6 +87,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _passwordProvider = passwordProvider;
         _curation = curation;
         _assetRootPath = assetRootPath;
+        _catalogueWriteService = catalogueWriteService;
     }
 
     /// <inheritdoc />
@@ -244,6 +251,62 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>True when a curation result message should be displayed.</summary>
     public bool HasCurationStatus => !string.IsNullOrWhiteSpace(CurationStatusText);
 
+    /// <summary>True when the loaded book can edit its user-owned tags.</summary>
+    public bool CanEditTags => _book is not null && _catalogueWriteService is not null && !IsSavingTags;
+
+    /// <summary>True while the tag value is being persisted.</summary>
+    public bool IsSavingTags
+    {
+        get => _isSavingTags;
+        private set
+        {
+            if (_isSavingTags != value)
+            {
+                _isSavingTags = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEditTags));
+            }
+        }
+    }
+
+    /// <summary>Editable comma-separated user tag value.</summary>
+    public string TagsText
+    {
+        get => _tagsText;
+        set
+        {
+            if (_tagsText != value)
+            {
+                _tagsText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Localized tags label.</summary>
+    public string TagsLabel => _localization["Catalogue.BookDetail.Curation.Tags"];
+
+    /// <summary>Localized save-tags label.</summary>
+    public string SaveTagsLabel => _localization["Catalogue.BookDetail.Curation.SaveTags"];
+
+    /// <summary>Current user-facing tag save status.</summary>
+    public string? TagsStatusText
+    {
+        get => _tagsStatusText;
+        private set
+        {
+            if (_tagsStatusText != value)
+            {
+                _tagsStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasTagsStatus));
+            }
+        }
+    }
+
+    /// <summary>True when tag save status should be displayed.</summary>
+    public bool HasTagsStatus => !string.IsNullOrWhiteSpace(TagsStatusText);
+
     /// <summary>Current user-facing enrichment status, if any.</summary>
     public string? EnrichmentStatusText
     {
@@ -307,6 +370,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         private set
         {
             _book = value;
+            _tagsText = FormatTags(value);
             OnPropertyChanged();
             OnPropertyChanged(nameof(Title));
             OnPropertyChanged(nameof(AuthorsDisplay));
@@ -348,6 +412,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CurrentReadingStatus));
             OnPropertyChanged(nameof(IsFavourite));
             OnPropertyChanged(nameof(FavouriteButtonText));
+            OnPropertyChanged(nameof(CanEditTags));
+            OnPropertyChanged(nameof(TagsText));
         }
     }
 
@@ -621,6 +687,57 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     public Task ToggleFavouriteAsync(CancellationToken cancellationToken = default) =>
         UpdateCurationAsync(isFavourite: !IsFavourite, cancellationToken: cancellationToken);
 
+    /// <summary>Persists the bounded user-owned tag list and refreshes the detail projection.</summary>
+    public async Task SaveTagsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null || _catalogueWriteService is null || IsSavingTags)
+        {
+            return;
+        }
+
+        string[] tags;
+        try
+        {
+            tags = NormalizeTags(TagsText);
+        }
+        catch (ArgumentException ex)
+        {
+            TagsStatusText = ex.Message;
+            return;
+        }
+
+        IsSavingTags = true;
+        TagsStatusText = null;
+        try
+        {
+            await _catalogueWriteService.UpdateMetadataFieldAsync(
+                _book.BookId,
+                "Tags",
+                tags.Length == 0 ? null : string.Join("; ", tags),
+                cancellationToken).ConfigureAwait(false);
+            BookDetailProjection? detail = await _readModel
+                .GetBookDetailAsync(_book.BookId, cancellationToken)
+                .ConfigureAwait(false);
+            UpdateOnUiThread(() =>
+            {
+                Book = detail ?? _book;
+                TagsStatusText = _localization["Catalogue.BookDetail.Curation.TagsSaved"];
+                IsSavingTags = false;
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                TagsStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.Curation.TagsFailedFormat"],
+                    ex.Message);
+                IsSavingTags = false;
+            });
+        }
+    }
+
     /// <summary>Runs deterministic provider metadata enrichment for the loaded book.</summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task EnrichMetadataAsync(CancellationToken cancellationToken = default)
@@ -880,6 +997,35 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
                 IsUpdatingCuration = false;
             });
         }
+    }
+
+    private static string FormatTags(BookDetailProjection? book) =>
+        string.Join(", ", (book?.MetadataFields ?? [])
+            .Where(field => field.FieldName is "Tag" or "Tags")
+            .SelectMany(field => (field.Value ?? string.Empty)
+                .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(tag => tag.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(tag => tag, StringComparer.OrdinalIgnoreCase));
+
+    private static string[] NormalizeTags(string value)
+    {
+        string[] tags = value
+            .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(tag => tag.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (tags.Length > 32)
+        {
+            throw new ArgumentException("Use at most 32 tags.");
+        }
+
+        if (tags.Any(tag => tag.Length > 128))
+        {
+            throw new ArgumentException("Each tag must be at most 128 characters.");
+        }
+
+        return tags;
     }
 
     /// <summary>Closes the detail panel.</summary>
