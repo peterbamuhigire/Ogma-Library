@@ -18,7 +18,7 @@ Ledger normalized: 2026-09-04
 | 7 | Discovery and Incremental Scanning | COMPLETE | Recovery gates closed; physical cross-platform/UI evidence remains NOT ASSESSED |
 | 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery and audit gates closed; physical ACL/operator/cross-OS evidence remains NOT ASSESSED |
 | 9 | Duplicate and Bibliographic Resolution | COMPLETE | Candidate blocking, grouping and consumer projections evidenced |
-| 10 | PDF Validation and Containment | IN PROGRESS | Broker, password and resource gates delivered; OS sandbox/escape/security approval open |
+| 10 | PDF Validation and Containment | IN PROGRESS | Broker, password, resource gates, and fail-closed Windows Job Object startup delivered; OS sandbox/escape/security approval open |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC, ranked ISBN evidence and 500-book synthetic mixed-quality baseline delivered; real target-scale corpus open |
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry, conflict aggregation, local privacy-disclosure and official terms-constraint evidence delivered; legal, archive, UI and live network evidence open |

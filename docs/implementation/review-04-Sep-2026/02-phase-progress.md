@@ -8,7 +8,7 @@ verified evidence and remaining gate summarized for decision use.
 | 7 | COMPLETE | Discovery recovery and incremental scan controls | Physical cross-platform/UI evidence |
 | 8 | COMPLETE | Filesystem reconciliation, recovery, and audit controls | Physical ACL/operator/cross-OS evidence |
 | 9 | COMPLETE | Duplicate blocking, identity grouping, consumer projections | No current implementation blocker recorded; release validation still applies |
-| 10 | IN PROGRESS | Input broker, password transport, sandbox copy/output bounds, process ceilings | True OS sandbox/escape evidence and independent security approval |
+| 10 | IN PROGRESS | Input broker, password transport, sandbox copy/output bounds, process ceilings, fail-closed Windows Job Object startup | True OS sandbox/escape evidence and independent security approval |
 | 11 | IN PROGRESS | Versioned extraction artifacts, ISBN evidence, TOC quality, 500-book synthetic baseline | Real target-scale mixed-PDF corpus and native resource measurements |
 | 12 | COMPLETE | Scope policy, precedence, proposal-only enrichment, provenance review | Physical/release validation as applicable |
 | 13 | IN PROGRESS | Cache/TTL/stale/revalidation, health/quota/circuit, retry/conflicts, privacy disclosure, official terms constraints | Legal/privacy owner review, archive evidence, live network, attribution UI |

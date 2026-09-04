@@ -308,10 +308,7 @@ public sealed class PdfWorkerClient
             process.Start();
             await SendPasswordAsync(process.StandardInput, password, closeAfterWrite: true)
                 .ConfigureAwait(false);
-            using WindowsChildProcessLimit? childProcessLimit = WindowsChildProcessLimit.TryAssign(
-                process,
-                _options.MaxMemoryBytes,
-                _options.CpuTimeLimit);
+            using WindowsChildProcessLimit? childProcessLimit = RequireWindowsProcessLimit(process);
             Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
             Task<string> stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
@@ -354,6 +351,22 @@ public sealed class PdfWorkerClient
                 sandbox.Dispose();
             }
         }
+    }
+
+    private WindowsChildProcessLimit? RequireWindowsProcessLimit(Process process)
+    {
+        WindowsChildProcessLimit? limit = WindowsChildProcessLimit.TryAssign(
+            process,
+            _options.MaxMemoryBytes,
+            _options.CpuTimeLimit);
+        if (OperatingSystem.IsWindows() && limit is null)
+        {
+            KillProcessTree(process);
+            throw new InvalidOperationException(
+                "The PDF worker could not be assigned a Windows resource-limiting Job Object.");
+        }
+
+        return limit;
     }
 
     private static void SetSandboxEnvironment(ProcessStartInfo startInfo, string sandboxPath)
@@ -679,10 +692,7 @@ public sealed class PdfWorkerClient
 
                 _process = new Process { StartInfo = startInfo };
                 _process.Start();
-                _childProcessLimit = WindowsChildProcessLimit.TryAssign(
-                    _process,
-                    _client._options.MaxMemoryBytes,
-                    _client._options.CpuTimeLimit);
+                _childProcessLimit = _client.RequireWindowsProcessLimit(_process);
                 _reader = _process.StandardOutput;
                 _writer = _process.StandardInput;
                 SendPasswordAsync(_writer, _password, closeAfterWrite: false)
