@@ -24,6 +24,9 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Deb
 
 Result: 107 passed, 0 failed, 0 skipped.
 
+Current-HEAD rerun after the Phase 32–34 push batch also passed the complete
+`ClassroomClient` slice: 107 passed, 0 failed, and 0 skipped.
+
 The focused offline-cache slice additionally passed 8/8, including a crafted
 metadata path regression that preserved an external sentinel file.
 
