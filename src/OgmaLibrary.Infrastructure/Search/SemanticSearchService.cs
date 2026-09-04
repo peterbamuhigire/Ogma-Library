@@ -90,14 +90,22 @@ public sealed class SemanticSearchService : ISemanticSearchService
             query.Vector.Length > 4096 ||
             query.Vector.Any(value => !float.IsFinite(value)))
         {
-            return ExactFallback(exact, maxResults, providerUnavailable: false);
+            return ExactFallback(
+                exact,
+                maxResults,
+                providerUnavailable: false,
+                availability: SemanticSearchAvailability.Degraded);
         }
 
         IReadOnlyList<VectorCandidateRow> corpus = await LoadCorpusAsync(query.Vector.Length, cancellationToken)
             .ConfigureAwait(false);
         if (corpus.Count == 0)
         {
-            return ExactFallback(exact, maxResults, providerUnavailable: false);
+            return ExactFallback(
+                exact,
+                maxResults,
+                providerUnavailable: false,
+                availability: SemanticSearchAvailability.NoIndex);
         }
 
         IReadOnlyList<VectorSearchHit> hits = CosineSimilarityService.TopK(
@@ -148,7 +156,10 @@ public sealed class SemanticSearchService : ISemanticSearchService
         return new SemanticSearchResponse(
             ProviderUnavailable: false,
             UsedExactFallback: false,
-            Results: results);
+            Results: results,
+            Availability: results.Count == 0
+                ? SemanticSearchAvailability.NoMatches
+                : SemanticSearchAvailability.Ready);
     }
 
     private async Task<SemanticSearchResponse> ExactFallbackAsync(
@@ -161,13 +172,14 @@ public sealed class SemanticSearchService : ISemanticSearchService
             .SearchAsync(queryText, maxResults, cancellationToken)
             .ConfigureAwait(false);
 
-        return ExactFallback(exact, maxResults, providerUnavailable);
+        return ExactFallback(exact, maxResults, providerUnavailable, SemanticSearchAvailability.Degraded);
     }
 
     private SemanticSearchResponse ExactFallback(
         IReadOnlyList<CombinedSearchResult> exact,
         int maxResults,
-        bool providerUnavailable)
+        bool providerUnavailable,
+        SemanticSearchAvailability availability)
     {
         return new SemanticSearchResponse(
             providerUnavailable,
@@ -186,7 +198,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
                     PageIndex: result.FtsHits.Count > 0 ? result.FtsHits[0].PageIndex : null,
                     PageJumpTarget: result.FtsHits.Count > 0 ? result.FtsHits[0].PageJumpTarget : null))
                 .Take(maxResults)
-                .ToList());
+                .ToList(),
+            availability);
     }
 
     private SemanticSearchResult ToSemanticSearchResult(HybridRankedResult result)

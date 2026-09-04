@@ -19,7 +19,24 @@ public interface ISemanticSearchService
 public sealed record SemanticSearchResponse(
     bool ProviderUnavailable,
     bool UsedExactFallback,
-    IReadOnlyList<SemanticSearchResult> Results);
+    IReadOnlyList<SemanticSearchResult> Results,
+    SemanticSearchAvailability Availability = SemanticSearchAvailability.Ready);
+
+/// <summary>Explains whether semantic search is ready, degraded, or unavailable.</summary>
+public enum SemanticSearchAvailability
+{
+    /// <summary>Semantic search produced a current result window.</summary>
+    Ready = 0,
+
+    /// <summary>The local semantic index has no eligible vectors yet.</summary>
+    NoIndex = 1,
+
+    /// <summary>The search path ran successfully but found no matches.</summary>
+    NoMatches = 2,
+
+    /// <summary>Exact search was used because semantic search was unavailable.</summary>
+    Degraded = 3,
+}
 
 /// <summary>Book-level semantic search result.</summary>
 public sealed record SemanticSearchResult(

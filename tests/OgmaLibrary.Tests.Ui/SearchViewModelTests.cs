@@ -72,6 +72,21 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task SearchViewModel_NoIndex_ShowsActionableStatus()
+    {
+        using var vm = new SearchViewModel(
+            new NoIndexSemanticSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService());
+
+        vm.Query = "unindexed";
+        await WaitForAsync(() => vm.StatusText?.Contains("not ready", StringComparison.Ordinal) == true);
+
+        Assert.Contains("exact matches", vm.StatusText, StringComparison.Ordinal);
+        Assert.Empty(vm.Results);
+    }
+
+    [AvaloniaFact]
     public async Task SearchViewModel_StaleResults_DoNotOverwriteLatestQuery()
     {
         var search = new OutOfOrderSemanticSearchService();
@@ -396,6 +411,19 @@ public sealed class SearchViewModelTests
                         SemanticScore: null,
                         ExactFallback: true),
                 ]));
+    }
+
+    private sealed class NoIndexSemanticSearchService : ISemanticSearchService
+    {
+        public Task<SemanticSearchResponse> SearchAsync(
+            string queryText,
+            int maxResults,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new SemanticSearchResponse(
+                ProviderUnavailable: false,
+                UsedExactFallback: true,
+                Results: [],
+                Availability: SemanticSearchAvailability.NoIndex));
     }
 
     private sealed class RecordingReaderNavigation : IReaderNavigationService, IBookDetailNavigationService

@@ -249,10 +249,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 }
 
                 SelectedResult = Results.FirstOrDefault();
-                StatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Search.Status.ResultsFormat"],
-                    Results.Count);
+                StatusText = FormatResultStatus(response.Availability, Results.Count);
             });
         }
         finally
@@ -348,6 +345,24 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             ? IconCatalog.GetAvaresPath(iconKey) ?? string.Empty
             : string.Empty;
     }
+
+    private string FormatResultStatus(SemanticSearchAvailability availability, int resultCount) =>
+        availability switch
+        {
+            SemanticSearchAvailability.NoIndex => string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Search.Status.NoIndexFormat"],
+                resultCount),
+            SemanticSearchAvailability.NoMatches => _localization["Search.Status.NoMatches"],
+            SemanticSearchAvailability.Degraded => string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Search.Status.DegradedFormat"],
+                resultCount),
+            _ => string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Search.Status.ResultsFormat"],
+                resultCount),
+        };
 
     private static string GetFallbackIconPath(bool exactFallback) =>
         IconCatalog.GetAvaresPath(exactFallback ? "ic_search_fulltext" : "ic_ai_advisor") ?? string.Empty;

@@ -40,12 +40,19 @@ Date: 2026-08-30
 - `SearchViewModelTests`: 13 passed, including desktop full-text mode
   indication, result selection, reader navigation with page hint, and
   degraded exact-search behavior.
+- Search state now distinguishes a ready result window, no matches, no local
+  semantic index, and degraded exact fallback. The desktop panel displays the
+  state through a polite status line rather than leaving an empty result list
+  unexplained.
+- The Avalonia search UI suite passed 14 tests, including the no-index status;
+  the semantic-service suite passed 5 tests across ready and fallback paths.
 - `IndexManagerServiceTests`: 6 passed, covering durable rebuild checkpoint
   counters, status publication, failure/recovery lifecycle events, and
   rebuild-duration/read-model observability.
 
 ## Remaining phase gate
 
-The complete phase still requires progress/no-index states, side-by-side rebuild
-swap, and the 50,000-book latency benchmark. The observability subgate is closed
-by the durable checkpoint counters and lifecycle/read-model events above.
+The complete phase still requires side-by-side rebuild swap and the
+50,000-book latency benchmark. Progress/no-index messaging and the observability
+subgates are closed by the evidence above. Physical assistive-technology
+walkthroughs remain `NOT ASSESSED`.
