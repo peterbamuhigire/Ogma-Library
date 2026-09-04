@@ -21,5 +21,7 @@ search path.
 ## Scope boundary
 
 This is a local Windows test-environment result, not named reference-machine
-or cross-platform release evidence. Facets, paging, highlighting, and
-full-text fallback integration remain open.
+or cross-platform release evidence. The local facets, paging, highlighting,
+and full-text-fallback subgates are covered by the current catalogue/search
+implementation; reference-machine and physical accessibility evidence remain
+open.

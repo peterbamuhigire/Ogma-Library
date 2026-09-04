@@ -20,7 +20,9 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Rel
   Passed: 8, Failed: 0, Skipped: 0
 ```
 
-## Open gates
+## Gate disposition
 
-Facets, paging, highlighting, type-ahead, richer correction suggestions,
-full-text fallback integration, and 50,000-book latency evidence remain open.
+The local structured-query, facets/paging, highlighting, type-ahead, bounded
+correction, full-text fallback, and 50,000-book latency subgates are closed by
+the current implementation and focused evidence. Named reference-hardware
+performance and physical assistive-technology walkthroughs remain open.
