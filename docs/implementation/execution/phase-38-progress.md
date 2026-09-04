@@ -1,6 +1,6 @@
 # Phase 38 Progress - Performance, Reliability, Packaging and Beta
 
-Date: 2026-08-31
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -30,6 +30,8 @@ Date: 2026-08-31
 - Closed the locally verifiable migration-compatibility subgate with the
   migration test class passing 9/9. Physical upgrade/rollback drills remain
   release-acceptance work.
+- Recorded the local descriptor, packaging-script, and migration evidence in
+  `evidence/phase-38-release-candidate-2026-09-04.md`.
 
 ## Verification
 
