@@ -11,7 +11,7 @@
     </StackPanel>
 
     <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-      <TextBox Text="{Binding Query}"
+      <TextBox Text="{Binding Query, Mode=TwoWay}"
                Watermark="{Binding QueryWatermark}"
                MinWidth="280"
                AutomationProperties.Name="{Binding QueryWatermark}" />

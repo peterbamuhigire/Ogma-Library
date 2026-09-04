@@ -26,6 +26,9 @@ Date: 2026-08-30
   raw prompts or provider content.
 - Updated the stale pre-V2 advisor scaffold test to assert its current honest
   unavailable response.
+- Made the interpreted-intent editor explicitly two-way bound and verified that
+  changing the query recomputes the displayed intent before recommendations are
+  requested.
 
 ## Verification
 
@@ -34,11 +37,13 @@ Date: 2026-08-30
 - Phase 28 intent/retrieval/ranking/fallback slice: 13 passed.
 - Adjacent advisor pipeline, composition and service slice: 23 passed.
 - Advisor stage-diagnostics trace slice: 1 passed.
+- Editable interpreted-intent slice: 1 passed, with the rendered advisor route
+  already covered by the adjacent UI test.
 
 ## Remaining phase gate
 
-Editable interpreted intent UI, reference-book resolution beyond the
-deterministic comparison hint, source-labeled evidence assembly, benchmark
+Reference-book resolution beyond the deterministic comparison hint, benchmark
 Recall@K/nDCG evaluation, and final advisor UI/performance gates remain for
-phases 29-30. Candidate-stage diagnostics are closed by the versioned trace
-evidence above.
+phases 29-30. Editable intent, candidate-stage diagnostics, and source-labeled
+evidence assembly are closed by the versioned evidence records above and in
+Phase 29.

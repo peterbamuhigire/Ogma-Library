@@ -56,6 +56,24 @@ public sealed class Phase30AdvisorQualityTests
         Assert.Contains("Avoids: programming", viewModel.InterpretedIntentText, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void RecommendationPanel_EditingQueryRecomputesInterpretedIntent()
+    {
+        using RecommendationPanelViewModel viewModel = new(
+            new NoOpAdvisor(),
+            new NoOpNavigation(),
+            new InMemoryLocalizationService());
+
+        viewModel.Query = "Something on AI, but not a programming textbook.";
+        Assert.Contains("Topics: ai", viewModel.InterpretedIntentText, StringComparison.OrdinalIgnoreCase);
+
+        viewModel.Query = "A short history book for beginners.";
+
+        Assert.DoesNotContain("Topics: ai", viewModel.InterpretedIntentText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Length: ShortBook", viewModel.InterpretedIntentText, StringComparison.Ordinal);
+        Assert.Contains("Level: Introductory", viewModel.InterpretedIntentText, StringComparison.Ordinal);
+    }
+
     private static BookMetadataDto Candidate(string id, string title, IReadOnlyList<string> tags, string description, string author) =>
         new(id, title, [author], tags, ["Education"], description, null, 2026, [], null);
 
