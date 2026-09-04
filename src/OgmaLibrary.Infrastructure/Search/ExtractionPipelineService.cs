@@ -17,7 +17,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 /// boundary, persists per-page text quality, and replaces source-scoped chunks
 /// so reruns and rebuilds cannot accumulate duplicates.
 /// </summary>
-public sealed class ExtractionPipelineService : IExtractionPipelineService
+public sealed class ExtractionPipelineService : IExtractionPipelineService, IStagedExtractionPipelineService
 {
     private const int ActiveBookStatus = 0;
     private const int JobFailed = 3;
@@ -113,8 +113,16 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
     public async Task<ExtractionBatchResult> IndexNextBatchAsync(
         int maxBooks,
         CancellationToken cancellationToken)
+        => await IndexNextBatchAsync(maxBooks, IndexVersion, cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async Task<ExtractionBatchResult> IndexNextBatchAsync(
+        int maxBooks,
+        string indexVersion,
+        CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBooks);
+        ArgumentException.ThrowIfNullOrWhiteSpace(indexVersion);
 
         IReadOnlyList<string> bookIds = await FindPendingBookIdsAsync(maxBooks, cancellationToken)
             .ConfigureAwait(false);
@@ -128,7 +136,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
 
         foreach (string bookId in bookIds)
         {
-            ExtractionBookResult result = await IndexBookAsync(bookId, cancellationToken)
+            ExtractionBookResult result = await IndexBookAsync(bookId, indexVersion, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result.Succeeded)
@@ -159,6 +167,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
     /// <inheritdoc />
     public async Task<ExtractionBookResult> IndexBookAsync(
         string bookId,
+        CancellationToken cancellationToken)
+        => await IndexBookAsync(bookId, IndexVersion, cancellationToken).ConfigureAwait(false);
+
+    private async Task<ExtractionBookResult> IndexBookAsync(
+        string bookId,
+        string indexVersion,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
@@ -254,38 +268,43 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
         IReadOnlyList<SearchChunkRecord> descriptionChunks = await BuildDescriptionChunksAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
 
-        pageChunks = StampChunks(pageChunks, artifact.Id);
-        noteChunks = StampChunks(noteChunks, artifact.Id);
-        tagChunks = StampChunks(tagChunks, artifact.Id);
-        descriptionChunks = StampChunks(descriptionChunks, artifact.Id);
-        tocChunks = StampChunks(tocChunks, artifact.Id);
+        pageChunks = StampChunks(pageChunks, artifact.Id, indexVersion);
+        noteChunks = StampChunks(noteChunks, artifact.Id, indexVersion);
+        tagChunks = StampChunks(tagChunks, artifact.Id, indexVersion);
+        descriptionChunks = StampChunks(descriptionChunks, artifact.Id, indexVersion);
+        tocChunks = StampChunks(tocChunks, artifact.Id, indexVersion);
 
         int chunksWritten = 0;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
             bookId,
             SearchChunkSource.Page,
             pageChunks,
-            cancellationToken).ConfigureAwait(false)).Count;
+            cancellationToken,
+            indexVersion).ConfigureAwait(false)).Count;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
             bookId,
             SearchChunkSource.Note,
             noteChunks,
-            cancellationToken).ConfigureAwait(false)).Count;
+            cancellationToken,
+            indexVersion).ConfigureAwait(false)).Count;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
             bookId,
             SearchChunkSource.Tag,
             tagChunks,
-            cancellationToken).ConfigureAwait(false)).Count;
+            cancellationToken,
+            indexVersion).ConfigureAwait(false)).Count;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
             bookId,
             SearchChunkSource.Description,
             descriptionChunks,
-            cancellationToken).ConfigureAwait(false)).Count;
+            cancellationToken,
+            indexVersion).ConfigureAwait(false)).Count;
         chunksWritten += (await _chunkRepository.ReplaceForBookAsync(
                 bookId,
                 SearchChunkSource.Toc,
                 tocChunks,
-                cancellationToken)
+                cancellationToken,
+                indexVersion)
             .ConfigureAwait(false)).Count;
 
         SearchBookIndexStatus finalStatus = extracted.FailedPages > 0
@@ -666,12 +685,13 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService
 
     private static List<SearchChunkRecord> StampChunks(
         IReadOnlyList<SearchChunkRecord> chunks,
-        long extractionArtifactId) =>
+        long extractionArtifactId,
+        string indexVersion) =>
         chunks
             .Select(chunk => chunk with
             {
                 ExtractionArtifactId = extractionArtifactId,
-                IndexVersion = IndexVersion,
+                IndexVersion = indexVersion,
             })
             .ToList();
 

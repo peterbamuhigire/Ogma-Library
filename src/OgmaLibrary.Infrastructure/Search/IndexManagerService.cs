@@ -19,6 +19,8 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     private const string OcrJobType = "OcrJob";
     private const int RebuildRunning = 1;
     private const int RebuildCompleted = 2;
+    private const string ActiveIndexVersion = "fts5-v1";
+    private const string StagingIndexPrefix = "fts5-rebuild-";
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -148,8 +150,12 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
         {
             long startedTimestamp = TimeProvider.System.GetTimestamp();
             _events.Publish(new IndexStatusUpdate.RebuildStarted(DateTimeOffset.UtcNow));
-            SearchRebuildCheckpointRow checkpoint = await LoadOrStartCheckpointAsync(cancellationToken)
+            IStagedExtractionPipelineService? stagedPipeline = _pipeline as IStagedExtractionPipelineService;
+            SearchRebuildCheckpointRow checkpoint = await LoadOrStartCheckpointAsync(
+                    stagedPipeline is not null,
+                    cancellationToken)
                 .ConfigureAwait(false);
+            string stagingIndexVersion = StagingIndexPrefix + checkpoint.RebuildId;
 
             int attempted = checkpoint.BooksAttempted;
             int indexed = checkpoint.BooksIndexed;
@@ -157,9 +163,11 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
             int chunksWritten = checkpoint.ChunksWritten;
             while (!cancellationToken.IsCancellationRequested)
             {
-                ExtractionBatchResult batch = await _pipeline
-                    .IndexNextBatchAsync(RebuildBatchSize, cancellationToken)
-                    .ConfigureAwait(false);
+                ExtractionBatchResult batch = stagedPipeline is null
+                    ? await _pipeline.IndexNextBatchAsync(RebuildBatchSize, cancellationToken).ConfigureAwait(false)
+                    : await stagedPipeline
+                        .IndexNextBatchAsync(RebuildBatchSize, stagingIndexVersion, cancellationToken)
+                        .ConfigureAwait(false);
                 if (batch.BooksAttempted == 0)
                 {
                     break;
@@ -184,14 +192,23 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
 
             FtsIntegrityResult integrity = await _ftsIndex.CheckIntegrityAsync(cancellationToken)
                 .ConfigureAwait(false);
+            bool canPromote = !cancellationToken.IsCancellationRequested &&
+                              integrity.IsHealthy &&
+                              (stagedPipeline is null || failed == 0);
+            if (canPromote && stagedPipeline is not null)
+            {
+                await PromoteStagedIndexAsync(stagingIndexVersion, cancellationToken).ConfigureAwait(false);
+            }
+
             IndexRebuildResult result = new(
-                Completed: !cancellationToken.IsCancellationRequested && integrity.IsHealthy,
+                Completed: canPromote,
                 BooksAttempted: attempted,
                 BooksIndexed: indexed,
                 BooksFailed: failed,
                 ChunksWritten: chunksWritten,
                 IntegrityHealthy: integrity.IsHealthy,
-                ErrorMessage: integrity.ErrorMessage);
+                ErrorMessage: integrity.ErrorMessage ??
+                    (failed > 0 ? "Staged rebuild retained the active index because one or more books failed." : null));
             await SaveCheckpointAsync(
                     checkpoint.SearchRebuildCheckpointId,
                     RebuildCompleted,
@@ -199,7 +216,7 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
                     indexed,
                     failed,
                     chunksWritten,
-                    integrity.ErrorMessage,
+                    result.ErrorMessage,
                     DateTimeOffset.UtcNow,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -287,6 +304,7 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     }
 
     private async Task<SearchRebuildCheckpointRow> LoadOrStartCheckpointAsync(
+        bool sideBySide,
         CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -303,7 +321,14 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
         }
 
         _ = await _ftsIndex.CleanupStaleAsync(cancellationToken).ConfigureAwait(false);
-        await ResetIndexAsync(cancellationToken).ConfigureAwait(false);
+        if (sideBySide)
+        {
+            await PrepareStagedRebuildAsync(cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await ResetIndexAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         var checkpoint = new SearchRebuildCheckpointRow
         {
@@ -315,6 +340,38 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
         lease.Context.SearchRebuildCheckpoints.Add(checkpoint);
         await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return checkpoint;
+    }
+
+    private async Task PrepareStagedRebuildAsync(CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        await lease.Context.Books
+            .Where(book => book.Status == ActiveBookStatus)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    book => book.IndexStatus,
+                    (int)SearchBookIndexStatus.NotIndexed),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task PromoteStagedIndexAsync(
+        string stagingIndexVersion,
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await lease.Context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        await lease.Context.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM SearchChunks WHERE IndexVersion = {ActiveIndexVersion};",
+                cancellationToken)
+            .ConfigureAwait(false);
+        await lease.Context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE SearchChunks SET IndexVersion = {ActiveIndexVersion} WHERE IndexVersion = {stagingIndexVersion};",
+                cancellationToken)
+            .ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SaveCheckpointAsync(

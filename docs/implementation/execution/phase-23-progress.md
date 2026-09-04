@@ -51,10 +51,16 @@ Date: 2026-08-30
   rebuild-duration/read-model observability.
 - The 50,000-book FTS latency benchmark passed its p95 <=500 ms assertion on
   the local Windows test environment.
+- Added an explicit staged extraction capability. Production rebuilds now keep
+  the active `fts5-v1` rows readable, write a unique rebuild generation beside
+  them, and promote that generation transactionally only after a healthy,
+  failure-free rebuild. A failed staged run leaves the active generation in
+  place.
+- Added an integration regression proving the active index remains searchable
+  during staging and that only the promoted generation is visible afterward.
 
 ## Remaining phase gate
 
-The complete phase still requires side-by-side rebuild swap. The named
-50,000-book FTS latency sub-gate is closed locally; reference-hardware
-confirmation and physical assistive-technology walkthroughs remain
-`NOT ASSESSED`.
+The side-by-side rebuild/swap backend subgate is closed by the staged pipeline
+and integration evidence. Reference-hardware confirmation and physical
+assistive-technology walkthroughs remain `NOT ASSESSED`.

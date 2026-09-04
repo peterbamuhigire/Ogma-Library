@@ -40,7 +40,8 @@ public sealed class SearchChunkRepository : ISearchChunkRepository
         string bookId,
         SearchChunkSource source,
         IReadOnlyList<SearchChunkRecord> chunks,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? indexVersion = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentNullException.ThrowIfNull(chunks);
@@ -54,7 +55,9 @@ public sealed class SearchChunkRepository : ISearchChunkRepository
         await using (tx.ConfigureAwait(false))
         {
             List<SearchChunkRow> existing = await context.SearchChunks
-                .Where(c => c.BookId == bookId && c.Source == (int)source)
+                .Where(c => c.BookId == bookId &&
+                            c.Source == (int)source &&
+                            (indexVersion == null || c.IndexVersion == indexVersion))
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 

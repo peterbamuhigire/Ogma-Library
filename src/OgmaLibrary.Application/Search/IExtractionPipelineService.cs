@@ -22,6 +22,19 @@ public interface IExtractionPipelineService
         CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Optional rebuild capability that writes chunks under a staging index
+/// version, allowing the active full-text index to remain readable.
+/// </summary>
+public interface IStagedExtractionPipelineService
+{
+    /// <summary>Indexes a batch into the supplied staging index version.</summary>
+    Task<ExtractionBatchResult> IndexNextBatchAsync(
+        int maxBooks,
+        string indexVersion,
+        CancellationToken cancellationToken);
+}
+
 /// <summary>Result of indexing one book.</summary>
 public sealed record ExtractionBookResult(
     string BookId,

@@ -14,12 +14,14 @@ public interface ISearchChunkRepository
     /// <param name="source">The source category being replaced.</param>
     /// <param name="chunks">The replacement chunk set.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <param name="indexVersion">Optional version to replace without touching other generations.</param>
     /// <returns>The persisted replacement chunks, including database identifiers.</returns>
     Task<IReadOnlyList<SearchChunkRecord>> ReplaceForBookAsync(
         string bookId,
         SearchChunkSource source,
         IReadOnlyList<SearchChunkRecord> chunks,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        string? indexVersion = null);
 
     /// <summary>
     /// Returns all chunks for one book ordered by source, page, and chunk index.
