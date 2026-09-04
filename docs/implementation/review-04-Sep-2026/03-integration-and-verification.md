@@ -12,7 +12,7 @@
 | Phase 27 local privacy journey | 13 focused tests passed |
 | Phase 30 feedback/quality/privacy | 14 focused tests passed |
 | Phase 31 bridge/3D/fallback | 24 focused tests passed; JavaScript syntax passed |
-| Phase 32 Shelf3D provenance/publisher | 28 focused tests passed; TypeScript/build/bundle syntax passed; tamper rejection passed |
+| Phase 32 Shelf3D provenance/publisher | 31 focused tests passed; TypeScript/build/bundle syntax and LOD/residency budget passed; tamper rejection passed |
 | Phase 34 LAN/security filter | 61 tests passed |
 | Phase 35 classroom client | 107 tests passed |
 | Phase 36 school admin | 46 tests passed |

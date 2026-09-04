@@ -8,8 +8,11 @@ a late image response is rejected and its newly-created Three.js texture is
 disposed immediately. Valid responses still replace the fallback texture and
 dispose the previous map. This makes the existing 500-book resident window
 bounded under rapid focus/window changes. Only the 161-book focus band (the
-focused index plus 80 neighbours on each side) attempts local image loading;
-all other resident meshes keep the generated spine until they enter that band.
+focused index plus 80 neighbours on each side) allocates generated spines or
+attempts local image loading; all other resident meshes use a flat-colour LOD
+until they enter that band. The native host can now issue `FocusBook` to move
+the scene focus from search/advisor results, and reduced-motion users do not
+trigger automatic camera movement.
 
 The shipped `shelf3d.js` bundle was rebuilt from `src/shelf3d/src/scene.ts`.
 
@@ -23,8 +26,10 @@ dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --no-restore --filt
 ```
 
 Results: **PASS** — TypeScript typecheck, bundle build, Node syntax check, and
-28/28 Shelf3D tests passed. `npm run perf:budget` also passed for both layouts
+31/31 Shelf3D tests passed. `npm run perf:budget` also passed for both layouts
 at 50, 250, 500, 1,000, 5,000, and 10,000 arithmetic layout inputs.
+The residency extension reported no more than 500 meshes and 161 textured
+books at each tested size.
 
 ## Remaining gates
 

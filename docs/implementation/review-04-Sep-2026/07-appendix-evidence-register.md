@@ -8,7 +8,7 @@
 - Phase 27: `docs/implementation/execution/evidence/phase-27-privacy-journey-2026-09-04.md`
 - Phase 30: `docs/implementation/execution/evidence/phase-30-feedback-consent-2026-09-04.md`
 - Phase 31: `docs/implementation/execution/evidence/phase-31-3d-host-contract-2026-09-04.md`
-- Phase 32: `docs/implementation/execution/evidence/phase-32-virtual-bookshelf-2026-09-04.md`
+- Phase 32: `docs/implementation/execution/evidence/phase-32-virtual-bookshelf-2026-09-04.md`; `docs/implementation/execution/evidence/phase-33-texture-residency-2026-09-04.md`
 - Phase 34: `docs/implementation/execution/evidence/phase-34-classroom-host-2026-09-04.md`
 - Phase 35: `docs/implementation/execution/evidence/phase-35-classroom-client-2026-09-04.md`
 - Phase 36: `docs/implementation/execution/evidence/phase-36-school-admin-2026-09-04.md`

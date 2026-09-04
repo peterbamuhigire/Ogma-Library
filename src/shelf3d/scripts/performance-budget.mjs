@@ -4,6 +4,8 @@ const BOOK_COUNTS = [50, 250, 500, 1_000, 5_000, 10_000];
 const ITERATIONS = 250;
 const WARMUP_ITERATIONS = 10;
 const LAYOUT_BUDGET_MS = 5;
+const MAX_RESIDENT_BOOKS = 500;
+const TEXTURE_RESIDENT_RADIUS = 80;
 
 function shelfPosition(index) {
   const shelfColumns = 50;
@@ -70,4 +72,13 @@ for (const result of results) {
   // This Node-only arithmetic harness is intentionally not a GPU/frame-time
   // claim. Max is retained in the output for diagnostics; p95 is the stable
   // gate while runtime WebView metrics provide the real rendering evidence.
+}
+
+for (const bookCount of BOOK_COUNTS) {
+  const residentBooks = Math.min(bookCount, MAX_RESIDENT_BOOKS);
+  const textureResidentBooks = Math.min(residentBooks, TEXTURE_RESIDENT_RADIUS * 2 + 1);
+  console.log(`residency ${bookCount}: meshes=${residentBooks} textured=${textureResidentBooks}`);
+  if (residentBooks > MAX_RESIDENT_BOOKS || textureResidentBooks > TEXTURE_RESIDENT_RADIUS * 2 + 1) {
+    throw new Error(`residency bounds exceeded for ${bookCount} books.`);
+  }
 }

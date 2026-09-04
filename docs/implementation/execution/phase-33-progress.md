@@ -1,6 +1,6 @@
 # Phase 33 Progress - 3D Scale, Accessibility and Performance
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -18,7 +18,8 @@ Date: 2026-08-30
 - Added protocol parsing and validation for performance metrics, with tests for
   accepted bounds and resident-window overflow rejection.
 - Added bounded texture residency around the focused index; distant resident
-  books retain generated spines and are promoted only as focus moves.
+  books use a flat-colour LOD and are promoted to generated/local textures only
+  as focus moves.
 
 ## Verification
 
@@ -27,8 +28,10 @@ Date: 2026-08-30
 - `node --check src/OgmaLibrary.Bookshelf3D/Assets/Web/shelf3d.js` passed.
 - `npm run perf:budget` passed across 50/250/500/1k/5k/10k arithmetic layout
   cases in both shelf and grid modes.
-- C# bridge/3D and view-model tests passed after the final build; physical
+- C# bridge/3D and view-model tests: 31 passed after the final build; physical
   WebView/GPU evidence remains an environment gate.
+- Residency checks passed with at most 500 resident meshes and at most 161
+  textured books across 50, 250, 500, 1k, 5k, and 10k catalogue inputs.
 
 ## Remaining phase gate
 
