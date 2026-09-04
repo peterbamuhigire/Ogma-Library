@@ -38,10 +38,16 @@ durable audit payload.
   contain only bibliographic lookup keys, use GET without a request body, and
   exclude notes/content; normalized durable caching prevents repeated
   disclosures for the same lookup.
+- Verified the current official Open Library and Google Books/API guidance for
+  low-volume use, caching, application identification, quota, attribution,
+  linking, result integrity, location restrictions, licensing, and privacy;
+  see `evidence/phase-13-provider-terms-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Live-provider terms/privacy review and physical/network evidence remain before
-phase 13 closure. Quota and circuit state are observable in the local health
-contract; stale-cache status is present in the provider result contract for the
-UI consumer.
+The official-source documentation subgate is complete, but written
+legal/privacy owner review, archived release evidence, live provider/network
+evidence, and UI acceptance for attribution/linking and stale labeling remain
+before phase 13 closure. Quota and circuit state are observable in the provider
+health contract; stale-cache status is present in the provider result contract
+for the UI consumer.
