@@ -28,6 +28,9 @@ malformed input, valid rendering, output ceilings, and rendering from a worker
 sandbox copy after source removal. The Debug build completed without compiler
 errors.
 
+Current-HEAD rerun of the Phase 10 broker/isolation and Phase 11 extraction
+selectors passed 27 combined tests, with 0 failures and 0 skips.
+
 ## Remaining gates
 
 - Physical Windows escape and resource-exhaustion evidence is still required.
