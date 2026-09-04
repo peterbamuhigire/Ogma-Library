@@ -163,6 +163,34 @@ public sealed class OfflineCacheServiceTests
         }
     }
 
+    [Fact]
+    public async Task DiskOfflineCache_RejectsTamperedMetadataLengthAndRemovesEntry()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using var cache = new DiskOfflineCacheService(dataDirectory);
+            await cache.PutAsync(new OfflineCacheEntry("host-1", "catalogue", "etag", [1, 2, 3], Now));
+
+            string metadataPath = Directory.EnumerateFiles(
+                    Path.Combine(dataDirectory, "classroom", "cache"),
+                    "*.json",
+                    SearchOption.TopDirectoryOnly)
+                .Single();
+            string metadata = await File.ReadAllTextAsync(metadataPath);
+            metadata = metadata.Replace("\"contentLength\": 3", "\"contentLength\": 999", StringComparison.Ordinal);
+            await File.WriteAllTextAsync(metadataPath, metadata);
+
+            Assert.Null(await cache.GetAsync("host-1", "catalogue"));
+            Assert.False(File.Exists(metadataPath));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         string dataDirectory = Path.Combine(Path.GetTempPath(), $"ogma-offline-cache-{Guid.NewGuid():N}");

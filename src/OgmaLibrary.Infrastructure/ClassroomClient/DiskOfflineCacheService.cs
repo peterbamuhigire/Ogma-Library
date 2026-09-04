@@ -60,6 +60,12 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
 
             byte[] content = await File.ReadAllBytesAsync(GetContentPath(metadata), cancellationToken)
                 .ConfigureAwait(false);
+            if (metadata.ContentLength < 0 || metadata.ContentLength != content.LongLength)
+            {
+                DeleteEntryFiles(metadataPath, metadata);
+                return null;
+            }
+
             string contentHash = Convert.ToHexStringLower(SHA256.HashData(content));
             if (!string.Equals(metadata.ContentHash, contentHash, StringComparison.Ordinal))
             {

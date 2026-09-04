@@ -7,7 +7,7 @@ Reviewer: Peter Bamuhigire, Lead Consultant
 
 The local offline-cache and sync-integrity subgate is closed. Cache entries
 are scoped to host and certificate identity, content and metadata are
-tamper-evident, sync payloads are bounded against oversized/compression-bomb
+tamper-evident including an exact content-length check, sync payloads are bounded against oversized/compression-bomb
 inputs, and sync is single-flight. Per-profile private storage, guest no-sync,
 TOFU, conflict semantics, and host-scoped eviction remain covered.
 
