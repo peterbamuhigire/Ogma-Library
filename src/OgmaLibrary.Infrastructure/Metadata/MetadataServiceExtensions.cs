@@ -85,8 +85,11 @@ public static class MetadataServiceExtensions
         services.AddSingleton<IMetadataQualityService, MetadataQualityService>();
 
         // Apply service (depends on quality service).
-        services.AddSingleton<IMetadataApplyService, MetadataApplyService>();
+        services.AddSingleton<MetadataApplyService>();
+        services.AddSingleton<IMetadataApplyService>(sp =>
+            sp.GetRequiredService<MetadataApplyService>());
         services.AddSingleton<IMetadataReviewService, MetadataReviewService>();
+        services.AddSingleton<IMetadataBulkReviewService, MetadataBulkReviewService>();
 
         // Library health dashboard.
         services.AddSingleton<ILibraryHealthService, LibraryHealthService>();

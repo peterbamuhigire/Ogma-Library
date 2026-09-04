@@ -61,12 +61,40 @@ public sealed class MetadataApplyService : IMetadataApplyService
             return;
         }
 
-        ValidateProposals(acceptedProposals);
-
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
+
+        await ApplyMergedMetadataInContextAsync(context, bookId, acceptedProposals, cancellationToken)
+            .ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        // Recalculate quality score after metadata write.
+        await _qualityService.RecalculateAsync(bookId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Applies accepted proposals to an existing context without saving. This
+    /// lets a higher-level atomic command include several books in one database
+    /// transaction while retaining the same validation, mirroring and audit rules.
+    /// </summary>
+    internal static async Task ApplyMergedMetadataInContextAsync(
+        CatalogueDbContext context,
+        string bookId,
+        IReadOnlyList<AcceptedFieldProposal> acceptedProposals,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentNullException.ThrowIfNull(acceptedProposals);
+
+        if (acceptedProposals.Count == 0)
+        {
+            return;
+        }
+
+        ValidateProposals(acceptedProposals);
 
         // Snapshot before state for audit.
         var beforeFields = await context.BookMetadataFields
@@ -136,11 +164,6 @@ public sealed class MetadataApplyService : IMetadataApplyService
             Timestamp = now,
             IsLocalOnly = true,
         });
-
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        // Recalculate quality score after metadata write.
-        await _qualityService.RecalculateAsync(bookId, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task MirrorCatalogueColumnsAsync(

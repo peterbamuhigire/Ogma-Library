@@ -19,10 +19,17 @@ Date: 2026-09-04
 - Added focused tests for version defaults and unsafe-value rejection.
 - Added a shared canonical field dictionary covering provider, review, catalogue,
   and PDF write-back fields with explicit work/edition scope classification.
+- Added a bounded durable bulk-review command: server-created previews revalidate
+  proposal versions, apply all selected proposals in one transaction, and record
+  before/after snapshots in the append-only audit stream.
+- Added one-time token-protected undo that refuses to overwrite later metadata
+  edits and recalculates quality after apply and undo.
+- Added focused atomicity, stale-preview, restore, repeat-undo, and later-edit
+  conflict tests; all 11 Phase 14 metadata tests pass locally.
 
 ## Remaining phase gate
 
-Bulk preview/undo and keyboard/screen-reader
+The backend bulk preview/apply/undo subgate is closed. Keyboard/screen-reader
 UI journeys remain before phase 14 closure. Concurrency and review-boundary
 sanitization are implemented and tested; OS/browser accessibility evidence is
 not assessed by this service-layer increment.
