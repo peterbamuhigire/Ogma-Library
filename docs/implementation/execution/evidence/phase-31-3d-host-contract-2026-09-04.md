@@ -20,7 +20,7 @@ remain open and are not inferred from headless tests.
 dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Debug --no-build --filter "FullyQualifiedName~BridgeMessageTests|FullyQualifiedName~Bookshelf3DViewModelTests|FullyQualifiedName~OgmaSchemeHandlerTests" --verbosity minimal -m:1
 ```
 
-Result: 24 passed, 0 failed, 0 skipped.
+Result: 28 passed, 0 failed, 0 skipped.
 
 Covered controls include bridge serialization/version validation, local scheme
 containment, asset bootstrap, shared catalogue projection, WebGL absence,

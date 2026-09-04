@@ -15,13 +15,15 @@ Date: 2026-09-04
   3D view is attached to the visual tree.
 - Kept local CSP, `ogma://` scheme containment, typed message validation and
   existing WebView bridge tests intact.
+- Added the typed `FocusBook` command used to synchronize search/advisor
+  selections with the visual shelf without trusting arbitrary book IDs.
 - Recorded the code-level host-contract and accessible-fallback evidence in
   `evidence/phase-31-3d-host-contract-2026-09-04.md`; native adapters and
   physical platform evidence remain explicitly unassessed.
 
 ## Verification
 
-- Bridge/message and 3D view-model slice: 13 passed.
+- Bridge/message and 3D view-model slice: 28 passed.
 - Headless rendered 3D fallback slice: 1 passed.
 - Architecture suite: 41 passed before the final phase-only host changes; the
   solution test build includes the current shell and bridge contracts.

@@ -29,7 +29,7 @@ verified evidence and remaining gate summarized for decision use.
 | 28 | IN PROGRESS | Intent, ranking, fallbacks, editable intent, privacy-safe traces | Reference resolution, benchmarks |
 | 29 | IN PROGRESS | Local evidence, desktop answer/citation display, durable safe traces, payload/provenance validation, untrusted boundary | Citation navigation, consent, benchmarks |
 | 30 | IN PROGRESS | Routes, intent/answer UI, durable runs/history export-delete, thresholds, consented feedback UI/minimization | Human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
-| 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
+| 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback, FocusBook command | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
 | 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification, source/build provenance | Atlas/LOD scale, search/advisor focus, reduced motion, physical interaction |
 | 33 | IN PROGRESS | Virtualization, bounded texture residency, runtime metrics, headless budgets, fallback, safe asynchronous texture eviction | GPU/WebView frame budgets, cross-platform accessibility |
 | 34 | IN PROGRESS | Published scope, redaction, TLS/auth/RBAC, local concurrency smoke | Two-machine, firewall/mDNS, TOFU UX, hostile soak |
