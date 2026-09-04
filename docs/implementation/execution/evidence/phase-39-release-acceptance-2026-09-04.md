@@ -33,6 +33,9 @@ passed for a valid record, rejected an extra artifact, and rejected a Windows
 backslash path separator in an artifact name. No real acceptance record was
 found in the repository.
 
+The current negative check also passed: invoking the script with an absent
+record was rejected with `Acceptance record does not exist.`
+
 ## Open handover gates
 
 W-REF-01 and M-REF-01 runs, signed/notarized artifacts, installed-build
