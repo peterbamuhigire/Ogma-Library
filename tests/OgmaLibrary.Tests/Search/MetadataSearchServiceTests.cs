@@ -131,7 +131,7 @@ public sealed class MetadataSearchServiceTests : IDisposable
     [Fact]
     public async Task PerfBenchmark_MetadataSearch_P95_LessThan150ms()
     {
-        SeedPerfCorpus(2_000);
+        SeedPerfCorpus(50_000);
         var service = new MetadataSearchService(_context);
         _ = await service.SearchAsync("topic 1", CancellationToken.None);
 

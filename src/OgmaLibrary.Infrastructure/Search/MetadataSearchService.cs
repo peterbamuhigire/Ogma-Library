@@ -14,7 +14,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 public sealed class MetadataSearchService : IMetadataSearchService
 {
     private const int MaxResults = 50;
-    private const int MaxCandidateRows = 1_000;
+    private const int MaxCandidateRows = MaxResults;
     private const int MaxQueryLength = 128;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;

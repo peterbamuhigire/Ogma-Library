@@ -32,14 +32,19 @@ Date: 2026-08-30
 - Fuzzy fallback results now expose the local candidate value that matched as an
   explicit correction suggestion, while exact results leave the suggestion
   empty.
+- Reduced exact-path graph materialization to the 50-result contract after
+  verifying the named 50,000-book performance corpus; the metadata search p95
+  gate now passes at <=150 ms.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
-- `MetadataSearchServiceTests`: 7 passed.
+- `MetadataSearchServiceTests`: 8 passed, including the 50,000-book p95 <=150 ms
+  benchmark.
 
 ## Remaining phase gate
 
-Facets, paging, highlighting, full-text fallback integration and the
-50,000-book search benchmark remain before phase 22 closure.
+Facets, paging, highlighting, and full-text fallback integration remain before
+phase 22 closure. The named 50,000-book metadata-search performance sub-gate
+is closed locally; reference-hardware confirmation remains a release concern.
