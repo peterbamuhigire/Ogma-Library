@@ -23,6 +23,10 @@ Date: 2026-08-30
   non-disabled providers.
 - Added provider-specific egress allowlists for custom endpoints and rejected
   embedded endpoint credentials; Ollama custom endpoints remain loopback-only.
+- Existing school AI key management is now recorded as delivered for this
+  gate: provider keys are stored through the platform credential abstraction,
+  returned only as configured/timestamp status, replaced through save, deleted
+  explicitly, and cleared from mutable input buffers.
 
 ## Verification
 
@@ -30,10 +34,10 @@ Date: 2026-08-30
   passed with 0 warnings and 0 errors.
 - AI gateway/contract/privacy and composition slice: 19 passed.
 - Architecture suite: 41 passed.
+- `SchoolAdminScaffoldTests` and `ClassroomCredentialStoreTests`: 17 passed.
 
 ## Remaining phase gate
 
-Explicit user-configurable provider profiles, OS-backed secret references and
-rotation/deletion, durable token/cost budgets, connection-health persistence,
+Explicit user-configurable provider profiles, durable token/cost budgets, connection-health persistence,
 full payload-preview UI wiring, retention and erasure journey, and cloud-provider
 conformance remain before phase 27 closure.
