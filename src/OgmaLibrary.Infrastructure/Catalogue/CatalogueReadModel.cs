@@ -150,10 +150,14 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             {
                 b.BookId,
                 b.Title,
-                b.Status,
-                b.Rating,
-                b.IsFavourite,
-                b.Year,
+                 b.Status,
+                 b.Rating,
+                 b.IsFavourite,
+                 b.IndexStatus,
+                 b.EmbeddingStatus,
+                 b.QualityScore,
+                 b.IsOcrDerived,
+                 b.Year,
                 b.Sha256Hash,
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
@@ -234,8 +238,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ReadingProgressPct: item.Progress?.CompletionPct,
                 IsAvailable: item.HasPresentFile,
                 Year: item.Year,
-                Sha256Hash: item.Sha256Hash,
-                RelativePath: item.PrimaryRelativePath));
+                 Sha256Hash: item.Sha256Hash,
+                 RelativePath: item.PrimaryRelativePath,
+                 Processing: new CatalogueProcessingProjection(
+                     (global::OgmaLibrary.Application.Search.SearchBookIndexStatus)item.IndexStatus,
+                     (global::OgmaLibrary.Application.Search.SearchEmbeddingStatus)item.EmbeddingStatus,
+                     Math.Clamp(item.QualityScore, 0, 1),
+                     item.IsOcrDerived)));
         }
 
         if (smartConditions is not null)

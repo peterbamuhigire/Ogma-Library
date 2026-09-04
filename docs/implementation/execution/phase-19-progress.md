@@ -34,6 +34,11 @@ Date: 2026-09-05
   on every keystroke.
 - Added bounded 100-item UI paging with localized page summaries and accessible
   previous/next controls shared by grid, list and directory surfaces.
+- Added a non-sensitive processing projection to the shared catalogue summary,
+  carrying full-text index state, semantic embedding state, OCR provenance, and
+  bounded metadata quality score.
+- Rendered localized processing, semantic, OCR, quality, and unavailable badges
+  in both grid and list catalogue cards without exposing source paths.
 
 ## Verification
 
@@ -52,14 +57,18 @@ Date: 2026-09-05
 
 ## Remaining phase gate
 
-Processing/quality badges, complete cover-source fallback, API asset
-authorization, and keyboard/screen-reader journeys remain before phase 19
-closure. The persisted-view-state, UI-pagination, directory-view, visible
-filter/sort wiring, and local 50k server-side page-performance sub-gates are
-closed. Named reference-hardware confirmation remains a release gate.
+Complete cover-source fallback, API asset authorization, and
+keyboard/screen-reader journeys remain before phase 19 closure. The
+processing/quality projection and rendered badges, persisted-view-state,
+UI-pagination, directory-view, visible filter/sort wiring, and local 50k
+server-side page-performance sub-gates are closed. Named reference-hardware
+confirmation remains a release gate.
 
 - Current-HEAD full solution verification is green at 1,085 tests (893 core,
   41 architecture, 151 UI), with 0 failures and 0 skips. The refreshed run
   includes the current Phase 18 appearance/palette changes; it does not close
-  Phase 19's remaining badges, fallback, authorization, accessibility, or
+  Phase 19's remaining fallback, authorization, accessibility, or
   reference-hardware gates.
+- Processing/quality projection and badge proof: 1 core projection test and 1
+  headless render test passed, 0 failed, 0 skipped. Evidence:
+  `evidence/phase-19-processing-badges-2026-09-05.md`.

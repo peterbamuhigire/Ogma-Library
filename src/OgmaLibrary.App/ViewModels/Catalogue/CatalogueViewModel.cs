@@ -182,6 +182,36 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Localized next-page label.</summary>
     public string NextPageText => _localization["Catalogue.Paging.Next"];
 
+    /// <summary>Localized catalogue badge labels shared by grid and list views.</summary>
+    public string IndexedBadgeText => _localization["Catalogue.Badge.Indexed"];
+
+    /// <summary>Localized indexing-progress badge label.</summary>
+    public string IndexingBadgeText => _localization["Catalogue.Badge.Indexing"];
+
+    /// <summary>Localized indexing-failure badge label.</summary>
+    public string IndexFailedBadgeText => _localization["Catalogue.Badge.IndexFailed"];
+
+    /// <summary>Localized embedding badge label.</summary>
+    public string EmbeddedBadgeText => _localization["Catalogue.Badge.Embedded"];
+
+    /// <summary>Localized embedding-progress badge label.</summary>
+    public string EmbeddingBadgeText => _localization["Catalogue.Badge.Embedding"];
+
+    /// <summary>Localized embedding-failure badge label.</summary>
+    public string EmbeddingFailedBadgeText => _localization["Catalogue.Badge.EmbeddingFailed"];
+
+    /// <summary>Localized OCR-derived badge label.</summary>
+    public string OcrBadgeText => _localization["Catalogue.Badge.Ocr"];
+
+    /// <summary>Localized unavailable badge label.</summary>
+    public string UnavailableBadgeText => _localization["Catalogue.Badge.Unavailable"];
+
+    /// <summary>Localized favourite badge label.</summary>
+    public string FavouriteBadgeText => _localization["Catalogue.Badge.Favourite"];
+
+    /// <summary>Localized quality-score format.</summary>
+    public string QualityBadgeFormat => _localization["Catalogue.Badge.QualityFormat"];
+
     /// <summary>Moves to the previous bounded page when one exists.</summary>
     public void GoToPreviousPage()
     {

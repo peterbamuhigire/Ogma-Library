@@ -1,0 +1,25 @@
+# Phase 19 Evidence - Processing and Quality Badges
+
+Date: 2026-09-05
+
+## Implementation
+
+- `BookSummaryProjection` now carries the non-sensitive
+  `CatalogueProcessingProjection`.
+- `CatalogueReadModel` maps persisted full-text index state, embedding state,
+  OCR provenance, and the clamped metadata quality score into that projection.
+- Grid and list cards render localized badges for indexed/indexing/failed,
+  semantic-ready, OCR-derived, quality, and unavailable states.
+- No source path, PDF content, or mutable file action is introduced by the
+  projection.
+
+## Verification
+
+- `GetBookSummaries_ProjectsProcessingAndQualityState`: passed.
+- `Grid_RendersProcessingQualityAndAvailabilityBadges`: passed.
+- Release application build: passed with 0 warnings and 0 errors.
+
+## Residual gates
+
+Complete cover-source fallback, API asset authorization, full keyboard and
+screen-reader journeys, and named reference-hardware performance remain open.

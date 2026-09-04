@@ -71,6 +71,44 @@ public sealed class CatalogueReadModelTests
     }
 
     [Fact]
+    public async Task GetBookSummaries_ProjectsProcessingAndQualityState()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "STATE-BOOK",
+            Title = "Processing State",
+            Status = 0,
+            IndexStatus = (int)OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed,
+            EmbeddingStatus = (int)OgmaLibrary.Application.Search.SearchEmbeddingStatus.Embedded,
+            QualityScore = 0.875,
+            IsOcrDerived = true,
+        });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+        var summaries = new List<BookSummaryProjection>();
+        await foreach (BookSummaryProjection item in readModel.GetBookSummariesAsync(new CatalogueFilter()))
+        {
+            summaries.Add(item);
+        }
+
+        BookSummaryProjection summary = Assert.Single(summaries);
+
+        Assert.NotNull(summary.Processing);
+        Assert.Equal(
+            OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed,
+            summary.Processing!.IndexStatus);
+        Assert.Equal(
+            OgmaLibrary.Application.Search.SearchEmbeddingStatus.Embedded,
+            summary.Processing.EmbeddingStatus);
+        Assert.Equal(0.875, summary.Processing.QualityScore, precision: 3);
+        Assert.True(summary.Processing.IsOcrDerived);
+        Assert.True(summary.Processing.HasProcessingState);
+        Assert.True(summary.Processing.HasQualityScore);
+    }
+
+    [Fact]
     public async Task GetBookSummaries_EvaluatesSavedSmartShelfBeforePaging()
     {
         using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();

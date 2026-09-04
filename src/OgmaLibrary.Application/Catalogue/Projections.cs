@@ -19,6 +19,7 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="Sha256Hash">SHA-256 hex digest of the file content, or null if not available.</param>
 /// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
 /// <param name="RelativePath">Desktop-only library-root-relative source path; never expose in LAN projections.</param>
+/// <param name="Processing">Non-sensitive indexing, embedding, OCR, and quality state.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -32,7 +33,56 @@ public sealed record BookSummaryProjection(
     int? Year,
     string? Sha256Hash = null,
     bool IsFavourite = false,
-    string? RelativePath = null);
+    string? RelativePath = null,
+    CatalogueProcessingProjection? Processing = null);
+
+/// <summary>
+/// Non-sensitive processing state used by catalogue badges and later 3D clients.
+/// The values are read-only projections; no file paths or source content are
+/// included.
+/// </summary>
+/// <param name="IndexStatus">Full-text indexing state.</param>
+/// <param name="EmbeddingStatus">Semantic embedding state.</param>
+/// <param name="QualityScore">Metadata quality score in [0, 1].</param>
+/// <param name="IsOcrDerived">Whether searchable content includes OCR output.</param>
+public sealed record CatalogueProcessingProjection(
+    global::OgmaLibrary.Application.Search.SearchBookIndexStatus IndexStatus,
+    global::OgmaLibrary.Application.Search.SearchEmbeddingStatus EmbeddingStatus,
+    double QualityScore,
+    bool IsOcrDerived)
+{
+    /// <summary>Whether at least one processing indicator has useful state.</summary>
+    public bool HasProcessingState =>
+        IndexStatus != global::OgmaLibrary.Application.Search.SearchBookIndexStatus.NotIndexed ||
+        EmbeddingStatus != global::OgmaLibrary.Application.Search.SearchEmbeddingStatus.NotEmbedded;
+
+    /// <summary>Whether the full-text index is current.</summary>
+    public bool IsIndexed =>
+        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed;
+
+    /// <summary>Whether full-text extraction/indexing is in progress.</summary>
+    public bool IsIndexing =>
+        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Extracting;
+
+    /// <summary>Whether the latest full-text indexing attempt failed.</summary>
+    public bool IsIndexFailed =>
+        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Failed;
+
+    /// <summary>Whether semantic embeddings are current.</summary>
+    public bool IsEmbedded =>
+        EmbeddingStatus == global::OgmaLibrary.Application.Search.SearchEmbeddingStatus.Embedded;
+
+    /// <summary>Whether semantic embedding generation is in progress.</summary>
+    public bool IsEmbedding =>
+        EmbeddingStatus == global::OgmaLibrary.Application.Search.SearchEmbeddingStatus.Embedding;
+
+    /// <summary>Whether the latest semantic embedding attempt failed.</summary>
+    public bool IsEmbeddingFailed =>
+        EmbeddingStatus == global::OgmaLibrary.Application.Search.SearchEmbeddingStatus.Failed;
+
+    /// <summary>Whether a non-default metadata quality score is available.</summary>
+    public bool HasQualityScore => QualityScore > 0;
+}
 
 /// <summary>
 /// A full detail projection of a book across all five metadata groups, used by the

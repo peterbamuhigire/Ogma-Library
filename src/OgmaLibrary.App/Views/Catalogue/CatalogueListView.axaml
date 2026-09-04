@@ -54,6 +54,64 @@
                   </MultiBinding>
                 </TextBlock.Text>
               </TextBlock>
+              <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
+                <Border IsVisible="{Binding Processing.IsIndexed}"
+                        Background="{DynamicResource Brush.Accent.Sage}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexedBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+                <Border IsVisible="{Binding Processing.IsIndexing}"
+                        Background="{DynamicResource Brush.Accent.Oak}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexingBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+                <Border IsVisible="{Binding Processing.IsIndexFailed}"
+                        Background="{DynamicResource Brush.Accent.Clay}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexFailedBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+                <Border IsVisible="{Binding Processing.IsEmbedded}"
+                        Background="{DynamicResource Brush.Accent.Ink}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.EmbeddedBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+                <Border IsVisible="{Binding Processing.IsOcrDerived}"
+                        Background="{DynamicResource Brush.Accent.Slate}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.OcrBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+                <Border IsVisible="{Binding Processing.HasQualityScore}"
+                        Background="{DynamicResource Brush.Accent.Plum}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding Processing.QualityScore, StringFormat={}{0:P0}}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+                <Border IsVisible="{Binding !IsAvailable}"
+                        Background="{DynamicResource Brush.Accent.Clay}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.UnavailableBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="White" />
+                </Border>
+              </WrapPanel>
             </StackPanel>
 
             <!-- Year -->
