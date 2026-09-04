@@ -3,7 +3,7 @@ using Tesseract;
 
 namespace OgmaLibrary.Infrastructure.Ocr;
 
-/// <summary>Local Tesseract-backed OCR provider for Phase 15 scanned PDFs.</summary>
+/// <summary>Local Tesseract-backed OCR provider for scanned PDFs.</summary>
 internal sealed class TesseractOcrProvider : IOcrProvider
 {
     private readonly string _tessdataPath;
@@ -49,6 +49,14 @@ internal sealed class TesseractOcrProvider : IOcrProvider
 
     private OcrPageResult Recognize(byte[] imageBytes, string language)
     {
+        TesseractTrainingDataVerification verification =
+            TesseractTrainingDataVerifier.Verify(_tessdataPath, language);
+        if (!verification.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"OCR training data integrity check failed for '{verification.Language}': {verification.Code}.");
+        }
+
         using var engine = new TesseractEngine(_tessdataPath, language, EngineMode.Default);
         using Pix pix = Pix.LoadFromMemory(imageBytes);
         using Page page = engine.Process(pix);

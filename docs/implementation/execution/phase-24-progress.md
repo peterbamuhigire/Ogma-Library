@@ -20,17 +20,21 @@ Date: 2026-08-30
 - Added provider-side language validation and regression coverage for text-page
   skipping, confidence selection, primary preservation, language policy and
   the existing OCR/golden corpus workflows.
+- Added fail-closed SHA-256 verification for packaged Tesseract training data;
+  the restored `eng.traineddata` asset is allow-listed for the pinned
+  `Tesseract.Data.English` package, while language packs without an approved
+  checksum are rejected before OCR starts.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
-- Phase 24 policy and OCR processor tests: 8 passed.
+- Phase 24 policy and OCR integrity tests: 7 passed in the focused regression
+  slice; the restored English asset passed the approved checksum check.
 - OCR/golden/schema regression slice: 13 passed.
 
 ## Remaining phase gate
 
-Native Tesseract trained-data checksum verification, real mixed-PDF accuracy
-and CPU/memory corpus evidence, complete retry/resource telemetry, OCR UI
-quality controls, and cross-platform packaged asset proof remain before phase
-24 closure.
+Real mixed-PDF accuracy and CPU/memory corpus evidence, complete retry/resource
+telemetry, OCR UI quality controls, and cross-platform packaged asset proof
+remain before phase 24 closure.
