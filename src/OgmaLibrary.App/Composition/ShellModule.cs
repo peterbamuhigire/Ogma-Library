@@ -81,7 +81,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IReadingMemoryService>(),
             localization,
             services.GetRequiredService<ITextLayerService>(),
-            services.GetRequiredService<IPageRenderCache>());
+            services.GetRequiredService<IPageRenderCache>(),
+            services.GetRequiredService<IReaderPortabilityService>());
         var search = new SearchViewModel(
             services.GetRequiredService<ISemanticSearchService>(),
             navigation,

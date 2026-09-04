@@ -91,10 +91,13 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
         // Load saved progress (FR-READ-001 resume).
         ReaderProgress progress = await _progressService.LoadAsync(bookId, ct).ConfigureAwait(false);
 
-        // Open the native renderer.
-        IPdfRenderer renderer = password is null
-            ? _rendererFactory.Open(filePath)
-            : _rendererFactory.Open(filePath, password);
+        // Renderer construction can read and parse a large PDF. Keep it off the
+        // UI thread even though the factory API is synchronous.
+        IPdfRenderer renderer = await Task.Run(
+            () => password is null
+                ? _rendererFactory.Open(filePath)
+                : _rendererFactory.Open(filePath, password),
+            ct).ConfigureAwait(false);
         _currentRenderer = renderer;
 
         // Register renderer with the cache.
@@ -112,7 +115,9 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
             progress.ZoomMode,
             progress.ZoomPercent,
             progress.DisplayMode,
-            GetPageRotationDegrees(renderer, startPage));
+            await Task.Run(
+                () => GetPageRotationDegrees(renderer, startPage),
+                ct).ConfigureAwait(false));
 
         _currentSession = session;
 
@@ -289,12 +294,14 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
     {
         int cur = session.CurrentPageIndex;
         int max = session.PageCount - 1;
+        // Queue the visible page first. The isolated reader worker serializes
+        // requests, so putting the neighbours first makes opening feel stalled.
+        yield return cur;
+
         if (cur > 0)
         {
             yield return cur - 1;
         }
-
-        yield return cur;
 
         if (cur < max)
         {

@@ -67,6 +67,14 @@ public interface IReaderSessionService
     /// </summary>
     /// <param name="scrollOffset">Scroll offset in [0.0, 1.0].</param>
     void UpdateScrollOffset(double scrollOffset);
+
+    /// <summary>Updates the active zoom mode and persists the fixed zoom percentage.</summary>
+    /// <param name="mode">The zoom mode to persist.</param>
+    /// <param name="percent">The fixed zoom percentage.</param>
+    void UpdateZoom(ZoomMode mode, double percent)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(percent);
+    }
 }
 
 /// <summary>

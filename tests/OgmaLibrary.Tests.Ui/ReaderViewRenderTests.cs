@@ -3,6 +3,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -1071,6 +1072,83 @@ public sealed class ReaderViewRenderTests
         Assert.Equal(192, overlay.Y, precision: 3);
         Assert.Equal(216, overlay.Width, precision: 3);
         Assert.Equal(96, overlay.Height, precision: 3);
+    }
+
+    [AvaloniaFact]
+    public void ReaderViewModel_FitModesUseMeasuredReadingViewport()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var sessionService = new FakeReaderSessionService();
+        var viewModel = new ReaderViewModel(
+            sessionService,
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+        viewModel.UpdatePageViewport(1_000, 500);
+
+        Assert.Equal(960, viewModel.PageSurfaceWidth, precision: 3);
+        Assert.Equal(1_280, viewModel.PageSurfaceHeight, precision: 3);
+
+        viewModel.SetZoomMode(ZoomMode.FitPage);
+
+        Assert.Equal(345, viewModel.PageSurfaceWidth, precision: 3);
+        Assert.Equal(460, viewModel.PageSurfaceHeight, precision: 3);
+        Assert.Equal((ZoomMode.FitPage, 100), Assert.Single(sessionService.ZoomUpdates));
+    }
+
+    [AvaloniaFact]
+    public void ReaderView_ProvidesPageScrollViewerAndMagnificationControls()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        var window = ShowReaderWindow(viewModel);
+        try
+        {
+            var view = Assert.IsType<ReaderView>(window.Content);
+            var pageScrollViewer = Assert.IsType<ScrollViewer>(view.FindControl<ScrollViewer>("PageScrollViewer"));
+            Assert.Equal(ScrollBarVisibility.Auto, pageScrollViewer.VerticalScrollBarVisibility);
+            Assert.Equal(ScrollBarVisibility.Auto, pageScrollViewer.HorizontalScrollBarVisibility);
+            Assert.IsType<Border>(view.FindControl<Border>("PageSurface"));
+
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == viewModel.ZoomOutLabel);
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == viewModel.ZoomInLabel);
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == viewModel.FitWidthLabel);
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == viewModel.FitPageLabel);
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == viewModel.ImportReaderStateLabel);
+            Assert.Contains(
+                window.GetVisualDescendants().OfType<Button>(),
+                button => GetAutomationName(button) == viewModel.ExportReaderStateLabel);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -2851,6 +2929,8 @@ public sealed class ReaderViewRenderTests
 
         public ReaderSession? CurrentSession { get; private set; }
 
+        public List<(ZoomMode Mode, double Percent)> ZoomUpdates { get; } = [];
+
         public IPdfRenderer? CurrentRenderer => null;
 
         public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct)
@@ -2883,6 +2963,8 @@ public sealed class ReaderViewRenderTests
         public void UpdateScrollOffset(double scrollOffset)
         {
         }
+
+        public void UpdateZoom(ZoomMode mode, double percent) => ZoomUpdates.Add((mode, percent));
     }
 
     private static Window ShowReaderWindow(ReaderViewModel viewModel)

@@ -31,6 +31,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
     // Keyed by (bookId, pageIndex, widthPx)
     private readonly Dictionary<CacheKey, CacheEntry> _entries = new();
+    private readonly Dictionary<CacheKey, Task<RenderResult>> _inFlight = new();
     private readonly LinkedList<CacheKey> _lruList = new();
     private readonly Dictionary<CacheKey, LinkedListNode<CacheKey>> _lruNodes = new();
     private readonly ConcurrentDictionary<CacheKey, CancellationTokenSource> _pendingCts = new();
@@ -98,13 +99,24 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
             if (_entries.TryGetValue(lowResKey, out var preview) && preview.IsFull)
             {
                 // Return preview immediately; background render will fire RenderCompleted.
-                _ = EnsureRenderingAsync(key, bookId, pageIndex, request, ct);
+                _ = StartRender(key, bookId, pageIndex, request);
                 return preview.Result!;
             }
         }
 
-        // Not cached — render synchronously (awaited) for the first request.
-        return await EnsureRenderingAsync(key, bookId, pageIndex, request, ct).ConfigureAwait(false);
+        // Not cached — join an existing prefetch or start one render. Start the
+        // preview and full render together, but return whichever finishes first so
+        // a slow scanned page is visible while its crisp version is still warming.
+        Task<RenderResult> previewRender = StartRender(
+            lowResKey,
+            bookId,
+            pageIndex,
+            request with { IsLowResPreview = true });
+        Task<RenderResult> render = StartRender(key, bookId, pageIndex, request);
+        Task<RenderResult> first = await Task.WhenAny(previewRender, render)
+            .WaitAsync(ct)
+            .ConfigureAwait(false);
+        return await first.ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -127,12 +139,12 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
             {
                 // First kick off low-res preview.
                 var previewRequest = request with { IsLowResPreview = true };
-                _ = EnsureRenderingAsync(
+                _ = StartRender(
                     new CacheKey(bookId, page, request.WidthPx / 4),
-                    bookId, page, previewRequest, CancellationToken.None);
+                    bookId, page, previewRequest);
 
                 // Then queue full-res.
-                _ = EnsureRenderingAsync(key, bookId, page, request, CancellationToken.None);
+                _ = StartRender(key, bookId, page, request);
             }
         }
     }
@@ -170,6 +182,11 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
         lock (_syncRoot)
         {
+            foreach (CacheKey key in _inFlight.Keys.Where(k => k.BookId == bookId).ToList())
+            {
+                _inFlight.Remove(key);
+            }
+
             var keysToRemove = _entries.Keys.Where(k => k.BookId == bookId).ToList();
             foreach (var key in keysToRemove)
             {
@@ -209,6 +226,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
             _renderers.Clear();
             _entries.Clear();
+            _inFlight.Clear();
             _lruList.Clear();
             _lruNodes.Clear();
         }
@@ -218,19 +236,49 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
     // ── Private helpers ───────────────────────────────────────────────────────────
 
-    private async Task<RenderResult> EnsureRenderingAsync(
+    private Task<RenderResult> StartRender(
+        CacheKey key,
+        string bookId,
+        int pageIndex,
+        RenderRequest request)
+    {
+        lock (_syncRoot)
+        {
+            if (_entries.TryGetValue(key, out CacheEntry? existing) && existing.IsFull)
+            {
+                Touch(key);
+                return Task.FromResult(existing.Result!);
+            }
+
+            if (_inFlight.TryGetValue(key, out Task<RenderResult>? existingTask))
+            {
+                return existingTask;
+            }
+
+            var completion = new TaskCompletionSource<RenderResult>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var renderCts = new CancellationTokenSource();
+            _inFlight[key] = completion.Task;
+            _pendingCts[key] = renderCts;
+            _ = RenderAndCompleteAsync(
+                key,
+                bookId,
+                pageIndex,
+                request,
+                renderCts,
+                completion);
+            return completion.Task;
+        }
+    }
+
+    private async Task RenderAndCompleteAsync(
         CacheKey key,
         string bookId,
         int pageIndex,
         RenderRequest request,
-        CancellationToken ct)
+        CancellationTokenSource renderCts,
+        TaskCompletionSource<RenderResult> completion)
     {
-        // Create per-render CTS for cancellation on navigation.
-        var renderCts = new CancellationTokenSource();
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, renderCts.Token);
-
-        _pendingCts[key] = renderCts;
-
         try
         {
             IPdfRenderer renderer;
@@ -245,7 +293,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
             }
 
             RenderResult result = await renderer
-                .RenderPageAsync(pageIndex, request, linked.Token)
+                .RenderPageAsync(pageIndex, request, renderCts.Token)
                 .ConfigureAwait(false);
 
             lock (_syncRoot)
@@ -255,17 +303,34 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
             // Notify on completion (used to update the UI when background renders finish).
             RenderCompleted?.Invoke(this, new RenderCompletedEventArgs(bookId, pageIndex, result));
-
-            return result;
+            completion.TrySetResult(result);
         }
         catch (OperationCanceledException)
         {
             // Normal cancellation — rethrow so caller knows.
-            throw;
+            completion.TrySetCanceled();
+        }
+        catch (Exception exception)
+        {
+            completion.TrySetException(exception);
         }
         finally
         {
-            _pendingCts.TryRemove(key, out _);
+            if (_pendingCts.TryGetValue(key, out CancellationTokenSource? pending) &&
+                ReferenceEquals(pending, renderCts))
+            {
+                _pendingCts.TryRemove(key, out _);
+            }
+
+            lock (_syncRoot)
+            {
+                if (_inFlight.TryGetValue(key, out Task<RenderResult>? current) &&
+                    ReferenceEquals(current, completion.Task))
+                {
+                    _inFlight.Remove(key);
+                }
+            }
+
             renderCts.Dispose();
         }
     }

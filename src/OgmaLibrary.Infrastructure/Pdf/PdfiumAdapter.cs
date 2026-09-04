@@ -1,4 +1,4 @@
-﻿using OgmaLibrary.Application.Reader;
+using OgmaLibrary.Application.Reader;
 using PDFtoImage;
 using PDFtoImage.Exceptions;
 using SkiaSharp;
@@ -26,6 +26,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
     private readonly string _filePath;
     private readonly byte[] _fileBytes;
     private readonly char[]? _password;
+    private readonly Lazy<IReadOnlyList<PageInfo>> _pageInfo;
     private readonly Lazy<PdfDocument> _textDocument;
     private readonly Lazy<IReadOnlyList<Page>> _textPages;
     private readonly object _textExtractionGate = new();
@@ -56,6 +57,9 @@ public sealed class PdfiumAdapter : IPdfRenderer
         _filePath = filePath;
         _fileBytes = File.ReadAllBytes(filePath);
         _password = password is null ? null : copyPassword ? password.ToArray() : password;
+        _pageInfo = new Lazy<IReadOnlyList<PageInfo>>(
+            ReadPageInfo,
+            LazyThreadSafetyMode.ExecutionAndPublication);
         _textDocument = new Lazy<PdfDocument>(
             OpenPdfPigDocument,
             LazyThreadSafetyMode.ExecutionAndPublication);
@@ -104,14 +108,13 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         try
         {
-            using var doc = OpenPdfPigDocument();
-            var pages = doc.GetPages().ToList();
+            IReadOnlyList<PageInfo> pages = _pageInfo.Value;
             if (pageIndex >= pages.Count)
             {
                 return 0;
             }
 
-            return NormalizeRotation(pages[pageIndex].Rotation.Value);
+            return pages[pageIndex].Rotation;
         }
         catch
         {
@@ -282,14 +285,13 @@ public sealed class PdfiumAdapter : IPdfRenderer
     {
         try
         {
-            using var doc = OpenPdfPigDocument();
-            var pages = doc.GetPages().ToList();
+            IReadOnlyList<PageInfo> pages = _pageInfo.Value;
             if (pageIndex >= pages.Count)
             {
                 return (595, 842); // A4 fallback
             }
 
-            var page = pages[pageIndex];
+            PageInfo page = pages[pageIndex];
             return (page.Width, page.Height);
         }
         catch
@@ -300,6 +302,24 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
     private static int NormalizeRotation(int rotation) =>
         ((rotation % 360) + 360) % 360;
+
+    private List<PageInfo> ReadPageInfo()
+    {
+        try
+        {
+            using var doc = OpenPdfPigDocument();
+            return doc.GetPages()
+                .Select(page => new PageInfo(
+                    page.Width,
+                    page.Height,
+                    NormalizeRotation(page.Rotation.Value)))
+                .ToList();
+        }
+        catch
+        {
+            return [];
+        }
+    }
 
     private List<Page> ReadTextPages()
     {
@@ -321,4 +341,6 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
     private string? CreatePasswordString() =>
         _password is null ? null : new string(_password);
+
+    private readonly record struct PageInfo(double Width, double Height, int Rotation);
 }

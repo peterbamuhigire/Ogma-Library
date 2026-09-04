@@ -8,14 +8,14 @@
              Focusable="True"
              KeyDown="ReaderView_KeyDown">
 
-  <Grid RowDefinitions="Auto,*"
+  <Grid RowDefinitions="Auto,Auto,*"
         Background="{DynamicResource Brush.Surface.Parchment}">
 
     <Border Grid.Row="0"
             Padding="14,10"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
         <TextBlock Grid.Column="0"
                    Text="{Binding ReaderTitle}"
                    FontSize="{DynamicResource Type.Size.Subtitle}"
@@ -55,6 +55,24 @@
         </StackPanel>
 
         <StackPanel Grid.Column="3"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+          <Button Padding="10,5"
+                  IsEnabled="{Binding CanUsePortability}"
+                  AutomationProperties.Name="{Binding ImportReaderStateLabel}"
+                  Click="ImportReaderStateButton_Click">
+            <TextBlock Text="{Binding ImportReaderStateLabel}" />
+          </Button>
+          <Button Padding="10,5"
+                  IsEnabled="{Binding CanUsePortability}"
+                  AutomationProperties.Name="{Binding ExportReaderStateLabel}"
+                  Click="ExportReaderStateButton_Click">
+            <TextBlock Text="{Binding ExportReaderStateLabel}" />
+          </Button>
+        </StackPanel>
+
+        <StackPanel Grid.Column="4"
                     Orientation="Horizontal"
                     Spacing="6"
                     VerticalAlignment="Center">
@@ -148,22 +166,117 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,320">
-      <Border x:Name="PageSurface"
-              Grid.Column="0"
-              Margin="20"
-              Width="{Binding PageSurfaceWidth}"
-              Height="{Binding PageSurfaceHeight}"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource Radius.S}"
-              Background="White"
-              PointerPressed="PageSurface_PointerPressed"
-              PointerMoved="PageSurface_PointerMoved"
-              PointerReleased="PageSurface_PointerReleased"
-              PointerWheelChanged="PageSurface_PointerWheelChanged">
+    <Border Grid.Row="1"
+            Padding="10,6"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="0,0,0,1"
+            Background="{DynamicResource Brush.Surface.Card}">
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="6">
+        <Button Padding="10,5"
+                IsEnabled="{Binding CanGoFirst}"
+                AutomationProperties.Name="{Binding FirstPageLabel}"
+                ToolTip.Tip="{Binding FirstPageLabel}"
+                Click="FirstButton_Click">
+          <TextBlock Text="|&lt;" FontWeight="SemiBold" />
+        </Button>
+        <Button Padding="10,5"
+                IsEnabled="{Binding CanGoPrevious}"
+                AutomationProperties.Name="{Binding PreviousPageLabel}"
+                ToolTip.Tip="{Binding PreviousPageLabel}"
+                Click="PreviousButton_Click">
+          <TextBlock Text="&lt;" FontWeight="SemiBold" />
+        </Button>
+        <TextBox x:Name="PageNumberBox"
+                 Width="56"
+                 Text="{Binding PageNumberInput, Mode=TwoWay}"
+                 HorizontalContentAlignment="Center"
+                 AutomationProperties.Name="{Binding JumpToPageLabel}"
+                 ToolTip.Tip="{Binding JumpToPageLabel}"
+                 KeyDown="PageNumberBox_KeyDown" />
+        <TextBlock Text="/"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <TextBlock Text="{Binding PageCount}"
+                   MinWidth="34"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <Button Padding="10,5"
+                IsEnabled="{Binding CanGoNext}"
+                AutomationProperties.Name="{Binding NextPageLabel}"
+                ToolTip.Tip="{Binding NextPageLabel}"
+                Click="NextButton_Click">
+          <TextBlock Text="&gt;" FontWeight="SemiBold" />
+        </Button>
+        <Button Padding="10,5"
+                IsEnabled="{Binding CanGoLast}"
+                AutomationProperties.Name="{Binding LastPageLabel}"
+                ToolTip.Tip="{Binding LastPageLabel}"
+                Click="LastButton_Click">
+          <TextBlock Text="&gt;|" FontWeight="SemiBold" />
+        </Button>
+        <Border Width="1"
+                Height="24"
+                Margin="6,0"
+                Background="{DynamicResource Brush.Surface.CardBorder}" />
+        <Button Padding="10,5"
+                IsEnabled="{Binding CanZoomOut}"
+                AutomationProperties.Name="{Binding ZoomOutLabel}"
+                ToolTip.Tip="{Binding ZoomOutLabel}"
+                Click="ZoomOutButton_Click">
+          <TextBlock Text="−" FontSize="16" FontWeight="SemiBold" />
+        </Button>
+        <TextBlock Text="{Binding ZoomPercentLabel}"
+                   MinWidth="52"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   AutomationProperties.Name="{Binding ZoomPercentLabel}" />
+        <Button Padding="10,5"
+                IsEnabled="{Binding CanZoomIn}"
+                AutomationProperties.Name="{Binding ZoomInLabel}"
+                ToolTip.Tip="{Binding ZoomInLabel}"
+                Click="ZoomInButton_Click">
+          <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" />
+        </Button>
+        <Button Padding="10,5"
+                AutomationProperties.Name="{Binding FitWidthLabel}"
+                ToolTip.Tip="{Binding FitWidthLabel}"
+                Click="FitWidthButton_Click">
+          <TextBlock Text="↔" FontSize="16" />
+        </Button>
+        <Button Padding="10,5"
+                AutomationProperties.Name="{Binding FitPageLabel}"
+                ToolTip.Tip="{Binding FitPageLabel}"
+                Click="FitPageButton_Click">
+          <TextBlock Text="⛶" FontSize="16" />
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,320">
+      <ScrollViewer x:Name="PageScrollViewer"
+                    Grid.Column="0"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Focusable="True">
+        <Border x:Name="PageSurface"
+                Margin="20"
+                Width="{Binding PageSurfaceWidth}"
+                Height="{Binding PageSurfaceHeight}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.S}"
+                Background="White"
+                PointerPressed="PageSurface_PointerPressed"
+                PointerMoved="PageSurface_PointerMoved"
+                PointerReleased="PageSurface_PointerReleased">
         <Grid RowDefinitions="*,Auto" ClipToBounds="True">
           <Image Grid.Row="0"
                  Source="{Binding PageImage}"
@@ -364,7 +477,8 @@
             </StackPanel>
           </Border>
         </Grid>
-      </Border>
+        </Border>
+      </ScrollViewer>
 
       <Border Grid.Column="1"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"

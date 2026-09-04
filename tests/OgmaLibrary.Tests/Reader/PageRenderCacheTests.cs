@@ -201,6 +201,31 @@ public sealed class PageRenderCacheTests
     }
 
     [Fact]
+    public async Task PrefetchAndForegroundRequest_JoinOneFullResolutionRender()
+    {
+        var mockRenderer = new MockPdfRenderer(3) { RenderDelayMs = 50 };
+        using var cache = CreateCache(new MockPdfRendererFactory(_ => mockRenderer));
+        cache.SetRenderer("book1", mockRenderer);
+
+        var request = new RenderRequest(800);
+        cache.Prefetch("book1", [1], request);
+
+        await cache.GetOrRenderAsync("book1", 1, request, CancellationToken.None);
+        await Task.Delay(100);
+
+        int fullResolutionRenders;
+        lock (mockRenderer.RenderCalls)
+        {
+            fullResolutionRenders = mockRenderer.RenderCalls.Count(call =>
+                call.PageIndex == 1 &&
+                call.Request.WidthPx == request.WidthPx &&
+                !call.Request.IsLowResPreview);
+        }
+
+        Assert.Equal(1, fullResolutionRenders);
+    }
+
+    [Fact]
     public async Task LruEviction_RespectsMemoryBudget()
     {
         // Each 1x1 PNG is ~100 bytes; set budget to 500 bytes to force eviction quickly.

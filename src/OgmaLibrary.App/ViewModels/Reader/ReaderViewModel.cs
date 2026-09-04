@@ -28,6 +28,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _localization;
     private readonly ITextLayerService? _textLayers;
     private readonly IPageRenderCache? _renderCache;
+    private readonly IReaderPortabilityService? _portability;
     private const int BookmarkTabIndex = 1;
     private const string BookmarkSortByPageId = "page";
     private const string BookmarkSortByCreatedId = "created";
@@ -35,6 +36,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private const string LayerDefaultColorOptionId = "layer-default";
     private const double BasePageSurfaceWidth = 720.0;
     private const double BasePageSurfaceHeight = 960.0;
+    private const double PageSurfacePadding = 40.0;
+    private const double MinimumZoomPercent = 25.0;
+    private const double MaximumZoomPercent = 400.0;
 
     /// <summary>
     /// Supersampling factor applied to the page-surface width when rendering so the
@@ -48,10 +52,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     private string? _bookId;
     private int _currentPageIndex;
+    private string _pageNumberInput = "1";
     private int _pageRotationDegrees;
     private int _pageCount;
     private ZoomMode _zoomMode = ZoomMode.FitWidth;
     private double _zoomPercent = 100.0;
+    private double _pageViewportWidth;
+    private double _pageViewportHeight;
     private int _selectedSidebarTabIndex;
     private bool _isTogglingBookmark;
     private CancellationTokenSource? _readingMemoryAutoSaveCts;
@@ -88,7 +95,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         IReadingMemoryService readingMemory,
         ILocalizationService localization,
         ITextLayerService? textLayers = null,
-        IPageRenderCache? renderCache = null)
+        IPageRenderCache? renderCache = null,
+        IReaderPortabilityService? portability = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(annotations);
@@ -107,6 +115,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _localization = localization;
         _textLayers = textLayers;
         _renderCache = renderCache;
+        _portability = portability;
 
         if (_renderCache is not null)
         {
@@ -148,9 +157,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 _currentPageIndex = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CurrentPageNumber));
+                PageNumberInput = CurrentPageNumber.ToString(
+                    System.Globalization.CultureInfo.CurrentCulture);
                 OnPropertyChanged(nameof(PageStatusText));
                 OnPropertyChanged(nameof(CanGoPrevious));
                 OnPropertyChanged(nameof(CanGoNext));
+                OnPropertyChanged(nameof(CanGoFirst));
+                OnPropertyChanged(nameof(CanGoLast));
                 OnPropertyChanged(nameof(IsCurrentPageBookmarked));
             }
         }
@@ -158,6 +171,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Current human-readable one-based page number.</summary>
     public int CurrentPageNumber => CurrentPageIndex + 1;
+
+    /// <summary>The editable one-based page number used by the page jump control.</summary>
+    public string PageNumberInput
+    {
+        get => _pageNumberInput;
+        set => SetField(ref _pageNumberInput, value);
+    }
 
     /// <summary>Total pages in the active document.</summary>
     public int PageCount
@@ -171,6 +191,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(PageStatusText));
                 OnPropertyChanged(nameof(CanGoNext));
+                OnPropertyChanged(nameof(CanGoLast));
             }
         }
     }
@@ -186,6 +207,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             {
                 _pageRotationDegrees = normalized;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
             }
@@ -205,6 +227,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
+                OnPropertyChanged(nameof(CanZoomOut));
+                OnPropertyChanged(nameof(CanZoomIn));
+                OnPropertyChanged(nameof(ZoomPercentLabel));
             }
         }
     }
@@ -222,6 +247,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
+                OnPropertyChanged(nameof(CanZoomOut));
+                OnPropertyChanged(nameof(CanZoomIn));
+                OnPropertyChanged(nameof(ZoomPercentLabel));
             }
         }
     }
@@ -242,6 +270,11 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 // buttons must be re-evaluated here or they stay stale (disabled).
                 OnPropertyChanged(nameof(CanGoPrevious));
                 OnPropertyChanged(nameof(CanGoNext));
+                OnPropertyChanged(nameof(CanGoFirst));
+                OnPropertyChanged(nameof(CanGoLast));
+                OnPropertyChanged(nameof(CanZoomOut));
+                OnPropertyChanged(nameof(CanZoomIn));
+                OnPropertyChanged(nameof(CanUsePortability));
             }
         }
     }
@@ -284,6 +317,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             {
                 _isBusy = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(PageStatusText));
             }
         }
     }
@@ -493,7 +527,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Formatted page status.</summary>
     public string PageStatusText => PageCount <= 0
-        ? string.Empty
+        ? IsBusy ? _localization["Reader.Loading"] : string.Empty
         : string.Format(
             System.Globalization.CultureInfo.CurrentCulture,
             _localization["Reader.Navigation.PageOf"],
@@ -506,24 +540,160 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// <summary>True when the reader can navigate to the next page.</summary>
     public bool CanGoNext => IsOpen && CurrentPageIndex < PageCount - 1;
 
+    /// <summary>True when the reader can move to the first page.</summary>
+    public bool CanGoFirst => IsOpen && CurrentPageIndex > 0;
+
+    /// <summary>True when the reader can move to the last page.</summary>
+    public bool CanGoLast => IsOpen && CurrentPageIndex < PageCount - 1;
+
     /// <summary>Localized label for moving to the previous page.</summary>
     public string PreviousPageLabel => _localization["Reader.Navigation.PreviousPage"];
 
     /// <summary>Localized label for moving to the next page.</summary>
     public string NextPageLabel => _localization["Reader.Navigation.NextPage"];
 
-    /// <summary>The page-surface width after rotation and fixed zoom are applied.</summary>
-    public double PageSurfaceWidth =>
-        (PageRotationDegrees is 90 or 270 ? BasePageSurfaceHeight : BasePageSurfaceWidth) * OverlayZoomFactor;
+    /// <summary>Localized label for moving to the first page.</summary>
+    public string FirstPageLabel => _localization["Reader.Navigation.FirstPage"];
 
-    /// <summary>The page-surface height after rotation and fixed zoom are applied.</summary>
-    public double PageSurfaceHeight =>
-        (PageRotationDegrees is 90 or 270 ? BasePageSurfaceWidth : BasePageSurfaceHeight) * OverlayZoomFactor;
+    /// <summary>Localized label for moving to the last page.</summary>
+    public string LastPageLabel => _localization["Reader.Navigation.LastPage"];
 
-    /// <summary>The effective zoom factor used by annotation overlay rendering.</summary>
-    public double OverlayZoomFactor => ZoomMode == ZoomMode.Fixed
-        ? Math.Max(0.25, ZoomPercent / 100.0)
-        : 1.0;
+    /// <summary>Localized label for the page jump control.</summary>
+    public string JumpToPageLabel => _localization["Reader.Navigation.JumpToPage"];
+
+    /// <summary>The page-surface width after rotation and the active display mode are applied.</summary>
+    public double PageSurfaceWidth => BasePageWidthAfterRotation * OverlayZoomFactor;
+
+    /// <summary>The page-surface height after rotation and the active display mode are applied.</summary>
+    public double PageSurfaceHeight => BasePageHeightAfterRotation * OverlayZoomFactor;
+
+    /// <summary>The effective zoom factor used by page and annotation rendering.</summary>
+    public double OverlayZoomFactor => ZoomMode switch
+    {
+        ZoomMode.Fixed => Math.Clamp(ZoomPercent / 100.0, MinimumZoomPercent / 100.0, MaximumZoomPercent / 100.0),
+        ZoomMode.FitWidth => FitWidthScale,
+        ZoomMode.FitPage => FitPageScale,
+        _ => 1.0,
+    };
+
+    /// <summary>Whether the fixed zoom can be reduced.</summary>
+    public bool CanZoomOut => IsOpen && ZoomPercent > MinimumZoomPercent;
+
+    /// <summary>Whether the fixed zoom can be increased.</summary>
+    public bool CanZoomIn => IsOpen && ZoomPercent < MaximumZoomPercent;
+
+    /// <summary>Localized visible zoom percentage.</summary>
+    public string ZoomPercentLabel => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Reader.Zoom.Fixed"],
+        Math.Round(ZoomPercent));
+
+    /// <summary>Localized label for fitting the page width.</summary>
+    public string FitWidthLabel => _localization["Reader.Zoom.FitWidth"];
+
+    /// <summary>Localized label for fitting the whole page.</summary>
+    public string FitPageLabel => _localization["Reader.Zoom.FitPage"];
+
+    /// <summary>Localized label for zooming out.</summary>
+    public string ZoomOutLabel => _localization["Reader.Zoom.ZoomOut"];
+
+    /// <summary>Localized label for zooming in.</summary>
+    public string ZoomInLabel => _localization["Reader.Zoom.ZoomIn"];
+
+    /// <summary>Updates the measured page viewport used by fit-width and fit-page.</summary>
+    public void UpdatePageViewport(double width, double height)
+    {
+        double nextWidth = Math.Max(0.0, width);
+        double nextHeight = Math.Max(0.0, height);
+        if (Math.Abs(_pageViewportWidth - nextWidth) < 1.0 &&
+            Math.Abs(_pageViewportHeight - nextHeight) < 1.0)
+        {
+            return;
+        }
+
+        _pageViewportWidth = nextWidth;
+        _pageViewportHeight = nextHeight;
+        OnPropertyChanged(nameof(OverlayZoomFactor));
+        OnPropertyChanged(nameof(PageSurfaceWidth));
+        OnPropertyChanged(nameof(PageSurfaceHeight));
+
+        // Fit modes need a new raster when the viewport changes materially. The
+        // shared cache makes this safe during window resizing and coalesces repeats.
+        if (IsOpen && ZoomMode != ZoomMode.Fixed)
+        {
+            RequestPageRender();
+        }
+    }
+
+    /// <summary>Persists the current reading offset without requesting a render.</summary>
+    public void UpdateScrollOffset(double scrollOffset) => _sessions.UpdateScrollOffset(scrollOffset);
+
+    /// <summary>Sets a display mode and persists it in the active reader session.</summary>
+    public void SetZoomMode(ZoomMode mode)
+    {
+        if (!Enum.IsDefined(mode))
+        {
+            return;
+        }
+
+        ZoomMode = mode;
+        _sessions.UpdateZoom(mode, ZoomPercent);
+        RequestPageRender();
+    }
+
+    /// <summary>Increases fixed magnification by a predictable 25 percentage points.</summary>
+    public void ZoomIn() => SetFixedZoom(ZoomPercent + 25.0);
+
+    /// <summary>Decreases fixed magnification by a predictable 25 percentage points.</summary>
+    public void ZoomOut() => SetFixedZoom(ZoomPercent - 25.0);
+
+    private void SetFixedZoom(double percent)
+    {
+        ZoomMode = ZoomMode.Fixed;
+        ZoomPercent = Math.Clamp(percent, MinimumZoomPercent, MaximumZoomPercent);
+        _sessions.UpdateZoom(ZoomMode.Fixed, ZoomPercent);
+        RequestPageRender();
+    }
+
+    private double BasePageWidthAfterRotation =>
+        PageRotationDegrees is 90 or 270 ? BasePageSurfaceHeight : BasePageSurfaceWidth;
+
+    private double BasePageHeightAfterRotation =>
+        PageRotationDegrees is 90 or 270 ? BasePageSurfaceWidth : BasePageSurfaceHeight;
+
+    private double FitWidthScale
+    {
+        get
+        {
+            if (_pageViewportWidth <= 0.0)
+            {
+                return 1.0;
+            }
+
+            return Math.Clamp(
+                Math.Max(1.0, _pageViewportWidth - PageSurfacePadding) / BasePageWidthAfterRotation,
+                0.1,
+                MaximumZoomPercent / 100.0);
+        }
+    }
+
+    private double FitPageScale
+    {
+        get
+        {
+            if (_pageViewportWidth <= 0.0 || _pageViewportHeight <= 0.0)
+            {
+                return 1.0;
+            }
+
+            double availableWidth = Math.Max(1.0, _pageViewportWidth - PageSurfacePadding);
+            double availableHeight = Math.Max(1.0, _pageViewportHeight - PageSurfacePadding);
+            return Math.Clamp(
+                Math.Min(availableWidth / BasePageWidthAfterRotation, availableHeight / BasePageHeightAfterRotation),
+                0.1,
+                MaximumZoomPercent / 100.0);
+        }
+    }
 
     /// <summary>Localized label for the reader panel.</summary>
     public string ReaderTitle => _localization["Reader.Panel.Title"];
@@ -633,6 +803,86 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// <summary>Localized label for exporting a citation.</summary>
     public string ExportCitationLabel => _localization["Citation.Export"];
 
+    /// <summary>Whether reader-state import/export is available for the open book.</summary>
+    public bool CanUsePortability => IsOpen && BookId is not null && _portability is not null;
+
+    /// <summary>Localized label for exporting local reader state.</summary>
+    public string ExportReaderStateLabel => _localization["Reader.Portability.Export"];
+
+    /// <summary>Localized label for importing local reader state.</summary>
+    public string ImportReaderStateLabel => _localization["Reader.Portability.Import"];
+
+    /// <summary>Exports the current book's local reader state to a writable stream.</summary>
+    public async Task ExportReaderStateAsync(
+        Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!CanUsePortability || BookId is null)
+        {
+            StatusMessage = _localization["Reader.Portability.Unavailable"];
+            return;
+        }
+
+        try
+        {
+            await _portability!.ExportAsync(BookId, destination, cancellationToken).ConfigureAwait(true);
+            StatusMessage = _localization["Reader.Portability.Exported"];
+        }
+        catch (IOException)
+        {
+            StatusMessage = _localization["Reader.Portability.Failed"];
+        }
+        catch (UnauthorizedAccessException)
+        {
+            StatusMessage = _localization["Reader.Portability.Failed"];
+        }
+    }
+
+    /// <summary>Imports same-book reader state and refreshes the open panels.</summary>
+    public async Task<ReaderImportResult?> ImportReaderStateAsync(
+        Stream source,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!CanUsePortability || BookId is null)
+        {
+            StatusMessage = _localization["Reader.Portability.Unavailable"];
+            return null;
+        }
+
+        try
+        {
+            ReaderImportResult result = await _portability!
+                .ImportAsync(BookId, source, cancellationToken)
+                .ConfigureAwait(true);
+            await RefreshBookmarksAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshAnnotationsAsync(cancellationToken).ConfigureAwait(true);
+            await RefreshReadingMemoryAsync(cancellationToken).ConfigureAwait(true);
+            StatusMessage = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Reader.Portability.ImportedFormat"],
+                result.BookmarksApplied,
+                result.AnnotationsApplied);
+            return result;
+        }
+        catch (InvalidDataException)
+        {
+            StatusMessage = _localization["Reader.Portability.Invalid"];
+            return null;
+        }
+        catch (IOException)
+        {
+            StatusMessage = _localization["Reader.Portability.Failed"];
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            StatusMessage = _localization["Reader.Portability.Failed"];
+            return null;
+        }
+    }
+
     /// <summary>Localized label for closing a citation card.</summary>
     public string CloseCitationLabel => _localization["Icon.ic_close.Label"];
 
@@ -643,6 +893,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
         IsBusy = true;
         StatusMessage = null;
+        _renderCts?.Cancel();
+        _renderCts?.Dispose();
+        _renderCts = null;
+        IsOpen = false;
+        BookId = null;
+        PageCount = 0;
+        PageImage = null;
 
         try
         {
@@ -709,6 +966,37 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Navigates to the next page, if available.</summary>
     public Task GoNextAsync() => NavigateToAsync(CurrentPageIndex + 1);
+
+    /// <summary>Navigates to the first page, if available.</summary>
+    public Task GoFirstAsync() => NavigateToAsync(0);
+
+    /// <summary>Navigates to the last page, if available.</summary>
+    public Task GoLastAsync() => NavigateToAsync(PageCount - 1);
+
+    /// <summary>Jumps to the one-based page number entered by the reader.</summary>
+    public async Task JumpToPageAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!int.TryParse(
+                PageNumberInput,
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.CurrentCulture,
+                out int pageNumber) ||
+            pageNumber < 1 ||
+            pageNumber > PageCount)
+        {
+            StatusMessage = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Reader.Navigation.InvalidPage"],
+                PageCount);
+            PageNumberInput = CurrentPageNumber.ToString(
+                System.Globalization.CultureInfo.CurrentCulture);
+            return;
+        }
+
+        await NavigateToAsync(pageNumber - 1).ConfigureAwait(true);
+    }
 
     /// <summary>Navigates to the page referenced by a bookmark.</summary>
     public Task NavigateToBookmarkAsync(BookmarkListItem bookmark)
@@ -2049,6 +2337,16 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private void RaiseLocalizedProperties()
     {
         OnPropertyChanged(nameof(PageStatusText));
+        OnPropertyChanged(nameof(FirstPageLabel));
+        OnPropertyChanged(nameof(PreviousPageLabel));
+        OnPropertyChanged(nameof(NextPageLabel));
+        OnPropertyChanged(nameof(LastPageLabel));
+        OnPropertyChanged(nameof(JumpToPageLabel));
+        OnPropertyChanged(nameof(FitWidthLabel));
+        OnPropertyChanged(nameof(FitPageLabel));
+        OnPropertyChanged(nameof(ZoomOutLabel));
+        OnPropertyChanged(nameof(ZoomInLabel));
+        OnPropertyChanged(nameof(ZoomPercentLabel));
         OnPropertyChanged(nameof(ReaderTitle));
         OnPropertyChanged(nameof(AnnotationPanelLabel));
         OnPropertyChanged(nameof(CreateHighlightLabel));
@@ -2082,6 +2380,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CaptureCitationLabel));
         OnPropertyChanged(nameof(CopyCitationLabel));
         OnPropertyChanged(nameof(ExportCitationLabel));
+        OnPropertyChanged(nameof(ExportReaderStateLabel));
+        OnPropertyChanged(nameof(ImportReaderStateLabel));
         OnPropertyChanged(nameof(CloseCitationLabel));
         RefreshLayerFilterOptions();
         RefreshHighlightColorOptions();

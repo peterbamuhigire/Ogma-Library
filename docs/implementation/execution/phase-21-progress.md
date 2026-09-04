@@ -18,11 +18,18 @@ Date: 2026-09-04
   malformed-PDF non-crash behavior all pass in the focused regression run.
 - Added bounded reader-import cardinality checks and normalized malformed JSON
   failures to `InvalidDataException` while preserving omitted-array compatibility.
+- Added localized reader actions for exporting and importing the current book's
+  reader state through the platform file picker. Import refreshes bookmarks,
+  annotations and reading memory, and invalid or inaccessible files fail safely.
+- Added headless reader UI proof for the import/export action labels and existing
+  scroll, navigation and magnification controls.
 
 ## Verification
 
-- `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
-  passed with 0 warnings and 0 errors.
+- Isolated `dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj
+  --configuration Release --no-restore` passed with 0 warnings and 0 errors;
+  the normal solution output was locked by already-running application/worker
+  processes and was not disturbed.
 - `Phase21ReaderPortabilityTests`: 2 passed.
 - Page-render cache, reader-session, and PDF-worker isolation slice: 27 passed.
 - Portability bounds slice: 3 passed; full isolated solution suite: 881 core +
@@ -30,11 +37,14 @@ Date: 2026-09-04
   `evidence/phase-21-portability-bounds-2026-09-04.md`.
 - Current-HEAD full solution verification: 883 core + 41 architecture + 142
   UI = 1,066 passed, 0 failed, 0 skipped.
+- Current full solution verification after the Phase 19 increment: 885 core +
+  41 architecture + 145 UI = 1,071 passed, 0 failed, 0 skipped. The focused
+  reader UI proof passes after this increment.
 
 ## Remaining phase gate
 
-Functional split view, complete import/export UI, coordinate-version fallback,
-platform viewer actions, physical Narrator/VoiceOver journeys, and
-cross-platform performance budgets remain before phase 21 closure. The local
-automated cache/session/non-crash subgate is closed; physical crash recovery
-evidence remains unassessed.
+Functional split view, coordinate-version fallback, platform viewer actions,
+physical Narrator/VoiceOver journeys, and cross-platform performance budgets
+remain before phase 21 closure. The local automated cache/session/non-crash and
+reader import/export UI sub-gates are closed; physical crash recovery evidence
+remains unassessed.
