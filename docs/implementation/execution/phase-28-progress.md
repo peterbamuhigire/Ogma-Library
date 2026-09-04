@@ -46,6 +46,8 @@ Date: 2026-08-30
 - Local reference-resolution/reranking slice: 14 passed; latest full isolated
   solution suite: 883 core + 41 architecture + 142 UI = 1,066 passed, 0 failed,
   0 skipped. See `evidence/phase-28-reference-resolution-2026-09-04.md`.
+- Current-head local gate reconciliation is recorded in
+  `evidence/phase-28-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
