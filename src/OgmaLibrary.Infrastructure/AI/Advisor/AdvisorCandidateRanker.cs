@@ -13,10 +13,12 @@ public sealed class AdvisorCandidateRanker
     /// <param name="candidates">Already availability-checked local catalogue candidates.</param>
     /// <param name="intent">Structured advisor intent.</param>
     /// <param name="maxResults">Maximum candidates to return.</param>
+    /// <param name="comparisonReference">Optional locally resolved reference work.</param>
     public static IReadOnlyList<BookMetadataDto> Rank(
         IReadOnlyList<BookMetadataDto> candidates,
         AdvisorIntent intent,
-        int maxResults = 50)
+        int maxResults = 50,
+        BookMetadataDto? comparisonReference = null)
     {
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(intent);
@@ -30,7 +32,7 @@ public sealed class AdvisorCandidateRanker
             .Where(candidate => seen.Add(candidate.BookId))
             .Where(candidate => !HasNegativeMatch(candidate, intent.NegativeTerms))
             .Where(candidate => MatchesKnownLength(candidate, intent.Length))
-            .Select(candidate => new ScoredCandidate(candidate, Score(candidate, intent)))
+            .Select(candidate => new ScoredCandidate(candidate, Score(candidate, intent, comparisonReference)))
             .OrderByDescending(item => item.Score)
             .ThenBy(item => item.Candidate.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ThenBy(item => item.Candidate.BookId, StringComparer.Ordinal)
@@ -69,7 +71,10 @@ public sealed class AdvisorCandidateRanker
     }
 
     /// <summary>Returns the normalized deterministic score used by <see cref="Rank"/>.</summary>
-    public static double Score(BookMetadataDto candidate, AdvisorIntent intent)
+    public static double Score(
+        BookMetadataDto candidate,
+        AdvisorIntent intent,
+        BookMetadataDto? comparisonReference = null)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(intent);
@@ -77,15 +82,51 @@ public sealed class AdvisorCandidateRanker
         IReadOnlyList<string> positiveTerms = intent.PositiveTerms;
         if (positiveTerms.Count == 0 && !intent.IsBroadDiscovery)
         {
-            return ConstraintScore(candidate, intent);
+            return Math.Clamp(
+                ConstraintScore(candidate, intent) + ComparisonScore(candidate, comparisonReference),
+                0.0,
+                1.0);
         }
 
         Dictionary<string, string> fields = Fields(candidate);
         int matches = positiveTerms.Count(term => fields.Values.Any(value => ContainsTerm(value, term)));
         double score = positiveTerms.Count == 0 ? 0.35 : matches / (double)positiveTerms.Count;
-        score += ConstraintScore(candidate, intent);
+        score += ConstraintScore(candidate, intent) + ComparisonScore(candidate, comparisonReference);
         return Math.Clamp(score, 0.0, 1.0);
     }
+
+    private static double ComparisonScore(
+        BookMetadataDto candidate,
+        BookMetadataDto? reference)
+    {
+        if (reference is null)
+        {
+            return 0.0;
+        }
+
+        double score = 0.0;
+        if (Overlaps(candidate.Authors, reference.Authors))
+        {
+            score += 0.25;
+        }
+
+        if (Overlaps(candidate.Categories, reference.Categories))
+        {
+            score += 0.15;
+        }
+
+        if (Overlaps(candidate.Tags, reference.Tags))
+        {
+            score += 0.10;
+        }
+
+        return score;
+    }
+
+    private static bool Overlaps(
+        IReadOnlyList<string> left,
+        IReadOnlyList<string> right) =>
+        left.Any(item => right.Contains(item, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>Returns the local fields that match positive intent terms.</summary>
     public static IReadOnlyList<RecommendationMatchField> MatchedFields(BookMetadataDto candidate, AdvisorIntent intent)

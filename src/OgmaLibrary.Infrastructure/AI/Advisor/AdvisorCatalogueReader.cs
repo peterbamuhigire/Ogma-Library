@@ -45,13 +45,29 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalog
 
         candidates = await CollapseReviewedGroupsAsync(candidates, cancellationToken).ConfigureAwait(false);
 
+        BookMetadataDto? comparisonReference = await ResolveComparisonReferenceAsync(
+                query.Intent.ComparisonReference,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (comparisonReference is not null)
+        {
+            candidates = candidates
+                .Where(candidate => !string.Equals(
+                    candidate.BookId,
+                    comparisonReference.BookId,
+                    StringComparison.Ordinal))
+                .ToList();
+        }
+
         return AdvisorCandidateRanker.Rank(
                 candidates
             .Where(candidate => !query.ExcludeAlreadyRead || candidate.ReadingProgressPct is not >= 99.5)
             .Where(candidate => MatchesShelf(candidate, query.ShelfFilter))
             .ToArray(),
                 query.Intent,
-                CandidateLimit)
+                CandidateLimit,
+                comparisonReference)
             .ToArray();
     }
 
@@ -194,6 +210,43 @@ public sealed class AdvisorCatalogueReader : IAdvisorCatalogueReader, IAiCatalog
     private static bool MatchesShelf(BookMetadataDto candidate, string? shelfFilter) =>
         string.IsNullOrWhiteSpace(shelfFilter) ||
         candidate.ShelfIds.Contains(shelfFilter, StringComparer.Ordinal);
+
+    private async Task<BookMetadataDto?> ResolveComparisonReferenceAsync(
+        string? referenceTitle,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(referenceTitle))
+        {
+            return null;
+        }
+
+        List<BookSummaryProjection> matches = [];
+        await foreach (BookSummaryProjection summary in _catalogue
+                           .GetBookSummariesAsync(
+                               new CatalogueFilter(
+                                   TitleContains: referenceTitle,
+                                   Status: 0,
+                                   MaxResults: 5),
+                               cancellationToken)
+                           .ConfigureAwait(false))
+        {
+            matches.Add(summary);
+        }
+
+        BookSummaryProjection? selected = matches
+            .OrderByDescending(summary => string.Equals(
+                summary.Title?.Trim(),
+                referenceTitle.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+            .ThenBy(summary => summary.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(summary => summary.BookId, StringComparer.Ordinal)
+            .FirstOrDefault();
+
+        return selected is null
+            ? null
+            : await TryReadDetailAsync(selected.BookId, selected.ShelfIds, cancellationToken)
+                .ConfigureAwait(false);
+    }
 
     private static string? ReadFirstField(IReadOnlyList<MetadataFieldProjection> fields, params string[] names) =>
         fields

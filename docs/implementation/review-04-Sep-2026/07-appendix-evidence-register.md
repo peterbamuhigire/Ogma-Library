@@ -23,6 +23,7 @@
 - Phase 22: `docs/implementation/execution/evidence/phase-22-search-ui-2026-09-04.md`
 - Phase 27: `docs/implementation/execution/evidence/phase-27-privacy-journey-2026-09-04.md`
 - Phase 27 policy editor: `docs/implementation/execution/evidence/phase-27-policy-ui-2026-09-04.md`
+- Phase 28 reference resolution: `docs/implementation/execution/evidence/phase-28-reference-resolution-2026-09-04.md`
 - Phase 29: `docs/implementation/execution/evidence/phase-29-answer-ui-2026-09-04.md`
 - Phase 29 citation navigation: `docs/implementation/execution/evidence/phase-29-citation-navigation-2026-09-04.md`
 - Phase 29 consent: `docs/implementation/execution/evidence/phase-29-content-consent-2026-09-04.md`

@@ -7,8 +7,8 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-04
 
-Automated validation refresh: the isolated full solution suite passed 1,065
-tests (882 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
+Automated validation refresh: the isolated full solution suite passed 1,066
+tests (883 core, 41 architecture, 142 UI), with 0 failures and 0 skips. This
 refresh closes only the repaired automated gates; per-phase platform, physical,
 legal, signing, reference, and owner gates remain governed by their explicit
 progress records.
@@ -42,7 +42,7 @@ progress records.
 | 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency including payload metadata, stale detection/tombstones, localized stale-count/rebuild-status UI, bounded-memory 50,000-vector scan, and bounded hashed query-embedding cache with hit telemetry delivered; ANN/relevance-quality, provider cost accounting, reference-corpus and reference-machine gates open |
 | 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, structured prefilters, dimension filtering, tombstone/blob-integrity filtering, metric contract, durable local evaluation runs, author-diversity policy, bounded-memory 50k scan and local latency evidence delivered; representative corpus/ANN-quality/memory/reference confirmation open |
 | 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, desktop preview, timeout/retry/circuit, persisted health telemetry, durable daily token/cost enforcement, egress allowlists, platform secret custody/rotation/deletion, provider profiles, local retention/erasure journey, and rendered policy editor/save boundary delivered; provider terms/conformance and physical evidence open |
-| 28 | Advisor Intent, Candidates and Reranking | IN PROGRESS | Intent, candidate ranking, fallbacks, editable intent UI and durable privacy-preserving stage-diagnostics traces delivered; reference resolution and benchmarks open |
+| 28 | Advisor Intent, Candidates and Reranking | IN PROGRESS | Intent, local comparison-reference resolution, deterministic overlap reranking, fallbacks, editable intent UI and durable privacy-preserving stage-diagnostics traces delivered; human-labeled benchmarks and reference confirmation open |
 | 29 | Grounded Explanations and Answer Mode | IN PROGRESS | Source-labeled local evidence, desktop local-answer/citation display/navigation, explicit content-aware consent, durable privacy-safe answer traces, versioned payload evidence assembly, provenance validation, untrusted-payload boundary, and bounded unsupported-claim/abstention benchmark delivered; physical UI evidence open |
 | 30 | Advisor UX and Quality Evaluation | IN PROGRESS | Routes, interpreted-intent UI, local answer/citation display, content-aware consent, consented feedback UI, offline evaluation foundations, durable evaluation runs, erasable advisor-history export/delete, and fail-closed metric thresholds delivered; live evaluation, accessibility and retrieval freeze open |
 | 31 | Native 3D Host and Catalogue Contract | IN PROGRESS | Versioned bridge, shared catalogue projection, and accessible fallback delivered and locally verified; native WebView adapters and physical integration open |

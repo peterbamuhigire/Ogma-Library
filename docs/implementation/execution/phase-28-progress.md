@@ -29,6 +29,10 @@ Date: 2026-08-30
 - Made the interpreted-intent editor explicitly two-way bound and verified that
   changing the query recomputes the displayed intent before recommendations are
   requested.
+- Added bounded local comparison-reference resolution and deterministic
+  author/category/tag overlap signals; the resolved reference is excluded from
+  recommendations and unavailable references fail closed to the existing
+  candidate path.
 
 ## Verification
 
@@ -39,6 +43,9 @@ Date: 2026-08-30
 - Advisor stage-diagnostics trace slice: 1 passed.
 - Editable interpreted-intent slice: 1 passed, with the rendered advisor route
   already covered by the adjacent UI test.
+- Local reference-resolution/reranking slice: 14 passed; latest full isolated
+  solution suite: 883 core + 41 architecture + 142 UI = 1,066 passed, 0 failed,
+  0 skipped. See `evidence/phase-28-reference-resolution-2026-09-04.md`.
 
 ## Remaining phase gate
 

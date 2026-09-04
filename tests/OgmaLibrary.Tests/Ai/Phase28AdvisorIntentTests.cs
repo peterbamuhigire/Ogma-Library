@@ -104,6 +104,29 @@ public sealed class Phase28AdvisorIntentTests
     }
 
     [Fact]
+    public void CandidateRanker_UsesResolvedReferenceSignalsDeterministically()
+    {
+        BookMetadataDto reference = Candidate("BOOK-P28-REFERENCE", "Reference Work", ["systems"], 300)
+            with { Authors = ["Reference Author"], Categories = ["History"], Tags = ["institutions"] };
+        BookMetadataDto[] candidates =
+        [
+            Candidate("BOOK-P28-RELATED", "Related Work", ["institutions"], 300)
+                with { Authors = ["Reference Author"], Categories = ["History"], Tags = ["politics"] },
+            Candidate("BOOK-P28-OTHER", "Other Work", ["systems"], 300)
+                with { Authors = ["Other Author"], Categories = ["Science"], Tags = ["technology"] },
+        ];
+
+        IReadOnlyList<BookMetadataDto> ranked = AdvisorCandidateRanker.Rank(
+            candidates,
+            AdvisorIntentParser.Parse("Something like Reference Work"),
+            2,
+            reference);
+
+        Assert.Equal("BOOK-P28-RELATED", ranked[0].BookId);
+        Assert.Equal("BOOK-P28-OTHER", ranked[1].BookId);
+    }
+
+    [Fact]
     public async Task Reader_UnionsSemanticCandidates_AndRejectsUnavailableBooks()
     {
         AdvisorCatalogueReader reader = new(
