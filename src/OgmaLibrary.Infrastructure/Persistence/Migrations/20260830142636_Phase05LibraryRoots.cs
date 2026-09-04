@@ -72,33 +72,13 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 name: "UX_LibraryRoots_CanonicalLocator",
                 table: "LibraryRoots");
 
-            migrationBuilder.DropColumn(
-                name: "AllowSymlinkTraversal",
-                table: "LibraryRoots");
-
-            migrationBuilder.DropColumn(
-                name: "CanonicalLocator",
-                table: "LibraryRoots");
-
-            migrationBuilder.DropColumn(
-                name: "IsEnabled",
-                table: "LibraryRoots");
-
-            migrationBuilder.DropColumn(
-                name: "LastHealthCheckUtc",
-                table: "LibraryRoots");
-
-            migrationBuilder.DropColumn(
-                name: "LastSuccessfulScanUtc",
-                table: "LibraryRoots");
-
-            migrationBuilder.DropColumn(
-                name: "PermissionStatus",
-                table: "LibraryRoots");
-
-            migrationBuilder.DropColumn(
-                name: "VolumeIdentity",
-                table: "LibraryRoots");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"AllowSymlinkTraversal\";");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"CanonicalLocator\";");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"IsEnabled\";");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"LastHealthCheckUtc\";");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"LastSuccessfulScanUtc\";");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"PermissionStatus\";");
+            migrationBuilder.Sql("ALTER TABLE \"LibraryRoots\" DROP COLUMN \"VolumeIdentity\";");
         }
     }
 }

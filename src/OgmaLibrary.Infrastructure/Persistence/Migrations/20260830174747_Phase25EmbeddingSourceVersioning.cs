@@ -54,25 +54,11 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "ChunkerVersion",
-                table: "EmbeddingVectors");
-
-            migrationBuilder.DropColumn(
-                name: "ExtractorVersion",
-                table: "EmbeddingVectors");
-
-            migrationBuilder.DropColumn(
-                name: "IndexVersion",
-                table: "EmbeddingVectors");
-
-            migrationBuilder.DropColumn(
-                name: "ProviderKey",
-                table: "EmbeddingVectors");
-
-            migrationBuilder.DropColumn(
-                name: "SourceHash",
-                table: "EmbeddingVectors");
+            migrationBuilder.Sql("ALTER TABLE \"EmbeddingVectors\" DROP COLUMN \"ChunkerVersion\";");
+            migrationBuilder.Sql("ALTER TABLE \"EmbeddingVectors\" DROP COLUMN \"ExtractorVersion\";");
+            migrationBuilder.Sql("ALTER TABLE \"EmbeddingVectors\" DROP COLUMN \"IndexVersion\";");
+            migrationBuilder.Sql("ALTER TABLE \"EmbeddingVectors\" DROP COLUMN \"ProviderKey\";");
+            migrationBuilder.Sql("ALTER TABLE \"EmbeddingVectors\" DROP COLUMN \"SourceHash\";");
         }
     }
 }

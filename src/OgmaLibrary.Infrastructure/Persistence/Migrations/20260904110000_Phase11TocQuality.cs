@@ -32,7 +32,7 @@ public partial class Phase11TocQuality : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(name: "TocEntries", table: "ExtractionArtifacts");
-        migrationBuilder.DropColumn(name: "TocQuality", table: "ExtractionArtifacts");
+        migrationBuilder.Sql("ALTER TABLE ExtractionArtifacts DROP COLUMN TocEntries;");
+        migrationBuilder.Sql("ALTER TABLE ExtractionArtifacts DROP COLUMN TocQuality;");
     }
 }

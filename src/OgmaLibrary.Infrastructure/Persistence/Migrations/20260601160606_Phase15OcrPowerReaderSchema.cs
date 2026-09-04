@@ -77,17 +77,9 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 name: "IX_Books_IsPasswordProtected",
                 table: "Books");
 
-            migrationBuilder.DropColumn(
-                name: "Source",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "IsOcrDerived",
-                table: "Books");
-
-            migrationBuilder.DropColumn(
-                name: "IsPasswordProtected",
-                table: "Books");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"Source\";");
+            migrationBuilder.Sql("ALTER TABLE \"Books\" DROP COLUMN \"IsOcrDerived\";");
+            migrationBuilder.Sql("ALTER TABLE \"Books\" DROP COLUMN \"IsPasswordProtected\";");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ExtractedPages_BookId_PageNumber",

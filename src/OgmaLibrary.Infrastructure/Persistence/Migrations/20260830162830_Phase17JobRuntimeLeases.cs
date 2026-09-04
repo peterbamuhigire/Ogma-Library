@@ -59,21 +59,10 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 name: "IX_Jobs_LeaseExpiry",
                 table: "Jobs");
 
-            migrationBuilder.DropColumn(
-                name: "FailureCode",
-                table: "Jobs");
-
-            migrationBuilder.DropColumn(
-                name: "LeaseExpiresUtc",
-                table: "Jobs");
-
-            migrationBuilder.DropColumn(
-                name: "LeaseOwner",
-                table: "Jobs");
-
-            migrationBuilder.DropColumn(
-                name: "NextAttemptUtc",
-                table: "Jobs");
+            migrationBuilder.Sql("ALTER TABLE \"Jobs\" DROP COLUMN \"FailureCode\";");
+            migrationBuilder.Sql("ALTER TABLE \"Jobs\" DROP COLUMN \"LeaseExpiresUtc\";");
+            migrationBuilder.Sql("ALTER TABLE \"Jobs\" DROP COLUMN \"LeaseOwner\";");
+            migrationBuilder.Sql("ALTER TABLE \"Jobs\" DROP COLUMN \"NextAttemptUtc\";");
         }
     }
 }

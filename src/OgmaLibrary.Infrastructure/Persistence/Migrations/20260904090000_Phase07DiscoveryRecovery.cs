@@ -45,20 +45,9 @@ public partial class Phase07DiscoveryRecovery : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(
-            name: "LastScanSessionId",
-            table: "DirectoryCheckpoints");
-
-        migrationBuilder.DropColumn(
-            name: "LastStartedUtc",
-            table: "DirectoryCheckpoints");
-
-        migrationBuilder.DropColumn(
-            name: "ResumeCursorRelativeDirectory",
-            table: "DirectoryCheckpoints");
-
-        migrationBuilder.DropColumn(
-            name: "ScanState",
-            table: "DirectoryCheckpoints");
+        migrationBuilder.Sql("ALTER TABLE \"DirectoryCheckpoints\" DROP COLUMN \"LastScanSessionId\";");
+        migrationBuilder.Sql("ALTER TABLE \"DirectoryCheckpoints\" DROP COLUMN \"LastStartedUtc\";");
+        migrationBuilder.Sql("ALTER TABLE \"DirectoryCheckpoints\" DROP COLUMN \"ResumeCursorRelativeDirectory\";");
+        migrationBuilder.Sql("ALTER TABLE \"DirectoryCheckpoints\" DROP COLUMN \"ScanState\";");
     }
 }

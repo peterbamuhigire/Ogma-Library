@@ -25,6 +25,8 @@ public partial class Phase13ProviderEtags : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(name: "ETag", table: "ProviderCacheEntries");
+        // EF's SQLite generator intentionally rejects DropColumn even though
+        // the supported SQLite runtime can execute the operation directly.
+        migrationBuilder.Sql("ALTER TABLE ProviderCacheEntries DROP COLUMN ETag;");
     }
 }

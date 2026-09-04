@@ -23,6 +23,10 @@ Date: 2026-08-31
   commit-bound artifact names.
 - Added the Phase 38 release pipeline, rollback, migration-drill, key-custody,
   and privacy/observability record.
+- Repaired SQLite rollback compatibility for additive-column down paths and
+  replaced the Phase 23 foreign-key column removal with a row-preserving table
+  rebuild. The migration test class now passes forward, downgrade, remigration,
+  and legacy backfill scenarios.
 
 ## Verification
 
@@ -36,6 +40,8 @@ Date: 2026-08-31
 - PowerShell packaging scripts parsed successfully.
 - `actionlint` was not installed on the developer machine; workflow validation
   remains pending CI/actionlint execution.
+- SQLite migration test class: 9 passed, including the previously failing
+  Phase 18 downgrade and Phase 12 legacy-history rollback scenarios.
 
 ## Remaining phase gate
 

@@ -33,7 +33,7 @@ public partial class Phase12MetadataScope : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(name: "ConfidenceModelVersion", table: "MetadataProposals");
-        migrationBuilder.DropColumn(name: "Scope", table: "MetadataProposals");
+        migrationBuilder.Sql("ALTER TABLE MetadataProposals DROP COLUMN ConfidenceModelVersion;");
+        migrationBuilder.Sql("ALTER TABLE MetadataProposals DROP COLUMN Scope;");
     }
 }

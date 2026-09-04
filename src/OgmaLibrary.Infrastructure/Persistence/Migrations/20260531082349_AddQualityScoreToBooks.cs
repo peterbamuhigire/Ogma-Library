@@ -21,9 +21,7 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "QualityScore",
-                table: "Books");
+            migrationBuilder.Sql("ALTER TABLE \"Books\" DROP COLUMN \"QualityScore\";");
         }
     }
 }

@@ -147,29 +147,12 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 name: "IX_Books_IndexStatus",
                 table: "Books");
 
-            migrationBuilder.DropColumn(
-                name: "CreatedAtUtc",
-                table: "SearchChunks");
-
-            migrationBuilder.DropColumn(
-                name: "Source",
-                table: "SearchChunks");
-
-            migrationBuilder.DropColumn(
-                name: "ContentHash",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "ExtractionQuality",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "WordCount",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "IndexStatus",
-                table: "Books");
+            migrationBuilder.Sql("ALTER TABLE \"SearchChunks\" DROP COLUMN \"CreatedAtUtc\";");
+            migrationBuilder.Sql("ALTER TABLE \"SearchChunks\" DROP COLUMN \"Source\";");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"ContentHash\";");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"ExtractionQuality\";");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"WordCount\";");
+            migrationBuilder.Sql("ALTER TABLE \"Books\" DROP COLUMN \"IndexStatus\";");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ExtractedPages_BookId_PageNumber",

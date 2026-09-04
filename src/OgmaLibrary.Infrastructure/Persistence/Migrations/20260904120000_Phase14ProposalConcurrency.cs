@@ -25,6 +25,6 @@ public partial class Phase14ProposalConcurrency : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(name: "Version", table: "MetadataProposals");
+        migrationBuilder.Sql("ALTER TABLE MetadataProposals DROP COLUMN Version;");
     }
 }

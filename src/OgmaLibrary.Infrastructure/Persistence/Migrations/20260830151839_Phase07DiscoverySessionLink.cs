@@ -21,9 +21,7 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "LastObservedScanSessionId",
-                table: "DiscoveryObservations");
+            migrationBuilder.Sql("ALTER TABLE \"DiscoveryObservations\" DROP COLUMN \"LastObservedScanSessionId\";");
         }
     }
 }

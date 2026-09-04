@@ -21,9 +21,7 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Sha256Hash",
-                table: "DiscoveryObservations");
+            migrationBuilder.Sql("ALTER TABLE \"DiscoveryObservations\" DROP COLUMN \"Sha256Hash\";");
         }
     }
 }

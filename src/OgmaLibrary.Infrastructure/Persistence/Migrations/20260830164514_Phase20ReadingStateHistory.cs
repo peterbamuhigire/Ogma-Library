@@ -56,9 +56,7 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
             migrationBuilder.DropTable(
                 name: "ReadingStateHistory");
 
-            migrationBuilder.DropColumn(
-                name: "IsFavourite",
-                table: "Books");
+            migrationBuilder.Sql("ALTER TABLE \"Books\" DROP COLUMN \"IsFavourite\";");
         }
     }
 }

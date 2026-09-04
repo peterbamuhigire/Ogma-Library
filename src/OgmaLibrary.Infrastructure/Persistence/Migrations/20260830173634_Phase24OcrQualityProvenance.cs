@@ -41,21 +41,10 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "IsSelectedText",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "OcrConfidence",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "OcrLanguage",
-                table: "ExtractedPages");
-
-            migrationBuilder.DropColumn(
-                name: "OcrModelVersion",
-                table: "ExtractedPages");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"IsSelectedText\";");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"OcrConfidence\";");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"OcrLanguage\";");
+            migrationBuilder.Sql("ALTER TABLE \"ExtractedPages\" DROP COLUMN \"OcrModelVersion\";");
         }
     }
 }

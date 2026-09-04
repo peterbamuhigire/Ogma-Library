@@ -72,13 +72,8 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 name: "IX_Books_EmbeddingStatus",
                 table: "Books");
 
-            migrationBuilder.DropColumn(
-                name: "ModelVersion",
-                table: "EmbeddingVectors");
-
-            migrationBuilder.DropColumn(
-                name: "EmbeddingStatus",
-                table: "Books");
+            migrationBuilder.Sql("ALTER TABLE \"EmbeddingVectors\" DROP COLUMN \"ModelVersion\";");
+            migrationBuilder.Sql("ALTER TABLE \"Books\" DROP COLUMN \"EmbeddingStatus\";");
 
             migrationBuilder.RenameColumn(
                 name: "ModelName",

@@ -106,13 +106,8 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                 name: "UX_AiQueryHistory_HistoryId",
                 table: "AiQueryHistory");
 
-            migrationBuilder.DropColumn(
-                name: "HistoryId",
-                table: "AiQueryHistory");
-
-            migrationBuilder.DropColumn(
-                name: "QueryType",
-                table: "AiQueryHistory");
+            migrationBuilder.Sql("ALTER TABLE \"AiQueryHistory\" DROP COLUMN \"HistoryId\";");
+            migrationBuilder.Sql("ALTER TABLE \"AiQueryHistory\" DROP COLUMN \"QueryType\";");
         }
     }
 }

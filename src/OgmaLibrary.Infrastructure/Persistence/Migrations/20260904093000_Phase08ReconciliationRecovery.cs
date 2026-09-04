@@ -58,9 +58,7 @@ public partial class Phase08ReconciliationRecovery : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropColumn(
-            name: "MissingSinceUtc",
-            table: "FileOccurrences");
+        migrationBuilder.Sql("ALTER TABLE \"FileOccurrences\" DROP COLUMN \"MissingSinceUtc\";");
 
         migrationBuilder.DropTable(
             name: "ReconciliationReviews");
