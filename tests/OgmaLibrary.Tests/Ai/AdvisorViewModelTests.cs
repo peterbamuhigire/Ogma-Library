@@ -106,6 +106,36 @@ public sealed class AdvisorViewModelTests
     }
 
     [Fact]
+    public async Task RecommendationPanel_CitationOpensReaderAtZeroBasedPage()
+    {
+        AnswerResponse answer = new(
+            "Local evidence answer.",
+            [new AnswerCitation(
+                new BookId("BOOK-CITATION-001"),
+                4,
+                "chunk-4",
+                "A local passage.",
+                new ConfidenceScore(0.9),
+                "page")],
+            IsV2: true);
+        var navigation = new RecordingCitationNavigation();
+        using var viewModel = new RecommendationPanelViewModel(
+            new FakeAdvisorService([], null, answer),
+            navigation,
+            new InMemoryLocalizationService(),
+            readerNavigation: navigation)
+        {
+            Query = "What does the library say?",
+        };
+
+        await viewModel.AskAsync();
+        await viewModel.OpenCitationAsync(Assert.Single(viewModel.AnswerCitations));
+
+        Assert.Equal("BOOK-CITATION-001", navigation.OpenedBookId);
+        Assert.Equal(3, navigation.OpenedPageHint);
+    }
+
+    [Fact]
     public async Task RecommendationPanel_SubmitsOnlyConsentedBoundedFeedback()
     {
         var feedback = new RecordingFeedbackService();
@@ -194,6 +224,25 @@ public sealed class AdvisorViewModelTests
 
         public Task<AnswerResponse> GetAnswerAsync(AnswerRequest request, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
+    }
+
+    private sealed class RecordingCitationNavigation : IBookDetailNavigationService, IReaderNavigationService
+    {
+        public string? OpenedBookId { get; private set; }
+        public int? OpenedPageHint { get; private set; }
+
+        public Task OpenDetailAsync(string bookId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task OpenReaderAsync(
+            string bookId,
+            int? pageHint = null,
+            CancellationToken cancellationToken = default)
+        {
+            OpenedBookId = bookId;
+            OpenedPageHint = pageHint;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RecordingFeedbackService : IAdvisorFeedbackService

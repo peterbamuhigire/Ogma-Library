@@ -52,4 +52,12 @@ public sealed partial class RecommendationPanelView : UserControl
             await ViewModel.OpenBookAsync(card).ConfigureAwait(true);
         }
     }
+
+    private async void OpenCitation_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (ViewModel is not null && sender is Control { DataContext: AnswerCitationViewModel citation })
+        {
+            await ViewModel.OpenCitationAsync(citation).ConfigureAwait(true);
+        }
+    }
 }

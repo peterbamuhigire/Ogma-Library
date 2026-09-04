@@ -65,14 +65,24 @@
                       Margin="0,0,0,4"
                       AutomationProperties.Name="{Binding AccessibleLabel}">
                 <StackPanel Spacing="2">
-                  <TextBlock Text="{Binding CitationText}"
-                             FontWeight="SemiBold" />
-                  <TextBlock Text="{Binding RelevantText}"
-                             TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding UncertaintyText}"
-                             IsVisible="{Binding HasUncertainty}"
-                             TextWrapping="Wrap"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                  <Button Background="Transparent"
+                          BorderThickness="0"
+                          HorizontalContentAlignment="Left"
+                          Padding="0"
+                          IsEnabled="{Binding CanOpen}"
+                          AutomationProperties.Name="Open citation"
+                          Click="OpenCitation_Click">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding CitationText}"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding RelevantText}"
+                                 TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding UncertaintyText}"
+                                 IsVisible="{Binding HasUncertainty}"
+                                 TextWrapping="Wrap"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    </StackPanel>
+                  </Button>
                 </StackPanel>
               </Border>
             </DataTemplate>

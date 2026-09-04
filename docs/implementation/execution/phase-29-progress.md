@@ -32,6 +32,10 @@ Date: 2026-09-04
 - Added a desktop local-answer action to the Advisor surface. It sends only a
   metadata-only `AnswerRequest`, renders the bounded local answer and citation
   excerpts, and preserves explicit no-evidence output.
+- Made displayed local citations actionable: the desktop Advisor opens the
+  cited book in the reader and converts the validated one-based citation page
+  to the reader's zero-based page hint, with a detail fallback for reduced
+  compositions.
 
 ## Verification
 
@@ -45,11 +49,13 @@ Date: 2026-09-04
 - Durable answer-evidence trace and grounded citation slice: 6 passed.
 - Advisor view-model answer slice: 48 passed; headless answer-surface render:
   1 passed; Release build: 0 warnings and 0 errors.
+- Fresh citation-navigation regression: 6 core advisor tests and 1 headless
+  Advisor render test passed.
 
 ## Remaining phase gate
 
-Citation navigation, content-tier consent wiring in the shell, and benchmark
-unsupported-claim/abstention evaluation remain for phases 29-30. The desktop
+Content-tier consent wiring in the shell and benchmark unsupported-
+claim/abstention evaluation remain for phases 29-30. The desktop
 answer display is now available and remains local/evidence-only; provider-
 generated explanations still receive assembled, versioned source-label
 evidence. Physical UI evidence remains unassessed.

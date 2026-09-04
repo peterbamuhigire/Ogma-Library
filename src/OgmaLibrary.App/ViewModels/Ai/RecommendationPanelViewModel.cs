@@ -17,6 +17,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
 {
     private readonly IAiAdvisorService _advisor;
     private readonly IBookDetailNavigationService _navigation;
+    private readonly IReaderNavigationService? _readerNavigation;
     private readonly ILocalizationService _localization;
     private readonly string _iconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
     private string _query = string.Empty;
@@ -35,7 +36,8 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         IAiAdvisorService advisor,
         IBookDetailNavigationService navigation,
         ILocalizationService localization,
-        IAdvisorFeedbackService? feedbackService = null)
+        IAdvisorFeedbackService? feedbackService = null,
+        IReaderNavigationService? readerNavigation = null)
     {
         ArgumentNullException.ThrowIfNull(advisor);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -43,6 +45,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
 
         _advisor = advisor;
         _navigation = navigation;
+        _readerNavigation = readerNavigation;
         _localization = localization;
         _feedbackService = feedbackService;
         _statusText = _localization["Ai.Advisor.Status.Ready"];
@@ -432,6 +435,23 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         return _navigation.OpenDetailAsync(card.BookId, cancellationToken);
     }
 
+    /// <summary>Opens a grounded answer citation at its validated reader page.</summary>
+    public Task OpenCitationAsync(
+        AnswerCitationViewModel citation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(citation);
+        if (_readerNavigation is not null)
+        {
+            int? pageHint = citation.PageNumber is > 0
+                ? citation.PageNumber.Value - 1
+                : null;
+            return _readerNavigation.OpenReaderAsync(citation.BookId, pageHint, cancellationToken);
+        }
+
+        return _navigation.OpenDetailAsync(citation.BookId, cancellationToken);
+    }
+
     /// <inheritdoc />
     public void Dispose() => _localization.CultureChanged -= OnCultureChanged;
 
@@ -578,6 +598,15 @@ public sealed class AnswerCitationViewModel
         _localization["Ai.Advisor.Answer.CitationFormat"],
         _citation.SourceLabel ?? _localization["Ai.Advisor.Answer.LocalSource"],
         _citation.PageNumber?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "—");
+
+    /// <summary>Stable local book identity used for navigation.</summary>
+    public string BookId => _citation.BookId.Value;
+
+    /// <summary>Optional one-based evidence page number.</summary>
+    public int? PageNumber => _citation.PageNumber;
+
+    /// <summary>True when the citation can be opened in a local reader.</summary>
+    public bool CanOpen => !string.IsNullOrWhiteSpace(BookId);
 
     /// <summary>Evidence excerpt.</summary>
     public string RelevantText => _citation.RelevantText;

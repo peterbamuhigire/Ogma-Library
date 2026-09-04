@@ -94,7 +94,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IAiAdvisorService>(),
             navigation,
             localization,
-            services.GetService<IAdvisorFeedbackService>());
+            services.GetService<IAdvisorFeedbackService>(),
+            navigation);
         var readingPlan = new ReadingPlanViewModel(
             services.GetRequiredService<IAiAdvisorService>(),
             readModel,
