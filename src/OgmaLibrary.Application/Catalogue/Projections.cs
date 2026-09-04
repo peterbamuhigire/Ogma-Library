@@ -156,9 +156,11 @@ public sealed record MetadataFieldProjection(
 /// <param name="ShelfId">Optional shelf ID filter.</param>
 /// <param name="Status">Optional lifecycle status filter (null = all statuses).</param>
 /// <param name="MaxResults">Maximum number of results to return (0 = unlimited).</param>
+/// <param name="SkipCount">Number of ordered results to skip before taking the page.</param>
 public sealed record CatalogueFilter(
     string? TitleContains = null,
     string? AuthorContains = null,
     string? ShelfId = null,
     int? Status = null,
-    int MaxResults = 0);
+    int MaxResults = 0,
+    int SkipCount = 0);

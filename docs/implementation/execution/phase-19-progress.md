@@ -14,6 +14,8 @@ Date: 2026-08-30
 - Catalogue view-model loading now exposes the configured root only to the
   local presentation layer; catalogue/LAN projections remain relative-path
   based.
+- Added ordered server-side `SkipCount` plus `MaxResults` paging to the shared
+  catalogue read-model projection, with validation for negative paging values.
 - Added focused tests for successful local decoding and traversal rejection;
   existing grid/list render tests continue to pass.
 
@@ -26,7 +28,7 @@ Date: 2026-08-30
 
 ## Remaining phase gate
 
-Directory view parity, persisted filter/sort views, true server-side paging,
+Directory view parity, persisted filter/sort views, UI pagination wiring,
 processing/quality badges, complete cover-source fallback, API asset
 authorization, keyboard/screen-reader journeys, and 50k-record performance
 evidence remain before phase 19 closure.

@@ -71,6 +71,12 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         CatalogueFilter filter,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(filter);
+        if (filter.MaxResults < 0 || filter.SkipCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(filter), "Catalogue paging values cannot be negative.");
+        }
+
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
@@ -146,6 +152,11 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .Select(f => new { f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden })
                     .ToList(),
             });
+
+        if (filter.SkipCount > 0)
+        {
+            projected = projected.Skip(filter.SkipCount);
+        }
 
         if (filter.MaxResults > 0)
         {

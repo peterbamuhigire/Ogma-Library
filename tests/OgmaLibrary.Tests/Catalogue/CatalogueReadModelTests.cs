@@ -10,6 +10,28 @@ namespace OgmaLibrary.Tests.Catalogue;
 public sealed class CatalogueReadModelTests
 {
     [Fact]
+    public async Task GetBookSummaries_AppliesOrderedServerSidePage()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.AddRange(
+            new BookRow { BookId = "PAGE-BOOK-A", Title = "Alpha", Status = 0 },
+            new BookRow { BookId = "PAGE-BOOK-B", Title = "Bravo", Status = 0 },
+            new BookRow { BookId = "PAGE-BOOK-C", Title = "Charlie", Status = 0 });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+        var summaries = new List<BookSummaryProjection>();
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(
+            new CatalogueFilter(MaxResults: 1, SkipCount: 1)))
+        {
+            summaries.Add(summary);
+        }
+
+        BookSummaryProjection pageItem = Assert.Single(summaries);
+        Assert.Equal("PAGE-BOOK-B", pageItem.BookId);
+    }
+
+    [Fact]
     public async Task GetBookSummaries_CollapsesReviewedEditionGroupToDeterministicRepresentative()
     {
         using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
