@@ -29,6 +29,12 @@ const MAX_RESIDENT_BOOKS = 500;
 // Keep local image uploads near the current selection; distant books retain
 // their deterministic generated spine until keyboard or pointer focus moves.
 const TEXTURE_RESIDENT_RADIUS = 80;
+const ATLAS_COLUMNS = 16;
+const ATLAS_ROWS = 12;
+const ATLAS_SLOT_WIDTH = 64;
+const ATLAS_SLOT_HEIGHT = 128;
+const ATLAS_PADDING = 1;
+const ATLAS_SLOT_COUNT = ATLAS_COLUMNS * ATLAS_ROWS;
 const BRIDGE_MESSAGE_BOOK_LIMIT = 100_000;
 
 export class Shelf3DScene {
@@ -39,6 +45,10 @@ export class Shelf3DScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly controls: OrbitControls;
   private readonly geometry = new THREE.BoxGeometry(BOOK_WIDTH, BOOK_HEIGHT, BOOK_DEPTH);
+  private readonly atlasCanvas: HTMLCanvasElement;
+  private readonly atlasTexture: THREE.CanvasTexture;
+  private readonly atlasSlots = new Map<number, number>();
+  private readonly freeAtlasSlots: number[] = [];
   private readonly shelfGeometry = new THREE.BoxGeometry(SHELF_COLUMNS * 0.03 + 0.04, 0.025, 0.18);
   private readonly sceneRoot = new THREE.Group();
   private readonly reducedMotion: boolean;
@@ -59,6 +69,14 @@ export class Shelf3DScene {
     this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
     this.controls = new OrbitControls(this.camera, canvas);
+    this.atlasCanvas = document.createElement("canvas");
+    this.atlasCanvas.width = ATLAS_COLUMNS * ATLAS_SLOT_WIDTH;
+    this.atlasCanvas.height = ATLAS_ROWS * ATLAS_SLOT_HEIGHT;
+    this.atlasTexture = new THREE.CanvasTexture(this.atlasCanvas);
+    this.atlasTexture.colorSpace = THREE.SRGBColorSpace;
+    this.atlasTexture.minFilter = THREE.LinearFilter;
+    this.atlasTexture.magFilter = THREE.LinearFilter;
+    for (let slot = 0; slot < ATLAS_SLOT_COUNT; slot++) this.freeAtlasSlots.push(slot);
     this.controls.enableDamping = !this.reducedMotion;
     this.controls.addEventListener("change", () => this.postCameraChanged());
 
@@ -166,7 +184,7 @@ export class Shelf3DScene {
         roughness: 0.7,
         metalness: 0.05,
       });
-      const mesh: BookMesh = new THREE.Mesh(this.geometry, material);
+      const mesh: BookMesh = new THREE.Mesh(this.geometry.clone(), material);
       mesh.userData.bookIndex = index;
       mesh.userData.bookId = book.bookId;
       this.bookMeshes.push(mesh);
@@ -370,10 +388,13 @@ export class Shelf3DScene {
 
   private clearBookMeshes(): void {
     for (const mesh of this.bookMeshes.splice(0)) {
-      mesh.material.map?.dispose();
+      this.releaseAtlasSlot(mesh);
+      mesh.geometry.dispose();
       mesh.material.dispose();
       this.sceneRoot.remove(mesh);
     }
+    this.atlasCanvas.getContext("2d")?.clearRect(0, 0, this.atlasCanvas.width, this.atlasCanvas.height);
+    this.atlasTexture.needsUpdate = true;
   }
 
   private buildShelves(): void {
@@ -408,52 +429,112 @@ export class Shelf3DScene {
     mesh.userData.textureRequestToken = textureRequestToken;
     const textureResident = this.isTextureResident(mesh.userData.bookIndex as number);
     mesh.userData.textureResident = textureResident;
-    mesh.material.map?.dispose();
     mesh.material.map = null;
     mesh.material.color.copy(this.fallbackColor(book.bookId));
     mesh.material.needsUpdate = true;
     // Distant books deliberately use a flat-color LOD. This keeps the full
     // catalogue addressable while bounding generated and decoded textures to
     // the focused window.
-    if (!textureResident) return;
-    const fallback = document.createElement("canvas");
-    fallback.width = 256;
-    fallback.height = 512;
-    const context = fallback.getContext("2d");
-    if (context === null) return;
-    context.fillStyle = `#${this.fallbackColor(book.bookId).getHexString()}`;
-    context.fillRect(0, 0, fallback.width, fallback.height);
-    context.fillStyle = "#f5efe4";
-    context.font = "bold 22px Georgia";
-    context.textAlign = "center";
-    context.save();
-    context.translate(fallback.width / 2, fallback.height / 2);
-    context.rotate(-Math.PI / 2);
-    context.fillText(book.title.slice(0, 34), 0, -4);
-    context.font = "16px Georgia";
-    context.fillText(book.author.slice(0, 34), 0, 22);
-    context.restore();
-    const fallbackTexture = new THREE.Texture(fallback);
-    fallbackTexture.colorSpace = THREE.SRGBColorSpace;
-    fallbackTexture.needsUpdate = true;
-    mesh.material.map = fallbackTexture;
+    if (!textureResident) {
+      this.releaseAtlasSlot(mesh);
+      return;
+    }
+
+    const slot = this.ensureAtlasSlot(mesh);
+    if (slot === null) return;
+    this.applyAtlasUv(mesh, slot);
+    this.drawGeneratedSpine(slot, book);
+    mesh.material.map = this.atlasTexture;
+    mesh.material.color.set(0xffffff);
     mesh.material.needsUpdate = true;
     if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
     const image = new Image();
     image.onload = () => {
-      const texture = new THREE.Texture(image);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.needsUpdate = true;
       if (mesh.parent === null || mesh.userData.textureRequestToken !== textureRequestToken) {
-        texture.dispose();
         return;
       }
-      mesh.material.map?.dispose();
-      mesh.material.map = texture;
-      mesh.material.needsUpdate = true;
+      this.drawImageToAtlas(slot, image);
     };
     image.onerror = () => undefined;
     image.src = book.spineUri;
+  }
+
+  private ensureAtlasSlot(mesh: BookMesh): number | null {
+    const index = mesh.userData.bookIndex as number;
+    const existing = this.atlasSlots.get(index);
+    if (existing !== undefined) return existing;
+    const slot = this.freeAtlasSlots.shift();
+    if (slot === undefined) return null;
+    this.atlasSlots.set(index, slot);
+    mesh.userData.atlasSlot = slot;
+    return slot;
+  }
+
+  private releaseAtlasSlot(mesh: BookMesh): void {
+    const index = mesh.userData.bookIndex as number;
+    const slot = this.atlasSlots.get(index);
+    if (slot === undefined) return;
+    this.atlasSlots.delete(index);
+    mesh.userData.atlasSlot = null;
+    this.freeAtlasSlots.push(slot);
+    const context = this.atlasCanvas.getContext("2d");
+    if (context !== null) {
+      const origin = this.atlasSlotOrigin(slot);
+      context.clearRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+      this.atlasTexture.needsUpdate = true;
+    }
+  }
+
+  private applyAtlasUv(mesh: BookMesh, slot: number): void {
+    const uv = mesh.geometry.getAttribute("uv");
+    if (!(uv instanceof THREE.BufferAttribute)) return;
+    const origin = this.atlasSlotOrigin(slot);
+    const minU = (origin.x + ATLAS_PADDING) / this.atlasCanvas.width;
+    const maxU = (origin.x + ATLAS_SLOT_WIDTH - ATLAS_PADDING) / this.atlasCanvas.width;
+    const minV = (origin.y + ATLAS_PADDING) / this.atlasCanvas.height;
+    const maxV = (origin.y + ATLAS_SLOT_HEIGHT - ATLAS_PADDING) / this.atlasCanvas.height;
+    for (let index = 0; index < uv.count; index++) {
+      const u = uv.getX(index);
+      const v = uv.getY(index);
+      uv.setXY(index, minU + u * (maxU - minU), minV + v * (maxV - minV));
+    }
+    uv.needsUpdate = true;
+  }
+
+  private drawGeneratedSpine(slot: number, book: BookSceneItem): void {
+    const context = this.atlasCanvas.getContext("2d");
+    if (context === null) return;
+    const origin = this.atlasSlotOrigin(slot);
+    context.clearRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+    context.fillStyle = `#${this.fallbackColor(book.bookId).getHexString()}`;
+    context.fillRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+    context.fillStyle = "#f5efe4";
+    context.font = "bold 7px Georgia";
+    context.textAlign = "center";
+    context.save();
+    context.translate(origin.x + ATLAS_SLOT_WIDTH / 2, origin.y + ATLAS_SLOT_HEIGHT / 2);
+    context.rotate(-Math.PI / 2);
+    context.fillText(book.title.slice(0, 20), 0, -2);
+    context.font = "6px Georgia";
+    context.fillText(book.author.slice(0, 20), 0, 7);
+    context.restore();
+    this.atlasTexture.needsUpdate = true;
+  }
+
+  private drawImageToAtlas(slot: number, image: CanvasImageSource): void {
+    const context = this.atlasCanvas.getContext("2d");
+    if (context === null) return;
+    const origin = this.atlasSlotOrigin(slot);
+    context.clearRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+    context.drawImage(image, origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+    this.atlasTexture.needsUpdate = true;
+  }
+
+  private atlasSlotOrigin(slot: number): { x: number; y: number } {
+    return {
+      x: (slot % ATLAS_COLUMNS) * ATLAS_SLOT_WIDTH,
+      y: Math.floor(slot / ATLAS_COLUMNS) * ATLAS_SLOT_HEIGHT,
+    };
   }
 
   private setFocusedIndex(index: number, announce = true, moveCamera = true): void {

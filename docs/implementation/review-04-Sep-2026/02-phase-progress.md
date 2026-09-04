@@ -30,7 +30,7 @@ verified evidence and remaining gate summarized for decision use.
 | 29 | IN PROGRESS | Local evidence, desktop answer/citation display/navigation, content-aware consent, durable safe traces, payload/provenance validation, untrusted boundary, unsupported-claim/abstention benchmark | Physical UI evidence |
 | 30 | IN PROGRESS | Routes, intent/answer UI, content-aware consent, durable runs/history export-delete, thresholds, consented feedback UI/minimization | Human-labelled/live evaluation, accessibility, retrieval freeze, file picker |
 | 31 | IN PROGRESS | Versioned bridge, shared projection, accessible fallback, FocusBook command | Native WebView2/WKWebView, host attachment, crash/reload, physical integration |
-| 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification, source/build provenance | Atlas/LOD scale, search/advisor focus, reduced motion, physical interaction |
+| 32 | IN PROGRESS | Meshes, local assets, interaction, bounded labels, bridge/syntax verification, source/build provenance, shared texture atlas, LOD, reduced motion | Search/advisor focus, reference confirmation, physical interaction |
 | 33 | IN PROGRESS | Virtualization, bounded texture residency, runtime metrics, headless budgets, fallback, safe asynchronous texture eviction | GPU/WebView frame budgets, cross-platform accessibility |
 | 34 | IN PROGRESS | Published scope, redaction, TLS/auth/RBAC, local concurrency smoke | Two-machine, firewall/mDNS, TOFU UX, hostile soak |
 | 35 | IN PROGRESS | Tamper-evident scoped cache including exact content-length verification, bounded sync, single-flight | Physical credential/pairing/reconnect, offline UX, isolation/load |

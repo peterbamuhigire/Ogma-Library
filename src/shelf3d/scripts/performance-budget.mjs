@@ -6,6 +6,7 @@ const WARMUP_ITERATIONS = 10;
 const LAYOUT_BUDGET_MS = 5;
 const MAX_RESIDENT_BOOKS = 500;
 const TEXTURE_RESIDENT_RADIUS = 80;
+const TEXTURE_ATLAS_SLOTS = 16 * 12;
 
 function shelfPosition(index) {
   const shelfColumns = 50;
@@ -77,8 +78,11 @@ for (const result of results) {
 for (const bookCount of BOOK_COUNTS) {
   const residentBooks = Math.min(bookCount, MAX_RESIDENT_BOOKS);
   const textureResidentBooks = Math.min(residentBooks, TEXTURE_RESIDENT_RADIUS * 2 + 1);
-  console.log(`residency ${bookCount}: meshes=${residentBooks} textured=${textureResidentBooks}`);
+  console.log(`residency ${bookCount}: meshes=${residentBooks} textured=${textureResidentBooks} atlasSlots=${TEXTURE_ATLAS_SLOTS}`);
   if (residentBooks > MAX_RESIDENT_BOOKS || textureResidentBooks > TEXTURE_RESIDENT_RADIUS * 2 + 1) {
     throw new Error(`residency bounds exceeded for ${bookCount} books.`);
+  }
+  if (textureResidentBooks > TEXTURE_ATLAS_SLOTS) {
+    throw new Error(`texture atlas capacity ${TEXTURE_ATLAS_SLOTS} is below ${textureResidentBooks} resident textures.`);
   }
 }

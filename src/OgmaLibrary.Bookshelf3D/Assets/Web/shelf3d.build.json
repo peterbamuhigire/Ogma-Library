@@ -6,7 +6,7 @@
     "src/messages.ts",
     "src/scene.ts"
   ],
-  "sourceSha256": "7f10b5cd0fab77d18511388ad54af4d9bea369b8f83c7e02ba8ee0f96afc790c",
+  "sourceSha256": "0921d72f310b9b0361a383ca28d4ff7f87c98a61316a13d969841625a7be5810",
   "lockfileSha256": "02d106366ededc7dc60ff917b3b89aa217c518f4124121797a4d271d95b976fc",
-  "bundleSha256": "bdf5d5b4723405f461de92f0106a5df2bdab4878a6cc1c3099444415a25174fe"
+  "bundleSha256": "44c0915cc3f509d3da1bbed1d0924f4fecbf755aab0bdc00dbdf1c865eb8a7d1"
 }

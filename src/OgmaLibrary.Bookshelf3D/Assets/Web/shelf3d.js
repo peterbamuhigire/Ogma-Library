@@ -13147,6 +13147,26 @@ var OgmaShelf3D = (() => {
       return new this.constructor().copy(this);
     }
   };
+  var CanvasTexture = class extends Texture {
+    /**
+     * Constructs a new texture.
+     *
+     * @param {HTMLCanvasElement} [canvas] - The HTML canvas element.
+     * @param {number} [mapping=Texture.DEFAULT_MAPPING] - The texture mapping.
+     * @param {number} [wrapS=ClampToEdgeWrapping] - The wrapS value.
+     * @param {number} [wrapT=ClampToEdgeWrapping] - The wrapT value.
+     * @param {number} [magFilter=LinearFilter] - The mag filter value.
+     * @param {number} [minFilter=LinearMipmapLinearFilter] - The min filter value.
+     * @param {number} [format=RGBAFormat] - The texture format.
+     * @param {number} [type=UnsignedByteType] - The texture type.
+     * @param {number} [anisotropy=Texture.DEFAULT_ANISOTROPY] - The anisotropy value.
+     */
+    constructor(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy) {
+      super(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy);
+      this.isCanvasTexture = true;
+      this.needsUpdate = true;
+    }
+  };
   var DepthTexture = class extends Texture {
     /**
      * Constructs a new depth texture.
@@ -28540,6 +28560,12 @@ void main() {
   var SHELF_ROW_HEIGHT = 0.27;
   var MAX_RESIDENT_BOOKS = 500;
   var TEXTURE_RESIDENT_RADIUS = 80;
+  var ATLAS_COLUMNS = 16;
+  var ATLAS_ROWS = 12;
+  var ATLAS_SLOT_WIDTH = 64;
+  var ATLAS_SLOT_HEIGHT = 128;
+  var ATLAS_PADDING = 1;
+  var ATLAS_SLOT_COUNT = ATLAS_COLUMNS * ATLAS_ROWS;
   var BRIDGE_MESSAGE_BOOK_LIMIT = 1e5;
   var Shelf3DScene = class {
     constructor(canvas) {
@@ -28547,6 +28573,14 @@ void main() {
       this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
       this.controls = new OrbitControls(this.camera, canvas);
+      this.atlasCanvas = document.createElement("canvas");
+      this.atlasCanvas.width = ATLAS_COLUMNS * ATLAS_SLOT_WIDTH;
+      this.atlasCanvas.height = ATLAS_ROWS * ATLAS_SLOT_HEIGHT;
+      this.atlasTexture = new CanvasTexture(this.atlasCanvas);
+      this.atlasTexture.colorSpace = SRGBColorSpace;
+      this.atlasTexture.minFilter = LinearFilter;
+      this.atlasTexture.magFilter = LinearFilter;
+      for (let slot = 0; slot < ATLAS_SLOT_COUNT; slot++) this.freeAtlasSlots.push(slot);
       this.controls.enableDamping = !this.reducedMotion;
       this.controls.addEventListener("change", () => this.postCameraChanged());
       this.scene.add(new HemisphereLight(16777215, 4928550, 1.2));
@@ -28566,6 +28600,10 @@ void main() {
     renderer;
     controls;
     geometry = new BoxGeometry(BOOK_WIDTH, BOOK_HEIGHT, BOOK_DEPTH);
+    atlasCanvas;
+    atlasTexture;
+    atlasSlots = /* @__PURE__ */ new Map();
+    freeAtlasSlots = [];
     shelfGeometry = new BoxGeometry(SHELF_COLUMNS * 0.03 + 0.04, 0.025, 0.18);
     sceneRoot = new Group();
     reducedMotion;
@@ -28664,7 +28702,7 @@ void main() {
           roughness: 0.7,
           metalness: 0.05
         });
-        const mesh = new Mesh(this.geometry, material);
+        const mesh = new Mesh(this.geometry.clone(), material);
         mesh.userData.bookIndex = index;
         mesh.userData.bookId = book.bookId;
         this.bookMeshes.push(mesh);
@@ -28846,10 +28884,13 @@ void main() {
     }
     clearBookMeshes() {
       for (const mesh of this.bookMeshes.splice(0)) {
-        mesh.material.map?.dispose();
+        this.releaseAtlasSlot(mesh);
+        mesh.geometry.dispose();
         mesh.material.dispose();
         this.sceneRoot.remove(mesh);
       }
+      this.atlasCanvas.getContext("2d")?.clearRect(0, 0, this.atlasCanvas.width, this.atlasCanvas.height);
+      this.atlasTexture.needsUpdate = true;
     }
     buildShelves() {
       const firstRow = Math.floor(this.residentStart / SHELF_COLUMNS);
@@ -28876,49 +28917,102 @@ void main() {
       mesh.userData.textureRequestToken = textureRequestToken;
       const textureResident = this.isTextureResident(mesh.userData.bookIndex);
       mesh.userData.textureResident = textureResident;
-      mesh.material.map?.dispose();
       mesh.material.map = null;
       mesh.material.color.copy(this.fallbackColor(book.bookId));
       mesh.material.needsUpdate = true;
-      if (!textureResident) return;
-      const fallback = document.createElement("canvas");
-      fallback.width = 256;
-      fallback.height = 512;
-      const context = fallback.getContext("2d");
-      if (context === null) return;
-      context.fillStyle = `#${this.fallbackColor(book.bookId).getHexString()}`;
-      context.fillRect(0, 0, fallback.width, fallback.height);
-      context.fillStyle = "#f5efe4";
-      context.font = "bold 22px Georgia";
-      context.textAlign = "center";
-      context.save();
-      context.translate(fallback.width / 2, fallback.height / 2);
-      context.rotate(-Math.PI / 2);
-      context.fillText(book.title.slice(0, 34), 0, -4);
-      context.font = "16px Georgia";
-      context.fillText(book.author.slice(0, 34), 0, 22);
-      context.restore();
-      const fallbackTexture = new Texture(fallback);
-      fallbackTexture.colorSpace = SRGBColorSpace;
-      fallbackTexture.needsUpdate = true;
-      mesh.material.map = fallbackTexture;
+      if (!textureResident) {
+        this.releaseAtlasSlot(mesh);
+        return;
+      }
+      const slot = this.ensureAtlasSlot(mesh);
+      if (slot === null) return;
+      this.applyAtlasUv(mesh, slot);
+      this.drawGeneratedSpine(slot, book);
+      mesh.material.map = this.atlasTexture;
+      mesh.material.color.set(16777215);
       mesh.material.needsUpdate = true;
       if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
       const image = new Image();
       image.onload = () => {
-        const texture = new Texture(image);
-        texture.colorSpace = SRGBColorSpace;
-        texture.needsUpdate = true;
         if (mesh.parent === null || mesh.userData.textureRequestToken !== textureRequestToken) {
-          texture.dispose();
           return;
         }
-        mesh.material.map?.dispose();
-        mesh.material.map = texture;
-        mesh.material.needsUpdate = true;
+        this.drawImageToAtlas(slot, image);
       };
       image.onerror = () => void 0;
       image.src = book.spineUri;
+    }
+    ensureAtlasSlot(mesh) {
+      const index = mesh.userData.bookIndex;
+      const existing = this.atlasSlots.get(index);
+      if (existing !== void 0) return existing;
+      const slot = this.freeAtlasSlots.shift();
+      if (slot === void 0) return null;
+      this.atlasSlots.set(index, slot);
+      mesh.userData.atlasSlot = slot;
+      return slot;
+    }
+    releaseAtlasSlot(mesh) {
+      const index = mesh.userData.bookIndex;
+      const slot = this.atlasSlots.get(index);
+      if (slot === void 0) return;
+      this.atlasSlots.delete(index);
+      mesh.userData.atlasSlot = null;
+      this.freeAtlasSlots.push(slot);
+      const context = this.atlasCanvas.getContext("2d");
+      if (context !== null) {
+        const origin = this.atlasSlotOrigin(slot);
+        context.clearRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+        this.atlasTexture.needsUpdate = true;
+      }
+    }
+    applyAtlasUv(mesh, slot) {
+      const uv = mesh.geometry.getAttribute("uv");
+      if (!(uv instanceof BufferAttribute)) return;
+      const origin = this.atlasSlotOrigin(slot);
+      const minU = (origin.x + ATLAS_PADDING) / this.atlasCanvas.width;
+      const maxU = (origin.x + ATLAS_SLOT_WIDTH - ATLAS_PADDING) / this.atlasCanvas.width;
+      const minV = (origin.y + ATLAS_PADDING) / this.atlasCanvas.height;
+      const maxV = (origin.y + ATLAS_SLOT_HEIGHT - ATLAS_PADDING) / this.atlasCanvas.height;
+      for (let index = 0; index < uv.count; index++) {
+        const u = uv.getX(index);
+        const v = uv.getY(index);
+        uv.setXY(index, minU + u * (maxU - minU), minV + v * (maxV - minV));
+      }
+      uv.needsUpdate = true;
+    }
+    drawGeneratedSpine(slot, book) {
+      const context = this.atlasCanvas.getContext("2d");
+      if (context === null) return;
+      const origin = this.atlasSlotOrigin(slot);
+      context.clearRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+      context.fillStyle = `#${this.fallbackColor(book.bookId).getHexString()}`;
+      context.fillRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+      context.fillStyle = "#f5efe4";
+      context.font = "bold 7px Georgia";
+      context.textAlign = "center";
+      context.save();
+      context.translate(origin.x + ATLAS_SLOT_WIDTH / 2, origin.y + ATLAS_SLOT_HEIGHT / 2);
+      context.rotate(-Math.PI / 2);
+      context.fillText(book.title.slice(0, 20), 0, -2);
+      context.font = "6px Georgia";
+      context.fillText(book.author.slice(0, 20), 0, 7);
+      context.restore();
+      this.atlasTexture.needsUpdate = true;
+    }
+    drawImageToAtlas(slot, image) {
+      const context = this.atlasCanvas.getContext("2d");
+      if (context === null) return;
+      const origin = this.atlasSlotOrigin(slot);
+      context.clearRect(origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+      context.drawImage(image, origin.x, origin.y, ATLAS_SLOT_WIDTH, ATLAS_SLOT_HEIGHT);
+      this.atlasTexture.needsUpdate = true;
+    }
+    atlasSlotOrigin(slot) {
+      return {
+        x: slot % ATLAS_COLUMNS * ATLAS_SLOT_WIDTH,
+        y: Math.floor(slot / ATLAS_COLUMNS) * ATLAS_SLOT_HEIGHT
+      };
     }
     setFocusedIndex(index, announce = true, moveCamera = true) {
       if (this.books.length === 0) return;

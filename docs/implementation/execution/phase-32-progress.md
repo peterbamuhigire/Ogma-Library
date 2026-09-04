@@ -24,6 +24,9 @@ Date: 2026-09-04
   `evidence/phase-32-virtual-bookshelf-2026-09-04.md`; the TypeScript source
   pipeline is now restored and its build emits a source/lockfile/bundle
   provenance manifest.
+- Replaced per-book resident spine textures with a bounded shared 192-slot
+  atlas, slot-scoped UVs, asynchronous local-image updates, and stale-slot
+  clearing; see `evidence/phase-32-texture-atlas-2026-09-04.md`.
 
 ## Verification
 
@@ -32,12 +35,17 @@ Date: 2026-09-04
 - Headless rendered 3D fallback slice: 1 passed.
 - TypeScript typecheck, bundle syntax, layout budget, and mesh/texture residency
   bounds passed for 50, 250, 500, 1k, 5k, and 10k inputs.
+- Texture-atlas capacity and packaged-bundle checks passed; the focused C#
+  bridge/3D slice passed 31 tests.
+- The complete solution suite passed 1,066 tests (883 core, 41 architecture,
+  142 UI), with 0 failures and 0 skips, after an isolated rerun of the
+  host-sensitive metadata-search benchmark passed.
 
 ## Remaining phase gate
 
-Texture-atlas implementation/scale testing, search/advisor UI wiring and
-reference confirmation, and physical Windows/macOS screenshot and interaction
-evidence remain open. The local bridge command, LOD bound, and reduced-motion
+Search/advisor UI wiring and reference confirmation, and physical
+Windows/macOS screenshot and interaction evidence remain open. The local
+texture-atlas capacity, bridge command, LOD bound, and reduced-motion
 policy are now executable subgates. The build manifest proves the emitted
 bundle digest and records the source and lockfile digests; it does not replace
 a signed release commit or physical WebView evidence.
