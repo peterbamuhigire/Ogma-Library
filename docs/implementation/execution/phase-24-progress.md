@@ -1,6 +1,6 @@
 # Phase 24 Progress - Selective OCR and Extraction Quality
 
-Date: 2026-08-30
+Date: 2026-09-04
 
 ## Delivered in this increment
 
@@ -36,6 +36,9 @@ Date: 2026-08-30
 - Prevented shared integration contexts from retaining completed page/chunk
   graphs across large batches; the repeat benchmark now measures the pipeline
   rather than unbounded test-context tracking.
+- Reconciled the local Phase 24 evidence against the current solution run: the
+  selective policy, packaged English checksum, stable failure codes, OCR
+  controls, and 500-book mixed-quality synthetic baseline remain green.
 
 ## Verification
 
@@ -46,10 +49,13 @@ Date: 2026-08-30
 - OCR/golden/schema regression slice: 13 passed.
 - OCR control and progress UI slice: 2 focused tests passed, with the broader
   Avalonia search/index suite passing 14 tests.
+- Current full solution verification: 885 core + 41 architecture + 145 UI =
+  1,071 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
-The local synthetic 500-book mixed-quality throughput/allocation subgate is
-covered by the benchmark. Real mixed-PDF accuracy and CPU/memory corpus
-evidence, cross-platform packaged asset proof, and physical assistive
-technology evidence remain before phase 24 closure.
+The local selective-policy, checksum-integrity, stable-failure-code,
+OCR-control, and synthetic 500-book mixed-quality sub-gates are closed. Real
+mixed-PDF accuracy and CPU/memory corpus evidence, cross-platform packaged
+asset proof, and physical assistive-technology evidence remain before phase 24
+closure.
