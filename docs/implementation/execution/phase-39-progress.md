@@ -16,6 +16,8 @@ Date: 2026-09-04
   or uninstalled build cannot be promoted by reusing a packaging result.
 - Recorded the fail-closed acceptance-contract evidence in
   `evidence/phase-39-release-acceptance-2026-09-04.md`.
+- Current-head negative acceptance validation is recorded in
+  `evidence/phase-39-local-acceptance-reconciliation-2026-09-04.md`.
 
 ## Remaining handover gate
 
