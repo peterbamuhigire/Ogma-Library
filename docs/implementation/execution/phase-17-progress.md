@@ -35,14 +35,19 @@ Date: 2026-08-30
 - Added a bounded JSON diagnostics export containing only operational metrics
   and recent lifecycle fields; payloads, lease owners, and error text are
   excluded.
+- Refreshed the durable lease/runtime regression slice on 2026-09-04: all
+  exclusive-claim, owner-enforcement, retry/dead-letter, expiry-recovery,
+  resource-capacity, lifecycle-redaction, and metrics cases pass.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase17JobRuntimeTests`: 7 passed.
+- Refreshed local lease/runtime evidence: 7 passed, 0 failed.
 
 ## Remaining phase gate
 
-The search-extraction and embedding workers remain stage-based rather than
-job-queue workers; kill/restart load evidence remains before phase 17 closure.
+The local durable lease/runtime subgate is closed. Search-extraction and
+embedding workers remain stage-based rather than job-queue workers, and
+kill/restart load evidence remains before phase 17 closure.
