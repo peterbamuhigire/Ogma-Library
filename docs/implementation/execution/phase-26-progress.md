@@ -30,6 +30,8 @@ Date: 2026-08-30
   conservative default wired into semantic retrieval and a pure-score opt-out
   for callers that require it. Unknown authors remain independent so missing
   metadata does not collapse unrelated books into one group.
+- Expanded the semantic retrieval latency benchmark to 50,000 books and
+  verified the approved p95 <=1,500 ms local assertion.
 
 ## Verification
 
@@ -42,5 +44,7 @@ Date: 2026-08-30
 ## Remaining phase gate
 
 Recall@K/MRR/nDCG evidence from a representative corpus, true ANN or
-equivalent target-scale retrieval, latency/memory acceptance at 50,000 books,
-and final search-contract freeze remain before phase 26 closure.
+equivalent target-scale retrieval, memory acceptance at 50,000 books, and
+final search-contract freeze remain before phase 26 closure. The approved
+50,000-book latency sub-gate is closed locally; reference-machine confirmation
+remains a release gate.

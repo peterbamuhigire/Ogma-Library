@@ -107,7 +107,7 @@ public sealed class SemanticSearchServiceTests : IDisposable
     [Fact]
     public async Task PerfBenchmark_SemanticSearch_P95_LessThan1500ms()
     {
-        const int bookCount = 2000;
+        const int bookCount = 50_000;
         const int queryCount = 20;
         SeedPerformanceCorpus(bookCount);
         var service = new SemanticSearchService(
