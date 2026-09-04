@@ -33,6 +33,9 @@ Date: 2026-08-30
   enablement.
 - Expanded the deterministic mixed-quality extraction benchmark from 32 to 500
   books (1,500 pages) to provide a larger local throughput/allocation baseline.
+- Prevented shared integration contexts from retaining completed page/chunk
+  graphs across large batches; the repeat benchmark now measures the pipeline
+  rather than unbounded test-context tracking.
 
 ## Verification
 

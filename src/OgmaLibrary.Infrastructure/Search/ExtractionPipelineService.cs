@@ -152,6 +152,11 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             pagesSkipped += result.PagesSkipped;
             failedPages += result.FailedPages;
             chunksWritten += result.ChunksWritten;
+            // Integration tests may intentionally share one context; clear
+            // completed-book tracking so a large batch cannot retain every
+            // page/chunk graph. Factory-backed production contexts are already
+            // short-lived per operation.
+            _context?.ChangeTracker.Clear();
         }
 
         return new ExtractionBatchResult(

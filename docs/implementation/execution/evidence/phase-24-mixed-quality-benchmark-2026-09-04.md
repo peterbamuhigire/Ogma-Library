@@ -21,10 +21,15 @@ Command:
 dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ExtractionPipelineServiceTests.ExtractionPipeline_MixedQualityBatch_RecordsThroughputBaseline" --verbosity normal -m:1
 ```
 
-Result: passed with 500 books, 1,500 pages, and 0 failed books. This run
-reported 37,005 elapsed milliseconds and 15,010,299,152 allocated bytes.
-The allocation volume is a material local finding and is not accepted as a
-production resource budget; it requires optimization and repeat measurement.
+Initial result: passed with 500 books, 1,500 pages, and 0 failed books, but
+reported 37,005 elapsed milliseconds and 15,010,299,152 allocated bytes. That
+finding identified shared test-context retention as an allocation amplifier.
+After clearing completed shared-context tracking between books, the same run
+reported 9,190 elapsed milliseconds and 296,590,296 allocated bytes, with all
+500 books and 1,500 pages still successful.
+
+The improved result is a local baseline, not an accepted real-PDF/native OCR
+resource budget; it requires repeat measurement on the supported platforms.
 
 ## Still open
 
