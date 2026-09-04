@@ -33,6 +33,9 @@ Date: 2026-09-04
 - Residency checks passed with at most 500 resident meshes and at most 161
   textured books across 50, 250, 500, 1k, 5k, and 10k catalogue inputs; the
   shared Phase 32 atlas provides 192 bounded slots for that focus band.
+- Current-head rerun from `src/shelf3d` passed `npm run typecheck`, `npm run
+  build`, `npm run perf:budget`, and `node --check` for the packaged bundle;
+  see `evidence/phase-33-renderer-gate-reconciliation-2026-09-04.md`.
 - The complete solution suite passed 1,066 tests (883 core, 41 architecture,
   142 UI), with 0 failures and 0 skips, after the atlas rebuild.
 
