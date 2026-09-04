@@ -131,60 +131,60 @@ public sealed class PdfiumAdapter : IPdfRenderer
             lock (_textExtractionGate)
             {
                 IReadOnlyList<Page> pages = _textPages.Value;
-            Page? page = pageIndex < pages.Count ? pages[pageIndex] : null;
-            if (page is null)
-            {
-                return new TextLayer(pageIndex, [], ExtractionQuality.Empty);
-            }
-
-            double pageWidth = page.Width;
-            double pageHeight = page.Height;
-
-            if (pageWidth <= 0 || pageHeight <= 0)
-            {
-                return new TextLayer(pageIndex, [], ExtractionQuality.Empty);
-            }
-
-            var words = new List<TextWord>();
-            bool truncated = false;
-            foreach (var pdfPigWord in page.GetWords())
-            {
-                if (words.Count >= MaxWordsPerPage)
+                Page? page = pageIndex < pages.Count ? pages[pageIndex] : null;
+                if (page is null)
                 {
-                    truncated = true;
-                    break;
+                    return new TextLayer(pageIndex, [], ExtractionQuality.Empty);
                 }
 
-                string text = pdfPigWord.Text.Normalize(System.Text.NormalizationForm.FormC);
-                if (text.Length > MaxWordLength)
+                double pageWidth = page.Width;
+                double pageHeight = page.Height;
+
+                if (pageWidth <= 0 || pageHeight <= 0)
                 {
-                    text = text[..MaxWordLength];
-                    truncated = true;
+                    return new TextLayer(pageIndex, [], ExtractionQuality.Empty);
                 }
 
-                var bb = pdfPigWord.BoundingBox;
-                double left = Math.Clamp(bb.Left / pageWidth, 0.0, 1.0);
-                double bottom = Math.Clamp(bb.Bottom / pageHeight, 0.0, 1.0);
-                double right = Math.Clamp(bb.Right / pageWidth, left, 1.0);
-                double top = Math.Clamp(bb.Top / pageHeight, bottom, 1.0);
+                var words = new List<TextWord>();
+                bool truncated = false;
+                foreach (var pdfPigWord in page.GetWords())
+                {
+                    if (words.Count >= MaxWordsPerPage)
+                    {
+                        truncated = true;
+                        break;
+                    }
 
-                // PdfPig uses bottom-left origin; normalize to top-left [0,1].
-                words.Add(new TextWord(text, left, 1.0 - top, right, 1.0 - bottom));
-            }
+                    string text = pdfPigWord.Text.Normalize(System.Text.NormalizationForm.FormC);
+                    if (text.Length > MaxWordLength)
+                    {
+                        text = text[..MaxWordLength];
+                        truncated = true;
+                    }
 
-            if (words.Count == 0)
-            {
-                // Heuristic: if there are images but no words, it is probably scanned.
-                bool hasImages = page.GetImages().Any();
-                ExtractionQuality quality = hasImages ? ExtractionQuality.Scanned : ExtractionQuality.Empty;
-                return new TextLayer(pageIndex, [], quality);
-            }
+                    var bb = pdfPigWord.BoundingBox;
+                    double left = Math.Clamp(bb.Left / pageWidth, 0.0, 1.0);
+                    double bottom = Math.Clamp(bb.Bottom / pageHeight, 0.0, 1.0);
+                    double right = Math.Clamp(bb.Right / pageWidth, left, 1.0);
+                    double top = Math.Clamp(bb.Top / pageHeight, bottom, 1.0);
 
-            ExtractionQuality extractionQuality = truncated
-                ? ExtractionQuality.Partial
-                : words.Count > 5
-                ? ExtractionQuality.Full
-                : ExtractionQuality.Partial;
+                    // PdfPig uses bottom-left origin; normalize to top-left [0,1].
+                    words.Add(new TextWord(text, left, 1.0 - top, right, 1.0 - bottom));
+                }
+
+                if (words.Count == 0)
+                {
+                    // Heuristic: if there are images but no words, it is probably scanned.
+                    bool hasImages = page.GetImages().Any();
+                    ExtractionQuality quality = hasImages ? ExtractionQuality.Scanned : ExtractionQuality.Empty;
+                    return new TextLayer(pageIndex, [], quality);
+                }
+
+                ExtractionQuality extractionQuality = truncated
+                    ? ExtractionQuality.Partial
+                    : words.Count > 5
+                    ? ExtractionQuality.Full
+                    : ExtractionQuality.Partial;
 
                 return new TextLayer(pageIndex, words, extractionQuality);
             }
@@ -205,7 +205,14 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         if (_textDocument.IsValueCreated)
         {
-            _textDocument.Value.Dispose();
+            try
+            {
+                _textDocument.Value.Dispose();
+            }
+            catch
+            {
+                // Disposal must not hide the original malformed-PDF failure.
+            }
         }
 
         _disposed = true;
