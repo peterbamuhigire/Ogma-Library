@@ -26,3 +26,7 @@ The passing slice covers HTTPS/authentication/RBAC, session replay, paging,
 search, TLS-backed page rendering, range/file policy, profile sync, sidecar
 delivery (including provider-only cover fallback), unpublished/private
 rejection, throttling, headers, tamper, and oversize controls.
+
+The current authenticated load-smoke rerun passed 2/2 tests: 20 concurrent
+catalogue clients and 10 concurrent page-render clients, each satisfying the
+encoded P95-under-2-second assertion.
