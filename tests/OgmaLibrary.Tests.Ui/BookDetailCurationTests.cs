@@ -130,6 +130,46 @@ public sealed class BookDetailCurationTests
     }
 
     [AvaloniaFact]
+    public async Task ReadingHistory_IsLazyBoundedAndLocalizedForTheDetailPanel()
+    {
+        const string bookId = "PHASE20-HISTORY-BOOK";
+        var readModel = new MutableReadModel(CreateProjection(bookId));
+        var curation = new RecordingCurationService(readModel)
+        {
+            HistoryEntries =
+            [
+                new ReadingStateHistoryEntry(
+                    ReadingStatus.Finished,
+                    5,
+                    true,
+                    "finished book",
+                    new DateTimeOffset(2026, 9, 4, 10, 30, 0, TimeSpan.Zero)),
+            ],
+        };
+        var viewModel = new BookDetailViewModel(
+            readModel,
+            new NoOpReaderNavigation(),
+            new InMemoryLocalizationService(),
+            curation: curation);
+
+        await viewModel.LoadBookAsync(bookId);
+
+        Assert.Empty(viewModel.ReadingHistoryRows);
+        Assert.True(viewModel.ShowLoadReadingHistoryButton);
+        Assert.Equal(0, curation.HistoryCalls);
+
+        await viewModel.LoadReadingHistoryAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(viewModel.ReadingHistoryRows);
+        Assert.Contains("Finished", viewModel.ReadingHistoryRows[0], StringComparison.Ordinal);
+        Assert.Contains("finished book", viewModel.ReadingHistoryRows[0], StringComparison.Ordinal);
+        Assert.True(viewModel.IsReadingHistoryLoaded);
+        Assert.False(viewModel.ShowLoadReadingHistoryButton);
+        Assert.Equal(1, curation.HistoryCalls);
+    }
+
+    [AvaloniaFact]
     public async Task MetadataReview_LoadsEditsAndDecidesThroughAccessibleControls()
     {
         const string bookId = "PHASE14-REVIEW-BOOK";
@@ -256,6 +296,8 @@ public sealed class BookDetailCurationTests
     private sealed class RecordingCurationService(MutableReadModel readModel) : IBookCurationService
     {
         public List<CurationCall> Calls { get; } = [];
+        public IReadOnlyList<ReadingStateHistoryEntry> HistoryEntries { get; init; } = [];
+        public int HistoryCalls { get; private set; }
 
         public Task UpdateReadingStateAsync(
             string bookId,
@@ -268,6 +310,16 @@ public sealed class BookDetailCurationTests
             Calls.Add(new CurationCall(readingStatus, rating, isFavourite));
             readModel.Apply(readingStatus, rating, isFavourite);
             return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<ReadingStateHistoryEntry>> GetHistoryAsync(
+            string bookId,
+            int maxResults = 50,
+            CancellationToken cancellationToken = default)
+        {
+            HistoryCalls++;
+            return Task.FromResult<IReadOnlyList<ReadingStateHistoryEntry>>(
+                HistoryEntries.Take(maxResults).ToArray());
         }
     }
 

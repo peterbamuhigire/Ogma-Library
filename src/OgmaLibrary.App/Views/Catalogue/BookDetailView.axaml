@@ -360,6 +360,46 @@
                                TextWrapping="Wrap" />
                   </StackPanel>
                 </StackPanel>
+                <StackPanel Spacing="5"
+                            Margin="0,12,0,0"
+                            IsVisible="{Binding CanLoadReadingHistory}">
+                  <TextBlock Text="{Binding ReadingHistoryLabel}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <Button HorizontalAlignment="Left"
+                          IsVisible="{Binding ShowLoadReadingHistoryButton}"
+                          IsEnabled="{Binding CanLoadReadingHistory}"
+                          AutomationProperties.Name="{Binding LoadReadingHistoryLabel}"
+                          Click="LoadReadingHistoryButton_Click">
+                    <TextBlock Text="{Binding LoadReadingHistoryLabel}" />
+                  </Button>
+                  <TextBlock Text="{Binding ReadingHistoryLoadingText}"
+                             IsVisible="{Binding IsLoadingHistory}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                  <ItemsControl ItemsSource="{Binding ReadingHistoryRows}"
+                                IsVisible="{Binding IsReadingHistoryLoaded}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,1" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Text="{Binding ReadingHistoryEmptyText}"
+                             IsVisible="{Binding HasNoReadingHistory}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                  <TextBlock Text="{Binding ReadingHistoryStatusText}"
+                             IsVisible="{Binding HasReadingHistoryStatus}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
               </StackPanel>
             </TabItem>
 

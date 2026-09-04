@@ -16,4 +16,22 @@ public interface IBookCurationService
         bool? isFavourite = null,
         string reason = "user",
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads a bounded, newest-first history of personal reading-state changes.
+    /// Entries contain only state values and the short non-content reason saved by
+    /// the curation boundary.
+    /// </summary>
+    Task<IReadOnlyList<ReadingStateHistoryEntry>> GetHistoryAsync(
+        string bookId,
+        int maxResults = 50,
+        CancellationToken cancellationToken = default);
 }
+
+/// <summary>Redacted personal reading-state history entry for local presentation.</summary>
+public sealed record ReadingStateHistoryEntry(
+    ReadingStatus? ReadingStatus,
+    int? Rating,
+    bool IsFavourite,
+    string Reason,
+    DateTimeOffset ChangedUtc);

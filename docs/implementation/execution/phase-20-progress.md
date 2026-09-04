@@ -31,6 +31,9 @@ Date: 2026-09-04
 - Translated the closed smart-shelf condition set to server-side predicates for
   bounded catalogue selection and count queries, retaining projection
   evaluation as a defense-in-depth check.
+- Added a bounded, SQLite-compatible reading-history query and a lazy detail-
+  panel history load with localized loading, empty, error, status, favourite,
+  and reason presentation.
 
 ## Verification
 
@@ -42,16 +45,20 @@ Date: 2026-09-04
   review-panel proof.
 - Smart-shelf focused verification: 24 passed; write-path shelf verification:
   6 passed.
+- Reading-history core verification: 3 passed; BookDetail UI verification: 5
+  passed.
 - Full isolated solution suite: 880 core + 41 architecture + 142 UI = 1,063
   passed, 0 failed, 0 skipped. See
   `evidence/phase-20-smart-shelf-2026-09-04.md`.
+
+- Current-HEAD full solution verification: 884 core + 41 architecture + 143
+  UI = 1,068 passed, 0 failed, 0 skipped.
 - Current-HEAD full solution verification: 883 core + 41 architecture + 142
   UI = 1,066 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
-File/relink actions, complete status/history presentation, lazy TOC and
-provenance tabs, and accessibility/E2E evidence remain before phase 20
-closure. The detail-view
-status/rating/favourite, bounded tag, and basic collection CRUD sub-gates are
-closed by the curation/organisation UI increments.
+File/relink actions, lazy TOC and provenance tabs, and accessibility/E2E
+evidence remain before phase 20 closure. The detail-view status/rating/
+favourite, bounded tag, collection CRUD, and local status/history presentation
+sub-gates are closed by the curation/organisation UI increments.

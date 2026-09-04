@@ -37,6 +37,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private bool _isQueueingOcr;
     private bool _isSavingReadingMemory;
     private bool _isUpdatingCuration;
+    private bool _isLoadingHistory;
+    private bool _historyLoaded;
     private bool _isSavingTags;
     private bool _isReviewingMetadata;
     private bool _isVisible;
@@ -47,6 +49,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     private string? _curationStatusText;
     private string? _tagsStatusText;
     private string? _metadataReviewStatusText;
+    private string? _readingHistoryStatusText;
     private string _tagsText = string.Empty;
     private string _readingMemoryOpenedBecause = string.Empty;
     private string _readingMemoryKeyInsight = string.Empty;
@@ -317,6 +320,68 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
     /// <summary>Pending metadata proposals for the loaded book.</summary>
     public ObservableCollection<MetadataProposalItemViewModel> PendingMetadataProposals { get; } = [];
 
+    /// <summary>Newest-first, redacted reading-state history for the loaded book.</summary>
+    public ObservableCollection<string> ReadingHistoryRows { get; } = [];
+
+    /// <summary>True while the lazy history tab load is running.</summary>
+    public bool IsLoadingHistory
+    {
+        get => _isLoadingHistory;
+        private set
+        {
+            if (_isLoadingHistory != value)
+            {
+                _isLoadingHistory = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanLoadReadingHistory));
+                OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
+            }
+        }
+    }
+
+    /// <summary>True when the detail panel can request its history page.</summary>
+    public bool CanLoadReadingHistory =>
+        _book is not null && _curation is not null && !IsLoadingHistory;
+
+    /// <summary>True while the Reading tab still has its first history page to load.</summary>
+    public bool ShowLoadReadingHistoryButton => CanLoadReadingHistory && !_historyLoaded;
+
+    /// <summary>True after the history tab has completed its first load.</summary>
+    public bool IsReadingHistoryLoaded => _historyLoaded;
+
+    /// <summary>True when a completed history load returned no entries.</summary>
+    public bool HasNoReadingHistory => _historyLoaded && ReadingHistoryRows.Count == 0;
+
+    /// <summary>Localized reading-history heading.</summary>
+    public string ReadingHistoryLabel => _localization["Catalogue.BookDetail.Curation.History"];
+
+    /// <summary>Localized lazy-load action for reading history.</summary>
+    public string LoadReadingHistoryLabel => _localization["Catalogue.BookDetail.Curation.LoadHistory"];
+
+    /// <summary>Localized loading status for reading history.</summary>
+    public string ReadingHistoryLoadingText => _localization["Catalogue.BookDetail.Curation.HistoryLoading"];
+
+    /// <summary>Localized empty state for reading history.</summary>
+    public string ReadingHistoryEmptyText => _localization["Catalogue.BookDetail.Curation.HistoryEmpty"];
+
+    /// <summary>Current user-facing reading-history load status.</summary>
+    public string? ReadingHistoryStatusText
+    {
+        get => _readingHistoryStatusText;
+        private set
+        {
+            if (_readingHistoryStatusText != value)
+            {
+                _readingHistoryStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasReadingHistoryStatus));
+            }
+        }
+    }
+
+    /// <summary>True when a reading-history load status should be displayed.</summary>
+    public bool HasReadingHistoryStatus => !string.IsNullOrWhiteSpace(ReadingHistoryStatusText);
+
     /// <summary>True when the loaded book can review pending metadata proposals.</summary>
     public bool CanReviewMetadata => _book is not null && _metadataReviewService is not null && !IsReviewingMetadata;
 
@@ -421,7 +486,16 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         get => _book;
         private set
         {
+            bool changedBook = !string.Equals(_book?.BookId, value?.BookId, StringComparison.Ordinal);
             _book = value;
+            if (changedBook)
+            {
+                _historyLoaded = false;
+                ReadingHistoryRows.Clear();
+                OnPropertyChanged(nameof(IsReadingHistoryLoaded));
+                OnPropertyChanged(nameof(HasNoReadingHistory));
+                OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
+            }
             _tagsText = FormatTags(value);
             OnPropertyChanged();
             OnPropertyChanged(nameof(Title));
@@ -467,6 +541,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CanEditTags));
             OnPropertyChanged(nameof(TagsText));
             OnPropertyChanged(nameof(CanReviewMetadata));
+            OnPropertyChanged(nameof(CanLoadReadingHistory));
+            OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
         }
     }
 
@@ -724,6 +800,61 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         }
 
         await _reader.OpenReaderAsync(_book.BookId, null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Lazily loads the bounded personal history page used by the Reading tab.
+    /// History is never fetched while another book is being displayed and is
+    /// discarded when the selected book changes.
+    /// </summary>
+    public async Task LoadReadingHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        if (_book is null || _curation is null || _historyLoaded || IsLoadingHistory)
+        {
+            return;
+        }
+
+        string bookId = _book.BookId;
+        IsLoadingHistory = true;
+        ReadingHistoryStatusText = null;
+        try
+        {
+            IReadOnlyList<ReadingStateHistoryEntry> entries = await _curation
+                .GetHistoryAsync(bookId, maxResults: 50, cancellationToken)
+                .ConfigureAwait(false);
+            string[] rows = entries.Select(FormatHistoryRow).ToArray();
+
+            UpdateOnUiThread(() =>
+            {
+                if (!string.Equals(_book?.BookId, bookId, StringComparison.Ordinal))
+                {
+                    IsLoadingHistory = false;
+                    return;
+                }
+
+                ReadingHistoryRows.Clear();
+                foreach (string row in rows)
+                {
+                    ReadingHistoryRows.Add(row);
+                }
+
+                _historyLoaded = true;
+                IsLoadingHistory = false;
+                OnPropertyChanged(nameof(IsReadingHistoryLoaded));
+                OnPropertyChanged(nameof(HasNoReadingHistory));
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateOnUiThread(() =>
+            {
+                IsLoadingHistory = false;
+                ReadingHistoryStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["Catalogue.BookDetail.Curation.HistoryFailedFormat"],
+                    ex.Message);
+            });
+        }
     }
 
     /// <summary>Persists a personal reading status and refreshes the detail projection.</summary>
@@ -1327,6 +1458,33 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     private static string? NullIfWhiteSpace(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private string FormatHistoryRow(ReadingStateHistoryEntry entry)
+    {
+        string status = entry.ReadingStatus switch
+        {
+            OgmaLibrary.Domain.ReadingStatus.Reading => _localization["Catalogue.BookDetail.Curation.HistoryStatus.Reading"],
+            OgmaLibrary.Domain.ReadingStatus.Finished => _localization["Catalogue.BookDetail.Curation.HistoryStatus.Finished"],
+            OgmaLibrary.Domain.ReadingStatus.Abandoned => _localization["Catalogue.BookDetail.Curation.HistoryStatus.Abandoned"],
+            _ => _localization["Catalogue.BookDetail.Curation.HistoryStatus.Unread"],
+        };
+        string rating = entry.Rating?.ToString(
+            System.Globalization.CultureInfo.CurrentCulture) ??
+            _localization["Catalogue.BookDetail.Curation.HistoryUnrated"];
+        string favourite = entry.IsFavourite
+            ? _localization["Catalogue.BookDetail.Curation.HistoryFavouriteYes"]
+            : _localization["Catalogue.BookDetail.Curation.HistoryFavouriteNo"];
+        string reason = Truncate(entry.Reason, 64) ??
+            _localization["Catalogue.BookDetail.Curation.HistoryReasonUnknown"];
+        return string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["Catalogue.BookDetail.Curation.HistoryRowFormat"],
+            entry.ChangedUtc.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture),
+            status,
+            rating,
+            favourite,
+            reason);
+    }
 
     private static string FormatField(MetadataFieldProjection field)
     {

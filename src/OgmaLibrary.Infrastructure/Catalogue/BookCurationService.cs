@@ -99,6 +99,38 @@ public sealed class BookCurationService : IBookCurationService
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ReadingStateHistoryEntry>> GetHistoryAsync(
+        string bookId,
+        int maxResults = 50,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        if (maxResults is < 1 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxResults), "History results must be between 1 and 100.");
+        }
+
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        // SQLite cannot translate DateTimeOffset ORDER BY expressions. The
+        // auto-increment history key is assigned at insert time, so it provides
+        // a deterministic newest-first page while the original UTC timestamp is
+        // still returned for presentation.
+        return await lease.Context.ReadingStateHistory
+            .AsNoTracking()
+            .Where(row => row.BookId == bookId)
+            .OrderByDescending(row => row.ReadingStateHistoryId)
+            .Take(maxResults)
+            .Select(row => new ReadingStateHistoryEntry(
+                row.ReadingStatus,
+                row.Rating,
+                row.IsFavourite,
+                row.Reason,
+                row.ChangedUtc))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {
         if (_contextFactory is not null)

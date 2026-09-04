@@ -67,6 +67,29 @@ public sealed class Phase20BookCurationTests : IDisposable
             "PHASE20-MISSING-BOOK", isFavourite: true));
     }
 
+    [Fact]
+    public async Task GetHistory_ReturnsNewestFirstAndHonoursBound()
+    {
+        var service = new BookCurationService(_context);
+
+        await service.UpdateReadingStateAsync(
+            "PHASE20-CURATION-BOOK",
+            readingStatus: ReadingStatus.Reading,
+            reason: "opened from detail");
+        await service.UpdateReadingStateAsync(
+            "PHASE20-CURATION-BOOK",
+            readingStatus: ReadingStatus.Finished,
+            reason: "finished book");
+
+        IReadOnlyList<ReadingStateHistoryEntry> history = await service.GetHistoryAsync(
+            "PHASE20-CURATION-BOOK",
+            maxResults: 1);
+
+        ReadingStateHistoryEntry entry = Assert.Single(history);
+        Assert.Equal(ReadingStatus.Finished, entry.ReadingStatus);
+        Assert.Equal("finished book", entry.Reason);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
