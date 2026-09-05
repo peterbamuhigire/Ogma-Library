@@ -7,6 +7,10 @@ Date: 2026-09-04
 - Kept school provider keys host-side through the platform credential-store
   boundary; the classroom proxy receives a configured provider abstraction and
   never exposes the key to clients.
+- Key replacement is an overwrite-safe rotation operation at the credential
+  boundary, and `DeleteKeyAsync` revokes the configured provider key. Local
+  tests verify replacement status, revocation status, and clearing of mutable
+  key buffers; platform-specific lifecycle evidence remains separate.
 - Enforced active-catalogue scope for managed-AI candidates and bounded query,
   library-id, candidate-field, and payload sizes before provider egress.
 - Preserved metadata-only default policy, payload preview/confirmation, DPIA
