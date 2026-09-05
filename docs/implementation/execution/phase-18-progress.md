@@ -101,12 +101,15 @@ Date: 2026-09-05
   architecture + 155 UI = 1,104 passed, 0 failed, 0 skipped (9m57s).
 - Incremental Book Detail accessibility/localisation slice: 3 passed, 0
   failed, 0 skipped; Release application build passed with 0 warnings/errors.
+- Full UI project regression after the accessibility-copy increment: 155
+  passed, 0 failed, 0 skipped. A literal-copy audit outside the covered
+  Host-sharing surface found only intentional reader glyphs/separators and
+  numeric controls; no remaining natural-language literals were identified.
 
 ## Remaining phase gate
 
-Application-wide hard-coded copy extraction beyond the covered Host-sharing
-surface, contrast snapshots, and
-Narrator/VoiceOver journeys remain before phase 18 closure. Theme/density
+Contrast snapshots and Narrator/VoiceOver journeys remain before phase 18
+closure. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
   named Student Smart Search copy finding, and static route inventory are
