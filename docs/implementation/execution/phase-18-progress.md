@@ -93,6 +93,8 @@ Date: 2026-09-05
   accessibility names with resource-backed bindings. English, French, and
   pseudo-locale resource coverage is verified in the design-system slice.
   Evidence: `evidence/phase-18-book-detail-accessibility-copy-2026-09-05.md`.
+- Replaced the startup migration progress bar's hard-coded accessibility name
+  with the same localized progress text announced to users.
 - Complete post-change Release solution regression: 908 core + 41
   architecture + 155 UI = 1,104 passed, 0 failed, 0 skipped (9m57s).
 - Incremental Book Detail accessibility/localisation slice: 3 passed, 0

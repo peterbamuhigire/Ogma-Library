@@ -96,7 +96,7 @@
         <ProgressBar Value="{Binding MigrationProgress}"
                      IsVisible="{Binding IsMigrationProgressKnown}"
                      Height="5"
-                     AutomationProperties.Name="Canonical identity migration progress" />
+                     AutomationProperties.Name="{Binding MigrationProgressText}" />
         <ProgressBar IsIndeterminate="True"
                      Height="5"
                      AutomationProperties.Name="{Binding StartingBody}" />

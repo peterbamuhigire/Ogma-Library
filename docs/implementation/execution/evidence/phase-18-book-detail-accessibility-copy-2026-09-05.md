@@ -5,11 +5,11 @@ Reviewer: Peter Bamuhigire, Lead Consultant
 
 ## Scope and user outcome
 
-Book Detail users relying on keyboard focus, voice control, or a screen reader
-need stable names for closing the panel, opening a book, enriching metadata,
-and choosing a rating. The visible numeric rating controls remain compact;
-their spoken names now communicate the action and selected value in the active
-locale.
+Book Detail and startup users relying on keyboard focus, voice control, or a
+screen reader need stable names for closing the panel, opening a book,
+enriching metadata, choosing a rating, and understanding migration progress.
+The visible numeric rating controls remain compact; their spoken names now
+communicate the action and selected value in the active locale.
 
 ## Decision
 
@@ -21,7 +21,9 @@ editorial catalogue surface; no font embedding or licence change is involved.
 `BookDetailViewModel` owns the localized strings and raises their bindings on
 culture change. `BookDetailView` binds accessibility names to those properties
 instead of embedding English literals. The rating actions use one localized
-parameterized resource so translators control sentence order.
+parameterized resource so translators control sentence order. The startup
+migration progress bar now binds to its localized progress text rather than a
+separate English-only name.
 
 ## Verification
 
