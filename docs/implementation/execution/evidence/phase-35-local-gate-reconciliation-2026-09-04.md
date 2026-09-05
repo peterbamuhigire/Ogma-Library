@@ -9,5 +9,7 @@ the Phase 35 evidence. The current-head classroom-client slice remains
 **107 passed, 0 failed, 0 skipped**.
 
 Physical credential-store/pairing, network-drop reconnect, offline-reader UX,
-accessibility capture, cache controls, two-user isolation, and cross-machine
-load evidence are **NOT ASSESSED**.
+accessibility capture, cache UI controls, two-user isolation, and cross-machine
+load evidence are **NOT ASSESSED**. The cache service now also exposes a
+versioned host-scoped ZIP export with a manifest and integrity-checked payloads;
+its focused test passed as part of the current-head verification.

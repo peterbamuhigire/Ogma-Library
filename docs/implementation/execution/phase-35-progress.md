@@ -17,6 +17,9 @@ Date: 2026-09-04
 - Preserved per-profile encrypted private storage, guest no-sync behavior,
   host-scoped cache eviction, TOFU certificate pinning, and explicit conflict
   resolution semantics.
+- Added a versioned, host-scoped ZIP export contract for valid offline-cache
+  resources, preserving resource keys, validators, timestamps, content types,
+  and payload lengths in a manifest while excluding other Hosts.
 
 ## Verification
 
@@ -24,7 +27,7 @@ Date: 2026-09-04
   with 0 warnings and 0 errors.
 - Classroom-client slice: 107 passed.
 - Added tests for cache tamper rejection, certificate-rotation cache isolation,
-  and oversized sync payload rejection.
+  oversized sync payload rejection, and host-scoped cache archive export.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-35-local-gate-reconciliation-2026-09-04.md`.
 
@@ -32,5 +35,5 @@ Date: 2026-09-04
 
 Physical Windows/macOS credential-store and host/client pairing evidence,
 network-drop/reconnect with a renewed session, offline reader UX and
-accessibility capture, cache clear/export controls, two-user hostile isolation,
-and cross-machine load evidence remain release gates.
+accessibility capture, cache clear/export UI controls, two-user hostile
+isolation, and cross-machine load evidence remain release gates.

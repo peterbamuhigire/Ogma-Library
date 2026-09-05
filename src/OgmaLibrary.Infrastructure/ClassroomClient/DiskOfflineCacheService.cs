@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.IO.Compression;
 using OgmaLibrary.Application.ClassroomClient;
 
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
@@ -264,6 +265,84 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
         }
     }
 
+    public async Task ExportHostAsync(
+        string hostId,
+        Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!destination.CanWrite)
+        {
+            throw new ArgumentException("The destination stream must be writable.", nameof(destination));
+        }
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
+            List<OfflineCacheExportItem> manifest = [];
+            int index = 0;
+            foreach (string metadataPath in EnumerateMetadataFiles().OrderBy(path => path, StringComparer.Ordinal))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                CacheMetadata? metadata = await ReadMetadataAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+                if (metadata is null || !string.Equals(metadata.HostId, hostId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string? contentPath = GetSafeContentPath(metadata);
+                if (contentPath is null || !File.Exists(contentPath))
+                {
+                    continue;
+                }
+
+                byte[] content = await File.ReadAllBytesAsync(contentPath, cancellationToken).ConfigureAwait(false);
+                if (metadata.ContentLength < 0 ||
+                    metadata.ContentLength != content.LongLength ||
+                    !string.Equals(
+                        metadata.ContentHash,
+                        Convert.ToHexStringLower(SHA256.HashData(content)),
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string archivePath = $"resources/{index++}.bin";
+                ZipArchiveEntry resourceEntry = archive.CreateEntry(archivePath);
+                Stream resourceStream = resourceEntry.Open();
+                await using (resourceStream.ConfigureAwait(false))
+                {
+                    await resourceStream.WriteAsync(content, cancellationToken).ConfigureAwait(false);
+                }
+
+                manifest.Add(new OfflineCacheExportItem(
+                    metadata.ResourceKey,
+                    metadata.ETag,
+                    metadata.StoredUtc,
+                    metadata.ContentType,
+                    archivePath,
+                    content.LongLength));
+            }
+
+            ZipArchiveEntry manifestEntry = archive.CreateEntry("manifest.json");
+            Stream manifestStream = manifestEntry.Open();
+            await using (manifestStream.ConfigureAwait(false))
+            {
+                await JsonSerializer.SerializeAsync(
+                    manifestStream,
+                    new OfflineCacheExportManifest(1, hostId, manifest),
+                    JsonOptions,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     private static void DeleteTemporaryFile(string path)
     {
         try
@@ -330,4 +409,17 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
 
         public string ContentFile { get; set; } = string.Empty;
     }
+
+    private sealed record OfflineCacheExportManifest(
+        int SchemaVersion,
+        string HostId,
+        IReadOnlyList<OfflineCacheExportItem> Resources);
+
+    private sealed record OfflineCacheExportItem(
+        string ResourceKey,
+        string? ETag,
+        DateTimeOffset StoredUtc,
+        string ContentType,
+        string ArchivePath,
+        long ContentLength);
 }

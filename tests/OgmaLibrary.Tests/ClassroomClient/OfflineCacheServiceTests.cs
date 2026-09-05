@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.ClassroomClient;
@@ -131,6 +132,55 @@ public sealed class OfflineCacheServiceTests
             OfflineCacheEntry? cached = await cache.GetAsync("host-1", "books/1/page/1");
 
             Assert.Equal("image/png", cached!.ContentType);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task DiskOfflineCache_ExportsOnlyValidResourcesForRequestedHost()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using var cache = new DiskOfflineCacheService(dataDirectory);
+            await cache.PutAsync(new OfflineCacheEntry(
+                "host-a",
+                "books/1/page/1",
+                "etag-a",
+                [1, 2, 3],
+                Now,
+                "image/png"));
+            await cache.PutAsync(new OfflineCacheEntry("host-b", "private", null, [9], Now));
+
+            using var output = new MemoryStream();
+            await cache.ExportHostAsync("host-a", output);
+
+            output.Position = 0;
+            using var archive = new ZipArchive(output, ZipArchiveMode.Read);
+            ZipArchiveEntry manifestEntry = archive.GetEntry("manifest.json")!;
+            using var manifestReader = new StreamReader(manifestEntry.Open());
+            using JsonDocument manifest = JsonDocument.Parse(await manifestReader.ReadToEndAsync());
+            JsonElement root = manifest.RootElement;
+
+            Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal("host-a", root.GetProperty("hostId").GetString());
+            JsonElement resources = root.GetProperty("resources");
+            Assert.Single(resources.EnumerateArray());
+            JsonElement resource = resources[0];
+            Assert.Equal("books/1/page/1", resource.GetProperty("resourceKey").GetString());
+            Assert.Equal("etag-a", resource.GetProperty("eTag").GetString());
+            Assert.Equal(3, resource.GetProperty("contentLength").GetInt64());
+
+            ZipArchiveEntry contentEntry = archive.GetEntry(
+                resource.GetProperty("archivePath").GetString()!)!;
+            using var content = new MemoryStream();
+            await contentEntry.Open().CopyToAsync(content);
+            Assert.Equal([1, 2, 3], content.ToArray());
+            Assert.DoesNotContain(archive.Entries, entry => entry.FullName.Contains("private", StringComparison.Ordinal));
         }
         finally
         {
