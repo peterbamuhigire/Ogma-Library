@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pdf;
 using PdfSharp.Drawing;
@@ -88,6 +89,29 @@ public sealed class PdfWorkerIsolationTests : IDisposable
 
         Assert.True(telemetryClient.MaxPeakWorkingSetBytes > 0);
         Assert.True(telemetryClient.MaxPrivateMemoryBytes > 0);
+    }
+
+    [Fact]
+    public async Task PdfWorkerSession_ProcessTermination_IsObservableAndNewSessionRecovers()
+    {
+        string pdfPath = CreateValidPdf("worker-process-recovery.pdf");
+
+        using PdfWorkerClient.PdfWorkerSession session = _client.OpenSession(pdfPath);
+        using (Process process = Process.GetProcessById(session.ProcessId))
+        {
+            process.Kill(entireProcessTree: true);
+            Assert.True(process.WaitForExit(5_000));
+        }
+
+        Assert.ThrowsAny<Exception>(() => session.ExtractTextLayer(0));
+
+        using PdfWorkerClient.PdfWorkerSession recovered = _client.OpenSession(pdfPath);
+        Assert.Equal(1, recovered.PageCount);
+        RenderResult result = await recovered.RenderPageAsync(
+            0,
+            new RenderRequest(300),
+            CancellationToken.None);
+        Assert.NotEmpty(result.PngBytes);
     }
 
     [Fact]

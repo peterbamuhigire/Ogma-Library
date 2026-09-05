@@ -757,6 +757,9 @@ public sealed class PdfWorkerClient
         /// <summary>The page count reported by the persistent isolated worker.</summary>
         public int PageCount { get; }
 
+        /// <summary>Gets the worker process identifier for bounded diagnostics and tests.</summary>
+        internal int ProcessId => _process.Id;
+
         /// <summary>
         /// Gets the peak resident working set observed for this worker process.
         /// The value is intended for bounded diagnostics and must be read before

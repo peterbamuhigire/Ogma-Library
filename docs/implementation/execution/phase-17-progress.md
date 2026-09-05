@@ -45,6 +45,14 @@ Date: 2026-09-04
   work and successful extraction enqueues an idempotent embedding trigger.
 - Added restart-style recovery/load evidence: an orphaned lease is recovered
   after context disposal and 64 queued jobs drain through recreated workers.
+- Added a Windows process-kill rehearsal for the production persistent PDF
+  worker. The worker was terminated through the OS process API, the dead
+  session surfaced an operation failure, and a new session rendered
+  successfully. `PdfWorkerIsolationTests` passed 10/10; evidence:
+  `evidence/phase-17-process-recovery-2026-09-05.md`.
+- The complete serialized Release core suite passed 924/924 after the
+  process-recovery increment; architecture and UI baselines remain green at
+  41/41 and 159/159.
 
 ## Verification
 
@@ -55,7 +63,9 @@ Date: 2026-09-04
 
 ## Remaining phase gate
 
-The local durable lease/runtime, queue-backed stage-worker, and restart-style
-recovery/load subgates are closed. Physical process-kill, crash, and soak
-evidence remain before phase 17 closure; the compatibility poll is retained
-for pre-queue catalogue rows and is not a substitute for production evidence.
+The local durable lease/runtime, queue-backed stage-worker, restart-style
+recovery/load, and Windows process-kill/restart subgates are closed. Crash
+recovery under the full application queue, cross-platform process behavior,
+and long-duration soak evidence remain before phase 17 closure; the
+compatibility poll is retained for pre-queue catalogue rows and is not a
+substitute for production evidence.
