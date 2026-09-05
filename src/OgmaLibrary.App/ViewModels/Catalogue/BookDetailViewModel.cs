@@ -278,6 +278,10 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Localized enrichment section heading.</summary>
     public string EnrichmentHeadingText => _localization["Catalogue.BookDetail.EnrichmentHeading"];
 
+    /// <summary>Localized heading for provider attribution links.</summary>
+    public string ProviderAttributionHeadingText =>
+        _localization["Catalogue.BookDetail.ProviderAttributionHeading"];
+
     /// <summary>Localized AI section heading.</summary>
     public string AiHeadingText => _localization["Catalogue.BookDetail.AiHeading"];
 
@@ -754,6 +758,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(ReadingFields));
             OnPropertyChanged(nameof(EnrichmentFields));
             OnPropertyChanged(nameof(EnrichmentFieldDisplayRows));
+            OnPropertyChanged(nameof(ProviderAttributionLinks));
+            OnPropertyChanged(nameof(HasProviderAttributionLinks));
             OnPropertyChanged(nameof(AiFields));
             OnPropertyChanged(nameof(CanEnrich));
             OnPropertyChanged(nameof(CanRunOcr));
@@ -1026,6 +1032,17 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             .Where(f => !string.IsNullOrWhiteSpace(f.Value))
             .Select(FormatField)
             .ToList();
+
+    /// <summary>
+    /// Fixed-host HTTPS attribution links for providers that supplied enrichment
+    /// fields. Links are derived from the normalized ISBN and never use a provider
+    /// URL supplied by metadata content.
+    /// </summary>
+    public IReadOnlyList<ProviderAttributionLink> ProviderAttributionLinks =>
+        BuildProviderAttributionLinks(_book?.Isbn, EnrichmentFields);
+
+    /// <summary>True when provider attribution links can be shown.</summary>
+    public bool HasProviderAttributionLinks => ProviderAttributionLinks.Count > 0;
 
     /// <summary>AI-generated fields (group 5).</summary>
     public IReadOnlyList<MetadataFieldProjection> AiFields =>
@@ -1935,6 +1952,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(CancelWriteBackLabel));
         OnPropertyChanged(nameof(RestoreWriteBackLabel));
         OnPropertyChanged(nameof(EnrichmentHeadingText));
+        OnPropertyChanged(nameof(ProviderAttributionHeadingText));
+        OnPropertyChanged(nameof(ProviderAttributionLinks));
+        OnPropertyChanged(nameof(HasProviderAttributionLinks));
         OnPropertyChanged(nameof(AiHeadingText));
         OnPropertyChanged(nameof(EnrichTooltip));
         OnPropertyChanged(nameof(RunOcrText));
@@ -2150,6 +2170,59 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             !string.Equals(field.Source, "Local", StringComparison.OrdinalIgnoreCase);
     }
 
+    private ProviderAttributionLink[] BuildProviderAttributionLinks(
+        string? isbn,
+        IReadOnlyList<MetadataFieldProjection> fields)
+    {
+        string? normalizedIsbn = NormalizeIsbnForProviderLink(isbn);
+        if (normalizedIsbn is null)
+        {
+            return [];
+        }
+
+        return fields
+            .Select(field => field.Source?.Trim())
+            .Where(source => !string.IsNullOrWhiteSpace(source))
+            .Select(source => source switch
+            {
+                _ when source!.Equals("GoogleBooks", StringComparison.OrdinalIgnoreCase) =>
+                    new ProviderAttributionLink(
+                        "Google Books",
+                        $"https://books.google.com/books?q=isbn:{normalizedIsbn}",
+                        string.Format(
+                            System.Globalization.CultureInfo.CurrentCulture,
+                            _localization["Catalogue.BookDetail.ProviderAttributionOpenFormat"],
+                            "Google Books")),
+                _ when source!.Equals("OpenLibrary", StringComparison.OrdinalIgnoreCase) =>
+                    new ProviderAttributionLink(
+                        "Open Library",
+                        $"https://openlibrary.org/isbn/{normalizedIsbn}",
+                        string.Format(
+                            System.Globalization.CultureInfo.CurrentCulture,
+                            _localization["Catalogue.BookDetail.ProviderAttributionOpenFormat"],
+                            "Open Library")),
+                _ => null,
+            })
+            .Where(link => link is not null)
+            .Select(link => link!)
+            .DistinctBy(link => link.Url, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static string? NormalizeIsbnForProviderLink(string? isbn)
+    {
+        if (string.IsNullOrWhiteSpace(isbn))
+        {
+            return null;
+        }
+
+        string normalized = new(isbn.Where(char.IsLetterOrDigit).ToArray());
+        return normalized.Length is >= 10 and <= 13 &&
+            normalized.All(character => char.IsDigit(character) || character is 'X' or 'x')
+            ? normalized.ToUpperInvariant()
+            : null;
+    }
+
     private static readonly HashSet<string> FileFieldNames =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -2183,3 +2256,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             "AiDescription", "RecommendedReadingLevel", "RelatedTitles",
         };
 }
+
+/// <summary>Safe provider attribution link rendered by the book-detail surface.</summary>
+public sealed record ProviderAttributionLink(
+    string ProviderName,
+    string Url,
+    string AccessibleName);

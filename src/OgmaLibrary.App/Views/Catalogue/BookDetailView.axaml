@@ -440,6 +440,30 @@
                 <TextBlock Text="{Binding EnrichmentHeadingText}"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <StackPanel Spacing="3"
+                            IsVisible="{Binding HasProviderAttributionLinks}"
+                            Margin="0,0,0,5">
+                  <TextBlock Text="{Binding ProviderAttributionHeadingText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                  <ItemsControl ItemsSource="{Binding ProviderAttributionLinks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ProviderAttributionLink">
+                        <Button HorizontalAlignment="Left"
+                                Padding="4,2"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                AutomationProperties.Name="{Binding AccessibleName}"
+                                Click="OpenProviderAttributionButton_Click">
+                          <TextBlock Text="{Binding ProviderName}"
+                                     TextDecorations="Underline"
+                                     FontSize="{DynamicResource Type.Size.Caption}"
+                                     Foreground="{DynamicResource Brush.Accent.Slate}" />
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
                 <ItemsControl ItemsSource="{Binding EnrichmentFieldDisplayRows}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>

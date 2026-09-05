@@ -1,6 +1,6 @@
 # Phase 13 Progress - Bibliographic Provider Gateway
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Delivered in this increment
 
@@ -42,12 +42,16 @@ durable audit payload.
   low-volume use, caching, application identification, quota, attribution,
   linking, result integrity, location restrictions, licensing, and privacy;
   see `evidence/phase-13-provider-terms-2026-09-04.md`.
+- Added the desktop book-detail provider attribution/link path for Google Books
+  and Open Library. URLs are generated from normalized ISBNs on fixed HTTPS
+  hosts, revalidated before launch, and exposed with localized accessible
+  labels; see `evidence/phase-13-attribution-links-2026-09-05.md`.
 
 ## Remaining phase gate
 
-The official-source documentation subgate is complete, but written
-legal/privacy owner review, archived release evidence, live provider/network
-evidence, and UI acceptance for attribution/linking and stale labeling remain
+The official-source documentation and local attribution/link subgates are
+complete, but written legal/privacy owner review, archived release evidence,
+live provider/network evidence, and UI acceptance for stale labeling remain
 before phase 13 closure. Quota and circuit state are observable in the provider
-health contract; stale-cache status is present in the provider result contract
-for the UI consumer.
+health contract; the gateway's stale-cache status still needs an end-to-end
+persisted projection before it can be rendered as a user-facing label.

@@ -127,6 +127,23 @@ public partial class BookDetailView : UserControl
         }
     }
 
+    private async void OpenProviderAttributionButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: ProviderAttributionLink link } ||
+            !Uri.TryCreate(link.Url, UriKind.Absolute, out Uri? uri) ||
+            uri.Scheme != Uri.UriSchemeHttps ||
+            uri.Host is not ("books.google.com" or "openlibrary.org"))
+        {
+            return;
+        }
+
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is not null)
+        {
+            await topLevel.Launcher.LaunchUriAsync(uri).ConfigureAwait(true);
+        }
+    }
+
     private async void CurationStatusButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not BookDetailViewModel vm || sender is not Button button ||

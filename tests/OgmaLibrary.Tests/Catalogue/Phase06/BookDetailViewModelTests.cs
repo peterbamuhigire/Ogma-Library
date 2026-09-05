@@ -169,6 +169,30 @@ public sealed class BookDetailViewModelTests
     }
 
     /// <summary>
+    /// Provider attribution is rendered as fixed-host HTTPS links derived from the
+    /// catalogue ISBN, never as an arbitrary URL from provider content.
+    /// </summary>
+    [Fact]
+    public async Task BookDetail_ProviderAttributionLinks_UseAllowlistedHostsAndNormalizedIsbn()
+    {
+        var vm = CreateVm(BuildFullyPopulatedDetail() with { Isbn = "978-0-1234-5678-9" });
+
+        await vm.LoadBookAsync("book-1");
+
+        Assert.Equal(
+            ["Google Books", "Open Library"],
+            vm.ProviderAttributionLinks.Select(link => link.ProviderName).ToArray());
+        Assert.Equal(
+            "https://books.google.com/books?q=isbn:9780123456789",
+            vm.ProviderAttributionLinks[0].Url);
+        Assert.Equal(
+            "https://openlibrary.org/isbn/9780123456789",
+            vm.ProviderAttributionLinks[1].Url);
+        Assert.All(vm.ProviderAttributionLinks, link =>
+            Assert.StartsWith("https://", link.Url, StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// Manual metadata enrichment remains deterministic: the detail panel invokes
     /// the no-AI provider flow and reloads the book projection afterward.
     /// </summary>
