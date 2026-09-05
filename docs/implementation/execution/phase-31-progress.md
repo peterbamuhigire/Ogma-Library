@@ -44,6 +44,9 @@ Date: 2026-09-06
 - Full solution regression after lazy native-host activation: 1,125 passed,
   0 failed, 0 skipped (41 architecture, 925 core, 159 UI). Evidence:
   `evidence/phase-31-native-host-regression-2026-09-06.md`.
+- Current shelf typecheck, bundle reproduction, performance budgets, and
+  residency budgets passed through 10,000 items. Evidence:
+  `evidence/phase-31-33-shelf-build-2026-09-06.md`.
 
 ## Remaining phase gate
 

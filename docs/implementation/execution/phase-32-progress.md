@@ -49,6 +49,9 @@ Date: 2026-09-05
 - The complete solution suite passed 1,066 tests (883 core, 41 architecture,
   142 UI), with 0 failures and 0 skips, after an isolated rerun of the
   host-sensitive metadata-search benchmark passed.
+- Current shelf typecheck, bundle reproduction, performance budgets, and
+  residency budgets passed through 10,000 items. Evidence:
+  `evidence/phase-31-33-shelf-build-2026-09-06.md`.
 
 ## Remaining phase gate
 

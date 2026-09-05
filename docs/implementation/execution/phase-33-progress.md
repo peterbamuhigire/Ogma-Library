@@ -46,3 +46,7 @@ WKWebView attachment, context-loss behavior on reference hardware, or
 cross-platform accessibility screenshots. Those remain release evidence gates;
 the renderer now emits the measurements required for that evidence and fails
 closed to the accessible 2D/list path.
+
+The current TypeScript build, deterministic performance budget, and bounded
+texture-residency checks passed through 10,000 items. Evidence:
+`evidence/phase-31-33-shelf-build-2026-09-06.md`.
