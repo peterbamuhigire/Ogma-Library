@@ -44,6 +44,7 @@ public static class IngestionServiceExtensions
             sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
         services.AddSingleton<IIncrementalDiscoveryService, IncrementalDiscoveryService>();
         services.AddSingleton<IFilesystemReconciliationService, FilesystemReconciliationService>();
+        services.AddSingleton<IReconciliationReviewService, ReconciliationReviewService>();
         services.AddSingleton<IIdentityGroupingService, IdentityGroupingService>();
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
         services.AddSingleton<IVisualAssetService>(sp => new VisualAssetService(

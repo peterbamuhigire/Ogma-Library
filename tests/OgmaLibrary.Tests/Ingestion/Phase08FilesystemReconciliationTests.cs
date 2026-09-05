@@ -210,6 +210,84 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         Assert.Contains("candidate-b.pdf", review.CandidatePathsJson);
     }
 
+    [Fact]
+    public async Task RelocationReview_AcceptRequiresPersistedCandidateAndRestoresOccurrence()
+    {
+        _context.ReconciliationReviews.Add(new ReconciliationReviewRow
+        {
+            LibraryRootId = _rootId.Value,
+            FileOccurrenceId = "01PH08OCCURRENCE0000000008",
+            ReasonCode = "ambiguous_relocation_review",
+            CandidatePathsJson = "[\"candidate-a.pdf\",\"candidate-b.pdf\"]",
+            Status = 0,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.FileOccurrences.Add(NewOccurrence(
+            "01PH08OCCURRENCE0000000008", "old.pdf", availability: 1));
+        await _context.SaveChangesAsync();
+
+        var service = new ReconciliationReviewService(_context);
+        IReadOnlyList<ReconciliationReviewDescriptor> pending =
+            await service.ListPendingAsync(_rootId.Value);
+
+        ReconciliationReviewDescriptor review = Assert.Single(pending);
+        Assert.Equal(["candidate-a.pdf", "candidate-b.pdf"], review.CandidatePaths);
+
+        await service.DecideAsync(
+            review.ReviewId,
+            ReconciliationReviewDecision.Accept,
+            "candidate-b.pdf");
+
+        FileOccurrenceRow occurrence = await _context.FileOccurrences.SingleAsync();
+        ReconciliationReviewRow persisted = await _context.ReconciliationReviews.SingleAsync();
+        Assert.Equal("candidate-b.pdf", occurrence.NormalizedRelativePath);
+        Assert.Equal(0, occurrence.AvailabilityStatus);
+        Assert.Null(occurrence.MissingSinceUtc);
+        Assert.Equal(1, persisted.Status);
+        Assert.NotNull(persisted.DecidedUtc);
+        Assert.Contains(
+            await _context.AuditEvents.ToListAsync(),
+            row => row.AfterJson?.Contains("relocation_review_accepted", StringComparison.Ordinal) == true);
+        Assert.Empty(await service.ListPendingAsync(_rootId.Value));
+    }
+
+    [Fact]
+    public async Task RelocationReview_RejectKeepsOccurrenceAndRejectsArbitraryPath()
+    {
+        _context.ReconciliationReviews.Add(new ReconciliationReviewRow
+        {
+            LibraryRootId = _rootId.Value,
+            FileOccurrenceId = "01PH08OCCURRENCE0000000009",
+            ReasonCode = "ambiguous_relocation_review",
+            CandidatePathsJson = "[\"candidate.pdf\"]",
+            Status = 0,
+            CreatedUtc = DateTimeOffset.UtcNow,
+        });
+        _context.FileOccurrences.Add(NewOccurrence(
+            "01PH08OCCURRENCE0000000009", "old.pdf", availability: 1));
+        await _context.SaveChangesAsync();
+
+        var service = new ReconciliationReviewService(_context);
+        long reviewId = (await service.ListPendingAsync()).Single().ReviewId;
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.DecideAsync(
+            reviewId,
+            ReconciliationReviewDecision.Accept,
+            "../escape.pdf"));
+        Assert.Equal("old.pdf", (await _context.FileOccurrences.SingleAsync()).NormalizedRelativePath);
+
+        await service.DecideAsync(reviewId, ReconciliationReviewDecision.Reject);
+
+        FileOccurrenceRow occurrence = await _context.FileOccurrences.SingleAsync();
+        ReconciliationReviewRow persisted = await _context.ReconciliationReviews.SingleAsync();
+        Assert.Equal("old.pdf", occurrence.NormalizedRelativePath);
+        Assert.Equal(1, occurrence.AvailabilityStatus);
+        Assert.Equal(2, persisted.Status);
+        Assert.Contains(
+            await _context.AuditEvents.ToListAsync(),
+            row => row.AfterJson?.Contains("relocation_review_rejected", StringComparison.Ordinal) == true);
+    }
+
     private FileOccurrenceRow NewOccurrence(
         string id,
         string path,

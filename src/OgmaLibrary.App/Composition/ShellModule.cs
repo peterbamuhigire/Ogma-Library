@@ -114,6 +114,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),
             localization);
+        var reconciliationReviews = new ReconciliationReviewPanelViewModel(
+            services.GetRequiredService<IReconciliationReviewService>(),
+            localization);
         var studentSmartSearch = new StudentSmartSearchViewModel(
             services.GetRequiredService<IClassroomHostConnectionService>(),
             services.GetRequiredService<ILibraryHostClient>(),
@@ -177,7 +180,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             readingPlan,
             bookshelf3D,
             services.GetRequiredService<ILibraryRootService>(),
-            services.GetRequiredService<IUserPreferencesService>());
+            services.GetRequiredService<IUserPreferencesService>(),
+            reconciliationReviews);
 
         return shell;
     }

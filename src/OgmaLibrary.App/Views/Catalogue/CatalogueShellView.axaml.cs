@@ -103,6 +103,22 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private async void ReconciliationReviewToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            await vm.ToggleReconciliationReviewsAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void ReconciliationReviewPanel_CloseRequested(object? sender, EventArgs e)
+    {
+        if (DataContext is MainShellViewModel vm)
+        {
+            vm.CloseReconciliationReviews();
+        }
+    }
+
     private void ToggleSortDirection_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)

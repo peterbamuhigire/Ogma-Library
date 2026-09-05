@@ -8,7 +8,7 @@ Execution branch: `main`
 Ledger normalized: 2026-09-05
 
 Automated validation refresh: the latest complete full solution suite passed
-1,111 tests (914 core, 41 architecture, 156 UI), with 0 failures and 0 skips.
+1,114 tests (916 core, 41 architecture, 157 UI), with 0 failures and 0 skips.
 The post-Host-sharing localization run completed in 9m57s; the core suite is
 long-running but completed successfully.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
@@ -26,7 +26,7 @@ governed by their progress records.
 | 5 | Library Roots and Path Security | COMPLETE | Durable roots, bounded probes, relink semantics and discovery guard |
 | 6 | Processing State Machine and Scan Sessions | COMPLETE | Durable sessions, leased stages, retries, cancellation and recovery |
 | 7 | Discovery and Incremental Scanning | COMPLETE | Recovery gates closed; physical cross-platform/UI evidence remains NOT ASSESSED |
-| 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery, audit, and safe empty-author catalogue binding gates closed; physical ACL/operator/cross-OS evidence remains NOT ASSESSED |
+| 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery, audit, safe empty-author catalogue binding, and localized operator relocation-review gates closed; physical ACL/cross-OS evidence remains NOT ASSESSED |
 | 9 | Duplicate and Bibliographic Resolution | COMPLETE | Candidate blocking, grouping and consumer projections evidenced |
 | 10 | PDF Validation and Containment | IN PROGRESS | Broker, password, resource gates, and fail-closed Windows Job Object startup delivered; OS sandbox/escape/security approval open |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC, ranked ISBN evidence, 500-book synthetic baseline, page-on-demand extraction, and seven-file/3,326-page real adapter plus database-pipeline corpus delivered; representative real target-scale acceptance, repeated production resource ceiling, and cross-platform evidence remain open |

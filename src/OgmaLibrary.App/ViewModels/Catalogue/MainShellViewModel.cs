@@ -94,6 +94,7 @@ public sealed class MainShellViewModel :
     private bool _isFilterPanelOpen;
     private bool _isSearchPanelOpen;
     private bool _isIndexManagerOpen;
+    private bool _isReconciliationReviewPanelOpen;
     private bool _isCommandPaletteOpen;
     private string _commandPaletteQuery = string.Empty;
     private UserPreferences _userPreferences = new();
@@ -130,6 +131,7 @@ public sealed class MainShellViewModel :
     /// <param name="bookshelf3D">The capability-gated 3D bookshelf view model.</param>
     /// <param name="libraryRootService">The durable library-root identity service.</param>
     /// <param name="userPreferencesService">The persisted desktop appearance preference service.</param>
+    /// <param name="reconciliationReviews">The operator relocation-review workflow.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -150,7 +152,8 @@ public sealed class MainShellViewModel :
         ReadingPlanViewModel? readingPlan = null,
         Bookshelf3DViewModel? bookshelf3D = null,
         ILibraryRootService? libraryRootService = null,
-        IUserPreferencesService? userPreferencesService = null)
+        IUserPreferencesService? userPreferencesService = null,
+        ReconciliationReviewPanelViewModel? reconciliationReviews = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -170,6 +173,7 @@ public sealed class MainShellViewModel :
         Advisor = advisor;
         ReadingPlan = readingPlan;
         Bookshelf3D = bookshelf3D;
+        ReconciliationReviews = reconciliationReviews;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _libraryRootService = libraryRootService;
@@ -257,6 +261,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>The capability-gated 3D bookshelf view model.</summary>
     public Bookshelf3DViewModel? Bookshelf3D { get; }
+
+    /// <summary>The operator workflow for ambiguous filesystem relocations.</summary>
+    public ReconciliationReviewPanelViewModel? ReconciliationReviews { get; }
 
     /// <summary>The Phase 16 Host sharing control strip view model.</summary>
     public HostSharingViewModel? HostSharing { get; }
@@ -384,6 +391,20 @@ public sealed class MainShellViewModel :
         }
     }
 
+    /// <summary>Whether the relocation-review panel is visible.</summary>
+    public bool IsReconciliationReviewPanelOpen
+    {
+        get => _isReconciliationReviewPanelOpen;
+        private set
+        {
+            if (_isReconciliationReviewPanelOpen != value)
+            {
+                _isReconciliationReviewPanelOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     /// <summary>An optional reader status message shown in the shell.</summary>
     public string? ReaderPlaceholderMessage
     {
@@ -502,6 +523,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>Index Manager panel toggle label.</summary>
     public string IndexManagerLabel => _localization["IndexManager.Panel.Label"];
+
+    /// <summary>Relocation-review panel toggle label.</summary>
+    public string ReconciliationReviewLabel => _localization["Reconciliation.Review.Title"];
 
     /// <summary>Split-view scaffold route label.</summary>
     public string SplitViewLabel => _localization["SplitView.Title"];
@@ -1018,6 +1042,19 @@ public sealed class MainShellViewModel :
         }
     }
 
+    /// <summary>Loads and toggles the operator relocation-review panel.</summary>
+    public async Task ToggleReconciliationReviewsAsync(CancellationToken cancellationToken = default)
+    {
+        IsReconciliationReviewPanelOpen = !IsReconciliationReviewPanelOpen;
+        if (IsReconciliationReviewPanelOpen && ReconciliationReviews is not null)
+        {
+            await ReconciliationReviews.LoadAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Closes the operator relocation-review panel.</summary>
+    public void CloseReconciliationReviews() => IsReconciliationReviewPanelOpen = false;
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -1038,6 +1075,7 @@ public sealed class MainShellViewModel :
         Advisor?.Dispose();
         ReadingPlan?.Dispose();
         Bookshelf3D?.Dispose();
+        ReconciliationReviews?.Dispose();
     }
 
     private static bool SameRootPath(string? first, string? second)
@@ -1302,6 +1340,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(FilterLabel));
         OnPropertyChanged(nameof(SearchLabel));
         OnPropertyChanged(nameof(IndexManagerLabel));
+        OnPropertyChanged(nameof(ReconciliationReviewLabel));
         OnPropertyChanged(nameof(SplitViewLabel));
         OnPropertyChanged(nameof(SharingSettingsLabel));
         OnPropertyChanged(nameof(StudentSmartSearchLabel));

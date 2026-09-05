@@ -41,3 +41,41 @@ public interface IFilesystemReconciliationService
         long scanSessionId,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>The explicit decision applied to an ambiguous file relocation.</summary>
+public enum ReconciliationReviewDecision
+{
+    /// <summary>Accept one validated candidate path and restore the occurrence.</summary>
+    Accept = 1,
+
+    /// <summary>Reject the relocation without guessing a new path.</summary>
+    Reject = 2,
+}
+
+/// <summary>Path-safe presentation of one pending relocation review.</summary>
+public sealed record ReconciliationReviewDescriptor(
+    long ReviewId,
+    string LibraryRootId,
+    string FileOccurrenceId,
+    string ReasonCode,
+    IReadOnlyList<string> CandidatePaths,
+    DateTimeOffset CreatedUtc);
+
+/// <summary>Lists and decides ambiguous filesystem relocation reviews.</summary>
+public interface IReconciliationReviewService
+{
+    /// <summary>Lists pending reviews, optionally scoped to one library root.</summary>
+    Task<IReadOnlyList<ReconciliationReviewDescriptor>> ListPendingAsync(
+        string? libraryRootId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Applies an explicit accept/reject decision. Accept requires one candidate
+    /// path from the persisted review and never accepts an arbitrary path.
+    /// </summary>
+    Task DecideAsync(
+        long reviewId,
+        ReconciliationReviewDecision decision,
+        string? selectedRelativePath = null,
+        CancellationToken cancellationToken = default);
+}
