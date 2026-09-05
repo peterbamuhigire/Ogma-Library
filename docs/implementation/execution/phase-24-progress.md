@@ -39,6 +39,13 @@ Date: 2026-09-04
 - Reconciled the local Phase 24 evidence against the current solution run: the
   selective policy, packaged English checksum, stable failure codes, OCR
   controls, and 500-book mixed-quality synthetic baseline remain green.
+- Added an end-to-end packaged-Tesseract fixture proof: a deterministic
+  rasterized scanned PDF is rendered through the production isolated worker,
+  recognized with the packaged English model, and checked for full expected-
+  word recall and the 0.75 confidence threshold. Focused result: 1/1 passed.
+  Evidence: `evidence/phase-24-packaged-tesseract-fixture-2026-09-05.md`.
+- The complete serialized Release core suite subsequently passed 925/925;
+  architecture and UI baselines remain green at 41/41 and 159/159.
 
 ## Verification
 

@@ -8,7 +8,7 @@ Execution branch: `main`
 Ledger normalized: 2026-09-05
 
 Automated validation refresh: the latest complete full solution suite passed
-1,124 tests (924 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
+1,125 tests (925 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
 The post-Host-sharing localization run completed in 9m57s; the core suite is
 long-running but completed successfully.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
@@ -42,7 +42,7 @@ governed by their progress records.
 | 21 | Reader Completion and Portability | IN PROGRESS | Core reader portability, bounded import safety, reader import/export UI, independent two-session split view, versioned annotation-coordinate fallback, and local cache/session/non-crash regression evidence delivered; platform viewer, physical crash/accessibility and budget evidence open |
 | 22 | Structured and Fuzzy Catalogue Search | IN PROGRESS | Structured field queries, scoped fuzzy fallback, debounced type-ahead, bounded 50-result candidate materialization, scalar fast path, local 50k p95, backend facets/paging/highlighting/full-text fallback, localized search-result fallbacks, and local search UI/keyboard evidence delivered; reference/accessibility gates open |
 | 23 | Full-Text Pipeline and Search | IN PROGRESS | Source-scoped FTS filters, rebuild foundations, safe snippets, typed page-jump targets, desktop reader navigation, observability events, explicit search states, local 50k FTS p95, and staged side-by-side promotion delivered; reference/accessibility gates open |
-| 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards, trained-data checksum, stable retry/resource failure codes, OCR control surface, and local 500-book mixed benchmark delivered; accuracy/cross-platform evidence open |
+| 24 | Selective OCR and Extraction Quality | IN PROGRESS | Selective policy, provenance, resource guards, trained-data checksum, stable retry/resource failure codes, OCR control surface, local 500-book mixed benchmark, and packaged-Tesseract isolated-renderer fixture proof delivered; real mixed-PDF accuracy and cross-platform evidence open |
 | 25 | Versioned Embeddings and Vector Lifecycle | IN PROGRESS | Provenance, local-only policy, dimension consistency including payload metadata, stale detection/tombstones, localized stale-count/rebuild-status UI, bounded-memory 50,000-vector scan, bounded hashed query-embedding cache with hit telemetry, and durable side-by-side vector generation/swap/resume delivered; ANN/relevance-quality, provider cost accounting, reference-corpus and reference-machine gates open |
 | 26 | Semantic and Hybrid Retrieval | IN PROGRESS | RRF, hybrid fallback, structured prefilters, dimension filtering, tombstone/blob-integrity filtering, metric contract, durable local evaluation runs, author-diversity policy, bounded-memory 50k scan, local latency evidence, and synthetic concept-quality Recall/MRR/nDCG evidence delivered; representative corpus/ANN-quality/memory/reference confirmation and final contract freeze open |
 | 27 | AI Gateway, Privacy and Cost Runtime | IN PROGRESS | Fail-closed gateway, payload boundary, desktop preview, timeout/retry/circuit, persisted health telemetry, durable daily token/cost enforcement, egress allowlists, platform secret custody/rotation/deletion, provider profiles, local retention/erasure journey, and rendered policy editor/save boundary delivered; provider terms/conformance and physical evidence open |
