@@ -1,11 +1,11 @@
 # Phase 37 Progress - Security, Privacy and Data Protection Hardening
 
-Date: 2026-09-05
+Date: 2026-09-06
 
 ## Delivered in this increment
 
 - Completed the required 14-point code-safety and web-boundary review; results
-  are recorded in `docs/security/phase-37-safety-scan-2026-08-30.md`.
+  are recorded in `docs/security/safety-scan-2026-09-06.md`.
 - Added a per-address LAN session issuance throttle with `429`/`Retry-After`
   behavior to reduce enrollment-code brute-force risk.
 - Added security headers to every LAN response: HSTS, CSP, `nosniff`, frame
@@ -34,11 +34,18 @@ Date: 2026-09-05
 - Fresh current-tree dependency checks on 2026-09-05 reported 0 npm audit
   vulnerabilities and no vulnerable NuGet packages across the solution; all
   13 PowerShell scripts also parsed successfully.
+- Current-tree dependency checks on 2026-09-06 again reported no vulnerable
+  NuGet packages, and `npm audit --omit=dev --audit-level=high` reported zero
+  vulnerabilities for `src/shelf3d`.
 
 ## Remaining phase gate
 
 Physical hostile PDF corpus, native secret-store and two-user erasure tests,
 firewall/mDNS/network capture, independent penetration review, backup/restore
 rehearsal, and long-duration cross-platform soak remain release evidence gates.
-The scan records three conditional medium follow-ups and no critical/high
-finding.
+The 2026-09-06 static safety scan records one additional medium
+diagnostic-hygiene follow-up: selected worker/provider exception messages still
+flow into local operator-facing failure records. Evidence:
+`../../security/safety-scan-2026-09-06.md`. This does not establish a remote
+exploit, but it remains open until those messages are normalized at their
+boundaries.
