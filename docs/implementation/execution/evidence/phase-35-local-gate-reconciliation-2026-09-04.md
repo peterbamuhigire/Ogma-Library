@@ -8,7 +8,7 @@ guest no-sync policy, and conflict semantics are implemented and covered by
 the Phase 35 evidence. The current-head classroom-client slice remains
 **110 passed, 0 failed, 0 skipped**.
 
-The complete current Release solution suite passed **1,109 tests** (913 core,
+The complete current Release solution suite passed **1,110 tests** (914 core,
 41 architecture, 155 UI), with 0 failures and 0 skips.
 
 Physical credential-store/pairing, network-drop reconnect, offline-reader UX,

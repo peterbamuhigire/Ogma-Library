@@ -28,7 +28,7 @@ catalogue or source PDFs.
 - Focused cache suite: 11 passed, 0 failed, 0 skipped, including disk and
   in-memory all-Host erasure parity.
 - Complete classroom-client slice: 110 passed, 0 failed, 0 skipped.
-- Complete Release solution: 1,109 passed (913 core, 41 architecture, 155
+- Complete Release solution: 1,110 passed (914 core, 41 architecture, 155
   UI), 0 failed, 0 skipped.
 - HostSharingViewModel suite: 18 passed, 0 failed, 0 skipped, covering
   confirmation-gated erasure and active-Host export scoping.
