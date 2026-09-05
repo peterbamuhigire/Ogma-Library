@@ -7,10 +7,11 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-05
 
-Automated validation refresh: the latest complete full solution suite passed
-1,125 tests (925 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
-The post-Host-sharing localization run completed in 9m57s; the core suite is
-long-running but completed successfully.
+Automated validation refresh: the latest complete current-worktree solution
+verification passed 1,125 tests (925 core, 41 architecture, 159 UI), with 0
+failures and 0 skips. The core run completed in 15m30s; the core suite is
+long-running but completed successfully. The detailed current-worktree record
+is `evidence/solution-regression-current-worktree-2026-09-05.md`.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
 outlier; the isolated test and this subsequent complete run both passed. This
 refresh closes only the repaired automated gates; per-phase platform, physical,
