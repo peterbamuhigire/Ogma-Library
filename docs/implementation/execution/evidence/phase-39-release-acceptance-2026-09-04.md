@@ -36,7 +36,7 @@ found in the repository.
 The current negative check also passed: invoking the script with an absent
 record was rejected with `Acceptance record does not exist.`
 
-Current-head rerun on source commit `fd39a90f03e2e704274f69b923c3d8ed02202595`
+Current-head rerun on source commit `ee16da83adbdea017853a2f84f880e85fac7e3aa`
 again returned exit code 1 for an absent record. The requirement-accountability
 script independently passed with 101 FRs, 29 NFRs, 32 controls, and 162/162
 IDs assigned.
