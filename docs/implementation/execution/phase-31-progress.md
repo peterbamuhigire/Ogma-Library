@@ -1,6 +1,6 @@
 # Phase 31 Progress - Native 3D Host and Catalogue Contract
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Delivered in this increment
 
@@ -23,13 +23,19 @@ Date: 2026-09-04
 - Reconciled the current phase record: no repository-only host-contract work is
   open; native adapter and physical platform gates remain **NOT ASSESSED**.
   See `evidence/phase-31-host-contract-reconciliation-2026-09-04.md`.
+- Evaluated the current official Avalonia native WebView package. It was not
+  retained because the repository has no valid license key and the package’s
+  public abstraction does not provide the custom-scheme response synthesis
+  required by the existing `ogma://` boundary. See
+  `evidence/phase-31-native-binding-gate-2026-09-05.md`.
 
 ## Verification
 
 - Bridge/message and 3D view-model slice: 28 passed.
 - Headless rendered 3D fallback slice: 1 passed.
-- Architecture suite: 41 passed before the final phase-only host changes; the
-  solution test build includes the current shell and bridge contracts.
+- Architecture suite: 41 passed on the current worktree.
+- Application Release build: 0 warnings, 0 errors after the unlicensed binding
+  was removed.
 
 ## Remaining phase gate
 
