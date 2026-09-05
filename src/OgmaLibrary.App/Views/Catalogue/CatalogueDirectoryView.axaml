@@ -30,7 +30,7 @@
                        TextTrimming="CharacterEllipsis"
                        VerticalAlignment="Center" />
             <TextBlock Grid.Column="2"
-                       Text="{Binding Authors[0], FallbackValue='Unknown author'}"
+                       Text="{Binding PrimaryAuthor}"
                        TextTrimming="CharacterEllipsis"
                        VerticalAlignment="Center" />
             <TextBlock Grid.Column="3"

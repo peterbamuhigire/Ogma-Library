@@ -50,7 +50,7 @@
                          TextTrimming="CharacterEllipsis">
                 <TextBlock.Text>
                   <MultiBinding StringFormat="{}{0}">
-                    <Binding Path="Authors[0]" FallbackValue="Unknown Author" />
+                    <Binding Path="PrimaryAuthor" />
                   </MultiBinding>
                 </TextBlock.Text>
               </TextBlock>

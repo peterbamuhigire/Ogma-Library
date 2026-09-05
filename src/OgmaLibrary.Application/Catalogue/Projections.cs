@@ -34,7 +34,13 @@ public sealed record BookSummaryProjection(
     string? Sha256Hash = null,
     bool IsFavourite = false,
     string? RelativePath = null,
-    CatalogueProcessingProjection? Processing = null);
+    CatalogueProcessingProjection? Processing = null)
+{
+    /// <summary>Safe display value for cards when bibliographic authors are absent.</summary>
+    public string PrimaryAuthor =>
+        Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim() ??
+        "Unknown author";
+}
 
 /// <summary>
 /// Non-sensitive processing state used by catalogue badges and later 3D clients.

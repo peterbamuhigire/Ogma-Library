@@ -41,6 +41,24 @@ public sealed class CatalogueGridTests
 
     private const int SeedCount = 24;
 
+    [Fact]
+    public void BookSummaryProjection_UsesSafePrimaryAuthorFallback()
+    {
+        var summary = new BookSummaryProjection(
+            "book-empty-author",
+            "Untitled work",
+            [],
+            null,
+            0,
+            null,
+            [],
+            null,
+            true,
+            null);
+
+        Assert.Equal("Unknown author", summary.PrimaryAuthor);
+    }
+
     /// <summary>
     /// Seeds 24 synthetic books into an in-memory CatalogueViewModel,
     /// renders the CatalogueGridView, captures a screenshot, and asserts

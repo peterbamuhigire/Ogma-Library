@@ -58,7 +58,7 @@
               <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                          TextTrimming="CharacterEllipsis"
-                         Text="{Binding Authors[0], FallbackValue='Unknown Author'}" />
+                         Text="{Binding PrimaryAuthor}" />
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
                 <Border IsVisible="{Binding Processing.IsIndexed}"
                         Background="{DynamicResource Brush.Accent.Sage}"

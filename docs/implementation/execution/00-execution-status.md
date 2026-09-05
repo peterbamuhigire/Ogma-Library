@@ -22,7 +22,7 @@ progress records.
 | 5 | Library Roots and Path Security | COMPLETE | Durable roots, bounded probes, relink semantics and discovery guard |
 | 6 | Processing State Machine and Scan Sessions | COMPLETE | Durable sessions, leased stages, retries, cancellation and recovery |
 | 7 | Discovery and Incremental Scanning | COMPLETE | Recovery gates closed; physical cross-platform/UI evidence remains NOT ASSESSED |
-| 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery and audit gates closed; physical ACL/operator/cross-OS evidence remains NOT ASSESSED |
+| 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery, audit, and safe empty-author catalogue binding gates closed; physical ACL/operator/cross-OS evidence remains NOT ASSESSED |
 | 9 | Duplicate and Bibliographic Resolution | COMPLETE | Candidate blocking, grouping and consumer projections evidenced |
 | 10 | PDF Validation and Containment | IN PROGRESS | Broker, password, resource gates, and fail-closed Windows Job Object startup delivered; OS sandbox/escape/security approval open |
 | 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC, ranked ISBN evidence, 500-book synthetic baseline, bounded page-streamed extraction, and seven-file/3,326-page real adapter plus database-pipeline corpus delivered; target-scale pipeline and allocation ceiling remain open |

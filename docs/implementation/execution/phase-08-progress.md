@@ -29,6 +29,8 @@ Date: 2026-09-04
 ## Remaining phase gate
 
 The Phase 8 implementation gates are closed by the acceptance evidence above.
+The empty-author catalogue binding remediation is also closed: grid, list, and
+directory surfaces now consume the safe `PrimaryAuthor` projection property.
 Physical disconnected-volume/ACL behavior, operator review UI, and cross-OS
 walkthroughs remain platform/release gates and are not silently treated as
 assessed by this Windows unit/integration run.
