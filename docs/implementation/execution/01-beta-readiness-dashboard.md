@@ -14,9 +14,11 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete solution run passed 1,110 tests with 0 failures and 0 skips:
-914 core, 41 architecture, and 155 UI. The post-Host-sharing localization run
-completed in 9m57s.
+The latest complete current-worktree regression passed 1,125 tests with 0
+failures and 0 skips: 925 core, 41 architecture, and 159 UI. The authoritative
+record is `evidence/solution-regression-current-worktree-2026-09-05.md`; it
+also records the user-owned dirty worktree changes that were deliberately not
+staged.
 
 ```text
 dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal"
