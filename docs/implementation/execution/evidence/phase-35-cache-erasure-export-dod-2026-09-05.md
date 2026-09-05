@@ -25,9 +25,10 @@ catalogue or source PDFs.
 
 - Build: `dotnet build tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj
   --configuration Release --no-restore` — 0 warnings, 0 errors.
-- Focused cache suite: 10 passed, 0 failed, 0 skipped.
-- Complete classroom-client slice: 109 passed, 0 failed, 0 skipped.
-- Complete Release solution: 1,106 passed (910 core, 41 architecture, 155
+- Focused cache suite: 11 passed, 0 failed, 0 skipped, including disk and
+  in-memory all-Host erasure parity.
+- Complete classroom-client slice: 110 passed, 0 failed, 0 skipped.
+- Complete Release solution: 1,107 passed (911 core, 41 architecture, 155
   UI), 0 failed, 0 skipped.
 - Evidence: [phase-35-local-gate-reconciliation-2026-09-04.md](phase-35-local-gate-reconciliation-2026-09-04.md).
 

@@ -6,9 +6,9 @@ The tamper-evident cache, exact content-length validation, host/certificate
 scoping, bounded sync codec, single-flight sync, encrypted per-profile store,
 guest no-sync policy, and conflict semantics are implemented and covered by
 the Phase 35 evidence. The current-head classroom-client slice remains
-**109 passed, 0 failed, 0 skipped**.
+**110 passed, 0 failed, 0 skipped**.
 
-The complete current Release solution suite passed **1,106 tests** (910 core,
+The complete current Release solution suite passed **1,107 tests** (911 core,
 41 architecture, 155 UI), with 0 failures and 0 skips.
 
 Physical credential-store/pairing, network-drop reconnect, offline-reader UX,
