@@ -43,6 +43,9 @@ the 2,000 ms threshold during the concurrent full run; the same test passed in
 an isolated rerun (1 passed, 0 failed). This remains an environment/performance
 gate and is not attributed to the localization change.
 
+A subsequent complete current-head run passed 1,093 tests (897 core, 41
+architecture, 155 UI), with 0 failures and 0 skips.
+
 ## Gate disposition
 
 - F-UI-002: resolved for its named Student Smart Search/book-detail scope;

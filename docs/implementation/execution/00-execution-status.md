@@ -7,14 +7,13 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-05
 
-Automated validation baseline: the last clean full solution suite before the
-latest localization increment passed 1,089 tests (895 core, 41 architecture,
-153 UI), with 0 failures and 0 skips. The latest HEAD-focused run passed 895
-core tests, failed one timing-sensitive LAN catalogue P95 test, and passed 41
-architecture plus 155 UI tests; the failed test passed in an isolated rerun.
-This distinction closes only the repaired automated gates; per-phase platform,
-physical, legal, signing, reference, owner, and the outstanding full-suite
-performance gate remain governed by their explicit progress records.
+Automated validation refresh: the latest complete full solution suite passed
+1,093 tests (897 core, 41 architecture, 155 UI), with 0 failures and 0 skips.
+An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
+outlier; the isolated test and this subsequent complete run both passed. This
+refresh closes only the repaired automated gates; per-phase platform, physical,
+legal, signing, reference, owner, and other explicit release gates remain
+governed by their progress records.
 
 | Phase | Name | Status | Evidence position |
 | ----: | ---- | ------ | ------------------ |
