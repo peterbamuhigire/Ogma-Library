@@ -31,6 +31,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     private readonly ISchoolAiHistoryManagementService? _schoolAiHistoryManagementService;
     private readonly IAuditRepository? _auditRepository;
     private readonly ILocalizationService? _localization;
+    private readonly IOfflineCacheService? _offlineCacheService;
+    private readonly IClassroomHostConnectionService? _hostConnectionService;
     private readonly string _title = "Host";
     private readonly string _schoolAdminTitle = "School administration";
     private readonly string _clientTitle = "Connect to Host";
@@ -75,6 +77,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     private bool _isSharePanelOpen;
     private bool _isStartConfirmationOpen;
     private bool _isFileStreamConfirmationOpen;
+    private bool _isOfflineCacheClearConfirmationOpen;
     private bool _acceptFirstUseTrust;
     private bool _useGuestProfile;
     private bool _isSyncEnabled;
@@ -94,6 +97,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     private string _schoolAiProviderId = "openai";
     private string _schoolAiKeyStatusText = "AI key status unavailable";
     private string _schoolAdminStatusText = "School administration unavailable";
+    private string? _offlineCacheStatusText;
     private string _enrollmentDisplayName = string.Empty;
     private string _enrollmentRole = "student";
     private string _enrollmentBirthYearText = string.Empty;
@@ -121,7 +125,9 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         IUsageDashboardService? usageDashboardService = null,
         ISchoolAiHistoryManagementService? schoolAiHistoryManagementService = null,
         IAuditRepository? auditRepository = null,
-        ILocalizationService? localization = null)
+        ILocalizationService? localization = null,
+        IOfflineCacheService? offlineCacheService = null,
+        IClassroomHostConnectionService? hostConnectionService = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
@@ -138,6 +144,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         _schoolAiHistoryManagementService = schoolAiHistoryManagementService;
         _auditRepository = auditRepository;
         _localization = localization;
+        _offlineCacheService = offlineCacheService;
+        _hostConnectionService = hostConnectionService;
         if (_localization is not null)
         {
             _clientConnectionStatusText = _localization["Sharing.Client.NotConnected"];
@@ -187,6 +195,40 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     public string AcceptTrustText => Localize("Sharing.Client.AcceptTrust", _acceptTrustText);
 
     public string ConnectToHostText => Localize("Sharing.Client.Connect", _connectToHostText);
+
+    public string OfflineCacheTitle => Localize("Sharing.Client.Cache.Title", "Offline classroom cache");
+
+    public string OfflineCacheDescription => Localize(
+        "Sharing.Client.Cache.Description",
+        "Export cached resources for the active Host or clear all classroom cache data.");
+
+    public string OfflineCacheExportText => Localize("Sharing.Client.Cache.Export", "Export cache");
+
+    public string OfflineCacheClearText => Localize("Sharing.Client.Cache.Clear", "Clear cache");
+
+    public string OfflineCacheClearPromptText => Localize(
+        "Sharing.Client.Cache.ClearPrompt",
+        "Clear all classroom cache data? Local books and private profile data are not affected.");
+
+    public string OfflineCacheConfirmClearText => Localize("Sharing.Client.Cache.ConfirmClear", "Clear");
+
+    public string OfflineCacheCancelClearText => Localize("Sharing.Cancel", "Cancel");
+
+    public string? OfflineCacheStatusText
+    {
+        get => _offlineCacheStatusText;
+        private set
+        {
+            if (_offlineCacheStatusText != value)
+            {
+                _offlineCacheStatusText = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasOfflineCacheStatus));
+            }
+        }
+    }
+
+    public bool HasOfflineCacheStatus => !string.IsNullOrWhiteSpace(OfflineCacheStatusText);
 
     public string ClientConnectionStatusText
     {
@@ -694,6 +736,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
                 OnPropertyChanged(nameof(CanSyncNow));
                 OnPropertyChanged(nameof(CanDiscoverHosts));
                 OnPropertyChanged(nameof(CanResolveAnnotationConflict));
+                OnPropertyChanged(nameof(CanClearOfflineCache));
+                OnPropertyChanged(nameof(CanExportOfflineCache));
                 RaiseSchoolAdminCapabilitiesChanged();
             }
         }
@@ -713,6 +757,18 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         (UseGuestProfile || !string.IsNullOrWhiteSpace(ProfileDisplayName));
 
     public bool CanDiscoverHosts => !IsBusy && _mdnsResolver is not null;
+
+    public bool HasOfflineCacheManagement => _offlineCacheService is not null;
+
+    public bool CanClearOfflineCache =>
+        !IsBusy &&
+        _offlineCacheService is not null &&
+        !IsOfflineCacheClearConfirmationOpen;
+
+    public bool CanExportOfflineCache =>
+        !IsBusy &&
+        _offlineCacheService is not null &&
+        _hostConnectionService is not null;
 
     public bool HasHostDiscovery => _mdnsResolver is not null;
 
@@ -838,6 +894,20 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     }
 
     public bool HasShareConfirmation => !string.IsNullOrWhiteSpace(ShareConfirmationText);
+
+    public bool IsOfflineCacheClearConfirmationOpen
+    {
+        get => _isOfflineCacheClearConfirmationOpen;
+        private set
+        {
+            if (_isOfflineCacheClearConfirmationOpen != value)
+            {
+                _isOfflineCacheClearConfirmationOpen = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanClearOfflineCache));
+            }
+        }
+    }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
@@ -1099,6 +1169,84 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             "Exported {0:N0} school audit rows to CSV",
             SchoolAuditEvents.Count);
     }
+
+    public void RequestOfflineCacheClearConfirmation()
+    {
+        if (HasOfflineCacheManagement)
+        {
+            IsOfflineCacheClearConfirmationOpen = true;
+        }
+    }
+
+    public void CancelOfflineCacheClearConfirmation() => IsOfflineCacheClearConfirmationOpen = false;
+
+    public async Task ConfirmOfflineCacheClearAsync(CancellationToken cancellationToken = default)
+    {
+        if (_offlineCacheService is null || !IsOfflineCacheClearConfirmationOpen)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await _offlineCacheService.ClearAllAsync(cancellationToken).ConfigureAwait(true);
+            OfflineCacheStatusText = Localize("Sharing.Client.Cache.Cleared", "Classroom cache cleared");
+            IsOfflineCacheClearConfirmationOpen = false;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            OfflineCacheStatusText = Localize("Sharing.Client.Cache.ClearFailed", "Could not clear classroom cache.");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task ExportOfflineCacheAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (_offlineCacheService is null || _hostConnectionService is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            ClassroomHostConnection? connection = await _hostConnectionService
+                .GetActiveAsync(cancellationToken)
+                .ConfigureAwait(true);
+            if (connection is null)
+            {
+                OfflineCacheStatusText = Localize(
+                    "Sharing.Client.Cache.NoActiveHost",
+                    "Connect to a classroom Host before exporting its cache.");
+                return;
+            }
+
+            await _offlineCacheService
+                .ExportHostAsync(
+                    ClassroomCacheScope.CreateHostId(connection.Request),
+                    destination,
+                    cancellationToken)
+                .ConfigureAwait(true);
+            OfflineCacheStatusText = Localize("Sharing.Client.Cache.Exported", "Classroom cache exported");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            OfflineCacheStatusText = Localize("Sharing.Client.Cache.ExportFailed", "Could not export classroom cache.");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public void ReportOfflineCacheStorageUnavailable() => OfflineCacheStatusText = Localize(
+        "Sharing.Client.Cache.StorageUnavailable",
+        "File export is unavailable on this device.");
 
     public async Task ConnectToHostAsync(CancellationToken cancellationToken = default)
     {
@@ -1884,6 +2032,13 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(GuestProfileText));
         OnPropertyChanged(nameof(AcceptTrustText));
         OnPropertyChanged(nameof(ConnectToHostText));
+        OnPropertyChanged(nameof(OfflineCacheTitle));
+        OnPropertyChanged(nameof(OfflineCacheDescription));
+        OnPropertyChanged(nameof(OfflineCacheExportText));
+        OnPropertyChanged(nameof(OfflineCacheClearText));
+        OnPropertyChanged(nameof(OfflineCacheClearPromptText));
+        OnPropertyChanged(nameof(OfflineCacheConfirmClearText));
+        OnPropertyChanged(nameof(OfflineCacheCancelClearText));
         OnPropertyChanged(nameof(SharePanelTitle));
         OnPropertyChanged(nameof(ShareButtonText));
         OnPropertyChanged(nameof(CopyJoinLinkText));

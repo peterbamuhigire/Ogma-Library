@@ -5,7 +5,7 @@
              x:DataType="vm:HostSharingViewModel">
 
   <ScrollViewer>
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*"
           RowSpacing="18"
           Margin="28"
           MaxWidth="960"
@@ -781,6 +781,83 @@
           </StackPanel>
         </StackPanel>
       </Grid>
+
+      <Border Grid.Row="6"
+              IsVisible="{Binding HasOfflineCacheManagement}"
+              Padding="14"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding OfflineCacheTitle}"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <TextBlock Text="{Binding OfflineCacheDescription}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding OfflineCacheStatusText}"
+                     IsVisible="{Binding HasOfflineCacheStatus}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Accent.Sage}"
+                     TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Slate}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanExportOfflineCache}"
+                    AutomationProperties.Name="{Binding OfflineCacheExportText}"
+                    Click="ExportOfflineCacheButton_Click">
+              <TextBlock Text="{Binding OfflineCacheExportText}"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+            <Button Padding="12,7"
+                    Background="{DynamicResource Brush.Accent.Clay}"
+                    Foreground="White"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    IsEnabled="{Binding CanClearOfflineCache}"
+                    AutomationProperties.Name="{Binding OfflineCacheClearText}"
+                    Click="RequestOfflineCacheClearButton_Click">
+              <TextBlock Text="{Binding OfflineCacheClearText}"
+                         FontSize="{DynamicResource Type.Size.Caption}" />
+            </Button>
+          </StackPanel>
+          <Border IsVisible="{Binding IsOfflineCacheClearConfirmationOpen}"
+                  Padding="10"
+                  Background="{DynamicResource Brush.Surface.Card}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Grid.Column="0"
+                         Text="{Binding OfflineCacheClearPromptText}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                         TextWrapping="Wrap"
+                         VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Padding="10,6"
+                        AutomationProperties.Name="{Binding OfflineCacheCancelClearText}"
+                        Click="CancelOfflineCacheClearButton_Click">
+                  <TextBlock Text="{Binding OfflineCacheCancelClearText}"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+                <Button Padding="10,6"
+                        Background="{DynamicResource Brush.Accent.Clay}"
+                        Foreground="White"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.Name="{Binding OfflineCacheConfirmClearText}"
+                        Click="ConfirmOfflineCacheClearButton_Click">
+                  <TextBlock Text="{Binding OfflineCacheConfirmClearText}"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+        </StackPanel>
+      </Border>
     </Grid>
   </ScrollViewer>
 </UserControl>

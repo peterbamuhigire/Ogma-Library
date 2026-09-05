@@ -8,12 +8,12 @@ guest no-sync policy, and conflict semantics are implemented and covered by
 the Phase 35 evidence. The current-head classroom-client slice remains
 **110 passed, 0 failed, 0 skipped**.
 
-The complete current Release solution suite passed **1,107 tests** (911 core,
+The complete current Release solution suite passed **1,109 tests** (913 core,
 41 architecture, 155 UI), with 0 failures and 0 skips.
 
 Physical credential-store/pairing, network-drop reconnect, offline-reader UX,
-accessibility capture, cache UI controls, two-user isolation, and cross-machine
-load evidence are **NOT ASSESSED**. The cache service now also exposes a
+accessibility capture, two-user isolation, and cross-machine load evidence are
+**NOT ASSESSED**. The cache service now also exposes a
 versioned host-scoped ZIP export with a manifest and integrity-checked payloads;
 its focused test passed as part of the current-head verification. The disk
 implementation hashes and copies payloads through asynchronous streams, so an
@@ -23,7 +23,11 @@ is committed at `c6635c0d98d910de32795df66e5ebedd92abba4d`.
 The cache boundary also now exposes all-Host erasure. Its regression proves
 that valid entries, orphaned payloads, temporary files, and corrupt metadata
 are removed from the cache root; the UI control remains unassessed because the
-settings view has protected user changes.
+settings view has protected user changes. The settings surface now includes
+localized export and confirmation-gated clear controls, with Host scope
+resolved from the same normalized address/port/certificate identity used by
+the cache client. The focused HostSharingViewModel suite passed 18 tests,
+including these controls; physical picker behavior remains NOT ASSESSED.
 
 The delivery handoff, rollback, runbook, ownership, and maintenance notes are
 in [phase-35-cache-erasure-export-dod-2026-09-05.md](phase-35-cache-erasure-export-dod-2026-09-05.md).

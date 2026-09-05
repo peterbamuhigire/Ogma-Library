@@ -25,14 +25,19 @@ Date: 2026-09-04
 - Added explicit all-Host cache erasure, including orphaned payload and
   temporary-file cleanup, so local cache deletion does not depend on valid
   metadata being present.
+- Added localized Client settings controls for Host-scoped ZIP export and
+  explicit all-cache erasure confirmation, with native save-file selection and
+  status feedback for unavailable storage or operation failures.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors.
 - Classroom-client slice: 110 passed.
-- Complete current Release solution suite: 1,107 passed (911 core, 41
+- Complete current Release solution suite: 1,109 passed (913 core, 41
   architecture, 155 UI), with 0 failures and 0 skips.
+- Focused HostSharingViewModel suite: 18 passed, 0 failed, 0 skipped; the
+  classroom-client slice remains 110 passed, 0 failed, 0 skipped.
 - Added tests for cache tamper rejection, certificate-rotation cache isolation,
   oversized sync payload rejection, and host-scoped cache archive export.
 - Current-head local gate reconciliation is recorded in
@@ -42,5 +47,5 @@ Date: 2026-09-04
 
 Physical Windows/macOS credential-store and host/client pairing evidence,
 network-drop/reconnect with a renewed session, offline reader UX and
-accessibility capture, cache clear/export UI controls, two-user hostile
-isolation, and cross-machine load evidence remain release gates.
+accessibility capture, two-user hostile isolation, and cross-machine load
+evidence remain release gates.

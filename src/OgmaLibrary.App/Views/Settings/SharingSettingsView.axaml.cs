@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
 namespace OgmaLibrary.App.Views.Settings;
@@ -154,6 +155,60 @@ public partial class SharingSettingsView : UserControl
         {
             using var stream = new MemoryStream();
             await ViewModel.ExportSchoolAuditCsvAsync(stream).ConfigureAwait(true);
+        }
+    }
+
+    private void RequestOfflineCacheClearButton_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel?.RequestOfflineCacheClearConfirmation();
+
+    private void CancelOfflineCacheClearButton_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel?.CancelOfflineCacheClearConfirmation();
+
+    private async void ConfirmOfflineCacheClearButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            await ViewModel.ConfirmOfflineCacheClearAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void ExportOfflineCacheButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+        {
+            return;
+        }
+
+        TopLevel? topLevel = ResolveTopLevel(sender);
+        if (topLevel?.StorageProvider.CanSave != true)
+        {
+            ViewModel.ReportOfflineCacheStorageUnavailable();
+            return;
+        }
+
+        IStorageFile? file = await topLevel.StorageProvider.SaveFilePickerAsync(
+            new FilePickerSaveOptions
+            {
+                SuggestedFileName = "ogma-classroom-cache.zip",
+                DefaultExtension = "zip",
+                FileTypeChoices =
+                [
+                    new FilePickerFileType("ZIP")
+                    {
+                        Patterns = ["*.zip"],
+                        MimeTypes = ["application/zip"],
+                    },
+                ],
+            }).ConfigureAwait(true);
+        if (file is null)
+        {
+            return;
+        }
+
+        Stream stream = await file.OpenWriteAsync().ConfigureAwait(false);
+        await using (stream.ConfigureAwait(false))
+        {
+            await ViewModel.ExportOfflineCacheAsync(stream).ConfigureAwait(true);
         }
     }
 

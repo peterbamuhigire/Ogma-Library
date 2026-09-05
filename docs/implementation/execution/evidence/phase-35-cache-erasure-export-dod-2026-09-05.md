@@ -28,8 +28,10 @@ catalogue or source PDFs.
 - Focused cache suite: 11 passed, 0 failed, 0 skipped, including disk and
   in-memory all-Host erasure parity.
 - Complete classroom-client slice: 110 passed, 0 failed, 0 skipped.
-- Complete Release solution: 1,107 passed (911 core, 41 architecture, 155
+- Complete Release solution: 1,109 passed (913 core, 41 architecture, 155
   UI), 0 failed, 0 skipped.
+- HostSharingViewModel suite: 18 passed, 0 failed, 0 skipped, covering
+  confirmation-gated erasure and active-Host export scoping.
 - Evidence: [phase-35-local-gate-reconciliation-2026-09-04.md](phase-35-local-gate-reconciliation-2026-09-04.md).
 
 ## Release and rollback
@@ -79,6 +81,6 @@ trust from an archive filename.
 
 ## Explicit residual gates
 
-The settings UI controls, physical Windows/macOS pairing and credential-store
-proof, reconnect/offline-reader walkthroughs, hostile two-user isolation, and
-cross-machine load evidence remain open in the Phase 35 progress record.
+Physical Windows/macOS pairing and credential-store proof, reconnect/offline-
+reader walkthroughs, hostile two-user isolation, and cross-machine load
+evidence remain open in the Phase 35 progress record.

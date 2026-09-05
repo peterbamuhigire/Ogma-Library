@@ -62,6 +62,53 @@ public sealed class HostSharingViewModelTests
     }
 
     [Fact]
+    public async Task HostSharingViewModel_OfflineCacheClearRequiresConfirmation()
+    {
+        var cache = new RecordingOfflineCacheService();
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            offlineCacheService: cache);
+
+        Assert.True(viewModel.HasOfflineCacheManagement);
+        Assert.True(viewModel.CanClearOfflineCache);
+
+        viewModel.RequestOfflineCacheClearConfirmation();
+
+        Assert.True(viewModel.IsOfflineCacheClearConfirmationOpen);
+        Assert.False(viewModel.CanClearOfflineCache);
+        Assert.Equal(0, cache.ClearAllCalls);
+
+        await viewModel.ConfirmOfflineCacheClearAsync();
+
+        Assert.Equal(1, cache.ClearAllCalls);
+        Assert.False(viewModel.IsOfflineCacheClearConfirmationOpen);
+        Assert.Equal("Classroom cache cleared", viewModel.OfflineCacheStatusText);
+    }
+
+    [Fact]
+    public async Task HostSharingViewModel_OfflineCacheExportUsesActiveHostScope()
+    {
+        var request = new ClassroomJoinRequest(
+            "  HOST.EXAMPLE  ",
+            7473,
+            "  ABCDEF  ");
+        var cache = new RecordingOfflineCacheService();
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            offlineCacheService: cache,
+            hostConnectionService: new FixedHostConnectionService(
+                new ClassroomHostConnection(request, "session", DateTimeOffset.UtcNow)));
+
+        using var output = new MemoryStream();
+        await viewModel.ExportOfflineCacheAsync(output);
+
+        Assert.Equal("host.example:7473:abcdef", cache.LastExportedHostId);
+        Assert.Equal("Classroom cache exported", viewModel.OfflineCacheStatusText);
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_StartAndStop_UpdateControlState()
     {
         var host = new FakeLibraryHostService();
@@ -606,6 +653,53 @@ public sealed class HostSharingViewModelTests
             Settings = settings;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class RecordingOfflineCacheService : IOfflineCacheService
+    {
+        public int ClearAllCalls { get; private set; }
+
+        public string? LastExportedHostId { get; private set; }
+
+        public Task<OfflineCacheEntry?> GetAsync(
+            string hostId,
+            string resourceKey,
+            CancellationToken cancellationToken = default) => Task.FromResult<OfflineCacheEntry?>(null);
+
+        public Task PutAsync(OfflineCacheEntry entry, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task ClearHostAsync(string hostId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task ClearAllAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ClearAllCalls++;
+            return Task.CompletedTask;
+        }
+
+        public Task ExportHostAsync(
+            string hostId,
+            Stream destination,
+            CancellationToken cancellationToken = default)
+        {
+            LastExportedHostId = hostId;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FixedHostConnectionService(ClassroomHostConnection? connection)
+        : IClassroomHostConnectionService
+    {
+        public Task<ClassroomHostConnection?> GetActiveAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(connection);
+
+        public Task SetActiveAsync(
+            ClassroomHostConnection connection,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task ClearAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class FakeLibraryHostService : ILibraryHostService

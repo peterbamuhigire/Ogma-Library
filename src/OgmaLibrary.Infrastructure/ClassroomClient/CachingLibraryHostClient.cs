@@ -132,7 +132,7 @@ internal sealed class CachingLibraryHostClient : ILibraryHostClient
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        string hostKey = CreateCacheScopeKey(request);
+        string hostKey = ClassroomCacheScope.CreateHostId(request);
         OfflineCacheEntry? cached = await _cache.GetAsync(hostKey, resourceKey, cancellationToken).ConfigureAwait(false);
         if (cached is not null)
         {
@@ -157,6 +157,4 @@ internal sealed class CachingLibraryHostClient : ILibraryHostClient
         return resource;
     }
 
-    private static string CreateCacheScopeKey(ClassroomJoinRequest request) =>
-        $"{HostTrustService.CreateHostKey(request)}:{request.CertificateFingerprint.Trim().ToLowerInvariant()}";
 }
