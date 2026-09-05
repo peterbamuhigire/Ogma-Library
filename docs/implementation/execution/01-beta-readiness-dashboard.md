@@ -1,6 +1,6 @@
 # Ogma Library Beta-Readiness Dashboard
 
-Date: 2026-09-05  
+Date: 2026-09-05
 Authority: [39-phase execution ledger](00-execution-status.md) and the
 [approved Aug-39 roadmap](../../plans/aug-39/README.md)
 
