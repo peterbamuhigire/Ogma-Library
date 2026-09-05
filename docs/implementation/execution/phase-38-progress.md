@@ -64,8 +64,8 @@ Date: 2026-09-04
   `evidence/phase-38-format-gate-2026-09-05.md`.
 - A safe formatting subset was committed as `e0eaea9` and the CRLF checkout
   policy as `17871b9`; the full Release suite remained green at 1,104 tests at
-  that commit. The current head later passed 1,105 tests after the classroom
-  cache export coverage was added.
+  that commit. The current head later passed 1,106 tests after the classroom
+  cache export and erasure coverage was added.
   The residual import-order diagnostic in `ReaderModule.cs` was mechanically
   corrected after confirming its content hash matched `HEAD`; a fresh-checkout
   verifier run is recorded in

@@ -22,13 +22,16 @@ Date: 2026-09-04
   and payload lengths in a manifest while excluding other Hosts.
 - Disk export hashes and copies through asynchronous streams, keeping export
   memory bounded by the I/O buffer rather than the full cache payload.
+- Added explicit all-Host cache erasure, including orphaned payload and
+  temporary-file cleanup, so local cache deletion does not depend on valid
+  metadata being present.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors.
-- Classroom-client slice: 108 passed.
-- Complete current Release solution suite: 1,105 passed (909 core, 41
+- Classroom-client slice: 109 passed.
+- Complete current Release solution suite: 1,106 passed (910 core, 41
   architecture, 155 UI), with 0 failures and 0 skips.
 - Added tests for cache tamper rejection, certificate-rotation cache isolation,
   oversized sync payload rejection, and host-scoped cache archive export.
