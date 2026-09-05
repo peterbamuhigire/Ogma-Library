@@ -23,14 +23,17 @@ public sealed class HostSharingViewModelTests
         viewModel.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
 
         Assert.Equal("Host", viewModel.Title);
+        Assert.Equal("LAN Hosts", viewModel.DiscoveredHostsLabel);
+        Assert.Equal("Scan", viewModel.RefreshHostsText);
+        Assert.Equal("Student name", viewModel.ProfileDisplayNameLabel);
         Assert.Equal("Share", viewModel.ShareButtonText);
-        Assert.Equal("Start", viewModel.ConfirmStartText);
+        Assert.Equal("Start Host", viewModel.ConfirmStartText);
 
         localization.SetCulture("fr");
 
         Assert.Equal("Hote", viewModel.Title);
         Assert.Equal("Partager", viewModel.ShareButtonText);
-        Assert.Equal("Demarrer", viewModel.ConfirmStartText);
+        Assert.Equal("Demarrer l'hote", viewModel.ConfirmStartText);
         Assert.Contains(nameof(HostSharingViewModel.Title), changed);
         Assert.Contains(nameof(HostSharingViewModel.ShareButtonText), changed);
         Assert.Contains(nameof(HostSharingViewModel.ConfirmStartText), changed);
