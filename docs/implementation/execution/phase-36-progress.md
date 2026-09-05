@@ -25,7 +25,9 @@ Date: 2026-09-04
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors.
-- School Administration/managed-AI slice: 46 passed.
+- School Administration/managed-AI slice: 47 passed.
+- Dedicated school-admin scaffold suite: 12 passed, including replacement
+  overwrite proof in one normalized credential scope.
 - Provider failure, payload-preview, quota, rate-limit, DPIA, grounded citation,
   provider-key custody, and overlong-request paths are covered by focused tests.
 - Current-head local gate reconciliation is recorded in

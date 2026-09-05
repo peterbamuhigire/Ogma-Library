@@ -156,6 +156,35 @@ public sealed class SchoolAdminScaffoldTests
     }
 
     [Fact]
+    public async Task SchoolAiKeyProvider_ReplacingKeyOverwritesSameCredentialScope()
+    {
+        string dataDirectory = CreateTempDirectory();
+        var credentialStore = new RecordingCredentialStore();
+
+        try
+        {
+            using ServiceProvider provider = new ServiceCollection()
+                .AddSingleton<IClassroomCredentialStore>(credentialStore)
+                .AddSchoolAdminServices(dataDirectory)
+                .BuildServiceProvider();
+            var keys = provider.GetRequiredService<ISchoolAiKeyProvider>();
+
+            await keys.SaveKeyAsync(" OpenAI ", "sk-first-key".ToCharArray());
+            await keys.SaveKeyAsync("openai", "sk-second-key".ToCharArray());
+            SchoolAiKeyStatus status = await keys.GetStatusAsync("openai");
+
+            Assert.Equal(SchoolAiKeyProvider.CreateCredentialKey("openai"), credentialStore.LastSavedKey);
+            Assert.Contains("sk-second-key", credentialStore.LastSavedValue, StringComparison.Ordinal);
+            Assert.DoesNotContain("sk-first-key", credentialStore.LastSavedValue, StringComparison.Ordinal);
+            Assert.True(status.IsConfigured);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task SchoolAiKeyProvider_InvalidProviderId_ClearsInputBuffer()
     {
         string dataDirectory = CreateTempDirectory();
