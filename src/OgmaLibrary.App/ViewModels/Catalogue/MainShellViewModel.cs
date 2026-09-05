@@ -536,6 +536,9 @@ public sealed class MainShellViewModel :
     /// <summary>Sort label.</summary>
     public string SortLabel => _localization["Icon.ic_cat_sort.Label"];
 
+    /// <summary>Localized sidebar toggle accessibility label.</summary>
+    public string SidebarToggleLabel => _localization["Catalogue.Shell.ToggleSidebar"];
+
     /// <summary>Localized filter-panel heading.</summary>
     public string FiltersText => _localization["Catalogue.Filter.Filters"];
 
@@ -1313,6 +1316,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(IndexManagerIconPath));
         OnPropertyChanged(nameof(StudentSmartSearchIconPath));
         OnPropertyChanged(nameof(SortLabel));
+        OnPropertyChanged(nameof(SidebarToggleLabel));
         OnPropertyChanged(nameof(FiltersText));
         OnPropertyChanged(nameof(FilterTitleWatermark));
         OnPropertyChanged(nameof(FilterAuthorWatermark));

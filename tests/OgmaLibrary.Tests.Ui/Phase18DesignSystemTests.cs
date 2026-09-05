@@ -38,6 +38,7 @@ public sealed class Phase18DesignSystemTests
             "Catalogue.BookDetail.Reading.LastReadFormat",
             "Catalogue.BookDetail.Reading.AnnotationsFormat",
             "Catalogue.BookDetail.Curation.RatingAccessibilityFormat",
+            "Catalogue.Shell.ToggleSidebar",
             "Startup.Migration.Preparing",
             "Startup.Migration.ProgressFormat",
             "Search.Result.Untitled",
@@ -61,6 +62,7 @@ public sealed class Phase18DesignSystemTests
         Assert.Equal(
             "Definir la note sur {0} sur 5",
             localization["Catalogue.BookDetail.Curation.RatingAccessibilityFormat"]);
+        Assert.Equal("Afficher ou masquer la barre laterale", localization["Catalogue.Shell.ToggleSidebar"]);
 
         localization.SetCulture("qps-ploc");
         foreach (string key in keys)

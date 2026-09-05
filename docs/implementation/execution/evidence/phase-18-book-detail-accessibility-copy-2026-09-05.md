@@ -23,7 +23,8 @@ culture change. `BookDetailView` binds accessibility names to those properties
 instead of embedding English literals. The rating actions use one localized
 parameterized resource so translators control sentence order. The startup
 migration progress bar now binds to its localized progress text rather than a
-separate English-only name.
+separate English-only name. The catalogue shell's sidebar toggle and sort
+control use the existing localized shell properties as their spoken names.
 
 ## Verification
 

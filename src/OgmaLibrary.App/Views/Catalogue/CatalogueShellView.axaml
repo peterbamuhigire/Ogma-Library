@@ -112,7 +112,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="6"
-                  AutomationProperties.Name="Toggle sidebar"
+                  AutomationProperties.Name="{Binding SidebarToggleLabel}"
                   Click="SidebarToggle_Click">
             <TextBlock Text="☰" FontSize="18" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
@@ -350,7 +350,7 @@
           <ComboBox Width="120"
                     ItemsSource="{Binding Catalogue.Filter.SortOptions}"
                     SelectedItem="{Binding Catalogue.Filter.SortField, Mode=TwoWay}"
-                    AutomationProperties.Name="Sort by" />
+                    AutomationProperties.Name="{Binding SortLabel}" />
           <Button Padding="8,4"
                   Background="Transparent"
                   BorderBrush="{DynamicResource Brush.Surface.CardBorder}"

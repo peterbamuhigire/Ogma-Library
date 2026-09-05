@@ -95,6 +95,8 @@ Date: 2026-09-05
   Evidence: `evidence/phase-18-book-detail-accessibility-copy-2026-09-05.md`.
 - Replaced the startup migration progress bar's hard-coded accessibility name
   with the same localized progress text announced to users.
+- Replaced the catalogue shell's hard-coded sidebar-toggle and sort-control
+  accessibility names with localized view-model bindings.
 - Complete post-change Release solution regression: 908 core + 41
   architecture + 155 UI = 1,104 passed, 0 failed, 0 skipped (9m57s).
 - Incremental Book Detail accessibility/localisation slice: 3 passed, 0
