@@ -37,6 +37,8 @@ public sealed class Phase18DesignSystemTests
             "Catalogue.BookDetail.Reading.ProgressFormat",
             "Catalogue.BookDetail.Reading.LastReadFormat",
             "Catalogue.BookDetail.Reading.AnnotationsFormat",
+            "Startup.Migration.Preparing",
+            "Startup.Migration.ProgressFormat",
         ];
 
         foreach (string key in keys)

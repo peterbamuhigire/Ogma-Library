@@ -35,6 +35,9 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
     private string? _exportStatus;
     private string _migrationProgressText = string.Empty;
     private double _migrationProgress;
+    private int _migrationCompletedItems;
+    private int _migrationTotalItems;
+    private bool _hasMigrationProgress;
 
     /// <summary>Initializes the runtime startup shell.</summary>
     public StartupShellViewModel(
@@ -337,6 +340,10 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RetryText));
         OnPropertyChanged(nameof(ExportDiagnosticsText));
         RaiseStateTextChanged();
+        if (_hasMigrationProgress)
+        {
+            MigrationProgressText = FormatMigrationProgress();
+        }
     }
 
     private void RaiseStateTextChanged()
@@ -355,9 +362,10 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
             MigrationProgress = progress.TotalItems <= 0
                 ? 0
                 : Math.Clamp((double)progress.CompletedItems / progress.TotalItems, 0, 1);
-            MigrationProgressText = progress.TotalItems <= 0
-                ? "Preparing canonical library identities"
-                : $"Preparing canonical library identities: {progress.CompletedItems} / {progress.TotalItems}";
+            _migrationCompletedItems = progress.CompletedItems;
+            _migrationTotalItems = progress.TotalItems;
+            _hasMigrationProgress = true;
+            MigrationProgressText = FormatMigrationProgress();
             OnPropertyChanged(nameof(IsMigrationProgressKnown));
         }
 
@@ -370,6 +378,14 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
             Dispatcher.UIThread.Post(Apply);
         }
     }
+
+    private string FormatMigrationProgress() => _migrationTotalItems <= 0
+        ? _localization["Startup.Migration.Preparing"]
+        : string.Format(
+            _localization.CurrentCulture,
+            _localization["Startup.Migration.ProgressFormat"],
+            _migrationCompletedItems,
+            _migrationTotalItems);
 
     private void SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
