@@ -114,11 +114,22 @@ Date: 2026-09-05
 - Complete post-contrast Release solution regression: 914 core + 41
   architecture + 156 UI = 1,111 passed, 0 failed, 0 skipped (7m46s core
   duration).
+- Added a Skia-backed Avalonia rendered contrast proof for the production Oak
+  accent and parchment surface in both Light and Dark themes. The test decodes
+  the captured frame, checks rendered RGB fidelity, verifies the rendered
+  white-label pair at the 4.5:1 threshold, and writes Light/Dark snapshots to
+  `artifacts/screenshots/phase18-contrast-light.png` and
+  `artifacts/screenshots/phase18-contrast-dark.png`. Focused Phase 18 slice:
+  5 passed, 0 failed, 0 skipped. Evidence:
+  `evidence/phase-18-rendered-contrast-2026-09-05.md`.
+- Complete post-change Release solution regression: 920 core + 41
+  architecture + 159 UI = 1,120 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
-Rendered contrast snapshots and Narrator/VoiceOver journeys remain before
-phase 18 closure. The automated contrast matrix is closed. Theme/density
+The repository-verifiable rendered contrast snapshot subgate is now closed;
+physical Windows/macOS screenshot review and Narrator/VoiceOver journeys
+remain before phase 18 closure. The automated contrast matrix is closed. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
   named Student Smart Search copy finding, and static route inventory are

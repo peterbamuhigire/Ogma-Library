@@ -1,9 +1,11 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using OgmaLibrary.Infrastructure.Localization;
+using SkiaSharp;
 using Xunit;
 using OgmaApp = OgmaLibrary.App.App;
 
@@ -12,6 +14,24 @@ namespace OgmaLibrary.Tests.Ui;
 /// <summary>Headless proof for the shared Phase 18 token and control layer.</summary>
 public sealed class Phase18DesignSystemTests
 {
+    private static string ArtifactsDir
+    {
+        get
+        {
+            string dir = Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                "..",
+                "artifacts",
+                "screenshots");
+            Directory.CreateDirectory(dir);
+            return Path.GetFullPath(dir);
+        }
+    }
+
     [Fact]
     public void DetailPanelLabels_HaveEnglishFrenchAndPseudoResources()
     {
@@ -123,6 +143,90 @@ public sealed class Phase18DesignSystemTests
             }
         }
     }
+
+    [AvaloniaFact]
+    public void RenderedAccentSurface_MeetsSmallTextContrastInBothThemes()
+    {
+        var app = new OgmaApp();
+        app.Initialize();
+
+        var window = new Window
+        {
+            Width = 320,
+            Height = 180,
+        };
+
+        foreach (ThemeVariant theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+        {
+            app.RequestedThemeVariant = theme;
+            Assert.True(
+                app.TryGetResource("Color.Accent.Oak", theme, out object? accentRaw),
+                $"Missing Oak accent for {theme}.");
+            Assert.True(
+                app.TryGetResource("Color.Surface.Parchment", theme, out object? surfaceRaw),
+                $"Missing parchment surface for {theme}.");
+
+            Color accent = Assert.IsType<Color>(accentRaw);
+            Color surface = Assert.IsType<Color>(surfaceRaw);
+            window.Content = new Grid
+            {
+                Background = new SolidColorBrush(surface),
+                Children =
+                {
+                    new Border
+                    {
+                        Width = 220,
+                        Height = 60,
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        Background = new SolidColorBrush(accent),
+                        Child = new TextBlock
+                        {
+                            Text = "Open book",
+                            Foreground = new SolidColorBrush(Colors.White),
+                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        },
+                    },
+                },
+            };
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var frame = window.CaptureRenderedFrame();
+            Assert.NotNull(frame);
+            frame!.Save(Path.Combine(
+                ArtifactsDir,
+                $"phase18-contrast-{(theme == ThemeVariant.Light ? "light" : "dark")}.png"));
+
+            using var stream = new MemoryStream();
+            frame.Save(stream);
+            stream.Position = 0;
+            using SKBitmap bitmap = SKBitmap.Decode(stream)
+                ?? throw new InvalidOperationException("Headless frame could not be decoded.");
+
+            SKColor renderedAccent = bitmap.GetPixel(bitmap.Width / 2 - 90, bitmap.Height / 2);
+            SKColor renderedSurface = bitmap.GetPixel(8, 8);
+            Assert.True(
+                ColorDistance(renderedAccent, accent) <= 3,
+                $"Rendered Oak accent drifted for {theme}: {renderedAccent} vs {accent}.");
+            Assert.True(
+                ColorDistance(renderedSurface, surface) <= 3,
+                $"Rendered parchment drifted for {theme}: {renderedSurface} vs {surface}.");
+            Assert.True(
+                ContrastRatio(
+                    new Color(renderedAccent.Alpha, renderedAccent.Red, renderedAccent.Green, renderedAccent.Blue),
+                    Colors.White) >= 4.5,
+                $"Rendered white action label on Oak fails WCAG AA for {theme}.");
+        }
+
+        window.Close();
+    }
+
+    private static int ColorDistance(SKColor actual, Color expected) =>
+        Math.Abs(actual.Red - expected.R)
+        + Math.Abs(actual.Green - expected.G)
+        + Math.Abs(actual.Blue - expected.B);
 
     private static double ContrastRatio(Color foreground, Color background)
     {
