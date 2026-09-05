@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
-using OgmaLibrary.Infrastructure.Assets;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 

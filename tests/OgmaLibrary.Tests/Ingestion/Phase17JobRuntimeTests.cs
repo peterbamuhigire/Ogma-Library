@@ -1,7 +1,7 @@
+using System.Text.Json;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
-using System.Text.Json;
 
 namespace OgmaLibrary.Tests.Ingestion;
 

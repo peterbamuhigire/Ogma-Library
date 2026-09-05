@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Search;
-using OgmaLibrary.Application.Search;
 using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Search;

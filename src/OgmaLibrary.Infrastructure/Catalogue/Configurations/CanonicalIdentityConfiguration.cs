@@ -225,12 +225,12 @@ internal static class CanonicalIdentityConfiguration
         builder.Property(row => row.Source).IsRequired().HasMaxLength(128);
         builder.Property(row => row.NormalizedValue).IsRequired().HasMaxLength(512);
         builder.HasIndex(row => new
-            {
-                row.OwnerScope,
-                row.Source,
-                row.IdentifierKind,
-                row.NormalizedValue,
-            })
+        {
+            row.OwnerScope,
+            row.Source,
+            row.IdentifierKind,
+            row.NormalizedValue,
+        })
             .IsUnique()
             .HasDatabaseName("UX_BibliographicIdentifiers_ScopedValue");
         builder.HasIndex(row => row.WorkId).HasDatabaseName("IX_BibliographicIdentifiers_WorkId");

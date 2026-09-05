@@ -7,8 +7,8 @@ using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI.Ollama;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
-using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Infrastructure.Ocr;
+using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Infrastructure.Sidecar;
 

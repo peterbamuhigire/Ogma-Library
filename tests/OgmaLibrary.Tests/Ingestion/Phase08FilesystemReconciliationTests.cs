@@ -216,15 +216,15 @@ public sealed class Phase08FilesystemReconciliationTests : IDisposable
         int availability,
         string? assetId = null,
         DateTimeOffset? missingSinceUtc = null) => new()
-    {
-        FileOccurrenceId = id,
-        LibraryRootId = _rootId.Value,
-        RelativePath = path,
-        NormalizedRelativePath = path,
-        AvailabilityStatus = availability,
-        ContentAssetId = assetId,
-        MissingSinceUtc = missingSinceUtc,
-    };
+        {
+            FileOccurrenceId = id,
+            LibraryRootId = _rootId.Value,
+            RelativePath = path,
+            NormalizedRelativePath = path,
+            AvailabilityStatus = availability,
+            ContentAssetId = assetId,
+            MissingSinceUtc = missingSinceUtc,
+        };
 
     private DiscoveryObservationRow NewObservation(long sessionId, string path, string hash) => new()
     {

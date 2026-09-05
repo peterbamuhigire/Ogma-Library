@@ -4,8 +4,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
-using OgmaLibrary.Application.Reader;
 using OgmaLibrary.App.ViewModels.Reader;
+using OgmaLibrary.Application.Reader;
 
 namespace OgmaLibrary.App.Views.Reader;
 

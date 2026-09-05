@@ -1,7 +1,7 @@
+using System.Linq.Expressions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq.Expressions;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -150,14 +150,14 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             {
                 b.BookId,
                 b.Title,
-                 b.Status,
-                 b.Rating,
-                 b.IsFavourite,
-                 b.IndexStatus,
-                 b.EmbeddingStatus,
-                 b.QualityScore,
-                 b.IsOcrDerived,
-                 b.Year,
+                b.Status,
+                b.Rating,
+                b.IsFavourite,
+                b.IndexStatus,
+                b.EmbeddingStatus,
+                b.QualityScore,
+                b.IsOcrDerived,
+                b.Year,
                 b.Sha256Hash,
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
@@ -319,9 +319,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .FirstOrDefault(),
                 b.Sha256Hash,
                 b.SizeBytes,
-                 b.IsOcrDerived,
-                 b.IsPasswordProtected,
-                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
+                b.IsOcrDerived,
+                b.IsPasswordProtected,
+                HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
                     .Select(ba => ba.Author!.NormalizedName)

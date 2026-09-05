@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Configuration;
-using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Ocr;
-using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.AI;
+using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Commands;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Metadata;

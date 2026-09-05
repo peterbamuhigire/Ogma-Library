@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using OgmaLibrary.Application.Search;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
-using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Infrastructure.Metadata;
+using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Search;

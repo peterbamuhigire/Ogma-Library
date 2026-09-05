@@ -1,9 +1,9 @@
 using System.Text;
 using OgmaLibrary.Application.Reader;
-using OgmaLibrary.Tests.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Reader;
+using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Reader;
 

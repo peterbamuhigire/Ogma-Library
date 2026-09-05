@@ -1,5 +1,5 @@
-using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Ingestion;
 using Xunit;
 

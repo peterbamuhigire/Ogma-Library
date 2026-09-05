@@ -1,5 +1,5 @@
-using OgmaLibrary.Domain;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 

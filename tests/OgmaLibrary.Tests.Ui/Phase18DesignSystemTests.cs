@@ -2,8 +2,8 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using OgmaLibrary.Infrastructure.Localization;
-using OgmaApp = OgmaLibrary.App.App;
 using Xunit;
+using OgmaApp = OgmaLibrary.App.App;
 
 namespace OgmaLibrary.Tests.Ui;
 
