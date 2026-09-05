@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using OgmaLibrary.Application;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.SchoolAdmin;
@@ -13,7 +14,7 @@ using QRCoder;
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
 /// <summary>View model for the Phase 16 Host sharing control strip.</summary>
-public sealed class HostSharingViewModel : INotifyPropertyChanged
+public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly ILibraryHostService _hostService;
     private readonly IHostModeSettingsRepository _settingsRepository;
@@ -29,6 +30,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     private readonly IUsageDashboardService? _usageDashboardService;
     private readonly ISchoolAiHistoryManagementService? _schoolAiHistoryManagementService;
     private readonly IAuditRepository? _auditRepository;
+    private readonly ILocalizationService? _localization;
     private readonly string _title = "Host";
     private readonly string _schoolAdminTitle = "School administration";
     private readonly string _clientTitle = "Connect to Host";
@@ -118,7 +120,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ISchoolAiPolicyService? schoolAiPolicyService = null,
         IUsageDashboardService? usageDashboardService = null,
         ISchoolAiHistoryManagementService? schoolAiHistoryManagementService = null,
-        IAuditRepository? auditRepository = null)
+        IAuditRepository? auditRepository = null,
+        ILocalizationService? localization = null)
     {
         _hostService = hostService ?? throw new ArgumentNullException(nameof(hostService));
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
@@ -134,6 +137,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         _usageDashboardService = usageDashboardService;
         _schoolAiHistoryManagementService = schoolAiHistoryManagementService;
         _auditRepository = auditRepository;
+        _localization = localization;
+        if (_localization is not null)
+        {
+            _localization.CultureChanged += OnCultureChanged;
+        }
     }
 
     /// <inheritdoc />
@@ -142,39 +150,39 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
     /// <summary>Raised after the Client-mode Host connection completes successfully.</summary>
     public event EventHandler<ClassroomConnectionResult>? HostConnectionSucceeded;
 
-    public string Title => _title;
+    public string Title => Localize("Sharing.Host.Title", _title);
 
-    public string SchoolAdminTitle => _schoolAdminTitle;
+    public string SchoolAdminTitle => Localize("Sharing.SchoolAdmin.Title", _schoolAdminTitle);
 
-    public string ClientTitle => _clientTitle;
+    public string ClientTitle => Localize("Sharing.Client.Title", _clientTitle);
 
-    public string DiscoveredHostsLabel => _discoveredHostsLabel;
+    public string DiscoveredHostsLabel => Localize("Sharing.Client.DiscoveredHosts", _discoveredHostsLabel);
 
-    public string RefreshHostsText => _refreshHostsText;
+    public string RefreshHostsText => Localize("Sharing.Client.RefreshHosts", _refreshHostsText);
 
-    public string SyncNowText => _syncNowText;
+    public string SyncNowText => Localize("Sharing.Sync.Now", _syncNowText);
 
-    public string SyncOptInText => _syncOptInText;
+    public string SyncOptInText => Localize("Sharing.Sync.OptIn", _syncOptInText);
 
-    public string SyncOnReconnectText => _syncOnReconnectText;
+    public string SyncOnReconnectText => Localize("Sharing.Sync.OnReconnect", _syncOnReconnectText);
 
-    public string SyncConflictsLabel => _syncConflictsLabel;
+    public string SyncConflictsLabel => Localize("Sharing.Sync.Conflicts", _syncConflictsLabel);
 
-    public string KeepLocalText => _keepLocalText;
+    public string KeepLocalText => Localize("Sharing.Sync.KeepLocal", _keepLocalText);
 
-    public string KeepServerText => _keepServerText;
+    public string KeepServerText => Localize("Sharing.Sync.KeepServer", _keepServerText);
 
-    public string JoinLinkLabel => _joinLinkLabel;
+    public string JoinLinkLabel => Localize("Sharing.Client.JoinLink", _joinLinkLabel);
 
-    public string SavedProfileLabel => _savedProfileLabel;
+    public string SavedProfileLabel => Localize("Sharing.Client.SavedProfile", _savedProfileLabel);
 
-    public string ProfileDisplayNameLabel => _profileDisplayNameLabel;
+    public string ProfileDisplayNameLabel => Localize("Sharing.Client.ProfileName", _profileDisplayNameLabel);
 
-    public string GuestProfileText => _guestProfileText;
+    public string GuestProfileText => Localize("Sharing.Client.Guest", _guestProfileText);
 
-    public string AcceptTrustText => _acceptTrustText;
+    public string AcceptTrustText => Localize("Sharing.Client.AcceptTrust", _acceptTrustText);
 
-    public string ConnectToHostText => _connectToHostText;
+    public string ConnectToHostText => Localize("Sharing.Client.Connect", _connectToHostText);
 
     public string ClientConnectionStatusText
     {
@@ -624,7 +632,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     public string QrCodeText => CanShare ? BuildQrCodeText(ManualJoinUri) : string.Empty;
 
-    public string SharePanelTitle => _sharePanelTitle;
+    public string SharePanelTitle => Localize("Sharing.Host.ShareTitle", _sharePanelTitle);
 
     public string SharePanelSubtitle => CanShare
         ? $"Scan or copy the join link for {_settings.DisplayName}."
@@ -634,13 +642,13 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ? "No enrollment code"
         : $"Enrollment code: {_status.EnrollmentCode}";
 
-    public string ShareButtonText => _shareButtonText;
+    public string ShareButtonText => Localize("Sharing.Host.Share", _shareButtonText);
 
-    public string CopyJoinLinkText => _copyJoinLinkText;
+    public string CopyJoinLinkText => Localize("Sharing.Host.CopyJoinLink", _copyJoinLinkText);
 
-    public string CopyFingerprintText => _copyFingerprintText;
+    public string CopyFingerprintText => Localize("Sharing.Host.CopyFingerprint", _copyFingerprintText);
 
-    public string CloseSharePanelText => _closeSharePanelText;
+    public string CloseSharePanelText => Localize("Sharing.Close", _closeSharePanelText);
 
     public string ContentModeText => _settings.ContentMode == HostContentDeliveryMode.PageRender
         ? "Page Render"
@@ -650,15 +658,15 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
         ? "Use File Stream"
         : "Use Page Render";
 
-    public string StartConfirmationText => _startConfirmationText;
+    public string StartConfirmationText => Localize("Sharing.Host.StartConfirmation", _startConfirmationText);
 
-    public string FileStreamConfirmationText => _fileStreamConfirmationText;
+    public string FileStreamConfirmationText => Localize("Sharing.Host.FileStreamConfirmation", _fileStreamConfirmationText);
 
-    public string ConfirmStartText => _confirmStartText;
+    public string ConfirmStartText => Localize("Sharing.Host.Start", _confirmStartText);
 
-    public string ConfirmFileStreamText => _confirmFileStreamText;
+    public string ConfirmFileStreamText => Localize("Sharing.Host.UseFileStream", _confirmFileStreamText);
 
-    public string CancelConfirmationText => _cancelConfirmationText;
+    public string CancelConfirmationText => Localize("Sharing.Cancel", _cancelConfirmationText);
 
     public string PrimaryActionText => IsRunning ? "Stop" : "Start";
 
@@ -1832,6 +1840,50 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private string Localize(string key, string fallback) =>
+        _localization is null ? fallback : _localization[key];
+
+    private void OnCultureChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(SchoolAdminTitle));
+        OnPropertyChanged(nameof(ClientTitle));
+        OnPropertyChanged(nameof(DiscoveredHostsLabel));
+        OnPropertyChanged(nameof(RefreshHostsText));
+        OnPropertyChanged(nameof(SyncNowText));
+        OnPropertyChanged(nameof(SyncOptInText));
+        OnPropertyChanged(nameof(SyncOnReconnectText));
+        OnPropertyChanged(nameof(SyncConflictsLabel));
+        OnPropertyChanged(nameof(KeepLocalText));
+        OnPropertyChanged(nameof(KeepServerText));
+        OnPropertyChanged(nameof(JoinLinkLabel));
+        OnPropertyChanged(nameof(SavedProfileLabel));
+        OnPropertyChanged(nameof(ProfileDisplayNameLabel));
+        OnPropertyChanged(nameof(GuestProfileText));
+        OnPropertyChanged(nameof(AcceptTrustText));
+        OnPropertyChanged(nameof(ConnectToHostText));
+        OnPropertyChanged(nameof(SharePanelTitle));
+        OnPropertyChanged(nameof(ShareButtonText));
+        OnPropertyChanged(nameof(CopyJoinLinkText));
+        OnPropertyChanged(nameof(CopyFingerprintText));
+        OnPropertyChanged(nameof(CloseSharePanelText));
+        OnPropertyChanged(nameof(StartConfirmationText));
+        OnPropertyChanged(nameof(FileStreamConfirmationText));
+        OnPropertyChanged(nameof(ConfirmStartText));
+        OnPropertyChanged(nameof(ConfirmFileStreamText));
+        OnPropertyChanged(nameof(CancelConfirmationText));
+        OnPropertyChanged(nameof(PrimaryActionText));
+    }
+
+    /// <summary>Releases the optional localization subscription.</summary>
+    public void Dispose()
+    {
+        if (_localization is not null)
+        {
+            _localization.CultureChanged -= OnCultureChanged;
+        }
+    }
 }
 
 public sealed record SchoolAuditRow(

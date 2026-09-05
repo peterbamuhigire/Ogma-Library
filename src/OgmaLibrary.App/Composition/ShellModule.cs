@@ -151,7 +151,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                 services.GetRequiredService<ISchoolAiPolicyService>(),
                 services.GetRequiredService<IUsageDashboardService>(),
                 services.GetRequiredService<ISchoolAiHistoryManagementService>(),
-                services.GetRequiredService<IAuditRepository>())
+                services.GetRequiredService<IAuditRepository>(),
+                localization)
             : null;
 
         shell = new MainShellViewModel(

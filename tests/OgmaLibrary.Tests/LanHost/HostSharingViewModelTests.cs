@@ -12,6 +12,33 @@ namespace OgmaLibrary.Tests.LanHost;
 public sealed class HostSharingViewModelTests
 {
     [Fact]
+    public void HostSharingViewModel_LocalizesStaticControlLabelsAndRefreshesOnCultureChange()
+    {
+        var localization = new OgmaLibrary.Infrastructure.Localization.InMemoryLocalizationService();
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            localization: localization);
+        var changed = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+        Assert.Equal("Host", viewModel.Title);
+        Assert.Equal("Share", viewModel.ShareButtonText);
+        Assert.Equal("Start", viewModel.ConfirmStartText);
+
+        localization.SetCulture("fr");
+
+        Assert.Equal("Hote", viewModel.Title);
+        Assert.Equal("Partager", viewModel.ShareButtonText);
+        Assert.Equal("Demarrer", viewModel.ConfirmStartText);
+        Assert.Contains(nameof(HostSharingViewModel.Title), changed);
+        Assert.Contains(nameof(HostSharingViewModel.ShareButtonText), changed);
+        Assert.Contains(nameof(HostSharingViewModel.ConfirmStartText), changed);
+
+        viewModel.Dispose();
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_StartAndStop_UpdateControlState()
     {
         var host = new FakeLibraryHostService();

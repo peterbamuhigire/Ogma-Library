@@ -1024,6 +1024,7 @@ public sealed class MainShellViewModel :
         if (HostSharing is not null)
         {
             HostSharing.HostConnectionSucceeded -= OnHostConnectionSucceeded;
+            HostSharing.Dispose();
         }
 
         _catalogueRefreshCts?.Cancel();
