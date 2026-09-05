@@ -247,6 +247,7 @@ function Test-PreflightEvidenceFile {
         return [PSCustomObject]@{
             Status = 'Pass'
             Evidence = $EvidenceFile.FullName
+            IsCommittedClean = $fileState.IsCommittedClean
             Message = "$($coverage.Reason) $($fileState.Reason)"
         }
     }
@@ -254,6 +255,7 @@ function Test-PreflightEvidenceFile {
     return [PSCustomObject]@{
         Status = 'Fail'
         Evidence = $EvidenceFile.FullName
+        IsCommittedClean = $fileState.IsCommittedClean
         Message = "Regenerate preflight evidence; $($reasons -join '; ')"
     }
 }
@@ -336,6 +338,9 @@ else {
             Test-PreflightEvidenceFile -EvidenceFile $_ -RepoRoot $repoRoot -CurrentCommit $currentCommit
         })
     $selectedPreflight = @($preflightEvaluations | Where-Object { $_.Status -eq 'Pass' } | Select-Object -First 1)
+    if ($selectedPreflight.Count -eq 0) {
+        $selectedPreflight = @($preflightEvaluations | Where-Object { $_.IsCommittedClean } | Select-Object -First 1)
+    }
     if ($selectedPreflight.Count -eq 0) {
         $selectedPreflight = @($preflightEvaluations | Select-Object -First 1)
     }

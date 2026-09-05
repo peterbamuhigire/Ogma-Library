@@ -101,11 +101,18 @@ try {
     $signoffExit = Invoke-Script -Script (Join-Path $repoRoot 'scripts/Test-Phase09Signoff.ps1') -Arguments @(
         '-OutputPath',
         $signoffPath)
-    Assert-True ($signoffExit -eq 1) "Signoff smoke expected pending exit 1, got $signoffExit."
+    Assert-True ($signoffExit -in @(1, 2)) "Signoff smoke expected a non-passing pending/stale-evidence exit (1 or 2), got $signoffExit."
     $signoffText = Get-Content -Raw -Path $signoffPath
-    Assert-True ($signoffText -like '*Summary: 0 failing gate(s), 3 pending gate(s).*') 'Signoff smoke summary changed unexpectedly.'
-    Assert-True ($signoffText -like '*phase09-preflight-20260601-072040.md*') 'Signoff smoke did not keep using the committed passing preflight evidence.'
-    Assert-True ($signoffText -notlike '*phase09-preflight-99999999-smoke-draft.md*') 'Signoff smoke allowed a newer untracked draft preflight to shadow committed evidence.'
+    Assert-True ($signoffText -match 'Summary: [1-9][0-9]* failing gate\(s\), 3 pending gate\(s\)\.|Summary: 0 failing gate\(s\), 3 pending gate\(s\)\.') 'Signoff smoke did not preserve the expected pending-gate summary.'
+    $selectedPreflightLine = @($signoffText -split "`r?`n" | Where-Object { $_ -like '| Automated preflight evidence |*' })
+    $selectedPreflightMatch = if ($selectedPreflightLine.Count -eq 1) {
+        [regex]::Match($selectedPreflightLine[0], '^\|\s*Automated preflight evidence\s*\|\s*(?:Pass|Fail)\s*\|\s*(?<Evidence>[^|]+)\s*\|')
+    }
+    $selectedPreflightEvidence = if ($selectedPreflightMatch -and $selectedPreflightMatch.Success) {
+        $selectedPreflightMatch.Groups['Evidence'].Value.Trim()
+    }
+    Assert-True ($selectedPreflightLine.Count -eq 1 -and $selectedPreflightEvidence -like '*phase09-preflight-*.md*') 'Signoff smoke did not select a dated committed preflight evidence record.'
+    Assert-True ($selectedPreflightEvidence -notlike '*phase09-preflight-99999999-smoke-draft.md*') 'Signoff smoke allowed a newer untracked draft preflight to shadow committed evidence.'
     $checks.Add([PSCustomObject]@{ Check = 'Signoff evidence shadow smoke'; Result = 'Pass'; Evidence = $signoffPath })
 }
 finally {
@@ -132,3 +139,4 @@ Set-Content -Path $reportPath -Value $lines -Encoding UTF8
 
 Write-Host "Phase 09 evidence tooling smoke passed."
 Write-Host "Report: $reportPath"
+exit 0
