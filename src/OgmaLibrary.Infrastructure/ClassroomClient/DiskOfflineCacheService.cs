@@ -298,12 +298,28 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
                     continue;
                 }
 
-                byte[] content = await File.ReadAllBytesAsync(contentPath, cancellationToken).ConfigureAwait(false);
-                if (metadata.ContentLength < 0 ||
-                    metadata.ContentLength != content.LongLength ||
-                    !string.Equals(
+                FileInfo contentInfo = new(contentPath);
+                if (metadata.ContentLength < 0 || metadata.ContentLength != contentInfo.Length)
+                {
+                    continue;
+                }
+
+                byte[] contentHash;
+                FileStream hashStream = new(
+                    contentPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 64 * 1024,
+                    options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+                await using (hashStream.ConfigureAwait(false))
+                {
+                    contentHash = await SHA256.HashDataAsync(hashStream, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (!string.Equals(
                         metadata.ContentHash,
-                        Convert.ToHexStringLower(SHA256.HashData(content)),
+                        Convert.ToHexStringLower(contentHash),
                         StringComparison.Ordinal))
                 {
                     continue;
@@ -314,7 +330,18 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
                 Stream resourceStream = resourceEntry.Open();
                 await using (resourceStream.ConfigureAwait(false))
                 {
-                    await resourceStream.WriteAsync(content, cancellationToken).ConfigureAwait(false);
+                    FileStream contentStream = new(
+                        contentPath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.Read,
+                        bufferSize: 64 * 1024,
+                        options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    await using (contentStream.ConfigureAwait(false))
+                    {
+                        await contentStream.CopyToAsync(resourceStream, 64 * 1024, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
                 }
 
                 manifest.Add(new OfflineCacheExportItem(
@@ -323,7 +350,7 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
                     metadata.StoredUtc,
                     metadata.ContentType,
                     archivePath,
-                    content.LongLength));
+                    contentInfo.Length));
             }
 
             ZipArchiveEntry manifestEntry = archive.CreateEntry("manifest.json");
