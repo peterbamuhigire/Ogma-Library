@@ -252,7 +252,7 @@ public sealed record ReadingPlanRequest
     public IReadOnlyList<string> SeedBookIds { get; }
 }
 
-/// <summary>Answer-mode request scaffold for the V2 local-evidence implementation.</summary>
+/// <summary>Answer-mode request for the V2 local-evidence implementation.</summary>
 public sealed record AnswerRequest
 {
     /// <summary>Creates an answer request.</summary>

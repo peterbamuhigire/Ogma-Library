@@ -6,10 +6,10 @@ using OgmaLibrary.Infrastructure.Catalogue;
 
 namespace OgmaLibrary.Infrastructure.SchoolAdmin;
 
-/// <summary>Registers the Phase 18 School Administration bounded-context scaffold.</summary>
+/// <summary>Registers the Phase 36 School Administration bounded context.</summary>
 public static class SchoolAdminServiceExtensions
 {
-    /// <summary>Adds disabled School Administration services until Host admin activation is implemented.</summary>
+    /// <summary>Adds Host-admin services; capability activation remains policy and role controlled.</summary>
     public static IServiceCollection AddSchoolAdminServices(this IServiceCollection services, string dataDirectory)
     {
         ArgumentNullException.ThrowIfNull(services);
