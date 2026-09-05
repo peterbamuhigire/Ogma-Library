@@ -32,13 +32,21 @@ Date: 2026-09-04
   1,500 pages (full, scanned, and partial page layers). After bounding shared
   context tracking, the Windows run completed in 9.190 seconds and allocated
   296,590,296 bytes with no failed books.
+- Removed PdfPig all-page materialization from `PdfiumAdapter`; direct page
+  resolution reduced the observed Windows real-corpus peak working set from
+  3,821,600,768 bytes to 492,982,272 bytes on the same seven-file corpus.
+  Extraction remained error-free with 3,326 pages and 1,057,996 words; see
+  `evidence/phase-11-real-pdf-memory-2026-09-05.md`.
 
 ## Remaining phase gate
 
 The extraction pipeline now calls the artifact, ISBN evidence, and TOC
 services; persists page-aware deterministic manifests; and records TOC quality.
-The real-adapter and database-pipeline corpus subgates are now evidenced, but
-the seven-file run is not target-scale acceptance. The 8.63 GB adapter
-allocation measurement also needs an approved per-book ceiling and a
-representative 500-book pipeline throughput run before Phase 11 can be marked
-complete.
+The local Windows page-retention/resource subgate, real-adapter corpus, and
+synthetic 500-book pipeline throughput subgates are evidenced. The cumulative
+8.63 GB allocation remains a measurement of total managed allocations, not
+peak working set, and still warrants profiling on a representative corpus.
+Representative real 500-book acceptance, repeated approved per-book resource
+ceilings for the complete production worker path, native cross-platform
+measurements, and physical UI/accessibility evidence remain open before Phase
+11 can be marked complete.

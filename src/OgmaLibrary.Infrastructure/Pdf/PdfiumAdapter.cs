@@ -28,7 +28,6 @@ public sealed class PdfiumAdapter : IPdfRenderer
     private readonly char[]? _password;
     private readonly Lazy<IReadOnlyList<PageInfo>> _pageInfo;
     private readonly Lazy<PdfDocument> _textDocument;
-    private readonly Lazy<IReadOnlyList<Page>> _textPages;
     private readonly object _textExtractionGate = new();
     private bool _disposed;
 
@@ -62,9 +61,6 @@ public sealed class PdfiumAdapter : IPdfRenderer
             LazyThreadSafetyMode.ExecutionAndPublication);
         _textDocument = new Lazy<PdfDocument>(
             OpenPdfPigDocument,
-            LazyThreadSafetyMode.ExecutionAndPublication);
-        _textPages = new Lazy<IReadOnlyList<Page>>(
-            ReadTextPages,
             LazyThreadSafetyMode.ExecutionAndPublication);
         PageCount = DetectPageCount();
     }
@@ -133,12 +129,10 @@ public sealed class PdfiumAdapter : IPdfRenderer
         {
             lock (_textExtractionGate)
             {
-                IReadOnlyList<Page> pages = _textPages.Value;
-                Page? page = pageIndex < pages.Count ? pages[pageIndex] : null;
-                if (page is null)
-                {
-                    return new TextLayer(pageIndex, [], ExtractionQuality.Empty);
-                }
+                // Resolve one page on demand. Materialising every PdfPig page
+                // retains the complete document object graph and caused large
+                // real-PDF corpora to grow into multi-gigabyte working sets.
+                Page page = _textDocument.Value.GetPage(pageIndex + 1);
 
                 double pageWidth = page.Width;
                 double pageHeight = page.Height;
@@ -319,12 +313,6 @@ public sealed class PdfiumAdapter : IPdfRenderer
         {
             return [];
         }
-    }
-
-    private List<Page> ReadTextPages()
-    {
-        PdfDocument document = _textDocument.Value;
-        return document.GetPages().ToList();
     }
 
     private PdfDocument OpenPdfPigDocument()

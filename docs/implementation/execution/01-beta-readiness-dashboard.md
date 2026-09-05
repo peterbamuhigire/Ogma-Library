@@ -29,7 +29,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 8 | Reconciliation, recovery, safe author binding | Disconnected volume/ACL, operator UI, cross-OS walkthrough: `NOT ASSESSED` | [phase-08](phase-08-progress.md) |
 | 9 | Duplicate resolution, aliases, grouping, projections | Physical operator walkthrough and cross-platform UI: `NOT ASSESSED` | [phase-09](phase-09-progress.md) |
 | 10 | PDF broker, password/resource validation, Windows Job Object startup | OS sandbox/escape proof and independent security approval open | [phase-10](phase-10-progress.md) |
-| 11 | Versioned extraction, TOC/ISBN evidence, real corpus, 500-book mixed benchmark | Approved allocation ceiling and representative target-scale acceptance open | [phase-11](phase-11-progress.md) |
+| 11 | Versioned extraction, TOC/ISBN evidence, page-on-demand adapter, real corpus, 500-book mixed benchmark | Representative real target-scale acceptance, repeated production resource ceiling, and cross-platform evidence open | [phase-11](phase-11-progress.md) |
 | 12 | Metadata scope, precedence, enrichment proposals, provenance | Physical UI walkthrough: `NOT ASSESSED` | [phase-12](phase-12-progress.md) |
 | 13 | Provider cache/gateway, stale fallback, quota/circuit/retry/privacy controls | Legal owner review, archive, live provider, attribution UI, network evidence open | [phase-13](phase-13-progress.md) |
 | 14 | Review proposals, concurrency, bulk/tag mutation, review UI | Physical accessibility evidence open | [phase-14](phase-14-progress.md) |
