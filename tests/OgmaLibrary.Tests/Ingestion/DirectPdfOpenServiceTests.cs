@@ -54,6 +54,10 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         var file = context.BookFiles.Single(f => f.BookId == bookId);
         Assert.Equal("single.pdf", file.RelativePath);
         Assert.Equal(0, file.FileStatus);
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "MetadataExtraction");
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "ThumbnailGeneration");
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "SpineGeneration");
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "SearchExtraction");
     }
 
     [Fact]
@@ -91,7 +95,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DirectPdfOpen_ExistingMatch_QueuesMetadataAndThumbnailJobs()
+    public async Task DirectPdfOpen_ExistingMatch_QueuesMetadataThumbnailAndSpineJobs()
     {
         string libraryRoot = Path.Combine(_tempRoot, "library");
         string externalRoot = Path.Combine(_tempRoot, "external");
@@ -134,6 +138,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         Assert.Equal(0, context.Books.Single(b => b.BookId == bookId).Status);
         Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "MetadataExtraction" && j.Payload == pdfPath);
         Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "ThumbnailGeneration" && j.Payload == pdfPath);
+        Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "SpineGeneration" && j.Payload == pdfPath);
     }
 
     [Fact]
@@ -209,6 +214,12 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
             j.JobType == "ThumbnailGeneration" &&
             j.Status == 0 &&
             j.IdempotencyKey == ComputeJobKey(bookId, "ThumbnailGeneration", selectedHash) &&
+            j.Payload == pdfPath);
+        Assert.Contains(context.Jobs, j =>
+            j.BookId == bookId &&
+            j.JobType == "SpineGeneration" &&
+            j.Status == 0 &&
+            j.IdempotencyKey == ComputeJobKey(bookId, "SpineGeneration", selectedHash) &&
             j.Payload == pdfPath);
     }
 

@@ -1,6 +1,6 @@
 # Phase 16 Progress - Cover, Thumbnail and Spine Assets
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Delivered in this increment
 
@@ -13,6 +13,9 @@ Date: 2026-09-04
 - Custom covers use a protected `custom` variant and always win preferred
   resolution; generated registration cannot replace them.
 - Cover and spine generators now register successful outputs in the manifest.
+- Registration and file re-match now enqueue idempotent `SpineGeneration` jobs;
+  the existing worker path therefore generates spines on both ingest and file
+  version changes, as required by the Phase 16 design.
 - Catalogue summary and detail projections now expose the preferred ready cover
   relative path instead of returning `null` unconditionally.
 - Added focused tests for manifest durability, custom-cover precedence,
@@ -37,10 +40,13 @@ Date: 2026-09-04
   passed with 0 warnings and 0 errors.
 - `Phase16VisualAssetTests`: 4 passed.
 - Detail cover UI regression: 2 passed.
+- Direct-open and ingestion regression slice: 19 passed, 0 failed, 0 skipped;
+  this includes new-book and re-matched-file spine-job assertions.
 
 ## Remaining phase gate
 
 Embedded/provider source acquisition, lazy high/low variants, remaining UI
 journeys, and large-library asset budget testing remain before phase 16 closure.
+The ingest/update spine scheduling sub-gate is closed locally.
 The local detail cover-control and LAN asset-authorization sub-gates are closed;
 physical accessibility and cross-platform evidence remain open.

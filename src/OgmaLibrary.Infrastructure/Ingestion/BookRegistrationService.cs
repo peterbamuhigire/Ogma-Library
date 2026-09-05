@@ -9,9 +9,9 @@ using OgmaLibrary.Infrastructure.Catalogue.Entities;
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
 /// <summary>
-/// Inserts new <c>Book</c> and <c>BookFile</c> rows, enqueues metadata and thumbnail
-/// jobs with idempotency keys, and updates file paths for re-matched books
-/// (FR-LIB-003, NFR-OGMA-009).
+/// Inserts new <c>Book</c> and <c>BookFile</c> rows, enqueues metadata, thumbnail,
+/// spine, and search jobs with idempotency keys, and updates file paths for
+/// re-matched books (FR-LIB-003, FR-LIB-005, NFR-OGMA-009).
 /// </summary>
 public sealed class BookRegistrationService : IBookRegistrationService
 {
@@ -83,6 +83,10 @@ public sealed class BookRegistrationService : IBookRegistrationService
         TryAddJob(context, bookId, "ThumbnailGeneration",
             ComputeIdempotencyKey(bookId, "ThumbnailGeneration", contentHash), discovered.AbsolutePath);
 
+        // Enqueue spine generation job (idempotent).
+        TryAddJob(context, bookId, "SpineGeneration",
+            ComputeIdempotencyKey(bookId, "SpineGeneration", contentHash), discovered.AbsolutePath);
+
         TryAddJob(context, bookId, "SearchExtraction",
             ComputeIdempotencyKey(bookId, "SearchExtraction", contentHash), discovered.AbsolutePath);
 
@@ -149,6 +153,9 @@ public sealed class BookRegistrationService : IBookRegistrationService
 
         TryAddJob(context, bookId, "ThumbnailGeneration",
             ComputeIdempotencyKey(bookId, "ThumbnailGeneration", contentHash), discovered.AbsolutePath);
+
+        TryAddJob(context, bookId, "SpineGeneration",
+            ComputeIdempotencyKey(bookId, "SpineGeneration", contentHash), discovered.AbsolutePath);
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

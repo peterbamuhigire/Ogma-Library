@@ -2,13 +2,13 @@ namespace OgmaLibrary.Application.Ingestion;
 
 /// <summary>
 /// Registers a newly-discovered PDF file in the catalogue and enqueues the background
-/// asset-generation jobs (FR-LIB-003, NFR-OGMA-009).
+/// asset-generation jobs (FR-LIB-003, FR-LIB-005, NFR-OGMA-009).
 /// </summary>
 public interface IBookRegistrationService
 {
     /// <summary>
     /// Inserts a new <c>Book</c> and <c>BookFile</c> row for the discovered file,
-    /// then enqueues metadata extraction and thumbnail generation jobs.
+    /// then enqueues metadata extraction, thumbnail, spine, and search jobs.
     /// </summary>
     /// <param name="discovered">The discovered file record.</param>
     /// <param name="contentHash">The SHA-256 hex digest of the file content.</param>
