@@ -38,3 +38,14 @@ This closes the repository-level headless regression gate. It does not close
 the physical WebView2/WKWebView, WebGL2, performance, crash/reload, keyboard,
 or cross-platform acceptance gates recorded in the Phase 31 native-binding
 evidence.
+
+## Windows preflight
+
+- WebView2 runtime directories were present under
+  `C:\Program Files (x86)\Microsoft\EdgeWebView\Application` (152.0.4191.62
+  and 152.0.4191.66).
+- The Release `OgmaLibrary.App.exe` launched and remained responsive while the
+  3D-shelf route was invoked through Windows UI Automation.
+- This preflight does not assert native rendering, WebGL2 capability, bridge
+  messages, asset loading, or recovery behavior; those still require a clean,
+  observable reference run.
