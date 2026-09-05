@@ -341,6 +341,26 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             return null;
         }
 
+        var providerLookups = await context.MetadataLookups
+            .AsNoTracking()
+            .Where(row => row.BookId == result.BookId)
+            // SQLite cannot translate DateTimeOffset ordering. LookupId is an
+            // increasing durable identity, so use it for the bounded SQL slice
+            // and perform the precise timestamp ordering in memory below.
+            .OrderByDescending(row => row.LookupId)
+            .Take(8)
+            .Select(row => new ProviderLookupProjection(
+                row.Provider,
+                row.RequestIsbn,
+                row.Timestamp,
+                row.Confidence,
+                row.IsStale))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        providerLookups = providerLookups
+            .OrderByDescending(lookup => lookup.Timestamp)
+            .ToList();
+
         ReadingProgressProjection? progress = result.Progress is not null
             ? new ReadingProgressProjection(
                 BookId: result.BookId,
@@ -381,7 +401,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             IsOcrDerived: result.IsOcrDerived,
              IsPasswordProtected: result.IsPasswordProtected,
              IsFavourite: result.IsFavourite,
-             IsAvailable: result.HasPresentFile);
+             IsAvailable: result.HasPresentFile,
+             ProviderLookups: providerLookups);
     }
 
     private static string ResolveTitle(

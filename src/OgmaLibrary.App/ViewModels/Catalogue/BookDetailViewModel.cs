@@ -760,6 +760,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(EnrichmentFieldDisplayRows));
             OnPropertyChanged(nameof(ProviderAttributionLinks));
             OnPropertyChanged(nameof(HasProviderAttributionLinks));
+            OnPropertyChanged(nameof(ProviderLookupDisplayRows));
+            OnPropertyChanged(nameof(HasProviderLookupStatus));
             OnPropertyChanged(nameof(AiFields));
             OnPropertyChanged(nameof(CanEnrich));
             OnPropertyChanged(nameof(CanRunOcr));
@@ -1043,6 +1045,15 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>True when provider attribution links can be shown.</summary>
     public bool HasProviderAttributionLinks => ProviderAttributionLinks.Count > 0;
+
+    /// <summary>Recent provider freshness rows for the loaded book.</summary>
+    public IReadOnlyList<string> ProviderLookupDisplayRows =>
+        (_book?.ProviderLookups ?? [])
+            .Select(FormatProviderLookup)
+            .ToList();
+
+    /// <summary>True when recent provider freshness information is available.</summary>
+    public bool HasProviderLookupStatus => ProviderLookupDisplayRows.Count > 0;
 
     /// <summary>AI-generated fields (group 5).</summary>
     public IReadOnlyList<MetadataFieldProjection> AiFields =>
@@ -1955,6 +1966,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(ProviderAttributionHeadingText));
         OnPropertyChanged(nameof(ProviderAttributionLinks));
         OnPropertyChanged(nameof(HasProviderAttributionLinks));
+        OnPropertyChanged(nameof(ProviderLookupDisplayRows));
+        OnPropertyChanged(nameof(HasProviderLookupStatus));
         OnPropertyChanged(nameof(AiHeadingText));
         OnPropertyChanged(nameof(EnrichTooltip));
         OnPropertyChanged(nameof(RunOcrText));
@@ -2098,6 +2111,19 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
                 field.FieldName,
                 value,
                 provenance);
+    }
+
+    private string FormatProviderLookup(ProviderLookupProjection lookup)
+    {
+        string freshness = lookup.IsStale
+            ? _localization["Catalogue.BookDetail.ProviderLookup.Stale"]
+            : _localization["Catalogue.BookDetail.ProviderLookup.Fresh"];
+        return string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["Catalogue.BookDetail.ProviderLookup.Format"],
+            lookup.Provider,
+            freshness,
+            lookup.Timestamp.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture));
     }
 
     private void ClearWriteBackState()

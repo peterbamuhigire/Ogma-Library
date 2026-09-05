@@ -72,7 +72,16 @@ public sealed class BookDetailViewModelTests
                 new MetadataFieldProjection("RelativePath", "books/test.pdf", "System", null, false),
                 new MetadataFieldProjection("Status", "0", "System", null, false),
             },
-            IsPasswordProtected: isPasswordProtected);
+            IsPasswordProtected: isPasswordProtected,
+            ProviderLookups:
+            [
+                new ProviderLookupProjection(
+                    "OpenLibrary",
+                    "9780123456789",
+                    DateTimeOffset.UtcNow,
+                    0.86,
+                    IsStale: true),
+            ]);
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 
@@ -190,6 +199,19 @@ public sealed class BookDetailViewModelTests
             vm.ProviderAttributionLinks[1].Url);
         Assert.All(vm.ProviderAttributionLinks, link =>
             Assert.StartsWith("https://", link.Url, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task BookDetail_ProviderLookupDisplayRows_ShowStaleState()
+    {
+        var vm = CreateVm(BuildFullyPopulatedDetail());
+
+        await vm.LoadBookAsync("book-1");
+
+        string row = Assert.Single(vm.ProviderLookupDisplayRows);
+        Assert.Contains("OpenLibrary", row, StringComparison.Ordinal);
+        Assert.Contains("stale cached result", row, StringComparison.Ordinal);
+        Assert.True(vm.HasProviderLookupStatus);
     }
 
     /// <summary>

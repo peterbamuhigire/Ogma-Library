@@ -121,6 +121,7 @@ public sealed record CatalogueProcessingProjection(
 /// <param name="IsPasswordProtected">Whether the source PDF is password-protected.</param>
 /// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
 /// <param name="IsAvailable">Whether at least one library file is currently present.</param>
+/// <param name="ProviderLookups">Recent deterministic metadata-provider lookup status.</param>
 public sealed record BookDetailProjection(
     string BookId,
     string? Title,
@@ -141,7 +142,21 @@ public sealed record BookDetailProjection(
     bool IsOcrDerived = false,
     bool IsPasswordProtected = false,
     bool IsFavourite = false,
-    bool IsAvailable = true);
+    bool IsAvailable = true,
+    IReadOnlyList<ProviderLookupProjection>? ProviderLookups = null);
+
+/// <summary>Recent deterministic metadata-provider lookup status for a book.</summary>
+/// <param name="Provider">The provider that returned the lookup result.</param>
+/// <param name="RequestIsbn">The ISBN used for the lookup, when available.</param>
+/// <param name="Timestamp">UTC time at which the result was recorded.</param>
+/// <param name="Confidence">Provider match confidence, when available.</param>
+/// <param name="IsStale">Whether the result came from an expired local cache.</param>
+public sealed record ProviderLookupProjection(
+    string Provider,
+    string? RequestIsbn,
+    DateTimeOffset Timestamp,
+    double? Confidence,
+    bool IsStale);
 
 /// <summary>
 /// Compact reading-memory data surfaced in the book-detail panel.

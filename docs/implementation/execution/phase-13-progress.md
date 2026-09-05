@@ -50,12 +50,15 @@ durable audit payload.
   durable provider gateway cache before provider adapters, while retaining lookup
   provenance and audit persistence in the aggregator. Evidence:
   `evidence/phase-13-gateway-runtime-wiring-2026-09-05.md`.
+- Carried the gateway's `IsStale` state through a versioned database migration,
+  bounded book-detail projection, and localized enrichment-tab freshness rows.
+  SQLite-safe bounded ordering, migration rollback, and detail-consumer tests
+  pass; see `evidence/phase-13-stale-label-2026-09-05.md`.
 
 ## Remaining phase gate
 
-The official-source documentation and local attribution/link subgates are
-complete, but written legal/privacy owner review, archived release evidence,
-live provider/network evidence, and UI acceptance for stale labeling remain
-before phase 13 closure. Quota and circuit state are observable in the provider
-health contract; the gateway's stale-cache status still needs an end-to-end
-persisted projection before it can be rendered as a user-facing label.
+The official-source documentation, local attribution/link subgate, and local
+stale-label subgate are complete. Written legal/privacy owner review, archived
+release evidence, live provider/network evidence, and physical release/UI
+acceptance remain before phase 13 closure. Quota and circuit state are
+observable in the provider health contract.

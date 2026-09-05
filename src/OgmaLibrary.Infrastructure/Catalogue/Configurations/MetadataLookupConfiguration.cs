@@ -24,6 +24,7 @@ public sealed class MetadataLookupConfiguration : IEntityTypeConfiguration<Metad
         builder.Property(l => l.Timestamp);
         builder.Property(l => l.Confidence);
         builder.Property(l => l.Applied).HasDefaultValue(false);
+        builder.Property(l => l.IsStale).HasDefaultValue(false);
 
         // Descending provider-timestamp index for recent lookups per book.
         builder.HasIndex(l => new { l.BookId, l.Provider, l.Timestamp })

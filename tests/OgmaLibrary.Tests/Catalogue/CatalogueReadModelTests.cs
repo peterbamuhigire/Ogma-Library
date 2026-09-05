@@ -276,6 +276,49 @@ public sealed class CatalogueReadModelTests
     }
 
     [Fact]
+    public async Task GetBookDetail_ProjectsRecentProviderLookupFreshness()
+    {
+        using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+        context.Books.Add(new BookRow
+        {
+            BookId = "DETAIL-PROVIDER-STATUS",
+            Title = "Provider status",
+            Status = 0,
+        });
+        context.MetadataLookups.AddRange(
+            new MetadataLookupRow
+            {
+                BookId = "DETAIL-PROVIDER-STATUS",
+                Provider = "OpenLibrary",
+                RequestIsbn = "9780306406157",
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
+                Confidence = 0.8,
+                IsStale = true,
+            },
+            new MetadataLookupRow
+            {
+                BookId = "DETAIL-PROVIDER-STATUS",
+                Provider = "GoogleBooks",
+                RequestIsbn = "9780306406157",
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1),
+                Confidence = 0.9,
+                IsStale = false,
+            });
+        await context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(context);
+        BookDetailProjection? detail = await readModel.GetBookDetailAsync("DETAIL-PROVIDER-STATUS");
+
+        Assert.NotNull(detail);
+        IReadOnlyList<ProviderLookupProjection> lookups = detail!.ProviderLookups!;
+        Assert.Equal(["GoogleBooks", "OpenLibrary"], lookups
+            .Select(lookup => lookup.Provider)
+            .ToArray());
+        Assert.False(lookups[0].IsStale);
+        Assert.True(lookups[1].IsStale);
+    }
+
+    [Fact]
     public async Task GetBookSummaries_RepairsMissingBookFilesTableBeforeProjectingAvailability()
     {
         string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-readmodel-repair-{Guid.NewGuid():N}.db");

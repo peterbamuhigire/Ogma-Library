@@ -129,6 +129,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
                 Timestamp = result.RetrievedUtc,
                 Confidence = result.Confidence,
                 Applied = false,
+                IsStale = result.IsStale,
             });
 
             // Audit event.

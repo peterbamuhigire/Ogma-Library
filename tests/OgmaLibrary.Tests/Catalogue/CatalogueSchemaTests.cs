@@ -64,6 +64,31 @@ public sealed class CatalogueSchemaTests : IDisposable
     }
 
     [Fact]
+    public void CatalogueSchema_MetadataLookup_PersistsStaleState()
+    {
+        _context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+        {
+            BookId = "SCHEMA-STALE-LOOKUP",
+            Title = "Stale lookup",
+            Status = 0,
+        });
+        _context.MetadataLookups.Add(new Infrastructure.Catalogue.Entities.MetadataLookupRow
+        {
+            BookId = "SCHEMA-STALE-LOOKUP",
+            Provider = "OpenLibrary",
+            RequestIsbn = "9780306406157",
+            Timestamp = DateTimeOffset.UtcNow,
+            Confidence = 0.8,
+            IsStale = true,
+        });
+        _context.SaveChanges();
+
+        Infrastructure.Catalogue.Entities.MetadataLookupRow lookup =
+            Assert.Single(_context.MetadataLookups);
+        Assert.True(lookup.IsStale);
+    }
+
+    [Fact]
     public void CatalogueSchema_Jobs_HasUniqueIdempotencyKeyConstraint()
     {
         // Insert a job with a unique key.

@@ -30,6 +30,9 @@ public sealed class MetadataLookupRow
     /// <summary>Whether the user applied this lookup's data to the catalogue.</summary>
     public bool Applied { get; set; }
 
+    /// <summary>Whether this result was served from an expired local provider cache.</summary>
+    public bool IsStale { get; set; }
+
     /// <summary>Navigation: the owning book.</summary>
     public BookRow? Book { get; set; }
 }

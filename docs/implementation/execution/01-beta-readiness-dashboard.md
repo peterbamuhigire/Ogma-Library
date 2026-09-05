@@ -31,7 +31,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 10 | PDF broker, password/resource validation, Windows Job Object startup | OS sandbox/escape proof and independent security approval open | [phase-10](phase-10-progress.md) |
 | 11 | Versioned extraction, TOC/ISBN evidence, page-on-demand adapter, real corpus, 500-book mixed benchmark | Representative real target-scale acceptance, repeated production resource ceiling, and cross-platform evidence open | [phase-11](phase-11-progress.md) |
 | 12 | Metadata scope, precedence, enrichment proposals, provenance | Physical UI walkthrough: `NOT ASSESSED` | [phase-12](phase-12-progress.md) |
-| 13 | Provider cache/gateway wired to runtime enrichment, stale fallback, quota/circuit/retry/privacy controls, fixed-host attribution links | Legal owner review, archive, stale-label, live provider and network evidence open | [phase-13](phase-13-progress.md) |
+| 13 | Provider cache/gateway wired to runtime enrichment, persisted/projected stale labeling, quota/circuit/retry/privacy controls, fixed-host attribution links | Legal owner review, archive, live provider/network and physical evidence open | [phase-13](phase-13-progress.md) |
 | 14 | Review proposals, concurrency, bulk/tag mutation, review UI | Physical accessibility evidence open | [phase-14](phase-14-progress.md) |
 | 15 | Hash guard, preparation, backup/undo, consented writeback | Physical interruption and permission evidence open | [phase-15](phase-15-progress.md) |
 | 16 | Assets, manifests, lazy variants, provider boundary wired to enrichment, ingest/update spine scheduling, LAN authorization | Embedded source, scale budget and physical journeys open | [phase-16](phase-16-progress.md) |
