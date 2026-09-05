@@ -102,6 +102,26 @@ public sealed class Phase30AdvisorQualityTests
         Assert.Contains("Level: Introductory", viewModel.InterpretedIntentText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RecommendationPanel_InterpretedIntent_UsesLocalizedLabels()
+    {
+        var localization = new InMemoryLocalizationService();
+        using RecommendationPanelViewModel viewModel = new(
+            new NoOpAdvisor(),
+            new NoOpNavigation(),
+            localization)
+        {
+            Query = "Something on AI, but not a programming textbook.",
+        };
+
+        localization.SetCulture("fr");
+        Assert.Contains("Sujets : ai", viewModel.InterpretedIntentText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Exclut : programming", viewModel.InterpretedIntentText, StringComparison.OrdinalIgnoreCase);
+
+        localization.SetCulture("qps-ploc");
+        Assert.StartsWith("[!!", viewModel.InterpretedIntentText, StringComparison.Ordinal);
+    }
+
     private static BookMetadataDto Candidate(string id, string title, IReadOnlyList<string> tags, string description, string author) =>
         new(id, title, [author], tags, ["Education"], description, null, 2026, [], null);
 

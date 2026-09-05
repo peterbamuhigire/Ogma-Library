@@ -250,40 +250,60 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
             List<string> parts = [];
             if (_interpretedIntent.PositiveTerms.Count > 0)
             {
-                parts.Add($"Topics: {string.Join(", ", _interpretedIntent.PositiveTerms.Take(5))}");
+                parts.Add(string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Ai.Advisor.Intent.TopicsFormat"],
+                    string.Join(", ", _interpretedIntent.PositiveTerms.Take(5))));
             }
 
             if (_interpretedIntent.NegativeTerms.Count > 0)
             {
-                parts.Add($"Avoids: {string.Join(", ", _interpretedIntent.NegativeTerms.Take(5))}");
+                parts.Add(string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Ai.Advisor.Intent.AvoidsFormat"],
+                    string.Join(", ", _interpretedIntent.NegativeTerms.Take(5))));
             }
 
             if (_interpretedIntent.Difficulty is not null)
             {
-                parts.Add($"Level: {_interpretedIntent.Difficulty}");
+                parts.Add(string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Ai.Advisor.Intent.LevelFormat"],
+                    _interpretedIntent.Difficulty));
             }
 
             if (_interpretedIntent.Length != AdvisorLengthPreference.Any)
             {
-                parts.Add($"Length: {_interpretedIntent.Length}");
+                parts.Add(string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Ai.Advisor.Intent.LengthFormat"],
+                    _interpretedIntent.Length));
             }
 
             if (_interpretedIntent.MoodTerms.Count > 0)
             {
-                parts.Add($"Mood: {string.Join(", ", _interpretedIntent.MoodTerms)}");
+                parts.Add(string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Ai.Advisor.Intent.MoodFormat"],
+                    string.Join(", ", _interpretedIntent.MoodTerms)));
             }
 
             if (_interpretedIntent.ComparisonReference is not null)
             {
-                parts.Add($"Like: {_interpretedIntent.ComparisonReference}");
+                parts.Add(string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Ai.Advisor.Intent.LikeFormat"],
+                    _interpretedIntent.ComparisonReference));
             }
 
             if (_interpretedIntent.IsBroadDiscovery)
             {
-                parts.Add("Broad discovery");
+                parts.Add(_localization["Ai.Advisor.Intent.BroadDiscovery"]);
             }
 
-            return parts.Count == 0 ? _localization["Ai.Advisor.Intent.None"] : string.Join(" · ", parts);
+            return parts.Count == 0
+                ? _localization["Ai.Advisor.Intent.None"]
+                : string.Join(_localization["Ai.Advisor.Intent.Separator"], parts);
         }
     }
 

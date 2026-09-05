@@ -29,6 +29,9 @@ Date: 2026-09-05
 - Extracted the book-detail tag hint and reading summary formats into
   English/French resources; detail and smart-search view models now notify their
   bindings when the culture changes.
+- Extracted Advisor interpreted-intent labels and separators into the shared
+  English/French resource surface; pseudo-locale expansion follows the same
+  resource path.
 
 ## Verification
 
@@ -49,6 +52,7 @@ Date: 2026-09-05
   0 warnings and 0 errors.
 - Evidence: `evidence/phase-18-appearance-palette-2026-09-05.md`.
 - Focused localization/design slice: 16 passed, 0 failed, 0 skipped.
+- Focused Advisor quality/localization slice: 6 passed, 0 failed, 0 skipped.
 - Full solution regression after the localization increment: 895 core passed,
   1 core timing-sensitive LAN P95 test failed, and 41 architecture + 155 UI
   tests passed. The failed catalogue-load P95 was 2,558 ms versus 2,000 ms;
@@ -60,6 +64,6 @@ Date: 2026-09-05
 Application-wide hard-coded copy extraction, all-view route inventory,
 contrast snapshots, and Narrator/VoiceOver journeys remain before phase 18
 closure. Theme/density persistence, command-palette execution, the
-detail-panel/catalogue-shell copy extraction, and the named Student Smart
-Search copy finding are closed locally; physical accessibility and full
-application coverage remain open.
+  detail-panel/catalogue-shell/Advisor copy extraction, and the named Student
+  Smart Search copy finding are closed locally; physical accessibility and full
+  application coverage remain open.
