@@ -218,6 +218,24 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Localized button label for opening the reader.</summary>
     public string ReadText => _localization["Catalogue.BookDetail.Read"];
 
+    /// <summary>Localized accessible name for closing the detail panel.</summary>
+    public string CloseButtonText => _localization["Catalogue.BookDetail.Close"];
+
+    /// <summary>Localized accessible name for the one-star rating action.</summary>
+    public string RatingOneAccessibilityText => FormatRatingAccessibility(1);
+
+    /// <summary>Localized accessible name for the two-star rating action.</summary>
+    public string RatingTwoAccessibilityText => FormatRatingAccessibility(2);
+
+    /// <summary>Localized accessible name for the three-star rating action.</summary>
+    public string RatingThreeAccessibilityText => FormatRatingAccessibility(3);
+
+    /// <summary>Localized accessible name for the four-star rating action.</summary>
+    public string RatingFourAccessibilityText => FormatRatingAccessibility(4);
+
+    /// <summary>Localized accessible name for the five-star rating action.</summary>
+    public string RatingFiveAccessibilityText => FormatRatingAccessibility(5);
+
     /// <summary>Localized button label for deterministic metadata enrichment.</summary>
     public string EnrichText => _localization["Catalogue.BookDetail.Enrich"];
 
@@ -1943,6 +1961,12 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     private void OnCultureChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(ReadText));
+        OnPropertyChanged(nameof(CloseButtonText));
+        OnPropertyChanged(nameof(RatingOneAccessibilityText));
+        OnPropertyChanged(nameof(RatingTwoAccessibilityText));
+        OnPropertyChanged(nameof(RatingThreeAccessibilityText));
+        OnPropertyChanged(nameof(RatingFourAccessibilityText));
+        OnPropertyChanged(nameof(RatingFiveAccessibilityText));
         OnPropertyChanged(nameof(EnrichText));
         OnPropertyChanged(nameof(FileTabText));
         OnPropertyChanged(nameof(BiblioTabText));
@@ -2011,6 +2035,11 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     }
 
     public void Dispose() => _localization.CultureChanged -= OnCultureChanged;
+
+    private string FormatRatingAccessibility(int rating) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Catalogue.BookDetail.Curation.RatingAccessibilityFormat"],
+        rating);
 
     private static void UpdateOnUiThread(Action action)
     {

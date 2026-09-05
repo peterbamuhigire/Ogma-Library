@@ -89,8 +89,14 @@ Date: 2026-09-05
   English and French, added culture-change notifications, and released the
   localization subscription with shell disposal. Evidence:
   `evidence/phase-18-host-sharing-copy-2026-09-05.md`.
+- Replaced Book Detail hard-coded close, reader, enrichment, and rating
+  accessibility names with resource-backed bindings. English, French, and
+  pseudo-locale resource coverage is verified in the design-system slice.
+  Evidence: `evidence/phase-18-book-detail-accessibility-copy-2026-09-05.md`.
 - Complete post-change Release solution regression: 908 core + 41
   architecture + 155 UI = 1,104 passed, 0 failed, 0 skipped (9m57s).
+- Incremental Book Detail accessibility/localisation slice: 3 passed, 0
+  failed, 0 skipped; Release application build passed with 0 warnings/errors.
 
 ## Remaining phase gate
 

@@ -35,7 +35,7 @@
                 BorderThickness="0"
                 Padding="6"
                 VerticalAlignment="Center"
-                AutomationProperties.Name="Close book detail"
+                AutomationProperties.Name="{Binding CloseButtonText}"
                 Click="CloseButton_Click">
           <TextBlock Text="✕" FontSize="14" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
         </Button>
@@ -176,11 +176,11 @@
                              FontSize="{DynamicResource Type.Size.Caption}"
                              Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
                   <WrapPanel Orientation="Horizontal" ItemSpacing="4">
-                    <Button Tag="1" Click="RatingButton_Click" AutomationProperties.Name="1 star"><TextBlock Text="1" /></Button>
-                    <Button Tag="2" Click="RatingButton_Click" AutomationProperties.Name="2 stars"><TextBlock Text="2" /></Button>
-                    <Button Tag="3" Click="RatingButton_Click" AutomationProperties.Name="3 stars"><TextBlock Text="3" /></Button>
-                    <Button Tag="4" Click="RatingButton_Click" AutomationProperties.Name="4 stars"><TextBlock Text="4" /></Button>
-                    <Button Tag="5" Click="RatingButton_Click" AutomationProperties.Name="5 stars"><TextBlock Text="5" /></Button>
+                    <Button Tag="1" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingOneAccessibilityText}"><TextBlock Text="1" /></Button>
+                    <Button Tag="2" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingTwoAccessibilityText}"><TextBlock Text="2" /></Button>
+                    <Button Tag="3" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingThreeAccessibilityText}"><TextBlock Text="3" /></Button>
+                    <Button Tag="4" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingFourAccessibilityText}"><TextBlock Text="4" /></Button>
+                    <Button Tag="5" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingFiveAccessibilityText}"><TextBlock Text="5" /></Button>
                     <Button Click="FavouriteButton_Click"
                             AutomationProperties.Name="{Binding FavouriteButtonText}">
                       <TextBlock Text="{Binding FavouriteButtonText}" />
@@ -619,7 +619,7 @@
                 Foreground="White"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanOpenReader}"
-                AutomationProperties.Name="Open reader"
+                AutomationProperties.Name="{Binding ReadText}"
                 Click="ReadButton_Click">
             <TextBlock Text="{Binding ReadText}" />
         </Button>
@@ -630,7 +630,7 @@
                 Foreground="White"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanEnrich}"
-                AutomationProperties.Name="Enrich metadata"
+                AutomationProperties.Name="{Binding EnrichText}"
                 ToolTip.Tip="{Binding EnrichTooltip}"
                 Click="EnrichButton_Click">
           <TextBlock Text="{Binding EnrichText}" />

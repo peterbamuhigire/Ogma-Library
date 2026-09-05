@@ -37,6 +37,7 @@ public sealed class Phase18DesignSystemTests
             "Catalogue.BookDetail.Reading.ProgressFormat",
             "Catalogue.BookDetail.Reading.LastReadFormat",
             "Catalogue.BookDetail.Reading.AnnotationsFormat",
+            "Catalogue.BookDetail.Curation.RatingAccessibilityFormat",
             "Startup.Migration.Preparing",
             "Startup.Migration.ProgressFormat",
             "Search.Result.Untitled",
@@ -57,6 +58,9 @@ public sealed class Phase18DesignSystemTests
         Assert.Equal("Recherche IA intelligente", localization["Classroom.SmartSearch.Title"]);
         Assert.Equal("etiquette, autre etiquette", localization["Catalogue.BookDetail.Curation.TagsWatermark"]);
         Assert.Equal("Sans titre", localization["Search.Result.Untitled"]);
+        Assert.Equal(
+            "Definir la note sur {0} sur 5",
+            localization["Catalogue.BookDetail.Curation.RatingAccessibilityFormat"]);
 
         localization.SetCulture("qps-ploc");
         foreach (string key in keys)
