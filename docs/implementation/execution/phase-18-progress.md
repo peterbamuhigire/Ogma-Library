@@ -122,5 +122,5 @@ phase 18 closure. The automated contrast matrix is closed. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
   named Student Smart Search copy finding, and static route inventory are
-  closed locally; physical accessibility and full application coverage remain
-  open.
+  closed locally; physical rendered snapshots and assistive-technology
+  accessibility remain open.
