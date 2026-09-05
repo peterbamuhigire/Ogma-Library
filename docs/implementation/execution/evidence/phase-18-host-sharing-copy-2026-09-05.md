@@ -15,6 +15,8 @@ Verification:
 - `HostSharingViewModelTests`: 16 passed, 0 failed, 0 skipped.
 - The regression tests verify English labels, French labels, culture-change
   property notifications, and French runtime status formatting.
+- Complete Release solution regression: 1,104 passed (908 core, 41
+  architecture, 155 UI), 0 failed, 0 skipped, completed in 9m57s.
 - The Release test build completed with 0 warnings and 0 errors.
 
 Gate disposition:

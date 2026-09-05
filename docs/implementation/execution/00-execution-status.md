@@ -8,7 +8,9 @@ Execution branch: `main`
 Ledger normalized: 2026-09-05
 
 Automated validation refresh: the latest complete full solution suite passed
-1,099 tests (903 core, 41 architecture, 155 UI), with 0 failures and 0 skips.
+1,104 tests (908 core, 41 architecture, 155 UI), with 0 failures and 0 skips.
+The post-Host-sharing localization run completed in 9m57s; the core suite is
+long-running but completed successfully.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
 outlier; the isolated test and this subsequent complete run both passed. This
 refresh closes only the repaired automated gates; per-phase platform, physical,

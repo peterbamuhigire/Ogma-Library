@@ -14,8 +14,9 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete solution run passed 1,099 tests with 0 failures and 0 skips:
-903 core, 41 architecture, and 155 UI.
+The latest complete solution run passed 1,104 tests with 0 failures and 0 skips:
+908 core, 41 architecture, and 155 UI. The post-Host-sharing localization run
+completed in 9m57s.
 
 ```text
 dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal"

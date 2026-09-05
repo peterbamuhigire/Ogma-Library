@@ -89,6 +89,8 @@ Date: 2026-09-05
   English and French, added culture-change notifications, and released the
   localization subscription with shell disposal. Evidence:
   `evidence/phase-18-host-sharing-copy-2026-09-05.md`.
+- Complete post-change Release solution regression: 908 core + 41
+  architecture + 155 UI = 1,104 passed, 0 failed, 0 skipped (9m57s).
 
 ## Remaining phase gate
 
