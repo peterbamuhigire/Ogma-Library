@@ -64,13 +64,14 @@ Date: 2026-09-04
   `evidence/phase-38-format-gate-2026-09-05.md`.
 - A safe formatting subset was committed as `e0eaea9` and the CRLF checkout
   policy as `17871b9`; the full Release suite remained green at 1,104 tests.
-  Fresh-checkout verification now has one residual import-order diagnostic in
-  the protected user-modified `ReaderModule.cs`. Evidence:
+  The residual import-order diagnostic in `ReaderModule.cs` was mechanically
+  corrected after confirming its content hash matched `HEAD`; a fresh-checkout
+  verifier run is recorded in
   `evidence/phase-38-format-remediation-2026-09-05.md`.
 
 ## Remaining phase gate
 
-This phase is not complete. The CI format gate, final MSIX/installer production, Authenticode and
+This phase is not complete. Final MSIX/installer production, Authenticode and
 Developer ID/notarization evidence, clean W-REF-01/M-REF-01 installation and
 performance runs, interrupted-upgrade recovery, and physical rollback drills
 remain Phase 39 release-acceptance gates. No private signing key is stored in
