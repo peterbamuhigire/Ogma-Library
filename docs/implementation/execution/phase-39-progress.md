@@ -18,11 +18,11 @@ Date: 2026-09-05
   `evidence/phase-39-release-acceptance-2026-09-04.md`.
 - Current-head negative acceptance validation is recorded in
   `evidence/phase-39-local-acceptance-reconciliation-2026-09-04.md`.
-- The requirement-accountability sub-gate was rerun successfully: 101
-  functional requirements, 29 non-functional requirements, and 32 controls
-  were all assigned across the roadmap matrix. See
-  `evidence/phase-39-requirement-accountability-2026-09-05.md`; the evidence
-  records verification against the current source commit.
+- The requirement-accountability sub-gate was rerun successfully against source
+  commit `ee16da83adbdea017853a2f84f880e85fac7e3aa`: 101 functional
+  requirements, 29 non-functional requirements, and 32 controls were all
+  assigned across the roadmap matrix. See
+  `evidence/phase-39-requirement-accountability-2026-09-05.md`.
 - Current-head negative acceptance validation again rejected a missing record
   with exit code 1, preserving the fail-closed handover boundary.
 
