@@ -21,8 +21,9 @@ Date: 2026-09-05
 - The requirement-accountability sub-gate was rerun successfully: 101
   functional requirements, 29 non-functional requirements, and 32 controls
   were all assigned across the roadmap matrix. See
-  `evidence/phase-39-requirement-accountability-2026-09-05.md`; the evidence is
-  tied to current commit `8aba815d01879759f66428443d093b005e9b489e`.
+  `evidence/phase-39-requirement-accountability-2026-09-05.md`; the evidence
+  records verification against source commit
+  `057ace3e3c006bc886551af7ac97e9f293904b6b`.
 
 ## Remaining handover gate
 
