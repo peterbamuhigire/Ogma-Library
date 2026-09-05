@@ -167,6 +167,19 @@ public sealed class OfflineCacheServiceTests
     }
 
     [Fact]
+    public async Task InMemoryOfflineCache_CanClearAllHosts()
+    {
+        var cache = new InMemoryOfflineCacheService();
+        await cache.PutAsync(new OfflineCacheEntry("host-a", "catalogue", null, [1], Now));
+        await cache.PutAsync(new OfflineCacheEntry("host-b", "catalogue", null, [2], Now));
+
+        await cache.ClearAllAsync();
+
+        Assert.Null(await cache.GetAsync("host-a", "catalogue"));
+        Assert.Null(await cache.GetAsync("host-b", "catalogue"));
+    }
+
+    [Fact]
     public async Task DiskOfflineCache_ExportsOnlyValidResourcesForRequestedHost()
     {
         string dataDirectory = CreateTempDirectory();
