@@ -78,10 +78,14 @@ Date: 2026-09-05
   including state predicates, view bindings, entry points, capability guards,
   and automated evidence references. Evidence:
   `evidence/phase-18-route-inventory-2026-09-05.md`.
+- Localized the 3D bookshelf scene's missing-title and missing-author fallback
+  labels, with English/French regression coverage. Evidence:
+  `evidence/phase-18-bookshelf-fallback-copy-2026-09-05.md`.
 
 ## Remaining phase gate
 
-Application-wide hard-coded copy extraction, contrast snapshots, and
+Application-wide hard-coded copy extraction (including directory fallback
+bindings and classroom Host-sharing status copy), contrast snapshots, and
 Narrator/VoiceOver journeys remain before phase 18 closure. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,

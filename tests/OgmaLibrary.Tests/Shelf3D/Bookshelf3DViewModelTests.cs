@@ -102,6 +102,30 @@ public sealed class Bookshelf3DViewModelTests
     }
 
     [Fact]
+    public async Task Bookshelf3DViewModel_MissingMetadataUsesLocalizedFallbacks()
+    {
+        var localization = new InMemoryLocalizationService();
+        using var viewModel = new Bookshelf3DViewModel(
+            new FakeCatalogueReadModel(missingMetadata: true),
+            new FakeBridge(),
+            new RecordingNavigation(),
+            localization);
+
+        await viewModel.LoadAsync();
+
+        BookSceneItem book = Assert.Single(viewModel.Books);
+        Assert.Equal("Untitled", book.Title);
+        Assert.Equal("Unknown author", book.Author);
+
+        localization.SetCulture("fr");
+        await viewModel.LoadAsync();
+
+        book = Assert.Single(viewModel.Books);
+        Assert.Equal("Sans titre", book.Title);
+        Assert.Equal("Auteur inconnu", book.Author);
+    }
+
+    [Fact]
     public async Task Bookshelf3DViewModel_SetLayout_PostsLayoutMessage()
     {
         var bridge = new FakeBridge();
@@ -202,17 +226,19 @@ public sealed class Bookshelf3DViewModelTests
         }
     }
 
-    private sealed class FakeCatalogueReadModel : ICatalogueReadModel
+    private sealed class FakeCatalogueReadModel(bool missingMetadata = false) : ICatalogueReadModel
     {
         public async IAsyncEnumerable<BookSummaryProjection> GetBookSummariesAsync(
             CatalogueFilter filter,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
+            string? title = missingMetadata ? null : "Thinking in Systems";
+            IReadOnlyList<string> authors = missingMetadata ? [] : ["Donella Meadows"];
             yield return new BookSummaryProjection(
                 "01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7",
-                "Thinking in Systems",
-                ["Donella Meadows"],
+                title,
+                authors,
                 ".ogma/covers/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
                 0,
                 null,

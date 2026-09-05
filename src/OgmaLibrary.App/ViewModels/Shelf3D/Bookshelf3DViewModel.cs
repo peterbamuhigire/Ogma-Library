@@ -230,10 +230,17 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         _localization.CultureChanged -= OnCultureChanged;
     }
 
-    private static BookSceneItem ToSceneItem(BookSummaryProjection summary)
+    private BookSceneItem ToSceneItem(BookSummaryProjection summary)
     {
-        string title = LimitLabel(string.IsNullOrWhiteSpace(summary.Title) ? "Untitled" : summary.Title, 120);
-        string author = LimitLabel(summary.Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author)) ?? "Unknown author", 80);
+        string title = LimitLabel(
+            string.IsNullOrWhiteSpace(summary.Title)
+                ? _localization["Search.Result.Untitled"]
+                : summary.Title,
+            120);
+        string author = LimitLabel(
+            summary.Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author)) ??
+                _localization["Citation.UnknownAuthor"],
+            80);
         string? coverUri = ToAssetUri(summary.CoverRelativePath, "covers");
         string spineUri = ToShardedAssetUri(summary.Sha256Hash, "spines") ??
             $"ogma://assets/spines/{Uri.EscapeDataString(summary.BookId)}.jpg";
