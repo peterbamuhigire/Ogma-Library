@@ -41,6 +41,11 @@ public sealed class Phase18DesignSystemTests
             "Startup.Migration.ProgressFormat",
             "Search.Result.Untitled",
             "Search.Result.Separator",
+            "Catalogue.BookDetail.Field.ValueMissing",
+            "Catalogue.BookDetail.Field.Format",
+            "Catalogue.BookDetail.Field.WithProvenanceFormat",
+            "Catalogue.BookDetail.Provenance.Catalogue",
+            "Catalogue.BookDetail.Provenance.Manual",
         ];
 
         foreach (string key in keys)

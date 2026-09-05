@@ -2060,13 +2060,24 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             reason);
     }
 
-    private static string FormatField(MetadataFieldProjection field)
+    private string FormatField(MetadataFieldProjection field)
     {
-        string value = string.IsNullOrWhiteSpace(field.Value) ? "-" : field.Value.Trim();
+        string value = string.IsNullOrWhiteSpace(field.Value)
+            ? _localization["Catalogue.BookDetail.Field.ValueMissing"]
+            : field.Value.Trim();
         string provenance = FormatProvenance(field);
         return string.IsNullOrWhiteSpace(provenance)
-            ? $"{field.FieldName}: {value}"
-            : $"{field.FieldName}: {value} ({provenance})";
+            ? string.Format(
+                _localization.CurrentCulture,
+                _localization["Catalogue.BookDetail.Field.Format"],
+                field.FieldName,
+                value)
+            : string.Format(
+                _localization.CurrentCulture,
+                _localization["Catalogue.BookDetail.Field.WithProvenanceFormat"],
+                field.FieldName,
+                value,
+                provenance);
     }
 
     private void ClearWriteBackState()
@@ -2081,7 +2092,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(CanRestoreWriteBack));
     }
 
-    private static List<AcceptedFieldProposal> BuildWriteBackProposals(
+    private List<AcceptedFieldProposal> BuildWriteBackProposals(
         IReadOnlyList<MetadataFieldProjection> fields) =>
         fields
             .Where(field => WriteBackFieldNames.Contains(field.FieldName) &&
@@ -2091,7 +2102,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             .Select(field => new AcceptedFieldProposal(
                 field.FieldName,
                 field.Value!.Trim(),
-                string.IsNullOrWhiteSpace(field.Source) ? "Catalogue" : field.Source.Trim(),
+                string.IsNullOrWhiteSpace(field.Source)
+                    ? _localization["Catalogue.BookDetail.Provenance.Catalogue"]
+                    : field.Source.Trim(),
                 Math.Clamp(field.Confidence ?? 1.0, 0.0, 1.0),
                 field.IsOverridden))
             .ToList();
@@ -2103,7 +2116,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         Truncate(diff.OldValue, 160) ?? "-",
         Truncate(diff.NewValue, 160) ?? "-");
 
-    private static string FormatProvenance(MetadataFieldProjection field)
+    private string FormatProvenance(MetadataFieldProjection field)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(field.Source))
@@ -2118,7 +2131,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 
         if (field.IsOverridden)
         {
-            parts.Add("manual");
+            parts.Add(_localization["Catalogue.BookDetail.Provenance.Manual"]);
         }
 
         return string.Join(", ", parts);

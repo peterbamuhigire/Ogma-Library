@@ -35,6 +35,9 @@ Date: 2026-09-05
 - Extracted startup canonical-identity migration progress copy into localized
   resources and retained the progress counters so an in-flight migration can
   update safely when culture changes.
+- Extracted book-detail metadata field/provenance formatting, including missing
+  values, default catalogue source, and manual-override labels, into localized
+  resources without changing the English rendering contract.
 
 ## Verification
 
@@ -58,6 +61,7 @@ Date: 2026-09-05
 - Focused Advisor quality/localization slice: 6 passed, 0 failed, 0 skipped.
 - Focused startup/design-system localization slice: 6 passed, 0 failed,
   0 skipped.
+- Focused detail-format localization slice: 11 passed, 0 failed, 0 skipped.
 - Full solution regression after the localization increment: 895 core passed,
   1 core timing-sensitive LAN P95 test failed, and 41 architecture + 155 UI
   tests passed. The failed catalogue-load P95 was 2,558 ms versus 2,000 ms;
@@ -69,6 +73,6 @@ Date: 2026-09-05
 Application-wide hard-coded copy extraction, all-view route inventory,
 contrast snapshots, and Narrator/VoiceOver journeys remain before phase 18
 closure. Theme/density persistence, command-palette execution, the
-  detail-panel/catalogue-shell/Advisor/startup copy extraction, and the named
-  Student Smart Search copy finding are closed locally; physical accessibility
-  and full application coverage remain open.
+  detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
+  and the named Student Smart Search copy finding are closed locally; physical
+  accessibility and full application coverage remain open.
