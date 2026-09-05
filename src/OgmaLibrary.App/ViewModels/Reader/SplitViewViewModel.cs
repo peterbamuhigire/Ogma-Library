@@ -43,10 +43,10 @@ public sealed class SplitViewViewModel : INotifyPropertyChanged
     /// <summary>Localized right-pane placeholder.</summary>
     public string RightPaneText => _localization["SplitView.RightPane"];
 
-    /// <summary>Localized V2 placeholder message.</summary>
+    /// <summary>Localized reference-reader prompt.</summary>
     public string PlaceholderText => _localization["SplitView.Placeholder"];
 
-    /// <summary>Accessibility label for the scaffold surface.</summary>
+    /// <summary>Accessibility label for the split-reader workspace.</summary>
     public string AccessibleLabel => _localization["SplitView.AccessibleLabel"];
 
     /// <summary>Localized reference-reader action.</summary>

@@ -1,6 +1,6 @@
 # Phase 21 Progress - Reader Completion and Portability
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Delivered in this increment
 
@@ -32,6 +32,9 @@ Date: 2026-09-04
   normalized representation; unsupported versions retain their marker but
   expose no regions, preventing incorrect overlays. Portable reader-state
   exports carry the coordinate version and imports reject unsupported data.
+- Removed stale user-facing “scaffold” terminology from the implemented
+  two-session split-reader route while retaining a compatibility alias for
+  callers of the former method name.
 
 ## Verification
 
@@ -54,6 +57,8 @@ Date: 2026-09-04
 - Current-HEAD annotation coordinate/migration verification: 36 reader tests
   passed, 0 failed, 0 skipped, including the Phase 09 persistence regression
   and Phase 21 legacy/unsupported-version cases.
+- Current-HEAD split-reader route regression: 14 UI tests passed, 0 failed, and
+  0 skipped.
 
 ## Remaining phase gate
 

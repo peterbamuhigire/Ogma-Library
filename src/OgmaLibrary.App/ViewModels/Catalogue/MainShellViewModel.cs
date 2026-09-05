@@ -25,7 +25,7 @@ public enum ShellView
     /// <summary>The PDF reader view (Phase 08).</summary>
     Reader = 1,
 
-    /// <summary>The V2 split-reader scaffold (Phase 15).</summary>
+    /// <summary>The V2 split-reader workspace (Phase 21).</summary>
     SplitView = 2,
 
     /// <summary>The LAN Host sharing settings surface (Phase 16).</summary>
@@ -116,7 +116,7 @@ public sealed class MainShellViewModel :
     /// <param name="bookDetail">The book-detail view model.</param>
     /// <param name="shelfSidebar">The shelf sidebar view model.</param>
     /// <param name="reader">The reader view model.</param>
-    /// <param name="splitView">The Phase 15 split-view scaffold.</param>
+    /// <param name="splitView">The Phase 21 two-session split reader.</param>
     /// <param name="settingsService">The library settings service.</param>
     /// <param name="orchestrator">The ingestion orchestrator.</param>
     /// <param name="scanProgress">The scan progress service.</param>
@@ -241,7 +241,7 @@ public sealed class MainShellViewModel :
     /// <summary>The reader surface view model.</summary>
     public ReaderViewModel? Reader { get; }
 
-    /// <summary>The split-view scaffold view model.</summary>
+    /// <summary>The two-session split reader view model.</summary>
     public SplitViewViewModel? SplitView { get; }
 
     /// <summary>The global search panel view model.</summary>
@@ -317,7 +317,7 @@ public sealed class MainShellViewModel :
     /// <summary>True when the reader view is the active content area.</summary>
     public bool IsReaderActive => _activeView == ShellView.Reader;
 
-    /// <summary>True when the split-view scaffold is the active content area.</summary>
+    /// <summary>True when the split reader is the active content area.</summary>
     public bool IsSplitViewActive => _activeView == ShellView.SplitView;
 
     /// <summary>True when the Sharing settings surface is the active content area.</summary>
@@ -527,7 +527,7 @@ public sealed class MainShellViewModel :
     /// <summary>Relocation-review panel toggle label.</summary>
     public string ReconciliationReviewLabel => _localization["Reconciliation.Review.Title"];
 
-    /// <summary>Split-view scaffold route label.</summary>
+    /// <summary>Split-reader route label.</summary>
     public string SplitViewLabel => _localization["SplitView.Title"];
 
     /// <summary>Sharing settings route label.</summary>
@@ -637,7 +637,7 @@ public sealed class MainShellViewModel :
                 IsSearchPanelOpen = true;
                 break;
             case "split-view":
-                OpenSplitViewScaffold();
+                OpenSplitView();
                 break;
             case "advisor":
                 OpenAdvisor();
@@ -735,13 +735,16 @@ public sealed class MainShellViewModel :
         OpenCatalogue();
     }
 
-    /// <summary>Opens the Phase 15 split-view scaffold route.</summary>
-    public void OpenSplitViewScaffold()
+    /// <summary>Opens the Phase 21 two-session split-reader route.</summary>
+    public void OpenSplitView()
     {
         ActiveView = ShellView.SplitView;
         ReaderPlaceholderMessage = null;
         BookDetail.IsVisible = false;
     }
+
+    /// <summary>Compatibility alias for callers using the former route name.</summary>
+    public void OpenSplitViewScaffold() => OpenSplitView();
 
     /// <summary>Opens the Phase 16 Sharing settings surface.</summary>
     public async Task OpenSharingSettingsAsync(CancellationToken cancellationToken = default)
