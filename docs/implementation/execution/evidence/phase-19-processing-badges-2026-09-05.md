@@ -16,7 +16,7 @@ Date: 2026-09-05
 ## Verification
 
 - `GetBookSummaries_ProjectsProcessingAndQualityState`: passed.
-- `Grid_RendersProcessingQualityAndAvailabilityBadges`: passed.
+- `GridAndList_RenderProcessingQualityAndAvailabilityBadges`: passed.
 - Release application build: passed with 0 warnings and 0 errors.
 
 ## Residual gates

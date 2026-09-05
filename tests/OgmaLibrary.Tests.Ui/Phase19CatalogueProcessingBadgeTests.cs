@@ -16,7 +16,7 @@ namespace OgmaLibrary.Tests.Ui;
 public sealed class Phase19CatalogueProcessingBadgeTests
 {
     [AvaloniaFact]
-    public async Task Grid_RendersProcessingQualityAndAvailabilityBadges()
+    public async Task GridAndList_RenderProcessingQualityAndAvailabilityBadges()
     {
         var localization = new InMemoryLocalizationService();
         var readModel = new SeededReadModel(
@@ -73,8 +73,29 @@ public sealed class Phase19CatalogueProcessingBadgeTests
         Assert.Contains(localization["Catalogue.Badge.Ocr"], text);
         Assert.Contains("88%", text);
         Assert.Contains(localization["Catalogue.Badge.Unavailable"], text);
+
+        var listWindow = new Window
+        {
+            Width = 800,
+            Height = 520,
+            Content = new CatalogueListView { DataContext = viewModel },
+        };
+        listWindow.Show();
+        Dispatcher.UIThread.RunJobs();
+        var listText = listWindow.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .Select(block => block.Text)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToList();
+
+        Assert.Contains(localization["Catalogue.Badge.Indexed"], listText);
+        Assert.Contains(localization["Catalogue.Badge.Embedded"], listText);
+        Assert.Contains(localization["Catalogue.Badge.Ocr"], listText);
+        Assert.Contains("88%", listText);
+        Assert.Contains(localization["Catalogue.Badge.Unavailable"], listText);
         viewModel.Dispose();
         window.Close();
+        listWindow.Close();
     }
 
     private sealed class NoOpNavigation : IBookDetailNavigationService
