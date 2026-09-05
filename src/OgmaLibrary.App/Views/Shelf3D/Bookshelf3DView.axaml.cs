@@ -1,8 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
-using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.App.ViewModels.Shelf3D;
+using OgmaLibrary.Bookshelf3D.Bridge;
 
 namespace OgmaLibrary.App.Views.Shelf3D;
 

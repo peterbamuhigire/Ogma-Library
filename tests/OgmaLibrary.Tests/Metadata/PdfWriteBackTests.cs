@@ -1,8 +1,8 @@
+using System.Security.Principal;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Tests.Catalogue;
-using System.Security.Principal;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Metadata;
