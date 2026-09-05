@@ -74,12 +74,17 @@ Date: 2026-09-05
   passed; the post-change full solution passed 900 core, 41 architecture, and
   155 UI tests with 0 failures and 0 skips. Evidence:
   `evidence/phase-18-ai-accessibility-copy-2026-09-05.md`.
+- Static shell route inventory completed for all eight `ShellView` routes,
+  including state predicates, view bindings, entry points, capability guards,
+  and automated evidence references. Evidence:
+  `evidence/phase-18-route-inventory-2026-09-05.md`.
 
 ## Remaining phase gate
 
-Application-wide hard-coded copy extraction, all-view route inventory,
-contrast snapshots, and Narrator/VoiceOver journeys remain before phase 18
-closure. Theme/density persistence, command-palette execution, the
+Application-wide hard-coded copy extraction, contrast snapshots, and
+Narrator/VoiceOver journeys remain before phase 18 closure. Theme/density
+persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
-  and the named Student Smart Search copy finding are closed locally; physical
-  accessibility and full application coverage remain open.
+  named Student Smart Search copy finding, and static route inventory are
+  closed locally; physical accessibility and full application coverage remain
+  open.
