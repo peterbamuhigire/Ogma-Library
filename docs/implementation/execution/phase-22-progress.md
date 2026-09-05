@@ -67,3 +67,7 @@ The backend facets/paging/highlighting/full-text-fallback subgate and the
 locally verifiable UI chips/selection/keyboard subgate are closed. Reference-
 hardware confirmation and physical assistive-technology walkthroughs remain
 before phase 22 closure.
+
+The search-result fallback title and match-location separator are also
+resource-keyed with English/French/pseudo-locale coverage. This local copy
+subgate is closed.

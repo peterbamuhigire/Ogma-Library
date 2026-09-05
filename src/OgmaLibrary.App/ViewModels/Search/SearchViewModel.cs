@@ -281,11 +281,13 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             : string.Empty;
         SearchSnippet snippet = SearchSnippetParser.Parse(result.Snippet);
         SearchResultBadge[] matchBadges = CreateMatchBadges(result);
-        string matchLocations = string.Join(" · ", matchBadges.Select(badge => badge.Label));
+        string matchLocations = string.Join(
+            _localization["Search.Result.Separator"],
+            matchBadges.Select(badge => badge.Label));
         return new SearchResultItem(
             result.BookId,
             IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty,
-            result.Title ?? "Untitled",
+            result.Title ?? _localization["Search.Result.Untitled"],
             subtitle,
             confidenceIconPath,
             snippet.Text,

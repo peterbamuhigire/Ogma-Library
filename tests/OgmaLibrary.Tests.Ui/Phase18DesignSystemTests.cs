@@ -39,6 +39,8 @@ public sealed class Phase18DesignSystemTests
             "Catalogue.BookDetail.Reading.AnnotationsFormat",
             "Startup.Migration.Preparing",
             "Startup.Migration.ProgressFormat",
+            "Search.Result.Untitled",
+            "Search.Result.Separator",
         ];
 
         foreach (string key in keys)
@@ -49,6 +51,7 @@ public sealed class Phase18DesignSystemTests
         localization.SetCulture("fr");
         Assert.Equal("Recherche IA intelligente", localization["Classroom.SmartSearch.Title"]);
         Assert.Equal("etiquette, autre etiquette", localization["Catalogue.BookDetail.Curation.TagsWatermark"]);
+        Assert.Equal("Sans titre", localization["Search.Result.Untitled"]);
 
         localization.SetCulture("qps-ploc");
         foreach (string key in keys)
