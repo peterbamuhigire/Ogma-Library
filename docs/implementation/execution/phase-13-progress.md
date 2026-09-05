@@ -54,11 +54,17 @@ durable audit payload.
   bounded book-detail projection, and localized enrichment-tab freshness rows.
   SQLite-safe bounded ordering, migration rollback, and detail-consumer tests
   pass; see `evidence/phase-13-stale-label-2026-09-05.md`.
+- Performed a read-only live Open Library probe: the metadata endpoint returned
+  HTTP 200 without redirect, while the tested cover URL redirected to an
+  Archive.org host and was correctly rejected by the exact provider allowlist.
+  See `evidence/phase-13-live-provider-probe-2026-09-05.md`.
 
 ## Remaining phase gate
 
 The official-source documentation, local attribution/link subgate, and local
 stale-label subgate are complete. Written legal/privacy owner review, archived
-release evidence, live provider/network evidence, and physical release/UI
-acceptance remain before phase 13 closure. Quota and circuit state are
-observable in the provider health contract.
+release evidence, live cover-provider acceptance (including the observed
+cross-host redirect), and physical release/UI acceptance remain before phase
+13 closure. Quota and circuit state are observable in the provider health
+contract; the live metadata endpoint reachability probe is recorded but does
+not close cover acquisition.
