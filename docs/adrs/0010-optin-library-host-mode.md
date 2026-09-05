@@ -118,6 +118,6 @@ A two-process host/client spike validated the LAN transport on the dev box.
   Host's self-signed root is scoped to Phase 16.
 
 **Decision recorded:** the ADR-0010 transport stack is **Kestrel HTTPS +
-Makaretu.Dns.Multicast (`_ogma._tcp`)**. ADR-0010 is **Accepted** by owner direction (Host-mode
-is ratified when Phases 16–18 are scheduled); the transport sub-decision is now
-evidence-backed.
+Makaretu.Dns.Multicast (`_ogma._tcp`)**. ADR-0010 is **Accepted** by owner
+direction. The physical firewall/mDNS constraint and production trust-pinning
+remain explicit Phase 34/39 acceptance gates.
