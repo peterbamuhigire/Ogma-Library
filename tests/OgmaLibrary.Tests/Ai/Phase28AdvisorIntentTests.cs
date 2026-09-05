@@ -107,7 +107,8 @@ public sealed class Phase28AdvisorIntentTests
     public void CandidateRanker_UsesResolvedReferenceSignalsDeterministically()
     {
         BookMetadataDto reference = Candidate("BOOK-P28-REFERENCE", "Reference Work", ["systems"], 300)
-            with { Authors = ["Reference Author"], Categories = ["History"], Tags = ["institutions"] };
+            with
+        { Authors = ["Reference Author"], Categories = ["History"], Tags = ["institutions"] };
         BookMetadataDto[] candidates =
         [
             Candidate("BOOK-P28-RELATED", "Related Work", ["institutions"], 300)
