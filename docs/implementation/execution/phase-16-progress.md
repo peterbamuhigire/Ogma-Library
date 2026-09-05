@@ -33,6 +33,11 @@ Date: 2026-09-05
   preventing arbitrary safe-looking suffixes from addressing sidecar files.
 - Added an authenticated endpoint regression proving unsupported variants fail
   closed before file resolution.
+- Connected the existing validated provider-cover persistence boundary to
+  deterministic metadata enrichment. Only positive, non-stale, highest-
+  confidence provider artwork is considered; failure is isolated from metadata
+  proposals and the default external-provider-disabled mode remains fail-closed.
+  Evidence: `evidence/phase-16-provider-cover-wiring-2026-09-05.md`.
 
 ## Verification
 
@@ -45,8 +50,10 @@ Date: 2026-09-05
 
 ## Remaining phase gate
 
-Embedded/provider source acquisition, lazy high/low variants, remaining UI
-journeys, and large-library asset budget testing remain before phase 16 closure.
+Embedded source acquisition, remaining UI journeys, and large-library asset
+budget testing remain before phase 16 closure. Provider cover acquisition is
+now wired through the validated provider-image boundary; lazy high/low variants
+and exact variant rejection are covered by the local variant tests.
 The ingest/update spine scheduling sub-gate is closed locally.
 The local detail cover-control and LAN asset-authorization sub-gates are closed;
 physical accessibility and cross-platform evidence remain open.

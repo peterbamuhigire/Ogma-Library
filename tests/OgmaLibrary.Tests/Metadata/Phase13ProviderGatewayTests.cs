@@ -100,6 +100,44 @@ public sealed class Phase13ProviderGatewayTests : IDisposable
     }
 
     [Fact]
+    public async Task Aggregator_UsesGatewayCacheBeforeDirectProviders()
+    {
+        _context.Books.Add(new BookRow { BookId = "book-1", Title = "Cached title", Status = 0 });
+        await _context.SaveChangesAsync();
+
+        var directProvider = new CountingProvider("DirectProvider");
+        var gateway = new StubGateway(
+            new ProviderMetadataResult(
+                "CachedProvider",
+                "9780306406157",
+                "Cached title",
+                [],
+                null,
+                null,
+                null,
+                null,
+                [],
+                "9780306406157",
+                0.9,
+                DateTimeOffset.UtcNow,
+                null));
+        var aggregator = new MetadataProviderAggregator(
+            [directProvider],
+            _context,
+            gateway: gateway);
+
+        IReadOnlyList<ProviderMetadataResult> results = await aggregator.AggregateAsync(
+            "book-1",
+            new MetadataLookupRequest("9780306406157", null, null));
+
+        Assert.Single(results);
+        Assert.Equal("CachedProvider", results[0].Provider);
+        Assert.Equal(0, directProvider.Calls);
+        Assert.Single(_context.MetadataLookups);
+        Assert.Single(_context.AuditEvents.Where(a => a.EventType == "ProviderLookup"));
+    }
+
+    [Fact]
     public void ProviderHealth_AccountsQuotaAndOpensCircuitAfterRepeatedFailures()
     {
         var health = new MetadataProviderHealth();
@@ -234,5 +272,13 @@ public sealed class Phase13ProviderGatewayTests : IDisposable
                 ETag: "\"cache-v1\"",
                 NotModified: true)]);
         }
+    }
+
+    private sealed class StubGateway(ProviderMetadataResult result) : IMetadataProviderGateway
+    {
+        public Task<IReadOnlyList<ProviderMetadataResult>> SearchAsync(
+            MetadataLookupRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ProviderMetadataResult>>([result]);
     }
 }

@@ -46,6 +46,10 @@ durable audit payload.
   and Open Library. URLs are generated from normalized ISBNs on fixed HTTPS
   hosts, revalidated before launch, and exposed with localized accessible
   labels; see `evidence/phase-13-attribution-links-2026-09-05.md`.
+- Corrected runtime composition so deterministic metadata enrichment consumes the
+  durable provider gateway cache before provider adapters, while retaining lookup
+  provenance and audit persistence in the aggregator. Evidence:
+  `evidence/phase-13-gateway-runtime-wiring-2026-09-05.md`.
 
 ## Remaining phase gate
 

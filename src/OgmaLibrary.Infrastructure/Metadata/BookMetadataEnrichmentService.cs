@@ -5,6 +5,7 @@ using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Assets;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 
@@ -23,6 +24,7 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
     private readonly IConfidenceMergeService _mergeService;
     private readonly IMetadataWriteBackService _writeBackService;
     private readonly IMetadataReviewService _reviewService;
+    private readonly ProviderCoverAssetService? _providerCoverAssets;
 
     /// <summary>Initializes a new instance of <see cref="BookMetadataEnrichmentService"/>.</summary>
     internal BookMetadataEnrichmentService(
@@ -33,7 +35,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         IConfidenceMergeService mergeService,
         IMetadataApplyService applyService,
         IMetadataWriteBackService writeBackService,
-        IMetadataReviewService reviewService)
+        IMetadataReviewService reviewService,
+        ProviderCoverAssetService? providerCoverAssets = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(settings);
@@ -50,6 +53,7 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         _mergeService = mergeService;
         _writeBackService = writeBackService;
         _reviewService = reviewService ?? throw new ArgumentNullException(nameof(reviewService));
+        _providerCoverAssets = providerCoverAssets;
     }
 
     /// <summary>Initializes a new instance of <see cref="BookMetadataEnrichmentService"/>.</summary>
@@ -61,7 +65,8 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         IConfidenceMergeService mergeService,
         IMetadataApplyService applyService,
         IMetadataWriteBackService writeBackService,
-        IMetadataReviewService reviewService)
+        IMetadataReviewService reviewService,
+        ProviderCoverAssetService? providerCoverAssets = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(settings);
@@ -78,6 +83,7 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         _mergeService = mergeService;
         _writeBackService = writeBackService;
         _reviewService = reviewService ?? throw new ArgumentNullException(nameof(reviewService));
+        _providerCoverAssets = providerCoverAssets;
     }
 
     /// <inheritdoc />
@@ -128,6 +134,9 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
 
             IReadOnlyList<ProviderMetadataResult> results = await _providerAggregator
                 .AggregateAsync(bookId, request, cancellationToken)
+                .ConfigureAwait(false);
+
+            await TryPersistProviderCoverAsync(book, results, cancellationToken)
                 .ConfigureAwait(false);
 
             IReadOnlyList<MergedMetadataProposal> proposals = await _mergeService
@@ -207,6 +216,50 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
             Isbn13: string.IsNullOrWhiteSpace(isbn) ? null : isbn,
             Title: string.IsNullOrWhiteSpace(title) ? null : title,
             Author: string.IsNullOrWhiteSpace(author) ? null : author);
+    }
+
+    private async Task TryPersistProviderCoverAsync(
+        BookRow book,
+        IReadOnlyList<ProviderMetadataResult> results,
+        CancellationToken cancellationToken)
+    {
+        if (_providerCoverAssets is null || string.IsNullOrWhiteSpace(book.Sha256Hash))
+        {
+            return;
+        }
+
+        ProviderMetadataResult? cover = results
+            .Where(result => !result.IsStale && result.Confidence > 0.0)
+            .Where(result => !string.IsNullOrWhiteSpace(result.CoverUrl))
+            .OrderByDescending(result => result.Confidence)
+            .FirstOrDefault();
+        if (cover is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _providerCoverAssets.PersistAsync(
+                book.BookId,
+                book.Sha256Hash,
+                cover.CoverUrl!,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            // Provider artwork is an optional enhancement. A rejected image must
+            // never discard otherwise valid metadata proposals or block readiness.
+            await WriteAuditAsync(
+                book.BookId,
+                "ProviderCoverPersistFailed",
+                new { provider = cover.Provider },
+                cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task<string?> ResolvePdfPathAsync(

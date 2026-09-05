@@ -19,6 +19,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly IMetadataConflictDetector _conflictDetector;
+    private readonly IMetadataProviderGateway? _gateway;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataProviderAggregator"/>.
@@ -26,16 +27,19 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
     /// <param name="providers">All registered metadata providers.</param>
     /// <param name="context">The catalogue DB context for persisting lookup rows.</param>
     /// <param name="conflictDetector">Optional field-level conflict detector.</param>
+    /// <param name="gateway">Optional cached provider gateway used by runtime composition.</param>
     internal MetadataProviderAggregator(
         IEnumerable<IMetadataProvider> providers,
         CatalogueDbContext context,
-        IMetadataConflictDetector? conflictDetector = null)
+        IMetadataConflictDetector? conflictDetector = null,
+        IMetadataProviderGateway? gateway = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(context);
         _providers = providers.ToList();
         _context = context;
         _conflictDetector = conflictDetector ?? new MetadataConflictDetector();
+        _gateway = gateway;
     }
 
     /// <summary>
@@ -44,16 +48,19 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
     /// <param name="providers">All registered metadata providers.</param>
     /// <param name="contextFactory">Factory for catalogue DB contexts.</param>
     /// <param name="conflictDetector">Optional field-level conflict detector.</param>
+    /// <param name="gateway">Optional cached provider gateway used by runtime composition.</param>
     public MetadataProviderAggregator(
         IEnumerable<IMetadataProvider> providers,
         IDbContextFactory<CatalogueDbContext> contextFactory,
-        IMetadataConflictDetector? conflictDetector = null)
+        IMetadataConflictDetector? conflictDetector = null,
+        IMetadataProviderGateway? gateway = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(contextFactory);
         _providers = providers.ToList();
         _contextFactory = contextFactory;
         _conflictDetector = conflictDetector ?? new MetadataConflictDetector();
+        _gateway = gateway;
     }
 
     /// <inheritdoc />
@@ -84,9 +91,22 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
             return [];
         }
 
-        // Call all providers concurrently; isolate per-provider failures.
-        var tasks = _providers.Select(p => SafeSearchAsync(p, request, cancellationToken)).ToArray();
-        IReadOnlyList<ProviderMetadataResult>[] providerResults = await Task.WhenAll(tasks).ConfigureAwait(false);
+        // Runtime composition supplies the cached gateway. The direct provider path
+        // remains available to focused tests and legacy callers, while preserving
+        // per-provider failure isolation when no gateway is configured.
+        IReadOnlyList<ProviderMetadataResult>[] providerResults;
+        if (_gateway is not null)
+        {
+            providerResults = [await _gateway.SearchAsync(request, cancellationToken)
+                .ConfigureAwait(false)];
+        }
+        else
+        {
+            var tasks = _providers
+                .Select(p => SafeSearchAsync(p, request, cancellationToken))
+                .ToArray();
+            providerResults = await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
 
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
