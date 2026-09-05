@@ -123,6 +123,56 @@ public sealed class ShellReaderNavigationTests
     }
 
     [AvaloniaFact]
+    public void CatalogueShellView_VisibleInteractiveControlsAreNamedAndFocusable()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new EmptyCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var bookDetail = new BookDetailViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var shell = new MainShellViewModel(
+            localization,
+            catalogue,
+            bookDetail,
+            shelfSidebar);
+        var view = new CatalogueShellView { DataContext = shell };
+        var window = new Window
+        {
+            Width = 1280,
+            Height = 760,
+            Content = view,
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var interactiveControls = view.GetVisualDescendants()
+            .Where(control => control.IsEffectivelyVisible)
+            .OfType<Control>()
+            .Where(control => control is Button or TextBox or ComboBox or ListBox)
+            .Where(control => control.Focusable)
+            .ToList();
+
+        Assert.NotEmpty(interactiveControls);
+        Assert.All(interactiveControls, control =>
+        {
+            string? name = control.GetValue(Avalonia.Automation.AutomationProperties.NameProperty) as string;
+            Assert.False(string.IsNullOrWhiteSpace(name), $"{control.GetType().Name} lacks an automation name.");
+        });
+
+        Control sidebarToggle = Assert.Single(interactiveControls, control =>
+            control is Button &&
+            control.GetValue(Avalonia.Automation.AutomationProperties.NameProperty) as string ==
+                shell.SidebarToggleLabel);
+        sidebarToggle.Focus();
+        Assert.True(sidebarToggle.IsFocused, "The visible sidebar toggle did not accept keyboard focus.");
+
+        window.Close();
+        shell.Dispose();
+    }
+
+    [AvaloniaFact]
     public async Task MainShell_OpenCatalogue_ReturnsFromReaderToLibrary()
     {
         var localization = new InMemoryLocalizationService();

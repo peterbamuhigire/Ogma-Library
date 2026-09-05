@@ -39,6 +39,10 @@ Date: 2026-09-05
   bounded metadata quality score.
 - Rendered localized processing, semantic, OCR, quality, and unavailable badges
   in both grid and list catalogue cards without exposing source paths.
+- Added headless accessibility proof for the catalogue shell: all effectively
+  visible interactive controls have automation names, and the enabled sidebar
+  toggle accepts keyboard focus. Evidence:
+  `evidence/phase-19-catalogue-accessibility-2026-09-05.md`.
 
 ## Verification
 
@@ -57,8 +61,9 @@ Date: 2026-09-05
 
 ## Remaining phase gate
 
-Keyboard/screen-reader journeys and named reference-hardware confirmation
-remain before phase 19 closure. The cover-source fallback/precedence and API
+Physical keyboard/screen-reader journeys and named reference-hardware
+confirmation remain before phase 19 closure. The local headless naming/focus
+subgate is closed. The cover-source fallback/precedence and API
 asset-authorization sub-gates are now closed by the local evidence below. The
 processing/quality projection and rendered badges, persisted-view-state,
 UI-pagination, directory-view, visible filter/sort wiring, and local 50k
@@ -77,3 +82,5 @@ server-side page-performance sub-gates are also closed.
 - API asset authorization proof: the existing authenticated LAN endpoint suite
   verifies published-hash enforcement, bounded variants, unauthorized
   metadata/path exclusion, and asset serving; no raw local path is exposed.
+- Complete post-accessibility Release solution regression: 916 core + 41
+  architecture + 158 UI = 1,115 passed, 0 failed, 0 skipped.
