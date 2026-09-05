@@ -90,7 +90,7 @@ public sealed class PdfWorkerIsolationTests : IDisposable
         Assert.True(telemetryClient.MaxPeakWorkingSetBytes > 0);
         if (telemetryClient.MaxPrivateMemoryBytes <= 0)
         {
-            Assert.Skip(
+            throw new Xunit.Sdk.SkipException(
                 "The current runtime did not expose private-memory counters for the worker; " +
                 "this platform metric remains NOT ASSESSED.");
         }

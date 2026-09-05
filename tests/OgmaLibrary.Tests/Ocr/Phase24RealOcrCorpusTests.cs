@@ -17,7 +17,7 @@ public sealed class Phase24RealOcrCorpusTests
     {
         if (!OperatingSystem.IsWindows())
         {
-            Assert.Skip(
+            throw new Xunit.Sdk.SkipException(
                 "The Tesseract 5.2.0 package supplies native binaries only for Windows; " +
                 "macOS/Linux OCR remains NOT ASSESSED until a supported native runtime is packaged.");
         }
