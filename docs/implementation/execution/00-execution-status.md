@@ -7,7 +7,8 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-06
 
-Automated validation refresh: the latest complete current-worktree solution
+Automated validation refresh: commit `5bef1cc209295b1da452ac342da64f92ef00b5075`
+passed the latest complete current-worktree solution
 verification passed 1,125 tests (925 core, 41 architecture, 159 UI), with 0
 failures and 0 skips. The detailed current-worktree record is
 `evidence/solution-regression-current-worktree-2026-09-06.md`; the prior

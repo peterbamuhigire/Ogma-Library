@@ -14,7 +14,7 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete current-worktree regression passed 1,125 tests with 0
+The latest complete current-head regression at `5bef1cc` passed 1,125 tests with 0
 failures and 0 skips: 925 core, 41 architecture, and 159 UI. The authoritative
 record is `evidence/solution-regression-current-worktree-2026-09-06.md`; it
 also records the user-owned dirty worktree changes that were deliberately not

@@ -79,6 +79,13 @@ Date: 2026-09-06
   corrected after confirming its content hash matched `HEAD`; a fresh-checkout
   verifier run is recorded in
   `evidence/phase-38-format-remediation-2026-09-05.md`.
+- Current-head locked Windows candidate rerun on 2026-09-06 passed restore,
+  publish, ZIP digest creation, and `Test-ReleaseCandidate.ps1` integrity
+  verification. Candidate SHA-256 was
+  `d2f11a4fb222992adc30272943c55657acaefd56a6b3ea46f57c10bb07a7ff8c`;
+  the temporary candidate was removed after verification.
+- The same current-head run passed requirement accountability for all 162
+  requirement/control IDs.
 
 ## Remaining phase gate
 

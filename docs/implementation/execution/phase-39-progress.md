@@ -25,6 +25,11 @@ Date: 2026-09-05
   `evidence/phase-39-requirement-accountability-2026-09-05.md`.
 - Current-head negative acceptance validation again rejected a missing record
   with exit code 1, preserving the fail-closed handover boundary.
+- On 2026-09-06, current-head requirement accountability was rerun at
+  `5bef1cc209295b1da452ac342da64f92ef00b5075`, and the complete solution
+  regression passed 1,125/1,125 with no failures or skips. These results close
+  only repository-verifiable sub-gates; they do not substitute for installed
+  reference-machine or owner evidence.
 
 ## Remaining handover gate
 

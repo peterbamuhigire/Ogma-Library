@@ -2,19 +2,21 @@
 
 ## Scope
 
-This record covers the corrected native-shelf host and refreshed locked
-restore metadata on the current `main` worktree. Existing user-owned dirty
+This record covers the corrected native-shelf host, refreshed locked restore
+metadata, and bounded worker-diagnostic remediation on commit
+`5bef1cc209295b1da452ac342da64f92ef00b5075`. Existing user-owned dirty
 catalogue/startup/image files remained unstaged.
 
 ## Command and result
 
 ```text
-dotnet test OgmaLibrary.sln --configuration Release --no-build --logger "console;verbosity=minimal" -m:1
+dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal" -m:1
 ```
 
 Result: **1,125 passed, 0 failed, 0 skipped** — 41 architecture, 925 core,
 and 159 UI tests. The run included a complete core suite and a complete UI
-suite after lazy native-host activation was introduced.
+suite after lazy native-host activation and worker-boundary diagnostic
+remediation were introduced.
 
 ## Gate interpretation
 
