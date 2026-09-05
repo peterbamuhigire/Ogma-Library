@@ -50,6 +50,10 @@ Date: 2026-09-04
   `42bfc492967bc014d7d371525f73ae27f941bc884fd8bf3ec3af55353af6c8e1`.
   The candidate was written outside the repository under the task temporary
   directory and is not a signed or installed release.
+- Current-head rerun after the Phase 35–37 batch produced and verified another
+  unsigned `win-x64` candidate; artifact SHA-256 was
+  `2a2a70b5548def4f27dc2518575771eb897c3417c875845bf26396293e2766ca`.
+  The temporary candidate directory was removed after verification.
 - PowerShell packaging scripts parsed successfully.
 - `actionlint` 1.7.12 passed both tracked workflows (`ci.yml` and
   `release-candidate.yml`) with exit code 0; see

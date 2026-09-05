@@ -12,3 +12,10 @@ Final MSIX/installer production, Authenticode and Developer ID/notarization,
 clean W-REF-01/M-REF-01 installation/performance, interrupted-upgrade recovery,
 and physical rollback drills are **NOT ASSESSED**. No signing key is stored in
 the repository.
+
+On 2026-09-05, the current `main` commit produced a fresh unsigned Windows
+`win-x64` candidate. Packaging and `Test-ReleaseCandidate.ps1` passed; the
+artifact SHA-256 was
+`2a2a70b5548def4f27dc2518575771eb897c3417c875845bf26396293e2766ca`.
+The candidate was created outside the repository and removed after the check;
+this does not provide signing or installation evidence.
