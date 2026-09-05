@@ -64,9 +64,10 @@
 | ID | Task | Dependencies | Est. | Satisfies |
 | --- | --- | --- | --- | --- |
 | P13-WP5-T1 | `AnswerRequest` DTO: `Question` (string), `MaxCitations` (int, default 5), `AllowContentAwareTier` (bool) | P13-WP1-T9 | 0.5 h | FR-AI-008 stub |
-| P13-WP5-T2 | `AnswerResponse` DTO: `Answer` (string), `Citations` (list of AnswerCitation), `IsV2` (bool, always false in this phase) | P13-WP5-T1 | 0.5 h | FR-AI-008 stub |
-| P13-WP5-T3 | `IAiAdvisorService.GetAnswerAsync` implementation: throws `NotImplementedException("Answer mode is V2; coming in a future release")` with a user-visible fallback message; scaffolded so V2 can replace the throw without interface changes | P13-WP5-T1..T2 | 0.5 h | FR-AI-008 V2 scaffold |
-| P13-WP5-T4 | Test `GetAnswerAsync_ReturnsNotImplemented_Before_V2`: assert correct exception and user-visible message; assert `AnswerRequest` and `AnswerCitation` types are final (no breaking changes expected in V2) | P13-WP5-T3 | 0.5 h | FR-AI-008 |
+| P13-WP5-T2 | `AnswerResponse` DTO: `Answer` (string), `Citations` (list of AnswerCitation), `IsV2` (bool, true for the completed local-evidence workflow) | P13-WP5-T1 | 0.5 h | FR-AI-008 |
+| P13-WP5-T3 | `IAiAdvisorService.GetAnswerAsync` delegates to the configured `IAnswerPipeline`; production composition uses local cited evidence | P13-WP5-T1..T2 | 0.5 h | FR-AI-008 |
+| P13-WP5-T4 | Delegation, local citation, no-evidence, privacy-filtering, and trace tests pass in the Phase 10 remediation and full solution suite | P13-WP5-T3 | 0.5 h | FR-AI-008 |
+
 | P13-WP5-T5 | Add TODO tracking item in phase change log and `docs/plans/grand-plan/phase-13/README.md §15` pointing to V2 implementation scope | P13-WP5-T3 | 0.25 h | FR-AI-008 |
 
 ---

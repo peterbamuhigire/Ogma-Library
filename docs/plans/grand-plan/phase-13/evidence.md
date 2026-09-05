@@ -2,6 +2,10 @@
 
 Date started: 2026-06-01
 
+> Historical Phase 13 evidence is retained as a baseline. Its answer-mode
+> scaffold statements were superseded by the complete cited local-evidence
+> workflow delivered and verified in Phase 10 on 2026-09-05.
+
 ## Current Status
 
 WP1-WP11 are implemented and verified locally. The slices add the structural
@@ -10,7 +14,8 @@ advisor composition, UI, and evaluation work will consume. Hybrid ranking is
 integrated behind a default-off option. Reading-plan generation now has a
 validated structured parser, embedded schema prompt, and retry-on-parse-failure
 pipeline. The typed advisor service is wired through DI, disabled by the Offline
-privacy tier, and answer mode is scaffolded for V2. Recommendation and
+privacy tier, and the original answer-mode scaffold was later completed in
+Phase 10. Recommendation and
 reading-plan Avalonia surfaces are implemented with localized view models and a
 headless render test. The offline structural evaluation harness now contains 20
 synthetic queries, a deterministic mock runner, and a committed benchmark result
@@ -70,7 +75,7 @@ evidence, accessibility evidence, full local gates, and Release build all pass.
 | Reading-plan prompt | `AI/Advisor/prompts/reading-plan.txt` is embedded and defines the strict JSON schema |
 | Reading-plan parser | `ReadingPlanParser` validates local book ids, difficulty labels, non-empty steps, checkpoints, and estimate bounds |
 | Reading-plan pipeline | `ReadingPlanPipeline` routes plan generation through `IAiGateway` and retries once after invalid provider JSON |
-| Answer scaffold | `AnswerRequest` and `AnswerResponse` define the V2 answer-mode surface; `GetAnswerAsync` throws the planned V2 `NotImplementedException` |
+| Answer workflow | `LocalEvidenceAnswerPipeline` now assembles cited local excerpts, applies content-tier filtering, and returns a safe no-evidence response; Phase 10 evidence covers delegation and full regression |
 | Advisor service | `AdvisorService` composes recommendation and reading-plan pipelines, exposes `IsEnabled`, and fails closed with `AiDisabledException` when tier is Offline |
 | DI | `AddAiGatewayCore` registers `IAiAdvisorService`, recommendation pipeline services, hybrid services, and reading-plan services |
 | Architecture | `Architecture_AdvisorService_UsesOnlyAiGateway` guards the advisor application boundary from provider adapters |

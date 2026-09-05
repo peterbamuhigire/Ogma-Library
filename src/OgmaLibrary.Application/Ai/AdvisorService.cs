@@ -10,23 +10,6 @@ public sealed class AdvisorService : IAiAdvisorService
     private readonly IReadingPlanPipeline _readingPlanPipeline;
     private readonly IAnswerPipeline _answerPipeline;
 
-    /// <summary>Initializes the advisor with the legacy dependency set.</summary>
-    /// <remarks>
-    /// The overload is retained for embedders compiled against the Phase 13
-    /// contract. The composition root uses the full local-evidence pipeline.
-    /// </remarks>
-    public AdvisorService(
-        IAiPrivacyService privacyService,
-        IRecommendationPipeline recommendationPipeline,
-        IReadingPlanPipeline readingPlanPipeline)
-        : this(
-            privacyService,
-            recommendationPipeline,
-            readingPlanPipeline,
-            new UnavailableAnswerPipeline())
-    {
-    }
-
     /// <summary>Initializes a new instance of <see cref="AdvisorService"/>.</summary>
     public AdvisorService(
         IAiPrivacyService privacyService,
@@ -83,14 +66,4 @@ public sealed class AdvisorService : IAiAdvisorService
         }
     }
 
-    private sealed class UnavailableAnswerPipeline : IAnswerPipeline
-    {
-        public Task<AnswerResponse> GetAnswerAsync(
-            AnswerRequest request,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new AnswerResponse(
-                "Local answer evidence is not configured.",
-                [],
-                IsV2: false));
-    }
 }

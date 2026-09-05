@@ -57,30 +57,42 @@ public sealed class AdvisorServiceTests
     }
 
     [Fact]
-    public async Task GetAnswerAsync_ReturnsUnavailableScaffold_Before_V2()
+    public async Task GetAnswerAsync_DelegatesToConfiguredAnswerPipeline()
     {
-        AdvisorService service = CreateService(AiPrivacyTier.MetadataOnly);
+        var answerPipeline = new FakeAnswerPipeline();
+        AdvisorService service = CreateService(AiPrivacyTier.MetadataOnly, answerPipeline: answerPipeline);
 
         AnswerResponse response = await service.GetAnswerAsync(
             new AnswerRequest("What does this book say about systems?"),
             CancellationToken.None);
 
-        Assert.False(response.IsV2);
+        Assert.True(response.IsV2);
         Assert.Empty(response.Citations);
-        Assert.Contains("not configured", response.Answer, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Configured local answer.", response.Answer);
+        Assert.Equal(1, answerPipeline.Calls);
+    }
+
+    [Fact]
+    public void AdvisorService_RequiresExplicitAnswerPipeline()
+    {
+        Assert.DoesNotContain(
+            typeof(AdvisorService).GetConstructors(),
+            constructor => constructor.GetParameters().Length < 4);
     }
 
     private static AdvisorService CreateService(
         AiPrivacyTier tier,
         IRecommendationPipeline? recommendationPipeline = null,
-        IReadingPlanPipeline? readingPlanPipeline = null) =>
+        IReadingPlanPipeline? readingPlanPipeline = null,
+        IAnswerPipeline? answerPipeline = null) =>
         new(
             new FakePrivacyService(tier),
             recommendationPipeline ?? new FakeRecommendationPipeline([]),
             readingPlanPipeline ?? new FakeReadingPlanPipeline(new ReadingPlan(
                 "placeholder",
                 [new ReadingPlanStep(new BookId("BOOK-P13-SVC-001"), "Placeholder.", DifficultyLabel.Introductory, null)],
-                [])));
+                [])),
+            answerPipeline ?? new FakeAnswerPipeline());
 
     private static RecommendationCard Recommendation(string bookId) =>
         new(
@@ -118,6 +130,19 @@ public sealed class AdvisorServiceTests
         {
             Calls++;
             return Task.FromResult(plan);
+        }
+    }
+
+    private sealed class FakeAnswerPipeline : IAnswerPipeline
+    {
+        public int Calls { get; private set; }
+
+        public Task<AnswerResponse> GetAnswerAsync(
+            AnswerRequest request,
+            CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(new AnswerResponse("Configured local answer.", [], IsV2: true));
         }
     }
 

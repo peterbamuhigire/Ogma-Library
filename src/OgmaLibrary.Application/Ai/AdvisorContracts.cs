@@ -282,7 +282,7 @@ public sealed record AnswerRequest
     public bool AllowContentAwareTier { get; }
 }
 
-/// <summary>Answer-mode response scaffold for the V2 local-evidence implementation.</summary>
+/// <summary>Answer-mode response from the V2 local-evidence implementation.</summary>
 /// <param name="Answer">Generated answer text.</param>
 /// <param name="Citations">Local evidence citations.</param>
 /// <param name="IsV2">Whether the full V2 answer mode produced this response.</param>

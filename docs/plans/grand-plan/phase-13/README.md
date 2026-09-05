@@ -30,7 +30,7 @@ recommendation can be inspected, not just accepted.
 | ADRs in scope | ADR-0007 (AI gateway); ADR-0006 (hybrid search — Phase 13 consumes Phase 11 ranking) |
 | Skills cross-reference | `ai:ai-rag-patterns`, `ai:ai-evaluation`, `ai:ux-for-ai`, `ai:ai-output-design`, `claude-api` |
 
-**Current implementation status (2026-06-01):** WP1-WP8 are implemented and
+**Historical implementation status (2026-06-01):** WP1-WP8 were implemented and
 locally verified. This includes advisor confidence labels, recommendation
 provenance/explanation/card models, reading-plan models, V2 answer-citation
 model, en/fr resource keys for advisor confidence and difficulty labels, and the
@@ -39,7 +39,8 @@ The Phase 11 hybrid-ranking adapter and weighted merger are wired behind a
 default-off advisor option. Structured reading-plan generation now has an
 embedded schema prompt, parser, retry-on-invalid-output, and gateway-backed
 pipeline. `IAiAdvisorService` is typed, DI-wired, disabled when the active tier
-is Offline, and answer mode is scaffolded as V2. Recommendation and reading-plan
+is Offline, and answer mode now uses the Phase 10 local-evidence implementation.
+Recommendation and reading-plan
 Avalonia surfaces are implemented and headless-rendered. The WP9 offline
 evaluation harness and benchmark are complete, and WP10 extension markers are
 seeded as internal surfaces for Phase 23. WP11 closeout tests, review evidence,
@@ -64,10 +65,10 @@ accessibility evidence, and full local gates are complete.
 4. **Reading plans (V1).** `GetReadingPlanAsync` produces a structured plan:
    ordered sequence of `BookId` references, per-book rationale, difficulty label,
    and checkpoints — all verifiable structurally (FR-AI-007).
-5. **Answer mode stub (V2).** `GetAnswerAsync` is scaffolded with the
-   local-evidence citation model (book/page/chunk/confidence); the full
-   implementation is V2, but the interface and data types are final here so no
-   breaking change is needed in V2.
+5. **Answer mode contract (V2).** At this phase baseline,
+   `GetAnswerAsync` was scaffolded with the local-evidence citation model
+   (book/page/chunk/confidence). The complete cited local-evidence workflow was
+   subsequently delivered in Phase 10 without a breaking contract change.
 6. **Recommendation evaluation harness.** An `ai-evaluation`-informed test
    harness runs offline, scores structural quality, and records results in
    `docs/benchmarks/phase-13/`; it is not a quality gate (VERIFIABILITY-FAIL)
@@ -89,6 +90,9 @@ accessibility evidence, and full local gates are complete.
   (Tier-1 metadata + Phase 11 cosine-similarity ranking signals).
 - Reading plan generation (V1): structured prompt + structured response parsing;
   `ReadingPlan` validated against structural oracle.
+- The answer-mode scaffold described in this historical baseline was superseded
+  by the complete local-evidence workflow delivered in Phase 10; provider,
+  platform, and release gates remain tracked in the Phase 10 execution record.
 - Answer mode interface and data types (V2) — implementation scaffolded, returns
   `NotImplementedException` in this phase; full in Phase 15 / post-V1.
 - `RecommendationUI`: a recommendation panel in the catalogue/library view showing
@@ -103,6 +107,8 @@ accessibility evidence, and full local gates are complete.
 ### Explicitly out of scope
 
 - Full local-evidence answer mode implementation (V2, Phase post-13 or Phase 23).
+- The full local-evidence answer mode implementation was subsequently completed
+  in Phase 10; provider, platform, and release gates remain tracked there.
 - Extension SDK publication and plugin harness (Phase 23).
 - School-managed AI entitlements (Phase 18).
 - Semantic embedding model (Phase 11 owns that; Phase 13 consumes its ranking
@@ -119,7 +125,7 @@ accessibility evidence, and full local gates are complete.
 | FR-AI-001 | MVP | AI fully disableable; never blocks catalogue | `AdvisorDisabled_CatalogueBrowse_Unaffected` integration test |
 | FR-AI-003 | MVP | Ranked recommendations with explanation + confidence | `RecommendationCard_HasExplanation_And_Confidence` structural test (VERIFIABILITY-FAIL gate: structural completeness only) |
 | FR-AI-007 | V1 | Reading plan: sequence/rationale/difficulty/checkpoints | `ReadingPlan_StructuralOracle` test (all fields non-null, sequence non-empty, difficulty valid label) |
-| FR-AI-008 | V2 | Answer mode citing local evidence | `GetAnswerAsync_ReturnsNotImplemented_Before_V2` scaffold test; interface and `AnswerCitation` types final |
+| FR-AI-008 | V2 | Answer mode citing local evidence | Phase 10 local-evidence pipeline, citation, no-evidence, and delegation regressions; interface and `AnswerCitation` types remain stable |
 | ADR-0007 | MVP | All calls route through `IAiProvider` gateway | Architecture test inherited from Phase 12; `AdvisorService_UsesOnlyAiGateway` |
 
 ---
@@ -273,7 +279,7 @@ Full task detail in `tasks.md`.
 | WP2 | Recommendation pipeline | `CatalogueReader`, `MetadataEnricher`, `ResponseParser`, `ProvenanceValidator`, `StructuralValidator`, MVP path |
 | WP3 | Hybrid ranking integration | `HybridRanker` consumer; V1 toggle; merged ranking |
 | WP4 | Reading plan service | `GetReadingPlanAsync`; prompt template; `ReadingPlanParser`; structural oracle |
-| WP5 | Answer mode scaffold | `GetAnswerAsync` stub; `AnswerCitation` types; V2 tracking item |
+| WP5 | Answer mode scaffold (historical) | `AnswerCitation` types and V2 tracking item; the executable workflow was completed in Phase 10 |
 | WP6 | `AdvisorService` composition | Wire WP2-5 into `AdvisorService`; DI registration; `IsEnabled` guard |
 | WP7 | Recommendation UI | `RecommendationPanelView` + `RecommendationPanelViewModel`; cards with explain + confidence |
 | WP8 | Reading plan UI | `ReadingPlanView` + `ReadingPlanViewModel`; sequence, rationale, difficulty, checkpoints |
@@ -403,5 +409,5 @@ Full detail in `skills.md`.
 | 2026-06-01 | Codex | WP2 metadata-only recommendation pipeline implemented and locally verified. |
 | 2026-06-01 | Codex | WP3 hybrid ranking adapter and weighted merger implemented behind default-off option. |
 | 2026-06-01 | Codex | WP4 structured reading-plan parser and gateway-backed pipeline implemented. |
-| 2026-06-01 | Codex | WP5-WP6 answer-mode scaffold and typed advisor service composition implemented. |
+| 2026-06-01 | Codex | WP5-WP6 answer-mode scaffold and typed advisor service composition implemented; the scaffold was later completed by Phase 10. |
 | 2026-06-01 | Codex | WP7-WP8 recommendation and reading-plan Avalonia surfaces implemented and render-tested. |
