@@ -29,7 +29,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | Phase | Local implementation delivered | Remaining gate / disposition | Authority |
 | ---: | --- | --- | --- |
 | 7 | Discovery, incremental scan, recovery | Cross-platform permissions and assistive-technology walkthrough: `NOT ASSESSED` | [phase-07](phase-07-progress.md) |
-| 8 | Reconciliation, recovery, safe author binding | Disconnected volume/ACL, operator UI, cross-OS walkthrough: `NOT ASSESSED` | [phase-08](phase-08-progress.md) |
+| 8 | Reconciliation, recovery, safe author binding, operator relocation review | Disconnected volume/ACL and cross-OS walkthrough: `NOT ASSESSED` | [phase-08](phase-08-progress.md) |
 | 9 | Duplicate resolution, aliases, grouping, projections | Physical operator walkthrough and cross-platform UI: `NOT ASSESSED` | [phase-09](phase-09-progress.md) |
 | 10 | PDF broker, password/resource validation, Windows Job Object startup | OS sandbox/escape proof and independent security approval open | [phase-10](phase-10-progress.md) |
 | 11 | Versioned extraction, TOC/ISBN evidence, page-on-demand adapter, real corpus, 500-book mixed benchmark | Representative real target-scale acceptance, repeated production resource ceiling, and cross-platform evidence open | [phase-11](phase-11-progress.md) |
@@ -37,7 +37,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 13 | Provider cache/gateway wired to runtime enrichment, persisted/projected stale labeling, quota/circuit/retry/privacy controls, fixed-host attribution links | Legal owner review, archive, live provider/network and physical evidence open | [phase-13](phase-13-progress.md) |
 | 14 | Review proposals, concurrency, bulk/tag mutation, review UI | Physical accessibility evidence open | [phase-14](phase-14-progress.md) |
 | 15 | Hash guard, preparation, backup/undo, consented writeback | Physical interruption and permission evidence open | [phase-15](phase-15-progress.md) |
-| 16 | Assets, manifests, lazy variants, provider boundary wired to enrichment, ingest/update spine scheduling, LAN authorization | Embedded source, scale budget and physical journeys open | [phase-16](phase-16-progress.md) |
+| 16 | Assets, manifests, embedded-source acquisition, lazy variants, provider boundary wired to enrichment, ingest/update spine scheduling, LAN authorization | Disk/GPU scale budget and physical accessibility/cross-platform journeys open | [phase-16](phase-16-progress.md) |
 | 17 | Leases, retries, dead-lettering, resource groups, metrics, recovery | Process-kill, crash, and soak evidence open | [phase-17](phase-17-progress.md) |
 | 18 | Design tokens, controls, localization increments including AI accessibility, 3D/directory fallback copy, theme/density, command palette, static route inventory, automated and rendered contrast evidence | Physical Windows/macOS screenshot review and Narrator/VoiceOver accessibility open | [phase-18](phase-18-progress.md) |
 | 19 | 2D catalogue, cover fallback, paging, badges, authenticated assets | Keyboard/screen-reader and reference hardware open | [phase-19](phase-19-progress.md) |
