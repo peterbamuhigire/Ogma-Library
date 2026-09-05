@@ -12,4 +12,7 @@ Physical credential-store/pairing, network-drop reconnect, offline-reader UX,
 accessibility capture, cache UI controls, two-user isolation, and cross-machine
 load evidence are **NOT ASSESSED**. The cache service now also exposes a
 versioned host-scoped ZIP export with a manifest and integrity-checked payloads;
-its focused test passed as part of the current-head verification.
+its focused test passed as part of the current-head verification. The disk
+implementation hashes and copies payloads through asynchronous streams, so an
+export does not materialize the full cached resource in memory. The refinement
+is committed at `c6635c0d98d910de32795df66e5ebedd92abba4d`.

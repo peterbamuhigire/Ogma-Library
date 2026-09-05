@@ -20,6 +20,8 @@ Date: 2026-09-04
 - Added a versioned, host-scoped ZIP export contract for valid offline-cache
   resources, preserving resource keys, validators, timestamps, content types,
   and payload lengths in a manifest while excluding other Hosts.
+- Disk export hashes and copies through asynchronous streams, keeping export
+  memory bounded by the I/O buffer rather than the full cache payload.
 
 ## Verification
 
