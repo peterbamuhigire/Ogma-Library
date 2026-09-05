@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
