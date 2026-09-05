@@ -1,6 +1,6 @@
 # Ogma Library Beta-Readiness Dashboard
 
-Date: 2026-09-05
+Date: 2026-09-06
 Authority: [39-phase execution ledger](00-execution-status.md) and the
 [approved Aug-39 roadmap](../../plans/aug-39/README.md)
 
@@ -16,7 +16,7 @@ closed; it does not imply later physical release acceptance.
 
 The latest complete current-worktree regression passed 1,125 tests with 0
 failures and 0 skips: 925 core, 41 architecture, and 159 UI. The authoritative
-record is `evidence/solution-regression-current-worktree-2026-09-05.md`; it
+record is `evidence/solution-regression-current-worktree-2026-09-06.md`; it
 also records the user-owned dirty worktree changes that were deliberately not
 staged.
 
