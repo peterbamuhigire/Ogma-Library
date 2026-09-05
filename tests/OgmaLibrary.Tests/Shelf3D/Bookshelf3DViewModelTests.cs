@@ -27,7 +27,12 @@ public sealed class Bookshelf3DViewModelTests
         BookSceneItem book = Assert.Single(scene.Books);
         Assert.Equal("01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7", book.BookId);
         Assert.Equal("Thinking in Systems", book.Title);
-        Assert.StartsWith("ogma://assets/spines/", book.SpineUri, StringComparison.Ordinal);
+        Assert.Equal(
+            "ogma://assets/spines/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
+            book.SpineUri);
+        Assert.Equal(
+            "ogma://assets/covers/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
+            book.CoverUri);
         Assert.False(viewModel.IsLoading);
     }
 
@@ -208,13 +213,14 @@ public sealed class Bookshelf3DViewModelTests
                 "01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7",
                 "Thinking in Systems",
                 ["Donella Meadows"],
-                "covers/thinking.jpg",
+                ".ogma/covers/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg",
                 0,
                 null,
                 ["systems"],
                 null,
                 true,
-                2008);
+                2008,
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         }
 
         public Task<BookDetailProjection?> GetBookDetailAsync(

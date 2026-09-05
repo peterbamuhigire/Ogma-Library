@@ -51,7 +51,7 @@ public sealed class OgmaSchemeHandler : ISchemeHandler
         }
 
         string classRoot = Path.GetFullPath(Path.Combine(_assetRoot, request.AssetClass));
-        string resolvedPath = Path.GetFullPath(Path.Combine(classRoot, request.FileName));
+        string resolvedPath = Path.GetFullPath(Path.Combine(classRoot, request.RelativePath));
         if (!IsInsideRoot(resolvedPath, classRoot))
         {
             return SchemeResponse.Forbidden;
@@ -83,19 +83,19 @@ public sealed class OgmaSchemeHandler : ISchemeHandler
         }
 
         string[] rawSegments = rawPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (rawSegments.Length != 2)
+        if (rawSegments.Length < 2)
         {
             return AssetRequest.Unsafe;
         }
 
         string assetClass = Uri.UnescapeDataString(rawSegments[0]);
-        string fileName = Uri.UnescapeDataString(rawSegments[1]);
-        if (IsUnsafeSegment(assetClass) || IsUnsafeSegment(fileName) || Path.GetFileName(fileName) != fileName)
+        string[] relativeSegments = rawSegments[1..].Select(Uri.UnescapeDataString).ToArray();
+        if (IsUnsafeSegment(assetClass) || relativeSegments.Any(IsUnsafeSegment))
         {
             return AssetRequest.Unsafe;
         }
 
-        return new AssetRequest(true, assetClass, fileName);
+        return new AssetRequest(true, assetClass, Path.Combine(relativeSegments));
     }
 
     private static bool IsUnsafeSegment(string segment) =>
@@ -122,7 +122,7 @@ public sealed class OgmaSchemeHandler : ISchemeHandler
             _ => "application/octet-stream",
         };
 
-    private readonly record struct AssetRequest(bool IsSafe, string AssetClass, string FileName)
+    private readonly record struct AssetRequest(bool IsSafe, string AssetClass, string RelativePath)
     {
         public static AssetRequest Unsafe { get; } = new(false, string.Empty, string.Empty);
     }

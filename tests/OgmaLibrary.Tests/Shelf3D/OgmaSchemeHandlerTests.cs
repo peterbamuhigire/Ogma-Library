@@ -26,6 +26,23 @@ public sealed class OgmaSchemeHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task SchemeHandlerTest_ShardedUri_ReturnsImageBytes()
+    {
+        byte[] expected = [0xFF, 0xD8, 0xFF, 0xD9];
+        string shard = Path.Combine(_assetRoot, "spines", "aa");
+        Directory.CreateDirectory(shard);
+        await File.WriteAllBytesAsync(Path.Combine(shard, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg"), expected);
+        var handler = new OgmaSchemeHandler(_assetRoot);
+
+        SchemeResponse response = await handler.HandleAsync(new Uri(
+            "ogma://assets/spines/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg"));
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal("image/jpeg", response.ContentType);
+        Assert.Equal(expected, response.Body);
+    }
+
+    [Fact]
     public async Task SchemeHandlerTest_PathTraversal_Returns403()
     {
         Directory.CreateDirectory(Path.Combine(_assetRoot, "covers"));

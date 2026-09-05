@@ -1,6 +1,6 @@
 # Phase 32 Progress - Virtual Bookshelf Visuals and Interaction
 
-Date: 2026-09-04
+Date: 2026-09-05
 
 ## Delivered in this increment
 
@@ -30,6 +30,10 @@ Date: 2026-09-04
 - Wired search and advisor open/citation actions to the typed `FocusBook` bridge
   through an optional desktop callback; the focus path remains safe when the
   native host is absent. See `evidence/phase-32-search-advisor-focus-2026-09-04.md`.
+- Corrected the 3D asset URI contract to preserve the sidecar hash-shard layout
+  for cover and spine assets, and extended the scheme handler to serve only safe
+  nested shard paths. The previous book-id/PNG URI could not address generated
+  sidecar assets.
 
 ## Verification
 
@@ -40,6 +44,8 @@ Date: 2026-09-04
   bounds passed for 50, 250, 500, 1k, 5k, and 10k inputs.
 - Texture-atlas capacity and packaged-bundle checks passed; the focused C#
   bridge/3D slice passed 31 tests.
+- Sharded 3D asset URI and scheme-handler regression slice: 18 passed, 0 failed,
+  0 skipped.
 - The complete solution suite passed 1,066 tests (883 core, 41 architecture,
   142 UI), with 0 failures and 0 skips, after an isolated rerun of the
   host-sensitive metadata-search benchmark passed.

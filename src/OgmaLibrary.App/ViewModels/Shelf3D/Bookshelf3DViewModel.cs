@@ -234,17 +234,56 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     {
         string title = LimitLabel(string.IsNullOrWhiteSpace(summary.Title) ? "Untitled" : summary.Title, 120);
         string author = LimitLabel(summary.Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author)) ?? "Unknown author", 80);
-        string encodedBookId = Uri.EscapeDataString(summary.BookId);
-        string? coverUri = string.IsNullOrWhiteSpace(summary.CoverRelativePath)
-            ? null
-            : $"ogma://assets/covers/{Uri.EscapeDataString(Path.GetFileName(summary.CoverRelativePath))}";
+        string? coverUri = ToAssetUri(summary.CoverRelativePath, "covers");
+        string spineUri = ToShardedAssetUri(summary.Sha256Hash, "spines") ??
+            $"ogma://assets/spines/{Uri.EscapeDataString(summary.BookId)}.jpg";
 
         return new BookSceneItem(
             summary.BookId,
             title,
             author,
-            $"ogma://assets/spines/{encodedBookId}.png",
+            spineUri,
             coverUri);
+    }
+
+    private static string? ToAssetUri(string? relativePath, string assetClass)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return null;
+        }
+
+        string normalized = relativePath.Replace('\\', '/');
+        string prefix = $".ogma/{assetClass}/";
+        if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        string[] segments = normalized[prefix.Length..]
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2 || segments.Any(segment =>
+                segment is "." or ".." ||
+                segment.Contains('\\') ||
+                segment.Contains('/') ||
+                segment.Length == 0))
+        {
+            return null;
+        }
+
+        return $"ogma://assets/{assetClass}/{string.Join('/', segments.Select(Uri.EscapeDataString))}";
+    }
+
+    private static string? ToShardedAssetUri(string? contentHash, string assetClass)
+    {
+        if (string.IsNullOrWhiteSpace(contentHash) ||
+            contentHash.Length != 64 ||
+            contentHash.Any(character => character is < '0' or > '9' and < 'a' or > 'f'))
+        {
+            return null;
+        }
+
+        return $"ogma://assets/{assetClass}/{contentHash[..2]}/{contentHash}.jpg";
     }
 
     private static string LimitLabel(string value, int maximumLength) =>
