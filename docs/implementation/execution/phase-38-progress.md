@@ -58,10 +58,14 @@ Date: 2026-09-04
   Phase 18 downgrade and Phase 12 legacy-history rollback scenarios.
 - Current-head release-gate reconciliation is recorded in
   `evidence/phase-38-local-release-reconciliation-2026-09-04.md`.
+- The clean-source CI format check was rerun and failed with baseline
+  CRLF/charset/import/whitespace diagnostics; the result and unsafe formatter
+  fix-all observation are recorded in
+  `evidence/phase-38-format-gate-2026-09-05.md`.
 
 ## Remaining phase gate
 
-This phase is not complete. Final MSIX/installer production, Authenticode and
+This phase is not complete. The CI format gate, final MSIX/installer production, Authenticode and
 Developer ID/notarization evidence, clean W-REF-01/M-REF-01 installation and
 performance runs, interrupted-upgrade recovery, and physical rollback drills
 remain Phase 39 release-acceptance gates. No private signing key is stored in
