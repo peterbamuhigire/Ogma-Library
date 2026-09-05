@@ -43,6 +43,18 @@ Date: 2026-09-04
   peak working set was 247,021,568 bytes against the configured 805,306,368
   byte worker ceiling. See
   `evidence/phase-11-worker-resource-repeat-2026-09-05.md`.
+- Extended the real-PDF benchmark to run the database-backed extraction
+  pipeline through the production `IsolatedPdfRendererFactory`, with a fresh
+  SQLite catalogue for each repetition. Two repetitions of the three-file
+  repository real-PDF fixture corpus indexed 6/6 books and 606/606 pages with
+  zero failed pages; maximum worker peak working set was 82,014,208 bytes and
+  maximum private memory was 45,330,432 bytes against the 805,306,368-byte
+  ceiling. Evidence:
+  `evidence/phase-11-worker-pipeline-2026-09-05.md`.
+- Added focused telemetry coverage: `PdfWorkerIsolationTests` passed 9/9,
+  including the session-disposal resource-observation regression. The complete
+  serialized Release core suite then passed 921/921; architecture and UI
+  baselines remain green at 41/41 and 159/159 respectively.
 
 ## Remaining phase gate
 
@@ -52,8 +64,7 @@ The local Windows page-retention/resource subgate, real-adapter corpus, and
 synthetic 500-book pipeline throughput subgates are evidenced. The cumulative
 8.63 GB allocation remains a measurement of total managed allocations, not
 peak working set, and still warrants profiling on a representative corpus.
-Representative real 500-book acceptance, repeated approved per-book resource
-ceilings for the complete database-backed worker pipeline, native
+Representative real 500-book acceptance, target-scale throughput, native
 cross-platform measurements, and physical UI/accessibility evidence remain
 open before Phase 11 can be marked complete. The persistent production-worker
 extraction-session repetition subgate is closed for the tested Windows corpus.

@@ -2,22 +2,27 @@ using OgmaLibrary.Application.Reader;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
-internal sealed class IsolatedPdfRendererFactory : IPdfRendererFactory
+/// <summary>Creates reader adapters backed by the isolated production PDF worker.</summary>
+public sealed class IsolatedPdfRendererFactory : IPdfRendererFactory
 {
     private readonly PdfWorkerClient _client;
 
+    /// <summary>Initializes the factory with the worker client to use.</summary>
+    /// <param name="client">The isolated PDF worker client.</param>
     public IsolatedPdfRendererFactory(PdfWorkerClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
         _client = client;
     }
 
+    /// <inheritdoc />
     public IPdfRenderer Open(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         return new IsolatedPdfRenderer(_client, filePath, password: null);
     }
 
+    /// <inheritdoc />
     public IPdfRenderer Open(string filePath, char[] password)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);

@@ -72,6 +72,25 @@ public sealed class PdfWorkerIsolationTests : IDisposable
     }
 
     [Fact]
+    public void IsolatedPdfRenderer_RecordsWorkerResourceTelemetryAfterSessionDisposal()
+    {
+        string pdfPath = CreateValidPdf("worker-telemetry.pdf");
+        var telemetryClient = new PdfWorkerClient(new PdfWorkerOptions
+        {
+            SandboxRoot = _sandboxRoot,
+            Timeout = TimeSpan.FromSeconds(20),
+        });
+
+        using (IPdfRenderer renderer = new IsolatedPdfRendererFactory(telemetryClient).Open(pdfPath))
+        {
+            Assert.Equal(1, renderer.PageCount);
+        }
+
+        Assert.True(telemetryClient.MaxPeakWorkingSetBytes > 0);
+        Assert.True(telemetryClient.MaxPrivateMemoryBytes > 0);
+    }
+
+    [Fact]
     public async Task PdfWorker_OutputCeilingRejectsOversizedRenderedArtifact()
     {
         string pdfPath = CreateValidPdf("worker-output-limit.pdf");

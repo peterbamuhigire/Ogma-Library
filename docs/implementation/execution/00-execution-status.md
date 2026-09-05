@@ -8,7 +8,7 @@ Execution branch: `main`
 Ledger normalized: 2026-09-05
 
 Automated validation refresh: the latest complete full solution suite passed
-1,120 tests (920 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
+1,121 tests (921 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
 The post-Host-sharing localization run completed in 9m57s; the core suite is
 long-running but completed successfully.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
@@ -29,7 +29,7 @@ governed by their progress records.
 | 8 | Filesystem Reconciliation and Recovery | COMPLETE | Recovery, audit, safe empty-author catalogue binding, and localized operator relocation-review gates closed; physical ACL/cross-OS evidence remains NOT ASSESSED |
 | 9 | Duplicate and Bibliographic Resolution | COMPLETE | Candidate blocking, grouping and consumer projections evidenced |
 | 10 | PDF Validation and Containment | IN PROGRESS | Broker, password, resource gates, and fail-closed Windows Job Object startup delivered; OS sandbox/escape/security approval open |
-| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC, ranked ISBN evidence, 500-book synthetic baseline, page-on-demand extraction, seven-file/3,326-page real adapter plus database-pipeline corpus, and repeated persistent-worker extraction resource replay delivered; representative real target-scale/database-worker acceptance and cross-platform evidence remain open |
+| 11 | PDF Extraction and ISBN Primitives | IN PROGRESS | Versioned artifacts, TOC, ranked ISBN evidence, 500-book synthetic baseline, page-on-demand extraction, seven-file/3,326-page real adapter plus database-pipeline corpus, repeated persistent-worker extraction resource replay, and repeated database-backed isolated-worker fixture-pipeline evidence delivered; representative real target-scale acceptance and cross-platform evidence remain open |
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry, conflict aggregation, runtime gateway wiring, persisted/projected stale-label state, local privacy-disclosure, official terms-constraint evidence, and fixed-host desktop attribution links delivered; legal, archive, live network, and physical evidence open |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency, boundary validation, canonical field dictionary, atomic bulk preview/apply/undo, bounded tag mutation, and keyboard-addressable review UI delivered; physical accessibility evidence open |

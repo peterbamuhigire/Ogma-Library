@@ -24,6 +24,13 @@ and private memory, and fails if private memory exceeds the configured 768 MiB
 Job Object ceiling. The worker executable is taken from
 `OGMA_PDF_WORKER_PATH` when set, otherwise from the repository Release output.
 
+Add `--pipeline --worker --repeat=N` to run the database-backed extraction
+pipeline through the production isolated worker. Each repetition uses a fresh
+temporary catalogue, so all books are processed again; the report includes
+cumulative pages, artifacts, chunks, and maximum worker memory observations.
+This closes only the measured worker-backed pipeline subgate for the supplied
+corpus; it does not substitute for the representative target-scale corpus.
+
 Without `--pipeline`, this tool measures the PDF adapter boundary. The
 pipeline mode exercises the database-backed path, but neither mode substitutes
 for target-scale allocation/throughput or reference-machine gates.

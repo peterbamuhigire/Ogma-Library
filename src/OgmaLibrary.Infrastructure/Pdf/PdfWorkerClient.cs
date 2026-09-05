@@ -15,6 +15,8 @@ public sealed class PdfWorkerClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly PdfWorkerOptions _options;
+    private long _maxPeakWorkingSetBytes;
+    private long _maxPrivateMemoryBytes;
 
     /// <summary>
     /// Initializes a new instance of <see cref="PdfWorkerClient"/>.
@@ -84,6 +86,18 @@ public sealed class PdfWorkerClient
     /// <returns>A disposable session that keeps the document identity and password bounded.</returns>
     public PdfWorkerSession OpenSession(string filePath, char[]? password = null) =>
         new(this, RequireAbsoluteFile(filePath), password);
+
+    /// <summary>
+    /// Gets the largest worker peak working-set observation recorded by this
+    /// client. Sessions record the value before they are disposed.
+    /// </summary>
+    public long MaxPeakWorkingSetBytes => Interlocked.Read(ref _maxPeakWorkingSetBytes);
+
+    /// <summary>
+    /// Gets the largest worker private-memory observation recorded by this
+    /// client. Sessions record the value before they are disposed.
+    /// </summary>
+    public long MaxPrivateMemoryBytes => Interlocked.Read(ref _maxPrivateMemoryBytes);
 
     /// <summary>
     /// Renders a single PDF page by invoking the worker process.
@@ -653,6 +667,27 @@ public sealed class PdfWorkerClient
 
     private sealed record AssetResponse(string OutputPath);
 
+    private void RecordResourceUsage(long peakWorkingSetBytes, long privateMemoryBytes)
+    {
+        UpdateMaximum(ref _maxPeakWorkingSetBytes, peakWorkingSetBytes);
+        UpdateMaximum(ref _maxPrivateMemoryBytes, privateMemoryBytes);
+    }
+
+    private static void UpdateMaximum(ref long target, long value)
+    {
+        long current = Interlocked.Read(ref target);
+        while (value > current)
+        {
+            long observed = Interlocked.CompareExchange(ref target, value, current);
+            if (observed == current)
+            {
+                return;
+            }
+
+            current = observed;
+        }
+    }
+
     /// <summary>Persistent worker-backed operations for one validated PDF document.</summary>
     public sealed class PdfWorkerSession : IDisposable
     {
@@ -820,6 +855,10 @@ public sealed class PdfWorkerClient
             }
 
             _disposed = true;
+            if (_process is not null)
+            {
+                _client.RecordResourceUsage(PeakWorkingSetBytes, PrivateMemoryBytes);
+            }
             // Construction can fail before Process.Start (for example when a
             // packaged worker is missing). Preserve the original failure rather
             // than masking it with a null-process cleanup failure.

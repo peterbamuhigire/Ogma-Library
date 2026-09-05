@@ -11,7 +11,7 @@ using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Pdf;
 
-if (args.Length is < 1 or > 4)
+if (args.Length is < 1 or > 5)
 {
     Console.Error.WriteLine("Usage: Phase11RealPdfBenchmark <pdf-directory> [max-files] [--pipeline] [--worker] [--repeat=N]");
     return 2;
@@ -60,14 +60,14 @@ if (files.Length == 0)
     return 2;
 }
 
+if (runPipeline)
+{
+    return await RunPipelineAsync(files, runWorker, repeatCount).ConfigureAwait(false);
+}
+
 if (runWorker)
 {
     return await RunWorkerAsync(files, repeatCount).ConfigureAwait(false);
-}
-
-if (runPipeline)
-{
-    return await RunPipelineAsync(files).ConfigureAwait(false);
 }
 
 long allocatedBefore = GC.GetTotalAllocatedBytes(true);
@@ -152,18 +152,81 @@ var report = new
 Console.WriteLine(JsonSerializer.Serialize(report));
 return report.filesWithErrors == 0 ? 0 : 1;
 
-static async Task<int> RunPipelineAsync(IReadOnlyList<string> files)
+static async Task<int> RunPipelineAsync(
+    IReadOnlyList<string> files,
+    bool useWorker,
+    int repeatCount)
+{
+    var results = new List<PipelineRunResult>(repeatCount);
+    for (int repeat = 1; repeat <= repeatCount; repeat++)
+    {
+        results.Add(await RunPipelineOnceAsync(files, useWorker, repeat).ConfigureAwait(false));
+    }
+
+    var report = new
+    {
+        schema = useWorker
+            ? "ogma-phase11-real-worker-pipeline-benchmark-v1"
+            : "ogma-phase11-real-pipeline-benchmark-v1",
+        generatedUtc = DateTimeOffset.UtcNow,
+        fileCount = files.Count,
+        repeatCount,
+        runs = results.Count,
+        booksAttempted = results.Sum(result => result.BooksAttempted),
+        booksIndexed = results.Sum(result => result.BooksIndexed),
+        booksFailed = results.Sum(result => result.BooksFailed),
+        pagesProcessed = results.Sum(result => result.PagesProcessed),
+        failedPages = results.Sum(result => result.FailedPages),
+        extractedPages = results.Sum(result => result.ExtractedPages),
+        extractionArtifacts = results.Sum(result => result.ExtractionArtifacts),
+        searchChunks = results.Sum(result => result.SearchChunks),
+        maxPeakWorkingSetBytes = results.Max(result => result.MaxPeakWorkingSetBytes),
+        maxPrivateMemoryBytes = results.Max(result => result.MaxPrivateMemoryBytes),
+        maxMemoryBytes = useWorker ? 768L * 1024L * 1024L : 0,
+        elapsedMilliseconds = results.Sum(result => result.ElapsedMilliseconds),
+        files = files.Select(Path.GetFileName).ToArray(),
+        repetitions = results,
+    };
+    Console.WriteLine(JsonSerializer.Serialize(report));
+    return report.booksFailed == 0 &&
+           report.failedPages == 0 &&
+           (!useWorker || report.maxPrivateMemoryBytes <= report.maxMemoryBytes)
+        ? 0
+        : 1;
+}
+
+static async Task<PipelineRunResult> RunPipelineOnceAsync(
+    IReadOnlyList<string> files,
+    bool useWorker,
+    int repeat)
 {
     string dataDirectory = Path.Combine(
         Path.GetTempPath(),
-        "ogma-phase11-pipeline-" + Guid.NewGuid().ToString("N"));
+        $"ogma-phase11-pipeline-{Guid.NewGuid():N}");
     Directory.CreateDirectory(dataDirectory);
 
     var fileMap = new Dictionary<string, string>(StringComparer.Ordinal);
     var services = new ServiceCollection();
     services.AddCatalogueContext(dataDirectory, Path.GetDirectoryName(files[0])!);
     services.AddMetadataEnrichment(Path.GetDirectoryName(files[0])!, enableExternalProviders: false);
-    services.AddSingleton<IPdfRendererFactory, PdfiumAdapterFactory>();
+    if (useWorker)
+    {
+        services.AddSingleton(new PdfWorkerClient(new PdfWorkerOptions
+        {
+            WorkerPath = ResolveWorkerPath(),
+            SandboxRoot = Path.Combine(dataDirectory, "worker-sandbox"),
+            Timeout = TimeSpan.FromSeconds(30),
+            MaxMemoryBytes = 768L * 1024L * 1024L,
+            CpuTimeLimit = TimeSpan.FromSeconds(15),
+        }));
+        services.AddSingleton<IPdfRendererFactory>(sp =>
+            new IsolatedPdfRendererFactory(sp.GetRequiredService<PdfWorkerClient>()));
+    }
+    else
+    {
+        services.AddSingleton<IPdfRendererFactory, PdfiumAdapterFactory>();
+    }
+
     services.AddSingleton<IBookFileLocator>(_ => new CorpusFileLocator(fileMap));
     ServiceProvider provider = services.BuildServiceProvider();
 
@@ -209,23 +272,22 @@ static async Task<int> RunPipelineAsync(IReadOnlyList<string> files)
             extractionArtifacts = await verificationContext.ExtractionArtifacts.CountAsync().ConfigureAwait(false);
             searchChunks = await verificationContext.SearchChunks.CountAsync().ConfigureAwait(false);
         }
-        var report = new
-        {
-            schema = "ogma-phase11-real-pipeline-benchmark-v1",
-            fileCount = files.Count,
-            booksAttempted = result.BooksAttempted,
-            booksIndexed = result.BooksIndexed,
-            booksFailed = result.BooksFailed,
-            pagesProcessed = result.PagesProcessed,
-            failedPages = result.FailedPages,
+        PdfWorkerClient? worker = useWorker
+            ? provider.GetRequiredService<PdfWorkerClient>()
+            : null;
+        return new PipelineRunResult(
+            repeat,
+            result.BooksAttempted,
+            result.BooksIndexed,
+            result.BooksFailed,
+            result.PagesProcessed,
+            result.FailedPages,
             extractedPages,
             extractionArtifacts,
             searchChunks,
-            elapsedMilliseconds = stopwatch.ElapsedMilliseconds,
-            files = files.Select(Path.GetFileName).ToArray(),
-        };
-        Console.WriteLine(JsonSerializer.Serialize(report));
-        return result.BooksFailed == 0 && result.FailedPages == 0 ? 0 : 1;
+            stopwatch.ElapsedMilliseconds,
+            worker?.MaxPeakWorkingSetBytes ?? 0,
+            worker?.MaxPrivateMemoryBytes ?? 0);
     }
     finally
     {
@@ -259,7 +321,7 @@ static async Task<int> RunWorkerAsync(IReadOnlyList<string> files, int repeatCou
 
     var client = new PdfWorkerClient(new PdfWorkerOptions
     {
-        WorkerPath = workerPath,
+        WorkerPath = workerPath ?? ResolveWorkerPath(),
         SandboxRoot = sandboxRoot,
         Timeout = TimeSpan.FromSeconds(30),
         MaxMemoryBytes = 768L * 1024L * 1024L,
@@ -339,6 +401,25 @@ static async Task<int> RunWorkerAsync(IReadOnlyList<string> files, int repeatCou
     }
 }
 
+static string? ResolveWorkerPath()
+{
+    string? configuredPath = Environment.GetEnvironmentVariable("OGMA_PDF_WORKER_PATH");
+    if (!string.IsNullOrWhiteSpace(configuredPath))
+    {
+        return configuredPath;
+    }
+
+    string repositoryWorkerPath = Path.GetFullPath(Path.Combine(
+        Environment.CurrentDirectory,
+        "src",
+        "OgmaLibrary.Workers",
+        "bin",
+        "Release",
+        "net10.0",
+        OperatingSystem.IsWindows() ? "OgmaLibrary.Workers.exe" : "OgmaLibrary.Workers"));
+    return File.Exists(repositoryWorkerPath) ? repositoryWorkerPath : null;
+}
+
 static string ComputeSha256(string path)
 {
     using FileStream stream = File.OpenRead(path);
@@ -375,3 +456,17 @@ internal sealed record WorkerFileResult(
     long PeakWorkingSetBytes,
     long PrivateMemoryBytes,
     string? Error);
+
+internal sealed record PipelineRunResult(
+    int Repeat,
+    int BooksAttempted,
+    int BooksIndexed,
+    int BooksFailed,
+    int PagesProcessed,
+    int FailedPages,
+    int ExtractedPages,
+    int ExtractionArtifacts,
+    int SearchChunks,
+    long ElapsedMilliseconds,
+    long MaxPeakWorkingSetBytes,
+    long MaxPrivateMemoryBytes);
