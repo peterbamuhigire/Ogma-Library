@@ -38,6 +38,9 @@ Date: 2026-09-05
 - Extracted book-detail metadata field/provenance formatting, including missing
   values, default catalogue source, and manual-override labels, into localized
   resources without changing the English rendering contract.
+- Extracted AI-panel accessibility copy for interpreted intent, citation
+  opening, evidence limitations, and answer-rating buttons into English/French
+  resources; bindings now refresh when the culture changes.
 
 ## Verification
 
@@ -67,6 +70,10 @@ Date: 2026-09-05
   tests passed. The failed catalogue-load P95 was 2,558 ms versus 2,000 ms;
   the same test passed in an isolated rerun (1/1).
 - Evidence: `evidence/phase-18-classroom-copy-2026-09-05.md`.
+- AI accessibility-copy slice: 9 core view-model tests and 1 UI render test
+  passed; the post-change full solution passed 900 core, 41 architecture, and
+  155 UI tests with 0 failures and 0 skips. Evidence:
+  `evidence/phase-18-ai-accessibility-copy-2026-09-05.md`.
 
 ## Remaining phase gate
 

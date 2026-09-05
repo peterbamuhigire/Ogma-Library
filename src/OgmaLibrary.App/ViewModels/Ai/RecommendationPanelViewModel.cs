@@ -325,6 +325,30 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     /// <summary>Localized answer citation label.</summary>
     public string CitationLabel => _localization["Ai.Advisor.Answer.Citation"];
 
+    /// <summary>Accessible label for interpreted intent.</summary>
+    public string InterpretedIntentAccessibleLabel => _localization["Ai.Advisor.Intent.AccessibleLabel"];
+
+    /// <summary>Accessible label for opening a citation.</summary>
+    public string OpenCitationLabel => _localization["Ai.Advisor.Answer.OpenCitation"];
+
+    /// <summary>Accessible label for an evidence limitation.</summary>
+    public string EvidenceLimitationLabel => _localization["Ai.Advisor.EvidenceLimitation"];
+
+    /// <summary>Accessible label for the one-star answer rating.</summary>
+    public string RateAnswerOneLabel => RateAnswerLabel(1);
+
+    /// <summary>Accessible label for the two-star answer rating.</summary>
+    public string RateAnswerTwoLabel => RateAnswerLabel(2);
+
+    /// <summary>Accessible label for the three-star answer rating.</summary>
+    public string RateAnswerThreeLabel => RateAnswerLabel(3);
+
+    /// <summary>Accessible label for the four-star answer rating.</summary>
+    public string RateAnswerFourLabel => RateAnswerLabel(4);
+
+    /// <summary>Accessible label for the five-star answer rating.</summary>
+    public string RateAnswerFiveLabel => RateAnswerLabel(5);
+
     /// <summary>Localized feedback consent label.</summary>
     public string FeedbackConsentLabel => _localization["Ai.Advisor.Feedback.Consent"];
 
@@ -548,6 +572,14 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         OnPropertyChanged(nameof(AnswerTitle));
         OnPropertyChanged(nameof(AskLabel));
         OnPropertyChanged(nameof(CitationLabel));
+        OnPropertyChanged(nameof(InterpretedIntentAccessibleLabel));
+        OnPropertyChanged(nameof(OpenCitationLabel));
+        OnPropertyChanged(nameof(EvidenceLimitationLabel));
+        OnPropertyChanged(nameof(RateAnswerOneLabel));
+        OnPropertyChanged(nameof(RateAnswerTwoLabel));
+        OnPropertyChanged(nameof(RateAnswerThreeLabel));
+        OnPropertyChanged(nameof(RateAnswerFourLabel));
+        OnPropertyChanged(nameof(RateAnswerFiveLabel));
         OnPropertyChanged(nameof(ContentAwareConsentLabel));
         OnPropertyChanged(nameof(FeedbackConsentLabel));
         OnPropertyChanged(nameof(FeedbackSubmitLabel));
@@ -555,6 +587,11 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private string RateAnswerLabel(int rating) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["Ai.Advisor.Feedback.RateAnswerFormat"],
+        rating);
 }
 
 /// <summary>Display model for one recommendation card.</summary>

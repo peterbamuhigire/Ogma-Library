@@ -42,7 +42,7 @@
             Padding="10">
       <TextBlock Text="{Binding InterpretedIntentText}"
                  TextWrapping="Wrap"
-                 AutomationProperties.Name="Interpreted reading preferences" />
+                 AutomationProperties.Name="{Binding InterpretedIntentAccessibleLabel}" />
     </Border>
 
     <Border Grid.Row="4"
@@ -76,7 +76,7 @@
                           HorizontalContentAlignment="Left"
                           Padding="0"
                           IsEnabled="{Binding CanOpen}"
-                          AutomationProperties.Name="Open citation"
+                          AutomationProperties.Name="{Binding $parent[UserControl].DataContext.OpenCitationLabel}"
                           Click="OpenCitation_Click">
                     <StackPanel Spacing="2">
                       <TextBlock Text="{Binding CitationText}"
@@ -104,11 +104,11 @@
                       Content="{Binding FeedbackConsentLabel}"
                       AutomationProperties.Name="{Binding FeedbackConsentLabel}" />
             <StackPanel Orientation="Horizontal" Spacing="4">
-              <Button Content="1" Tag="1" Click="FeedbackRating_Click" AutomationProperties.Name="Rate answer 1 of 5" />
-              <Button Content="2" Tag="2" Click="FeedbackRating_Click" AutomationProperties.Name="Rate answer 2 of 5" />
-              <Button Content="3" Tag="3" Click="FeedbackRating_Click" AutomationProperties.Name="Rate answer 3 of 5" />
-              <Button Content="4" Tag="4" Click="FeedbackRating_Click" AutomationProperties.Name="Rate answer 4 of 5" />
-              <Button Content="5" Tag="5" Click="FeedbackRating_Click" AutomationProperties.Name="Rate answer 5 of 5" />
+              <Button Content="1" Tag="1" Click="FeedbackRating_Click" AutomationProperties.Name="{Binding RateAnswerOneLabel}" />
+              <Button Content="2" Tag="2" Click="FeedbackRating_Click" AutomationProperties.Name="{Binding RateAnswerTwoLabel}" />
+              <Button Content="3" Tag="3" Click="FeedbackRating_Click" AutomationProperties.Name="{Binding RateAnswerThreeLabel}" />
+              <Button Content="4" Tag="4" Click="FeedbackRating_Click" AutomationProperties.Name="{Binding RateAnswerFourLabel}" />
+              <Button Content="5" Tag="5" Click="FeedbackRating_Click" AutomationProperties.Name="{Binding RateAnswerFiveLabel}" />
               <Button Content="{Binding FeedbackSubmitLabel}"
                       IsEnabled="{Binding CanSubmitFeedback}"
                       Click="SubmitFeedback_Click"
@@ -159,7 +159,7 @@
                            IsVisible="{Binding HasUncertainty}"
                            TextWrapping="Wrap"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                           AutomationProperties.Name="Evidence limitation" />
+                           AutomationProperties.Name="{Binding $parent[UserControl].DataContext.EvidenceLimitationLabel}" />
                 <ToggleButton Grid.Row="3"
                               IsChecked="{Binding IsExplanationExpanded}"
                               Content="{Binding WhyLabel}" />

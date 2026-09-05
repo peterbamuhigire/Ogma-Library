@@ -159,6 +159,28 @@ public sealed class AdvisorViewModelTests
         Assert.True(advisor.LastAnswerRequest.AllowContentAwareTier);
     }
 
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void RecommendationPanel_AccessibilityCopyIsLocalized(string culture)
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture(culture);
+        using var viewModel = new RecommendationPanelViewModel(
+            new FakeAdvisorService([], null),
+            new RecordingNavigation(),
+            localization);
+
+        Assert.DoesNotContain("Ai.Advisor.", viewModel.InterpretedIntentAccessibleLabel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ai.Advisor.", viewModel.OpenCitationLabel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ai.Advisor.", viewModel.EvidenceLimitationLabel, StringComparison.Ordinal);
+        Assert.NotEmpty(viewModel.RateAnswerOneLabel);
+        Assert.DoesNotContain("Ai.Advisor.", viewModel.RateAnswerOneLabel, StringComparison.Ordinal);
+        Assert.Equal(
+            culture == "en" ? "Interpreted reading preferences" : "Préférences de lecture interprétées",
+            viewModel.InterpretedIntentAccessibleLabel);
+    }
+
     [Fact]
     public async Task RecommendationPanel_SubmitsOnlyConsentedBoundedFeedback()
     {

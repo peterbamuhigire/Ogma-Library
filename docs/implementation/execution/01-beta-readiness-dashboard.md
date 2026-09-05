@@ -14,8 +14,8 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete solution run passed 1,094 tests with 0 failures and 0 skips:
-898 core, 41 architecture, and 155 UI.
+The latest complete solution run passed 1,096 tests with 0 failures and 0 skips:
+900 core, 41 architecture, and 155 UI.
 
 ```text
 dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal"
@@ -36,7 +36,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 15 | Hash guard, preparation, backup/undo, consented writeback | Physical interruption and permission evidence open | [phase-15](phase-15-progress.md) |
 | 16 | Assets, manifests, lazy variants, provider boundary, ingest/update spine scheduling, LAN authorization | Provider source, scale budget, physical journeys open | [phase-16](phase-16-progress.md) |
 | 17 | Leases, retries, dead-lettering, resource groups, metrics, recovery | Process-kill, crash, and soak evidence open | [phase-17](phase-17-progress.md) |
-| 18 | Design tokens, controls, localization increments, theme/density, command palette | Application-wide copy, contrast, route inventory, physical accessibility open | [phase-18](phase-18-progress.md) |
+| 18 | Design tokens, controls, localization increments including AI accessibility copy, theme/density, command palette | Application-wide copy, contrast, route inventory, physical accessibility open | [phase-18](phase-18-progress.md) |
 | 19 | 2D catalogue, cover fallback, paging, badges, authenticated assets | Keyboard/screen-reader and reference hardware open | [phase-19](phase-19-progress.md) |
 | 20 | Detail curation, collections, smart shelves, history/TOC/provenance, relink wiring | Physical picker/relink, accessibility, E2E open | [phase-20](phase-20-progress.md) |
 | 21 | Reader portability, import/export, split view, cache/session evidence | Platform viewer, crash, accessibility, reference performance open | [phase-21](phase-21-progress.md) |
