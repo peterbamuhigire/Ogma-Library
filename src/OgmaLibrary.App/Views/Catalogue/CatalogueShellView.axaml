@@ -73,7 +73,8 @@
                  ItemsSource="{Binding ShelfSidebar.Shelves}"
                  SelectedItem="{Binding ShelfSidebar.SelectedShelf, Mode=TwoWay}"
                  Background="Transparent"
-                 BorderThickness="0">
+                 BorderThickness="0"
+                 AutomationProperties.Name="{Binding ShelfSidebar.ShelvesLabel}">
           <ListBox.ItemTemplate>
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,2">
@@ -375,6 +376,7 @@
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.Name="{Binding ClearFiltersText}"
                   Click="ClearFilters_Click">
             <TextBlock Text="{Binding ClearFiltersText}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
@@ -549,7 +551,7 @@
             BorderThickness="1"
             CornerRadius="{DynamicResource Radius.S}"
             DataContext="{Binding HostSharing}"
-            IsVisible="{Binding IsSharePanelOpen}"
+            IsVisible="{Binding IsSharePanelOpen, FallbackValue=False, TargetNullValue=False}"
             x:CompileBindings="False">
       <StackPanel Spacing="10">
         <Grid ColumnDefinitions="*,Auto">
@@ -649,7 +651,7 @@
             BorderThickness="1"
             CornerRadius="{DynamicResource Radius.S}"
             DataContext="{Binding HostSharing}"
-            IsVisible="{Binding IsStartConfirmationOpen}"
+            IsVisible="{Binding IsStartConfirmationOpen, FallbackValue=False, TargetNullValue=False}"
             x:CompileBindings="False">
       <StackPanel Spacing="8">
         <TextBlock Text="{Binding StartConfirmationText}"
@@ -694,7 +696,7 @@
             BorderThickness="1"
             CornerRadius="{DynamicResource Radius.S}"
             DataContext="{Binding HostSharing}"
-            IsVisible="{Binding IsFileStreamConfirmationOpen}"
+            IsVisible="{Binding IsFileStreamConfirmationOpen, FallbackValue=False, TargetNullValue=False}"
             x:CompileBindings="False">
       <StackPanel Spacing="8">
         <TextBlock Text="{Binding FileStreamConfirmationText}"

@@ -21,6 +21,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Infrastructure.Pathing;
 using OgmaLibrary.Reader.Cache;
 using OgmaLibrary.Reader.Progress;
 using OgmaLibrary.Reader.Session;
@@ -343,7 +344,9 @@ public sealed class ShellReaderNavigationTests
             Assert.Equal(ShellView.Reader, shell.ActiveView);
             Assert.True(reader.IsOpen);
             Assert.Equal(ReaderTestPdfFixture.PageCount, reader.PageCount);
-            Assert.Equal(ReaderTestPdfFixture.PdfPath, sessionService.CurrentSession?.FilePath);
+            Assert.Equal(
+                PathGuard.CanonicalizeRoot(ReaderTestPdfFixture.PdfPath),
+                sessionService.CurrentSession?.FilePath);
             Assert.Single(catalogue.FilteredItems);
             Assert.Equal("PDF opened in reader. Metadata extraction and enrichment are queued.", shell.StatusText);
 

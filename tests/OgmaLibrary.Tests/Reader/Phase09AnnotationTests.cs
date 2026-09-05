@@ -7,6 +7,7 @@ using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Pathing;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Localization;
 using OgmaLibrary.Infrastructure.Sidecar;
@@ -1174,7 +1175,10 @@ public sealed class Phase09AnnotationTests : IDisposable
             Assert.Equal(3, card.PageNumber);
             Assert.Equal("Citation passage", card.SelectedText);
             Assert.Equal("\"Citation passage\" \u2014 A. Reader, Phase 09 Test Book, p.3", card.ToPlainText());
-            Assert.StartsWith(Path.GetFullPath(sidecarRoot), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith(
+                PathGuard.CanonicalizeRoot(sidecarRoot),
+                PathGuard.CanonicalizeRoot(path),
+                StringComparison.OrdinalIgnoreCase);
             Assert.Contains(Path.Combine(".ogma", "citations", "ab"), path, StringComparison.OrdinalIgnoreCase);
             Assert.EndsWith(".txt", path, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(card.ToPlainText(), await File.ReadAllTextAsync(path));

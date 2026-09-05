@@ -1,6 +1,7 @@
 using System.Text;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pdf;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Tests.Security;
 
@@ -31,7 +32,7 @@ public sealed class Phase10PdfInputBrokerTests : IDisposable
 
         Assert.True(result.IsValid);
         Assert.Equal(PdfInputValidationStatus.Valid, result.Status);
-        Assert.Equal(Path.GetFullPath(path), result.CanonicalPath);
+        Assert.Equal(PathGuard.CanonicalizeRoot(path), result.CanonicalPath);
         Assert.Equal(13, result.SizeBytes);
     }
 

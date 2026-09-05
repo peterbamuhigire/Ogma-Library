@@ -9,6 +9,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
 using OgmaLibrary.Infrastructure.Ingestion;
+using OgmaLibrary.Infrastructure.Pathing;
 using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Reader.Cache;
 using OgmaLibrary.Reader.Progress;
@@ -388,7 +389,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
             CancellationToken.None);
 
         Assert.Equal(bookId, session.BookId);
-        Assert.Equal(pdfPath, session.FilePath);
+        Assert.Equal(PathGuard.CanonicalizeRoot(pdfPath), session.FilePath);
         Assert.Equal(ReaderTestPdfFixture.PageCount, session.PageCount);
         Assert.Equal(0, session.CurrentPageIndex);
         Assert.True(firstPage.PngBytes.Length >= 8);
@@ -464,7 +465,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
         string? locatedPath = await services.GetRequiredService<IBookFileLocator>()
             .LocateAsync(bookId, CancellationToken.None);
-        Assert.Equal(pdfPath, locatedPath);
+        Assert.Equal(PathGuard.CanonicalizeRoot(pdfPath), locatedPath);
     }
 
     [Fact]

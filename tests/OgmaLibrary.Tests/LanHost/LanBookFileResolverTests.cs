@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.LanHost;
+using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Tests.LanHost;
 
@@ -25,7 +26,7 @@ public sealed class LanBookFileResolverTests
                 .ResolveAsync("01LANRESOLVER00000000001", CancellationToken.None);
 
             Assert.Equal(
-                Path.GetFullPath(Path.Combine(dataDirectory, "books", "present.pdf")),
+                PathGuard.CanonicalizeRoot(Path.Combine(dataDirectory, "books", "present.pdf")),
                 resolved);
         }
         finally

@@ -15,6 +15,13 @@ public sealed class Phase24RealOcrCorpusTests
     [Fact]
     public async Task PackagedTesseract_RecognizesExpectedWordsFromGeneratedScannedFixture()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip(
+                "The Tesseract 5.2.0 package supplies native binaries only for Windows; " +
+                "macOS/Linux OCR remains NOT ASSESSED until a supported native runtime is packaged.");
+        }
+
         string corpusRoot = FindCorpusRoot();
         string tessdataPath = Path.Combine(AppContext.BaseDirectory, "tessdata");
         string sandboxRoot = Path.Combine(Path.GetTempPath(), $"ogma-phase24-real-ocr-{Guid.NewGuid():N}");

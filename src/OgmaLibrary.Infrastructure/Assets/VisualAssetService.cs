@@ -298,14 +298,18 @@ public sealed class VisualAssetService : IVisualAssetService
         HashSet<string> stalePaths = stale
             .Select(asset => asset.RelativePath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        List<string> referencedPathRows = await context.VisualAssetManifests
+        // Keep this predicate in memory. SQLite providers differ in how they
+        // translate a captured HashSet combined with a negated IN predicate;
+        // loading the small manifest table makes the reference decision
+        // deterministic across Windows and macOS without weakening ownership.
+        List<VisualAssetManifestRow> manifestRows = await context.VisualAssetManifests
+            .AsNoTracking()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HashSet<string> referencedPaths = manifestRows
             .Where(asset => !stalePaths.Contains(asset.RelativePath) ||
                             asset.Status != (int)VisualAssetStatus.Stale)
             .Select(asset => asset.RelativePath)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        HashSet<string> referencedPaths = referencedPathRows
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         List<VisualAssetManifestRow> rowsToRemove = new();
 

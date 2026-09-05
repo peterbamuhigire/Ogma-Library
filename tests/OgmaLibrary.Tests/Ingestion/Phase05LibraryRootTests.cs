@@ -3,6 +3,7 @@ using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
+using OgmaLibrary.Infrastructure.Pathing;
 using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Ingestion;
@@ -38,7 +39,7 @@ public sealed class Phase05LibraryRootTests : IDisposable
 
         Assert.NotEqual(default, root.Id);
         Assert.Equal("Primary books", root.DisplayName);
-        Assert.Equal(Path.GetFullPath(_rootA), root.CanonicalLocator);
+        Assert.Equal(PathGuard.CanonicalizeRoot(_rootA), root.CanonicalLocator);
         Assert.Equal(LibraryRootStatus.Available, root.Status);
         Assert.Equal(LibraryRootPermissionStatus.Granted, root.PermissionStatus);
         Assert.True(root.IsEnabled);
@@ -65,7 +66,7 @@ public sealed class Phase05LibraryRootTests : IDisposable
         LibraryRootDescriptor disabled = await _service.SetEnabledAsync(original.Id, false);
 
         Assert.Equal(original.Id, relinked.Id);
-        Assert.Equal(Path.GetFullPath(_rootB), relinked.CanonicalLocator);
+        Assert.Equal(PathGuard.CanonicalizeRoot(_rootB), relinked.CanonicalLocator);
         Assert.Equal(LibraryRootStatus.Available, relinked.Status);
         Assert.False(disabled.IsEnabled);
         Assert.Equal(original.Id.Value, await _context.FileOccurrences

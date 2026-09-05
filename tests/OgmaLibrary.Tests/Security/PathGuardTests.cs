@@ -35,7 +35,7 @@ public sealed class PathGuardTests
         {
             string nested = Path.Combine(root, "nested", "book.pdf");
             string actual = PathGuard.EnsureWithinRoot(nested, root);
-            Assert.Equal(Path.GetFullPath(nested), actual);
+            Assert.Equal(PathGuard.CanonicalizeRoot(nested), actual);
         }
         finally
         {

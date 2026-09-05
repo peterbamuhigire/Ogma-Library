@@ -1,4 +1,5 @@
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Infrastructure.Pathing;
 using OgmaLibrary.Infrastructure.Sidecar;
 
 namespace OgmaLibrary.Tests.Catalogue;
@@ -55,7 +56,10 @@ public sealed class SidecarServiceTests : IDisposable
         string absolute = _service.Resolve(SampleHash, SidecarClass.Covers);
 
         Assert.True(Path.IsPathRooted(absolute));
-        Assert.StartsWith(_tempRoot, absolute, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(
+            PathGuard.CanonicalizeRoot(_tempRoot),
+            absolute,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
