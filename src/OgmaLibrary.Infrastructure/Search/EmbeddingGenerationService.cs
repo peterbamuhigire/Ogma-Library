@@ -136,7 +136,8 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 failed++;
-                await RecordFailureAsync(chunk, ex.Message, cancellationToken).ConfigureAwait(false);
+                const string message = "Embedding generation failed.";
+                await RecordFailureAsync(chunk, message, cancellationToken).ConfigureAwait(false);
                 await SetBookEmbeddingStatusAsync(
                         chunk.BookId,
                         SearchEmbeddingStatus.Failed,
@@ -145,7 +146,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 _events.Publish(new SemanticIndexEvent.EmbeddingFailed(
                     chunk.ChunkId,
                     chunk.BookId,
-                    TrimError(ex.Message)));
+                    message));
             }
         }
 

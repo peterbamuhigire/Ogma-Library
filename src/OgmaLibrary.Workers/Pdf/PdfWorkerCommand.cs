@@ -70,19 +70,23 @@ internal static class PdfWorkerCommand
                     return 2;
             }
         }
-        catch (PdfPasswordRequiredException ex)
+        catch (PdfPasswordRequiredException)
         {
-            WriteError(nameof(PdfPasswordRequiredException), ex.FilePath);
+            WriteError(
+                nameof(PdfPasswordRequiredException),
+                "A password is required to open the PDF.");
             return 10;
         }
-        catch (PdfPasswordIncorrectException ex)
+        catch (PdfPasswordIncorrectException)
         {
-            WriteError(nameof(PdfPasswordIncorrectException), ex.FilePath);
+            WriteError(
+                nameof(PdfPasswordIncorrectException),
+                "The supplied password was not accepted.");
             return 11;
         }
         catch (Exception ex)
         {
-            WriteError(ex.GetType().Name, ex.Message);
+            WriteError(ex.GetType().Name, "PDF worker operation failed.");
             return 1;
         }
     }
@@ -162,7 +166,7 @@ internal static class PdfWorkerCommand
                 WriteServerResponse(new ServerResponse(
                     "error",
                     ErrorType: ex.GetType().Name,
-                    Error: ex.Message));
+                    Error: "PDF worker operation failed."));
             }
         }
     }

@@ -152,7 +152,7 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
             {
                 // Per-file failure isolation: record failure, continue with next file.
                 _progress.IncrementFailed();
-                await RecordFailureAsync(file.RelativePath, ex.Message, cancellationToken)
+                await RecordFailureAsync(file.RelativePath, "File processing failed.", cancellationToken)
                     .ConfigureAwait(false);
             }
         }

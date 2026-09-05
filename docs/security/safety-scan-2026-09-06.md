@@ -17,7 +17,7 @@ Avalonia desktop, TypeScript/Three.js, SQLite, Kestrel LAN Host
 
 | # | Check | Severity | Findings |
 |---|-------|----------|----------|
-| 6 | Unhandled Runtime Exceptions | MEDIUM | Worker and several local extraction/provider boundaries persist selected `Exception.Message` values, which can contain implementation or path details; e.g. `BookIngestionWorker.cs:183` and `MetadataExtractionService.cs:97`. This is local operator-facing diagnostic exposure, not a confirmed remote exploit. |
+| 6 | Unhandled Runtime Exceptions | MEDIUM | Selected application persistence/provider boundaries and the isolated PDF worker IPC now return stable operator-safe failure messages; physical hostile-PDF exception fuzzing remains unassessed. No remote exploit is confirmed. |
 | 7 | Misconfigured Env Variables | PASS | Supported environment settings are parsed and validated by `OgmaRuntimeOptions`; invalid values fail closed. |
 | 8 | Misconfigured File Paths | PASS | File access uses canonical/bounded path authorities, safe asset classes, and traversal tests. |
 | 9 | Database Connection Problems | PASS | EF contexts are scoped through factories where production concurrency requires it; HTTP clients are managed by the host composition and responses are disposed. |
@@ -35,19 +35,23 @@ Avalonia desktop, TypeScript/Three.js, SQLite, Kestrel LAN Host
 ## Summary
 
 - **CRITICAL:** 0 | **HIGH:** 0 | **MEDIUM:** 3 | **LOW:** 0 | **PASS:** 10 | **NOT APPLICABLE:** 1
-- **Top Priority Fixes:** complete the physical brute-force, native-host/cache soak, and cross-platform security evidence; normalize exception-to-diagnostic messages at worker and provider boundaries before any remote diagnostic or broader shared-log sink is introduced; retain detailed exceptions only in controlled local debugging channels.
+- **Top Priority Fixes:** complete the physical brute-force, native-host/cache soak, and cross-platform security evidence; retain detailed exceptions only in controlled local debugging channels and keep worker IPC diagnostics bounded.
 
 ## Remediation follow-up — 2026-09-06
 
-The selected ingestion and provider boundaries identified by Check 6 were
-normalized to stable operator-safe messages in the current worktree:
+The selected ingestion, search, write-back, provider, and PDF worker boundaries identified
+by Check 6 were normalized to stable operator-safe messages in the current worktree:
 `BookIngestionWorker`, `MetadataExtractionService`,
 `BookMetadataEnrichmentService`, `ThumbnailService`, `SpineService`,
-`OpenLibraryProvider`, `GoogleBooksProvider`, and the provider aggregator.
-The focused ingestion/provider/asset regression passed **49/49**.
+`OpenLibraryProvider`, `GoogleBooksProvider`, the provider aggregator,
+`ExtractionPipelineService`, `EmbeddingGenerationService`, `FtsIndexService`,
+`IngestionOrchestrator`, the advisor parsers, and `PdfWriteBackService`.
+`PdfWorkerCommand` and the parent `PdfWorkerClient` now preserve typed failure
+categories while returning stable generic messages across the child-process
+boundary. The focused boundary regression passed **55/55**.
 
-Check 6 remains **MEDIUM** because other local search/ingestion/write-back
-paths still require the same boundary review. No remote exploit was observed.
+Check 6 remains **MEDIUM** because hostile-PDF exception behavior still requires
+corpus evidence. No remote exploit was observed.
 
 ## Scope and limitations
 

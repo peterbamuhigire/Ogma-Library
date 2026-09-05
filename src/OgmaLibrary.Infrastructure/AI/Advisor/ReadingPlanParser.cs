@@ -29,9 +29,9 @@ public sealed class ReadingPlanParser : IReadingPlanParser
             List<Checkpoint> checkpoints = ReadCheckpoints(root);
             return new ReadingPlan(goal, steps, checkpoints);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            throw new AdvisorParseException($"Reading plan response was not valid JSON: {ex.Message}");
+            throw new AdvisorParseException("Reading plan response was not valid JSON.");
         }
     }
 

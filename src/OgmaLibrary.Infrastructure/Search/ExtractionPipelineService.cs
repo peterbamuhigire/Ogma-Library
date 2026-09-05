@@ -204,9 +204,10 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            await RecordBookFailureAsync(bookId, book.ContentHash, ex.Message, cancellationToken)
+            const string message = "Search artifact preparation failed.";
+            await RecordBookFailureAsync(bookId, book.ContentHash, message, cancellationToken)
                 .ConfigureAwait(false);
-            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, ex.Message);
+            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message);
         }
 
         string? filePath = await _fileLocator.LocateAsync(bookId, cancellationToken)
@@ -248,9 +249,10 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             {
                 await _artifactService.FailAsync(artifact.Id, CancellationToken.None).ConfigureAwait(false);
             }
-            await RecordBookFailureAsync(bookId, book.ContentHash, ex.Message, cancellationToken)
+            const string message = "Search page extraction failed.";
+            await RecordBookFailureAsync(bookId, book.ContentHash, message, cancellationToken)
                 .ConfigureAwait(false);
-            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, ex.Message);
+            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message);
         }
 
         IsbnDetectionResult isbnEvidence = await _isbnDetection
@@ -444,7 +446,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
                     ContentHash: contentHash,
                     ExtractedAtUtc: DateTimeOffset.UtcNow,
                     ExtractorVersion: extractorVersion);
-                await RecordPageFailureAsync(bookId, contentHash, pageIndex, ex.Message, cancellationToken)
+                await RecordPageFailureAsync(
+                        bookId,
+                        contentHash,
+                        pageIndex,
+                        "Search page extraction failed.",
+                        cancellationToken)
                     .ConfigureAwait(false);
             }
 

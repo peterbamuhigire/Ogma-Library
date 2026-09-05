@@ -153,7 +153,7 @@ public sealed class FtsIndexService : IFtsIndexService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return new FtsIntegrityResult(false, ex.Message);
+            return new FtsIntegrityResult(false, "Full-text index integrity check failed.");
         }
     }
 
@@ -197,7 +197,7 @@ public sealed class FtsIndexService : IFtsIndexService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return new FtsCleanupResult(0, false, ex.Message);
+            return new FtsCleanupResult(0, false, "Full-text index cleanup failed.");
         }
     }
 

@@ -44,9 +44,9 @@ public sealed class RecommendationResponseParser : IRecommendationResponseParser
 
             return cards;
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            throw new AdvisorParseException($"Recommendation response was not valid JSON: {ex.Message}");
+            throw new AdvisorParseException("Recommendation response was not valid JSON.");
         }
     }
 

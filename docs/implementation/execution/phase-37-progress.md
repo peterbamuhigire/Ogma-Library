@@ -37,19 +37,18 @@ Date: 2026-09-06
 - Current-tree dependency checks on 2026-09-06 again reported no vulnerable
   NuGet packages, and `npm audit --omit=dev --audit-level=high` reported zero
   vulnerabilities for `src/shelf3d`.
-- Normalized raw exception messages at the selected ingestion/provider/asset
-  boundaries identified by the current safety scan. The focused regression
-  passed 49/49; broader search, write-back, and physical/soak boundary review
-  remains open.
+- Normalized raw exception messages at the selected ingestion, search,
+  write-back, provider, embedding, FTS, and advisor-parser boundaries. The
+  PDF worker now preserves typed failure categories while returning stable
+  operator-safe messages across its child-process protocol. The focused
+  boundary regression passed 55/55; physical/soak boundary review remains
+  open.
 
 ## Remaining phase gate
 
 Physical hostile PDF corpus, native secret-store and two-user erasure tests,
 firewall/mDNS/network capture, independent penetration review, backup/restore
 rehearsal, and long-duration cross-platform soak remain release evidence gates.
-The 2026-09-06 static safety scan records one additional medium
-diagnostic-hygiene follow-up: selected worker/provider exception messages still
-flow into local operator-facing failure records. Evidence:
-`../../security/safety-scan-2026-09-06.md`. This does not establish a remote
-exploit, but it remains open until those messages are normalized at their
-boundaries.
+The 2026-09-06 static safety scan retains a medium follow-up for hostile-PDF
+exception evidence. Evidence:
+`../../security/safety-scan-2026-09-06.md`.

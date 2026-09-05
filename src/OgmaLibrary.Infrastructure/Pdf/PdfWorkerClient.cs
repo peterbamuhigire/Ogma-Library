@@ -522,10 +522,7 @@ public sealed class PdfWorkerClient
             // Fall through to the generic stderr message.
         }
 
-        throw new InvalidOperationException(
-            string.IsNullOrWhiteSpace(stderr)
-                ? "The PDF worker process failed."
-                : $"The PDF worker process failed: {stderr.Trim()}");
+        throw new InvalidOperationException("The PDF worker process failed.");
     }
 
     private static void ThrowWorkerFailure<T>(WorkerEnvelope<T> envelope)

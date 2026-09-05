@@ -336,9 +336,13 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 .ConfigureAwait(false);
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            await CleanupAfterFailureAsync(tempPath, backupToken, bookId, ex.Message)
+            await CleanupAfterFailureAsync(
+                    tempPath,
+                    backupToken,
+                    bookId,
+                    "Metadata write-back failed.")
                 .ConfigureAwait(false);
             return false;
         }
@@ -424,10 +428,14 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             TryDelete(tempPath);
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             TryDelete(tempPath);
-            await RecordUndoFailureAsync(bookId, backupPath, ex.Message).ConfigureAwait(false);
+            await RecordUndoFailureAsync(
+                    bookId,
+                    backupPath,
+                    "Metadata write-back undo failed.")
+                .ConfigureAwait(false);
             return false;
         }
     }
