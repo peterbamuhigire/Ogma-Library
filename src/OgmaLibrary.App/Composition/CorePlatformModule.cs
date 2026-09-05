@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.App.Configuration;
+using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Bookshelf3D.Bridge;
@@ -26,6 +27,7 @@ internal sealed class CorePlatformModule : IOgmaModuleRegistrar
             RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                 ? new WKWebViewBridge()
                 : new WebView2Bridge());
+        services.AddSingleton<IShelf3DHostCoordinator, Shelf3DHostCoordinator>();
         services.AddSingleton<IPasswordProvider>(_ =>
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new WindowsPasswordProvider()

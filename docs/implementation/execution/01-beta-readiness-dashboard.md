@@ -52,7 +52,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 28 | Intent parsing, candidate/reranking, comparison references, diagnostics | Human-labelled benchmark, reference machine, final UI/performance open | [phase-28](phase-28-progress.md) |
 | 29 | Grounded local evidence, citations, consent, traces, abstention benchmark | Physical UI evidence open | [phase-29](phase-29-progress.md) |
 | 30 | Advisor routes, feedback consent, evaluation runs, history erase, thresholds | Live evaluation, accessibility, retrieval freeze, physical picker open | [phase-30](phase-30-progress.md) |
-| 31 | Typed 3D bridge, projection, accessible fallback | Native WebView adapters and physical integration open | [phase-31](phase-31-progress.md) |
+| 31 | Typed 3D bridge, projection, accessible fallback, native WebView binding and secure loopback asset adapter | Physical WebView2/WKWebView, WebGL2 and integration evidence open | [phase-31](phase-31-progress.md) |
 | 32 | Meshes, sharded asset URIs, interaction, atlas/LOD/motion/focus wiring | Reference confirmation and physical Windows/macOS evidence open | [phase-32](phase-32-progress.md) |
 | 33 | Virtualization, texture residency, metrics, eviction, fallback | GPU/WebView/context-loss/cross-platform accessibility open | [phase-33](phase-33-progress.md) |
 | 34 | Published scope, redaction, authenticated concurrency, host boundaries | Two-machine networking, firewall/mDNS/TOFU, hostile soak open | [phase-34](phase-34-progress.md) |

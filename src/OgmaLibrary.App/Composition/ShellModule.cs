@@ -79,7 +79,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             readModel,
             services.GetRequiredService<IWebViewBridge>(),
             navigation,
-            localization);
+            localization,
+            services.GetRequiredService<IShelf3DHostCoordinator>());
         static Task FocusShelfBookAsync(
             string bookId,
             CancellationToken cancellationToken,

@@ -447,7 +447,7 @@ export class Shelf3DScene {
     mesh.material.map = this.atlasTexture;
     mesh.material.color.set(0xffffff);
     mesh.material.needsUpdate = true;
-    if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
+    if (typeof Image === "undefined" || !this.isLocalAssetUri(book.spineUri)) return;
     const image = new Image();
     image.onload = () => {
       if (mesh.parent === null || mesh.userData.textureRequestToken !== textureRequestToken) {
@@ -457,6 +457,16 @@ export class Shelf3DScene {
     };
     image.onerror = () => undefined;
     image.src = book.spineUri;
+  }
+
+  private isLocalAssetUri(uri: string): boolean {
+    if (uri.startsWith("ogma://assets/")) return true;
+    try {
+      const parsed = new URL(uri);
+      return parsed.protocol === "http:" && parsed.hostname === "127.0.0.1";
+    } catch {
+      return false;
+    }
   }
 
   private ensureAtlasSlot(mesh: BookMesh): number | null {

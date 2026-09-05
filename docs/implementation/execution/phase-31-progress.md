@@ -20,13 +20,14 @@ Date: 2026-09-05
 - Recorded the code-level host-contract and accessible-fallback evidence in
   `evidence/phase-31-3d-host-contract-2026-09-04.md`; native adapters and
   physical platform evidence remain explicitly unassessed.
-- Reconciled the current phase record: no repository-only host-contract work is
-  open; native adapter and physical platform gates remain **NOT ASSESSED**.
-  See `evidence/phase-31-host-contract-reconciliation-2026-09-04.md`.
-- Evaluated the current official Avalonia native WebView package. It was not
-  retained because the repository has no valid license key and the package’s
-  public abstraction does not provide the custom-scheme response synthesis
-  required by the existing `ogma://` boundary. See
+- Reconciled the current phase record: the repository-only host-contract and
+  native-binding implementation gates are delivered; physical platform gates
+  remain **NOT ASSESSED**. See
+  `evidence/phase-31-host-contract-reconciliation-2026-09-04.md`.
+- Added the current MIT-licensed Avalonia native WebView package, wired
+  `NativeWebView` into the shell, and added a loopback/token host adapter that
+  preserves the existing `ogma://` authorization boundary. Physical WebView2,
+  WKWebView, WebGL2 and cross-platform evidence remain **NOT ASSESSED**. See
   `evidence/phase-31-native-binding-gate-2026-09-05.md`.
 
 ## Verification
@@ -34,13 +35,16 @@ Date: 2026-09-05
 - Bridge/message and 3D view-model slice: 28 passed.
 - Headless rendered 3D fallback slice: 1 passed.
 - Architecture suite: 41 passed on the current worktree.
-- Application Release build: 0 warnings, 0 errors after the unlicensed binding
-  was removed.
+- Shelf3D TypeScript typecheck and bundle build: passed; the build provenance
+  manifest was regenerated from the checked-in source and lockfile.
+- Application Release build: 0 warnings, 0 errors with the native binding
+  enabled.
+- Native host binding regression: 37 passed, 0 failed, 0 skipped; native
+  control rendering remains a physical-platform gate.
 
 ## Remaining phase gate
 
-Physical Windows WebView2 and macOS WKWebView adapters, NativeControlHost
-attachment, crash/reload event wiring, platform capability probes, local scheme
-registration against those native APIs, and physical Windows/macOS integration
-evidence remain. The current runtime is intentionally fail-safe and does not
-claim a native host is available until an adapter is supplied.
+Physical Windows WebView2 and macOS WKWebView rendering, crash/reload recovery,
+platform capability probes, WebGL2 behavior, and physical Windows/macOS
+integration evidence remain. The native binding is present, but the runtime
+must remain fail-safe until those platform gates are evidenced.

@@ -13,6 +13,15 @@
           "MicroCom.Runtime": "0.11.0"
         }
       },
+      "Avalonia.Controls.WebView": {
+        "type": "Direct",
+        "requested": "[11.4.0, )",
+        "resolved": "11.4.0",
+        "contentHash": "I5kp72dYKFwkqcW3xy+t26HVPJdr/tIufKjgzwpL2G77XZzsuX03yUH1iIb1DeM+nWaqALzr6/dpwUryjKLElQ==",
+        "dependencies": {
+          "Avalonia": "11.1.0"
+        }
+      },
       "Avalonia.Desktop": {
         "type": "Direct",
         "requested": "[11.3.17, )",

@@ -28931,7 +28931,7 @@ void main() {
       mesh.material.map = this.atlasTexture;
       mesh.material.color.set(16777215);
       mesh.material.needsUpdate = true;
-      if (typeof Image === "undefined" || !book.spineUri.startsWith("ogma://assets/")) return;
+      if (typeof Image === "undefined" || !this.isLocalAssetUri(book.spineUri)) return;
       const image = new Image();
       image.onload = () => {
         if (mesh.parent === null || mesh.userData.textureRequestToken !== textureRequestToken) {
@@ -28941,6 +28941,15 @@ void main() {
       };
       image.onerror = () => void 0;
       image.src = book.spineUri;
+    }
+    isLocalAssetUri(uri) {
+      if (uri.startsWith("ogma://assets/")) return true;
+      try {
+        const parsed = new URL(uri);
+        return parsed.protocol === "http:" && parsed.hostname === "127.0.0.1";
+      } catch {
+        return false;
+      }
     }
     ensureAtlasSlot(mesh) {
       const index = mesh.userData.bookIndex;

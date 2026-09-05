@@ -17,6 +17,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     private readonly IWebViewBridge _bridge;
     private readonly IBookDetailNavigationService _navigation;
     private readonly ILocalizationService _localization;
+    private readonly IShelf3DHostCoordinator? _hostCoordinator;
     private readonly string _toggleIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_toggle") ?? string.Empty;
     private readonly string _shelfLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_shelf") ?? string.Empty;
     private readonly string _gridLayoutIconPath = IconCatalog.GetAvaresPath("ic_shelf3d_layout_grid3d") ?? string.Empty;
@@ -31,7 +32,8 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         ICatalogueReadModel catalogue,
         IWebViewBridge bridge,
         IBookDetailNavigationService navigation,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        IShelf3DHostCoordinator? hostCoordinator = null)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(bridge);
@@ -42,6 +44,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         _bridge = bridge;
         _navigation = navigation;
         _localization = localization;
+        _hostCoordinator = hostCoordinator;
         _bridge.MessageReceived += OnBridgeMessageReceived;
         _localization.CultureChanged += OnCultureChanged;
     }
@@ -172,9 +175,9 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
                     new SetSceneMessage(Books.ToArray(), DefaultCamera()),
                     cancellationToken).ConfigureAwait(false);
             }
-            catch (InvalidOperationException)
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
             {
-                // No platform adapter is a capability failure, not a catalogue
+                // Native-host failure is a capability failure, not a catalogue
                 // failure. Keep the local list usable as the accessible fallback.
                 IsWebGl2Supported = false;
             }
@@ -198,10 +201,42 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         {
             await _bridge.PostMessageAsync(new SetLayoutMessage(layout), cancellationToken).ConfigureAwait(false);
         }
-        catch (InvalidOperationException)
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             IsWebGl2Supported = false;
         }
+    }
+
+    /// <summary>
+    /// Initializes the platform WebView host. A missing coordinator or failed
+    /// native capability keeps the accessible catalogue fallback available.
+    /// </summary>
+    public async Task InitializeNativeHostAsync(
+        IWebViewHostAdapter host,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        if (_hostCoordinator is null)
+        {
+            IsWebGl2Supported = false;
+            return;
+        }
+
+        try
+        {
+            await _hostCoordinator.InitializeAsync(host, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            IsWebGl2Supported = false;
+        }
+    }
+
+    /// <summary>Returns the shelf to its accessible fallback after host loss.</summary>
+    public void ReportNativeHostUnavailable()
+    {
+        IsWebGl2Supported = false;
+        IsPerformanceDegraded = false;
     }
 
     /// <summary>Moves the 3D scene focus to a book selected by search or advisor UI.</summary>
@@ -217,7 +252,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         {
             await _bridge.PostMessageAsync(new FocusBookMessage(bookId), cancellationToken).ConfigureAwait(false);
         }
-        catch (InvalidOperationException)
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             IsWebGl2Supported = false;
         }
