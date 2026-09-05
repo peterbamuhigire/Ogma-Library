@@ -21,12 +21,25 @@
                 Cursor="Hand"
                 PointerPressed="BookRow_PointerPressed">
           <Grid ColumnDefinitions="2*,*,*,Auto" ColumnSpacing="12">
-            <TextBlock Text="{Binding RelativePath, FallbackValue='(path unavailable)'}"
+            <TextBlock Grid.Column="0"
+                       Text="{Binding RelativePath}"
+                       IsVisible="{Binding HasRelativePath}"
                        TextTrimming="CharacterEllipsis"
                        ToolTip.Tip="{Binding RelativePath}"
                        VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0"
+                       Text="{Binding $parent[UserControl].DataContext.DirectoryPathUnavailableText}"
+                       IsVisible="{Binding !HasRelativePath}"
+                       TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center" />
             <TextBlock Grid.Column="1"
-                       Text="{Binding Title, FallbackValue='Untitled'}"
+                       Text="{Binding Title}"
+                       IsVisible="{Binding HasTitle}"
+                       TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1"
+                       Text="{Binding $parent[UserControl].DataContext.DirectoryUntitledText}"
+                       IsVisible="{Binding !HasTitle}"
                        TextTrimming="CharacterEllipsis"
                        VerticalAlignment="Center" />
             <TextBlock Grid.Column="2"

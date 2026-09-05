@@ -81,11 +81,15 @@ Date: 2026-09-05
 - Localized the 3D bookshelf scene's missing-title and missing-author fallback
   labels, with English/French regression coverage. Evidence:
   `evidence/phase-18-bookshelf-fallback-copy-2026-09-05.md`.
+- Replaced directory-view hard-coded title/path fallback literals with explicit
+  availability bindings and localized catalogue presentation labels; catalogue
+  labels now refresh on culture changes. Evidence:
+  `evidence/phase-18-directory-fallback-copy-2026-09-05.md`.
 
 ## Remaining phase gate
 
-Application-wide hard-coded copy extraction (including directory fallback
-bindings and classroom Host-sharing status copy), contrast snapshots, and
+Application-wide hard-coded copy extraction (including classroom Host-sharing
+status copy), contrast snapshots, and
 Narrator/VoiceOver journeys remain before phase 18 closure. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,

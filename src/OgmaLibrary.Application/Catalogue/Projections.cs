@@ -36,6 +36,12 @@ public sealed record BookSummaryProjection(
     string? RelativePath = null,
     CatalogueProcessingProjection? Processing = null)
 {
+    /// <summary>Whether a non-empty title is available for display.</summary>
+    public bool HasTitle => !string.IsNullOrWhiteSpace(Title);
+
+    /// <summary>Whether a library-relative file path is available for display.</summary>
+    public bool HasRelativePath => !string.IsNullOrWhiteSpace(RelativePath);
+
     /// <summary>Safe display value for cards when bibliographic authors are absent.</summary>
     public string PrimaryAuthor =>
         Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim() ??

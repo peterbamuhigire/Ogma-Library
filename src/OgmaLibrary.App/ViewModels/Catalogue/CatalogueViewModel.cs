@@ -63,6 +63,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         _settings = settings;
         _assetRootPath = assetRootPath;
         _viewStateStore = viewStateStore;
+        _localization.CultureChanged += OnCultureChanged;
 
         Filter = new CatalogueFilterViewModel();
         Filter.PropertyChanged += (_, _) => ApplyFilterAndSort();
@@ -211,6 +212,13 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Localized quality-score format.</summary>
     public string QualityBadgeFormat => _localization["Catalogue.Badge.QualityFormat"];
+
+    /// <summary>Localized fallback for a missing directory-view file path.</summary>
+    public string DirectoryPathUnavailableText =>
+        _localization["Catalogue.Directory.PathUnavailable"];
+
+    /// <summary>Localized fallback for a missing directory-view title.</summary>
+    public string DirectoryUntitledText => _localization["Search.Result.Untitled"];
 
     /// <summary>Moves to the previous bounded page when one exists.</summary>
     public void GoToPreviousPage()
@@ -431,6 +439,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     {
         _viewStateSaveCts?.Cancel();
         _viewStateSaveCts?.Dispose();
+        _localization.CultureChanged -= OnCultureChanged;
         // No unmanaged resources; Filter subscription uses a lambda so no explicit removal needed.
     }
 
@@ -514,6 +523,25 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private void OnCultureChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(PageSummaryText));
+        OnPropertyChanged(nameof(PreviousPageText));
+        OnPropertyChanged(nameof(NextPageText));
+        OnPropertyChanged(nameof(IndexedBadgeText));
+        OnPropertyChanged(nameof(IndexingBadgeText));
+        OnPropertyChanged(nameof(IndexFailedBadgeText));
+        OnPropertyChanged(nameof(EmbeddedBadgeText));
+        OnPropertyChanged(nameof(EmbeddingBadgeText));
+        OnPropertyChanged(nameof(EmbeddingFailedBadgeText));
+        OnPropertyChanged(nameof(OcrBadgeText));
+        OnPropertyChanged(nameof(UnavailableBadgeText));
+        OnPropertyChanged(nameof(FavouriteBadgeText));
+        OnPropertyChanged(nameof(QualityBadgeFormat));
+        OnPropertyChanged(nameof(DirectoryPathUnavailableText));
+        OnPropertyChanged(nameof(DirectoryUntitledText));
+    }
 }
 
 /// <summary>The available catalogue view modes (FR-CAT-001).</summary>
