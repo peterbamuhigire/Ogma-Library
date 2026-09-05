@@ -96,7 +96,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    /// <summary>The active view mode (grid / list / directory / 3D placeholder).</summary>
+    /// <summary>The active view mode (grid / list / directory / 3D shelf).</summary>
     public CatalogueView CurrentView
     {
         get => _currentView;
@@ -556,6 +556,6 @@ public enum CatalogueView
     /// <summary>File-system directory tree view.</summary>
     Directory,
 
-    /// <summary>3D bookshelf view (Phase 14 placeholder).</summary>
+    /// <summary>3D bookshelf view.</summary>
     Shelf3D,
 }

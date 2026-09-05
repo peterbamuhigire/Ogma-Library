@@ -512,7 +512,7 @@ public sealed class MainShellViewModel :
     /// <summary>Reader escape-hatch button label.</summary>
     public string BackToLibraryLabel => _localization["Navigation.BackToLibrary"];
 
-    /// <summary>3D shelf view button accessible label (placeholder).</summary>
+    /// <summary>3D shelf view button accessible label.</summary>
     public string Shelf3DViewLabel => _localization["Icon.ic_cat_view_shelf3d.Label"];
 
     /// <summary>Filter panel toggle label.</summary>
