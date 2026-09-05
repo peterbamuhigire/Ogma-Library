@@ -62,6 +62,11 @@ Date: 2026-09-04
   CRLF/charset/import/whitespace diagnostics; the result and unsafe formatter
   fix-all observation are recorded in
   `evidence/phase-38-format-gate-2026-09-05.md`.
+- A safe formatting subset was committed as `e0eaea9` and the CRLF checkout
+  policy as `17871b9`; the full Release suite remained green at 1,104 tests.
+  Fresh-checkout verification now has one residual import-order diagnostic in
+  the protected user-modified `ReaderModule.cs`. Evidence:
+  `evidence/phase-38-format-remediation-2026-09-05.md`.
 
 ## Remaining phase gate
 
