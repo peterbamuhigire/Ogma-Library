@@ -45,6 +45,11 @@ Date: 2026-09-04
 - Fresh unsigned `win-x64` candidate generation and integrity verification
   passed after the packaging script was corrected to omit empty signature-only
   parameters; the temporary candidate was removed after verification.
+- Current-head rerun on 2026-09-05 produced a fresh unsigned `win-x64`
+  candidate and passed `Test-ReleaseCandidate.ps1`; artifact SHA-256 was
+  `42bfc492967bc014d7d371525f73ae27f941bc884fd8bf3ec3af55353af6c8e1`.
+  The candidate was written outside the repository under the task temporary
+  directory and is not a signed or installed release.
 - PowerShell packaging scripts parsed successfully.
 - `actionlint` 1.7.12 passed both tracked workflows (`ci.yml` and
   `release-candidate.yml`) with exit code 0; see
