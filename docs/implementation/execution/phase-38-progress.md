@@ -86,6 +86,11 @@ Date: 2026-09-06
   the temporary candidate was removed after verification.
 - The same current-head run passed requirement accountability for all 162
   requirement/control IDs.
+- Current-head unsigned `osx-arm64` cross-target packaging also passed locked
+  restore, publish, descriptor generation, and `Test-ReleaseCandidate.ps1`
+  integrity verification. Candidate SHA-256 was
+  `6f7576cf6232207bcf7b7cc104d8e8404844d95e9a9fb42637e5dce92bc143c9`.
+  Evidence: `evidence/phase-38-cross-target-packaging-2026-09-06.md`.
 
 ## Remaining phase gate
 
