@@ -56,6 +56,9 @@ internal static class PdfWorkerCommand
                 case "asset-cover":
                     RenderCover(parsed, sandbox);
                     return 0;
+                case "asset-embedded-cover":
+                    RenderEmbeddedCover(parsed, sandbox);
+                    return 0;
                 case "asset-spine":
                     RenderSpine(parsed, sandbox);
                     return 0;
@@ -196,10 +199,29 @@ internal static class PdfWorkerCommand
                 CancellationToken.None)
             .GetAwaiter()
             .GetResult();
-        using SKBitmap? rendered = SKBitmap.Decode(page.PngBytes);
+        RenderCoverImage(parsed, outputPath, page.PngBytes);
+    }
+
+    private static void RenderEmbeddedCover(ParsedArgs parsed, string sandbox)
+    {
+        string outputPath = RequireInsideSandbox(sandbox, parsed.GetRequired("--output"));
+        using PdfiumAdapter renderer = GetRenderer(parsed);
+        byte[]? embedded = renderer.TryExtractEmbeddedCoverImage();
+        if (embedded is null)
+        {
+            throw new PdfEmbeddedCoverNotFoundException(
+                "The first PDF page has no bounded decodable embedded cover image.");
+        }
+
+        RenderCoverImage(parsed, outputPath, embedded);
+    }
+
+    private static void RenderCoverImage(ParsedArgs parsed, string outputPath, byte[] sourcePngBytes)
+    {
+        using SKBitmap? rendered = SKBitmap.Decode(sourcePngBytes);
         if (rendered is null)
         {
-            throw new InvalidOperationException("The first PDF page could not be decoded for its cover image.");
+            throw new InvalidOperationException("The PDF cover image could not be decoded.");
         }
 
         int widthPx = parsed.GetOptionalInt("--width", 200);

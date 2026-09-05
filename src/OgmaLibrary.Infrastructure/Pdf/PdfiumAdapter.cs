@@ -23,6 +23,9 @@ public sealed class PdfiumAdapter : IPdfRenderer
 {
     private const int MaxWordsPerPage = 100_000;
     private const int MaxWordLength = 4_096;
+    private const int MaxEmbeddedImageCount = 32;
+    private const int MaxEmbeddedImageDimension = 8_192;
+    private const int MaxEmbeddedImageBytes = 16 * 1024 * 1024;
     private readonly string _filePath;
     private readonly byte[] _fileBytes;
     private readonly char[]? _password;
@@ -313,6 +316,78 @@ public sealed class PdfiumAdapter : IPdfRenderer
         {
             return [];
         }
+    }
+
+    /// <summary>
+    /// Extracts one bounded, decodable image from the first PDF page for use as
+    /// an embedded-cover candidate. The image is returned as normalized PNG
+    /// bytes so callers never need to interpret PDF image filters or color
+    /// spaces. Only the first page and the first bounded set of image objects
+    /// are inspected; failure is represented by <see langword="null"/> so the
+    /// caller can apply the deterministic first-page fallback.
+    /// </summary>
+    public byte[]? TryExtractEmbeddedCoverImage()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        try
+        {
+            lock (_textExtractionGate)
+            {
+                Page page = _textDocument.Value.GetPage(1);
+                IEnumerable<IPdfImage> candidates = page.GetImages()
+                    .Take(MaxEmbeddedImageCount)
+                    .OrderByDescending(image =>
+                        (long)Math.Max(0, image.WidthInSamples) * Math.Max(0, image.HeightInSamples));
+
+                foreach (IPdfImage candidate in candidates)
+                {
+                    if (candidate.IsImageMask ||
+                        candidate.WidthInSamples is <= 0 or > MaxEmbeddedImageDimension ||
+                        candidate.HeightInSamples is <= 0 or > MaxEmbeddedImageDimension)
+                    {
+                        continue;
+                    }
+
+                    ReadOnlyMemory<byte> raw = candidate.RawMemory;
+                    if (raw.Length == 0 || raw.Length > MaxEmbeddedImageBytes)
+                    {
+                        continue;
+                    }
+
+                    byte[]? png;
+#pragma warning disable CS8600 // PdfPig's out annotation permits a null result when conversion is unavailable.
+                    bool convertedToPng = candidate.TryGetPng(out png);
+#pragma warning restore CS8600
+                    byte[] encoded = convertedToPng && png is not null
+                        ? png
+                        : raw.ToArray();
+                    using SKBitmap? bitmap = SKBitmap.Decode(encoded);
+                    if (bitmap is null ||
+                        bitmap.Width is <= 0 or > MaxEmbeddedImageDimension ||
+                        bitmap.Height is <= 0 or > MaxEmbeddedImageDimension)
+                    {
+                        continue;
+                    }
+
+                    using SKImage image = SKImage.FromBitmap(bitmap);
+                    using SKData normalized = image.Encode(SKEncodedImageFormat.Png, 100);
+                    if (normalized.Size is <= 0 or > MaxEmbeddedImageBytes)
+                    {
+                        continue;
+                    }
+
+                    return normalized.ToArray();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Embedded art is an optional source. A malformed or unsupported
+            // image must fall through to generated first-page art.
+        }
+
+        return null;
     }
 
     private PdfDocument OpenPdfPigDocument()

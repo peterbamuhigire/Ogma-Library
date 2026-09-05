@@ -1,6 +1,8 @@
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pdf;
+using PdfSharp.Drawing;
 using PdfSharp.Pdf;
+using SkiaSharp;
 
 namespace OgmaLibrary.Tests.Security;
 
@@ -88,6 +90,21 @@ public sealed class PdfWorkerIsolationTests : IDisposable
     }
 
     [Fact]
+    public void PdfWorker_EmbeddedCoverImage_IsNormalizedAndBounded()
+    {
+        string pdfPath = CreateImagePdf("worker-embedded-cover.pdf");
+        string outputPath = Path.Combine(_fixtureRoot, "embedded-cover.jpg");
+
+        _client.GenerateEmbeddedCover(pdfPath, outputPath, 200, 300);
+
+        Assert.True(File.Exists(outputPath));
+        using SKBitmap? bitmap = SKBitmap.Decode(outputPath);
+        Assert.NotNull(bitmap);
+        Assert.Equal(200, bitmap.Width);
+        Assert.Equal(300, bitmap.Height);
+    }
+
+    [Fact]
     public async Task IsolatedPdfRenderer_UsesSandboxCopyAfterSourceIsRemoved()
     {
         string pdfPath = CreateValidPdf("worker-copy.pdf");
@@ -117,6 +134,20 @@ public sealed class PdfWorkerIsolationTests : IDisposable
         using var document = new PdfDocument();
         document.Info.Title = "Ogma worker isolation fixture";
         document.AddPage();
+        document.Save(path);
+        return path;
+    }
+
+    private string CreateImagePdf(string fileName)
+    {
+        string path = Path.Combine(_fixtureRoot, fileName);
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using var document = new PdfDocument();
+        PdfPage page = document.AddPage();
+        using XGraphics graphics = XGraphics.FromPdfPage(page);
+        using XImage image = XImage.FromStream(new MemoryStream(png, 0, png.Length, writable: false, publiclyVisible: true));
+        graphics.DrawImage(image, 0, 0, page.Width.Point, page.Height.Point);
         document.Save(path);
         return path;
     }

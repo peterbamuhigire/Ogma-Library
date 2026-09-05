@@ -194,6 +194,14 @@ public sealed class PdfWorkerClient
         GenerateAsset("cover", filePath, outputPath, widthPx, heightPx);
 
     /// <summary>
+    /// Generates a cover from a bounded decodable image embedded on the first
+    /// PDF page. Callers should fall back to <see cref="GenerateCover(string,
+    /// string, int, int)"/> when no embedded image is available.
+    /// </summary>
+    public void GenerateEmbeddedCover(string filePath, string outputPath, int widthPx, int heightPx) =>
+        GenerateAsset("embedded-cover", filePath, outputPath, widthPx, heightPx);
+
+    /// <summary>
     /// Generates a spine asset in the worker sandbox and copies the completed file
     /// to the requested output path after the worker exits successfully.
     /// </summary>
@@ -515,6 +523,7 @@ public sealed class PdfWorkerClient
         {
             nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(message),
             nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(message),
+            nameof(PdfEmbeddedCoverNotFoundException) => new PdfEmbeddedCoverNotFoundException(message),
             _ => new InvalidOperationException(message),
         };
     }
@@ -883,6 +892,7 @@ public sealed class PdfWorkerClient
             {
                 nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(message),
                 nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(message),
+                nameof(PdfEmbeddedCoverNotFoundException) => new PdfEmbeddedCoverNotFoundException(message),
                 _ => new InvalidOperationException(message),
             };
         }
@@ -912,6 +922,16 @@ public sealed class PdfWorkerClient
 /// <param name="IsAvailable">Whether the worker file can be resolved.</param>
 /// <param name="Code">Stable diagnostic code with no path or secret value.</param>
 public sealed record PdfWorkerAvailability(bool IsAvailable, string Code);
+
+/// <summary>Signals that a PDF has no bounded decodable embedded cover image.</summary>
+public sealed class PdfEmbeddedCoverNotFoundException : Exception
+{
+    /// <summary>Initializes the exception with the worker's diagnostic message.</summary>
+    public PdfEmbeddedCoverNotFoundException(string message)
+        : base(message)
+    {
+    }
+}
 
 /// <summary>
 /// Options controlling PDF worker process launch.

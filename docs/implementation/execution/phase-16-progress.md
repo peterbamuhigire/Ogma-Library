@@ -38,6 +38,11 @@ Date: 2026-09-05
   confidence provider artwork is considered; failure is isolated from metadata
   proposals and the default external-provider-disabled mode remains fail-closed.
   Evidence: `evidence/phase-16-provider-cover-wiring-2026-09-05.md`.
+- Added bounded first-page embedded-image extraction inside the PDF worker,
+  normalized image output, deterministic fallback to first-page rendering, and
+  manifest registration with `embedded` source precedence. The worker and full
+  ThumbnailService-to-manifest integration slice passes; see
+  `evidence/phase-16-embedded-cover-2026-09-05.md`.
 
 ## Verification
 
@@ -47,13 +52,16 @@ Date: 2026-09-05
 - Detail cover UI regression: 2 passed.
 - Direct-open and ingestion regression slice: 19 passed, 0 failed, 0 skipped;
   this includes new-book and re-matched-file spine-job assertions.
+- Current-HEAD full Release solution verification after embedded-cover wiring:
+  918 core + 41 architecture + 158 UI = 1,117 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
-Embedded source acquisition, remaining UI journeys, and large-library asset
-budget testing remain before phase 16 closure. Provider cover acquisition is
-now wired through the validated provider-image boundary; lazy high/low variants
-and exact variant rejection are covered by the local variant tests.
+Remaining UI journeys and large-library asset budget testing remain before
+phase 16 closure. Embedded source acquisition is now locally closed. Provider
+cover acquisition is wired through the validated provider-image boundary; lazy
+high/low variants and exact variant rejection are covered by the local variant
+tests.
 The ingest/update spine scheduling sub-gate is closed locally.
 The local detail cover-control and LAN asset-authorization sub-gates are closed;
 physical accessibility and cross-platform evidence remain open.

@@ -4,7 +4,10 @@ using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Metadata.Providers;
+using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Infrastructure.Sidecar;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf;
 
 namespace OgmaLibrary.Tests.Catalogue;
 
@@ -150,6 +153,49 @@ public sealed class Phase16VisualAssetTests : IDisposable
             Assert.EndsWith("_provider.jpg", descriptor.RelativePath, StringComparison.Ordinal);
             Assert.True(File.Exists(Path.Combine(root, descriptor.RelativePath.Replace('/', Path.DirectorySeparatorChar))));
             Assert.Equal(descriptor, await assets.GetVariantAsync(bookId, VisualAssetKind.Cover, "provider"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ThumbnailService_UsesEmbeddedCoverBeforeFirstPageFallback()
+    {
+        const string bookId = "PHASE16-EMBEDDED-COVER";
+        const string hash = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-embedded-asset-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            _context.Books.Add(new BookRow { BookId = bookId, Title = "Embedded Cover", Status = 0 });
+            await _context.SaveChangesAsync();
+            string pdfPath = CreateEmbeddedImagePdf(root);
+            var sidecar = new SidecarService(root);
+            var worker = new PdfWorkerClient(new PdfWorkerOptions
+            {
+                SandboxRoot = Path.Combine(root, "worker-sandbox"),
+            });
+            var assets = new VisualAssetService(_context, root);
+            var thumbnails = new ThumbnailService(sidecar, worker, assets);
+
+            (bool success, string? error) = await thumbnails.GenerateCoverAsync(
+                bookId,
+                hash,
+                pdfPath,
+                CancellationToken.None);
+
+            Assert.True(success, error);
+            VisualAssetDescriptor? descriptor = await assets.GetPreferredAsync(bookId, VisualAssetKind.Cover);
+            Assert.NotNull(descriptor);
+            Assert.Equal("embedded", descriptor!.Source);
+            Assert.True(File.Exists(Path.Combine(
+                root,
+                descriptor.RelativePath.Replace('/', Path.DirectorySeparatorChar))));
         }
         finally
         {
@@ -370,5 +416,24 @@ public sealed class Phase16VisualAssetTests : IDisposable
             response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mediaType);
             return Task.FromResult(response);
         }
+    }
+
+    private static string CreateEmbeddedImagePdf(string root)
+    {
+        string path = Path.Combine(root, "embedded-cover-source.pdf");
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using var document = new PdfDocument();
+        PdfPage page = document.AddPage();
+        using XGraphics graphics = XGraphics.FromPdfPage(page);
+        using XImage image = XImage.FromStream(new MemoryStream(
+            png,
+            0,
+            png.Length,
+            writable: false,
+            publiclyVisible: true));
+        graphics.DrawImage(image, 0, 0, page.Width.Point, page.Height.Point);
+        document.Save(path);
+        return path;
     }
 }

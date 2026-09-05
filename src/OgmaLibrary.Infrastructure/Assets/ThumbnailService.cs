@@ -82,25 +82,56 @@ public sealed class ThumbnailService : IThumbnailService
                 ? null
                 : $"_{definition.Name}";
             string outputPath = _sidecar.Resolve(contentHash, SidecarClass.Covers, suffix);
+            bool embedded = false;
 
-            await Task.Run(
-                () => _workerClient.GenerateCover(
-                    absoluteFilePath, outputPath, definition.WidthPx, definition.HeightPx),
-                cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await Task.Run(
+                    () => _workerClient.GenerateEmbeddedCover(
+                        absoluteFilePath, outputPath, definition.WidthPx, definition.HeightPx),
+                    cancellationToken).ConfigureAwait(false);
+                embedded = true;
+            }
+            catch (PdfEmbeddedCoverNotFoundException)
+            {
+                await Task.Run(
+                    () => _workerClient.GenerateCover(
+                        absoluteFilePath, outputPath, definition.WidthPx, definition.HeightPx),
+                    cancellationToken).ConfigureAwait(false);
+            }
 
             if (_visualAssets is not null)
             {
-                await _visualAssets.RegisterGeneratedAsync(
-                    bookId,
-                    contentHash,
-                    VisualAssetKind.Cover,
-                    definition.Name,
-                    _sidecar.ResolveRelative(contentHash, SidecarClass.Covers, suffix),
-                    definition.WidthPx,
-                    definition.HeightPx,
-                    "jpg",
-                    generationVersion: 1,
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                string relativePath = _sidecar.ResolveRelative(contentHash, SidecarClass.Covers, suffix);
+                if (embedded)
+                {
+                    await _visualAssets.RegisterResolvedAsync(
+                        bookId,
+                        "embedded",
+                        contentHash,
+                        VisualAssetKind.Cover,
+                        definition.Name,
+                        relativePath,
+                        definition.WidthPx,
+                        definition.HeightPx,
+                        "jpg",
+                        generationVersion: 1,
+                        cancellationToken: cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await _visualAssets.RegisterGeneratedAsync(
+                        bookId,
+                        contentHash,
+                        VisualAssetKind.Cover,
+                        definition.Name,
+                        relativePath,
+                        definition.WidthPx,
+                        definition.HeightPx,
+                        "jpg",
+                        generationVersion: 1,
+                        cancellationToken: cancellationToken).ConfigureAwait(false);
+                }
             }
 
             return (true, null);
