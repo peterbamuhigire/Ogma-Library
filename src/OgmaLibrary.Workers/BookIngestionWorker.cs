@@ -175,12 +175,15 @@ public sealed class BookIngestionWorker : BackgroundService
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await _jobRuntime.FailAsync(
                 lease.JobId,
                 WorkerId,
-                new JobFailure("worker_exception", ex.Message, Retryable: true),
+                new JobFailure(
+                    "worker_exception",
+                    "The worker failed while processing the job.",
+                    Retryable: true),
                 cancellationToken: CancellationToken.None).ConfigureAwait(false);
             _progress.IncrementFailed();
         }

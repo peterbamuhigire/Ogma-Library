@@ -107,7 +107,7 @@ public sealed class SpineService : ISpineService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return (false, ex.Message);
+            return (false, "Spine generation failed.");
         }
     }
 

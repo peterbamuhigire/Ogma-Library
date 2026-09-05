@@ -78,9 +78,9 @@ public sealed class OpenLibraryProvider : IMetadataProvider
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return BuildFailureResult(isbn13, retrievedUtc, ex.Message);
+            return BuildFailureResult(isbn13, retrievedUtc, "Provider request failed.");
         }
     }
 
@@ -151,9 +151,9 @@ public sealed class OpenLibraryProvider : IMetadataProvider
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return [BuildFailureResult(string.Empty, retrievedUtc, ex.Message)];
+            return [BuildFailureResult(string.Empty, retrievedUtc, "Provider request failed.")];
         }
     }
 

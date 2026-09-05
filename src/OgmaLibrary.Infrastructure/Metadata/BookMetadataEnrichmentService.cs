@@ -175,9 +175,9 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return (false, ex.Message);
+            return (false, "Metadata enrichment failed.");
         }
     }
 
@@ -351,7 +351,7 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
             await WriteAuditAsync(bookId, "WriteBackSkipped", new
             {
                 path = pdfPath,
-                reason = ex.Message,
+                reason = "Metadata write-back check failed.",
             }, cancellationToken).ConfigureAwait(false);
         }
     }

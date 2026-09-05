@@ -197,7 +197,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Return a zero-confidence placeholder so the caller knows the provider was attempted.
             return [new ProviderMetadataResult(
@@ -213,7 +213,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
                 IsbnNormalized: request.Isbn13,
                 Confidence: 0.0,
                 RetrievedUtc: DateTimeOffset.UtcNow,
-                RawJson: JsonSerializer.Serialize(new { error = ex.Message }))];
+                RawJson: JsonSerializer.Serialize(new { error = "Provider request failed." }))];
         }
     }
 }

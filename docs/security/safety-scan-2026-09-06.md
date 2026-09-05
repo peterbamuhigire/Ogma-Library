@@ -37,6 +37,18 @@ Avalonia desktop, TypeScript/Three.js, SQLite, Kestrel LAN Host
 - **CRITICAL:** 0 | **HIGH:** 0 | **MEDIUM:** 3 | **LOW:** 0 | **PASS:** 10 | **NOT APPLICABLE:** 1
 - **Top Priority Fixes:** complete the physical brute-force, native-host/cache soak, and cross-platform security evidence; normalize exception-to-diagnostic messages at worker and provider boundaries before any remote diagnostic or broader shared-log sink is introduced; retain detailed exceptions only in controlled local debugging channels.
 
+## Remediation follow-up — 2026-09-06
+
+The selected ingestion and provider boundaries identified by Check 6 were
+normalized to stable operator-safe messages in the current worktree:
+`BookIngestionWorker`, `MetadataExtractionService`,
+`BookMetadataEnrichmentService`, `ThumbnailService`, `SpineService`,
+`OpenLibraryProvider`, `GoogleBooksProvider`, and the provider aggregator.
+The focused ingestion/provider/asset regression passed **49/49**.
+
+Check 6 remains **MEDIUM** because other local search/ingestion/write-back
+paths still require the same boundary review. No remote exploit was observed.
+
 ## Scope and limitations
 
 This is a static code-safety scan, not a penetration test. It covered tracked

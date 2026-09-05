@@ -37,6 +37,10 @@ Date: 2026-09-06
 - Current-tree dependency checks on 2026-09-06 again reported no vulnerable
   NuGet packages, and `npm audit --omit=dev --audit-level=high` reported zero
   vulnerabilities for `src/shelf3d`.
+- Normalized raw exception messages at the selected ingestion/provider/asset
+  boundaries identified by the current safety scan. The focused regression
+  passed 49/49; broader search, write-back, and physical/soak boundary review
+  remains open.
 
 ## Remaining phase gate
 
