@@ -2,7 +2,7 @@ using OgmaLibrary.Application.LanHost;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
 
-/// <summary>Phase 16 scaffold settings repository; EF persistence lands with M016.</summary>
+/// <summary>Deterministic in-memory host settings repository used by tests.</summary>
 internal sealed class InMemoryHostModeSettingsRepository : IHostModeSettingsRepository
 {
     private static readonly HostModeSettings Defaults =

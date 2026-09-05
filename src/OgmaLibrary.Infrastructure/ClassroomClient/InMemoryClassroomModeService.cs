@@ -2,7 +2,7 @@ using OgmaLibrary.Application.ClassroomClient;
 
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
 
-/// <summary>Phase 17 scaffold mode service; durable settings land with the client DB work package.</summary>
+/// <summary>Deterministic in-memory classroom mode service used by tests.</summary>
 internal sealed class InMemoryClassroomModeService : IClassroomModeService
 {
     private ClassroomModeSettings _settings = new(LibraryRuntimeMode.Standalone);

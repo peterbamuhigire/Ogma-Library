@@ -9,7 +9,7 @@ using OgmaLibrary.Infrastructure.LanHost;
 
 namespace OgmaLibrary.Tests.LanHost;
 
-/// <summary>Phase 16 LAN Host scaffold tests.</summary>
+/// <summary>LAN host contract tests.</summary>
 public sealed class LanHostScaffoldTests
 {
     [Fact]

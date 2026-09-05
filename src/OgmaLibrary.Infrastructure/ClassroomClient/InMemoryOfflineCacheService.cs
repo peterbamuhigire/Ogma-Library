@@ -3,7 +3,7 @@ using OgmaLibrary.Application.ClassroomClient;
 
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
 
-/// <summary>In-memory offline cache scaffold; the LRU disk cache lands in WP7.</summary>
+/// <summary>Deterministic in-memory offline cache used by tests and local contracts.</summary>
 internal sealed class InMemoryOfflineCacheService : IOfflineCacheService
 {
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions =

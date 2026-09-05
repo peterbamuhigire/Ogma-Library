@@ -8,7 +8,7 @@ using OgmaLibrary.Infrastructure.SchoolAdmin;
 
 namespace OgmaLibrary.Tests.SchoolAdmin;
 
-/// <summary>Phase 18 School Administration scaffold tests.</summary>
+/// <summary>School administration contract tests.</summary>
 public sealed class SchoolAdminScaffoldTests
 {
     [Fact]

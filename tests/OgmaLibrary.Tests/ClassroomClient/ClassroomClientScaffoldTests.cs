@@ -4,7 +4,7 @@ using OgmaLibrary.Infrastructure.ClassroomClient;
 
 namespace OgmaLibrary.Tests.ClassroomClient;
 
-/// <summary>Phase 17 Client/Classroom mode scaffold tests.</summary>
+/// <summary>Classroom client contract tests.</summary>
 public sealed class ClassroomClientScaffoldTests
 {
     [Fact]

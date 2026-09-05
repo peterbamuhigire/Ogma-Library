@@ -3,7 +3,7 @@ using OgmaLibrary.Application.LanHost;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
 
-/// <summary>In-memory LAN session service for the Phase 16 scaffold.</summary>
+/// <summary>Deterministic in-memory LAN session service used by tests.</summary>
 internal sealed class InMemoryClientSessionService : IClientSessionService
 {
     private readonly Dictionary<string, MemorySession> _sessions = new(StringComparer.Ordinal);
