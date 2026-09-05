@@ -11,9 +11,9 @@ using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Infrastructure.Pdf;
 
-if (args.Length is < 1 or > 2)
+if (args.Length is < 1 or > 4)
 {
-    Console.Error.WriteLine("Usage: Phase11RealPdfBenchmark <pdf-directory> [max-files|--pipeline]");
+    Console.Error.WriteLine("Usage: Phase11RealPdfBenchmark <pdf-directory> [max-files] [--pipeline] [--worker] [--repeat=N]");
     return 2;
 }
 
@@ -24,14 +24,29 @@ if (!Directory.Exists(root))
     return 2;
 }
 
-bool runPipeline = args.Length == 2 &&
-    args[1].Equals("--pipeline", StringComparison.OrdinalIgnoreCase);
-int maxFiles = args.Length == 2 && int.TryParse(args[1], out int parsedMax)
-    ? parsedMax
-    : int.MaxValue;
+bool runPipeline = args.Skip(1).Any(argument =>
+    argument.Equals("--pipeline", StringComparison.OrdinalIgnoreCase));
+bool runWorker = args.Skip(1).Any(argument =>
+    argument.Equals("--worker", StringComparison.OrdinalIgnoreCase));
+int maxFiles = args.Skip(1)
+    .Where(argument => !argument.StartsWith("--", StringComparison.Ordinal))
+    .Select(argument => int.TryParse(argument, out int parsed) ? parsed : -1)
+    .DefaultIfEmpty(int.MaxValue)
+    .First();
+int repeatCount = args.Skip(1)
+    .Where(argument => argument.StartsWith("--repeat=", StringComparison.OrdinalIgnoreCase))
+    .Select(argument => int.TryParse(argument[9..], out int parsed) ? parsed : -1)
+    .DefaultIfEmpty(1)
+    .First();
 if (maxFiles <= 0)
 {
     Console.Error.WriteLine("max-files must be greater than zero.");
+    return 2;
+}
+
+if (repeatCount <= 0 || repeatCount > 10)
+{
+    Console.Error.WriteLine("repeat must be between 1 and 10.");
     return 2;
 }
 
@@ -43,6 +58,11 @@ if (files.Length == 0)
 {
     Console.Error.WriteLine("No PDF files were found.");
     return 2;
+}
+
+if (runWorker)
+{
+    return await RunWorkerAsync(files, repeatCount).ConfigureAwait(false);
 }
 
 if (runPipeline)
@@ -218,6 +238,107 @@ static async Task<int> RunPipelineAsync(IReadOnlyList<string> files)
     }
 }
 
+static async Task<int> RunWorkerAsync(IReadOnlyList<string> files, int repeatCount)
+{
+    string sandboxRoot = Path.Combine(
+        Path.GetTempPath(),
+        "ogma-phase11-worker-" + Guid.NewGuid().ToString("N"));
+    string? workerPath = Environment.GetEnvironmentVariable("OGMA_PDF_WORKER_PATH");
+    if (string.IsNullOrWhiteSpace(workerPath))
+    {
+        string repositoryWorkerPath = Path.GetFullPath(Path.Combine(
+            Environment.CurrentDirectory,
+            "src",
+            "OgmaLibrary.Workers",
+            "bin",
+            "Release",
+            "net10.0",
+            OperatingSystem.IsWindows() ? "OgmaLibrary.Workers.exe" : "OgmaLibrary.Workers"));
+        workerPath = File.Exists(repositoryWorkerPath) ? repositoryWorkerPath : null;
+    }
+
+    var client = new PdfWorkerClient(new PdfWorkerOptions
+    {
+        WorkerPath = workerPath,
+        SandboxRoot = sandboxRoot,
+        Timeout = TimeSpan.FromSeconds(30),
+        MaxMemoryBytes = 768L * 1024L * 1024L,
+        CpuTimeLimit = TimeSpan.FromSeconds(15),
+    });
+    var results = new List<WorkerFileResult>(files.Count * repeatCount);
+
+    try
+    {
+        foreach (string file in files)
+        {
+            for (int repeat = 1; repeat <= repeatCount; repeat++)
+            {
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                int pages = 0;
+                int words = 0;
+                long peakWorkingSetBytes = 0;
+                long privateMemoryBytes = 0;
+                string? error = null;
+
+                try
+                {
+                    using PdfWorkerClient.PdfWorkerSession session = client.OpenSession(file);
+                    pages = session.PageCount;
+                    for (int pageIndex = 0; pageIndex < pages; pageIndex++)
+                    {
+                        words += session.ExtractTextLayer(pageIndex).Words.Count;
+                    }
+
+                    peakWorkingSetBytes = session.PeakWorkingSetBytes;
+                    privateMemoryBytes = session.PrivateMemoryBytes;
+                }
+                catch (Exception ex)
+                {
+                    error = ex.GetType().Name + ": " + ex.Message;
+                }
+
+                stopwatch.Stop();
+                results.Add(new WorkerFileResult(
+                    Path.GetFileName(file),
+                    repeat,
+                    pages,
+                    words,
+                    stopwatch.ElapsedMilliseconds,
+                    peakWorkingSetBytes,
+                    privateMemoryBytes,
+                    error));
+            }
+        }
+
+        var report = new
+        {
+            schema = "ogma-phase11-worker-resource-benchmark-v1",
+            generatedUtc = DateTimeOffset.UtcNow,
+            fileCount = files.Count,
+            repeatCount,
+            maxMemoryBytes = 768L * 1024L * 1024L,
+            runs = results.Count,
+            runsWithErrors = results.Count(result => result.Error is not null),
+            maxPeakWorkingSetBytes = results.Max(result => result.PeakWorkingSetBytes),
+            maxPrivateMemoryBytes = results.Max(result => result.PrivateMemoryBytes),
+            results,
+        };
+        Console.WriteLine(JsonSerializer.Serialize(report));
+        return report.runsWithErrors == 0 &&
+               report.maxPrivateMemoryBytes <= report.maxMemoryBytes
+            ? 0
+            : 1;
+    }
+    finally
+    {
+        SqliteConnection.ClearAllPools();
+        if (Directory.Exists(sandboxRoot))
+        {
+            Directory.Delete(sandboxRoot, recursive: true);
+        }
+    }
+}
+
 static string ComputeSha256(string path)
 {
     using FileStream stream = File.OpenRead(path);
@@ -243,4 +364,14 @@ internal sealed record FileResult(
     int ScannedPages,
     int Words,
     long ElapsedMilliseconds,
+    string? Error);
+
+internal sealed record WorkerFileResult(
+    string FileName,
+    int Repeat,
+    int Pages,
+    int Words,
+    long ElapsedMilliseconds,
+    long PeakWorkingSetBytes,
+    long PrivateMemoryBytes,
     string? Error);

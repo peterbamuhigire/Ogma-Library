@@ -37,6 +37,12 @@ Date: 2026-09-04
   3,821,600,768 bytes to 492,982,272 bytes on the same seven-file corpus.
   Extraction remained error-free with 3,326 pages and 1,057,996 words; see
   `evidence/phase-11-real-pdf-memory-2026-09-05.md`.
+- Added a persistent production-worker resource benchmark and replayed the
+  same seven-file corpus three times per file (21 runs). Every run completed
+  without an error; maximum private memory was 195,772,416 bytes and maximum
+  peak working set was 247,021,568 bytes against the configured 805,306,368
+  byte worker ceiling. See
+  `evidence/phase-11-worker-resource-repeat-2026-09-05.md`.
 
 ## Remaining phase gate
 
@@ -47,6 +53,7 @@ synthetic 500-book pipeline throughput subgates are evidenced. The cumulative
 8.63 GB allocation remains a measurement of total managed allocations, not
 peak working set, and still warrants profiling on a representative corpus.
 Representative real 500-book acceptance, repeated approved per-book resource
-ceilings for the complete production worker path, native cross-platform
-measurements, and physical UI/accessibility evidence remain open before Phase
-11 can be marked complete.
+ceilings for the complete database-backed worker pipeline, native
+cross-platform measurements, and physical UI/accessibility evidence remain
+open before Phase 11 can be marked complete. The persistent production-worker
+extraction-session repetition subgate is closed for the tested Windows corpus.

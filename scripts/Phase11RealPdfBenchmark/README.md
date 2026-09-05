@@ -18,6 +18,12 @@ corpus content. It reports file size, page count, page-quality distribution,
 word count, elapsed time, allocations, and per-file errors. A non-zero exit
 code means at least one file could not be processed.
 
+Add `--worker --repeat=N` to replay each file N times through the persistent
+production PDF worker session. This mode reports each worker's peak working set
+and private memory, and fails if private memory exceeds the configured 768 MiB
+Job Object ceiling. The worker executable is taken from
+`OGMA_PDF_WORKER_PATH` when set, otherwise from the repository Release output.
+
 Without `--pipeline`, this tool measures the PDF adapter boundary. The
 pipeline mode exercises the database-backed path, but neither mode substitutes
 for target-scale allocation/throughput or reference-machine gates.

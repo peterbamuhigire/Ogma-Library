@@ -713,6 +713,46 @@ public sealed class PdfWorkerClient
         /// <summary>The page count reported by the persistent isolated worker.</summary>
         public int PageCount { get; }
 
+        /// <summary>
+        /// Gets the peak resident working set observed for this worker process.
+        /// The value is intended for bounded diagnostics and must be read before
+        /// disposing the session.
+        /// </summary>
+        public long PeakWorkingSetBytes
+        {
+            get
+            {
+                try
+                {
+                    return _process.PeakWorkingSet64;
+                }
+                catch (InvalidOperationException)
+                {
+                    return 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the current private memory size observed for this worker process.
+        /// The value is intended for bounded diagnostics and must be read before
+        /// disposing the session.
+        /// </summary>
+        public long PrivateMemoryBytes
+        {
+            get
+            {
+                try
+                {
+                    return _process.PrivateMemorySize64;
+                }
+                catch (InvalidOperationException)
+                {
+                    return 0;
+                }
+            }
+        }
+
         /// <summary>Renders a page through the persistent isolated worker.</summary>
         public async Task<RenderResult> RenderPageAsync(
             int pageIndex,
@@ -771,7 +811,13 @@ public sealed class PdfWorkerClient
             }
 
             _disposed = true;
-            KillProcessTree(_process);
+            // Construction can fail before Process.Start (for example when a
+            // packaged worker is missing). Preserve the original failure rather
+            // than masking it with a null-process cleanup failure.
+            if (_process is not null)
+            {
+                KillProcessTree(_process);
+            }
             _childProcessLimit?.Dispose();
             _requestGate.Dispose();
             if (_password is not null)
@@ -780,7 +826,7 @@ public sealed class PdfWorkerClient
             }
 
             _sandbox.Dispose();
-            _process.Dispose();
+            _process?.Dispose();
         }
 
         private ServerResponse SendSynchronously(ServerRequest request)
