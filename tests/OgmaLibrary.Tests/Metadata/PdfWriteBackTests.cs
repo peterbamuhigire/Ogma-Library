@@ -2,6 +2,7 @@ using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Tests.Catalogue;
+using System.Security.Principal;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Metadata;
@@ -264,6 +265,132 @@ public sealed class PdfWriteBackTests
         finally
         {
             DeleteDirectory(tempDir);
+        }
+    }
+
+    [Fact]
+    public async Task PdfWriteBack_WindowsPermissionDenial_LeavesOriginalUnchanged()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), $"ogma-wb-acl-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        string originalPath = Path.Combine(tempDir, "test.pdf");
+        await File.WriteAllBytesAsync(originalPath, MinimalPdfContent);
+        byte[] originalBytes = await File.ReadAllBytesAsync(originalPath);
+        bool aclChanged = false;
+
+        try
+        {
+            using var context = CatalogueTestHelper.CreateInMemoryContext();
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "WB05",
+                Status = 0,
+                RelativePath = "test.pdf",
+            });
+            await context.SaveChangesAsync();
+
+            var sidecar = new FakeSidecarService(tempDir);
+            var svc = new PdfWriteBackService(context, sidecar, tempDir);
+            BackupToken token = await svc.PrepareBackupAsync("WB05", originalPath);
+
+            string identity = WindowsIdentity.GetCurrent().Name;
+            RunIcacls(tempDir, "/deny", $"{identity}:(OI)(CI)(W,D)");
+            aclChanged = true;
+
+            bool succeeded = await svc.WriteAsync(
+                "WB05",
+                [new AcceptedFieldProposal("Title", "Denied Title", "GoogleBooks", 0.85, false)],
+                token);
+
+            Assert.False(succeeded);
+            RunIcacls(tempDir, "/reset", "/t", "/c");
+            aclChanged = false;
+            Assert.Equal(originalBytes, await File.ReadAllBytesAsync(originalPath));
+            Assert.Contains(context.AuditEvents, e =>
+                e.EventType == "WriteBackFailed" && e.EntityId == "WB05");
+        }
+        finally
+        {
+            if (aclChanged && Directory.Exists(tempDir))
+            {
+                RunIcacls(tempDir, "/reset", "/t", "/c");
+            }
+
+            DeleteDirectory(tempDir);
+        }
+    }
+
+    [Fact]
+    public async Task PdfWriteBack_PreCancelledWrite_LeavesOriginalAndBackupUntouched()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"ogma-wb-cancel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        string originalPath = Path.Combine(tempDir, "test.pdf");
+        await File.WriteAllBytesAsync(originalPath, MinimalPdfContent);
+        byte[] originalBytes = await File.ReadAllBytesAsync(originalPath);
+
+        try
+        {
+            using var context = CatalogueTestHelper.CreateInMemoryContext();
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "WB06",
+                Status = 0,
+                RelativePath = "test.pdf",
+            });
+            await context.SaveChangesAsync();
+
+            var sidecar = new FakeSidecarService(tempDir);
+            var svc = new PdfWriteBackService(context, sidecar, tempDir);
+            BackupToken token = await svc.PrepareBackupAsync("WB06", originalPath);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => svc.WriteAsync(
+                "WB06",
+                [new AcceptedFieldProposal("Title", "Cancelled Title", "GoogleBooks", 0.85, false)],
+                token,
+                cancellation.Token));
+
+            Assert.True(File.Exists(token.BackupAbsolutePath));
+            Assert.Equal(originalBytes, await File.ReadAllBytesAsync(originalPath));
+        }
+        finally
+        {
+            DeleteDirectory(tempDir);
+        }
+    }
+
+    private static void RunIcacls(string path, params string[] arguments)
+    {
+        string icacls = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "icacls.exe");
+        using var process = new System.Diagnostics.Process
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo(icacls)
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            },
+        };
+        process.StartInfo.ArgumentList.Add(path);
+        foreach (string argument in arguments)
+        {
+            process.StartInfo.ArgumentList.Add(argument);
+        }
+
+        process.Start();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"icacls failed with exit code {process.ExitCode}: {process.StandardError.ReadToEnd()}");
         }
     }
 

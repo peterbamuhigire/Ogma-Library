@@ -35,9 +35,19 @@ Date: 2026-08-30
 
 - Current-HEAD writeback-consent UI-model verification: 3 tests passed, 0
   failed, 0 skipped. The application build passed with 0 warnings and 0 errors.
+- Added a real Windows temporary-directory ACL rehearsal and a pre-cancelled
+  writeback regression. `PdfWriteBackTests` passed 8/8: permission denial and
+  cancellation both failed closed without changing the original PDF, while
+  the prepared backup and failure audit path remained available. Evidence:
+  `evidence/phase-15-windows-writeback-failure-rehearsal-2026-09-05.md`.
+- The complete serialized Release core suite passed 923/923 after the
+  writeback failure-recovery increment; architecture and UI baselines remain
+  green at 41/41 and 159/159.
 
 ## Remaining phase gate
 
-Physical interruption/permission evidence remains before phase 15 closure. The
-first-class durable writeback-plan and explicit consent UI gates are closed by
-the restart-style, safety, and detail-panel evidence above.
+The locally reproducible Windows ACL and cancellation-interruption subgate is
+closed. Process-kill interruption and cross-platform permission evidence remain
+before phase 15 closure. The first-class durable writeback-plan and explicit
+consent UI gates are closed by the restart-style, safety, and detail-panel
+evidence above.

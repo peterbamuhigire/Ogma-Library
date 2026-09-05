@@ -8,7 +8,7 @@ Execution branch: `main`
 Ledger normalized: 2026-09-05
 
 Automated validation refresh: the latest complete full solution suite passed
-1,121 tests (921 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
+1,123 tests (923 core, 41 architecture, 159 UI), with 0 failures and 0 skips.
 The post-Host-sharing localization run completed in 9m57s; the core suite is
 long-running but completed successfully.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
@@ -33,7 +33,7 @@ governed by their progress records.
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry, conflict aggregation, runtime gateway wiring, persisted/projected stale-label state, local privacy-disclosure, official terms-constraint evidence, and fixed-host desktop attribution links delivered; legal, archive, live network, and physical evidence open |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency, boundary validation, canonical field dictionary, atomic bulk preview/apply/undo, bounded tag mutation, and keyboard-addressable review UI delivered; physical accessibility evidence open |
-| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation, durable write-back plan, explicit backup undo, and two-step detail-panel consent/preview delivered; physical interruption/permission evidence open |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation, durable write-back plan, explicit backup undo, two-step detail-panel consent/preview, and Windows ACL/cancellation failure rehearsal delivered; process-kill interruption and cross-platform permission evidence open |
 | 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection, output validation, stale-asset GC, bounded lazy variants, bounded embedded-cover acquisition, 50,000-book preferred-lookup budget, allowlisted provider-image client wired to enrichment, atomic provider persistence, idempotent spine scheduling on ingest/update, local detail cover UI, and fail-closed LAN variant authorization delivered; disk/GPU budget, physical accessibility, and cross-platform evidence open |
 | 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence, poison quarantine, resource groups, redacted lifecycle events, OCR/search/embedding lease conversion, metrics and diagnostics export plus local lease/runtime and restart-style load evidence delivered; physical kill/crash/soak evidence open |
 | 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus, typography, application-wide natural-language copy extraction, detail-panel/catalogue-shell/Student Smart Search/Advisor/startup/detail-format/AI accessibility/3D/directory fallback and Host-sharing copy localization, persisted theme/density, command-palette execution, static route inventory, automated Light/Dark accent contrast matrix, and repository-verifiable rendered contrast snapshots delivered; physical Windows/macOS screenshot review and Narrator/VoiceOver evidence open |
