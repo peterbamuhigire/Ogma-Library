@@ -73,6 +73,14 @@
           "Avalonia.Remote.Protocol": "11.3.17"
         }
       },
+      "Avalonia.Controls.WebView": {
+        "type": "Transitive",
+        "resolved": "11.4.0",
+        "contentHash": "I5kp72dYKFwkqcW3xy+t26HVPJdr/tIufKjgzwpL2G77XZzsuX03yUH1iIb1DeM+nWaqALzr6/dpwUryjKLElQ==",
+        "dependencies": {
+          "Avalonia": "11.1.0"
+        }
+      },
       "Avalonia.Desktop": {
         "type": "Transitive",
         "resolved": "11.3.17",
@@ -732,6 +740,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[11.3.17, )",
+          "Avalonia.Controls.WebView": "[11.4.0, )",
           "Avalonia.Desktop": "[11.3.17, )",
           "Avalonia.Diagnostics": "[11.3.17, )",
           "Avalonia.Fonts.Inter": "[11.3.17, )",

@@ -62,6 +62,11 @@ Date: 2026-09-04
   Phase 18 downgrade and Phase 12 legacy-history rollback scenarios.
 - Current-head release-gate reconciliation is recorded in
   `evidence/phase-38-local-release-reconciliation-2026-09-04.md`.
+- On 2026-09-06, locked restore initially caught stale project-reference lock
+  metadata after the native WebView dependency was added. All three test lock
+  files were refreshed, and a fresh unsigned `win-x64` candidate passed locked
+  restore, publish, digest creation and `Test-ReleaseCandidate.ps1` integrity
+  verification. Evidence: `evidence/phase-38-locked-restore-2026-09-06.md`.
 - The clean-source CI format check was rerun and failed with baseline
   CRLF/charset/import/whitespace diagnostics; the result and unsafe formatter
   fix-all observation are recorded in
