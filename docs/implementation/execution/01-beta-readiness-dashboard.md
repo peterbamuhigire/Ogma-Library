@@ -14,8 +14,8 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete solution run passed 1,096 tests with 0 failures and 0 skips:
-900 core, 41 architecture, and 155 UI.
+The latest complete solution run passed 1,097 tests with 0 failures and 0 skips:
+901 core, 41 architecture, and 155 UI.
 
 ```text
 dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal"

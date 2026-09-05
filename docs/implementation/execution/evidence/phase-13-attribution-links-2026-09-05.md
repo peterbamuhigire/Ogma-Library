@@ -25,6 +25,8 @@ used by this attribution path.
   ISBN construction.
 - `dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj --configuration Release --no-restore`:
   0 warnings, 0 errors.
+- Full Release solution regression after the implementation: 1,097 passed
+  (901 core, 41 architecture, 155 UI), 0 failed, 0 skipped.
 
 ## Gate disposition
 
