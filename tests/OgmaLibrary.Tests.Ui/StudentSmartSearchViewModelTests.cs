@@ -6,6 +6,7 @@ using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.Views.Classroom;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Domain.Ai;
+using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
@@ -28,7 +29,8 @@ public sealed class StudentSmartSearchViewModelTests
             new FixedConnectionService(new ClassroomHostConnection(JoinRequest, "session-token", DateTimeOffset.UtcNow)),
             host,
             new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
-            privateRepository)
+            privateRepository,
+            new InMemoryLocalizationService())
         {
             Query = "How do I learn linear equations?",
         };
@@ -59,13 +61,48 @@ public sealed class StudentSmartSearchViewModelTests
     }
 
     [Fact]
+    public void StudentSmartSearchViewModel_LocalizedSurface_RaisesCultureChanges()
+    {
+        var localization = new InMemoryLocalizationService();
+        var vm = new StudentSmartSearchViewModel(
+            new FixedConnectionService(null),
+            new RecordingLibraryHostClient(),
+            new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
+            new RecordingStudentPrivateRepository(),
+            localization);
+        var changed = new HashSet<string>(StringComparer.Ordinal);
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not null)
+            {
+                changed.Add(args.PropertyName);
+            }
+        };
+
+        string englishTitle = vm.Title;
+        string englishWatermark = vm.QueryWatermark;
+        localization.SetCulture("fr");
+
+        Assert.NotEqual(englishTitle, vm.Title);
+        Assert.NotEqual(englishWatermark, vm.QueryWatermark);
+        Assert.Contains(nameof(vm.Title), changed);
+        Assert.Contains(nameof(vm.QueryWatermark), changed);
+
+        localization.SetCulture("qps-ploc");
+        Assert.StartsWith("[!!", vm.Title, StringComparison.Ordinal);
+        Assert.StartsWith("[!!", vm.GroundingNotice, StringComparison.Ordinal);
+        vm.Dispose();
+    }
+
+    [Fact]
     public async Task StudentSmartSearchViewModel_NoActiveConnection_ShowsActionableStatus()
     {
         var vm = new StudentSmartSearchViewModel(
             new FixedConnectionService(null),
             new RecordingLibraryHostClient(),
             new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
-            new RecordingStudentPrivateRepository())
+            new RecordingStudentPrivateRepository(),
+            new InMemoryLocalizationService())
         {
             Query = "What should I read?",
         };
@@ -84,7 +121,8 @@ public sealed class StudentSmartSearchViewModelTests
             new FixedConnectionService(new ClassroomHostConnection(JoinRequest, "session-token", DateTimeOffset.UtcNow)),
             new RecordingLibraryHostClient(),
             new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
-            privateRepository);
+            privateRepository,
+            new InMemoryLocalizationService());
 
         await vm.DeleteHistoryAsync();
 
@@ -100,7 +138,8 @@ public sealed class StudentSmartSearchViewModelTests
             new FixedConnectionService(new ClassroomHostConnection(JoinRequest, "session-token", DateTimeOffset.UtcNow)),
             new RecordingLibraryHostClient(),
             new FixedProfileService(new ClassroomProfile(ProfileId, "Amina", ClassroomRole.Student, IsGuest: false)),
-            new RecordingStudentPrivateRepository())
+            new RecordingStudentPrivateRepository(),
+            new InMemoryLocalizationService())
         {
             Query = "What should I read?",
         };

@@ -43,11 +43,11 @@
           ColumnSpacing="10">
       <TextBox Grid.Column="0"
                Text="{Binding Query, Mode=TwoWay}"
-               Watermark="Ask about a book, topic, author, or reading goal"
+               Watermark="{Binding QueryWatermark}"
                MinHeight="42"
                AcceptsReturn="True"
                TextWrapping="Wrap"
-               AutomationProperties.Name="AI Smart Search question" />
+               AutomationProperties.Name="{Binding QueryAccessibleLabel}" />
       <Button Grid.Column="1"
               MinWidth="120"
               Padding="14,8"
@@ -56,8 +56,8 @@
               CornerRadius="{DynamicResource Radius.S}"
               IsEnabled="{Binding CanRequestPreview}"
               Click="PreviewButton_Click"
-              AutomationProperties.Name="Preview AI payload">
-        <TextBlock Text="Preview" />
+              AutomationProperties.Name="{Binding PreviewLabel}">
+        <TextBlock Text="{Binding PreviewLabel}" />
       </Button>
     </Grid>
 
@@ -104,8 +104,8 @@
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanDeleteHistory}"
                     Click="DeleteHistoryButton_Click"
-                    AutomationProperties.Name="Delete AI Smart Search history">
-              <TextBlock Text="Delete history"
+                    AutomationProperties.Name="{Binding DeleteHistoryAccessibleLabel}">
+              <TextBlock Text="{Binding DeleteHistoryLabel}"
                          FontSize="{DynamicResource Type.Size.Caption}" />
             </Button>
           </StackPanel>
@@ -118,7 +118,7 @@
                 CornerRadius="{DynamicResource Radius.S}"
                 IsVisible="{Binding HasPreview}">
           <StackPanel Spacing="10">
-            <TextBlock Text="Payload preview"
+            <TextBlock Text="{Binding PayloadPreviewLabel}"
                        FontSize="{DynamicResource Type.Size.Subtitle}"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
@@ -156,8 +156,8 @@
                       CornerRadius="{DynamicResource Radius.S}"
                       IsEnabled="{Binding CanCancelPreview}"
                       Click="CancelPreviewButton_Click"
-                      AutomationProperties.Name="Cancel AI payload preview">
-                <TextBlock Text="Cancel" />
+                      AutomationProperties.Name="{Binding CancelPreviewLabel}">
+                <TextBlock Text="{Binding CancelPreviewLabel}" />
               </Button>
               <Button Padding="12,6"
                       Background="{DynamicResource Brush.Accent.Sage}"
@@ -165,8 +165,8 @@
                       CornerRadius="{DynamicResource Radius.S}"
                       IsEnabled="{Binding CanConfirmSearch}"
                       Click="ConfirmSearchButton_Click"
-                      AutomationProperties.Name="Confirm and search with AI">
-                <TextBlock Text="Confirm and search" />
+                      AutomationProperties.Name="{Binding ConfirmSearchLabel}">
+                <TextBlock Text="{Binding ConfirmSearchLabel}" />
               </Button>
             </StackPanel>
           </StackPanel>
@@ -183,7 +183,7 @@
           <Grid Grid.Row="0"
                 ColumnDefinitions="*,Auto">
             <TextBlock Grid.Column="0"
-                       Text="Answer"
+                       Text="{Binding AnswerLabel}"
                        FontSize="{DynamicResource Type.Size.Subtitle}"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
@@ -192,8 +192,8 @@
                     Background="Transparent"
                     BorderThickness="0"
                     Click="ClearAnswerButton_Click"
-                    AutomationProperties.Name="Clear AI answer">
-              <TextBlock Text="Clear"
+                    AutomationProperties.Name="{Binding ClearAnswerAccessibleLabel}">
+              <TextBlock Text="{Binding ClearAnswerLabel}"
                          FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
             </Button>
@@ -210,7 +210,7 @@
           <StackPanel Grid.Row="2"
                       Spacing="6"
                       IsVisible="{Binding HasCitations}">
-            <TextBlock Text="Citations"
+            <TextBlock Text="{Binding CitationsLabel}"
                        FontSize="{DynamicResource Type.Size.Caption}"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
@@ -246,7 +246,7 @@
     </Grid>
 
     <TextBlock Grid.Row="3"
-               Text="AI answers are grounded in the Host catalogue. Treat uncited text as a starting point, not a source."
+               Text="{Binding GroundingNotice}"
                FontSize="{DynamicResource Type.Size.Caption}"
                Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                TextWrapping="Wrap" />

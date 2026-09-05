@@ -3,21 +3,21 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.Application;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Domain.Ai;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
 /// <summary>Student-facing classroom AI smart-search workflow.</summary>
-public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
+public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IClassroomHostConnectionService _connections;
     private readonly ILibraryHostClient _hostClient;
     private readonly IProfileService _profiles;
     private readonly IStudentPrivateRepository _privateRepository;
+    private readonly ILocalizationService _localization;
     private readonly string _iconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
-    private readonly string _title = "AI Smart Search";
-    private readonly string _subtitle = "Ask a question about the classroom library. Ogma shows the payload before anything leaves the Host.";
 
     private string _query = string.Empty;
     private string _libraryId = "default";
@@ -25,7 +25,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     private bool _isBusy;
     private LibraryHostAiPayloadPreview? _preview;
     private string _answer = string.Empty;
-    private string _statusText = "Connect to a classroom Host to use AI Smart Search.";
+    private string _statusText = string.Empty;
     private int _sessionTokensUsed;
     private int _lastTokensUsed;
     private decimal _lastEstimatedCostUsd;
@@ -34,19 +34,49 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         IClassroomHostConnectionService connections,
         ILibraryHostClient hostClient,
         IProfileService profiles,
-        IStudentPrivateRepository privateRepository)
+        IStudentPrivateRepository privateRepository,
+        ILocalizationService localization)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _hostClient = hostClient ?? throw new ArgumentNullException(nameof(hostClient));
         _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
         _privateRepository = privateRepository ?? throw new ArgumentNullException(nameof(privateRepository));
+        _localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        _localization.CultureChanged += OnCultureChanged;
+        _statusText = _localization["Classroom.SmartSearch.Status.Connect"];
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Title => _title;
+    public string Title => _localization["Classroom.SmartSearch.Title"];
 
-    public string Subtitle => _subtitle;
+    public string Subtitle => _localization["Classroom.SmartSearch.Subtitle"];
+
+    public string QueryWatermark => _localization["Classroom.SmartSearch.QueryWatermark"];
+
+    public string QueryAccessibleLabel => _localization["Classroom.SmartSearch.QueryLabel"];
+
+    public string PreviewLabel => _localization["Classroom.SmartSearch.Preview"];
+
+    public string DeleteHistoryLabel => _localization["Classroom.SmartSearch.DeleteHistory"];
+
+    public string DeleteHistoryAccessibleLabel => _localization["Classroom.SmartSearch.DeleteHistoryAccessible"];
+
+    public string PayloadPreviewLabel => _localization["Classroom.SmartSearch.PayloadPreview"];
+
+    public string CancelPreviewLabel => _localization["Classroom.SmartSearch.CancelPreview"];
+
+    public string ConfirmSearchLabel => _localization["Classroom.SmartSearch.ConfirmSearch"];
+
+    public string AnswerLabel => _localization["Classroom.SmartSearch.Answer"];
+
+    public string ClearAnswerLabel => _localization["Classroom.SmartSearch.ClearAnswer"];
+
+    public string ClearAnswerAccessibleLabel => _localization["Classroom.SmartSearch.ClearAnswerAccessible"];
+
+    public string CitationsLabel => _localization["Classroom.SmartSearch.Citations"];
+
+    public string GroundingNotice => _localization["Classroom.SmartSearch.GroundingNotice"];
 
     public string IconPath => _iconPath;
 
@@ -91,7 +121,10 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         }
     }
 
-    public string PrivacyTierText => $"Privacy tier: {RequestedTier}";
+    public string PrivacyTierText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Classroom.SmartSearch.PrivacyTierFormat"],
+        _localization[$"Classroom.SmartSearch.Tier.{RequestedTier}"]);
 
     public string StatusText
     {
@@ -123,8 +156,14 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     public bool HasPreview => _preview is not null;
 
     public string PreviewSummary => _preview is null
-        ? "No payload preview yet."
-        : $"{_preview.EstimatedCharacters.ToString("N0", CultureInfo.CurrentCulture)} estimated characters, confirmation required: {_preview.RequiresConfirmation}";
+        ? _localization["Classroom.SmartSearch.NoPreview"]
+        : string.Format(
+            _localization.CurrentCulture,
+            _localization["Classroom.SmartSearch.PreviewSummaryFormat"],
+            _preview.EstimatedCharacters,
+            _preview.RequiresConfirmation
+                ? _localization["Classroom.SmartSearch.ConfirmationRequired"]
+                : _localization["Classroom.SmartSearch.ConfirmationNotRequired"]);
 
     public ObservableCollection<SmartSearchPreviewRow> MetadataPreviewRows { get; } = [];
 
@@ -191,10 +230,16 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     }
 
     public string EstimatedCostText => LastEstimatedCostUsd <= 0m
-        ? "Estimated cost: $0.00"
-        : $"Estimated cost: ${LastEstimatedCostUsd:0.0000}";
+        ? _localization["Classroom.SmartSearch.CostZero"]
+        : string.Format(
+            _localization.CurrentCulture,
+            _localization["Classroom.SmartSearch.CostFormat"],
+            LastEstimatedCostUsd);
 
-    public string QuotaText => $"Session tokens used: {SessionTokensUsed:N0}";
+    public string QuotaText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Classroom.SmartSearch.QuotaFormat"],
+        SessionTokensUsed);
 
     public double QuotaPercent => Math.Clamp(SessionTokensUsed / 10_000d * 100d, 0d, 100d);
 
@@ -210,7 +255,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     {
         if (!CanRequestPreview)
         {
-            StatusText = "Enter a question before asking AI Smart Search.";
+            StatusText = _localization["Classroom.SmartSearch.Status.EnterQuestion"];
             return;
         }
 
@@ -230,7 +275,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
             Answer = string.Empty;
             Citations.Clear();
             OnPropertyChanged(nameof(HasCitations));
-            StatusText = "Review the payload preview before sending the query.";
+            StatusText = _localization["Classroom.SmartSearch.Status.ReviewPreview"];
         }).ConfigureAwait(true);
     }
 
@@ -238,7 +283,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     {
         if (!CanConfirmSearch)
         {
-            StatusText = "Review a payload preview before confirming AI Smart Search.";
+            StatusText = _localization["Classroom.SmartSearch.Status.ConfirmPreview"];
             return;
         }
 
@@ -258,15 +303,15 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
             await SaveHistoryAsync(connection, profile, result, cancellationToken).ConfigureAwait(true);
             ClearPreview();
             StatusText = result.WasProviderCalled
-                ? "AI Smart Search answer is ready."
-                : "No provider call was needed for this answer.";
+                ? _localization["Classroom.SmartSearch.Status.AnswerReady"]
+                : _localization["Classroom.SmartSearch.Status.NoProviderCall"];
         }).ConfigureAwait(true);
     }
 
     public void CancelPreview()
     {
         ClearPreview();
-        StatusText = "Payload preview cancelled.";
+        StatusText = _localization["Classroom.SmartSearch.Status.PreviewCancelled"];
     }
 
     public void ClearAnswer()
@@ -276,7 +321,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         LastTokensUsed = 0;
         LastEstimatedCostUsd = 0m;
         OnPropertyChanged(nameof(HasCitations));
-        StatusText = "AI Smart Search cleared.";
+        StatusText = _localization["Classroom.SmartSearch.Status.Cleared"];
     }
 
     public async Task DeleteHistoryAsync(CancellationToken cancellationToken = default)
@@ -289,8 +334,11 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
                 .DeleteAiHistoryAsync(profile.ProfileId, CreateHostHistoryScope(connection), cancellationToken)
                 .ConfigureAwait(true);
             StatusText = deleted == 1
-                ? "Deleted 1 AI Smart Search history item for this Host."
-                : $"Deleted {deleted.ToString("N0", CultureInfo.CurrentCulture)} AI Smart Search history items for this Host.";
+                ? _localization["Classroom.SmartSearch.Status.HistoryDeletedOne"]
+                : string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Classroom.SmartSearch.Status.HistoryDeletedMany"],
+                    deleted);
         }).ConfigureAwait(true);
     }
 
@@ -304,7 +352,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
         {
             StatusText = ex is TaskCanceledException
-                ? "AI Smart Search was cancelled."
+                ? _localization["Classroom.SmartSearch.Status.Cancelled"]
                 : ex.Message;
         }
         finally
@@ -321,13 +369,13 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
             .ConfigureAwait(true);
         if (connection is null)
         {
-            throw new InvalidOperationException("Connect to a classroom Host before using AI Smart Search.");
+            throw new InvalidOperationException(_localization["Classroom.SmartSearch.Status.Connect"]);
         }
 
         ClassroomProfile? profile = await _profiles.GetActiveAsync(cancellationToken).ConfigureAwait(true);
         if (profile is null || profile.IsGuest)
         {
-            throw new InvalidOperationException("Use an enrolled student profile before using AI Smart Search.");
+            throw new InvalidOperationException(_localization["Classroom.SmartSearch.Status.EnrolledProfileRequired"]);
         }
 
         return (connection, profile);
@@ -340,7 +388,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
         CancellationToken cancellationToken)
     {
         string summary = string.IsNullOrWhiteSpace(result.Answer)
-            ? "No local evidence found."
+            ? _localization["Classroom.SmartSearch.NoLocalEvidence"]
             : result.Answer.Trim();
         if (summary.Length > 512)
         {
@@ -389,7 +437,7 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
     private void ApplyResult(LibraryHostAiSearchResult result)
     {
         Answer = string.IsNullOrWhiteSpace(result.Answer)
-            ? "No local evidence found."
+            ? _localization["Classroom.SmartSearch.NoLocalEvidence"]
             : result.Answer;
         Citations.Clear();
         foreach (LibraryHostAiCitation citation in result.Citations)
@@ -398,8 +446,11 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
                 citation.BookId,
                 citation.Title ?? citation.BookId,
                 citation.PageNumber is null
-                    ? "Page not specified"
-                    : $"Page {citation.PageNumber.Value.ToString(CultureInfo.CurrentCulture)}"));
+                    ? _localization["Classroom.SmartSearch.PageNotSpecified"]
+                    : string.Format(
+                        _localization.CurrentCulture,
+                        _localization["Classroom.SmartSearch.PageFormat"],
+                        citation.PageNumber.Value)));
         }
 
         LastTokensUsed = result.TokensUsed;
@@ -427,6 +478,31 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private void OnCultureChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Subtitle));
+        OnPropertyChanged(nameof(QueryWatermark));
+        OnPropertyChanged(nameof(QueryAccessibleLabel));
+        OnPropertyChanged(nameof(PreviewLabel));
+        OnPropertyChanged(nameof(DeleteHistoryLabel));
+        OnPropertyChanged(nameof(DeleteHistoryAccessibleLabel));
+        OnPropertyChanged(nameof(PayloadPreviewLabel));
+        OnPropertyChanged(nameof(CancelPreviewLabel));
+        OnPropertyChanged(nameof(ConfirmSearchLabel));
+        OnPropertyChanged(nameof(AnswerLabel));
+        OnPropertyChanged(nameof(ClearAnswerLabel));
+        OnPropertyChanged(nameof(ClearAnswerAccessibleLabel));
+        OnPropertyChanged(nameof(CitationsLabel));
+        OnPropertyChanged(nameof(GroundingNotice));
+        OnPropertyChanged(nameof(PrivacyTierText));
+        OnPropertyChanged(nameof(PreviewSummary));
+        OnPropertyChanged(nameof(EstimatedCostText));
+        OnPropertyChanged(nameof(QuotaText));
+    }
+
+    public void Dispose() => _localization.CultureChanged -= OnCultureChanged;
 }
 
 public sealed record SmartSearchPreviewRow(string Key, string Value);

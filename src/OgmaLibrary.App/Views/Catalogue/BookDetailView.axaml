@@ -225,7 +225,7 @@
                              FontSize="{DynamicResource Type.Size.Caption}"
                              Foreground="{DynamicResource Brush.Surface.OnParchment}" />
                   <TextBox Text="{Binding TagsText, Mode=TwoWay}"
-                           Watermark="tag, another tag"
+                           Watermark="{Binding TagsWatermark}"
                            AutomationProperties.Name="{Binding TagsLabel}" />
                   <Button HorizontalAlignment="Left"
                           IsEnabled="{Binding CanEditTags}"
@@ -305,38 +305,18 @@
             <!-- Group 3: Reading -->
             <TabItem Header="{Binding ReadingTabText}">
               <StackPanel Spacing="6" Margin="0,8,0,0">
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="Rating: {0}/5">
-                      <Binding Path="Rating" FallbackValue="Unrated" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="Progress: {0:F0}%">
-                      <Binding Path="ReadingProgressPct" FallbackValue="0" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="Last read: {0}">
-                      <Binding Path="LastReadDisplay" FallbackValue="Never" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="Annotations: {0}">
-                      <Binding Path="AnnotationCount" FallbackValue="0" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
+                <TextBlock Text="{Binding RatingSummaryText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <TextBlock Text="{Binding ProgressSummaryText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <TextBlock Text="{Binding LastReadSummaryText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <TextBlock Text="{Binding AnnotationSummaryText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
                 <StackPanel Spacing="4" Margin="0,8,0,0">
                   <TextBlock Text="{Binding ReadingMemorySummaryLabel}"
                              FontSize="{DynamicResource Type.Size.Caption}"

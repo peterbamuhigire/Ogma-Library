@@ -118,7 +118,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IClassroomHostConnectionService>(),
             services.GetRequiredService<ILibraryHostClient>(),
             services.GetRequiredService<IProfileService>(),
-            services.GetRequiredService<IStudentPrivateRepository>());
+            services.GetRequiredService<IStudentPrivateRepository>(),
+            localization);
         var advisor = new RecommendationPanelViewModel(
             services.GetRequiredService<IAiAdvisorService>(),
             navigation,

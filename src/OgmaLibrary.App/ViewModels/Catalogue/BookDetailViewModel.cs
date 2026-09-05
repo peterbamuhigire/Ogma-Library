@@ -17,7 +17,7 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// field groups from <see cref="BookDetailProjection"/> and the "Read" / "Enrich"
 /// action commands.
 /// </summary>
-public sealed class BookDetailViewModel : INotifyPropertyChanged
+public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly ICatalogueReadModel _readModel;
     private readonly IReaderNavigationService _reader;
@@ -119,6 +119,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
         _fileLocator = fileLocator;
         _tocExtraction = tocExtraction;
         _writeBackService = writeBackService;
+        _localization.CultureChanged += OnCultureChanged;
     }
 
     /// <inheritdoc />
@@ -382,6 +383,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Localized save-tags label.</summary>
     public string SaveTagsLabel => _localization["Catalogue.BookDetail.Curation.SaveTags"];
+
+    /// <summary>Localized hint for comma-separated user tags.</summary>
+    public string TagsWatermark => _localization["Catalogue.BookDetail.Curation.TagsWatermark"];
 
     /// <summary>Current user-facing tag save status.</summary>
     public string? TagsStatusText
@@ -826,6 +830,30 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     /// <summary>Number of annotations.</summary>
     public int? AnnotationCount => _book?.Annotations;
+
+    /// <summary>Localized rating summary.</summary>
+    public string RatingSummaryText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Catalogue.BookDetail.Reading.RatingFormat"],
+        Rating?.ToString(_localization.CurrentCulture) ?? _localization["Catalogue.BookDetail.Reading.Unrated"]);
+
+    /// <summary>Localized reading-progress summary.</summary>
+    public string ProgressSummaryText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Catalogue.BookDetail.Reading.ProgressFormat"],
+        ReadingProgressPct ?? 0d);
+
+    /// <summary>Localized last-read summary.</summary>
+    public string LastReadSummaryText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Catalogue.BookDetail.Reading.LastReadFormat"],
+        LastReadDisplay ?? _localization["Catalogue.BookDetail.Reading.Never"]);
+
+    /// <summary>Localized annotation-count summary.</summary>
+    public string AnnotationSummaryText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Catalogue.BookDetail.Reading.AnnotationsFormat"],
+        AnnotationCount ?? 0);
 
     /// <summary>Localized reading-memory summary label.</summary>
     public string ReadingMemorySummaryLabel => _localization["Catalogue.BookDetail.ReadingMemory"];
@@ -1883,6 +1911,73 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private void OnCultureChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(ReadText));
+        OnPropertyChanged(nameof(EnrichText));
+        OnPropertyChanged(nameof(FileTabText));
+        OnPropertyChanged(nameof(BiblioTabText));
+        OnPropertyChanged(nameof(ReadingTabText));
+        OnPropertyChanged(nameof(EnrichmentTabText));
+        OnPropertyChanged(nameof(AiTabText));
+        OnPropertyChanged(nameof(TocTabText));
+        OnPropertyChanged(nameof(ProvenanceTabText));
+        OnPropertyChanged(nameof(LoadTocLabel));
+        OnPropertyChanged(nameof(TocLoadingText));
+        OnPropertyChanged(nameof(TocEmptyText));
+        OnPropertyChanged(nameof(LoadProvenanceLabel));
+        OnPropertyChanged(nameof(MissingFileText));
+        OnPropertyChanged(nameof(AvailableFileText));
+        OnPropertyChanged(nameof(WriteBackHeadingText));
+        OnPropertyChanged(nameof(PrepareWriteBackLabel));
+        OnPropertyChanged(nameof(ConfirmWriteBackLabel));
+        OnPropertyChanged(nameof(CancelWriteBackLabel));
+        OnPropertyChanged(nameof(RestoreWriteBackLabel));
+        OnPropertyChanged(nameof(EnrichmentHeadingText));
+        OnPropertyChanged(nameof(AiHeadingText));
+        OnPropertyChanged(nameof(EnrichTooltip));
+        OnPropertyChanged(nameof(RunOcrText));
+        OnPropertyChanged(nameof(RunOcrTooltip));
+        OnPropertyChanged(nameof(ForgetPasswordText));
+        OnPropertyChanged(nameof(ForgetPasswordTooltip));
+        OnPropertyChanged(nameof(CurationStatusLabel));
+        OnPropertyChanged(nameof(CurationRatingLabel));
+        OnPropertyChanged(nameof(CurationUnreadText));
+        OnPropertyChanged(nameof(CurationReadingText));
+        OnPropertyChanged(nameof(CurationFinishedText));
+        OnPropertyChanged(nameof(CurationAbandonedText));
+        OnPropertyChanged(nameof(FavouriteButtonText));
+        OnPropertyChanged(nameof(TagsLabel));
+        OnPropertyChanged(nameof(SaveTagsLabel));
+        OnPropertyChanged(nameof(TagsWatermark));
+        OnPropertyChanged(nameof(ReadingHistoryLabel));
+        OnPropertyChanged(nameof(LoadReadingHistoryLabel));
+        OnPropertyChanged(nameof(ReadingHistoryLoadingText));
+        OnPropertyChanged(nameof(ReadingHistoryEmptyText));
+        OnPropertyChanged(nameof(MetadataReviewLabel));
+        OnPropertyChanged(nameof(ProposedValueLabel));
+        OnPropertyChanged(nameof(RatingSummaryText));
+        OnPropertyChanged(nameof(ProgressSummaryText));
+        OnPropertyChanged(nameof(LastReadSummaryText));
+        OnPropertyChanged(nameof(AnnotationSummaryText));
+        OnPropertyChanged(nameof(ReadingMemorySummaryLabel));
+        OnPropertyChanged(nameof(ReadingMemoryKeyInsightLabel));
+        OnPropertyChanged(nameof(ReadingMemoryDispositionLabel));
+        OnPropertyChanged(nameof(ReadingMemoryKeyInsightExcerpt));
+        OnPropertyChanged(nameof(ReadingMemoryDispositionDisplay));
+        OnPropertyChanged(nameof(ReadingMemoryStatusText));
+        OnPropertyChanged(nameof(WriteBackStatusText));
+        OnPropertyChanged(nameof(EnrichmentStatusText));
+        OnPropertyChanged(nameof(OcrStatusText));
+        OnPropertyChanged(nameof(PasswordStatusText));
+        OnPropertyChanged(nameof(CurationStatusText));
+        OnPropertyChanged(nameof(TagsStatusText));
+        OnPropertyChanged(nameof(MetadataReviewStatusText));
+        OnPropertyChanged(nameof(ReadingHistoryStatusText));
+    }
+
+    public void Dispose() => _localization.CultureChanged -= OnCultureChanged;
 
     private static void UpdateOnUiThread(Action action)
     {

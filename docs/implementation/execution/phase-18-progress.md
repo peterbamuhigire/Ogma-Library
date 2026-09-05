@@ -23,6 +23,12 @@ Date: 2026-09-05
 - Added a window-level searchable command palette on Ctrl+Shift+P. Commands
   execute typed shell navigation, search, reader, advisor, reading-plan,
   theme, and density actions, and Escape closes the transient surface.
+- Extracted the Student Smart Search surface's headings, actions, accessibility
+  names, statuses, privacy/cost/quota summaries, citation labels, and grounding
+  notice into English/French resources with pseudo-locale coverage.
+- Extracted the book-detail tag hint and reading summary formats into
+  English/French resources; detail and smart-search view models now notify their
+  bindings when the culture changes.
 
 ## Verification
 
@@ -42,12 +48,18 @@ Date: 2026-09-05
 - Release application build after appearance and palette wiring: passed with
   0 warnings and 0 errors.
 - Evidence: `evidence/phase-18-appearance-palette-2026-09-05.md`.
+- Focused localization/design slice: 16 passed, 0 failed, 0 skipped.
+- Full solution regression after the localization increment: 895 core passed,
+  1 core timing-sensitive LAN P95 test failed, and 41 architecture + 155 UI
+  tests passed. The failed catalogue-load P95 was 2,558 ms versus 2,000 ms;
+  the same test passed in an isolated rerun (1/1).
+- Evidence: `evidence/phase-18-classroom-copy-2026-09-05.md`.
 
 ## Remaining phase gate
 
-Complete hard-coded copy extraction, en/fr and pseudo-localisation coverage,
-all-view route inventory, contrast snapshots, and Narrator/VoiceOver journeys
-remain before phase 18 closure. Theme/density persistence and command-palette
-execution are closed locally. The detail-panel and catalogue-shell
-copy-extraction sub-gates are closed locally; physical accessibility and full
+Application-wide hard-coded copy extraction, all-view route inventory,
+contrast snapshots, and Narrator/VoiceOver journeys remain before phase 18
+closure. Theme/density persistence, command-palette execution, the
+detail-panel/catalogue-shell copy extraction, and the named Student Smart
+Search copy finding are closed locally; physical accessibility and full
 application coverage remain open.

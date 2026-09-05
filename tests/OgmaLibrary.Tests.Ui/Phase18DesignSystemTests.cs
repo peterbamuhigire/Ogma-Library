@@ -22,6 +22,39 @@ public sealed class Phase18DesignSystemTests
         Assert.Contains("[!!", localization["Catalogue.BookDetail.Tab.File"], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ClassroomSearchAndReadingSummaries_HaveLocalizedResources()
+    {
+        var localization = new InMemoryLocalizationService();
+        string[] keys =
+        [
+            "Classroom.SmartSearch.Title",
+            "Classroom.SmartSearch.QueryWatermark",
+            "Classroom.SmartSearch.Preview",
+            "Classroom.SmartSearch.GroundingNotice",
+            "Catalogue.BookDetail.Curation.TagsWatermark",
+            "Catalogue.BookDetail.Reading.RatingFormat",
+            "Catalogue.BookDetail.Reading.ProgressFormat",
+            "Catalogue.BookDetail.Reading.LastReadFormat",
+            "Catalogue.BookDetail.Reading.AnnotationsFormat",
+        ];
+
+        foreach (string key in keys)
+        {
+            Assert.DoesNotContain("⟦", localization[key], StringComparison.Ordinal);
+        }
+
+        localization.SetCulture("fr");
+        Assert.Equal("Recherche IA intelligente", localization["Classroom.SmartSearch.Title"]);
+        Assert.Equal("etiquette, autre etiquette", localization["Catalogue.BookDetail.Curation.TagsWatermark"]);
+
+        localization.SetCulture("qps-ploc");
+        foreach (string key in keys)
+        {
+            Assert.StartsWith("[!!", localization[key], StringComparison.Ordinal);
+        }
+    }
+
     [AvaloniaFact]
     public void App_ProvidesFontRolesFocusTokenAndAccessibleControlTarget()
     {
