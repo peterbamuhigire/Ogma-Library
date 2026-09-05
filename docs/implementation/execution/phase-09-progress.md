@@ -39,3 +39,9 @@ reversible merge/split persistence, canonical alias resolution, catalogue
 representative selection, and advisor grouping behavior are now evidenced.
 Physical operator review screens and cross-platform UI walkthroughs remain
 release gates to be assessed in their owning platform/release phases.
+
+The 2026-09-06 evidence-tooling smoke also passed after correcting the
+committed-clean preflight selection and nested-exit-code handling. Its
+underlying signoff remains fail-closed with manual, accessibility, stale-
+preflight, and remote-CI evidence pending. See
+`evidence/phase-09-tooling-smoke-2026-09-06.md`.
