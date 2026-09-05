@@ -57,18 +57,23 @@ Date: 2026-09-05
 
 ## Remaining phase gate
 
-Complete cover-source fallback, API asset authorization, and
-keyboard/screen-reader journeys remain before phase 19 closure. The
+Keyboard/screen-reader journeys and named reference-hardware confirmation
+remain before phase 19 closure. The cover-source fallback/precedence and API
+asset-authorization sub-gates are now closed by the local evidence below. The
 processing/quality projection and rendered badges, persisted-view-state,
 UI-pagination, directory-view, visible filter/sort wiring, and local 50k
-server-side page-performance sub-gates are closed. Named reference-hardware
-confirmation remains a release gate.
+server-side page-performance sub-gates are also closed.
 
-- Current-HEAD full solution verification is green at 1,085 tests (893 core,
-  41 architecture, 151 UI), with 0 failures and 0 skips. The refreshed run
-  includes the current Phase 18 appearance/palette changes; it does not close
-  Phase 19's remaining fallback, authorization, accessibility, or
+- Current-HEAD full solution verification is recorded in the current execution
+  ledger; it does not close Phase 19's remaining accessibility or
   reference-hardware gates.
 - Processing/quality projection and badge proof: 1 core projection test and 1
   headless render test passed, 0 failed, 0 skipped. Evidence:
   `evidence/phase-19-processing-badges-2026-09-05.md`.
+- Cover fallback proof: the catalogue read model now applies the same
+  custom > embedded > provider > generated > placeholder source precedence as
+  `IVisualAssetService`, and both summary and detail projections are covered by
+  `CatalogueReadModel_UsesSourcePrecedenceForCoverFallback`.
+- API asset authorization proof: the existing authenticated LAN endpoint suite
+  verifies published-hash enforcement, bounded variants, unauthorized
+  metadata/path exclusion, and asset serving; no raw local path is exposed.

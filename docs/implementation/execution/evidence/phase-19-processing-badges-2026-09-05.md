@@ -21,5 +21,7 @@ Date: 2026-09-05
 
 ## Residual gates
 
-Complete cover-source fallback, API asset authorization, full keyboard and
-screen-reader journeys, and named reference-hardware performance remain open.
+Full keyboard and screen-reader journeys and named reference-hardware
+performance remain open. Cover-source precedence/fallback and API asset
+authorization are tracked as closed local sub-gates in the Phase 19 progress
+record.

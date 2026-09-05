@@ -166,12 +166,16 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ShelfIds = b.ShelfBooks
                     .Select(sb => sb.ShelfId)
                     .ToList(),
-                CoverRelativePath = b.VisualAssets
+                CoverAsset = b.VisualAssets
                     .Where(asset => asset.Kind == (int)VisualAssetKind.Cover &&
                                     asset.Status == (int)VisualAssetStatus.Ready)
                     .OrderByDescending(asset => asset.IsCustom)
+                    .ThenByDescending(asset => asset.Source == "embedded" ? 80 :
+                        asset.Source == "provider" ? 70 :
+                        asset.Source == "generated" ? 50 :
+                        asset.Source == "placeholder" ? 10 : 0)
                     .ThenBy(asset => asset.Variant)
-                    .Select(asset => asset.RelativePath)
+                    .Select(asset => new { asset.RelativePath, asset.Source })
                     .FirstOrDefault(),
                 Progress = b.ReadingProgress,
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
@@ -230,7 +234,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 BookId: item.BookId,
                 Title: ResolveTitle(item.Title, fields, item.PrimaryRelativePath, item.BookId),
                 Authors: ResolveAuthors(item.Authors, fields),
-                CoverRelativePath: item.CoverRelativePath,
+                CoverRelativePath: item.CoverAsset?.RelativePath,
                 Status: item.Status,
                 Rating: item.Rating,
                 IsFavourite: item.IsFavourite,
@@ -302,12 +306,16 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .ThenBy(f => f.BookFileId)
                     .Select(f => f.RelativePath)
                     .FirstOrDefault(),
-                CoverRelativePath = b.VisualAssets
+                CoverAsset = b.VisualAssets
                     .Where(asset => asset.Kind == (int)VisualAssetKind.Cover &&
                                     asset.Status == (int)VisualAssetStatus.Ready)
                     .OrderByDescending(asset => asset.IsCustom)
+                    .ThenByDescending(asset => asset.Source == "embedded" ? 80 :
+                        asset.Source == "provider" ? 70 :
+                        asset.Source == "generated" ? 50 :
+                        asset.Source == "placeholder" ? 10 : 0)
                     .ThenBy(asset => asset.Variant)
-                    .Select(asset => asset.RelativePath)
+                    .Select(asset => new { asset.RelativePath, asset.Source })
                     .FirstOrDefault(),
                 b.Sha256Hash,
                 b.SizeBytes,
@@ -362,7 +370,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             Doi: result.Doi,
             Rating: result.Rating,
             Status: result.Status,
-            CoverRelativePath: result.CoverRelativePath,
+            CoverRelativePath: result.CoverAsset?.RelativePath,
             RelativePath: result.RelativePath ?? result.PrimaryRelativePath,
             Sha256Hash: result.Sha256Hash,
             SizeBytes: result.SizeBytes,

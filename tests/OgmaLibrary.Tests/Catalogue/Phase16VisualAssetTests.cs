@@ -198,6 +198,58 @@ public sealed class Phase16VisualAssetTests : IDisposable
     }
 
     [Fact]
+    public async Task CatalogueReadModel_UsesSourcePrecedenceForCoverFallback()
+    {
+        const string bookId = "PHASE19-COVER-FALLBACK-BOOK";
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        _context.Books.Add(new BookRow { BookId = bookId, Title = "Fallback Cover", Status = 0 });
+        _context.VisualAssetManifests.AddRange(
+            new VisualAssetManifestRow
+            {
+                BookId = bookId,
+                Kind = (int)VisualAssetKind.Cover,
+                Variant = "default",
+                RelativePath = ".ogma/covers/fallback/generated.jpg",
+                Source = "generated",
+                WidthPx = 200,
+                HeightPx = 300,
+                Format = "jpg",
+                GenerationVersion = 1,
+                Status = (int)VisualAssetStatus.Ready,
+                UpdatedUtc = now.AddMinutes(5),
+                CreatedUtc = now,
+            },
+            new VisualAssetManifestRow
+            {
+                BookId = bookId,
+                Kind = (int)VisualAssetKind.Cover,
+                Variant = "provider",
+                RelativePath = ".ogma/covers/fallback/provider.jpg",
+                Source = "provider",
+                WidthPx = 200,
+                HeightPx = 300,
+                Format = "jpg",
+                GenerationVersion = 1,
+                Status = (int)VisualAssetStatus.Ready,
+                UpdatedUtc = now,
+                CreatedUtc = now,
+            });
+        await _context.SaveChangesAsync();
+
+        var readModel = new CatalogueReadModel(_context);
+        List<BookSummaryProjection> summaries = [];
+        await foreach (BookSummaryProjection summary in readModel.GetBookSummariesAsync(new CatalogueFilter()))
+        {
+            summaries.Add(summary);
+        }
+
+        Assert.Equal(".ogma/covers/fallback/provider.jpg", Assert.Single(summaries).CoverRelativePath);
+        Assert.Equal(
+            ".ogma/covers/fallback/provider.jpg",
+            (await readModel.GetBookDetailAsync(bookId))?.CoverRelativePath);
+    }
+
+    [Fact]
     public async Task Manifest_RejectsAbsoluteAndTraversalPaths()
     {
         const string bookId = "PHASE16-SAFE-PATH-BOOK";
