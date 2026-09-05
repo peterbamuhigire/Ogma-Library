@@ -24,3 +24,6 @@ The cache boundary also now exposes all-Host erasure. Its regression proves
 that valid entries, orphaned payloads, temporary files, and corrupt metadata
 are removed from the cache root; the UI control remains unassessed because the
 settings view has protected user changes.
+
+The delivery handoff, rollback, runbook, ownership, and maintenance notes are
+in [phase-35-cache-erasure-export-dod-2026-09-05.md](phase-35-cache-erasure-export-dod-2026-09-05.md).
