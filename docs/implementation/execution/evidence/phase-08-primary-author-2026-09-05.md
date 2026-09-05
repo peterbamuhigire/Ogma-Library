@@ -12,3 +12,5 @@ Verification:
 - `BookSummaryProjection_UsesSafePrimaryAuthorFallback`: passed.
 - Grid/list/directory headless render slice: 3 passed.
 - Release application build: passed with 0 warnings and 0 errors.
+- Current-head full solution suite: 1,089 passed (895 core, 41 architecture,
+  153 UI), 0 failed, 0 skipped.
