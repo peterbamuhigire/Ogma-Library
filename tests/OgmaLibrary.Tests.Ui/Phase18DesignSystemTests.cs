@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
@@ -91,5 +93,58 @@ public sealed class Phase18DesignSystemTests
         Assert.True(button.MinHeight >= 36);
         Assert.True(button.Bounds.Height >= 36);
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void AccentPalette_WhiteActionLabelsMeetSmallTextContrastInBothThemes()
+    {
+        var app = new OgmaApp();
+        app.Initialize();
+
+        string[] accentKeys =
+        [
+            "Color.Accent.Oak",
+            "Color.Accent.Ink",
+            "Color.Accent.Sage",
+            "Color.Accent.Clay",
+            "Color.Accent.Plum",
+            "Color.Accent.Slate",
+        ];
+
+        foreach (ThemeVariant theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+        {
+            foreach (string key in accentKeys)
+            {
+                Assert.True(app.TryGetResource(key, theme, out object? raw), $"Missing resource {key} for {theme}.");
+                Color background = Assert.IsType<Color>(raw);
+                Assert.True(
+                    ContrastRatio(Colors.White, background) >= 4.5,
+                    $"White action label on {key} in {theme} has contrast {ContrastRatio(Colors.White, background):F2}:1.");
+            }
+        }
+    }
+
+    private static double ContrastRatio(Color foreground, Color background)
+    {
+        static double RelativeLuminance(Color color)
+        {
+            static double LinearChannel(byte channel)
+            {
+                double value = channel / 255d;
+                return value <= 0.03928
+                    ? value / 12.92
+                    : Math.Pow((value + 0.055) / 1.055, 2.4);
+            }
+
+            return (0.2126 * LinearChannel(color.R))
+                + (0.7152 * LinearChannel(color.G))
+                + (0.0722 * LinearChannel(color.B));
+        }
+
+        double foregroundLuminance = RelativeLuminance(foreground);
+        double backgroundLuminance = RelativeLuminance(background);
+        double lighter = Math.Max(foregroundLuminance, backgroundLuminance);
+        double darker = Math.Min(foregroundLuminance, backgroundLuminance);
+        return (lighter + 0.05) / (darker + 0.05);
     }
 }

@@ -15,7 +15,7 @@
 
       <!-- Accent families (functional color areas) -->
       <!-- Oak — primary actions, library identity -->
-      <Color x:Key="Color.Accent.Oak">#D4922A</Color>
+      <Color x:Key="Color.Accent.Oak">#9E6519</Color>
       <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
 
       <!-- Ink — reading, navigation -->
@@ -27,7 +27,7 @@
       <SolidColorBrush x:Key="Brush.Accent.Sage" Color="{DynamicResource Color.Accent.Sage}" />
 
       <!-- Clay — warnings, needs attention -->
-      <Color x:Key="Color.Accent.Clay">#C05A3A</Color>
+      <Color x:Key="Color.Accent.Clay">#B64F31</Color>
       <SolidColorBrush x:Key="Brush.Accent.Clay" Color="{DynamicResource Color.Accent.Clay}" />
 
       <!-- Plum — AI / intelligence surfaces -->
@@ -72,23 +72,23 @@
     <!-- ═══════════════════════════════ DARK ════════════════════════════════ -->
     <ResourceDictionary x:Key="Dark">
 
-      <!-- Accent families — shifted warmer/lighter for dark backgrounds -->
-      <Color x:Key="Color.Accent.Oak">#E8B05A</Color>
+      <!-- Accent families — deepened for white-label contrast on dark backgrounds -->
+      <Color x:Key="Color.Accent.Oak">#9E6519</Color>
       <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
 
-      <Color x:Key="Color.Accent.Ink">#6B9BE8</Color>
+      <Color x:Key="Color.Accent.Ink">#2B4A7A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
 
-      <Color x:Key="Color.Accent.Sage">#7EC89A</Color>
+      <Color x:Key="Color.Accent.Sage">#4A7A5A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Sage" Color="{DynamicResource Color.Accent.Sage}" />
 
-      <Color x:Key="Color.Accent.Clay">#E88A6A</Color>
+      <Color x:Key="Color.Accent.Clay">#B64F31</Color>
       <SolidColorBrush x:Key="Brush.Accent.Clay" Color="{DynamicResource Color.Accent.Clay}" />
 
-      <Color x:Key="Color.Accent.Plum">#B87ACC</Color>
+      <Color x:Key="Color.Accent.Plum">#6A3A7A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Plum" Color="{DynamicResource Color.Accent.Plum}" />
 
-      <Color x:Key="Color.Accent.Slate">#9AAABB</Color>
+      <Color x:Key="Color.Accent.Slate">#5A6A7A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Slate" Color="{DynamicResource Color.Accent.Slate}" />
 
       <!-- Surface tokens for dark theme -->

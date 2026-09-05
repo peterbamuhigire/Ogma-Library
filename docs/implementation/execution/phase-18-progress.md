@@ -105,11 +105,17 @@ Date: 2026-09-05
   passed, 0 failed, 0 skipped. A literal-copy audit outside the covered
   Host-sharing surface found only intentional reader glyphs/separators and
   numeric controls; no remaining natural-language literals were identified.
+- Corrected the accent palette after measuring white-label contrast failures:
+  Oak, Ink, Sage, Clay, Plum, and Slate now meet the 4.5:1 small-text threshold
+  in both Light and Dark theme resources. Evidence:
+  `evidence/phase-18-contrast-matrix-2026-09-05.md`.
+- Added an Avalonia regression test for all six accent families in both theme
+  variants; the focused Phase 18 design-system slice passes 4 tests.
 
 ## Remaining phase gate
 
-Contrast snapshots and Narrator/VoiceOver journeys remain before phase 18
-closure. Theme/density
+Rendered contrast snapshots and Narrator/VoiceOver journeys remain before
+phase 18 closure. The automated contrast matrix is closed. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
   named Student Smart Search copy finding, and static route inventory are
