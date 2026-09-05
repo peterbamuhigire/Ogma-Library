@@ -1,4 +1,5 @@
 using System.Net;
+using System.Diagnostics;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
@@ -416,6 +417,75 @@ public sealed class Phase16VisualAssetTests : IDisposable
             response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mediaType);
             return Task.FromResult(response);
         }
+    }
+
+    [Fact]
+    [Trait("Category", "Benchmark")]
+    public async Task VisualAssetService_PreferredLookupStaysBoundedAt50kBooks()
+    {
+        const int bookCount = 50_000;
+        const int batchSize = 1_000;
+        const int sampleCount = 100;
+        const long p95BudgetMicroseconds = 150_000;
+
+        for (int start = 0; start < bookCount; start += batchSize)
+        {
+            int end = Math.Min(start + batchSize, bookCount);
+            for (int index = start; index < end; index++)
+            {
+                string bookId = $"PHASE16-BUDGET-{index:00000}";
+                _context.Books.Add(new BookRow
+                {
+                    BookId = bookId,
+                    Title = $"Asset Budget Book {index:00000}",
+                    Status = 0,
+                });
+                _context.VisualAssetManifests.Add(new VisualAssetManifestRow
+                {
+                    BookId = bookId,
+                    Kind = (int)VisualAssetKind.Cover,
+                    Variant = "default",
+                    RelativePath = $".ogma/covers/aa/{index:00000}.jpg",
+                    Source = "generated",
+                    WidthPx = 200,
+                    HeightPx = 300,
+                    Format = "jpg",
+                    GenerationVersion = 1,
+                    Status = (int)VisualAssetStatus.Ready,
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                    CreatedUtc = DateTimeOffset.UtcNow,
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+        }
+
+        var service = new VisualAssetService(_context);
+        var timings = new List<long>(sampleCount);
+        for (int sample = 0; sample < sampleCount; sample++)
+        {
+            string bookId = $"PHASE16-BUDGET-{bookCount - sample - 1:00000}";
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            VisualAssetDescriptor? descriptor = await service.GetPreferredAsync(
+                bookId,
+                VisualAssetKind.Cover);
+            stopwatch.Stop();
+
+            Assert.NotNull(descriptor);
+            Assert.Equal(bookId, descriptor!.BookId);
+            timings.Add(stopwatch.ElapsedTicks * 1_000_000L / Stopwatch.Frequency);
+        }
+
+        timings.Sort();
+        long p95Microseconds = timings[(int)Math.Ceiling(sampleCount * 0.95) - 1];
+        Console.WriteLine(
+            $"Phase16 visual-asset lookup benchmark: books={bookCount}, samples={sampleCount}, " +
+            $"p95Milliseconds={p95Microseconds / 1000.0:F3}");
+        Assert.True(
+            p95Microseconds <= p95BudgetMicroseconds,
+            $"Preferred visual-asset lookup p95 was {p95Microseconds / 1000.0:F3} ms, " +
+            $"above {p95BudgetMicroseconds / 1000.0:F0} ms.");
     }
 
     private static string CreateEmbeddedImagePdf(string root)

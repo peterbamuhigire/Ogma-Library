@@ -54,14 +54,20 @@ Date: 2026-09-05
   this includes new-book and re-matched-file spine-job assertions.
 - Current-HEAD full Release solution verification after embedded-cover wiring:
   918 core + 41 architecture + 158 UI = 1,117 passed, 0 failed, 0 skipped.
+- The 50,000-book preferred visual-asset lookup benchmark passed at p95 0.424
+  ms against a 150 ms local budget; see
+  `evidence/phase-16-asset-budget-2026-09-05.md`.
+- Current-HEAD full Release solution verification after the 50,000-book asset
+  budget test: 919 core + 41 architecture + 158 UI = 1,118 passed, 0 failed,
+  0 skipped.
 
 ## Remaining phase gate
 
-Remaining UI journeys and large-library asset budget testing remain before
-phase 16 closure. Embedded source acquisition is now locally closed. Provider
-cover acquisition is wired through the validated provider-image boundary; lazy
-high/low variants and exact variant rejection are covered by the local variant
-tests.
+Remaining UI journeys and full disk-generation/GPU asset budget evidence remain
+before phase 16 closure. Embedded source acquisition and the local 50,000-book
+preferred-lookup subgate are now closed. Provider cover acquisition is wired
+through the validated provider-image boundary; lazy high/low variants and exact
+variant rejection are covered by the local variant tests.
 The ingest/update spine scheduling sub-gate is closed locally.
 The local detail cover-control and LAN asset-authorization sub-gates are closed;
 physical accessibility and cross-platform evidence remain open.
