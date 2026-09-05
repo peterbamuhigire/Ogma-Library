@@ -46,6 +46,13 @@ internal sealed class InMemoryOfflineCacheService : IOfflineCacheService
         return Task.CompletedTask;
     }
 
+    public Task ClearAllAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _entries.Clear();
+        return Task.CompletedTask;
+    }
+
     public async Task ExportHostAsync(
         string hostId,
         Stream destination,

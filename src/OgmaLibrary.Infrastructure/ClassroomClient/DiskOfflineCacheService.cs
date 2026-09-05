@@ -201,6 +201,11 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
             ? Directory.EnumerateFiles(_cacheRoot, "*.json", SearchOption.TopDirectoryOnly)
             : [];
 
+    private IEnumerable<string> EnumerateCacheFiles(string pattern) =>
+        Directory.Exists(_cacheRoot)
+            ? Directory.EnumerateFiles(_cacheRoot, pattern, SearchOption.TopDirectoryOnly)
+            : [];
+
     private string GetMetadataPath(string hostId, string resourceKey) =>
         Path.Combine(_cacheRoot, $"{CreateCacheKey(hostId, resourceKey)}.json");
 
@@ -262,6 +267,31 @@ internal sealed class DiskOfflineCacheService : IOfflineCacheService, IDisposabl
         finally
         {
             DeleteTemporaryFile(tempPath);
+        }
+    }
+
+    public async Task ClearAllAsync(CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            foreach (string metadataPath in EnumerateMetadataFiles())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                CacheMetadata? metadata = await ReadMetadataAsync(metadataPath, cancellationToken).ConfigureAwait(false);
+                DeleteEntryFiles(metadataPath, metadata);
+            }
+
+            foreach (string orphanPath in EnumerateCacheFiles("*.bin")
+                .Concat(EnumerateCacheFiles("*.tmp")))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Delete(orphanPath);
+            }
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 

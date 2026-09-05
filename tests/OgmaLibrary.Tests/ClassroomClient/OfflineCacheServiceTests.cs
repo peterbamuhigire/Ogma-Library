@@ -140,6 +140,33 @@ public sealed class OfflineCacheServiceTests
     }
 
     [Fact]
+    public async Task DiskOfflineCache_CanClearAllHosts()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            using var cache = new DiskOfflineCacheService(dataDirectory);
+            await cache.PutAsync(new OfflineCacheEntry("host-a", "catalogue", null, [1], Now));
+            await cache.PutAsync(new OfflineCacheEntry("host-b", "catalogue", null, [2], Now));
+            string cacheRoot = Path.Combine(dataDirectory, "classroom", "cache");
+            await File.WriteAllBytesAsync(Path.Combine(cacheRoot, "orphan.bin"), [7]);
+            await File.WriteAllBytesAsync(Path.Combine(cacheRoot, "pending.tmp"), [8]);
+            await File.WriteAllTextAsync(Path.Combine(cacheRoot, "broken.json"), "{not-json");
+
+            await cache.ClearAllAsync();
+
+            Assert.Null(await cache.GetAsync("host-a", "catalogue"));
+            Assert.Null(await cache.GetAsync("host-b", "catalogue"));
+            Assert.Empty(Directory.EnumerateFiles(cacheRoot));
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task DiskOfflineCache_ExportsOnlyValidResourcesForRequestedHost()
     {
         string dataDirectory = CreateTempDirectory();

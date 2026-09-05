@@ -15,6 +15,9 @@ public interface IOfflineCacheService
     /// <summary>Removes all cached resources for a Host.</summary>
     Task ClearHostAsync(string hostId, CancellationToken cancellationToken = default);
 
+    /// <summary>Removes all cached classroom resources for every Host.</summary>
+    Task ClearAllAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Exports valid cached resources for one Host as a portable archive.</summary>
     Task ExportHostAsync(
         string hostId,
