@@ -2,10 +2,15 @@
 
 ## Status
 
-Proposed
+Accepted
 
-> Drafted at the start of Phase 17. Owner ratification is still required before
-> Client/Classroom mode is exposed outside development builds.
+> Owner-ratified on 2026-09-05. Client/Classroom mode remains subject to the
+> physical network, credential-store, privacy, and release gates recorded in
+> the execution ledger.
+
+> Drafted at the start of Phase 17 and owner-ratified on 2026-09-05. Exposure
+> outside development builds remains subject to the physical and release gates
+> recorded in the execution ledger.
 
 ## Date
 
@@ -122,3 +127,4 @@ remain out of scope until Phase 18.
 | Date | Change |
 | --- | --- |
 | 2026-06-02 | Initial Phase 17 draft. |
+| 2026-09-05 | Accepted by owner direction after implementation and local verification; physical release gates remain open. |

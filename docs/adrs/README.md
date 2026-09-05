@@ -16,9 +16,9 @@ ADRs are written in [MADR](https://adr.github.io/madr/) style.
 | [0007](0007-provider-neutral-ai-gateway-privacy-tiers.md) | Route AI Through a Provider-Neutral Gateway with Four Privacy Tiers | Accepted | 2026-05-30 |
 | [0008](0008-database-first-annotations-pdf-writeback-later.md) | Store Annotations and Metadata Database-First, Write Back to PDF Later | Accepted | 2026-05-30 |
 | [0009](0009-velopack-msix-dmg.md) | Distribute with Velopack for Direct Channels and MSIX for Store and Enterprise | Accepted | 2026-05-30 |
-| [0010](0010-optin-library-host-mode.md) | Opt-In Library Host Mode Amends CI-2 for the Classroom Track | Proposed | 2026-05-30 |
+| [0010](0010-optin-library-host-mode.md) | Opt-In Library Host Mode Amends CI-2 for the Classroom Track | Accepted | 2026-05-30 |
 | [0011](0011-local-tesseract-ocr.md) | Run OCR Locally with Tesseract, Never Through AI Providers | Accepted | 2026-06-01 |
-| [0012](0012-classroom-identity-roles-private-state.md) | Classroom Identity, Roles, and Private State | Proposed | 2026-06-02 |
+| [0012](0012-classroom-identity-roles-private-state.md) | Classroom Identity, Roles, and Private State | Accepted | 2026-06-02 |
 | [0013](0013-school-managed-ai-host-gateway.md) | School-Managed AI Through the Host Gateway | Accepted | 2026-06-02 |
 | [0014](0014-ef-core-10-on-net10-runtime.md) | Align EF Core and Microsoft Extensions Packages to .NET 10 | Accepted | 2026-07-07 |
 | [0015](0015-documentation-baseline-v2.md) | Documentation Baseline v2.0 Supersedes the v1.0 Baseline | Accepted | 2026-07-07 |

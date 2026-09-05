@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed
+Accepted
+
+> Owner-ratified on 2026-09-05 after implementation of the classroom track.
+> The transport decision is evidenced below; physical firewall/mDNS and
+> reference-network acceptance remain release gates.
 
 > Drafted in Phase 00 from LAN-CLASSROOM-ARCHITECTURE.md. Ratified when the
 > classroom track (Phases 16–18) is scheduled. Transport and mutual-auth details
