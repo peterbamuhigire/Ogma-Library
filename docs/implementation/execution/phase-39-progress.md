@@ -22,8 +22,9 @@ Date: 2026-09-05
   functional requirements, 29 non-functional requirements, and 32 controls
   were all assigned across the roadmap matrix. See
   `evidence/phase-39-requirement-accountability-2026-09-05.md`; the evidence
-  records verification against source commit
-  `057ace3e3c006bc886551af7ac97e9f293904b6b`.
+  records verification against the current source commit.
+- Current-head negative acceptance validation again rejected a missing record
+  with exit code 1, preserving the fail-closed handover boundary.
 
 ## Remaining handover gate
 
