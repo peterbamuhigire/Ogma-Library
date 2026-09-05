@@ -140,6 +140,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         _localization = localization;
         if (_localization is not null)
         {
+            _clientConnectionStatusText = _localization["Sharing.Client.NotConnected"];
+            _syncStatusText = _localization["Sharing.Sync.Unavailable"];
+            _schoolAiKeyStatusText = _localization["Sharing.SchoolAi.StatusUnavailable"];
+            _schoolAdminStatusText = _localization["Sharing.SchoolAdmin.Unavailable"];
             _localization.CultureChanged += OnCultureChanged;
         }
     }
@@ -256,7 +260,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
                         value.Port,
                         value.CertificateFingerprint,
                         ResolveEnrollmentCode(value));
-                    ClientConnectionStatusText = $"Selected {value.DisplayName}";
+                    ClientConnectionStatusText = LocalizeFormat("Sharing.Client.SelectedHost", "Selected {0}", value.DisplayName);
                 }
             }
         }
@@ -347,8 +351,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     }
 
     public string PendingConflictCountText => PendingAnnotationConflicts.Count == 1
-        ? "1 annotation conflict needs a choice"
-        : $"{PendingAnnotationConflicts.Count} annotation conflicts need a choice";
+        ? Localize("Sharing.Sync.OneAnnotationConflict", "1 annotation conflict needs a choice")
+        : LocalizeFormat("Sharing.Sync.ManyAnnotationConflicts", "{0} annotation conflicts need a choice", PendingAnnotationConflicts.Count);
 
     public string SelectedConflictText => SelectedAnnotationConflict is null
         ? string.Empty
@@ -603,22 +607,22 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 
     public string StatusText => _status.State switch
     {
-        LibraryHostState.Running => $"Running on :{_status.Port}",
-        LibraryHostState.Starting => "Starting",
-        LibraryHostState.Error => _status.ErrorMessage ?? "Error",
-        _ => "Stopped",
+        LibraryHostState.Running => LocalizeFormat("Sharing.Host.RunningOn", "Running on :{0}", _status.Port),
+        LibraryHostState.Starting => Localize("Sharing.Host.Starting", "Starting"),
+        LibraryHostState.Error => _status.ErrorMessage ?? Localize("Sharing.Host.Error", "Error"),
+        _ => Localize("Sharing.Host.Stopped", "Stopped"),
     };
 
-    public string ClientCountText => $"{_status.ConnectedClientCount} clients";
+    public string ClientCountText => LocalizeFormat("Sharing.Host.ClientCount", "{0} clients", _status.ConnectedClientCount);
 
     public string FingerprintText =>
         string.IsNullOrWhiteSpace(_status.CertificateFingerprint)
-            ? "No fingerprint"
+            ? Localize("Sharing.Host.NoFingerprint", "No fingerprint")
             : _status.CertificateFingerprint[..Math.Min(12, _status.CertificateFingerprint.Length)];
 
     public string FullFingerprintText =>
         string.IsNullOrWhiteSpace(_status.CertificateFingerprint)
-            ? "No fingerprint available"
+            ? Localize("Sharing.Host.NoFingerprintAvailable", "No fingerprint available")
             : FormatFingerprint(_status.CertificateFingerprint);
 
     public string ManualJoinUri => CanShare
@@ -635,12 +639,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     public string SharePanelTitle => Localize("Sharing.Host.ShareTitle", _sharePanelTitle);
 
     public string SharePanelSubtitle => CanShare
-        ? $"Scan or copy the join link for {_settings.DisplayName}."
-        : "Start the Host before sharing.";
+        ? LocalizeFormat("Sharing.Host.ShareSubtitle", "Scan or copy the join link for {0}.", _settings.DisplayName)
+        : Localize("Sharing.Host.StartBeforeSharing", "Start the Host before sharing.");
 
     public string EnrollmentCodeText => string.IsNullOrWhiteSpace(_status.EnrollmentCode)
-        ? "No enrollment code"
-        : $"Enrollment code: {_status.EnrollmentCode}";
+        ? Localize("Sharing.Host.NoEnrollmentCode", "No enrollment code")
+        : LocalizeFormat("Sharing.Host.EnrollmentCode", "Enrollment code: {0}", _status.EnrollmentCode);
 
     public string ShareButtonText => Localize("Sharing.Host.Share", _shareButtonText);
 
@@ -651,12 +655,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     public string CloseSharePanelText => Localize("Sharing.Close", _closeSharePanelText);
 
     public string ContentModeText => _settings.ContentMode == HostContentDeliveryMode.PageRender
-        ? "Page Render"
-        : "File Stream";
+        ? Localize("Sharing.Host.PageRender", "Page Render")
+        : Localize("Sharing.Host.FileStream", "File Stream");
 
     public string ToggleContentModeText => _settings.ContentMode == HostContentDeliveryMode.PageRender
-        ? "Use File Stream"
-        : "Use Page Render";
+        ? Localize("Sharing.Host.UseFileStream", "Use File Stream")
+        : Localize("Sharing.Host.UsePageRender", "Use Page Render");
 
     public string StartConfirmationText => Localize("Sharing.Host.StartConfirmation", _startConfirmationText);
 
@@ -668,7 +672,9 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 
     public string CancelConfirmationText => Localize("Sharing.Cancel", _cancelConfirmationText);
 
-    public string PrimaryActionText => IsRunning ? "Stop" : "Start";
+    public string PrimaryActionText => IsRunning
+        ? Localize("Sharing.Host.Stop", "Stop")
+        : Localize("Sharing.Host.Start", "Start");
 
     public bool IsRunning => _status.State == LibraryHostState.Running;
 
@@ -858,11 +864,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
             await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
             await RefreshAuditEventsAsync(cancellationToken).ConfigureAwait(true);
-            SchoolAdminStatusText = "School administration loaded";
+            SchoolAdminStatusText = Localize("Sharing.SchoolAdmin.Loaded", "School administration loaded");
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            SchoolAdminStatusText = $"School administration failed: {ex.Message}";
+            SchoolAdminStatusText = LocalizeFormat("Sharing.SchoolAdmin.LoadFailed", "School administration failed: {0}", ex.Message);
         }
         finally
         {
@@ -885,13 +891,13 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         {
             if (key.Length == 0 || key.All(static ch => char.IsWhiteSpace(ch)))
             {
-                SchoolAiKeyStatusText = "Enter a key before saving";
+                SchoolAiKeyStatusText = Localize("Sharing.SchoolAi.EnterKey", "Enter a key before saving");
                 return;
             }
 
             await _schoolAiKeyProvider.SaveKeyAsync(SchoolAiProviderId, key, cancellationToken)
                 .ConfigureAwait(true);
-            SchoolAiKeyStatusText = $"Key saved for {SchoolAiProviderId}";
+            SchoolAiKeyStatusText = LocalizeFormat("Sharing.SchoolAi.KeySaved", "Key saved for {0}", SchoolAiProviderId);
             await RefreshSchoolAiKeyStatusAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
@@ -914,7 +920,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         {
             await _schoolAiKeyProvider.DeleteKeyAsync(SchoolAiProviderId, cancellationToken)
                 .ConfigureAwait(true);
-            SchoolAiKeyStatusText = $"Key removed for {SchoolAiProviderId}";
+            SchoolAiKeyStatusText = LocalizeFormat("Sharing.SchoolAi.KeyRemoved", "Key removed for {0}", SchoolAiProviderId);
             await RefreshSchoolAiKeyStatusAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
@@ -938,8 +944,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
                 .GetStatusAsync(SchoolAiProviderId, cancellationToken)
                 .ConfigureAwait(true);
             SchoolAiKeyStatusText = status.IsConfigured
-                ? $"Key test passed for {status.ProviderId}: key is configured"
-                : $"Key test failed for {status.ProviderId}: no key configured";
+                ? LocalizeFormat("Sharing.SchoolAi.KeyTestPassed", "Key test passed for {0}: key is configured", status.ProviderId)
+                : LocalizeFormat("Sharing.SchoolAi.KeyTestFailed", "Key test failed for {0}: no key configured", status.ProviderId);
         }
         finally
         {
@@ -968,7 +974,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
                         AnswerModeEnabled: false),
                     cancellationToken)
                 .ConfigureAwait(true);
-            SchoolAdminStatusText = "School AI policy saved";
+            SchoolAdminStatusText = Localize("Sharing.SchoolAdmin.PolicySaved", "School AI policy saved");
             await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
@@ -997,12 +1003,16 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
                         birthYear),
                     cancellationToken)
                 .ConfigureAwait(true);
-            LastEnrollmentTokenText =
-                $"Profile {token.ProfileId:D} token {token.Token} expires {token.ExpiresUtc:u}";
+            LastEnrollmentTokenText = LocalizeFormat(
+                "Sharing.SchoolAdmin.EnrollmentToken",
+                "Profile {0:D} token {1} expires {2:u}",
+                token.ProfileId,
+                token.Token,
+                token.ExpiresUtc);
             EnrollmentDisplayName = string.Empty;
             await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
             await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
-            SchoolAdminStatusText = "Profile enrolled";
+            SchoolAdminStatusText = Localize("Sharing.SchoolAdmin.ProfileEnrolled", "Profile enrolled");
         }
         finally
         {
@@ -1025,7 +1035,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             await _profileEnrollmentService.RevokeAsync(revokedProfileId, cancellationToken)
                 .ConfigureAwait(true);
             await RefreshEnrolledProfilesAsync(cancellationToken).ConfigureAwait(true);
-            SchoolAdminStatusText = "Profile revoked";
+            SchoolAdminStatusText = Localize("Sharing.SchoolAdmin.ProfileRevoked", "Profile revoked");
         }
         finally
         {
@@ -1038,7 +1048,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     {
         if (!CanPurgeAiHistory || _schoolAiHistoryManagementService is null)
         {
-            SchoolAdminStatusText = "Type PURGE AI HISTORY before clearing school AI history.";
+            SchoolAdminStatusText = Localize("Sharing.SchoolAdmin.PurgeConfirmation", "Type PURGE AI HISTORY before clearing school AI history.");
             return;
         }
 
@@ -1051,8 +1061,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             AiHistoryPurgeConfirmationText = string.Empty;
             await RefreshUsageDashboardAsync(cancellationToken).ConfigureAwait(true);
             await RefreshAuditEventsAsync(cancellationToken).ConfigureAwait(true);
-            SchoolAdminStatusText =
-                $"Purged {result.QueryHistoryRowsDeleted.ToString("N0", CultureInfo.CurrentCulture)} AI history rows and {result.UsageLedgerRowsDeleted.ToString("N0", CultureInfo.CurrentCulture)} usage rows";
+            SchoolAdminStatusText = LocalizeFormat(
+                "Sharing.SchoolAdmin.PurgedHistory",
+                "Purged {0:N0} AI history rows and {1:N0} usage rows",
+                result.QueryHistoryRowsDeleted,
+                result.UsageLedgerRowsDeleted);
         }
         finally
         {
@@ -1081,8 +1094,10 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         }
 
         await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-        SchoolAdminStatusText =
-            $"Exported {SchoolAuditEvents.Count.ToString("N0", CultureInfo.CurrentCulture)} school audit rows to CSV";
+        SchoolAdminStatusText = LocalizeFormat(
+            "Sharing.SchoolAdmin.AuditExported",
+            "Exported {0:N0} school audit rows to CSV",
+            SchoolAuditEvents.Count);
     }
 
     public async Task ConnectToHostAsync(CancellationToken cancellationToken = default)
@@ -1098,7 +1113,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             if (!_joinParser.TryParse(JoinLink, out ClassroomJoinRequest? joinRequest, out string? errorMessage) ||
                 joinRequest is null)
             {
-                ClientConnectionStatusText = errorMessage ?? "Join link is invalid.";
+                ClientConnectionStatusText = errorMessage ?? Localize("Sharing.Client.InvalidJoinLink", "Join link is invalid.");
                 return;
             }
 
@@ -1116,8 +1131,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             if (result.IsConnected)
             {
                 ClientConnectionStatusText = joinRequest.DisplayName is { Length: > 0 } displayName
-                    ? $"Connected to {displayName}"
-                    : "Connected to classroom Host";
+                    ? LocalizeFormat("Sharing.Client.ConnectedTo", "Connected to {0}", displayName)
+                    : Localize("Sharing.Client.ConnectedToClassroom", "Connected to classroom Host");
                 await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(true);
                 if (SyncOnReconnect && CanSyncWhenIdle)
                 {
@@ -1130,14 +1145,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 
             ClientConnectionStatusText = result.ErrorMessage ?? result.TrustState switch
             {
-                HostTrustState.FirstUse => "Trust this Host fingerprint before connecting.",
-                HostTrustState.Mismatch => "Host fingerprint does not match the trusted pin.",
-                _ => "Could not connect to classroom Host.",
+                HostTrustState.FirstUse => Localize("Sharing.Client.TrustFingerprint", "Trust this Host fingerprint before connecting."),
+                HostTrustState.Mismatch => Localize("Sharing.Client.FingerprintMismatch", "Host fingerprint does not match the trusted pin."),
+                _ => Localize("Sharing.Client.ConnectionUnavailable", "Could not connect to classroom Host."),
             };
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
         {
-            ClientConnectionStatusText = $"Connection failed: {ex.Message}";
+            ClientConnectionStatusText = LocalizeFormat("Sharing.Client.ConnectionFailed", "Connection failed: {0}", ex.Message);
         }
         finally
         {
@@ -1157,7 +1172,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         IsBusy = true;
         try
         {
-            ClientConnectionStatusText = "Scanning for classroom Hosts";
+            ClientConnectionStatusText = Localize("Sharing.Client.Scanning", "Scanning for classroom Hosts");
             IReadOnlyList<DiscoveredClassroomHost> hosts = await _mdnsResolver
                 .DiscoverAsync(TimeSpan.FromSeconds(2), cancellationToken)
                 .ConfigureAwait(true);
@@ -1165,14 +1180,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             SelectedDiscoveredHost = hosts.Count == 1 ? hosts[0] : null;
             ClientConnectionStatusText = hosts.Count switch
             {
-                0 => "No classroom Hosts found",
-                1 => $"Selected {hosts[0].DisplayName}",
-                _ => $"{hosts.Count} classroom Hosts found",
+                0 => Localize("Sharing.Client.NoHosts", "No classroom Hosts found"),
+                1 => LocalizeFormat("Sharing.Client.SelectedHost", "Selected {0}", hosts[0].DisplayName),
+                _ => LocalizeFormat("Sharing.Client.HostCount", "{0} classroom Hosts found", hosts.Count),
             };
         }
         catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
         {
-            ClientConnectionStatusText = $"Host scan failed: {ex.Message}";
+            ClientConnectionStatusText = LocalizeFormat("Sharing.Client.ScanFailed", "Host scan failed: {0}", ex.Message);
         }
         finally
         {
@@ -1379,11 +1394,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         ShareConfirmationText = null;
     }
 
-    public void MarkJoinLinkCopied() => ShareConfirmationText = "Join link copied to clipboard";
+    public void MarkJoinLinkCopied() => ShareConfirmationText = Localize("Sharing.Host.JoinLinkCopied", "Join link copied to clipboard");
 
-    public void MarkFingerprintCopied() => ShareConfirmationText = "Fingerprint copied to clipboard";
+    public void MarkFingerprintCopied() => ShareConfirmationText = Localize("Sharing.Host.FingerprintCopied", "Fingerprint copied to clipboard");
 
-    public void ReportClipboardUnavailable() => ShareConfirmationText = "Clipboard is unavailable";
+    public void ReportClipboardUnavailable() => ShareConfirmationText = Localize("Sharing.Host.ClipboardUnavailable", "Clipboard is unavailable");
 
     private async Task RunSyncNowAsync(CancellationToken cancellationToken)
     {
@@ -1394,14 +1409,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            SyncStatusText = "Syncing";
+            SyncStatusText = Localize("Sharing.Sync.Syncing", "Syncing");
             ClassroomSyncStatus status = await _syncService.SyncNowAsync(cancellationToken).ConfigureAwait(true);
             ApplySyncStatus(status);
             await RefreshAnnotationConflictsAsync(cancellationToken).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
         {
-            SyncStatusText = $"Sync failed: {ex.Message}";
+            SyncStatusText = LocalizeFormat("Sharing.Sync.Failed", "Sync failed: {0}", ex.Message);
         }
     }
 
@@ -1417,7 +1432,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 
         if (_syncService is null)
         {
-            SyncStatusText = "Sync unavailable";
+            SyncStatusText = Localize("Sharing.Sync.Unavailable", "Sync unavailable");
             PendingAnnotationConflicts = [];
             SelectedAnnotationConflict = null;
             OnPropertyChanged(nameof(CanSyncNow));
@@ -1427,7 +1442,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         if (_classroomModeService is not null && !IsSyncOptInEnabled)
         {
             _isSyncEnabled = false;
-            SyncStatusText = "Private sync is off";
+            SyncStatusText = Localize("Sharing.Sync.PrivateOff", "Private sync is off");
             PendingAnnotationConflicts = [];
             SelectedAnnotationConflict = null;
             OnPropertyChanged(nameof(CanSyncNow));
@@ -1463,7 +1478,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException)
         {
-            SyncStatusText = $"Conflict choice failed: {ex.Message}";
+            SyncStatusText = LocalizeFormat("Sharing.Sync.ConflictChoiceFailed", "Conflict choice failed: {0}", ex.Message);
         }
         finally
         {
@@ -1524,8 +1539,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             .GetStatusAsync(SchoolAiProviderId, cancellationToken)
             .ConfigureAwait(true);
         SchoolAiKeyStatusText = status.IsConfigured
-            ? $"Key configured for {status.ProviderId}"
-            : $"No key configured for {status.ProviderId}";
+            ? LocalizeFormat("Sharing.SchoolAi.KeyConfigured", "Key configured for {0}", status.ProviderId)
+            : LocalizeFormat("Sharing.SchoolAi.NoKeyConfigured", "No key configured for {0}", status.ProviderId);
     }
 
     private async Task RefreshSchoolAiPolicyAsync(CancellationToken cancellationToken)
@@ -1638,8 +1653,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         {
             _isSyncEnabled = false;
             SyncStatusText = string.IsNullOrWhiteSpace(status.ErrorMessage)
-                ? "Sync unavailable"
-                : $"Sync unavailable: {status.ErrorMessage}";
+                ? Localize("Sharing.Sync.Unavailable", "Sync unavailable")
+                : LocalizeFormat("Sharing.Sync.UnavailableWithReason", "Sync unavailable: {0}", status.ErrorMessage);
             OnPropertyChanged(nameof(CanSyncNow));
             return;
         }
@@ -1647,18 +1662,18 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         _isSyncEnabled = true;
         if (status.IsRunning)
         {
-            SyncStatusText = "Syncing";
+            SyncStatusText = Localize("Sharing.Sync.Syncing", "Syncing");
             OnPropertyChanged(nameof(CanSyncNow));
             return;
         }
 
         string conflictText = status.ConflictCount == 1
-            ? "1 conflict"
-            : $"{status.ConflictCount} conflicts";
+            ? Localize("Sharing.Sync.OneConflict", "1 conflict")
+            : LocalizeFormat("Sharing.Sync.ManyConflicts", "{0} conflicts", status.ConflictCount);
         SyncStatusText = status.LastSyncedUtc is null
-            ? $"Ready to sync, {conflictText}"
-            : string.Format(
-                CultureInfo.InvariantCulture,
+            ? LocalizeFormat("Sharing.Sync.Ready", "Ready to sync, {0}", conflictText)
+            : LocalizeFormat(
+                "Sharing.Sync.LastSynced",
                 "Last synced {0:yyyy-MM-dd HH:mm} UTC, {1}",
                 status.LastSyncedUtc.Value.UtcDateTime,
                 conflictText);
@@ -1844,6 +1859,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
     private string Localize(string key, string fallback) =>
         _localization is null ? fallback : _localization[key];
 
+    private string LocalizeFormat(string key, string fallback, params object[] arguments)
+    {
+        string format = _localization is null ? fallback : _localization[key];
+        return string.Format(CultureInfo.CurrentCulture, format, arguments);
+    }
+
     private void OnCultureChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(Title));
@@ -1874,6 +1895,19 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(ConfirmFileStreamText));
         OnPropertyChanged(nameof(CancelConfirmationText));
         OnPropertyChanged(nameof(PrimaryActionText));
+        OnPropertyChanged(nameof(PendingConflictCountText));
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(ClientCountText));
+        OnPropertyChanged(nameof(FingerprintText));
+        OnPropertyChanged(nameof(FullFingerprintText));
+        OnPropertyChanged(nameof(SharePanelSubtitle));
+        OnPropertyChanged(nameof(EnrollmentCodeText));
+        OnPropertyChanged(nameof(ContentModeText));
+        OnPropertyChanged(nameof(ToggleContentModeText));
+        OnPropertyChanged(nameof(ClientConnectionStatusText));
+        OnPropertyChanged(nameof(SyncStatusText));
+        OnPropertyChanged(nameof(SchoolAiKeyStatusText));
+        OnPropertyChanged(nameof(SchoolAdminStatusText));
     }
 
     /// <summary>Releases the optional localization subscription.</summary>

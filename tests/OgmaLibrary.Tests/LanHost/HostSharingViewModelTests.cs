@@ -39,6 +39,26 @@ public sealed class HostSharingViewModelTests
     }
 
     [Fact]
+    public async Task HostSharingViewModel_LocalizesRuntimeStatusCopy()
+    {
+        var localization = new OgmaLibrary.Infrastructure.Localization.InMemoryLocalizationService();
+        localization.SetCulture("fr");
+        var viewModel = new HostSharingViewModel(
+            new FakeLibraryHostService(),
+            new FakeHostModeSettingsRepository(),
+            localization: localization);
+
+        await viewModel.StartAsync();
+
+        Assert.Equal("En cours sur :7473", viewModel.StatusText);
+        Assert.Equal("0 clients", viewModel.ClientCountText);
+        Assert.Equal("Rendu de page", viewModel.ContentModeText);
+        Assert.Equal("Arreter", viewModel.PrimaryActionText);
+
+        viewModel.Dispose();
+    }
+
+    [Fact]
     public async Task HostSharingViewModel_StartAndStop_UpdateControlState()
     {
         var host = new FakeLibraryHostService();

@@ -85,15 +85,15 @@ Date: 2026-09-05
   availability bindings and localized catalogue presentation labels; catalogue
   labels now refresh on culture changes. Evidence:
   `evidence/phase-18-directory-fallback-copy-2026-09-05.md`.
-- Localized Host-sharing static control labels for English and French, added
-  culture-change notifications, and released the localization subscription
-  with shell disposal. Evidence:
+- Localized Host-sharing static controls and emitted runtime status formats for
+  English and French, added culture-change notifications, and released the
+  localization subscription with shell disposal. Evidence:
   `evidence/phase-18-host-sharing-copy-2026-09-05.md`.
 
 ## Remaining phase gate
 
-Application-wide hard-coded copy extraction (including dynamic classroom
-Host-sharing status copy), contrast snapshots, and
+Application-wide hard-coded copy extraction beyond the covered Host-sharing
+surface, contrast snapshots, and
 Narrator/VoiceOver journeys remain before phase 18 closure. Theme/density
 persistence, command-palette execution, the
   detail-panel/catalogue-shell/Advisor/startup/detail-format copy extraction,
