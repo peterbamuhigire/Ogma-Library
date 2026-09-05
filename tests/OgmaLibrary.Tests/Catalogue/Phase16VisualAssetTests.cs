@@ -208,6 +208,46 @@ public sealed class Phase16VisualAssetTests : IDisposable
     }
 
     [Fact]
+    public async Task ThumbnailService_FallsBackToGeneratedCoverWhenEmbeddedImageIsUnavailable()
+    {
+        const string bookId = "PHASE16-GENERATED-FALLBACK";
+        const string hash = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-generated-asset-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            _context.Books.Add(new BookRow { BookId = bookId, Title = "Generated Fallback", Status = 0 });
+            await _context.SaveChangesAsync();
+            string pdfPath = CreatePlainPdf(root);
+            var sidecar = new SidecarService(root);
+            var worker = new PdfWorkerClient(new PdfWorkerOptions
+            {
+                SandboxRoot = Path.Combine(root, "worker-sandbox"),
+            });
+            var assets = new VisualAssetService(_context, root);
+            var thumbnails = new ThumbnailService(sidecar, worker, assets);
+
+            (bool success, string? error) = await thumbnails.GenerateCoverAsync(
+                bookId,
+                hash,
+                pdfPath,
+                CancellationToken.None);
+
+            Assert.True(success, error);
+            VisualAssetDescriptor? descriptor = await assets.GetPreferredAsync(bookId, VisualAssetKind.Cover);
+            Assert.NotNull(descriptor);
+            Assert.Equal("generated", descriptor!.Source);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task CatalogueReadModel_ProjectsPreferredReadyCoverForSummaryAndDetail()
     {
         const string bookId = "PHASE16-READMODEL-BOOK";
@@ -503,6 +543,15 @@ public sealed class Phase16VisualAssetTests : IDisposable
             writable: false,
             publiclyVisible: true));
         graphics.DrawImage(image, 0, 0, page.Width.Point, page.Height.Point);
+        document.Save(path);
+        return path;
+    }
+
+    private static string CreatePlainPdf(string root)
+    {
+        string path = Path.Combine(root, "plain-source.pdf");
+        using var document = new PdfDocument();
+        document.AddPage();
         document.Save(path);
         return path;
     }

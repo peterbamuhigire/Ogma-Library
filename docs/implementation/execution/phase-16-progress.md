@@ -49,6 +49,8 @@ Date: 2026-09-05
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore`
   passed with 0 warnings and 0 errors.
 - `Phase16VisualAssetTests`: 4 passed.
+- Current-HEAD `Phase16VisualAssetTests`: 12 passed, including embedded-cover
+  precedence, generated fallback, and the 50,000-book lookup budget.
 - Detail cover UI regression: 2 passed.
 - Direct-open and ingestion regression slice: 19 passed, 0 failed, 0 skipped;
   this includes new-book and re-matched-file spine-job assertions.
@@ -57,9 +59,15 @@ Date: 2026-09-05
 - The 50,000-book preferred visual-asset lookup benchmark passed at p95 0.424
   ms against a 150 ms local budget; see
   `evidence/phase-16-asset-budget-2026-09-05.md`.
+- The seven-file real corpus produced four embedded-cover outputs and three
+  explicit fallback signals in direct worker probing; fallback success is
+  covered by the end-to-end regression.
 - Current-HEAD full Release solution verification after the 50,000-book asset
   budget test: 919 core + 41 architecture + 158 UI = 1,118 passed, 0 failed,
   0 skipped.
+- Current-HEAD full Release solution verification after the generated-cover
+  fallback regression: 920 core + 41 architecture + 158 UI = 1,119 passed,
+  0 failed, 0 skipped.
 
 ## Remaining phase gate
 

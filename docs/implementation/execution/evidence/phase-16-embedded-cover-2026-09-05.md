@@ -17,8 +17,12 @@ cover.
 
 - Embedded-cover worker output regression: 1 passed.
 - End-to-end `ThumbnailService` embedded-source and manifest-precedence
-  regression: 1 passed.
-- Combined PDF-worker and Phase 16 visual-asset slice: 18 passed, 0 failed,
+  regression and generated-cover fallback regression: 2 passed.
+- Direct worker probe across the prior seven-file real corpus produced four
+  bounded embedded covers successfully; the other three returned the explicit
+  no-embedded-image signal used by the deterministic fallback.
+- Phase 16 visual-asset suite: 12 passed, 0 failed, 0 skipped.
+- Combined PDF-worker and Phase 16 visual-asset slice: 19 passed, 0 failed,
   0 skipped.
 - Release solution build: 0 warnings, 0 errors.
 
