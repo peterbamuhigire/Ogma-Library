@@ -93,6 +93,9 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Whether the native 3D surface should be displayed.</summary>
     public bool IsInteractive3DVisible => IsWebGl2Supported && !IsPerformanceDegraded;
 
+    /// <summary>Whether the platform composition supplied a native-host coordinator.</summary>
+    public bool HasNativeHostCoordinator => _hostCoordinator is not null;
+
     /// <summary>Most recent accepted renderer metrics, when a native host is active.</summary>
     public PerformanceMetricsMessage? LastPerformanceMetrics { get; private set; }
 

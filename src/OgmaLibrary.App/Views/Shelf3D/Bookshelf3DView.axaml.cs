@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.App.ViewModels.Shelf3D;
 
@@ -9,6 +10,8 @@ namespace OgmaLibrary.App.Views.Shelf3D;
 public partial class Bookshelf3DView : UserControl
 {
     private IWebViewHostAdapter? _hostAdapter;
+    private readonly List<IDisposable> _visibilitySubscriptions = [];
+    private CancellationTokenSource? _hostCancellation;
 
     /// <summary>Initializes a new instance of <see cref="Bookshelf3DView"/>.</summary>
     public Bookshelf3DView()
@@ -25,21 +28,23 @@ public partial class Bookshelf3DView : UserControl
             return;
         }
 
-        _hostAdapter = new NativeWebViewHostAdapter(WebViewHost);
-        if (_hostAdapter is NativeWebViewHostAdapter nativeHost)
-        {
-            nativeHost.HostUnavailable += OnNativeHostUnavailable;
-        }
-
-        await viewModel.InitializeNativeHostAsync(_hostAdapter).ConfigureAwait(true);
-        if (viewModel.Books.Count == 0)
-        {
-            await viewModel.LoadAsync().ConfigureAwait(true);
-        }
+        SubscribeToAncestorVisibility();
+        await InitializeNativeHostIfVisibleAsync(viewModel).ConfigureAwait(true);
     }
 
     private async void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        foreach (IDisposable subscription in _visibilitySubscriptions)
+        {
+            subscription.Dispose();
+        }
+
+        _visibilitySubscriptions.Clear();
+        CancellationTokenSource? hostCancellation = _hostCancellation;
+        _hostCancellation = null;
+        hostCancellation?.Cancel();
+        hostCancellation?.Dispose();
+
         if (_hostAdapter is NativeWebViewHostAdapter nativeHost)
         {
             nativeHost.HostUnavailable -= OnNativeHostUnavailable;
@@ -51,6 +56,63 @@ public partial class Bookshelf3DView : UserControl
         }
 
         _hostAdapter = null;
+        WebViewHost.Content = null;
+    }
+
+    private void SubscribeToAncestorVisibility()
+    {
+        for (Visual? current = this.GetVisualParent(); current is not null; current = current.GetVisualParent())
+        {
+            if (current is Control control)
+            {
+                _visibilitySubscriptions.Add(control.GetObservable(IsVisibleProperty).Subscribe(isVisible =>
+                {
+                    _ = InitializeNativeHostIfVisibleAsync(DataContext as Bookshelf3DViewModel);
+                }));
+            }
+        }
+    }
+
+    private async Task InitializeNativeHostIfVisibleAsync(Bookshelf3DViewModel? viewModel)
+    {
+        if (viewModel is null || !viewModel.HasNativeHostCoordinator ||
+            !IsEffectivelyVisible || _hostAdapter is not null)
+        {
+            return;
+        }
+
+        var hostCancellation = new CancellationTokenSource();
+        _hostCancellation = hostCancellation;
+        var nativeWebView = new Avalonia.Controls.NativeWebView
+        {
+            Focusable = true,
+            IsTabStop = true,
+        };
+        WebViewHost.Content = nativeWebView;
+        var nativeHost = new NativeWebViewHostAdapter(nativeWebView);
+        nativeHost.HostUnavailable += OnNativeHostUnavailable;
+        _hostAdapter = nativeHost;
+
+        try
+        {
+            await viewModel.InitializeNativeHostAsync(_hostAdapter, hostCancellation.Token)
+                .ConfigureAwait(true);
+            if (viewModel.Books.Count == 0 && !hostCancellation.IsCancellationRequested)
+            {
+                await viewModel.LoadAsync(hostCancellation.Token).ConfigureAwait(true);
+            }
+        }
+        catch (OperationCanceledException) when (hostCancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_hostCancellation, hostCancellation))
+            {
+                _hostCancellation = null;
+                hostCancellation.Dispose();
+            }
+        }
     }
 
     private void OnNativeHostUnavailable(object? sender, EventArgs e)
