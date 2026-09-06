@@ -128,3 +128,8 @@ the full application queue, physical reference-machine process behavior, and
 long-duration soak evidence remain before phase 17 closure; the compatibility
 poll is retained for pre-queue catalogue rows and is not a substitute for
 production evidence.
+
+The Aug-39 Definition of Done now records duplicate-execution prevention,
+visible retry/dead-letter/cancel state, and structured-log redaction as closed.
+Full-application kill/restart and target-throughput gates remain unchecked
+pending physical/reference-machine and soak evidence.

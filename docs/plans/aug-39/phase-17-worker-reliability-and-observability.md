@@ -78,10 +78,10 @@ Runtime, handlers and activity UI can proceed against event contracts.
 Convert generic jobs with an explicit mapping; dead-letter unknown jobs.
 
 ## Definition of Done
-- [ ] No duplicate execution under two workers.
+- [x] No duplicate execution under two workers.
 - [ ] Kill/restart resumes safely.
-- [ ] Retry/dead-letter/cancel are visible.
-- [ ] Structured logs pass redaction tests.
+- [x] Retry/dead-letter/cancel are visible.
+- [x] Structured logs pass redaction tests.
 - [ ] Queue throughput meets target.
 
 ## Kaizen Review
