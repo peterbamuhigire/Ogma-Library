@@ -11,6 +11,46 @@ namespace OgmaLibrary.Tests.Metadata;
 public sealed class Phase15WriteBackSafetyTests
 {
     [Fact]
+    public async Task PrepareBackup_PreCancelled_LeavesNoPartialBackupOrPlan()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-phase15-cancel-prepare-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "book.pdf");
+        await File.WriteAllBytesAsync(path, [1, 2, 3, 4]);
+
+        try
+        {
+            using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "PHASE15CANCELPREPARE000000001",
+                Status = 0,
+                RelativePath = "book.pdf",
+            });
+            await context.SaveChangesAsync();
+            var service = new PdfWriteBackService(context, new SidecarService(root), root);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.PrepareBackupAsync(
+                "PHASE15CANCELPREPARE000000001",
+                path,
+                cancellation.Token));
+
+            string backupRoot = Path.Combine(root, ".ogma", "backups");
+            Assert.False(Directory.Exists(backupRoot));
+            Assert.Null(await service.GetWriteBackPlanAsync("PHASE15CANCELPREPARE000000001"));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task WriteBackRejectsSourceChangedAfterBackupToken()
     {
         string root = Path.Combine(Path.GetTempPath(), $"ogma-phase15-{Guid.NewGuid():N}");

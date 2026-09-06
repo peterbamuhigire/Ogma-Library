@@ -34,6 +34,10 @@ Date: 2026-08-30
   SHA-256 before plan resumption, writeback, and restore. A missing or tampered
   backup now fails closed without mutating the original PDF, with regression
   coverage for both write and restore paths.
+- Replaced whole-file hash allocation and direct final-path backup copying with
+  asynchronous streaming hash/copy operations, byte verification, temporary-
+  file cleanup and atomic promotion. A pre-cancelled preparation leaves no
+  backup or durable writeback plan.
 
 ## Current verification
 
@@ -50,6 +54,9 @@ Date: 2026-08-30
 - Focused backup-integrity verification passed 4/4 (`Phase15WriteBackSafetyTests`)
   on 2026-09-06. Evidence:
   `evidence/phase-15-backup-integrity-2026-09-06.md`.
+- The combined writeback regression slice passed 13/13 after streaming backup
+  preparation was added. Evidence:
+  `evidence/phase-15-streaming-backup-2026-09-06.md`.
 
 ## Remaining phase gate
 
@@ -57,4 +64,5 @@ The locally reproducible Windows ACL and cancellation-interruption subgate is
 closed. Process-kill interruption and cross-platform permission evidence remain
 before phase 15 closure. The first-class durable writeback-plan and explicit
 consent UI gates are closed by the restart-style, safety, and detail-panel
-evidence above.
+evidence above. The streaming hash/copy and partial-backup cleanup subgate is
+also closed by the focused preparation evidence.

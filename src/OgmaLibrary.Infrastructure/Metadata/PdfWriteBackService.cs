@@ -107,9 +107,25 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string backupDir = Path.Combine(backupRoot, ".ogma", "backups");
         Directory.CreateDirectory(backupDir);
         string backupPath = Path.Combine(backupDir, backupFileName);
+        string temporaryBackupPath = backupPath + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await CopyFileAsync(absoluteFilePath, temporaryBackupPath, cancellationToken)
+                .ConfigureAwait(false);
+            string copiedSha256 = await ComputeSha256Async(temporaryBackupPath, cancellationToken)
+                .ConfigureAwait(false);
+            if (!string.Equals(copiedSha256, sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "The source PDF changed while its write-back backup was being prepared. Review the file and try again.");
+            }
 
-        await Task.Run(() => File.Copy(absoluteFilePath, backupPath, overwrite: true), cancellationToken)
-            .ConfigureAwait(false);
+            File.Move(temporaryBackupPath, backupPath, overwrite: true);
+        }
+        finally
+        {
+            TryDelete(temporaryBackupPath);
+        }
 
         DateTimeOffset preparedUtc = DateTimeOffset.UtcNow;
         await SaveWriteBackPlanAsync(
@@ -686,9 +702,57 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
 
     private static async Task<string> ComputeSha256Async(string filePath, CancellationToken cancellationToken)
     {
-        byte[] fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
-        byte[] hashBytes = SHA256.HashData(fileBytes);
-        return Convert.ToHexStringLower(hashBytes);
+        FileStream stream = new(
+            filePath,
+            new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read,
+                Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                BufferSize = 64 * 1024,
+            });
+        await using (stream.ConfigureAwait(false))
+        {
+            byte[] hashBytes = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
+            return Convert.ToHexStringLower(hashBytes);
+        }
+    }
+
+    private static async Task CopyFileAsync(
+        string sourcePath,
+        string destinationPath,
+        CancellationToken cancellationToken)
+    {
+        FileStream source = new(
+            sourcePath,
+            new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read,
+                Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                BufferSize = 64 * 1024,
+            });
+        await using (source.ConfigureAwait(false))
+        {
+            FileStream destination = new(
+                destinationPath,
+                new FileStreamOptions
+                {
+                    Mode = FileMode.CreateNew,
+                    Access = FileAccess.Write,
+                    Share = FileShare.None,
+                    Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                    BufferSize = 64 * 1024,
+                });
+            await using (destination.ConfigureAwait(false))
+            {
+                await source.CopyToAsync(destination, 64 * 1024, cancellationToken).ConfigureAwait(false);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+                destination.Flush(flushToDisk: true);
+            }
+        }
     }
 
     private static async Task EnsureBackupIntegrityAsync(
