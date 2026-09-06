@@ -48,12 +48,19 @@ Date: 2026-09-06
   exception, cannot create its outside-sandbox marker, and is followed by a
   successful valid-PDF render to prove worker recovery. Evidence:
   `evidence/phase-37-synthetic-hostile-pdf-corpus-2026-09-06.md`.
+- The Phase 36 school-data service now creates an online SQLite backup and
+  rehearses it in an isolated temporary database with integrity, schema, and
+  table-count verification. This closes Phase 37's local non-destructive
+  backup/restore sub-gate; see
+  `evidence/phase-36-backup-restore-rehearsal-2026-09-06.md`.
 
 ## Remaining phase gate
 
 Physical hostile PDF corpus, native secret-store and two-user erasure tests,
 firewall/mDNS/network capture, independent penetration review, backup/restore
-rehearsal, and long-duration cross-platform soak remain release evidence gates.
+on protected target storage, and long-duration cross-platform soak remain
+release evidence gates. The local isolated restore rehearsal is closed; it is
+not evidence of physical recovery time, access control, or retention behavior.
 The 2026-09-06 static safety scan retains a medium follow-up for hostile-PDF
 physical/third-party-corpus evidence; the synthetic exception/recovery subgate
 is now closed. Evidence:

@@ -12,8 +12,10 @@ Current-head checks passed:
   0 skipped**.
 
 Physical hostile-PDF corpus, native secret-store/two-user erasure, firewall
-and network capture, independent penetration review, backup/restore rehearsal,
-and long-duration cross-platform soak are **NOT ASSESSED**.
+and network capture, independent penetration review, protected-target
+backup/restore, and long-duration cross-platform soak are **NOT ASSESSED**.
+The repository-level non-destructive restore rehearsal is now assessed in
+`phase-36-backup-restore-rehearsal-2026-09-06.md`.
 
 ## Current-tree dependency refresh — 2026-09-05
 
