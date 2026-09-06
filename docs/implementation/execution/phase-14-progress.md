@@ -40,3 +40,10 @@ The backend bulk preview/apply/undo and tag-mutation subgates are closed. The
 service-layer and desktop review UI sub-gates are also closed. Concurrency and
 review-boundary sanitization are implemented and tested; physical
 OS/browser/screen-reader evidence remains outside this local headless proof.
+
+The Aug-39 Definition of Done now records the field/editability contract,
+visible provenance state, mandatory review, and reversible bulk workflow as
+closed. The physical keyboard/screen-reader journey remains unchecked.
+
+Focused Phase 14 metadata verification on 2026-09-06: **6 passed, 0 failed,
+0 skipped**.

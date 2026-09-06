@@ -78,10 +78,10 @@ Editor and command layer can proceed against frozen DTOs.
 Existing auto-applied provider fields are flagged for provenance review where confidence is unclear.
 
 ## Definition of Done
-- [ ] Every canonical field is editable or explicitly read-only.
-- [ ] Source/confidence/override are visible.
-- [ ] Low-confidence matches require review.
-- [ ] Bulk preview and undo work.
+- [x] Every canonical field is editable or explicitly read-only.
+- [x] Source/confidence/override are visible.
+- [x] Low-confidence matches require review.
+- [x] Bulk preview and undo work.
 - [ ] Keyboard/screen-reader journeys pass.
 
 ## Kaizen Review
