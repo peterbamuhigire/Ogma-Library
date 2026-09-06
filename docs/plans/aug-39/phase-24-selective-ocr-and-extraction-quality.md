@@ -78,9 +78,9 @@ Classifier and OCR adapter improvements can proceed against page artifact contra
 Legacy OCR outputs marked unversioned and regenerated only when needed.
 
 ## Definition of Done
-- [ ] Text PDFs are not OCRed.
-- [ ] Image/low-quality pages are detected and versioned.
-- [ ] OCR failure is non-blocking.
+- [x] Text PDFs are not OCRed.
+- [x] Image/low-quality pages are detected and versioned.
+- [x] OCR failure is non-blocking.
 - [ ] Accuracy/resource corpus meets approved gates.
 - [ ] Tesseract assets ship on both platforms.
 

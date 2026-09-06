@@ -77,3 +77,8 @@ cooperative OCR-control, synthetic 500-book mixed-quality, and generated
 packaged-fixture telemetry sub-gates are closed. Representative real mixed-PDF
 accuracy and resource-corpus evidence, cross-platform packaged asset proof, and
 physical assistive-technology evidence remain before phase 24 closure.
+
+The Aug-39 Definition of Done now records selective text skipping,
+versioned low-quality/image detection, and non-blocking OCR failure as closed.
+Representative accuracy/resource-corpus and two-platform packaged-asset gates
+remain unchecked.
