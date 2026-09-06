@@ -56,3 +56,8 @@ confirmation, and final advisor UI/performance gates remain for phases 29-30.
 Local reference resolution, editable intent, candidate-stage diagnostics, and
 source-labelled evidence assembly are closed by the versioned evidence records
 above and in Phase 29.
+
+The Aug-39 Definition of Done is reconciled as complete against the committed
+deterministic intent/retrieval/reranking suite. Human-labelled quality,
+reference-machine, and final physical UX/performance acceptance remain open
+downstream gates and keep Phase 28 overall `IN PROGRESS`.

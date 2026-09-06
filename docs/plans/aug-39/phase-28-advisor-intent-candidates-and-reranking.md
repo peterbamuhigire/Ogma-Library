@@ -78,11 +78,11 @@ Intent and reranking tracks can proceed against candidate contracts.
 Legacy advisor history remains viewable but is not reused as ranked evidence.
 
 ## Definition of Done
-- [ ] All eight benchmark query categories produce correct intent structures.
-- [ ] Concept queries are not keyword-gated.
-- [ ] Only available catalogue IDs can rank.
-- [ ] Negative constraints and diversity are tested.
-- [ ] Provider-off fallback works.
+- [x] All eight benchmark query categories produce correct intent structures.
+- [x] Concept queries are not keyword-gated.
+- [x] Only available catalogue IDs can rank.
+- [x] Negative constraints and diversity are tested.
+- [x] Provider-off fallback works.
 
 ## Kaizen Review
 1. Complexity: intent/ranking. 2. Reuse search candidates. 3. Simplify advisor orchestration. 4. Delete literal-first reader. 5. Document features/abstention. 6. Pattern: editable interpreted intent. 7. Debt decreases critically.
