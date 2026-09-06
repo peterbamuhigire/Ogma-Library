@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pdf;
 using PdfSharp.Drawing;
@@ -170,6 +171,49 @@ public sealed class PdfWorkerIsolationTests : IDisposable
 
         Assert.Equal(1, renderer.PageCount);
         Assert.NotEmpty(result.PngBytes);
+    }
+
+    [Fact]
+    public async Task PdfWorker_HostileMalformedCorpus_FailsSafelyAndRemainsAvailable()
+    {
+        string recoveryPdf = CreateValidPdf("hostile-corpus-recovery.pdf");
+        string escapeMarker = Path.Combine(Path.GetDirectoryName(_fixtureRoot)!, "hostile-escape.txt");
+        byte[][] corpus =
+        [
+            "%PDF-1.7\nmalformed"u8.ToArray(),
+            "%PDF-1.7\n1 0 obj << /Length 999999999 >> stream\ntruncated"u8.ToArray(),
+            "%PDF-1.7\nxref\n0 99999999\n0000000000 65535 f"u8.ToArray(),
+            [.. "%PDF-1.7\n"u8.ToArray(), .. new byte[4_096]],
+            Encoding.ASCII.GetBytes($"%PDF-1.7\n1 0 obj {new string('[', 256)} 0 {new string(']', 256)} endobj"),
+            Encoding.ASCII.GetBytes($"%PDF-1.7\n/OpenAction << /S /JavaScript /JS (write {escapeMarker}) >>"),
+            "%PDF-1.7\n1 0 obj << /Filter /FlateDecode /Length 20 >> stream\nnot-deflate\nendstream"u8.ToArray(),
+        ];
+
+        for (int index = 0; index < corpus.Length; index++)
+        {
+            string hostilePath = Path.Combine(_fixtureRoot, $"hostile-{index:00}.pdf");
+            await File.WriteAllBytesAsync(hostilePath, corpus[index]);
+            try
+            {
+                using IPdfRenderer renderer = new IsolatedPdfRendererFactory(_client).Open(hostilePath);
+                Assert.Equal(0, renderer.PageCount);
+            }
+            catch (Exception error) when (error is InvalidOperationException or IOException)
+            {
+                Assert.Equal("PDF worker operation failed.", error.Message);
+                Assert.DoesNotContain(_fixtureRoot, error.ToString(), StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("hostile-escape", error.ToString(), StringComparison.OrdinalIgnoreCase);
+            }
+
+            Assert.False(File.Exists(escapeMarker));
+            using IPdfRenderer recovered = new IsolatedPdfRendererFactory(_client).Open(recoveryPdf);
+            Assert.Equal(1, recovered.PageCount);
+            RenderResult result = await recovered.RenderPageAsync(
+                0,
+                new RenderRequest(200),
+                CancellationToken.None);
+            Assert.NotEmpty(result.PngBytes);
+        }
     }
 
     public void Dispose()

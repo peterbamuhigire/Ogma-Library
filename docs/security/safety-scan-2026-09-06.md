@@ -17,7 +17,7 @@ Avalonia desktop, TypeScript/Three.js, SQLite, Kestrel LAN Host
 
 | # | Check | Severity | Findings |
 |---|-------|----------|----------|
-| 6 | Unhandled Runtime Exceptions | MEDIUM | Selected application persistence/provider boundaries and the isolated PDF worker IPC now return stable operator-safe failure messages; physical hostile-PDF exception fuzzing remains unassessed. No remote exploit is confirmed. |
+| 6 | Unhandled Runtime Exceptions | MEDIUM | Selected application persistence/provider boundaries and isolated PDF worker IPC return stable operator-safe failures. A seven-case synthetic malformed-PDF test proves redaction and recovery; physical/third-party hostile-corpus fuzzing remains unassessed. No remote exploit is confirmed. |
 | 7 | Misconfigured Env Variables | PASS | Supported environment settings are parsed and validated by `OgmaRuntimeOptions`; invalid values fail closed. |
 | 8 | Misconfigured File Paths | PASS | File access uses canonical/bounded path authorities, safe asset classes, and traversal tests. |
 | 9 | Database Connection Problems | PASS | EF contexts are scoped through factories where production concurrency requires it; HTTP clients are managed by the host composition and responses are disposed. |
@@ -51,7 +51,10 @@ categories while returning stable generic messages across the child-process
 boundary. The focused boundary regression passed **55/55**.
 
 Check 6 remains **MEDIUM** because hostile-PDF exception behavior still requires
-corpus evidence. No remote exploit was observed.
+physical and maintained third-party corpus evidence. The new synthetic corpus
+performs seven malformed-input/recovery cycles through the production worker;
+see `../implementation/execution/evidence/phase-37-synthetic-hostile-pdf-corpus-2026-09-06.md`.
+No remote exploit was observed.
 
 ## Scope and limitations
 

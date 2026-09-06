@@ -43,6 +43,11 @@ Date: 2026-09-06
   operator-safe messages across its child-process protocol. The focused
   boundary regression passed 55/55; physical/soak boundary review remains
   open.
+- Added a seven-case synthetic malformed-PDF corpus at the production isolated
+  worker boundary. Every case fails with a zero-page result or stable redacted
+  exception, cannot create its outside-sandbox marker, and is followed by a
+  successful valid-PDF render to prove worker recovery. Evidence:
+  `evidence/phase-37-synthetic-hostile-pdf-corpus-2026-09-06.md`.
 
 ## Remaining phase gate
 
@@ -50,5 +55,6 @@ Physical hostile PDF corpus, native secret-store and two-user erasure tests,
 firewall/mDNS/network capture, independent penetration review, backup/restore
 rehearsal, and long-duration cross-platform soak remain release evidence gates.
 The 2026-09-06 static safety scan retains a medium follow-up for hostile-PDF
-exception evidence. Evidence:
+physical/third-party-corpus evidence; the synthetic exception/recovery subgate
+is now closed. Evidence:
 `../../security/safety-scan-2026-09-06.md`.
