@@ -30,7 +30,7 @@ see or hold API keys.
 | **Platforms** | Windows 10/11 + macOS 13+ (Host runs both; admin console is on the Host machine) |
 | **Status** | Implementation started locally |
 | **Depends on** | Phase 16 (Host infrastructure, audit), Phase 17 (profile/role model, ADR-0011), Phase 12 (IAiProvider gateway, privacy tiers, cost metering) |
-| **ADRs introduced** | ADR-0013 (proposed — see §7) |
+| **ADRs introduced** | ADR-0013 (accepted — see §7) |
 
 ---
 
@@ -174,7 +174,7 @@ When this phase is done, all of the following are true:
 
 ## 7. Architecture & approach
 
-### ADR-0013 (proposed)
+### ADR-0013 (accepted)
 
 **Title:** School-managed AI — keys on Host, class-level gateway, entitlements
 and quotas, minors' data handling.
@@ -402,7 +402,7 @@ Full task detail in `tasks.md`.
 
 ### Phase-18-specific exit criteria
 
-- [ ] ADR-0013 authored and owner-ratified.
+- [x] ADR-0013 authored and owner-ratified.
 - [ ] School API key retrievable from `ICredentialStore` on Host; not present in
       any HTTP response body or log file (verified by secret-scan tool in CI).
 - [ ] `POST /api/v1/ai/search` routes through `IAiProvider` on Host; integration

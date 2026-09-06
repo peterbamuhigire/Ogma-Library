@@ -160,6 +160,10 @@ on.
 
 ## Remaining Phase 18 Work
 
+ADR-0013 is accepted and owner-ratified in the canonical ADR record. That
+decision gate is closed; it does not constitute the remaining platform,
+security-tool, accessibility, or workflow evidence.
+
 - Host-local admin sign-in UI/session creation beyond the internal Host-issued admin
   session path; admin-route enforcement is implemented and tested.
 - Student smart-search localization/accessibility polish and richer classroom AI
