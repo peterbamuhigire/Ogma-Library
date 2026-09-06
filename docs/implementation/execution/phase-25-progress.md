@@ -38,6 +38,12 @@ Date: 2026-09-04
   index generation, staged embedding batches are resumable after provider or
   process interruption, promotion is an explicit atomic pointer transition,
   and semantic retrieval reads only the active generation.
+- Added explicit batch accounting for local input tokens, off-device provider
+  bytes, and estimated external provider cost. The enforced local Ollama path
+  reports positive workload tokens with exactly zero off-device bytes and
+  external API cost; rejected non-local providers report all zeros without an
+  invocation. Evidence:
+  `evidence/phase-25-local-embedding-cost-accounting-2026-09-06.md`.
 
 ## Verification
 
@@ -57,11 +63,14 @@ Date: 2026-09-04
 - Side-by-side lifecycle slice: 4 passed; schema/lifecycle regression slice:
   10 passed, 0 failed, 0 skipped. See
   `evidence/phase-25-side-by-side-vector-lifecycle-2026-09-04.md`.
+- Embedding accounting and worker compatibility slice: 8 passed, 0 failed, 0
+  skipped.
 
 ## Remaining phase gate
 
-The side-by-side vector index swap/resume gate is now closed locally. ANN/
-target-scale relevance evidence, provider cost accounting, target-scale UI
-performance, reference-corpus and reference-machine evidence remain open. The
-stale-count/rebuild-status, bounded-memory exact-retrieval, and bounded
+The side-by-side vector index swap/resume and approved local-provider cost
+accounting gates are closed. ANN/target-scale relevance evidence, target-scale
+UI performance, reference-corpus and reference-machine evidence remain open.
+Any future remote provider requires its own current pricing and usage evidence.
+The stale-count/rebuild-status, bounded-memory exact-retrieval, and bounded
 query-cache telemetry subgates remain closed locally.

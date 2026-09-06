@@ -43,6 +43,9 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
         Assert.Equal(2, first.ChunksAttempted);
         Assert.Equal(2, first.ChunksEmbedded);
         Assert.Equal(0, first.ChunksFailed);
+        Assert.True(first.InputTokenCount > 0);
+        Assert.Equal(0, first.ExternalProviderEgressBytes);
+        Assert.Equal(0m, first.EstimatedExternalProviderCostUsd);
         Assert.Equal(0, second.ChunksAttempted);
         Assert.Equal(2, _context.EmbeddingVectors.Count());
         Assert.All(_context.EmbeddingVectors, vector =>
@@ -120,6 +123,9 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
 
         Assert.True(result.ProviderUnavailable);
         Assert.Equal(0, provider.EmbedCallCount);
+        Assert.Equal(0, result.InputTokenCount);
+        Assert.Equal(0, result.ExternalProviderEgressBytes);
+        Assert.Equal(0m, result.EstimatedExternalProviderCostUsd);
         Assert.Empty(_context.EmbeddingVectors);
     }
 

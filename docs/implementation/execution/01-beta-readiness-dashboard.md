@@ -45,7 +45,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 22 | Structured/fuzzy search, facets, paging, highlighting, keyboard UI, localized fallbacks | Reference hardware and assistive technology open | [phase-22](phase-22-progress.md) |
 | 23 | FTS filters, snippets, page jumps, rebuild/swap, 50k local latency | Reference hardware and assistive technology open | [phase-23](phase-23-progress.md) |
 | 24 | Selective OCR policy, checksums, stable failures, cooperative page-boundary controls, 500-book benchmark, packaged-fixture resource telemetry | Representative real accuracy/resource corpus, cross-platform packaged assets, physical accessibility open | [phase-24](phase-24-progress.md) |
-| 25 | Versioned vectors, stale/tombstone lifecycle, bounded memory/cache, swap/resume | ANN/relevance, cost, target-scale UI, reference corpus/machine open | [phase-25](phase-25-progress.md) |
+| 25 | Versioned vectors, stale/tombstone lifecycle, bounded memory/cache, swap/resume, explicit local token/zero-egress/zero-external-cost accounting | ANN/relevance, target-scale UI, reference corpus/machine open | [phase-25](phase-25-progress.md) |
 | 26 | Hybrid ranking, filters, RRF, integrity, synthetic quality metrics | Representative corpus, ANN quality, memory, contract freeze, reference machine open | [phase-26](phase-26-progress.md) |
 | 27 | AI gateway, privacy tiers, cost/quotas, egress, credentials, retention/erasure UI | Provider terms/conformance and physical evidence open | [phase-27](phase-27-progress.md) |
 | 28 | Intent parsing, candidate/reranking, comparison references, diagnostics | Human-labelled benchmark, reference machine, final UI/performance open | [phase-28](phase-28-progress.md) |

@@ -21,4 +21,7 @@ public sealed record EmbeddingGenerationBatchResult(
     int ChunksEmbedded,
     int ChunksFailed,
     int ChunksSkipped,
-    bool ProviderUnavailable);
+    bool ProviderUnavailable,
+    int InputTokenCount = 0,
+    long ExternalProviderEgressBytes = 0,
+    decimal EstimatedExternalProviderCostUsd = 0m);

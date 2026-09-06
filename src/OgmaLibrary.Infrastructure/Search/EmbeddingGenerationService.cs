@@ -93,10 +93,12 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             .ConfigureAwait(false);
         int embedded = 0;
         int failed = 0;
+        int inputTokenCount = 0;
 
         foreach (PendingChunk chunk in chunks)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            inputTokenCount = checked(inputTokenCount + SearchChunker.CountTokens(chunk.Text));
             await SetBookEmbeddingStatusAsync(
                     chunk.BookId,
                     SearchEmbeddingStatus.Embedding,
@@ -155,7 +157,10 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             ChunksEmbedded: embedded,
             ChunksFailed: failed,
             ChunksSkipped: 0,
-            ProviderUnavailable: false);
+            ProviderUnavailable: false,
+            InputTokenCount: inputTokenCount,
+            ExternalProviderEgressBytes: 0,
+            EstimatedExternalProviderCostUsd: 0m);
     }
 
     private async Task<IReadOnlyList<PendingChunk>> FindPendingChunksAsync(
