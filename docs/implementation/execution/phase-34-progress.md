@@ -31,6 +31,11 @@ Date: 2026-09-04
   p95 <2-second assertion.
 - The catalogue concurrency smoke was rerun three consecutive times in
   isolation and passed each time, followed by a clean 61-test LAN slice.
+- After a Windows full-suite contention failure in CI run 34022144296, the live
+  HTTPS performance collection was isolated from unrelated test collections
+  and given an explicit warm-up request. Both `< 2,000 ms` P95 thresholds remain
+  unchanged; the two-test slice passed three consecutive runs. Evidence:
+  `evidence/phase-34-ci-load-isolation-2026-09-06.md`.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-34-local-gate-reconciliation-2026-09-04.md`.
 

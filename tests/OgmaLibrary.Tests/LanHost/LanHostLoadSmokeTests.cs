@@ -16,6 +16,7 @@ using OgmaLibrary.Tests.Reader;
 namespace OgmaLibrary.Tests.LanHost;
 
 /// <summary>Phase 16 LAN Host load smoke tests.</summary>
+[Collection(LanHostPerformanceTestGroup.Name)]
 public sealed class LanHostLoadSmokeTests
 {
     [Fact]
@@ -41,6 +42,8 @@ public sealed class LanHostLoadSmokeTests
                 new { clientId = "load-smoke", role = "Teacher", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            _ = await TimedGetAsync(http, "/api/v1/catalogue?page=1&pageSize=20");
 
             Task<long>[] requests = Enumerable.Range(0, 20)
                 .Select(_ => TimedGetAsync(http, "/api/v1/catalogue?page=1&pageSize=20"))
@@ -82,6 +85,8 @@ public sealed class LanHostLoadSmokeTests
                 new { clientId = "page-load-smoke", role = "Teacher", lifetimeMinutes = 5, enrollmentCode });
             string token = await ReadJsonStringAsync(session, "token");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            _ = await TimedPngGetAsync(http, "/api/v1/books/01LANLOADSMOKE0000000000/page/1?widthPx=800");
 
             Task<long>[] requests = Enumerable.Range(0, 10)
                 .Select(_ => TimedPngGetAsync(http, "/api/v1/books/01LANLOADSMOKE0000000000/page/1?widthPx=800"))
@@ -242,4 +247,11 @@ public sealed class LanHostLoadSmokeTests
     {
         public IPAddress SelectBindAddress() => address;
     }
+}
+
+/// <summary>Runs live HTTPS performance smoke tests without competing test collections.</summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class LanHostPerformanceTestGroup
+{
+    public const string Name = "LAN Host performance";
 }
