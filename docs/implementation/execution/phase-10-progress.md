@@ -29,4 +29,9 @@ Date: 2026-09-04
 
 The brokered copy and one-shot password transport gates are now implemented and
 tested. True Windows/macOS network and filesystem sandbox adapters, physical
-escape evidence, and independent security approval remain open.
+escape evidence, and independent security approval remain open. Current
+platform-contract research is recorded in
+`evidence/phase-10-platform-sandbox-currentness-2026-09-06.md`; it confirms
+that the Windows candidate API is experimental and that macOS enforcement is
+entitlement/signing based, so neither is treated as implemented from a
+wrapper or environment flag alone.
