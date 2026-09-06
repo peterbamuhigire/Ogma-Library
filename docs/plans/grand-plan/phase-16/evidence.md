@@ -185,6 +185,11 @@ Dedicated schema proof: `Phase16Migration_AddsLanHostTablesAndRoundTrips`
 migrates to Phase 16, verifies both Host tables, both indexes, and the disabled
 default row, downgrades to the Phase 15 boundary, and remigrates successfully.
 
+The real HTTPS endpoint flow now requires authenticated audit events for its
+catalogue, search, detail, sync, asset, page/file delivery, managed-AI, and
+Host-local admin route set. Token values remain explicitly absent from every
+captured audit payload.
+
 - Real same-subnet mDNS discovery and HTTPS binding verification on Windows and
   macOS runners.
 - Real macOS Keychain execution evidence for the Host CA store on a macOS runner

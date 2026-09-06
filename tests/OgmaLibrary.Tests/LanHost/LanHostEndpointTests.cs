@@ -311,6 +311,24 @@ public sealed class LanHostEndpointTests
                      e.ActorId == "client:student-1" &&
                      e.AfterJson?.Contains("\"action\":\"UploadProfileSync\"", StringComparison.Ordinal) == true &&
                      e.AfterJson.Contains("\"resourceType\":\"ProfileSync\"", StringComparison.Ordinal));
+            string[] authenticatedAuditPaths =
+            [
+                "/api/v1/ai/search/preview",
+                "/api/v1/ai/search",
+                "/admin/ai/test-connection",
+                "/api/v1/catalogue",
+                "/api/v1/catalogue/search",
+                "/api/v1/catalogue/01LANENDPOINT000000000001",
+                "/api/v1/profile/sync",
+                $"/api/v1/assets/covers/{assetHash}",
+                "/api/v1/books/01LANENDPOINT000000000001/page/1",
+                "/api/v1/books/01LANENDPOINT000000000001/file",
+            ];
+            Assert.All(authenticatedAuditPaths, path =>
+                Assert.Contains(
+                    auditEvents,
+                    audit => audit.EntityId == path &&
+                             audit.AfterJson?.Contains("\"authenticated\":true", StringComparison.Ordinal) == true));
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(token, StringComparison.Ordinal) == true);
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(adminSession.Token, StringComparison.Ordinal) == true);
             Assert.DoesNotContain(auditEvents, e => e.AfterJson?.Contains(managedToken, StringComparison.Ordinal) == true);
