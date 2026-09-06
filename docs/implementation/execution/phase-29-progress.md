@@ -67,3 +67,8 @@ The bounded unsupported-claim/abstention benchmark is closed. The desktop
 answer display remains local/evidence-only; provider-generated explanations
 still receive assembled, versioned source-label evidence. Physical UI evidence
 remains unassessed.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 29's local
+grounding, tier-boundary, answer-mode, injection/citation, and provider-failure
+contract. Physical UI acceptance remains open and keeps the phase overall
+`IN PROGRESS`.

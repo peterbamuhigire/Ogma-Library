@@ -78,11 +78,11 @@ Evidence assembler/validator and UI cards can proceed; prompts wait for evidence
 Legacy explanations are labeled ungrounded or excluded from current history.
 
 ## Definition of Done
-- [ ] Every content claim has a resolvable source or uncertainty label.
-- [ ] Metadata-only and content-aware tiers are distinct.
-- [ ] Answer mode no longer throws/not-scaffolded.
-- [ ] Prompt-injection and citation validation pass.
-- [ ] Provider failure retains useful grounded results.
+- [x] Every content claim has a resolvable source or uncertainty label.
+- [x] Metadata-only and content-aware tiers are distinct.
+- [x] Answer mode no longer throws/not-scaffolded.
+- [x] Prompt-injection and citation validation pass.
+- [x] Provider failure retains useful grounded results.
 
 ## Kaizen Review
 1. Complexity: claims/evidence/versioning. 2. One evidence model for advisor/answers. 3. Simplify prompts. 4. Delete generic ungrounded explanation path. 5. Document evidence rules. 6. Pattern: validate-after-generate. 7. Debt decreases.
