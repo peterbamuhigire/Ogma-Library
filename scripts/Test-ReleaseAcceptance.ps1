@@ -19,6 +19,19 @@ function Assert-AllowedProperties([object] $value, [string[]] $allowed, [string]
     }
 }
 
+function Get-Sha256Hex([string] $path) {
+    $stream = [IO.File]::OpenRead($path)
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha256.ComputeHash($stream)
+        return ([BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $sha256.Dispose()
+        $stream.Dispose()
+    }
+}
+
 if ($record.schema -ne 'ogma-release-acceptance-v1') { throw 'Unsupported acceptance record schema.' }
 Assert-AllowedProperties $record @('schema', 'releaseId', 'commitSha', 'evidence', 'artifacts', 'hardware', 'schemaFreeze', 'migration', 'approval') 'Acceptance record'
 if ([string]::IsNullOrWhiteSpace($record.releaseId) -or $record.releaseId.Length -gt 128 -or $record.releaseId -notmatch '^[A-Za-z0-9._-]+$') { throw 'Acceptance releaseId is missing or unsafe.' }
@@ -38,7 +51,7 @@ foreach ($item in @($record.evidence)) {
     if (-not $evidencePath.StartsWith($directoryPrefix, $pathComparison)) { throw "Acceptance evidence path for '$($item.id)' escapes the record directory." }
     if (-not (Test-Path -LiteralPath $evidencePath -PathType Leaf)) { throw "Acceptance evidence '$($item.id)' does not exist." }
     if ($item.sha256 -notmatch '^[0-9a-fA-F]{64}$') { throw "Acceptance evidence digest for '$($item.id)' is invalid." }
-    $actualDigest = (Get-FileHash -LiteralPath $evidencePath -Algorithm SHA256).Hash
+    $actualDigest = Get-Sha256Hex $evidencePath
     if ($actualDigest -ne $item.sha256) { throw "Acceptance evidence digest for '$($item.id)' does not match." }
     $evidenceById[$item.id] = $true
 }
