@@ -78,10 +78,10 @@ Resolver/generator and cover component can proceed against manifest DTOs.
 Import existing JPEGs as legacy variants or regenerate without deleting until success.
 
 ## Definition of Done
-- [ ] 2D catalogue displays real generated/resolved covers.
-- [ ] Multiple deterministic variants and spines exist.
-- [ ] Custom cover is protected.
-- [ ] Invalidation/garbage collection is safe.
+- [x] 2D catalogue displays real generated/resolved covers.
+- [x] Multiple deterministic variants and spines exist.
+- [x] Custom cover is protected.
+- [x] Invalidation/garbage collection is safe.
 - [ ] Large library asset budget passes.
 
 ## Kaizen Review

@@ -86,3 +86,9 @@ variant rejection are covered by the local variant tests.
 The ingest/update spine scheduling sub-gate is closed locally.
 The local detail cover-control and LAN asset-authorization sub-gates are closed;
 physical accessibility and cross-platform evidence remain open.
+
+The Aug-39 Definition of Done now records 2D cover delivery, deterministic
+variants/spines, custom-cover precedence, and safe invalidation/garbage
+collection as closed. The large-library asset gate remains unchecked pending
+the named GPU/reference-hardware acceptance that the local and hosted disk
+budgets do not replace.
