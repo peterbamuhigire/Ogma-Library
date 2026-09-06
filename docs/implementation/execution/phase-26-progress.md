@@ -39,6 +39,11 @@ Date: 2026-09-04
 - Added a real-service local concept fixture with four judged queries, six
   varied vectors, distractors, and a versioned Recall@3/MRR/nDCG quality gate.
   The local fixture achieved 1.0 for all three metrics.
+- Froze the v1 search boundary through shared application-layer version
+  identifiers for semantic response, RRF fusion, hybrid ranking, and offline
+  evaluation. Semantic responses now carry their version, and an executable
+  shape guard requires a deliberate version change for breaking DTO changes.
+  Evidence: `evidence/phase-26-search-contract-freeze-2026-09-06.md`.
 
 ## Verification
 
@@ -49,11 +54,13 @@ Date: 2026-09-04
 - Hybrid diversity policy regression slice: 8 passed.
 - Local concept-quality slice: 1 passed with Recall@3, MRR and nDCG all at
   1.0. See `evidence/phase-26-local-retrieval-quality-2026-09-04.md`.
+- Search contract, hybrid, evaluation, semantic, and combined-search slice: 19
+  passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
 The local Recall@K/MRR/nDCG sub-gate is closed for the synthetic concept
 fixture. Approved representative/reference-corpus evidence, true ANN or
 equivalent target-scale relevance-quality retrieval, independent memory
-acceptance at 50,000 books, final search-contract freeze, and reference-machine
-confirmation remain open.
+acceptance at 50,000 books, and reference-machine confirmation remain open.
+The final v1 search-contract freeze is closed and version guarded.

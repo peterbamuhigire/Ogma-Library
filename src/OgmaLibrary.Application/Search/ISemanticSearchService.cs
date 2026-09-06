@@ -21,7 +21,8 @@ public sealed record SemanticSearchResponse(
     bool UsedExactFallback,
     IReadOnlyList<SemanticSearchResult> Results,
     SemanticSearchAvailability Availability = SemanticSearchAvailability.Ready,
-    bool EmbeddingCacheHit = false);
+    bool EmbeddingCacheHit = false,
+    string ContractVersion = SearchContractVersions.SemanticResponse);
 
 /// <summary>Explains whether semantic search is ready, degraded, or unavailable.</summary>
 public enum SemanticSearchAvailability

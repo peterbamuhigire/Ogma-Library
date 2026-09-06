@@ -6,7 +6,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 public static class SearchOfflineEvaluator
 {
     /// <summary>Stable version of the search evaluation metric contract.</summary>
-    public const string EvaluationVersion = "search-retrieval-evaluation-v1";
+    public const string EvaluationVersion = SearchContractVersions.Evaluation;
 
     /// <summary>Evaluates captured ranked results against local relevance judgments.</summary>
     public static SearchEvaluationReport Evaluate(IReadOnlyList<SearchEvaluationCase> cases)

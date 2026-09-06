@@ -80,7 +80,7 @@ public sealed class CombinedSearchService : ICombinedSearchService
                     .OrderByDescending(hit => hit.Score)
                     .ThenBy(hit => hit.ChunkIndex)
                     .ToList(),
-                FusionVersion: "rrf-v1"))
+                FusionVersion: SearchContractVersions.CombinedFusion))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Title, StringComparer.OrdinalIgnoreCase)
             .ThenBy(result => result.BookId, StringComparer.Ordinal)

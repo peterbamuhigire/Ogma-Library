@@ -22,4 +22,4 @@ public sealed record CombinedSearchResult(
     double Score,
     IReadOnlyList<string> MatchedFields,
     IReadOnlyList<FtsSearchResult> FtsHits,
-    string FusionVersion = "rrf-v1");
+    string FusionVersion = SearchContractVersions.CombinedFusion);
