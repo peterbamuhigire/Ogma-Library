@@ -25,3 +25,7 @@ Closed. Field scope, override precedence, normalized identifiers/contributor
 roles, proposal-only provider enrichment, confidence-model versioning, and the
 provenance-bearing review projection are executable and covered by tests.
 Physical UI walkthroughs remain owned by later platform/release phases.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 12's
+implementation scope. Physical presentation acceptance remains a later
+platform/release concern and is not inferred from these domain tests.

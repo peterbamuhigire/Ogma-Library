@@ -78,11 +78,11 @@ Schema and normalization can proceed; UI consumes frozen DTOs.
 Legacy canonical values become preserved provenance, not re-inferred.
 
 ## Definition of Done
-- [ ] Field scope and precedence are documented/executable.
-- [ ] User overrides cannot be automated away.
-- [ ] Contributors/identifiers are normalized appropriately.
-- [ ] Confidence is versioned/calibrated.
-- [ ] Proposal-only ingestion is enforced.
+- [x] Field scope and precedence are documented/executable.
+- [x] User overrides cannot be automated away.
+- [x] Contributors/identifiers are normalized appropriately.
+- [x] Confidence is versioned/calibrated.
+- [x] Proposal-only ingestion is enforced.
 
 ## Kaizen Review
 1. Complexity: field histories. 2. Centralize precedence. 3. Simplify provider/extractor writes. 4. Delete direct canonical mutation. 5. Document field dictionary. 6. Pattern: sourced field proposal. 7. Debt decreases.
