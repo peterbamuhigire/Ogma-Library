@@ -49,6 +49,12 @@ Date: 2026-09-04
   recognized with the packaged English model, and checked for full expected-
   word recall and the 0.75 confidence threshold. Focused result: 1/1 passed.
   Evidence: `evidence/phase-24-packaged-tesseract-fixture-2026-09-05.md`.
+- Instrumented that packaged fixture with test-host CPU/wall-time observations
+  and isolated-renderer peak/private-memory telemetry. The renderer remained
+  within its configured 768 MiB ceiling (58,159,104-byte peak working set and
+  23,785,472-byte private memory); this is a local regression baseline, not a
+  reference-machine performance claim. Evidence:
+  `evidence/phase-24-packaged-ocr-resource-observation-2026-09-06.md`.
 - The complete serialized Release core suite subsequently passed 925/925;
   architecture and UI baselines remain green at 41/41 and 159/159.
 
@@ -67,7 +73,7 @@ Date: 2026-09-04
 ## Remaining phase gate
 
 The local selective-policy, checksum-integrity, stable-failure-code,
-cooperative OCR-control, and synthetic 500-book mixed-quality sub-gates are closed. Real
-mixed-PDF accuracy and CPU/memory corpus evidence, cross-platform packaged
-asset proof, and physical assistive-technology evidence remain before phase 24
-closure.
+cooperative OCR-control, synthetic 500-book mixed-quality, and generated
+packaged-fixture telemetry sub-gates are closed. Representative real mixed-PDF
+accuracy and resource-corpus evidence, cross-platform packaged asset proof, and
+physical assistive-technology evidence remain before phase 24 closure.

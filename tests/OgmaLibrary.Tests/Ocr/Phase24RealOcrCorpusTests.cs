@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Ocr;
@@ -31,6 +32,10 @@ public sealed class Phase24RealOcrCorpusTests
 
         try
         {
+            using Process testProcess = Process.GetCurrentProcess();
+            testProcess.Refresh();
+            TimeSpan startingCpu = testProcess.TotalProcessorTime;
+            var elapsed = Stopwatch.StartNew();
             string[] expectedWords = File.ReadAllLines(Path.Combine(corpusRoot, "expected-words.txt"))
                 .Where(word => !string.IsNullOrWhiteSpace(word))
                 .Select(word => word.Trim().ToLowerInvariant())
@@ -69,6 +74,20 @@ public sealed class Phase24RealOcrCorpusTests
                 result.Confidence >= 0.75,
                 $"OCR confidence {result.Confidence:F3} was below the 0.75 selection threshold."));
             Assert.All(expectedWords, word => Assert.Contains(word, text, StringComparison.Ordinal));
+
+            elapsed.Stop();
+            testProcess.Refresh();
+            TimeSpan consumedCpu = testProcess.TotalProcessorTime - startingCpu;
+            Assert.InRange(worker.MaxPeakWorkingSetBytes, 1, 768L * 1024L * 1024L);
+            Assert.InRange(worker.MaxPrivateMemoryBytes, 1, 768L * 1024L * 1024L);
+            Console.WriteLine(
+                "OCR_RESOURCE_EVIDENCE " +
+                $"pages={recognized.Count} " +
+                $"elapsed_ms={elapsed.Elapsed.TotalMilliseconds:F0} " +
+                $"testhost_cpu_ms={consumedCpu.TotalMilliseconds:F0} " +
+                $"testhost_peak_bytes={testProcess.PeakWorkingSet64} " +
+                $"renderer_peak_bytes={worker.MaxPeakWorkingSetBytes} " +
+                $"renderer_private_bytes={worker.MaxPrivateMemoryBytes}");
         }
         finally
         {
