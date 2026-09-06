@@ -78,11 +78,11 @@ Indexer/integrity and UI result experience can proceed against page-anchor contr
 Rebuild legacy FTS side-by-side and swap after validation.
 
 ## Definition of Done
-- [ ] Index version follows extraction version.
-- [ ] Deleted/changed assets leave no stale rows.
-- [ ] Snippets jump to the correct reader page.
-- [ ] Rebuild resumes after crash.
-- [ ] Latency budget passes.
+- [x] Index version follows extraction version.
+- [x] Deleted/changed assets leave no stale rows.
+- [x] Snippets jump to the correct reader page.
+- [x] Rebuild resumes after crash.
+- [x] Latency budget passes.
 
 ## Kaizen Review
 1. Complexity: derived index lifecycle. 2. Reuse version manifests. 3. Simplify search modes. 4. Remove stale legacy rows. 5. Document grammar/rebuild. 6. Pattern: side-by-side projection rebuild. 7. Debt decreases.

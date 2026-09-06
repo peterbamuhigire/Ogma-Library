@@ -69,3 +69,8 @@ The progress/no-index UI, observability, side-by-side rebuild/swap backend, and
 is green at 1,071 tests (885 core, 41 architecture, 145 UI), with 0 failures
 and 0 skips. Reference-hardware confirmation and physical assistive-technology
 walkthroughs remain `NOT ASSESSED`.
+
+The Aug-39 Definition of Done is reconciled as complete for the local Phase 23
+index lifecycle, reader-jump, recovery, and latency contract. Reference-hardware
+confirmation and physical assistive-technology acceptance remain open release
+gates.
