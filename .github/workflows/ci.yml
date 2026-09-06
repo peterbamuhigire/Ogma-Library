@@ -93,6 +93,7 @@ jobs:
       - name: Test (unit + architecture + UI render)
         # Run test projects sequentially so latency budgets are not distorted by
         # competing architecture/UI test hosts on shared CI runners.
+        timeout-minutes: 20
         run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1
 
       - name: Upload skeleton screenshots
