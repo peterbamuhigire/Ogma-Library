@@ -59,6 +59,11 @@ Date: 2026-09-05
 - The 50,000-book preferred visual-asset lookup benchmark passed at p95 0.424
   ms against a 150 ms local budget; see
   `evidence/phase-16-asset-budget-2026-09-05.md`.
+- The production isolated PDF worker generated all four bounded cover/spine
+  variants across the three-file PDFium corpus. Maximum aggregate encoded size
+  was 78,274 bytes per book, projecting to 3.645 GiB at 50,000 books against a
+  512-KiB-per-book ceiling. Evidence:
+  `evidence/phase-16-disk-generation-budget-2026-09-06.md`.
 - The seven-file real corpus produced four embedded-cover outputs and three
   explicit fallback signals in direct worker probing; fallback success is
   covered by the end-to-end regression.
@@ -71,9 +76,10 @@ Date: 2026-09-05
 
 ## Remaining phase gate
 
-Remaining UI journeys and full disk-generation/GPU asset budget evidence remain
-before phase 16 closure. Embedded source acquisition and the local 50,000-book
-preferred-lookup subgate are now closed. Provider cover acquisition is wired
+Remaining UI journeys and GPU/reference-hardware asset budget evidence remain
+before phase 16 closure. Embedded source acquisition, the local 50,000-book
+preferred-lookup subgate, and the real-worker corpus disk-generation subgate
+are now closed. Provider cover acquisition is wired
 through the validated provider-image boundary; lazy high/low variants and exact
 variant rejection are covered by the local variant tests.
 The ingest/update spine scheduling sub-gate is closed locally.
