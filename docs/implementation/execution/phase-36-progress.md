@@ -51,6 +51,8 @@ Date: 2026-09-04
   `evidence/phase-36-backup-restore-rehearsal-2026-09-06.md`.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-36-local-gate-reconciliation-2026-09-04.md`.
+- Current focused school-administration/managed-AI/profile verification:
+  **51 passed, 0 failed, 0 skipped** on 2026-09-06.
 
 ## Remaining phase gate
 
@@ -60,3 +62,9 @@ accessibility/localisation capture, provider load/soak, and formal minors DPIA
 approval remain release gates. The local transactional erasure-audit subgate is
 closed, as is the non-destructive local restore-rehearsal subgate. Managed AI
 remains metadata-only and fail-closed by default.
+
+The Aug-39 Definition of Done now records server-side administration RBAC,
+host-only rotatable key custody, and grounded published-scope managed AI as
+closed by local executable evidence. The combined retention/erasure gate and
+formal DPIA/backup approval gate remain unchecked because their physical and
+accountable-owner acceptance is still outstanding.

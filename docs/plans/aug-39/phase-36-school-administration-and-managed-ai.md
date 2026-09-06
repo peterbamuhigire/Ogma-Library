@@ -78,10 +78,10 @@ RBAC/quota, admin UI and managed-AI conformance can proceed; final integration w
 Existing roles/policies default deny until reviewed; rotate any legacy keys.
 
 ## Definition of Done
-- [ ] All admin actions enforce roles server-side.
-- [ ] School keys are host-only and rotatable.
+- [x] All admin actions enforce roles server-side.
+- [x] School keys are host-only and rotatable.
 - [ ] Quotas/audit/retention/erasure pass.
-- [ ] Managed AI remains grounded/published-scope only.
+- [x] Managed AI remains grounded/published-scope only.
 - [ ] DPIA/minors and backup/restore evidence approved.
 
 ## Kaizen Review
