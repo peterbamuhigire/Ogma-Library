@@ -24,6 +24,8 @@ and no production acceptance record exists.
 - Every platform, hardware, schema-freeze, migration, and approval object must
   reference verified evidence.
 - The JSON schema and executable PowerShell validator reject undeclared fields.
+- The deterministic text fixture is marked `-text` in `.gitattributes`, so Git
+  cannot rewrite its bytes per platform and invalidate the declared digest.
 
 ## Verification
 
