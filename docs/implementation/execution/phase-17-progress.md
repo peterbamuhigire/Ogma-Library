@@ -45,6 +45,12 @@ Date: 2026-09-04
   work and successful extraction enqueues an idempotent embedding trigger.
 - Added restart-style recovery/load evidence: an orphaned lease is recovered
   after context disposal and 64 queued jobs drain through recreated workers.
+- Added atomic, idempotent cancellation for pending shared-runtime jobs. A
+  conditional state transition prevents a concurrent claim from being
+  overwritten; actively leased work is rejected until handlers provide safe
+  cooperative cancellation. Cancelled work is now counted in metrics and
+  bounded diagnostics, and a payload-free audit event records the transition.
+  Evidence: `evidence/phase-17-queued-cancellation-2026-09-06.md`.
 - Added a Windows process-kill rehearsal for the production persistent PDF
   worker. The worker was terminated through the OS process API, the dead
   session surfaced an operation failure, and a new session rendered
@@ -65,12 +71,16 @@ Date: 2026-09-04
   measures 64 repeated context startups. The focused load test passed 1/1 on
   2026-09-06. Evidence:
   `evidence/phase-17-restart-recovery-load-2026-09-06.md`.
+- Shared-runtime cancellation and stage-worker regression slice: 10 passed, 0
+  failed, 0 skipped.
 
 ## Remaining phase gate
 
 The local durable lease/runtime, queue-backed stage-worker, restart-style
-recovery/load, and Windows process-kill/restart subgates are closed. Crash
-recovery under the full application queue, cross-platform process behavior,
-and long-duration soak evidence remain before phase 17 closure; the
-compatibility poll is retained for pre-queue catalogue rows and is not a
-substitute for production evidence.
+recovery/load, Windows process-kill/restart, and pending-job cancellation
+subgates are closed. Active generic handlers do not yet expose safe cooperative
+cancellation. Crash recovery under the full application queue, a complete
+activity-centre surface, cross-platform process behavior, and long-duration
+soak evidence remain before phase 17 closure; the compatibility poll is
+retained for pre-queue catalogue rows and is not a substitute for production
+evidence.

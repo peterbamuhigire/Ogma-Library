@@ -122,6 +122,50 @@ public sealed class Phase17JobRuntimeTests : IDisposable
     }
 
     [Fact]
+    public async Task CancelPending_IsDurableAuditedAndCannotMisreportActiveWork()
+    {
+        _fixture.Context.Jobs.AddRange(
+            new JobRow
+            {
+                JobType = "ThumbnailGeneration",
+                IdempotencyKey = "phase17-cancel-pending",
+                Status = (int)JobRuntimeStatus.Pending,
+            },
+            new JobRow
+            {
+                JobType = "SpineGeneration",
+                IdempotencyKey = "phase17-cancel-running",
+                Status = (int)JobRuntimeStatus.Pending,
+            });
+        await _fixture.Context.SaveChangesAsync();
+        long pendingJobId = _fixture.Context.Jobs.Single(job =>
+            job.IdempotencyKey == "phase17-cancel-pending").JobId;
+        _fixture.Context.ChangeTracker.Clear();
+        var runtime = new JobRuntimeService(_fixture.Context);
+        JobLease running = (await runtime.ClaimNextAsync(
+            ["SpineGeneration"], "worker-a", TimeSpan.FromMinutes(1)))!;
+
+        await runtime.CancelPendingAsync(pendingJobId);
+        await runtime.CancelPendingAsync(pendingJobId);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            runtime.CancelPendingAsync(running.JobId));
+
+        JobRow cancelled = await _fixture.Context.Jobs.SingleAsync(job => job.JobId == pendingJobId);
+        Assert.Equal((int)JobRuntimeStatus.Cancelled, cancelled.Status);
+        Assert.Equal("cancelled_by_user", cancelled.FailureCode);
+        Assert.NotNull(cancelled.CompletedUtc);
+        Assert.Null(cancelled.NextAttemptUtc);
+        Assert.Equal(
+            1,
+            _fixture.Context.AuditEvents.Count(audit =>
+                audit.EventType == "JobCancelled" &&
+                audit.EntityId == pendingJobId.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        Assert.Equal(
+            (int)JobRuntimeStatus.Running,
+            _fixture.Context.Jobs.Single(job => job.JobId == running.JobId).Status);
+    }
+
+    [Fact]
     public async Task JobLifecycleEvents_AreStructuredAndRedacted()
     {
         _fixture.Context.Jobs.Add(new JobRow
@@ -225,6 +269,12 @@ public sealed class Phase17JobRuntimeTests : IDisposable
                 IdempotencyKey = "phase17-metrics-dead-letter",
                 Status = (int)JobRuntimeStatus.DeadLetter,
                 RetryCount = 1,
+            },
+            new JobRow
+            {
+                JobType = "ThumbnailGeneration",
+                IdempotencyKey = "phase17-metrics-cancelled",
+                Status = (int)JobRuntimeStatus.Cancelled,
             });
         await _fixture.Context.SaveChangesAsync();
 
@@ -235,6 +285,7 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.Equal(1, metrics.RunningCount);
         Assert.Equal(1, metrics.CompletedCount);
         Assert.Equal(1, metrics.FailedCount);
+        Assert.Equal(1, metrics.CancelledCount);
         Assert.Equal(1, metrics.DeadLetterCount);
         Assert.Equal(10, metrics.TotalAttempts);
         Assert.Equal(1, metrics.ActiveByJobType["OcrJob"]);
@@ -245,6 +296,7 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.DoesNotContain("payload", diagnostics, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("leaseOwner", diagnostics, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("deadLetterCount", diagnostics, StringComparison.Ordinal);
+        Assert.Contains("cancelledCount", diagnostics, StringComparison.Ordinal);
     }
 
     public void Dispose() => _fixture.Dispose();

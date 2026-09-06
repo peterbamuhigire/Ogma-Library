@@ -134,6 +134,10 @@ public sealed class Phase17StageWorkerTests
             CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException("The queue-backed test job should complete.");
 
+        public Task CancelPendingAsync(
+            long jobId,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<int> RecoverExpiredAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
 

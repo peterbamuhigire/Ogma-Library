@@ -46,6 +46,7 @@ public sealed record JobRuntimeMetrics(
     int RunningCount,
     int CompletedCount,
     int FailedCount,
+    int CancelledCount,
     int DeadLetterCount,
     int TotalAttempts,
     IReadOnlyDictionary<string, int> ActiveByJobType);
@@ -94,6 +95,15 @@ public interface IJobRuntimeService
         string workerId,
         JobFailure failure,
         int maxAttempts = 3,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cancels queued work without deleting its history. An actively leased job
+    /// cannot be reported as cancelled until its handler supports cooperative
+    /// cancellation at a safe checkpoint.
+    /// </summary>
+    Task CancelPendingAsync(
+        long jobId,
         CancellationToken cancellationToken = default);
 
     /// <summary>Returns expired running jobs to the queue for deterministic recovery.</summary>

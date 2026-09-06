@@ -256,6 +256,72 @@ public sealed class JobRuntimeService : IJobRuntimeService
     }
 
     /// <inheritdoc />
+    public async Task CancelPendingAsync(
+        long jobId,
+        CancellationToken cancellationToken = default)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        DateTimeOffset completedUtc = DateTimeOffset.UtcNow;
+        int updated = await context.Jobs
+            .Where(job =>
+                job.JobId == jobId &&
+                job.Status == (int)JobRuntimeStatus.Pending)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(job => job.Status, (int)JobRuntimeStatus.Cancelled)
+                    .SetProperty(job => job.CompletedUtc, completedUtc)
+                    .SetProperty(job => job.NextAttemptUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.LeaseOwner, (string?)null)
+                    .SetProperty(job => job.LeaseExpiresUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.FailureCode, "cancelled_by_user")
+                    .SetProperty(job => job.ErrorMessage, "Cancelled before execution."),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (updated == 0)
+        {
+            int? status = await context.Jobs
+                .AsNoTracking()
+                .Where(job => job.JobId == jobId)
+                .Select(job => (int?)job.Status)
+                .SingleOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (status is null)
+            {
+                throw new KeyNotFoundException($"Job '{jobId}' was not found.");
+            }
+
+            if (status == (int)JobRuntimeStatus.Cancelled)
+            {
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            throw new InvalidOperationException(
+                "Only pending jobs can be cancelled safely; active work requires cooperative handler cancellation.");
+        }
+
+        JobRow job = await context.Jobs
+            .AsNoTracking()
+            .SingleAsync(row => row.JobId == jobId, cancellationToken)
+            .ConfigureAwait(false);
+        AddAuditEvent(
+            context,
+            "JobCancelled",
+            job,
+            new
+            {
+                jobType = job.JobType,
+                attempt = job.RetryCount,
+                state = "cancelled_before_execution",
+            });
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -272,6 +338,9 @@ public sealed class JobRuntimeService : IJobRuntimeService
             cancellationToken).ConfigureAwait(false);
         int failedCount = await jobs.CountAsync(
             job => job.Status == (int)JobRuntimeStatus.Failed,
+            cancellationToken).ConfigureAwait(false);
+        int cancelledCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.Cancelled,
             cancellationToken).ConfigureAwait(false);
         int deadLetterCount = await jobs.CountAsync(
             job => job.Status == (int)JobRuntimeStatus.DeadLetter,
@@ -296,6 +365,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
             RunningCount: runningCount,
             CompletedCount: completedCount,
             FailedCount: failedCount,
+            CancelledCount: cancelledCount,
             DeadLetterCount: deadLetterCount,
             TotalAttempts: totalAttempts,
             ActiveByJobType: activeByJobType);
