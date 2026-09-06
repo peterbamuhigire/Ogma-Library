@@ -68,3 +68,11 @@ cross-host redirect), and physical release/UI acceptance remain before phase
 13 closure. Quota and circuit state are observable in the provider health
 contract; the live metadata endpoint reachability probe is recorded but does
 not close cover acquisition.
+
+The Aug-39 Definition of Done now records cache reuse, outage isolation,
+reviewable conflict proposals, and observable quota/timeout/backoff behavior as
+closed. The privacy-disclosure gate remains unchecked pending written owner
+review and resolution of the live cross-host cover redirect policy.
+
+Focused provider-gateway and retry-policy verification on 2026-09-06:
+**10 passed, 0 failed, 0 skipped**.

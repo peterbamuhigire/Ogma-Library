@@ -78,10 +78,10 @@ Provider adapters run in parallel behind gateway conformance tests.
 Legacy raw responses gain retention/version metadata or are purged by policy.
 
 ## Definition of Done
-- [ ] Identical lookups use cache.
-- [ ] Provider outage does not block library readiness.
-- [ ] Conflicts produce reviewable proposals.
-- [ ] Quota/timeout/backoff are observable.
+- [x] Identical lookups use cache.
+- [x] Provider outage does not block library readiness.
+- [x] Conflicts produce reviewable proposals.
+- [x] Quota/timeout/backoff are observable.
 - [ ] Privacy disclosure is accurate.
 
 ## Kaizen Review
