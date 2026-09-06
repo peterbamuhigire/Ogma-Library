@@ -206,6 +206,34 @@ public sealed class Phase17JobRuntimeTests : IDisposable
     }
 
     [Fact]
+    public async Task FailureCode_RejectsPathsAndSecretsBeforeQueueMutation()
+    {
+        _fixture.Context.Jobs.Add(new JobRow
+        {
+            JobType = "MetadataExtraction",
+            IdempotencyKey = "phase17-unsafe-failure-code",
+            Status = (int)JobRuntimeStatus.Pending,
+        });
+        await _fixture.Context.SaveChangesAsync();
+        var runtime = new JobRuntimeService(_fixture.Context);
+        JobLease claimed = (await runtime.ClaimNextAsync(
+            ["MetadataExtraction"],
+            "worker-a",
+            TimeSpan.FromMinutes(1)))!;
+
+        await Assert.ThrowsAsync<ArgumentException>(() => runtime.FailAsync(
+            claimed.JobId,
+            "worker-a",
+            new JobFailure("C:/private/book.pdf?token=secret", null, Retryable: false)));
+
+        _fixture.Context.ChangeTracker.Clear();
+        JobRow unchanged = await _fixture.Context.Jobs.SingleAsync(job => job.JobId == claimed.JobId);
+        Assert.Equal((int)JobRuntimeStatus.Running, unchanged.Status);
+        Assert.Equal("worker-a", unchanged.LeaseOwner);
+        Assert.Null(unchanged.FailureCode);
+    }
+
+    [Fact]
     public async Task Claim_EnforcesHeavyWorkResourceGroupCapacity()
     {
         _fixture.Context.Jobs.AddRange(

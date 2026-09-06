@@ -20,6 +20,10 @@ full-application crash, or long-duration soak evidence.
 - Diagnostic JSON is written only to a user-selected file and comes from the
   existing redacted runtime projection. Payload, lease-owner, and free-form
   error fields are excluded.
+- Failure codes are validated before state mutation as bounded lowercase
+  machine identifiers; path-, query-, whitespace-, and token-bearing values are
+  rejected so the remaining exported/audited field cannot become a free-text
+  escape hatch.
 - English and French labels, status text, button names, and a headless render
   test cover the new interaction surface.
 
@@ -28,7 +32,8 @@ full-application crash, or long-duration soak evidence.
 | Command | Result |
 | --- | --- |
 | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | PASS - 0 warnings, 0 errors |
-| `dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~Phase17JobRuntimeTests\|FullyQualifiedName~ReleaseAcceptanceContractTests"` | PASS - 11/11 |
+| `dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Phase17JobRuntimeTests` | PASS - 11/11 |
+| `dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~ReleaseAcceptanceContractTests` | PASS - 1/1 |
 | `dotnet test tests/OgmaLibrary.Tests.Ui/OgmaLibrary.Tests.Ui.csproj --configuration Release --no-restore --filter FullyQualifiedName~ActivityCentreViewModelTests` | PASS - 3/3 |
 
 The acceptance-contract test now creates an isolated evidence package whose

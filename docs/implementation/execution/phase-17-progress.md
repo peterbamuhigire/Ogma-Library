@@ -107,9 +107,13 @@ Date: 2026-09-04
   and failure summaries, recent redacted job states, refresh, safe pending-job
   cancellation, audited failed-job retry, and user-selected redacted JSON
   export. Dead-letter and active jobs remain visible without unsafe controls.
-  The runtime/acceptance slice passed 11/11 and Activity Centre view-model/render
-  coverage passed 3/3. Evidence:
+  The runtime slice passed 11/11, the acceptance contract passed 1/1, and
+  Activity Centre view-model/render coverage passed 3/3. Evidence:
   `evidence/phase-17-activity-centre-2026-09-06.md`.
+- Enforced the redacted diagnostic boundary at write time: runtime failure codes
+  now accept only bounded lowercase machine-code characters. Paths, query
+  strings, whitespace, and token-like free text cannot enter audit events or
+  diagnostic exports through the failure-code field.
 
 ## Remaining phase gate
 

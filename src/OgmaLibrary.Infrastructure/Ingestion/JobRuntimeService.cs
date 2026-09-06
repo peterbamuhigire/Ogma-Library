@@ -180,7 +180,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
     {
         ArgumentNullException.ThrowIfNull(failure);
         ArgumentException.ThrowIfNullOrWhiteSpace(failure.Code);
-        if (failure.Code.Length > 128 || failure.SafeMessage?.Length > 4096)
+        if (!IsSafeFailureCode(failure.Code) || failure.SafeMessage?.Length > 4096)
         {
             throw new ArgumentException("Failure code or message exceeds the diagnostic contract.", nameof(failure));
         }
@@ -491,6 +491,11 @@ public sealed class JobRuntimeService : IJobRuntimeService
             IsLocalOnly = true,
         });
     }
+
+    private static bool IsSafeFailureCode(string value) =>
+        value.Length is > 0 and <= 128 &&
+        value.All(character =>
+            character is >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-' or '.');
 
     private static async Task<JobRow> FindJobAsync(
         CatalogueDbContext context,
