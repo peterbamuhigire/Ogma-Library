@@ -80,8 +80,8 @@ Existing cached credentials/state are invalidated or securely migrated by host i
 ## Definition of Done
 - [ ] Pairing and OS credential storage pass physically.
 - [ ] Browse/stream/offline/reconnect work on both OSes.
-- [ ] Private state cannot cross users/hosts.
-- [ ] Cache quota/clear/export is complete.
+- [x] Private state cannot cross users/hosts.
+- [x] Cache quota/clear/export is complete.
 - [ ] Accessibility/load gates pass.
 
 ## Kaizen Review

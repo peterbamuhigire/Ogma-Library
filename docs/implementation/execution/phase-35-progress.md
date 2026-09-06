@@ -58,6 +58,8 @@ Date: 2026-09-04
   8/8; the complete classroom-client slice passed 112/112.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-35-local-gate-reconciliation-2026-09-04.md`.
+- Current focused classroom-client/sync/private-state/cache verification:
+  **114 passed, 0 failed, 0 skipped** on 2026-09-06.
 
 ## Remaining phase gate
 
@@ -65,3 +67,7 @@ Physical Windows/macOS credential-store and host/client pairing evidence, a
 physical two-machine network interruption and offline-reader UX/accessibility
 capture, physical two-user hostile isolation, and cross-machine load evidence
 remain release gates.
+
+The Aug-39 Definition of Done now records the locally executable isolation and
+cache-management gates as closed. This does not close physical credential
+custody, two-machine offline/reconnect, accessibility, or load acceptance.
