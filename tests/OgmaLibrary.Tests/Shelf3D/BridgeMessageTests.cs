@@ -12,6 +12,47 @@ public sealed class BridgeMessageTests
     private const string ValidBookId = "01J4Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7Z7";
 
     [Fact]
+    public void Phase33ContractFreeze_ProtocolAndMessageFamiliesMatchV1()
+    {
+        Assert.Equal("shelf3d-v1", BridgeProtocol.CurrentVersion);
+
+        string[] outboundMessages = typeof(OutboundMessage).Assembly.GetTypes()
+            .Where(type => type is { IsAbstract: false } && typeof(OutboundMessage).IsAssignableFrom(type))
+            .Select(type => type.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        string[] inboundMessages = typeof(InboundMessage).Assembly.GetTypes()
+            .Where(type => type is { IsAbstract: false } && typeof(InboundMessage).IsAssignableFrom(type))
+            .Select(type => type.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            [
+                nameof(FocusBookMessage),
+                nameof(RemoveBookMessage),
+                nameof(SetCameraMessage),
+                nameof(SetLayoutMessage),
+                nameof(SetSceneMessage),
+                nameof(SetThemeMessage),
+                nameof(UpdateBookMessage),
+            ],
+            outboundMessages);
+        Assert.Equal(
+            [
+                nameof(BookClickedMessage),
+                nameof(BookDoubleClickedMessage),
+                nameof(BookHoveredMessage),
+                nameof(CameraChangedMessage),
+                nameof(PerformanceMetricsMessage),
+                nameof(PerformanceWarningMessage),
+                nameof(UnknownInboundMessage),
+                nameof(WebGl2StatusMessage),
+            ],
+            inboundMessages);
+    }
+
+    [Fact]
     public async Task WebView2Bridge_PostMessage_SerializesCorrectly()
     {
         var host = new FakeWebViewHostAdapter();

@@ -54,4 +54,7 @@ texture-residency checks passed through 10,000 items. Evidence:
 The Aug-39 Definition of Done now records bounded 1,000/5,000/10,000-item
 strategy and accessible 2D/keyboard action parity as closed by local executable
 evidence. Real GPU/WebView metrics, the reference-hardware 500-book frame gate,
-and the independently accepted 3D contract freeze remain unchecked.
+and the physical/reference acceptance of the frozen contract remain unchecked.
+The repository contract itself is frozen as `shelf3d-v1`, with an executable
+message-family guard and compatibility rules recorded in
+`evidence/phase-33-3d-contract-freeze-2026-09-06.md`.

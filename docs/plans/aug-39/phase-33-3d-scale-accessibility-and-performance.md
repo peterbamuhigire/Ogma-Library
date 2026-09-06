@@ -82,7 +82,7 @@ Reset incompatible old camera prefs with notice.
 - [ ] 500-book target meets accepted frame budget on reference hardware.
 - [x] 1k/5k/10k strategy remains bounded and usable.
 - [x] All actions work in accessible 2D/keyboard paths.
-- [ ] 3D contract freeze recorded.
+- [x] 3D contract freeze recorded.
 
 ## Kaizen Review
 1. Complexity: virtualisation/LOD/parity. 2. Share selection/filter commands. 3. Simplify scene residency. 4. Remove hard 500 cap. 5. Document benchmark/fallback. 6. Pattern: capability-adaptive renderer. 7. Debt decreases.
