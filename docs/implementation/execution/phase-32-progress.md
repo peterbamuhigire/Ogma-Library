@@ -61,3 +61,7 @@ texture-atlas capacity, bridge command, LOD bound, and reduced-motion
 policy are now executable subgates. The build manifest proves the emitted
 bundle digest and records the source and lockfile digests; it does not replace
 a signed release commit or physical WebView evidence.
+
+The Aug-39 Definition of Done now records the local visual, interaction,
+search/advisor focus, and corrupt-asset fallback contracts as closed. The
+two-platform screenshot/interaction acceptance gate remains unchecked.

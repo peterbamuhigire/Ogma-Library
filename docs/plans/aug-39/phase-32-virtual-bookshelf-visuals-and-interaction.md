@@ -78,10 +78,10 @@ Scene/texture pipeline and interaction controls proceed against message contract
 Generated JS stays reproducible from TypeScript; do not hand-edit bundle.
 
 ## Definition of Done
-- [ ] Books show real/fallback spines/covers and readable labels.
-- [ ] Shelf/camera/hover/focus/select work.
-- [ ] Search/advisor focus correct book.
-- [ ] Corrupt assets degrade safely.
+- [x] Books show real/fallback spines/covers and readable labels.
+- [x] Shelf/camera/hover/focus/select work.
+- [x] Search/advisor focus correct book.
+- [x] Corrupt assets degrade safely.
 - [ ] Both platform screenshots/interactions accepted.
 
 ## Kaizen Review
