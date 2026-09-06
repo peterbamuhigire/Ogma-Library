@@ -3,6 +3,22 @@
 
   <!-- Shared interaction primitives. All values are design tokens so views do
        not drift as density, contrast, or theme settings evolve. -->
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Body}" />
+  </Style>
+
+  <Style Selector="UserControl">
+    <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Body}" />
+  </Style>
+
+  <Style Selector="TextBlock.ogma-display">
+    <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Display}" />
+  </Style>
+
+  <Style Selector="TextBlock.ogma-mono">
+    <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Mono}" />
+  </Style>
+
   <Style Selector="Button">
     <Setter Property="MinHeight" Value="36" />
     <Setter Property="Padding" Value="12,8" />

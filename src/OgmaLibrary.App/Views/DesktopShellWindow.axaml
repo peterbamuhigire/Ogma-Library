@@ -81,6 +81,7 @@
             AutomationProperties.LiveSetting="Polite">
       <StackPanel Spacing="14">
         <TextBlock Text="{Binding StartingHeading}"
+                   Classes="ogma-display"
                    FontSize="{DynamicResource Type.Size.Title}"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource Brush.Surface.OnParchment}" />
@@ -118,6 +119,7 @@
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <TextBlock Grid.Row="0"
                    Text="{Binding DegradedHeading}"
+                   Classes="ogma-display"
                    FontSize="{DynamicResource Type.Size.Title}"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource Brush.Surface.OnParchment}" />

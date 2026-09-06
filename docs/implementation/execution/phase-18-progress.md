@@ -136,11 +136,19 @@ persistence, command-palette execution, the
   closed locally; physical rendered snapshots and assistive-technology
   accessibility remain open.
 
-The Aug-39 Definition of Done now records the static route inventory and
-current-feature English/French resource coverage as closed. The typography
-criterion remains open because Inter is still the documented packaged-runtime
-fallback; the complete state-matrix and physical keyboard/Narrator/VoiceOver
-criteria also remain unchecked.
+The Aug-39 Definition of Done now records the static route inventory,
+current-feature English/French resource coverage, and executable state matrix
+plus command palette as closed. Physical keyboard/Narrator/VoiceOver remains
+unchecked.
 
 Focused Phase 18 design-system verification on 2026-09-06: **5 passed, 0
 failed, 0 skipped**.
+
+Spectral 2.001, Public Sans 2.001, and JetBrains Mono are now packaged as
+OFL-1.1 Avalonia resources; Inter was removed from runtime composition and
+dependency locks. Headless resource/application proof passes. The combined
+"No Inter/hard-coded color/string drift" criterion remains unchecked until
+remaining direct literals in actively edited surfaces are reconciled without
+overwriting the owner's concurrent work. Evidence:
+`evidence/phase-18-font-packaging-2026-09-06.md` and
+`evidence/phase-18-state-matrix-2026-09-06.md`.

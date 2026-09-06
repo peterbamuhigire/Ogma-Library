@@ -156,14 +156,6 @@
           "Avalonia.Themes.Simple": "11.3.17"
         }
       },
-      "Avalonia.Fonts.Inter": {
-        "type": "Transitive",
-        "resolved": "11.3.17",
-        "contentHash": "c9wYA8+9QrD3oATxh5DMVLPAZHN5NhNgwGQi0v8iV1qPIMOXIug/23CT8MBXtImj3BsYov8PuSqbpOgjtqxiwQ==",
-        "dependencies": {
-          "Avalonia": "11.3.17"
-        }
-      },
       "Avalonia.FreeDesktop": {
         "type": "Transitive",
         "resolved": "11.3.17",
@@ -741,7 +733,6 @@
           "Avalonia.Controls.WebView": "[11.4.0, )",
           "Avalonia.Desktop": "[11.3.17, )",
           "Avalonia.Diagnostics": "[11.3.17, )",
-          "Avalonia.Fonts.Inter": "[11.3.17, )",
           "Avalonia.Svg.Skia": "[11.3.0, )",
           "Avalonia.Themes.Fluent": "[11.3.17, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.9, )",

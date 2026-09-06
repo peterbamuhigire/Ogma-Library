@@ -80,7 +80,7 @@ Map legacy theme/language; retain fallback font until packaged assets validate.
 ## Definition of Done
 - [ ] No Inter/hard-coded color/string drift in audited surfaces.
 - [x] All existing views are reachable or explicitly removed.
-- [ ] State matrix and command palette work.
+- [x] State matrix and command palette work.
 - [x] en/fr resource coverage is complete for current features.
 - [ ] Keyboard/Narrator/VoiceOver baseline passes.
 

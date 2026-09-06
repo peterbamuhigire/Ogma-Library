@@ -287,6 +287,7 @@
 
           <TextBlock Grid.Row="0"
                      Text="{Binding PageStatusText}"
+                     Classes="ogma-display"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"
                      IsVisible="{Binding !HasPageImage}"

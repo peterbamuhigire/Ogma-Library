@@ -26,7 +26,6 @@
     <!-- MIT-licensed native WebView2/WKWebView control for the optional 3D shelf. -->
     <PackageReference Include="Avalonia.Controls.WebView" Version="11.4.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)" Condition="'$(Configuration)' == 'Debug'" />
     <!-- Avalonia.Svg.Skia latest available is 11.3.0 (11.3.17 not published); compatible with Avalonia 11.3.17 -->
     <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
@@ -37,6 +36,8 @@
     <!-- Design-system and delivered premium SVG icons.
          Bundled as AvaloniaResource so avares://OgmaLibrary.App/Assets/icons/... resolves. -->
     <AvaloniaResource Include="Assets\icons\**\*.svg" />
+    <!-- OFL-1.1 type families pinned and redistributed with their licence files. -->
+    <AvaloniaResource Include="Assets\Fonts\**\*" />
     <!-- Application window icon (titlebar/dock). -->
     <AvaloniaResource Include="Assets\app.png" />
   </ItemGroup>

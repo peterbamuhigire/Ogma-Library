@@ -130,11 +130,10 @@
   <x:Double x:Key="Type.Size.Title">20</x:Double>
   <x:Double x:Key="Type.Size.Display">30</x:Double>
 
-  <!-- Font roles. Inter remains the packaged runtime fallback until the
-       approved Spectral/Public Sans/JetBrains Mono assets are bundled. -->
-  <x:String x:Key="Type.FontFamily.Body">Inter, Segoe UI, sans-serif</x:String>
-  <x:String x:Key="Type.FontFamily.Display">Inter, Segoe UI, sans-serif</x:String>
-  <x:String x:Key="Type.FontFamily.Mono">Consolas, Menlo, monospace</x:String>
+  <!-- Bundled OFL font roles. Platform fonts are explicit fallback only. -->
+  <FontFamily x:Key="Type.FontFamily.Body">avares://OgmaLibrary.App/Assets/Fonts/PublicSans#Public Sans, Segoe UI, sans-serif</FontFamily>
+  <FontFamily x:Key="Type.FontFamily.Display">avares://OgmaLibrary.App/Assets/Fonts/Spectral#Spectral, Georgia, serif</FontFamily>
+  <FontFamily x:Key="Type.FontFamily.Mono">avares://OgmaLibrary.App/Assets/Fonts/JetBrainsMono#JetBrains Mono, Consolas, Menlo, monospace</FontFamily>
 
   <!-- Spacing scale — in device-independent pixels (4-pt grid) -->
   <x:Double x:Key="Spacing.XXS">4</x:Double>

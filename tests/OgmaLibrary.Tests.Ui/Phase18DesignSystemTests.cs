@@ -99,9 +99,12 @@ public sealed class Phase18DesignSystemTests
         var app = new OgmaApp();
         app.Initialize();
 
-        Assert.NotNull(app.FindResource("Type.FontFamily.Body"));
-        Assert.NotNull(app.FindResource("Type.FontFamily.Display"));
-        Assert.NotNull(app.FindResource("Type.FontFamily.Mono"));
+        FontFamily body = Assert.IsType<FontFamily>(app.FindResource("Type.FontFamily.Body"));
+        FontFamily display = Assert.IsType<FontFamily>(app.FindResource("Type.FontFamily.Display"));
+        FontFamily mono = Assert.IsType<FontFamily>(app.FindResource("Type.FontFamily.Mono"));
+        Assert.Contains("Public Sans", body.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Spectral", display.ToString(), StringComparison.Ordinal);
+        Assert.Contains("JetBrains Mono", mono.ToString(), StringComparison.Ordinal);
         Assert.True(app.TryGetResource("Brush.Focus", app.RequestedThemeVariant, out object? focus));
         Assert.NotNull(focus);
 
@@ -112,6 +115,7 @@ public sealed class Phase18DesignSystemTests
 
         Assert.True(button.MinHeight >= 36);
         Assert.True(button.Bounds.Height >= 36);
+        Assert.Contains("Public Sans", button.FontFamily.ToString(), StringComparison.Ordinal);
         window.Close();
     }
 
@@ -150,15 +154,8 @@ public sealed class Phase18DesignSystemTests
         var app = new OgmaApp();
         app.Initialize();
 
-        var window = new Window
-        {
-            Width = 320,
-            Height = 180,
-        };
-
         foreach (ThemeVariant theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         {
-            app.RequestedThemeVariant = theme;
             Assert.True(
                 app.TryGetResource("Color.Accent.Oak", theme, out object? accentRaw),
                 $"Missing Oak accent for {theme}.");
@@ -168,24 +165,30 @@ public sealed class Phase18DesignSystemTests
 
             Color accent = Assert.IsType<Color>(accentRaw);
             Color surface = Assert.IsType<Color>(surfaceRaw);
-            window.Content = new Grid
+            var window = new Window
             {
-                Background = new SolidColorBrush(surface),
-                Children =
+                Width = 320,
+                Height = 180,
+                RequestedThemeVariant = theme,
+                Content = new Grid
                 {
-                    new Border
+                    Background = new SolidColorBrush(surface),
+                    Children =
                     {
-                        Width = 220,
-                        Height = 60,
-                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                        Background = new SolidColorBrush(accent),
-                        Child = new TextBlock
+                        new Border
                         {
-                            Text = "Open book",
-                            Foreground = new SolidColorBrush(Colors.White),
+                            Width = 220,
+                            Height = 60,
                             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                            Background = new SolidColorBrush(accent),
+                            Child = new TextBlock
+                            {
+                                Text = "Open book",
+                                Foreground = new SolidColorBrush(Colors.White),
+                                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                            },
                         },
                     },
                 },
@@ -218,9 +221,29 @@ public sealed class Phase18DesignSystemTests
                     new Color(renderedAccent.Alpha, renderedAccent.Red, renderedAccent.Green, renderedAccent.Blue),
                     Colors.White) >= 4.5,
                 $"Rendered white action label on Oak fails WCAG AA for {theme}.");
+            Assert.True(
+                CountNearWhitePixels(bitmap, left: 50, top: 60, right: 270, bottom: 120) >= 20,
+                $"Rendered action label is missing or incomplete for {theme}.");
+            window.Close();
+        }
+    }
+
+    private static int CountNearWhitePixels(SKBitmap bitmap, int left, int top, int right, int bottom)
+    {
+        int count = 0;
+        for (int y = top; y < bottom; y++)
+        {
+            for (int x = left; x < right; x++)
+            {
+                SKColor pixel = bitmap.GetPixel(x, y);
+                if (pixel.Red >= 170 && pixel.Green >= 170 && pixel.Blue >= 170)
+                {
+                    count++;
+                }
+            }
         }
 
-        window.Close();
+        return count;
     }
 
     private static int ColorDistance(SKColor actual, Color expected) =>

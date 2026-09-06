@@ -46,15 +46,6 @@
           "Avalonia.Themes.Simple": "11.3.17"
         }
       },
-      "Avalonia.Fonts.Inter": {
-        "type": "Direct",
-        "requested": "[11.3.17, )",
-        "resolved": "11.3.17",
-        "contentHash": "c9wYA8+9QrD3oATxh5DMVLPAZHN5NhNgwGQi0v8iV1qPIMOXIug/23CT8MBXtImj3BsYov8PuSqbpOgjtqxiwQ==",
-        "dependencies": {
-          "Avalonia": "11.3.17"
-        }
-      },
       "Avalonia.Svg.Skia": {
         "type": "Direct",
         "requested": "[11.3.0, )",
