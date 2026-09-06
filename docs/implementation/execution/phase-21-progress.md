@@ -67,3 +67,8 @@ physical Narrator/VoiceOver journeys, and cross-platform performance budgets
 remain before phase 21 closure. The local automated cache/session/non-crash and
 reader import/export UI sub-gates are closed; physical crash recovery evidence
 remains unassessed.
+
+The Aug-39 Definition of Done now records the functional independent-session
+split view as closed. The combined annotation/export/crash criterion remains
+unchecked because physical crash recovery is still `NOT ASSESSED`, even though
+the local annotation and portability round trips pass.

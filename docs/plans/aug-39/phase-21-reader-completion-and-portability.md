@@ -79,7 +79,7 @@ Version existing annotation coordinates and provide fallback conversion.
 
 ## Definition of Done
 - [ ] All FR-READ requirements have end-to-end evidence.
-- [ ] Split view is functional, not placeholder.
+- [x] Split view is functional, not placeholder.
 - [ ] Annotation/export round-trip and crash recovery pass.
 - [ ] Physical Narrator/VoiceOver journeys pass.
 - [ ] Reader budgets pass on both OSes.
