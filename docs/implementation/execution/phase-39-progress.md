@@ -62,3 +62,18 @@ interruption recovery, backup/restore, rollback, and owner acceptance. The
 repository now has an executable contract for those facts; it does not invent
 them. Contract/schema consistency, schema-freeze binding, and evidence-digest
 binding are closed.
+
+## Current CI and Definition-of-Done reconciliation
+
+Protected-main CI run 34028951795 passed on Windows and macOS for commit
+`261b68da72f34b54698517def84e6d1071e1f05a`, including requirement
+accountability, locked restore, clean format, warnings-as-errors build,
+dependency/SAST/secret checks, the reproducible 3D build/budget, and the test
+matrix. Later documentation-only runs were still executing when this record
+was updated.
+
+No Aug-39 Phase 39 Definition-of-Done criterion is closed. Every top-level
+criterion still depends on real signed/notarized installed artifacts, physical
+reference-machine journeys, final performance/accessibility/recovery evidence,
+or accountable owner acceptance. Passing CI and synthetic acceptance-contract
+fixtures are necessary controls, not substitutes for those facts.
