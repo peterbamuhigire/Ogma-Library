@@ -79,10 +79,10 @@ Replace facades without preserving non-working implementation behavior.
 
 ## Definition of Done
 - [ ] Physical Windows and macOS hosts render packaged scene.
-- [ ] Bidirectional messages validate/version.
-- [ ] No external navigation/file exposure.
+- [x] Bidirectional messages validate/version.
+- [x] No external navigation/file exposure.
 - [ ] Crash/reload/fallback works.
-- [ ] 3D route is capability-gated, not “coming soon.”
+- [x] 3D route is capability-gated, not “coming soon.”
 
 ## Kaizen Review
 1. Complexity: two native hosts. 2. One conformance suite. 3. Simplify shelf view. 4. Delete empty bridge facades. 5. Document message/CSP. 6. Pattern: secure embedded client. 7. Debt decreases.

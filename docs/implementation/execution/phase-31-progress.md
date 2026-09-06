@@ -54,3 +54,8 @@ Physical Windows WebView2 and macOS WKWebView rendering, crash/reload recovery,
 platform capability probes, WebGL2 behavior, and physical Windows/macOS
 integration evidence remain. The native binding is present, but the runtime
 must remain fail-safe until those platform gates are evidenced.
+
+The Aug-39 Definition of Done now records versioned bidirectional messaging,
+the local navigation/file boundary, and capability-gated routing as closed.
+Physical host rendering and physical crash/reload/fallback behavior remain
+unchecked.
