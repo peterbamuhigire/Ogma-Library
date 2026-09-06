@@ -38,6 +38,9 @@ Date: 2026-09-04
 - The Host AI proxy integration slice now passes 6/6, including direct proof
   that an exhausted student token budget returns `school_ai_quota_exhausted`
   before the configured provider is invoked.
+- Managed profile revocation now revokes every outstanding Host session for the
+  same profile in the same database save. The real HTTPS Host endpoint flow
+  proves the already-issued bearer token receives 401 on its next request.
 - School AI history/scaffold controls passed 14/14; the current SchoolAdmin
   namespace slice passed 44/44 after erasure auditing was added.
 - Added online SQLite school backup and non-destructive restore rehearsal with

@@ -138,6 +138,10 @@ public sealed class LanHostEndpointTests
                 "/api/v1/ai/search",
                 aiRequest);
             string aiSearchJson = await aiSearch.Content.ReadAsStringAsync();
+            await services.GetRequiredService<IProfileEnrollmentService>()
+                .RevokeAsync(managedEnrollment.ProfileId);
+            using HttpResponseMessage revokedManagedRequest = await managedHttp.GetAsync(
+                "/api/v1/catalogue?pageSize=1");
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using HttpResponseMessage studentAdminRoute = await http.PostAsync("/admin/ai/test-connection?providerId=openai", null);
             using HttpResponseMessage manualProfileAiSearch = await http.PostAsJsonAsync(
@@ -199,6 +203,7 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.OK, aiPreview.StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, unconfirmedAiSearch.StatusCode);
             Assert.Equal(HttpStatusCode.OK, aiSearch.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, revokedManagedRequest.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, studentAdminRoute.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, manualProfileAiSearch.StatusCode);
             Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);

@@ -106,6 +106,16 @@ internal sealed class SchoolProfileEnrollmentService : IProfileEnrollmentService
             row.RevokedUtc ??= DateTimeOffset.UtcNow;
             row.EnrollmentToken = null;
             row.EnrollmentTokenExpiresUtc = null;
+            DateTimeOffset revokedUtc = row.RevokedUtc.Value;
+            List<HostClientSessionRow> activeSessions = await context.HostClientSessions
+                .Where(session => session.ClientId == id && session.RevokedUtc == null)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            foreach (HostClientSessionRow session in activeSessions)
+            {
+                session.RevokedUtc = revokedUtc;
+            }
+
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }

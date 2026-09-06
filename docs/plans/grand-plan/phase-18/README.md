@@ -417,7 +417,7 @@ Full task detail in `tasks.md`.
       test: `DpiaScreeningService_BlocksCall_WhenJurisdictionNotConfigured`).
 - [ ] Admin can enroll a profile, student connects, and student's session token
       contains the admin-assigned role (end-to-end test).
-- [ ] Revoked profile: enrolled student's next request returns 401.
+- [x] Revoked profile: enrolled student's next request returns 401.
 - [ ] Usage dashboard shows correct query count and cost after 10 student queries
       (integration test: `AiUsageLedger` aggregation verified).
 - [x] `M018_AddSchoolAdminTables` UP and DOWN migrations both succeed in isolation.
