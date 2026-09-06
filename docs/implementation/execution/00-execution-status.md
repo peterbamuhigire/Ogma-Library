@@ -7,6 +7,10 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-06
 
+Aggregate Aug-39 gate reconciliation: **120 of 165 criteria closed; 45 remain
+open** across Phases 7-39. The complete boundary and required-evidence register
+is [remaining-gates-2026-09-06.md](remaining-gates-2026-09-06.md).
+
 Automated validation refresh: the protected `main` branch passed the complete
 Windows/macOS CI matrix at commit
 `03256a3c79246f8fccfba0760e5d59de77f57e6e`; per-platform totals were 1,153
