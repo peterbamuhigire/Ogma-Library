@@ -78,11 +78,11 @@ Fusion experiments and UI can proceed after result contract; freeze follows benc
 Run old/new retrieval side-by-side for offline comparison; do not preserve bad scores for compatibility.
 
 ## Definition of Done
-- [ ] Concept queries retrieve benchmark-relevant books.
-- [ ] Scores/fusion are versioned and explainable.
-- [ ] Duplicates/unavailable items are controlled.
-- [ ] Degraded lexical fallback works.
-- [ ] Search contract freeze is recorded.
+- [x] Concept queries retrieve benchmark-relevant books.
+- [x] Scores/fusion are versioned and explainable.
+- [x] Duplicates/unavailable items are controlled.
+- [x] Degraded lexical fallback works.
+- [x] Search contract freeze is recorded.
 
 ## Kaizen Review
 1. Complexity: multi-retriever fusion. 2. One candidate/evidence DTO. 3. Simplify advisor dependency. 4. Delete naive score addition. 5. Document evaluation. 6. Pattern: evidence-bearing candidate. 7. Debt decreases.

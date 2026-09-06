@@ -64,3 +64,8 @@ fixture. Approved representative/reference-corpus evidence, true ANN or
 equivalent target-scale relevance-quality retrieval, independent memory
 acceptance at 50,000 books, and reference-machine confirmation remain open.
 The final v1 search-contract freeze is closed and version guarded.
+
+The Aug-39 Definition of Done is reconciled as complete against the committed
+versioned synthetic benchmark and executable v1 contract. Representative
+external-corpus/ANN quality, independent memory, and reference-machine
+acceptance remain open and keep the phase overall `IN PROGRESS`.
