@@ -131,5 +131,9 @@ production evidence.
 
 The Aug-39 Definition of Done now records duplicate-execution prevention,
 visible retry/dead-letter/cancel state, and structured-log redaction as closed.
-Full-application kill/restart and target-throughput gates remain unchecked
-pending physical/reference-machine and soak evidence.
+Full-application kill/restart remains unchecked pending physical process and
+complete-handler evidence.
+
+The bounded local queue-throughput criterion is now closed by the 64-job
+restart-style drain assertion. Long-duration soak and physical reference-machine
+throughput remain separate release evidence and are not implied by this check.

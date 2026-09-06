@@ -82,7 +82,7 @@ Convert generic jobs with an explicit mapping; dead-letter unknown jobs.
 - [ ] Kill/restart resumes safely.
 - [x] Retry/dead-letter/cancel are visible.
 - [x] Structured logs pass redaction tests.
-- [ ] Queue throughput meets target.
+- [x] Queue throughput meets target.
 
 ## Kaizen Review
 1. Complexity: robust runtime. 2. Remove per-worker loops. 3. Simplify handlers. 4. Delete magic strings/swallowed saves. 5. Document runbooks. 6. Pattern: leased handler. 7. Debt decreases.
