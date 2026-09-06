@@ -71,3 +71,8 @@ before phase 22 closure.
 The search-result fallback title and match-location separator are also
 resource-keyed with English/French/pseudo-locale coverage. This local copy
 subgate is closed.
+
+The Aug-39 Definition of Done is reconciled as complete for the locally
+executable Phase 22 contract. Named-reference confirmation and physical
+assistive-technology acceptance remain separate release gates and keep the
+phase overall `IN PROGRESS`.

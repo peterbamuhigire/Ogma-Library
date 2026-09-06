@@ -78,11 +78,11 @@ Index/ranker and search UI proceed from query/result contracts.
 Backfill normalized index in background; catalogue remains usable.
 
 ## Definition of Done
-- [ ] Exact/prefix/fuzzy behavior is deterministic.
-- [ ] “tolkein” fixture finds Tolkien.
-- [ ] Filters/paging/highlights are correct.
-- [ ] Fallback works during rebuild.
-- [ ] 50k p95 budget passes.
+- [x] Exact/prefix/fuzzy behavior is deterministic.
+- [x] “tolkein” fixture finds Tolkien.
+- [x] Filters/paging/highlights are correct.
+- [x] Fallback works during rebuild.
+- [x] 50k p95 budget passes.
 
 ## Kaizen Review
 1. Complexity: ranking/index. 2. Share normalization. 3. Simplify metadata search call sites. 4. Remove raw `%contains%` as sole path. 5. Document scoring. 6. Pattern: local explainable result. 7. Debt decreases.
