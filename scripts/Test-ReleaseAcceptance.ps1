@@ -42,6 +42,13 @@ foreach ($machineId in @('W-REF-01', 'M-REF-01')) {
     Assert-True $machine[0].accessibilityEvidence "$machineId accessibility evidence is required."
 }
 
+if ($null -eq $record.schemaFreeze) { throw 'Acceptance schema-freeze evidence is required.' }
+if ($record.schemaFreeze.version -ne 'beta-schema-v1') { throw 'Acceptance schema-freeze version is invalid.' }
+if ($record.schemaFreeze.migrationCount -ne 41) { throw 'Acceptance migration count does not match the frozen baseline.' }
+if ($record.schemaFreeze.latestMigration -ne '20260906060000_Phase17PausedJobStatus') { throw 'Acceptance latest migration does not match the frozen baseline.' }
+if ($record.schemaFreeze.sequenceSha256 -ne '8135fad43778f705b48c9d667d8e56d36b8d4445b8be3a5d2b985b1e42637dd5') { throw 'Acceptance migration sequence digest does not match the frozen baseline.' }
+Assert-True $record.schemaFreeze.verified 'Acceptance schema-freeze verification is required.'
+
 if ($null -eq $record.migration) { throw 'Acceptance migration evidence is required.' }
 foreach ($gate in @('upgrade', 'interruptedUpgradeRecovery', 'rollback', 'backupRestore')) {
     Assert-True $record.migration.$gate "Migration gate '$gate' is not verified."

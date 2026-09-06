@@ -35,6 +35,11 @@ Date: 2026-09-05
   platform. This closes the automated cross-platform CI sub-gate only; the
   explicit hosted-macOS capability diagnostics and physical handover gates
   remain open. Evidence: `evidence/ci-cross-platform-regression-2026-09-06.md`.
+- Bound release acceptance to Phase 38's exact beta-v1 migration freeze and
+  repaired the JSON-schema/script mismatch for required artifact names.
+  Clearly labelled synthetic fixtures prove a matching record passes and a
+  stale migration baseline fails; they are not release evidence. See
+  `evidence/phase-39-schema-freeze-binding-2026-09-06.md`.
 
 ## Remaining handover gate
 
@@ -43,4 +48,4 @@ M-REF-01 runs, signed Windows and notarized macOS artifacts, installed-build
 critical journeys, final performance/accessibility evidence, upgrade
 interruption recovery, backup/restore, rollback, and owner acceptance. The
 repository now has an executable contract for those facts; it does not invent
-them.
+them. Contract/schema consistency and schema-freeze binding are closed.

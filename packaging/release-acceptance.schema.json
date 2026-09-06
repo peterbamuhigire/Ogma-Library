@@ -4,7 +4,7 @@
   "title": "Ogma Library signed release acceptance record",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "releaseId", "commitSha", "artifacts", "hardware", "migration", "approval"],
+  "required": ["schema", "releaseId", "commitSha", "artifacts", "hardware", "schemaFreeze", "migration", "approval"],
   "properties": {
     "schema": { "const": "ogma-release-acceptance-v1" },
     "releaseId": { "type": "string", "minLength": 1, "maxLength": 128 },
@@ -15,10 +15,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["platform", "runtimeIdentifier", "sha256", "descriptorSignatureVerified", "platformSigned", "cleanInstall", "criticalFlows", "performanceBudgets"],
+        "required": ["platform", "runtimeIdentifier", "artifactName", "sha256", "descriptorSignatureVerified", "platformSigned", "cleanInstall", "criticalFlows", "performanceBudgets"],
         "properties": {
           "platform": { "enum": ["windows", "macos"] },
           "runtimeIdentifier": { "enum": ["win-x64", "win-arm64", "osx-x64", "osx-arm64"] },
+          "artifactName": { "type": "string", "minLength": 1, "maxLength": 255, "pattern": "^(?!.*\\.\\.)(?!.*[\\\\/:]).+$" },
           "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
           "descriptorSignatureVerified": { "const": true },
           "platformSigned": { "const": true },
@@ -28,6 +29,18 @@
           "authenticodeOrMsix": { "const": true },
           "developerIdAndNotarized": { "const": true }
         }
+      }
+    },
+    "schemaFreeze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "migrationCount", "latestMigration", "sequenceSha256", "verified"],
+      "properties": {
+        "version": { "const": "beta-schema-v1" },
+        "migrationCount": { "const": 41 },
+        "latestMigration": { "const": "20260906060000_Phase17PausedJobStatus" },
+        "sequenceSha256": { "const": "8135fad43778f705b48c9d667d8e56d36b8d4445b8be3a5d2b985b1e42637dd5" },
+        "verified": { "const": true }
       }
     },
     "hardware": {

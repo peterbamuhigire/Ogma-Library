@@ -1,0 +1,63 @@
+{
+  "schema": "ogma-release-acceptance-v1",
+  "releaseId": "invalid-contract-fixture-do-not-release",
+  "commitSha": "0000000000000000000000000000000000000000",
+  "artifacts": [
+    {
+      "platform": "windows",
+      "runtimeIdentifier": "win-x64",
+      "artifactName": "fixture-windows.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "descriptorSignatureVerified": true,
+      "platformSigned": true,
+      "cleanInstall": true,
+      "criticalFlows": true,
+      "performanceBudgets": true,
+      "authenticodeOrMsix": true
+    },
+    {
+      "platform": "macos",
+      "runtimeIdentifier": "osx-arm64",
+      "artifactName": "fixture-macos.zip",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "descriptorSignatureVerified": true,
+      "platformSigned": true,
+      "cleanInstall": true,
+      "criticalFlows": true,
+      "performanceBudgets": true,
+      "developerIdAndNotarized": true
+    }
+  ],
+  "hardware": [
+    {
+      "machineId": "W-REF-01",
+      "installedBuild": true,
+      "performanceEvidence": true,
+      "accessibilityEvidence": true
+    },
+    {
+      "machineId": "M-REF-01",
+      "installedBuild": true,
+      "performanceEvidence": true,
+      "accessibilityEvidence": true
+    }
+  ],
+  "schemaFreeze": {
+    "version": "beta-schema-v1",
+    "migrationCount": 40,
+    "latestMigration": "20260906060000_Phase17PausedJobStatus",
+    "sequenceSha256": "8135fad43778f705b48c9d667d8e56d36b8d4445b8be3a5d2b985b1e42637dd5",
+    "verified": true
+  },
+  "migration": {
+    "upgrade": true,
+    "interruptedUpgradeRecovery": true,
+    "rollback": true,
+    "backupRestore": true
+  },
+  "approval": {
+    "owner": "TEST FIXTURE - NOT AN APPROVAL",
+    "approvedAtUtc": "2026-09-06T00:00:00Z",
+    "residualRisksAccepted": true
+  }
+}
