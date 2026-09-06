@@ -14,11 +14,10 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete current-head regression at `5bef1cc` passed 1,125 tests with 0
-failures and 0 skips: 925 core, 41 architecture, and 159 UI. The authoritative
-record is `evidence/solution-regression-current-worktree-2026-09-06.md`; it
-also records the user-owned dirty worktree changes that were deliberately not
-staged.
+The latest complete protected-`main` regression at `831ed9b` passed 1,130 tests
+per platform with 0 failures and 0 skips: 930 core, 41 architecture, and 159 UI
+on both Windows and macOS. The authoritative record is
+`evidence/ci-cross-platform-regression-2026-09-06.md`.
 
 ```text
 dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "console;verbosity=minimal"
@@ -36,9 +35,9 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 12 | Metadata scope, precedence, enrichment proposals, provenance | Physical UI walkthrough: `NOT ASSESSED` | [phase-12](phase-12-progress.md) |
 | 13 | Provider cache/gateway wired to runtime enrichment, persisted/projected stale labeling, quota/circuit/retry/privacy controls, fixed-host attribution links | Legal owner review, archive, live provider/network and physical evidence open | [phase-13](phase-13-progress.md) |
 | 14 | Review proposals, concurrency, bulk/tag mutation, review UI | Physical accessibility evidence open | [phase-14](phase-14-progress.md) |
-| 15 | Hash guard, preparation, backup/undo, consented writeback | Physical interruption and permission evidence open | [phase-15](phase-15-progress.md) |
-| 16 | Assets, manifests, embedded-source acquisition, lazy variants, provider boundary wired to enrichment, ingest/update spine scheduling, LAN authorization | Disk/GPU scale budget and physical accessibility/cross-platform journeys open | [phase-16](phase-16-progress.md) |
-| 17 | Leases, retries, dead-lettering, resource groups, metrics, recovery | Process-kill, crash, and soak evidence open | [phase-17](phase-17-progress.md) |
+| 15 | Hash guard, streaming/atomic backup preparation, backup/undo, consented writeback | Physical process-kill interruption and cross-platform permission evidence open | [phase-15](phase-15-progress.md) |
+| 16 | Assets, manifests, embedded-source acquisition, lazy variants, provider boundary wired to enrichment, ingest/update spine scheduling, LAN authorization, and real-worker disk budget | GPU/reference-hardware budget and physical accessibility/cross-platform journeys open | [phase-16](phase-16-progress.md) |
+| 17 | Leases, retries, dead-lettering, resource groups, safe queued cancellation, cancelled metrics, diagnostics, and recovery | Cooperative active cancellation, full-app crash/activity-centre, cross-platform process, and soak evidence open | [phase-17](phase-17-progress.md) |
 | 18 | Design tokens, controls, localization increments including AI accessibility, 3D/directory fallback copy, theme/density, command palette, static route inventory, automated and rendered contrast evidence | Physical Windows/macOS screenshot review and Narrator/VoiceOver accessibility open | [phase-18](phase-18-progress.md) |
 | 19 | 2D catalogue, cover fallback, paging, badges, authenticated assets | Keyboard/screen-reader and reference hardware open | [phase-19](phase-19-progress.md) |
 | 20 | Detail curation, collections, smart shelves, history/TOC/provenance, relink wiring | Physical picker/relink, accessibility, E2E open | [phase-20](phase-20-progress.md) |
@@ -58,7 +57,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 34 | Published scope, redaction, authenticated concurrency, host boundaries | Two-machine networking, firewall/mDNS/TOFU, hostile soak open | [phase-34](phase-34-progress.md) |
 | 35 | Tamper-evident cache, host scoping, bounded sync, local isolation tests | Credential/pairing/reconnect/offline UX/isolation/load evidence open | [phase-35](phase-35-progress.md) |
 | 36 | Key custody, scopes, quotas, DPIA minimization, managed-AI controls | E2E, backup/rotation/erasure/accessibility/soak/formal DPIA open | [phase-36](phase-36-progress.md) |
-| 37 | Code safety, headers, throttling, integrity, audit minimization | Hostile corpus, secret store, penetration, backup, cross-platform soak open | [phase-37](phase-37-progress.md) |
+| 37 | Code safety, headers, throttling, integrity, audit minimization, synthetic hostile-PDF redaction/recovery corpus | Physical/third-party hostile corpus, secret store, penetration, backup, cross-platform soak open | [phase-37](phase-37-progress.md) |
 | 38 | Release descriptors, detached-signature verification, candidate package, migration checks | Signed artifacts, clean install, performance, recovery, rollback open | [phase-38](phase-38-progress.md) |
 | 39 | Fail-closed acceptance contract, 162-ID accountability | Reference machines, signing, install, performance, rollback, backup, owner acceptance open | [phase-39](phase-39-progress.md) |
 

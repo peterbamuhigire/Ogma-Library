@@ -7,18 +7,18 @@ Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 Execution branch: `main`
 Ledger normalized: 2026-09-06
 
-Automated validation refresh: commit `5bef1cc209295b1da452ac342da64f92ef00b5075`
-passed the latest complete current-worktree solution
-verification passed 1,125 tests (925 core, 41 architecture, 159 UI), with 0
-failures and 0 skips. The detailed current-worktree record is
-`evidence/solution-regression-current-worktree-2026-09-06.md`; the prior
-2026-09-05 record remains historical evidence.
-The protected `main` branch then passed the complete Windows/macOS CI matrix at
-commit `bb277254eb0b93de1247c9762fdc5efdaecd2991`; per-platform totals were
-1,125 passed tests. The run also recorded explicit `NOT ASSESSED` diagnostics
+Automated validation refresh: the protected `main` branch passed the complete
+Windows/macOS CI matrix at commit
+`831ed9b125e7682ef12c56175416da94ae55c578`; per-platform totals were 1,130
+passed tests (930 core, 41 architecture, 159 UI). The run also recorded explicit
+`NOT ASSESSED` diagnostics
 for unsupported macOS/Linux Tesseract native packaging and unavailable hosted
 macOS worker private-resource counters. See
 `evidence/ci-cross-platform-regression-2026-09-06.md`.
+A prior current-worktree solution verification at commit `5bef1cc` passed
+1,125 tests; its detailed record remains at
+`evidence/solution-regression-current-worktree-2026-09-06.md` as historical
+evidence.
 A later dirty-worktree validation at the current local head reran the build,
 accountability, 41 architecture tests, 925 core tests, 159 UI tests, the
 NuGet vulnerability scan, and all three shelf3d gates successfully. Its format
@@ -48,9 +48,9 @@ governed by their progress records.
 | 12 | Canonical Metadata and Provenance | COMPLETE | Scope policy, precedence, proposal-only enrichment and provenance review evidenced |
 | 13 | Bibliographic Provider Gateway | IN PROGRESS | Cache, stale fallback, revalidation, quota/circuit, retry telemetry, conflict aggregation, runtime gateway wiring, persisted/projected stale-label state, local privacy-disclosure, official terms-constraint evidence, and fixed-host desktop attribution links delivered; legal, archive, live network, and physical evidence open |
 | 14 | Metadata Review and Manual Curation | IN PROGRESS | Durable proposals, concurrency, boundary validation, canonical field dictionary, atomic bulk preview/apply/undo, bounded tag mutation, and keyboard-addressable review UI delivered; physical accessibility evidence open |
-| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, exclusive check, invalidation, durable write-back plan, explicit backup undo, two-step detail-panel consent/preview, and Windows ACL/cancellation failure rehearsal delivered; process-kill interruption and cross-platform permission evidence open |
-| 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection, output validation, stale-asset GC, bounded lazy variants, bounded embedded-cover acquisition, 50,000-book preferred-lookup budget, allowlisted provider-image client wired to enrichment, atomic provider persistence, idempotent spine scheduling on ingest/update, local detail cover UI, and fail-closed LAN variant authorization delivered; disk/GPU budget, physical accessibility, and cross-platform evidence open |
-| 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence, poison quarantine, resource groups, redacted lifecycle events, OCR/search/embedding lease conversion, metrics and diagnostics export plus local lease/runtime, restart-style load, and Windows process-kill/restart evidence delivered; crash, cross-platform, and soak evidence open |
+| 15 | Safe Writeback and Override Protection | IN PROGRESS | Hash guard, preparation audit, streaming hash/copy with atomic backup promotion, exclusive check, invalidation, durable write-back plan, explicit backup undo, two-step detail-panel consent/preview, and Windows ACL/cancellation failure rehearsal delivered; process-kill interruption and cross-platform permission evidence open |
+| 16 | Cover, Thumbnail and Spine Assets | IN PROGRESS | Manifest, precedence, projection, output validation, stale-asset GC, bounded lazy variants, bounded embedded-cover acquisition, 50,000-book preferred-lookup and real-worker corpus disk-generation budgets, allowlisted provider-image client wired to enrichment, atomic provider persistence, idempotent spine scheduling on ingest/update, local detail cover UI, and fail-closed LAN variant authorization delivered; GPU/reference-hardware budget, physical accessibility, and cross-platform journeys open |
+| 17 | Worker Reliability and Observability | IN PROGRESS | Durable leases, heartbeat, follow-up persistence, poison quarantine, resource groups, redacted lifecycle events, OCR/search/embedding lease conversion, safe pending-job cancellation, cancelled metrics, diagnostics export, restart-style load, and Windows process-kill/restart evidence delivered; cooperative active-handler cancellation, full-app crash, activity-centre, cross-platform, and soak evidence open |
 | 18 | Ogma Design System and Application Shell | IN PROGRESS | Design controls, focus, typography, application-wide natural-language copy extraction, detail-panel/catalogue-shell/Student Smart Search/Advisor/startup/detail-format/AI accessibility/3D/directory fallback and Host-sharing copy localization, persisted theme/density, command-palette execution, static route inventory, automated Light/Dark accent contrast matrix, and repository-verifiable rendered contrast snapshots delivered; physical Windows/macOS screenshot review and Narrator/VoiceOver evidence open |
 | 19 | Production 2D Catalogue | IN PROGRESS | Cover control, source-precedence fallback, asset loading, functional directory view, visible filter/sort wiring, persisted view state, bounded UI paging, server-side read-model paging, local 50k page performance, processing/quality badges, authenticated published-asset authorization, and local headless control naming/focus proof delivered; physical keyboard/screen-reader and reference confirmation open |
 | 20 | Book Detail, Organisation and Reading State | IN PROGRESS | Curation foundations, desktop status/rating/favourite controls, bounded bulk tag mutation, rendered detail tag editor, sidebar collection create/rename/delete controls, closed-contract smart-shelf persistence/evaluation/counts, lazy bounded history, lazy bounded TOC/provenance, fail-closed missing-file presentation, and durable-root relink/ensure wiring delivered; physical picker/relink recovery, accessibility and E2E open |
@@ -70,7 +70,7 @@ governed by their progress records.
 | 34 | Classroom Host Security and Read Model | IN PROGRESS | Published-scope enforcement, redaction, local authenticated concurrency smoke and host-boundary evidence delivered; two-machine/firewall/mDNS/TOFU/hostile-soak evidence open |
 | 35 | Classroom Client, Offline and Sync | IN PROGRESS | Tamper-evident, host-scoped cache with exact content-length verification, quota eviction, versioned ZIP export, all-Host erasure, localized cache controls, bounded sync and local evidence delivered; credential/pairing/reconnect/offline UX/isolation/load evidence open |
 | 36 | School Administration and Managed AI | IN PROGRESS | Host-side key custody, scopes, quotas, DPIA minimization and local managed-AI evidence delivered; E2E/backup/rotation/erasure/accessibility/soak/formal DPIA open |
-| 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity, audit minimization and local security verification delivered; physical hostile/secret-store/penetration/soak evidence open |
+| 37 | Security, Privacy and Data Protection Hardening | IN PROGRESS | Code safety, headers, throttling, blob integrity, audit minimization, synthetic hostile-PDF redaction/recovery corpus, and local security verification delivered; physical/third-party hostile corpus, secret-store, penetration, backup/restore, and soak evidence open |
 | 38 | Performance, Reliability, Packaging and Beta | IN PROGRESS | Release descriptors, cryptographic detached-signature verification, candidate packaging, integrity gates, local migration compatibility, script verification, actionlint workflow validation and clean-source format verification delivered; signed installers, clean install, performance, recovery and rollback open |
 | 39 | Cross-Platform Release Acceptance and Handover | IN PROGRESS | Fail-closed acceptance contract, strict two-platform/two-reference-record validation, and 162-ID requirement accountability delivered; physical reference-machine, signing, install, performance, rollback, backup and owner gates open |
 
