@@ -68,3 +68,11 @@ Representative real 500-book acceptance, target-scale throughput, native
 cross-platform measurements, and physical UI/accessibility evidence remain
 open before Phase 11 can be marked complete. The persistent production-worker
 extraction-session repetition subgate is closed for the tested Windows corpus.
+
+The Aug-39 Definition of Done now records page-aware/versioned output, retained
+ISBN evidence, isolated malformed/Unicode behavior, and idempotent reprocessing
+as closed. The resource-budget gate remains unchecked until representative
+target-scale and native cross-platform measurements exist.
+
+Focused artifact/TOC/ISBN verification on 2026-09-06: **34 passed, 0 failed,
+0 skipped**.

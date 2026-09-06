@@ -78,10 +78,10 @@ Embedded metadata, text/TOC and render adapters can proceed against shared contr
 Legacy pages/chunks receive legacy version and are scheduled for controlled regeneration.
 
 ## Definition of Done
-- [ ] Outputs are page-aware and versioned.
-- [ ] ISBN evidence is retained.
-- [ ] Mixed/malformed/Unicode corpus is isolated.
-- [ ] Reprocessing is idempotent.
+- [x] Outputs are page-aware and versioned.
+- [x] ISBN evidence is retained.
+- [x] Mixed/malformed/Unicode corpus is isolated.
+- [x] Reprocessing is idempotent.
 - [ ] Resource budgets pass.
 
 ## Kaizen Review
