@@ -77,3 +77,9 @@ The provider-profile persistence/validation, local retention/erasure, and
 policy-editing UX subgates are closed by focused tests. Provider-specific
 retention/terms acceptance, cloud-provider conformance, and physical
 accessibility evidence remain before phase 27 closure.
+
+The Aug-39 Definition of Done now records enforced single-gateway egress,
+disabled-by-default core independence, exact preview/consent, and provider
+failure isolation as closed. The combined OS-secret/cost/deletion criterion
+remains unchecked because physical platform-secret custody is still
+`NOT ASSESSED`, despite passing local cost and deletion tests.

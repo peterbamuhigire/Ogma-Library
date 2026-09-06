@@ -78,11 +78,11 @@ Provider adapters, settings UI and audit/retention can proceed against gateway c
 Import existing config/history only after consent/retention mapping; never migrate plaintext secrets.
 
 ## Definition of Done
-- [ ] All AI egress passes one enforced gateway.
-- [ ] AI is disabled by default and core remains complete without it.
-- [ ] Exact payload preview/consent works.
+- [x] All AI egress passes one enforced gateway.
+- [x] AI is disabled by default and core remains complete without it.
+- [x] Exact payload preview/consent works.
 - [ ] OS secrets, cost limits and deletion pass.
-- [ ] Provider failure is isolated.
+- [x] Provider failure is isolated.
 
 ## Kaizen Review
 1. Complexity: provider/privacy matrix. 2. Remove scattered adapters. 3. Simplify AI callers. 4. Delete bypass paths. 5. Document payloads/providers. 6. Pattern: policy-enforcing gateway. 7. Debt decreases.
