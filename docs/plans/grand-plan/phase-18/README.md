@@ -415,7 +415,7 @@ Full task detail in `tasks.md`.
       (integration test with fabricated citation).
 - [ ] DPIA screening blocks a call when jurisdiction policy is unset (architecture
       test: `DpiaScreeningService_BlocksCall_WhenJurisdictionNotConfigured`).
-- [ ] Admin can enroll a profile, student connects, and student's session token
+- [x] Admin can enroll a profile, student connects, and student's session token
       contains the admin-assigned role (end-to-end test).
 - [x] Revoked profile: enrolled student's next request returns 401.
 - [ ] Usage dashboard shows correct query count and cost after 10 student queries

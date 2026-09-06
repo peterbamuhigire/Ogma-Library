@@ -88,6 +88,9 @@ public sealed class LanHostEndpointTests
                     lifetimeMinutes = 5,
                 });
             string managedToken = await ReadJsonStringAsync(managedSession, "token");
+            ClientSessionSnapshot? managedSessionSnapshot = await services
+                .GetRequiredService<IClientSessionService>()
+                .GetActiveAsync(managedToken);
             using HttpResponseMessage replayManagedSession = await http.PostAsJsonAsync(
                 "/api/v1/auth/session",
                 new
@@ -197,6 +200,7 @@ public sealed class LanHostEndpointTests
             Assert.Equal(HttpStatusCode.Forbidden, rejectedAdminSession.StatusCode);
             Assert.Equal(HttpStatusCode.OK, session.StatusCode);
             Assert.Equal(HttpStatusCode.OK, managedSession.StatusCode);
+            Assert.Equal("student", managedSessionSnapshot?.Role, ignoreCase: true);
             Assert.Equal(HttpStatusCode.Unauthorized, replayManagedSession.StatusCode);
             Assert.Equal(HttpStatusCode.TooManyRequests, rateLimitedSession!.StatusCode);
             Assert.True(rateLimitedSession.Headers.Contains("Retry-After"));
