@@ -78,9 +78,9 @@ TLS/discovery, published read model and admin setup can proceed against security
 Existing host records are disabled until revalidated; rotate incompatible certificates/sessions.
 
 ## Definition of Done
-- [ ] Standalone opens no listener.
-- [ ] Only published IDs/fields/files are reachable.
-- [ ] TLS/TOFU/authz/revocation pass hostile tests.
+- [x] Standalone opens no listener.
+- [x] Only published IDs/fields/files are reachable.
+- [x] TLS/TOFU/authz/revocation pass hostile tests.
 - [ ] Physical two-machine both-OS matrix passes.
 - [ ] Load and privacy gates pass.
 

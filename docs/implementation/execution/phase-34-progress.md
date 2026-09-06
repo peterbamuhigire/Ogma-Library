@@ -21,7 +21,7 @@ Date: 2026-09-04
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors after the serial verification run.
-- Full LAN Host slice: 61 passed.
+- Current focused LAN Host slice: 67 passed.
 - Architecture suite: 41 passed.
 - Endpoint integration proof covers HTTPS, authentication, RBAC, session
   replay, pagination, search, TLS-backed page rendering, range/file policy,
@@ -49,3 +49,8 @@ and privacy-capture review remain release gates. Standalone mode remains
 listener-free by default and classroom enablement remains opt-in. The local
 concurrency smoke sub-gate is closed; it is not a substitute for the physical
 two-machine or sustained soak gates.
+
+The Aug-39 Definition of Done now records the three locally executable gates
+as closed: listener-free Standalone mode, published-only resource projection,
+and tested TLS/TOFU/authentication/authorization/revocation boundaries. The
+physical two-machine and complete load/privacy gates remain unchecked.
