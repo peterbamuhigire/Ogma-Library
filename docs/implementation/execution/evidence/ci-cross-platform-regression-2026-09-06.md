@@ -2,9 +2,9 @@
 
 Date: 2026-09-06
 
-Commit: `75effc78c44350de79e107ce53f2da9955dc6fcf`
+Commit: `18726cb992b29b20ba8f355eeef09ea916909c3f`
 
-Workflow: [CI run 34020988156](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34020988156)
+Workflow: [CI run 34026728495](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34026728495)
 
 ## Result
 
@@ -15,20 +15,22 @@ source/performance budget, secret scan, and the full test matrix.
 
 | Platform | Architecture tests | Core tests | UI tests | Result |
 | --- | ---: | ---: | ---: | --- |
-| Windows runner | 41 | 938 | 159 | PASS |
-| macOS runner | 41 | 938 | 159 | PASS |
+| Windows runner | 41 | 945 | 163 | PASS |
+| macOS runner | 41 | 945 | 163 | PASS |
 
-The run therefore provides repository-level cross-platform evidence for 1,138
+The run therefore provides repository-level cross-platform evidence for 1,149
 tests per platform. It does not close physical reference-machine, signing,
 installer, accessibility, or owner-acceptance gates.
 
-The 938-test core run includes the concurrency-safe classroom profile-key
+The 945-test core run includes the concurrency-safe classroom profile-key
 initialization, atomic writeback promotion, safe generic batch-pause semantics,
 transactional school AI-history purge audit, explicit local embedding
 token/zero-egress/zero-external-cost accounting, frozen v1 search contract,
 executable beta schema-sequence freeze, and release-acceptance contract
-pass/fail execution. The validator's later evidence-digest binding is not part
-of this run and remains owned by its successor CI run.
+pass/fail execution. It also validates evidence-digest and expected-commit
+binding through a module-independent SHA-256 implementation on Windows
+PowerShell and PowerShell 7. The 163-test UI run includes the redacted Activity
+Centre view-model and rendered-control coverage.
 
 The Phase 16 production-worker disk benchmark also reproduced the same encoded
 maximum on both runners: 78,274 bytes per book and a 3.645-GiB worst-sample
