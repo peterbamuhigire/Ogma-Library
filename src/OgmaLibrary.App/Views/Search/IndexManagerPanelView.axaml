@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Search"
+             xmlns:local="using:OgmaLibrary.App.Views.Search"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              x:Class="OgmaLibrary.App.Views.Search.IndexManagerPanelView"
              x:DataType="vm:IndexManagerViewModel">
@@ -9,7 +10,7 @@
           BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
           BorderThickness="0,0,0,1"
           Padding="12,10">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <svg:Svg Width="18"
@@ -230,6 +231,12 @@
       </ListBox>
 
       <Grid Grid.Row="8"
+            IsVisible="{Binding HasActivityCentre}">
+        <local:ActivityCentreView Margin="0,10,0,0"
+                                  DataContext="{Binding ActivityCentre}" />
+      </Grid>
+
+      <Grid Grid.Row="9"
             RowDefinitions="Auto,*"
             Margin="0,10,0,0">
         <ListBox IsVisible="{Binding HasErrors}"

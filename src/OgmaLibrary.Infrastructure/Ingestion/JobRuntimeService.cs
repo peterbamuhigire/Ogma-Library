@@ -322,6 +322,66 @@ public sealed class JobRuntimeService : IJobRuntimeService
     }
 
     /// <inheritdoc />
+    public async Task RetryFailedAsync(
+        long jobId,
+        CancellationToken cancellationToken = default)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        DateTimeOffset queuedUtc = DateTimeOffset.UtcNow;
+        int updated = await context.Jobs
+            .Where(job =>
+                job.JobId == jobId &&
+                job.Status == (int)JobRuntimeStatus.Failed)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(job => job.Status, (int)JobRuntimeStatus.Pending)
+                    .SetProperty(job => job.StartedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.CompletedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.NextAttemptUtc, queuedUtc)
+                    .SetProperty(job => job.LeaseOwner, (string?)null)
+                    .SetProperty(job => job.LeaseExpiresUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.FailureCode, (string?)null)
+                    .SetProperty(job => job.ErrorMessage, (string?)null),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (updated == 0)
+        {
+            int? status = await context.Jobs
+                .AsNoTracking()
+                .Where(job => job.JobId == jobId)
+                .Select(job => (int?)job.Status)
+                .SingleOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (status is null)
+            {
+                throw new KeyNotFoundException($"Job '{jobId}' was not found.");
+            }
+
+            throw new InvalidOperationException("Only terminal failed jobs can be retried from the activity centre.");
+        }
+
+        JobRow job = await context.Jobs
+            .AsNoTracking()
+            .SingleAsync(row => row.JobId == jobId, cancellationToken)
+            .ConfigureAwait(false);
+        AddAuditEvent(
+            context,
+            "JobRetryQueued",
+            job,
+            new
+            {
+                jobType = job.JobType,
+                attempt = job.RetryCount,
+                state = "operator_retry",
+            });
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
@@ -380,12 +440,27 @@ public sealed class JobRuntimeService : IJobRuntimeService
     /// <inheritdoc />
     public async Task<string> ExportDiagnosticsJsonAsync(CancellationToken cancellationToken = default)
     {
+        JobRuntimeDiagnostics diagnostics = await GetDiagnosticsAsync(100, cancellationToken).ConfigureAwait(false);
+
+        return JsonSerializer.Serialize(diagnostics, DiagnosticsJsonOptions);
+    }
+
+    /// <inheritdoc />
+    public async Task<JobRuntimeDiagnostics> GetDiagnosticsAsync(
+        int recentJobLimit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (recentJobLimit is < 1 or > 500)
+        {
+            throw new ArgumentOutOfRangeException(nameof(recentJobLimit));
+        }
+
         JobRuntimeMetrics metrics = await GetMetricsAsync(cancellationToken).ConfigureAwait(false);
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         List<JobRuntimeDiagnostic> recentJobs = await lease.Context.Jobs
             .AsNoTracking()
             .OrderByDescending(job => job.JobId)
-            .Take(100)
+            .Take(recentJobLimit)
             .Select(job => new JobRuntimeDiagnostic(
                 job.JobId,
                 job.JobType,
@@ -397,9 +472,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return JsonSerializer.Serialize(
-            new JobRuntimeDiagnostics(metrics, recentJobs),
-            DiagnosticsJsonOptions);
+        return new JobRuntimeDiagnostics(metrics, recentJobs);
     }
 
     private static void AddAuditEvent(

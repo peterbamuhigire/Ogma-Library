@@ -138,10 +138,19 @@ public sealed class Phase17StageWorkerTests
             long jobId,
             CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+        public Task RetryFailedAsync(
+            long jobId,
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<int> RecoverExpiredAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
 
         public Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<JobRuntimeDiagnostics> GetDiagnosticsAsync(
+            int recentJobLimit = 100,
+            CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
         public Task<string> ExportDiagnosticsJsonAsync(CancellationToken cancellationToken = default) =>

@@ -114,7 +114,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         var indexManager = new IndexManagerViewModel(
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),
-            localization);
+            localization,
+            jobRuntime: services.GetRequiredService<IJobRuntimeService>());
         var reconciliationReviews = new ReconciliationReviewPanelViewModel(
             services.GetRequiredService<IReconciliationReviewService>(),
             localization);

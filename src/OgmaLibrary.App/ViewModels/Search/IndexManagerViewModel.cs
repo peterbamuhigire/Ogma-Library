@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Avalonia.Threading;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Search;
 
 namespace OgmaLibrary.App.ViewModels.Search;
@@ -42,7 +43,8 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         IIndexManagerService indexManager,
         IEmbeddingErasureService embeddingErasure,
         ILocalizationService localization,
-        TimeSpan? erasureConfirmationDelay = null)
+        TimeSpan? erasureConfirmationDelay = null,
+        IJobRuntimeService? jobRuntime = null)
     {
         ArgumentNullException.ThrowIfNull(indexManager);
         ArgumentNullException.ThrowIfNull(embeddingErasure);
@@ -53,6 +55,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         _localization = localization;
         _erasureConfirmationDelay = erasureConfirmationDelay ?? TimeSpan.FromSeconds(3);
         _statusText = _localization["IndexManager.Status.Ready"];
+        ActivityCentre = jobRuntime is null ? null : new ActivityCentreViewModel(jobRuntime, localization);
         _subscription = _indexManager.Events.Subscribe(this);
         _localization.CultureChanged += OnCultureChanged;
     }
@@ -68,6 +71,12 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
 
     /// <summary>Current OCR job rows surfaced in the dashboard.</summary>
     public ObservableCollection<OcrJobStatusDisplayItem> OcrJobs { get; } = [];
+
+    /// <summary>Privacy-safe background-work activity, when a runtime is available.</summary>
+    public ActivityCentreViewModel? ActivityCentre { get; }
+
+    /// <summary>Whether the activity-centre surface is available.</summary>
+    public bool HasActivityCentre => ActivityCentre is not null;
 
     /// <summary>Total active books.</summary>
     public int TotalBooks { get; private set; }
@@ -388,6 +397,10 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             .GetStatusAsync(cancellationToken)
             .ConfigureAwait(false);
         await ApplyStatusAsync(status).ConfigureAwait(false);
+        if (ActivityCentre is not null)
+        {
+            await ActivityCentre.LoadAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Starts a rebuild.</summary>
@@ -573,6 +586,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         _erasureCountdownCts?.Cancel();
         _erasureCountdownCts?.Dispose();
         _subscription.Dispose();
+        ActivityCentre?.Dispose();
         _localization.CultureChanged -= OnCultureChanged;
     }
 

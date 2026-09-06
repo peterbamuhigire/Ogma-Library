@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Search"
+             x:Class="OgmaLibrary.App.Views.Search.ActivityCentreView"
+             x:DataType="vm:ActivityCentreViewModel">
+  <Border Padding="10"
+          Background="{DynamicResource Brush.Surface.Card}"
+          BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource Radius.S}">
+    <Grid RowDefinitions="Auto,Auto,*">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Text="{Binding Title}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <Button Grid.Column="1"
+                Margin="8,0,0,0"
+                Padding="8,4"
+                IsEnabled="{Binding CanAct}"
+                AutomationProperties.Name="{Binding RefreshLabel}"
+                Click="Refresh_Click">
+          <TextBlock Text="{Binding RefreshLabel}" />
+        </Button>
+        <Button Grid.Column="2"
+                Margin="6,0,0,0"
+                Padding="8,4"
+                IsEnabled="{Binding CanAct}"
+                AutomationProperties.Name="{Binding ExportLabel}"
+                Click="Export_Click">
+          <TextBlock Text="{Binding ExportLabel}" />
+        </Button>
+      </Grid>
+
+      <UniformGrid Grid.Row="1" Columns="2" Margin="0,8,0,0">
+        <TextBlock Text="{Binding QueueSummary}" />
+        <TextBlock Text="{Binding FailureSummary}" />
+      </UniformGrid>
+
+      <ListBox Grid.Row="2"
+               Margin="0,8,0,0"
+               MaxHeight="160"
+               IsVisible="{Binding HasJobs}"
+               ItemsSource="{Binding Jobs}"
+               AutomationProperties.Name="{Binding StatusText}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ActivityJobDisplayItem">
+            <Grid ColumnDefinitions="2*,Auto,Auto,Auto,Auto" Margin="0,3">
+              <TextBlock Text="{Binding JobType}" />
+              <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding StateText}" />
+              <TextBlock Grid.Column="2" Margin="8,0,0,0" Text="{Binding Attempt}" />
+              <Button Grid.Column="3"
+                      Margin="8,0,0,0"
+                      Padding="6,2"
+                      IsEnabled="{Binding CanRetry}"
+                      AutomationProperties.Name="{Binding RetryLabel}"
+                      Click="Retry_Click">
+                <TextBlock Text="{Binding RetryLabel}" />
+              </Button>
+              <Button Grid.Column="4"
+                      Margin="6,0,0,0"
+                      Padding="6,2"
+                      IsEnabled="{Binding CanCancel}"
+                      AutomationProperties.Name="{Binding CancelLabel}"
+                      Click="Cancel_Click">
+                <TextBlock Text="{Binding CancelLabel}" />
+              </Button>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Border>
+</UserControl>

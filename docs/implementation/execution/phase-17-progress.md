@@ -103,6 +103,13 @@ Date: 2026-09-04
   state and override delayed schedules so user-resumed work is immediately
   claimable. The 10-test Health Dashboard slice passed. Evidence:
   `evidence/phase-17-health-retry-eligibility-2026-09-06.md`.
+- Delivered the Activity Centre inside the existing Index Manager: bounded queue
+  and failure summaries, recent redacted job states, refresh, safe pending-job
+  cancellation, audited failed-job retry, and user-selected redacted JSON
+  export. Dead-letter and active jobs remain visible without unsafe controls.
+  The runtime/acceptance slice passed 11/11 and Activity Centre view-model/render
+  coverage passed 3/3. Evidence:
+  `evidence/phase-17-activity-centre-2026-09-06.md`.
 
 ## Remaining phase gate
 
@@ -112,8 +119,8 @@ subgates are closed. Valid leases are no longer stolen during startup recovery.
 Active OCR pause/cancel/resume is now cooperative at page
 boundaries; unsupported active generic pause is fail-safe and leaves the lease
 running, but those handlers do not yet expose safe cooperative cancellation.
-Crash recovery under the full application queue, a complete
-activity-centre surface, physical reference-machine process behavior, and
-long-duration soak evidence remain before phase 17 closure; the compatibility poll is
-retained for pre-queue catalogue rows and is not a substitute for production
-evidence.
+The Activity Centre software surface is complete locally. Crash recovery under
+the full application queue, physical reference-machine process behavior, and
+long-duration soak evidence remain before phase 17 closure; the compatibility
+poll is retained for pre-queue catalogue rows and is not a substitute for
+production evidence.

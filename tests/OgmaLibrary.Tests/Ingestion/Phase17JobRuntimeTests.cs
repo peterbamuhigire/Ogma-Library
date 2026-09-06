@@ -312,6 +312,51 @@ public sealed class Phase17JobRuntimeTests : IDisposable
     }
 
     [Fact]
+    public async Task ActivityActions_RetryOnlyFailedWork_AndAuditTheTransition()
+    {
+        _fixture.Context.Jobs.AddRange(
+            new JobRow
+            {
+                JobType = "MetadataExtraction",
+                IdempotencyKey = "phase17-activity-failed",
+                Status = (int)JobRuntimeStatus.Failed,
+                RetryCount = 3,
+                FailureCode = "io_timeout",
+                ErrorMessage = "A safe terminal message.",
+                CompletedUtc = DateTimeOffset.UtcNow,
+            },
+            new JobRow
+            {
+                JobType = "Unknown",
+                IdempotencyKey = "phase17-activity-dead-letter",
+                Status = (int)JobRuntimeStatus.DeadLetter,
+            });
+        await _fixture.Context.SaveChangesAsync();
+        var runtime = new JobRuntimeService(_fixture.Context);
+        JobRow failed = _fixture.Context.Jobs.Single(job => job.IdempotencyKey == "phase17-activity-failed");
+        JobRow deadLetter = _fixture.Context.Jobs.Single(job => job.IdempotencyKey == "phase17-activity-dead-letter");
+
+        JobRuntimeDiagnostics snapshot = await runtime.GetDiagnosticsAsync(1);
+        await runtime.RetryFailedAsync(failed.JobId);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => runtime.RetryFailedAsync(deadLetter.JobId));
+
+        _fixture.Context.ChangeTracker.Clear();
+        JobRow queued = await _fixture.Context.Jobs.SingleAsync(job => job.JobId == failed.JobId);
+        Assert.Single(snapshot.RecentJobs);
+        Assert.Equal((int)JobRuntimeStatus.Pending, queued.Status);
+        Assert.Equal(3, queued.RetryCount);
+        Assert.Null(queued.FailureCode);
+        Assert.Null(queued.ErrorMessage);
+        Assert.Null(queued.CompletedUtc);
+        Assert.NotNull(queued.NextAttemptUtc);
+        Assert.Equal(
+            1,
+            _fixture.Context.AuditEvents.Count(audit =>
+                audit.EventType == "JobRetryQueued" &&
+                audit.EntityId == failed.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    [Fact]
     public async Task PausedStatusMigration_SeparatesPausedWorkFromDeadLetters()
     {
         (CatalogueDbContext context, string dbPath) = CatalogueTestHelper.CreateTempFileContext();

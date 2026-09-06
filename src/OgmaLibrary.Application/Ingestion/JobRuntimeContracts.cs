@@ -110,11 +110,21 @@ public interface IJobRuntimeService
         long jobId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Returns a terminal failed job to the queue and records the operator action.</summary>
+    Task RetryFailedAsync(
+        long jobId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Returns expired running jobs to the queue for deterministic recovery.</summary>
     Task<int> RecoverExpiredAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Returns status totals and active-lease metrics without exposing job payloads.</summary>
     Task<JobRuntimeMetrics> GetMetricsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Returns a bounded, payload-free operational snapshot for user interfaces.</summary>
+    Task<JobRuntimeDiagnostics> GetDiagnosticsAsync(
+        int recentJobLimit = 100,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Exports a bounded JSON diagnostic snapshot without job payloads or error text.</summary>
     Task<string> ExportDiagnosticsJsonAsync(CancellationToken cancellationToken = default);
