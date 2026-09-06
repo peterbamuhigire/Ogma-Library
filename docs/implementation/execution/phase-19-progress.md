@@ -87,5 +87,8 @@ server-side page-performance sub-gates are also closed.
 
 The Aug-39 Definition of Done now records three-view action parity, real
 cover/processing-state presentation, and persisted correct filter/sort state as
-closed. Physical keyboard/screen-reader and named-reference 50,000-item gates
-remain unchecked.
+closed. Physical keyboard/screen-reader acceptance remains unchecked.
+
+The encoded 50,000-record server-side page budget is now also closed by its
+explicit <=2-second test. Named-reference-hardware confirmation remains a
+separate release evidence requirement and is not implied by this local pass.

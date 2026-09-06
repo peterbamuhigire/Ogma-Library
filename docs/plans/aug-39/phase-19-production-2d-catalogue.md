@@ -82,7 +82,7 @@ Legacy sort/filter preferences map to validated values.
 - [x] Real covers and processing states render.
 - [x] Filters/sorts are persisted and correct.
 - [ ] Full keyboard/screen-reader flow passes.
-- [ ] 50k performance budget passes.
+- [x] 50k performance budget passes.
 
 ## Kaizen Review
 1. Complexity: three views/facets. 2. One query/selection contract. 3. Simplify read models. 4. Delete placeholders. 5. Document parity. 6. Pattern: virtualised catalogue surface. 7. Debt decreases.
