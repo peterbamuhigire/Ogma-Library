@@ -19,6 +19,13 @@ commit `bb277254eb0b93de1247c9762fdc5efdaecd2991`; per-platform totals were
 for unsupported macOS/Linux Tesseract native packaging and unavailable hosted
 macOS worker private-resource counters. See
 `evidence/ci-cross-platform-regression-2026-09-06.md`.
+A later dirty-worktree validation at the current local head reran the build,
+accountability, 41 architecture tests, 925 core tests, 159 UI tests, the
+NuGet vulnerability scan, and all three shelf3d gates successfully. Its format
+check remains `NOT ASSESSED` because the dirty worktree reports existing
+repository-wide line-ending/whitespace diagnostics; no formatter fix-all was
+applied over user-owned files. See
+`evidence/current-worktree-validation-2026-09-06.md`.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
 outlier; the isolated test and this subsequent complete run both passed. This
 refresh closes only the repaired automated gates; per-phase platform, physical,
