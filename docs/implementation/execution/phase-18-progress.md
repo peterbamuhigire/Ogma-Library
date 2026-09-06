@@ -135,3 +135,12 @@ persistence, command-palette execution, the
   named Student Smart Search copy finding, and static route inventory are
   closed locally; physical rendered snapshots and assistive-technology
   accessibility remain open.
+
+The Aug-39 Definition of Done now records the static route inventory and
+current-feature English/French resource coverage as closed. The typography
+criterion remains open because Inter is still the documented packaged-runtime
+fallback; the complete state-matrix and physical keyboard/Narrator/VoiceOver
+criteria also remain unchecked.
+
+Focused Phase 18 design-system verification on 2026-09-06: **5 passed, 0
+failed, 0 skipped**.
