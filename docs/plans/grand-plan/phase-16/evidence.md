@@ -190,6 +190,11 @@ catalogue, search, detail, sync, asset, page/file delivery, managed-AI, and
 Host-local admin route set. Token values remain explicitly absent from every
 captured audit payload.
 
+The isolated, warmed 20-client authenticated catalogue smoke now enforces the
+phase's original P95 budget directly (`<= 800 ms`) and emits the measured P95
+to the test log. Three consecutive local runs measured 149 ms, 146 ms, and
+149 ms. The prior 2,000 ms interim ceiling is no longer accepted.
+
 - Real same-subnet mDNS discovery and HTTPS binding verification on Windows and
   macOS runners.
 - Real macOS Keychain execution evidence for the Host CA store on a macOS runner

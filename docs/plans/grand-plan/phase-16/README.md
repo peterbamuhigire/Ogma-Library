@@ -360,7 +360,7 @@ Full task detail in `tasks.md`.
       returning 403 when file-stream disabled).
 - [x] File-stream mode requires explicit admin opt-in; default state is
       `ContentMode = PageRender`.
-- [ ] 20-concurrent-client smoke load test passes: P95 catalogue response ≤ 800 ms.
+- [x] 20-concurrent-client smoke load test passes: P95 catalogue response ≤ 800 ms.
 - [x] Architecture isolation tests pass: `LanHost` context has no compile-time
       dependency on `CredentialStore`, `UntrustedPdfWorker`, or `IAiProvider`.
 - [x] All authenticated LAN requests produce `AuditEvents` rows; verified by

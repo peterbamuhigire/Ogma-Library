@@ -54,7 +54,8 @@ public sealed class LanHostLoadSmokeTests
 
             Array.Sort(elapsedMs);
             long p95 = elapsedMs[(int)Math.Ceiling(elapsedMs.Length * 0.95) - 1];
-            Assert.True(p95 < 2_000, $"Expected catalogue P95 < 2000 ms, actual {p95} ms.");
+            Console.WriteLine($"LAN catalogue load smoke: clients=20, p95Milliseconds={p95}");
+            Assert.True(p95 <= 800, $"Expected catalogue P95 <= 800 ms, actual {p95} ms.");
         }
         finally
         {
