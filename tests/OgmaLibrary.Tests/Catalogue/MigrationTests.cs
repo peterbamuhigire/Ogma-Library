@@ -266,6 +266,68 @@ public sealed class MigrationTests
     }
 
     [Fact]
+    public async Task Phase16Migration_AddsLanHostTablesAndRoundTrips()
+    {
+        string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-p16-schema-{Guid.NewGuid():N}.db");
+        string[] expectedTables = ["HostClientSessions", "HostModeSettings"];
+        string[] expectedIndexes =
+        [
+            "IX_HostClientSessions_ClientId_ExpiresUtc",
+            "IX_HostClientSessions_RevokedUtc",
+        ];
+
+        try
+        {
+            var options = new DbContextOptionsBuilder<CatalogueDbContext>()
+                .UseSqlite($"Data Source={dbPath};Pooling=False")
+                .Options;
+
+            await using (var phase16 = new CatalogueDbContext(options))
+            {
+                IMigrator migrator = phase16.Database.GetService<IMigrator>();
+                await migrator.MigrateAsync("20260601184330_Phase16LanHostTables");
+                Assert.Equal(
+                    expectedTables.OrderBy(name => name, StringComparer.Ordinal),
+                    (await ReadObjectNamesAsync(phase16, "table", expectedTables))
+                        .OrderBy(name => name, StringComparer.Ordinal));
+                Assert.Equal(
+                    expectedIndexes.OrderBy(name => name, StringComparer.Ordinal),
+                    (await ReadObjectNamesAsync(phase16, "index", expectedIndexes))
+                        .OrderBy(name => name, StringComparer.Ordinal));
+                Assert.Equal(1, await phase16.HostModeSettings.CountAsync());
+                Assert.False((await phase16.HostModeSettings.SingleAsync()).IsEnabled);
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await using (var downgraded = new CatalogueDbContext(options))
+            {
+                IMigrator migrator = downgraded.Database.GetService<IMigrator>();
+                await migrator.MigrateAsync("20260601171443_Phase15SmartShelfIndexes");
+                Assert.Empty(await ReadObjectNamesAsync(downgraded, "table", expectedTables));
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            await using (var remigrated = new CatalogueDbContext(options))
+            {
+                IMigrator migrator = remigrated.Database.GetService<IMigrator>();
+                await migrator.MigrateAsync("20260601184330_Phase16LanHostTables");
+                Assert.Equal(
+                    expectedTables.OrderBy(name => name, StringComparer.Ordinal),
+                    (await ReadObjectNamesAsync(remigrated, "table", expectedTables))
+                        .OrderBy(name => name, StringComparer.Ordinal));
+                Assert.Equal(1, await remigrated.HostModeSettings.CountAsync());
+            }
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            CatalogueTestHelper.DeleteTempDb(dbPath);
+        }
+    }
+
+    [Fact]
     public async Task Phase18Migration_AddsSchoolAdminTablesAndRoundTrips()
     {
         string dbPath = Path.Combine(Path.GetTempPath(), $"ogma-p18-schema-{Guid.NewGuid():N}.db");

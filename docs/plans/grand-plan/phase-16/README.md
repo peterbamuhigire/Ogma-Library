@@ -349,24 +349,24 @@ Full task detail in `tasks.md`.
 
 - [x] ADR-0010 is authored, CI-2 scope amendment is explicit, and the ADR is
       cross-referenced in `SOURCE-SUMMARY.md`.
-- [ ] `ILibraryHostService.StartAsync()` binds HTTPS listener; `StopAsync()`
+- [x] `ILibraryHostService.StartAsync()` binds HTTPS listener; `StopAsync()`
       releases port; verified by integration test on Windows and macOS.
 - [ ] mDNS service record is discoverable by a test client on the same subnet;
       manual IP fallback also verified.
-- [ ] Catalogue projection endpoint returns correct pagination and matches
+- [x] Catalogue projection endpoint returns correct pagination and matches
       catalogue state (deterministic oracle test).
-- [ ] Page-render mode verified: no PDF file bytes appear in any HTTP response
+- [x] Page-render mode verified: no PDF file bytes appear in any HTTP response
       body (assertion on response content-type and body for `/books/{id}/file`
       returning 403 when file-stream disabled).
-- [ ] File-stream mode requires explicit admin opt-in; default state is
+- [x] File-stream mode requires explicit admin opt-in; default state is
       `ContentMode = PageRender`.
 - [ ] 20-concurrent-client smoke load test passes: P95 catalogue response ≤ 800 ms.
-- [ ] Architecture isolation tests pass: `LanHost` context has no compile-time
+- [x] Architecture isolation tests pass: `LanHost` context has no compile-time
       dependency on `CredentialStore`, `UntrustedPdfWorker`, or `IAiProvider`.
 - [ ] All authenticated LAN requests produce `AuditEvents` rows; verified by
       integration test.
-- [ ] `M016_AddLanHostTables` UP and DOWN migrations both succeed in isolation.
-- [ ] Standalone mode: no `HttpListener`/Kestrel binding present when Host mode
+- [x] `M016_AddLanHostTables` UP and DOWN migrations both succeed in isolation.
+- [x] Standalone mode: no `HttpListener`/Kestrel binding present when Host mode
       is off (verified by architecture test + integration test asserting no open
       port after cold start without enabling Host mode).
 

@@ -174,6 +174,16 @@ reruns passed.
 
 ADR-0010 is accepted, its CI-2 scope amendment is explicit, and the canonical
 source summary now links that decision to Standalone and classroom behavior.
+The existing Windows/macOS integration, migration, and architecture evidence
+also closes the HTTPS start/stop, deterministic catalogue projection,
+page-render containment, explicit file-stream opt-in, bounded-context
+isolation, migration round-trip, and Standalone no-listener checklist entries.
+This reconciliation does not close same-subnet mDNS, the stricter 800 ms
+performance target, exhaustive request-audit coverage, or independent review.
+
+Dedicated schema proof: `Phase16Migration_AddsLanHostTablesAndRoundTrips`
+migrates to Phase 16, verifies both Host tables, both indexes, and the disabled
+default row, downgrades to the Phase 15 boundary, and remigrates successfully.
 
 - Real same-subnet mDNS discovery and HTTPS binding verification on Windows and
   macOS runners.
