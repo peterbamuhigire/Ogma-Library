@@ -182,6 +182,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         _ = PathGuard.EnsureWithinRoot(
             plan.BackupToken.BackupAbsolutePath,
             Path.Combine(backupRoot, ".ogma", "backups"));
+        await EnsureBackupIntegrityAsync(plan.BackupToken, cancellationToken)
+            .ConfigureAwait(false);
         return plan;
     }
 
@@ -256,6 +258,9 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             throw new InvalidOperationException(
                 "The write-back backup is missing. Create a new backup before writing metadata.");
         }
+
+        await EnsureBackupIntegrityAsync(backupToken, cancellationToken)
+            .ConfigureAwait(false);
 
         string originalPath = backupToken.OriginalAbsolutePath;
         string tempPath = originalPath + ".ogma_tmp";
@@ -373,6 +378,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string tempPath = originalPath + ".ogma_restore_tmp";
         try
         {
+            await EnsureBackupIntegrityAsync(backupToken, cancellationToken)
+                .ConfigureAwait(false);
             EnsureExclusiveFileAccess(originalPath);
             await Task.Run(() => File.Copy(backupPath, tempPath, overwrite: true), cancellationToken)
                 .ConfigureAwait(false);
@@ -663,6 +670,30 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         byte[] fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
         byte[] hashBytes = SHA256.HashData(fileBytes);
         return Convert.ToHexStringLower(hashBytes);
+    }
+
+    private static async Task EnsureBackupIntegrityAsync(
+        BackupToken backupToken,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(backupToken.BackupAbsolutePath))
+        {
+            throw new InvalidOperationException(
+                "The write-back backup is missing. Create a new backup before continuing.");
+        }
+
+        string backupSha256 = await ComputeSha256Async(
+                backupToken.BackupAbsolutePath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!string.Equals(
+                backupSha256,
+                backupToken.OriginalSha256,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "The write-back backup failed its integrity check. Create a new backup before continuing.");
+        }
     }
 
     private async Task<string> ValidateWriteTargetAsync(

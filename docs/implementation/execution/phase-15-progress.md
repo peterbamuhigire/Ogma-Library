@@ -30,6 +30,10 @@ Date: 2026-08-30
   only a separate confirmation action calls the reversible write boundary.
   Cancellation performs no PDF mutation; restore remains available for a
   prepared or failed operation.
+- Added backup-byte integrity verification using the prepared token's original
+  SHA-256 before plan resumption, writeback, and restore. A missing or tampered
+  backup now fails closed without mutating the original PDF, with regression
+  coverage for both write and restore paths.
 
 ## Current verification
 
@@ -43,6 +47,9 @@ Date: 2026-08-30
 - The complete serialized Release core suite passed 923/923 after the
   writeback failure-recovery increment; architecture and UI baselines remain
   green at 41/41 and 159/159.
+- Focused backup-integrity verification passed 4/4 (`Phase15WriteBackSafetyTests`)
+  on 2026-09-06. Evidence:
+  `evidence/phase-15-backup-integrity-2026-09-06.md`.
 
 ## Remaining phase gate
 

@@ -146,4 +146,58 @@ public sealed class Phase15WriteBackSafetyTests
             }
         }
     }
+
+    [Fact]
+    public async Task TamperedBackup_IsRejectedWithoutReplacingTheOriginal()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"ogma-phase15-tampered-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "book.pdf");
+        byte[] originalBytes;
+        using (var document = new PdfSharp.Pdf.PdfDocument())
+        {
+            document.Info.Title = "Original title";
+            document.AddPage();
+            using var stream = new MemoryStream();
+            document.Save(stream);
+            originalBytes = stream.ToArray();
+        }
+
+        await File.WriteAllBytesAsync(path, originalBytes);
+        try
+        {
+            using CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
+            context.Books.Add(new Infrastructure.Catalogue.Entities.BookRow
+            {
+                BookId = "PHASE15TAMPER000000000000001",
+                Status = 0,
+                RelativePath = "book.pdf",
+            });
+            await context.SaveChangesAsync();
+            var service = new PdfWriteBackService(context, new SidecarService(root), root);
+
+            BackupToken token = await service.PrepareBackupAsync(
+                "PHASE15TAMPER000000000000001",
+                path);
+            await File.WriteAllBytesAsync(token.BackupAbsolutePath, [1, 2, 3]);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.WriteAsync(
+                "PHASE15TAMPER000000000000001",
+                [new AcceptedFieldProposal("Title", "Unsafe title", "UserOverride", 1.0, true)],
+                token));
+
+            Assert.Equal(originalBytes, await File.ReadAllBytesAsync(path));
+            Assert.False(await service.RestoreBackupAsync(
+                "PHASE15TAMPER000000000000001",
+                token));
+            Assert.Equal(originalBytes, await File.ReadAllBytesAsync(path));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
 }
