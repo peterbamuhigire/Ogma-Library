@@ -83,3 +83,8 @@ before phase 20 closure. The detail-view status/rating/
 favourite, bounded tag, collection CRUD, and local status/history presentation
 sub-gates, plus lazy TOC/provenance presentation, are closed by the curation/
 organisation UI increments.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 20's local
+implementation scope. Physical folder-picker/relink, accessibility, and full
+journey acceptance remain later release gates and keep the phase overall
+`IN PROGRESS`.

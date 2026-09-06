@@ -78,11 +78,11 @@ Organisation services and detail tabs can proceed behind one projection.
 Normalize legacy status/tag data without losing notes.
 
 ## Definition of Done
-- [ ] Detail exposes identity, metadata, files, status and actions.
-- [ ] Collections/tags/favourites/status/history persist.
-- [ ] Smart shelves are deterministic and editable.
-- [ ] Missing-file detail remains useful.
-- [ ] Notes stay private by default.
+- [x] Detail exposes identity, metadata, files, status and actions.
+- [x] Collections/tags/favourites/status/history persist.
+- [x] Smart shelves are deterministic and editable.
+- [x] Missing-file detail remains useful.
+- [x] Notes stay private by default.
 
 ## Kaizen Review
 1. Complexity: composed detail. 2. Reuse catalogue/detail components. 3. Simplify action routing. 4. Remove duplicate panels. 5. Document status semantics. 6. Pattern: lazy composite projection. 7. Debt decreases.
