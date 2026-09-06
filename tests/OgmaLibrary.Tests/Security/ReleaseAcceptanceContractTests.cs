@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace OgmaLibrary.Tests.Security;
 
@@ -20,11 +22,26 @@ public sealed class ReleaseAcceptanceContractTests
             "tests",
             "fixtures",
             "release-acceptance-contract-invalid-schema-freeze.json");
+        string sourceEvidence = Path.Combine(
+            repositoryRoot,
+            "tests",
+            "fixtures",
+            "release-acceptance-contract-evidence.txt");
+        string fixtureDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"ogma-release-acceptance-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(fixtureDirectory);
+        string isolatedEvidence = Path.Combine(fixtureDirectory, Path.GetFileName(sourceEvidence));
+        string isolatedValidFixture = Path.Combine(fixtureDirectory, Path.GetFileName(validFixture));
+        string isolatedInvalidFixture = Path.Combine(fixtureDirectory, Path.GetFileName(invalidFixture));
+        await File.WriteAllBytesAsync(isolatedEvidence, await File.ReadAllBytesAsync(sourceEvidence));
+        string evidenceDigest = Convert.ToHexStringLower(SHA256.HashData(await File.ReadAllBytesAsync(isolatedEvidence)));
+        await WriteFixtureWithDigestAsync(validFixture, isolatedValidFixture, evidenceDigest);
+        await WriteFixtureWithDigestAsync(invalidFixture, isolatedInvalidFixture, evidenceDigest);
 
-        ProcessResult valid = await RunValidatorAsync(scriptPath, validFixture);
-        ProcessResult invalid = await RunValidatorAsync(scriptPath, invalidFixture);
-        ProcessResult wrongCommit = await RunValidatorAsync(scriptPath, validFixture, new string('f', 40));
-        string fixtureDirectory = Path.GetDirectoryName(validFixture)!;
+        ProcessResult valid = await RunValidatorAsync(scriptPath, isolatedValidFixture);
+        ProcessResult invalid = await RunValidatorAsync(scriptPath, isolatedInvalidFixture);
+        ProcessResult wrongCommit = await RunValidatorAsync(scriptPath, isolatedValidFixture, new string('f', 40));
         string unsupportedPropertyFixture = Path.Combine(
             fixtureDirectory,
             $"ogma-release-acceptance-unsupported-{Guid.NewGuid():N}.json");
@@ -32,7 +49,7 @@ public sealed class ReleaseAcceptanceContractTests
         ProcessResult tamperedEvidence;
         try
         {
-            string validJson = await File.ReadAllTextAsync(validFixture);
+            string validJson = await File.ReadAllTextAsync(isolatedValidFixture);
             string withUnsupportedProperty = validJson.Replace(
                 "\"schema\": \"ogma-release-acceptance-v1\",",
                 "\"schema\": \"ogma-release-acceptance-v1\",\n  \"unexpected\": true,",
@@ -41,7 +58,7 @@ public sealed class ReleaseAcceptanceContractTests
             unsupported = await RunValidatorAsync(scriptPath, unsupportedPropertyFixture);
 
             string tamperedJson = validJson.Replace(
-                "7622f266371e99c061c5e00a3bf013633c3517bece5e764080db6ec237d02120",
+                evidenceDigest,
                 new string('f', 64),
                 StringComparison.Ordinal);
             await File.WriteAllTextAsync(unsupportedPropertyFixture, tamperedJson);
@@ -50,9 +67,15 @@ public sealed class ReleaseAcceptanceContractTests
         finally
         {
             File.Delete(unsupportedPropertyFixture);
+            File.Delete(isolatedValidFixture);
+            File.Delete(isolatedInvalidFixture);
+            File.Delete(isolatedEvidence);
+            Directory.Delete(fixtureDirectory);
         }
 
-        Assert.Equal(0, valid.ExitCode);
+        Assert.True(
+            valid.ExitCode == 0,
+            $"Validator failed. stdout: {valid.StandardOutput} stderr: {valid.StandardError}");
         Assert.Contains("contract-fixture-do-not-release", valid.StandardOutput, StringComparison.Ordinal);
         Assert.NotEqual(0, invalid.ExitCode);
         Assert.Contains(
@@ -74,6 +97,21 @@ public sealed class ReleaseAcceptanceContractTests
             "Acceptance evidence digest for 'test-only-evidence' does not match.",
             tamperedEvidence.StandardError + tamperedEvidence.StandardOutput,
             StringComparison.Ordinal);
+    }
+
+    private static async Task WriteFixtureWithDigestAsync(
+        string sourcePath,
+        string destinationPath,
+        string evidenceDigest)
+    {
+        string json = await File.ReadAllTextAsync(sourcePath);
+        string isolatedJson = Regex.Replace(
+            json,
+            "\\\"sha256\\\": \\\"[0-9a-fA-F]{64}\\\"",
+            $"\"sha256\": \"{evidenceDigest}\"",
+            RegexOptions.CultureInvariant,
+            TimeSpan.FromSeconds(1));
+        await File.WriteAllTextAsync(destinationPath, isolatedJson);
     }
 
     private static async Task<ProcessResult> RunValidatorAsync(
