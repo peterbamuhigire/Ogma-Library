@@ -78,11 +78,11 @@ UX and evaluation harness proceed against frozen output contracts; launch waits 
 Old mock/generated history separated from validated production history.
 
 ## Definition of Done
-- [ ] Advisor/privacy/plan routes are reachable.
+- [x] Advisor/privacy/plan routes are reachable.
 - [ ] Offline and live evaluation meet approved thresholds.
 - [ ] Explanations/evidence/trade-offs render accessibly.
-- [ ] History/export/delete and cost controls pass.
-- [ ] AI retrieval freeze recorded.
+- [x] History/export/delete and cost controls pass.
+- [x] AI retrieval freeze recorded.
 
 ## Kaizen Review
 1. Complexity: quality operations. 2. Reuse cards/evidence. 3. Simplify view models. 4. Remove scaffold tests/claims. 5. Document thresholds/runbook. 6. Pattern: eval-gated feature flag. 7. Debt decreases.

@@ -75,3 +75,8 @@ and full-shell accessibility/keyboard evidence remain before Phase 30 closure.
 The final AI retrieval-contract dependency is closed by the Phase 26 v1 shape
 and version guard. Physical file-picker walkthrough evidence is still a
 platform/release gate.
+
+The Aug-39 Definition of Done now records route reachability, local
+history/export/delete/cost controls, and the version-guarded retrieval freeze as
+closed. The combined offline/live evaluation gate and physical accessible
+rendering gate remain unchecked.
