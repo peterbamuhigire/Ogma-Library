@@ -156,6 +156,77 @@ public sealed class OcrJobProcessorTests : IDisposable
         Assert.DoesNotContain("10,001", job.ErrorMessage ?? string.Empty, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task OcrJob_PauseStopsAtSafePageBoundary_AndResumeAvoidsDuplicatePages()
+    {
+        string bookId = SeedBook("BOOKOCRPAUSERESUME00001");
+        SeedOcrJob(bookId, 0, new OcrJobPayload("sample.pdf"));
+        var gatedProvider = new GatedOcrProvider();
+        OcrJobProcessor processor = CreateProcessor(
+            new FakePdfRendererFactory(pageCount: 3),
+            gatedProvider);
+        Task<bool> processing = processor.ProcessNextAsync(CancellationToken.None);
+        await gatedProvider.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        using CatalogueDbContext controlContext = new TestContextFactory(_dbPath).CreateDbContext();
+        using IndexManagerService manager = CreateIndexManager(controlContext);
+        long jobId = controlContext.Jobs.Single(job => job.JobType == OcrJobProcessor.JobType).JobId;
+        await manager.PauseOcrJobAsync(jobId, CancellationToken.None);
+        gatedProvider.Continue.TrySetResult();
+
+        Assert.True(await processing);
+        _context.ChangeTracker.Clear();
+        JobRow paused = _context.Jobs.Single(job => job.JobId == jobId);
+        Assert.Equal((int)JobRuntimeStatus.Paused, paused.Status);
+        Assert.Equal(1, gatedProvider.CallCount);
+        Assert.Equal(1, _context.ExtractedPages.Count(page => page.BookId == bookId && page.Source == "OCR"));
+        Assert.Empty(_context.SearchChunks.Where(chunk => chunk.BookId == bookId));
+
+        await manager.RetryOcrJobAsync(jobId, CancellationToken.None);
+        var resumedProvider = new FakeOcrProvider();
+        OcrJobProcessor resumed = CreateProcessor(
+            new FakePdfRendererFactory(pageCount: 3),
+            resumedProvider);
+        Assert.True(await resumed.ProcessNextAsync(CancellationToken.None));
+
+        _context.ChangeTracker.Clear();
+        Assert.Equal(2, resumedProvider.CallCount);
+        Assert.Equal(3, _context.ExtractedPages.Count(page => page.BookId == bookId && page.Source == "OCR"));
+        Assert.Equal(
+            (int)JobRuntimeStatus.Completed,
+            _context.Jobs.Single(job => job.JobId == jobId).Status);
+    }
+
+    [Fact]
+    public async Task OcrJob_CancelStopsAtSafePageBoundary_AndPreventsFuturePickup()
+    {
+        string bookId = SeedBook("BOOKOCRACTIVECANCEL0001");
+        SeedOcrJob(bookId, 0, new OcrJobPayload("sample.pdf"));
+        var gatedProvider = new GatedOcrProvider();
+        OcrJobProcessor processor = CreateProcessor(
+            new FakePdfRendererFactory(pageCount: 3),
+            gatedProvider);
+        Task<bool> processing = processor.ProcessNextAsync(CancellationToken.None);
+        await gatedProvider.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        using CatalogueDbContext controlContext = new TestContextFactory(_dbPath).CreateDbContext();
+        using IndexManagerService manager = CreateIndexManager(controlContext);
+        long jobId = controlContext.Jobs.Single(job => job.JobType == OcrJobProcessor.JobType).JobId;
+        await manager.CancelOcrJobAsync(jobId, CancellationToken.None);
+        gatedProvider.Continue.TrySetResult();
+
+        Assert.True(await processing);
+        _context.ChangeTracker.Clear();
+        JobRow cancelled = _context.Jobs.Single(job => job.JobId == jobId);
+        Assert.Equal((int)JobRuntimeStatus.Cancelled, cancelled.Status);
+        Assert.Equal("cancelled_by_user", cancelled.FailureCode);
+        Assert.Equal(1, gatedProvider.CallCount);
+        Assert.Equal(1, _context.ExtractedPages.Count(page => page.BookId == bookId && page.Source == "OCR"));
+        Assert.False(await CreateProcessor(
+            new FakePdfRendererFactory(pageCount: 3),
+            new FakeOcrProvider()).ProcessNextAsync(CancellationToken.None));
+    }
+
     private OcrJobProcessor CreateProcessor(FakePdfRendererFactory rendererFactory, FakeOcrProvider provider)
     {
         var factory = new TestContextFactory(_dbPath);
@@ -167,6 +238,9 @@ public sealed class OcrJobProcessorTests : IDisposable
             new SearchChunkRepository(factory),
             new SearchChunker());
     }
+
+    private static IndexManagerService CreateIndexManager(CatalogueDbContext context) =>
+        new(context, new NoOpExtractionPipeline(), new FtsIndexService(context));
 
     private string SeedBook(string bookId)
     {
@@ -233,11 +307,11 @@ public sealed class OcrJobProcessorTests : IDisposable
             new(pageIndex, [], quality);
     }
 
-    private sealed class FakeOcrProvider : IOcrProvider
+    private class FakeOcrProvider : IOcrProvider
     {
         public int CallCount { get; private set; }
 
-        public async Task<OcrPageResult> RecognizeAsync(
+        public virtual async Task<OcrPageResult> RecognizeAsync(
             Stream pageImage,
             string languageHint,
             CancellationToken cancellationToken = default)
@@ -247,5 +321,37 @@ public sealed class OcrJobProcessorTests : IDisposable
             await Task.CompletedTask;
             return new OcrPageResult($"recognized page {page}", 0.98);
         }
+    }
+
+    private sealed class GatedOcrProvider : FakeOcrProvider
+    {
+        public TaskCompletionSource Started { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Continue { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async Task<OcrPageResult> RecognizeAsync(
+            Stream pageImage,
+            string languageHint,
+            CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            await Continue.Task.WaitAsync(cancellationToken);
+            return await base.RecognizeAsync(pageImage, languageHint, cancellationToken);
+        }
+    }
+
+    private sealed class NoOpExtractionPipeline : IExtractionPipelineService
+    {
+        public Task<ExtractionBookResult> IndexBookAsync(
+            string bookId,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new ExtractionBookResult(bookId, true, 0, 0, 0, 0, null));
+
+        public Task<ExtractionBatchResult> IndexNextBatchAsync(
+            int maxBooks,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new ExtractionBatchResult(0, 0, 0, 0, 0, 0, 0));
     }
 }

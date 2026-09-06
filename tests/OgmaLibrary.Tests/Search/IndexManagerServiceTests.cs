@@ -111,13 +111,27 @@ public sealed class IndexManagerServiceTests : IDisposable
         await service.RetryOcrJobAsync(failed.JobId, CancellationToken.None);
         _context.ChangeTracker.Clear();
 
-        Assert.Equal(5, _context.Jobs.Single(job => job.JobId == running.JobId).Status);
+        JobRow paused = _context.Jobs.Single(job => job.JobId == running.JobId);
+        Assert.Equal(6, paused.Status);
+        Assert.Equal("paused_by_user", paused.FailureCode);
+        Assert.Null(paused.LeaseOwner);
+        Assert.Null(paused.LeaseExpiresUtc);
         Assert.Equal(4, _context.Jobs.Single(job => job.JobId == pending.JobId).Status);
         JobRow retried = _context.Jobs.Single(job => job.JobId == failed.JobId);
         Assert.Equal(0, retried.Status);
         Assert.Null(retried.ErrorMessage);
         Assert.Equal(1, retried.RetryCount);
         Assert.True(observer.Events.OfType<IndexStatusUpdate.StatusChanged>().Count() >= 3);
+        Assert.Equal(
+            ["OcrJobPaused", "OcrJobCancelled", "OcrJobRetried"],
+            _context.AuditEvents
+                .Where(audit => audit.EntityType == "Job")
+                .OrderBy(audit => audit.EventId)
+                .Select(audit => audit.EventType)
+                .ToArray());
+        Assert.All(
+            _context.AuditEvents.Where(audit => audit.EntityType == "Job"),
+            audit => Assert.DoesNotContain("FilePath", audit.AfterJson, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -286,6 +300,8 @@ public sealed class IndexManagerServiceTests : IDisposable
             Status = status,
             Payload = """{"FilePath":"scan.pdf","Language":"eng","TotalPages":4,"ProcessedPages":1}""",
             StartedUtc = status == 1 ? DateTimeOffset.UtcNow.AddMinutes(-1) : null,
+            LeaseOwner = status == 1 ? "ocr-test-worker" : null,
+            LeaseExpiresUtc = status == 1 ? DateTimeOffset.UtcNow.AddMinutes(5) : null,
             CompletedUtc = status == 3 ? DateTimeOffset.UtcNow : null,
             ErrorMessage = error,
         };

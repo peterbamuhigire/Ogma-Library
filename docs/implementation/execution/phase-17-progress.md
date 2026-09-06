@@ -59,6 +59,12 @@ Date: 2026-09-04
 - Protected-`main` CI run 34012939882 reproduced the same process-kill/restart,
   queued-cancellation, and complete core regression on Windows and macOS hosted
   runners.
+- Separated paused work from dead letters with `JobRuntimeStatus.Paused = 6`
+  and a targeted legacy-row migration. OCR pause/cancel/retry transitions are
+  now atomic, clear stale leases, emit payload-free audit events, and are
+  observed by the worker at page boundaries. Pause/resume retains completed
+  pages without duplicate OCR; active cancellation prevents future pickup.
+  Evidence: `evidence/phase-17-ocr-cooperative-control-2026-09-06.md`.
 - The complete serialized Release core suite passed 924/924 after the
   process-recovery increment; architecture and UI baselines remain green at
   41/41 and 159/159.
@@ -76,12 +82,15 @@ Date: 2026-09-04
   `evidence/phase-17-restart-recovery-load-2026-09-06.md`.
 - Shared-runtime cancellation and stage-worker regression slice: 10 passed, 0
   failed, 0 skipped.
+- Cooperative OCR control, migration, runtime, Index Manager, and Health
+  Dashboard regression slice: 32 passed, 0 failed, 0 skipped.
 
 ## Remaining phase gate
 
 The local durable lease/runtime, queue-backed stage-worker, restart-style
 recovery/load, Windows process-kill/restart, and pending-job cancellation
-subgates are closed. Active generic handlers do not yet expose safe cooperative
+subgates are closed. Active OCR pause/cancel/resume is now cooperative at page
+boundaries; other active generic handlers do not yet expose safe cooperative
 cancellation. Crash recovery under the full application queue, a complete
 activity-centre surface, physical reference-machine process behavior, and
 long-duration soak evidence remain before phase 17 closure; the compatibility poll is

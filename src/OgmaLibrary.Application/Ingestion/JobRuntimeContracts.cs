@@ -20,6 +20,9 @@ public enum JobRuntimeStatus
 
     /// <summary>Quarantined because retrying cannot safely make progress.</summary>
     DeadLetter = 5,
+
+    /// <summary>Paused at a handler-defined safe checkpoint and eligible to resume.</summary>
+    Paused = 6,
 }
 
 /// <summary>Safe lease handed to one worker for one job.</summary>
@@ -48,6 +51,7 @@ public sealed record JobRuntimeMetrics(
     int FailedCount,
     int CancelledCount,
     int DeadLetterCount,
+    int PausedCount,
     int TotalAttempts,
     IReadOnlyDictionary<string, int> ActiveByJobType);
 

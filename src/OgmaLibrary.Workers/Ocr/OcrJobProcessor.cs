@@ -96,22 +96,38 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         }
 
         OcrProcessingResult processing = await ProcessAsync(context, job, cancellationToken).ConfigureAwait(false);
-        if (processing.Succeeded)
+        if (processing.Stopped ||
+            await IsStopRequestedAsync(lease.JobId, cancellationToken).ConfigureAwait(false))
         {
-            await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, cancellationToken)
-                .ConfigureAwait(false);
+            return true;
         }
-        else
+
+        try
         {
-            await _jobRuntime.FailAsync(
-                    lease.JobId,
-                    WorkerId,
-                new JobFailure(
-                    processing.FailureCode ?? "ocr_processing_failed",
-                    "OCR processing failed; the job was returned to the bounded retry policy.",
-                    Retryable: true),
-                    cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+            if (processing.Succeeded)
+            {
+                await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                await _jobRuntime.FailAsync(
+                        lease.JobId,
+                        WorkerId,
+                    new JobFailure(
+                        processing.FailureCode ?? "ocr_processing_failed",
+                        "OCR processing failed; the job was returned to the bounded retry policy.",
+                        Retryable: true),
+                        cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            if (!await IsStopRequestedAsync(lease.JobId, cancellationToken).ConfigureAwait(false))
+            {
+                throw;
+            }
         }
 
         return true;
@@ -165,6 +181,11 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             for (int pageIndex = 0; pageIndex < totalPages; pageIndex++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (await IsStopRequestedAsync(job.JobId, cancellationToken).ConfigureAwait(false))
+                {
+                    return OcrProcessingResult.StoppedByControl;
+                }
+
                 if (completedPages.Contains(pageIndex))
                 {
                     continue;
@@ -201,6 +222,11 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                 await SaveProgressAsync(context, job, payload, cancellationToken).ConfigureAwait(false);
             }
 
+            if (await IsStopRequestedAsync(job.JobId, cancellationToken).ConfigureAwait(false))
+            {
+                return OcrProcessingResult.StoppedByControl;
+            }
+
             int chunkCount = await ReplaceOcrSearchChunksAsync(job.BookId, cancellationToken).ConfigureAwait(false);
             await MarkBookOcrDerivedAsync(context, job.BookId, cancellationToken).ConfigureAwait(false);
             TryAddFtsReindexJob(context, job.BookId);
@@ -227,16 +253,31 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         }
     }
 
-    private sealed record OcrProcessingResult(bool Succeeded, string? FailureCode)
+    private sealed record OcrProcessingResult(bool Succeeded, bool Stopped, string? FailureCode)
     {
-        public static OcrProcessingResult Success { get; } = new(true, null);
+        public static OcrProcessingResult Success { get; } = new(true, false, null);
 
-        public static OcrProcessingResult Failed(string code) => new(false, code);
+        public static OcrProcessingResult StoppedByControl { get; } = new(false, true, null);
+
+        public static OcrProcessingResult Failed(string code) => new(false, false, code);
     }
 
     private sealed class OcrResourceLimitException(string code) : InvalidOperationException
     {
         public string Code { get; } = code;
+    }
+
+    private async Task<bool> IsStopRequestedAsync(long jobId, CancellationToken cancellationToken)
+    {
+        using CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        int? status = await context.Jobs
+            .AsNoTracking()
+            .Where(job => job.JobId == jobId)
+            .Select(job => (int?)job.Status)
+            .SingleOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return status is (int)JobRuntimeStatus.Cancelled or (int)JobRuntimeStatus.Paused;
     }
 
     private async Task<int> ReplaceOcrSearchChunksAsync(string bookId, CancellationToken cancellationToken)

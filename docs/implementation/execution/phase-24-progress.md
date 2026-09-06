@@ -31,6 +31,11 @@ Date: 2026-09-04
 - The desktop Index Manager exposes OCR state, bounded page progress, pause,
   cancel, and retry actions with bound accessible names and safe state-based
   enablement.
+- Running OCR now observes pause/cancel at durable page boundaries. The
+  paused state is distinct from dead-letter quarantine, lease fields are
+  cleared atomically, resume skips completed pages, and each control is
+  audited without payload data. Evidence:
+  `evidence/phase-17-ocr-cooperative-control-2026-09-06.md`.
 - Expanded the deterministic mixed-quality extraction benchmark from 32 to 500
   books (1,500 pages) to provide a larger local throughput/allocation baseline.
 - Prevented shared integration contexts from retaining completed page/chunk
@@ -62,7 +67,7 @@ Date: 2026-09-04
 ## Remaining phase gate
 
 The local selective-policy, checksum-integrity, stable-failure-code,
-OCR-control, and synthetic 500-book mixed-quality sub-gates are closed. Real
+cooperative OCR-control, and synthetic 500-book mixed-quality sub-gates are closed. Real
 mixed-PDF accuracy and CPU/memory corpus evidence, cross-platform packaged
 asset proof, and physical assistive-technology evidence remain before phase 24
 closure.

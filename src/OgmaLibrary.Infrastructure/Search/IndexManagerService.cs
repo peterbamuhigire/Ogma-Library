@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -252,45 +253,123 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     }
 
     /// <inheritdoc />
-    public Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken) =>
-        UpdateOcrJobAsync(
-            jobId,
-            allowedStates: [0, 1],
-            update: job =>
-            {
-                job.Status = 5;
-                job.StartedUtc = null;
-            },
-            cancellationToken);
+    public async Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        int updated = await context.Jobs
+            .Where(job =>
+                job.JobId == jobId &&
+                job.JobType == OcrJobType &&
+                (job.Status == (int)JobRuntimeStatus.Pending ||
+                 job.Status == (int)JobRuntimeStatus.Running))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(job => job.Status, (int)JobRuntimeStatus.Paused)
+                    .SetProperty(job => job.StartedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.CompletedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.LeaseOwner, (string?)null)
+                    .SetProperty(job => job.LeaseExpiresUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.NextAttemptUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.FailureCode, "paused_by_user")
+                    .SetProperty(job => job.ErrorMessage, "Paused by user."),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (updated > 0)
+        {
+            AddOcrControlAuditEvent(context, "OcrJobPaused", jobId, "paused");
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (updated > 0)
+        {
+            _ = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     /// <inheritdoc />
-    public Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken) =>
-        UpdateOcrJobAsync(
-            jobId,
-            allowedStates: [0, 1, 3, 5],
-            update: job =>
-            {
-                job.Status = 4;
-                job.StartedUtc = null;
-                job.CompletedUtc = DateTimeOffset.UtcNow;
-                job.ErrorMessage = "Cancelled by user.";
-            },
-            cancellationToken);
+    public async Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        DateTimeOffset completedUtc = DateTimeOffset.UtcNow;
+        int updated = await context.Jobs
+            .Where(job =>
+                job.JobId == jobId &&
+                job.JobType == OcrJobType &&
+                (job.Status == (int)JobRuntimeStatus.Pending ||
+                 job.Status == (int)JobRuntimeStatus.Running ||
+                 job.Status == (int)JobRuntimeStatus.Failed ||
+                 job.Status == (int)JobRuntimeStatus.Paused))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(job => job.Status, (int)JobRuntimeStatus.Cancelled)
+                    .SetProperty(job => job.StartedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.CompletedUtc, completedUtc)
+                    .SetProperty(job => job.LeaseOwner, (string?)null)
+                    .SetProperty(job => job.LeaseExpiresUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.NextAttemptUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.FailureCode, "cancelled_by_user")
+                    .SetProperty(job => job.ErrorMessage, "Cancelled by user."),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (updated > 0)
+        {
+            AddOcrControlAuditEvent(context, "OcrJobCancelled", jobId, "cancelled");
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (updated > 0)
+        {
+            _ = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     /// <inheritdoc />
-    public Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken) =>
-        UpdateOcrJobAsync(
-            jobId,
-            allowedStates: [3, 4, 5],
-            update: job =>
-            {
-                job.Status = 0;
-                job.StartedUtc = null;
-                job.CompletedUtc = null;
-                job.ErrorMessage = null;
-                job.RetryCount += 1;
-            },
-            cancellationToken);
+    public async Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        int updated = await context.Jobs
+            .Where(job =>
+                job.JobId == jobId &&
+                job.JobType == OcrJobType &&
+                (job.Status == (int)JobRuntimeStatus.Failed ||
+                 job.Status == (int)JobRuntimeStatus.Cancelled ||
+                 job.Status == (int)JobRuntimeStatus.Paused))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(job => job.Status, (int)JobRuntimeStatus.Pending)
+                    .SetProperty(job => job.StartedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.CompletedUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.LeaseOwner, (string?)null)
+                    .SetProperty(job => job.LeaseExpiresUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.NextAttemptUtc, (DateTimeOffset?)null)
+                    .SetProperty(job => job.FailureCode, (string?)null)
+                    .SetProperty(job => job.ErrorMessage, (string?)null)
+                    .SetProperty(job => job.RetryCount, job => job.RetryCount + 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (updated > 0)
+        {
+            AddOcrControlAuditEvent(context, "OcrJobRetried", jobId, "pending");
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (updated > 0)
+        {
+            _ = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     private async Task ResetIndexAsync(CancellationToken cancellationToken)
     {
@@ -546,34 +625,30 @@ public sealed class IndexManagerService : IIndexManagerService, ISearchReadModel
     private static OcrJobState ToOcrState(int status) =>
         status switch
         {
-            0 => OcrJobState.Pending,
-            1 => OcrJobState.Running,
-            2 => OcrJobState.Completed,
-            3 => OcrJobState.Failed,
-            4 => OcrJobState.Cancelled,
-            5 => OcrJobState.Paused,
+            (int)JobRuntimeStatus.Pending => OcrJobState.Pending,
+            (int)JobRuntimeStatus.Running => OcrJobState.Running,
+            (int)JobRuntimeStatus.Completed => OcrJobState.Completed,
+            (int)JobRuntimeStatus.Failed => OcrJobState.Failed,
+            (int)JobRuntimeStatus.Cancelled => OcrJobState.Cancelled,
+            (int)JobRuntimeStatus.Paused => OcrJobState.Paused,
             _ => OcrJobState.Failed,
         };
 
-    private async Task UpdateOcrJobAsync(
+    private static void AddOcrControlAuditEvent(
+        CatalogueDbContext context,
+        string eventType,
         long jobId,
-        IReadOnlyCollection<int> allowedStates,
-        Action<JobRow> update,
-        CancellationToken cancellationToken)
+        string state)
     {
-        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
-        CatalogueDbContext context = lease.Context;
-        JobRow? job = await context.Jobs
-            .FirstOrDefaultAsync(row => row.JobId == jobId && row.JobType == OcrJobType, cancellationToken)
-            .ConfigureAwait(false);
-        if (job is null || !allowedStates.Contains(job.Status))
+        context.AuditEvents.Add(new AuditEventRow
         {
-            return;
-        }
-
-        update(job);
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        _ = await PublishStatusAsync(cancellationToken).ConfigureAwait(false);
+            EventType = eventType,
+            EntityId = jobId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            EntityType = "Job",
+            AfterJson = JsonSerializer.Serialize(new { jobType = OcrJobType, state }),
+            Timestamp = DateTimeOffset.UtcNow,
+            IsLocalOnly = true,
+        });
     }
 
     private static (int ProcessedPages, int TotalPages) ReadOcrProgress(string? payload)

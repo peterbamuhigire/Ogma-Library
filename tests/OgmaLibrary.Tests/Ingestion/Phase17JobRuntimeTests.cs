@@ -1,7 +1,11 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Ingestion;
+using OgmaLibrary.Tests.Catalogue;
 
 namespace OgmaLibrary.Tests.Ingestion;
 
@@ -275,6 +279,12 @@ public sealed class Phase17JobRuntimeTests : IDisposable
                 JobType = "ThumbnailGeneration",
                 IdempotencyKey = "phase17-metrics-cancelled",
                 Status = (int)JobRuntimeStatus.Cancelled,
+            },
+            new JobRow
+            {
+                JobType = "OcrJob",
+                IdempotencyKey = "phase17-metrics-paused",
+                Status = (int)JobRuntimeStatus.Paused,
             });
         await _fixture.Context.SaveChangesAsync();
 
@@ -287,6 +297,7 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.Equal(1, metrics.FailedCount);
         Assert.Equal(1, metrics.CancelledCount);
         Assert.Equal(1, metrics.DeadLetterCount);
+        Assert.Equal(1, metrics.PausedCount);
         Assert.Equal(10, metrics.TotalAttempts);
         Assert.Equal(1, metrics.ActiveByJobType["OcrJob"]);
 
@@ -297,6 +308,56 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         Assert.DoesNotContain("leaseOwner", diagnostics, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("deadLetterCount", diagnostics, StringComparison.Ordinal);
         Assert.Contains("cancelledCount", diagnostics, StringComparison.Ordinal);
+        Assert.Contains("pausedCount", diagnostics, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PausedStatusMigration_SeparatesPausedWorkFromDeadLetters()
+    {
+        (CatalogueDbContext context, string dbPath) = CatalogueTestHelper.CreateTempFileContext();
+        try
+        {
+            IMigrator migrator = context.Database.GetService<IMigrator>();
+            await migrator.MigrateAsync("20260905090519_Phase13ProviderLookupStaleness");
+            context.Jobs.AddRange(
+                new JobRow
+                {
+                    JobType = "OcrJob",
+                    IdempotencyKey = "phase17-legacy-paused-ocr",
+                    Status = 5,
+                },
+                new JobRow
+                {
+                    JobType = "Enrich",
+                    IdempotencyKey = "phase17-legacy-paused-enrich",
+                    Status = 5,
+                },
+                new JobRow
+                {
+                    JobType = "Unknown",
+                    IdempotencyKey = "phase17-existing-dead-letter",
+                    Status = (int)JobRuntimeStatus.DeadLetter,
+                });
+            await context.SaveChangesAsync();
+
+            await migrator.MigrateAsync();
+            context.ChangeTracker.Clear();
+
+            Assert.Equal(
+                (int)JobRuntimeStatus.Paused,
+                context.Jobs.Single(job => job.JobType == "OcrJob").Status);
+            Assert.Equal(
+                (int)JobRuntimeStatus.Paused,
+                context.Jobs.Single(job => job.JobType == "Enrich").Status);
+            Assert.Equal(
+                (int)JobRuntimeStatus.DeadLetter,
+                context.Jobs.Single(job => job.JobType == "Unknown").Status);
+        }
+        finally
+        {
+            context.Dispose();
+            CatalogueTestHelper.DeleteTempDb(dbPath);
+        }
     }
 
     public void Dispose() => _fixture.Dispose();

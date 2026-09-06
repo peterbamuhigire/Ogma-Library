@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
@@ -14,8 +15,10 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class LibraryHealthService : ILibraryHealthService
 {
-    private static readonly int[] PausableBatchStatuses = [0, 1];
-    private static readonly int[] ResumableBatchStatuses = [3, 5];
+    private static readonly int[] PausableBatchStatuses =
+        [(int)JobRuntimeStatus.Pending, (int)JobRuntimeStatus.Running];
+    private static readonly int[] ResumableBatchStatuses =
+        [(int)JobRuntimeStatus.Failed, (int)JobRuntimeStatus.Paused];
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -108,8 +111,10 @@ public sealed class LibraryHealthService : ILibraryHealthService
             statuses: PausableBatchStatuses,
             update: job =>
             {
-                job.Status = 5;
+                job.Status = (int)JobRuntimeStatus.Paused;
                 job.StartedUtc = null;
+                job.LeaseOwner = null;
+                job.LeaseExpiresUtc = null;
             },
             cancellationToken);
 
@@ -120,12 +125,12 @@ public sealed class LibraryHealthService : ILibraryHealthService
             statuses: ResumableBatchStatuses,
             update: job =>
             {
-                if (job.Status == 3)
+                if (job.Status == (int)JobRuntimeStatus.Failed)
                 {
                     job.RetryCount++;
                 }
 
-                job.Status = 0;
+                job.Status = (int)JobRuntimeStatus.Pending;
                 job.StartedUtc = null;
                 job.CompletedUtc = null;
                 job.ErrorMessage = null;
@@ -325,7 +330,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
                 RunningJobs: group.Count(job => job.Status == 1),
                 CompletedJobs: group.Count(job => job.Status == 2),
                 FailedJobs: group.Count(job => job.Status == 3),
-                PausedJobs: group.Count(job => job.Status == 5)))
+                PausedJobs: group.Count(job => job.Status == (int)JobRuntimeStatus.Paused)))
             .ToList();
     }
 

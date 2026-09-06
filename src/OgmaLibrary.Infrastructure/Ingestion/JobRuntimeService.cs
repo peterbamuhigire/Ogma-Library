@@ -345,6 +345,9 @@ public sealed class JobRuntimeService : IJobRuntimeService
         int deadLetterCount = await jobs.CountAsync(
             job => job.Status == (int)JobRuntimeStatus.DeadLetter,
             cancellationToken).ConfigureAwait(false);
+        int pausedCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.Paused,
+            cancellationToken).ConfigureAwait(false);
         int totalAttempts = await jobs
             .Select(job => (int?)job.RetryCount)
             .SumAsync(cancellationToken)
@@ -367,6 +370,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
             FailedCount: failedCount,
             CancelledCount: cancelledCount,
             DeadLetterCount: deadLetterCount,
+            PausedCount: pausedCount,
             TotalAttempts: totalAttempts,
             ActiveByJobType: activeByJobType);
     }
