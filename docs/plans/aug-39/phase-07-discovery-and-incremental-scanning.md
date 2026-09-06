@@ -78,11 +78,11 @@ Watcher is optional and may follow scanner core within the phase.
 First new scan is a non-destructive reconciliation, not a fresh import.
 
 ## Definition of Done
-- [ ] Recursive scans are restartable and idempotent.
-- [ ] Exclusions and errors are visible.
-- [ ] One content observation feeds downstream stages once.
-- [ ] Catalogue remains usable during scan.
-- [ ] 50k benchmark meets budget.
+- [x] Recursive scans are restartable and idempotent.
+- [x] Exclusions and errors are visible.
+- [x] One content observation feeds downstream stages once.
+- [x] Catalogue remains usable during scan.
+- [x] 50k benchmark meets budget.
 
 ## Kaizen Review
 1. Complexity: checkpoints/watch events. 2. Share observation pipeline. 3. Simplify orchestration. 4. Remove duplicate hashing. 5. Document scan policy. 6. Pattern: immutable observation. 7. Debt decreases.

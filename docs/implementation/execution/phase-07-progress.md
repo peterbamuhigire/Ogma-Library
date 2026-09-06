@@ -39,3 +39,7 @@ Phase 7 scanner-core gates are closed by the implementation and acceptance
 evidence above. Physical cross-platform filesystem permission behavior and UI
 screen-reader walkthroughs remain platform gates for the later release review;
 they are not silently treated as assessed by this Windows test run.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 7's
+implementation scope. Cross-platform filesystem and assistive-technology
+acceptance remains assigned to the later release gates.
