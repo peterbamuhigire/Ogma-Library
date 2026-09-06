@@ -30,6 +30,10 @@ Date: 2026-09-06
 - Closed the locally verifiable migration-compatibility subgate with the
   migration test class passing 9/9. Physical upgrade/rollback drills remain
   release-acceptance work.
+- Froze the beta-v1 ordered EF Core migration sequence with an executable
+  count/latest-ID/SHA-256 gate. Any migration change now requires an intentional
+  baseline update plus compatibility, backfill, backup, and release evidence.
+  See `../../releases/phase-38-schema-freeze-v1.md`.
 - Recorded the local descriptor, packaging-script, and migration evidence in
   `evidence/phase-38-release-candidate-2026-09-04.md`.
 
@@ -60,6 +64,9 @@ Date: 2026-09-06
   `evidence/phase-38-workflow-lint-2026-09-04.md`.
 - SQLite migration test class: 9 passed, including the previously failing
   Phase 18 downgrade and Phase 12 legacy-history rollback scenarios.
+- The beta-v1 schema-freeze test is included in protected CI; focused
+  migration/freeze verification passed 10/10 and remains required after every
+  schema change.
 - Current-head release-gate reconciliation is recorded in
   `evidence/phase-38-local-release-reconciliation-2026-09-04.md`.
 - On 2026-09-06, locked restore initially caught stale project-reference lock
@@ -101,4 +108,5 @@ This phase is not complete. Final MSIX/installer production, Authenticode and
 Developer ID/notarization evidence, clean W-REF-01/M-REF-01 installation and
 performance runs, interrupted-upgrade recovery, and physical rollback drills
 remain Phase 39 release-acceptance gates. No private signing key is stored in
-the repository.
+the repository. The local release-schema freeze subgate is closed; beta owner
+approval remains open.
