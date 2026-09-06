@@ -46,6 +46,10 @@ Date: 2026-09-05
 - Mirrored the schema's closed property sets in the executable validator and
   added unknown-property rejection to the cross-platform test, preventing
   drift between manual script acceptance and the JSON contract.
+- Bound every acceptance assertion to a canonicalized, in-directory evidence
+  path and verified SHA-256 digest. The cross-platform contract test rejects a
+  tampered digest; the checked-in fixture remains explicitly test-only. See
+  `evidence/phase-39-evidence-digest-binding-2026-09-06.md`.
 
 ## Remaining handover gate
 
@@ -54,4 +58,5 @@ M-REF-01 runs, signed Windows and notarized macOS artifacts, installed-build
 critical journeys, final performance/accessibility evidence, upgrade
 interruption recovery, backup/restore, rollback, and owner acceptance. The
 repository now has an executable contract for those facts; it does not invent
-them. Contract/schema consistency and schema-freeze binding are closed.
+them. Contract/schema consistency, schema-freeze binding, and evidence-digest
+binding are closed.

@@ -28,10 +28,11 @@ scripts/New-ReleaseCandidate.ps1
 ambiguous records before evaluating the platform, reference-machine, migration,
 and owner-approval assertions. It now requires exactly one supported Windows and
 macOS artifact, exactly W-REF-01 and M-REF-01 hardware records, safe release and
-artifact identifiers, and explicit migration/approval objects. Temporary tests
-passed for a valid record, rejected an extra artifact, and rejected a Windows
-backslash path separator in an artifact name. No real acceptance record was
-found in the repository.
+artifact identifiers, explicit migration/approval objects, and digest-verified
+evidence references for every acceptance scope. Temporary tests passed for a
+valid record, rejected an extra artifact, rejected a Windows backslash path
+separator in an artifact name, and rejected a tampered evidence digest. No real
+acceptance record was found in the repository.
 
 The current negative check also passed: invoking the script with an absent
 record was rejected with `Acceptance record does not exist.`

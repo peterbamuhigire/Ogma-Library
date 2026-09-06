@@ -23,10 +23,12 @@ public sealed class ReleaseAcceptanceContractTests
 
         ProcessResult valid = await RunValidatorAsync(scriptPath, validFixture);
         ProcessResult invalid = await RunValidatorAsync(scriptPath, invalidFixture);
+        string fixtureDirectory = Path.GetDirectoryName(validFixture)!;
         string unsupportedPropertyFixture = Path.Combine(
-            Path.GetTempPath(),
+            fixtureDirectory,
             $"ogma-release-acceptance-unsupported-{Guid.NewGuid():N}.json");
         ProcessResult unsupported;
+        ProcessResult tamperedEvidence;
         try
         {
             string validJson = await File.ReadAllTextAsync(validFixture);
@@ -36,6 +38,13 @@ public sealed class ReleaseAcceptanceContractTests
                 StringComparison.Ordinal);
             await File.WriteAllTextAsync(unsupportedPropertyFixture, withUnsupportedProperty);
             unsupported = await RunValidatorAsync(scriptPath, unsupportedPropertyFixture);
+
+            string tamperedJson = validJson.Replace(
+                "7622f266371e99c061c5e00a3bf013633c3517bece5e764080db6ec237d02120",
+                new string('f', 64),
+                StringComparison.Ordinal);
+            await File.WriteAllTextAsync(unsupportedPropertyFixture, tamperedJson);
+            tamperedEvidence = await RunValidatorAsync(scriptPath, unsupportedPropertyFixture);
         }
         finally
         {
@@ -53,6 +62,11 @@ public sealed class ReleaseAcceptanceContractTests
         Assert.Contains(
             "Acceptance record contains unsupported property 'unexpected'.",
             unsupported.StandardError + unsupported.StandardOutput,
+            StringComparison.Ordinal);
+        Assert.NotEqual(0, tamperedEvidence.ExitCode);
+        Assert.Contains(
+            "Acceptance evidence digest for 'test-only-evidence' does not match.",
+            tamperedEvidence.StandardError + tamperedEvidence.StandardOutput,
             StringComparison.Ordinal);
     }
 

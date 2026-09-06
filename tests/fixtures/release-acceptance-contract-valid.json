@@ -2,6 +2,13 @@
   "schema": "ogma-release-acceptance-v1",
   "releaseId": "contract-fixture-do-not-release",
   "commitSha": "0000000000000000000000000000000000000000",
+  "evidence": [
+    {
+      "id": "test-only-evidence",
+      "path": "release-acceptance-contract-evidence.txt",
+      "sha256": "7622f266371e99c061c5e00a3bf013633c3517bece5e764080db6ec237d02120"
+    }
+  ],
   "artifacts": [
     {
       "platform": "windows",
@@ -13,6 +20,7 @@
       "cleanInstall": true,
       "criticalFlows": true,
       "performanceBudgets": true,
+      "evidenceIds": ["test-only-evidence"],
       "authenticodeOrMsix": true
     },
     {
@@ -25,6 +33,7 @@
       "cleanInstall": true,
       "criticalFlows": true,
       "performanceBudgets": true,
+      "evidenceIds": ["test-only-evidence"],
       "developerIdAndNotarized": true
     }
   ],
@@ -33,13 +42,15 @@
       "machineId": "W-REF-01",
       "installedBuild": true,
       "performanceEvidence": true,
-      "accessibilityEvidence": true
+      "accessibilityEvidence": true,
+      "evidenceIds": ["test-only-evidence"]
     },
     {
       "machineId": "M-REF-01",
       "installedBuild": true,
       "performanceEvidence": true,
-      "accessibilityEvidence": true
+      "accessibilityEvidence": true,
+      "evidenceIds": ["test-only-evidence"]
     }
   ],
   "schemaFreeze": {
@@ -47,17 +58,20 @@
     "migrationCount": 41,
     "latestMigration": "20260906060000_Phase17PausedJobStatus",
     "sequenceSha256": "8135fad43778f705b48c9d667d8e56d36b8d4445b8be3a5d2b985b1e42637dd5",
-    "verified": true
+    "verified": true,
+    "evidenceIds": ["test-only-evidence"]
   },
   "migration": {
     "upgrade": true,
     "interruptedUpgradeRecovery": true,
     "rollback": true,
-    "backupRestore": true
+    "backupRestore": true,
+    "evidenceIds": ["test-only-evidence"]
   },
   "approval": {
     "owner": "TEST FIXTURE - NOT AN APPROVAL",
     "approvedAtUtc": "2026-09-06T00:00:00Z",
-    "residualRisksAccepted": true
+    "residualRisksAccepted": true,
+    "evidenceIds": ["test-only-evidence"]
   }
 }

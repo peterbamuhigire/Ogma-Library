@@ -1,0 +1,4 @@
+TEST FIXTURE ONLY - NOT RELEASE EVIDENCE
+
+This deterministic file exists solely to exercise evidence-path and digest
+validation in the release-acceptance contract tests.
