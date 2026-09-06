@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Tests.Ingestion;
@@ -22,15 +23,21 @@ public sealed class ScanHealthTests : IDisposable
             JobType = "ThumbnailGeneration",
             IdempotencyKey = "health-test-failed-job",
             Status = 3, // Failed
-            Payload = "test/file.pdf",
-            ErrorMessage = "Render error",
+            Payload = "C:\\Users\\student\\private\\file.pdf token=secret-value",
+            ErrorMessage = "Render error for C:\\Users\\student\\private\\file.pdf",
+            FailureCode = "thumbnail_render_failed",
             CompletedUtc = DateTimeOffset.UtcNow,
         });
         await _fx.Context.SaveChangesAsync();
 
         var report = await _fx.HealthService.GetReportAsync();
 
-        Assert.NotEmpty(report.FailedJobs);
+        ScanFailureItem failure = Assert.Single(
+            report.FailedJobs,
+            item => item.FailureCode == "thumbnail_render_failed");
+        Assert.StartsWith("job:", failure.SourceReference, StringComparison.Ordinal);
+        Assert.DoesNotContain("student", failure.SourceReference, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret-value", failure.SourceReference, StringComparison.Ordinal);
     }
 
     [Fact]

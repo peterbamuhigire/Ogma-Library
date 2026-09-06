@@ -58,6 +58,10 @@ Date: 2026-09-06
   uncategorized legacy rows; a path/token leakage regression passed in the
   10-test Health Dashboard slice. Evidence:
   `evidence/phase-37-job-diagnostic-redaction-2026-09-06.md`.
+- Replaced raw scan-job payload/path and error projection with opaque book/job
+  references and stable failure codes. The 4-test scan-health slice proves an
+  absolute student path and token-like value do not cross the boundary. See
+  `evidence/phase-37-scan-health-payload-redaction-2026-09-06.md`.
 
 ## Remaining phase gate
 

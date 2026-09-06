@@ -83,36 +83,41 @@ public sealed class ScanHealthService : IScanHealthService
 
         foreach (string bookId in metadataGapIds)
         {
-            BookFileRow? fileRow = await context.BookFiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(f => f.BookId == bookId, cancellationToken)
-                .ConfigureAwait(false);
-
             metadataGapItems.Add(new ScanFailureItem(
-                FilePath: fileRow?.RelativePath ?? bookId,
-                ErrorMessage: "Missing Title metadata",
+                SourceReference: $"book:{bookId}",
+                FailureCode: "missing_title",
                 JobId: 0,
                 FailedAtUtc: DateTimeOffset.UtcNow));
         }
 
         return new ScanHealthReport(
             FailedJobs: failedJobs.Select(j => new ScanFailureItem(
-                FilePath: j.Payload ?? j.BookId ?? string.Empty,
-                ErrorMessage: j.ErrorMessage,
+                SourceReference: GetSourceReference(j),
+                FailureCode: GetFailureCode(j, "job_failed"),
                 JobId: j.JobId,
                 FailedAtUtc: j.CompletedUtc ?? DateTimeOffset.UtcNow)).ToList(),
             PasswordProtected: passwordJobs.Select(j => new ScanFailureItem(
-                FilePath: j.Payload ?? j.BookId ?? string.Empty,
-                ErrorMessage: "Password-protected PDF",
+                SourceReference: GetSourceReference(j),
+                FailureCode: "password_protected",
                 JobId: j.JobId,
                 FailedAtUtc: j.CompletedUtc ?? DateTimeOffset.UtcNow)).ToList(),
             MissingThumbnails: missingThumbnailJobs.Select(j => new ScanFailureItem(
-                FilePath: j.Payload ?? j.BookId ?? string.Empty,
-                ErrorMessage: j.ErrorMessage ?? "Thumbnail not generated",
+                SourceReference: GetSourceReference(j),
+                FailureCode: j.Status == (int)JobRuntimeStatus.Pending
+                    ? "thumbnail_pending"
+                    : GetFailureCode(j, "thumbnail_failed"),
                 JobId: j.JobId,
                 FailedAtUtc: j.CompletedUtc ?? DateTimeOffset.UtcNow)).ToList(),
             MetadataGaps: metadataGapItems);
     }
+
+    private static string GetSourceReference(JobRow job) =>
+        string.IsNullOrWhiteSpace(job.BookId)
+            ? $"job:{job.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : $"book:{job.BookId}";
+
+    private static string GetFailureCode(JobRow job, string fallback) =>
+        string.IsNullOrWhiteSpace(job.FailureCode) ? fallback : job.FailureCode;
 
     /// <inheritdoc />
     public async Task RetryAllFailedAsync(CancellationToken cancellationToken = default)

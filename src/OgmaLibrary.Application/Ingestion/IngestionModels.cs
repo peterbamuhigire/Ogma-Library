@@ -56,13 +56,13 @@ public sealed record ScanProgressSnapshot(
 }
 
 /// <summary>Health report data for one failure item (FR-LIB-007).</summary>
-/// <param name="FilePath">The relative path of the failing file.</param>
-/// <param name="ErrorMessage">The recorded error message.</param>
+/// <param name="SourceReference">Opaque book/job reference with no local path or job payload.</param>
+/// <param name="FailureCode">Stable redacted failure category.</param>
 /// <param name="JobId">The Jobs row identifier for retry operations.</param>
 /// <param name="FailedAtUtc">When the failure was recorded.</param>
 public sealed record ScanFailureItem(
-    string FilePath,
-    string? ErrorMessage,
+    string SourceReference,
+    string FailureCode,
     long JobId,
     DateTimeOffset FailedAtUtc);
 
