@@ -13,6 +13,7 @@ internal sealed class UnavailableSchoolAdminService :
     IAiProxyEndpointHandler,
     IUsageDashboardService,
     ISchoolAiHistoryManagementService,
+    ISchoolBackupService,
     IDpiaScreeningService
 {
     private static readonly SchoolAiPolicy DisabledPolicy = new(
@@ -206,6 +207,24 @@ internal sealed class UnavailableSchoolAdminService :
 
     public Task<SchoolAiHistoryPurgeResult> PurgeInstitutionHistoryAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        throw Disabled();
+    }
+
+    public Task<SchoolBackupResult> CreateBackupAsync(
+        string destinationDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
+        cancellationToken.ThrowIfCancellationRequested();
+        throw Disabled();
+    }
+
+    public Task<SchoolRestoreRehearsalResult> RehearseRestoreAsync(
+        string backupPath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupPath);
         cancellationToken.ThrowIfCancellationRequested();
         throw Disabled();
     }

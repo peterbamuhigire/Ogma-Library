@@ -37,13 +37,18 @@ Date: 2026-09-04
   provider-key custody, and overlong-request paths are covered by focused tests.
 - School AI history/scaffold controls passed 14/14; the current SchoolAdmin
   namespace slice passed 44/44 after erasure auditing was added.
+- Added online SQLite school backup and non-destructive restore rehearsal with
+  integrity, schema, and per-table row-count comparison. The focused slice
+  passed 2/2. Evidence:
+  `evidence/phase-36-backup-restore-rehearsal-2026-09-06.md`.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-36-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Physical admin/student E2E, school backup/restore rehearsal, platform key
-rotation/revocation evidence, physical retention/erasure acceptance,
+Physical admin/student E2E, administrator-run backup/restore and protected
+storage evidence, platform key rotation/revocation evidence, physical retention/erasure acceptance,
 accessibility/localisation capture, provider load/soak, and formal minors DPIA
 approval remain release gates. The local transactional erasure-audit subgate is
-closed. Managed AI remains metadata-only and fail-closed by default.
+closed, as is the non-destructive local restore-rehearsal subgate. Managed AI
+remains metadata-only and fail-closed by default.

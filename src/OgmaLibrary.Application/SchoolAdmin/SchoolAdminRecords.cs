@@ -169,6 +169,21 @@ public sealed record SchoolAiHistoryPurgeResult(
     int UsageLedgerRowsDeleted,
     DateTimeOffset PurgedUtc);
 
+/// <summary>Verified school catalogue backup artifact.</summary>
+public sealed record SchoolBackupResult(
+    string BackupPath,
+    string Sha256,
+    long SizeBytes,
+    DateTimeOffset CreatedUtc);
+
+/// <summary>Result of a non-destructive restore rehearsal against an isolated database.</summary>
+public sealed record SchoolRestoreRehearsalResult(
+    string BackupSha256,
+    string SchemaSha256,
+    int TableCount,
+    long TotalRows,
+    DateTimeOffset VerifiedUtc);
+
 /// <summary>Request to screen an off-device classroom AI action.</summary>
 public sealed record DpiaScreeningRequest(
     Guid ProfileId,

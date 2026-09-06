@@ -112,6 +112,20 @@ public interface ISchoolAiHistoryManagementService
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>Creates verified school-data backups and rehearses restoration without replacing the live catalogue.</summary>
+public interface ISchoolBackupService
+{
+    /// <summary>Creates an online SQLite backup in an administrator-selected protected directory.</summary>
+    Task<SchoolBackupResult> CreateBackupAsync(
+        string destinationDirectory,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Restores a backup into an isolated temporary database and verifies its logical contents.</summary>
+    Task<SchoolRestoreRehearsalResult> RehearseRestoreAsync(
+        string backupPath,
+        CancellationToken cancellationToken = default);
+}
+
 /// <summary>Performs DPIA gating before off-device classroom AI calls.</summary>
 public interface IDpiaScreeningService
 {
