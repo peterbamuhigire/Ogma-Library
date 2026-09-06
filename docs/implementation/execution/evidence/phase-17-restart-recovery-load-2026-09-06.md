@@ -31,3 +31,6 @@ The local restart-style load benchmark is green and its timing is now scoped
 to the intended worker drain. Phase 17 remains open for full-application crash
 recovery, cross-platform process behavior, and long-duration soak evidence.
 
+The same repaired commit passed the protected cross-platform CI workflow with
+926 core, 41 architecture, and 159 UI tests on both Windows and macOS:
+[CI run 34006469942](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34006469942).

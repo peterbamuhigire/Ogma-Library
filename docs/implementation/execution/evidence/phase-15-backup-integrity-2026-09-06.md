@@ -66,4 +66,8 @@ Follow-up local verification:
 PdfWriteBackTests + Phase15WriteBackSafetyTests: 12 passed, 0 failed, 0 skipped
 ```
 
-The repaired cross-platform CI result is pending.
+The repaired cross-platform CI result is **PASS** for commit `9d27da0`:
+
+- Windows: 926 core, 41 architecture, and 159 UI tests passed;
+- macOS: 926 core, 41 architecture, and 159 UI tests passed;
+- workflow: [CI run 34006469942](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34006469942).
