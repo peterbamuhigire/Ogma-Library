@@ -203,8 +203,10 @@ erasure.
   metadata‑only / content‑aware opt‑in / local Ollama).
 - **Security:** OS credential store (DPAPI/Keychain); untrusted‑PDF worker
   isolation; path validation vs library root; signed updates; optional at‑rest
-  encryption; local tamper‑evident audit trail; no inbound listener (CI‑2 — to
-  be reconciled for LAN host mode, see `LAN-CLASSROOM-ARCHITECTURE.md`).
+  encryption; local tamper‑evident audit trail. CI‑2 remains listener-free in
+  Standalone mode; accepted ADR-0010 permits only explicit, admin-started,
+  authenticated LAN Host mode for the classroom track. See
+  `LAN-CLASSROOM-ARCHITECTURE.md`.
 
 ## G. ADRs (all Proposed 2026‑05‑30, ratify in Phase 00)
 
@@ -214,6 +216,9 @@ erasure.
   first) · 0007 provider‑neutral AI gateway + 4 tiers · 0008 DB‑first
   annotations/metadata, PDF write‑back later · 0009 Velopack (direct) + MSIX
   (Store/enterprise) + notarized DMG.
+
+- **ADR-0010 (Accepted):** opt-in Library Host mode scopes the CI-2 amendment
+  to the classroom track; Standalone mode remains listener-free.
 
 ## H. Open questions (PRD §10 — close in Phase 00, deadlines noted)
 

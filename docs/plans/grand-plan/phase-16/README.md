@@ -27,7 +27,7 @@ compromising the local-first principles of every other installation.
 | **Platforms** | Windows 10/11 (WebView2) + macOS 13+ (WKWebView) |
 | **Status** | In progress — WP1/WP2/WP10 scaffold and persistence started 2026-06-01 |
 | **Depends on** | Phase 00 (ADR ratification, LAN transport spike), Phase 01 (LAN spike retired to ADR-0010), Phase 04-05 (catalogue + ingestion), Phase 08 (reader core), Phase 10-11 (search), Phase 12 (AI gateway) |
-| **ADRs introduced** | ADR-0010 (proposed — see §7) |
+| **ADRs introduced** | ADR-0010 (accepted — see §7) |
 
 ---
 
@@ -158,7 +158,7 @@ When this phase is done, all of the following are true:
 
 ## 7. Architecture & approach
 
-### ADR-0010 (proposed)
+### ADR-0010 (accepted)
 
 **Title:** Opt-in Library Host mode amends CI-2; LAN server surface, transport,
 and isolation.
@@ -347,7 +347,7 @@ Full task detail in `tasks.md`.
 
 ### Phase-16-specific exit criteria
 
-- [ ] ADR-0010 is authored, CI-2 scope amendment is explicit, and the ADR is
+- [x] ADR-0010 is authored, CI-2 scope amendment is explicit, and the ADR is
       cross-referenced in `SOURCE-SUMMARY.md`.
 - [ ] `ILibraryHostService.StartAsync()` binds HTTPS listener; `StopAsync()`
       releases port; verified by integration test on Windows and macOS.

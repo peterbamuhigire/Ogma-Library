@@ -172,6 +172,9 @@ reruns passed.
 
 ## Remaining Phase 16 Work
 
+ADR-0010 is accepted, its CI-2 scope amendment is explicit, and the canonical
+source summary now links that decision to Standalone and classroom behavior.
+
 - Real same-subnet mDNS discovery and HTTPS binding verification on Windows and
   macOS runners.
 - Real macOS Keychain execution evidence for the Host CA store on a macOS runner
