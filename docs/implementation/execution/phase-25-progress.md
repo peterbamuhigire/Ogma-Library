@@ -74,3 +74,8 @@ UI performance, reference-corpus and reference-machine evidence remain open.
 Any future remote provider requires its own current pricing and usage evidence.
 The stale-count/rebuild-status, bounded-memory exact-retrieval, and bounded
 query-cache telemetry subgates remain closed locally.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 25's local
+vector lifecycle, bounded-memory, privacy, and cost contract. Representative
+ANN/relevance, target-scale UI, corpus, and reference-machine acceptance remain
+open and keep the phase overall `IN PROGRESS`.

@@ -78,11 +78,11 @@ Chunker and vector backend evaluation may proceed; selection requires benchmark 
 Legacy vectors remain isolated and are deleted only after new index verification.
 
 ## Definition of Done
-- [ ] Every vector is attributable to complete source/version tuple.
-- [ ] Changes/deletes/model shifts deterministically invalidate.
-- [ ] Rebuild is resumable and side-by-side.
-- [ ] Target scale avoids all-vector memory load.
-- [ ] Privacy/cost controls pass.
+- [x] Every vector is attributable to complete source/version tuple.
+- [x] Changes/deletes/model shifts deterministically invalidate.
+- [x] Rebuild is resumable and side-by-side.
+- [x] Target scale avoids all-vector memory load.
+- [x] Privacy/cost controls pass.
 
 ## Kaizen Review
 1. Complexity: version tuple/index swap. 2. Share artifact manifests. 3. Simplify embedding callers. 4. Remove unversioned vectors/brute load. 5. Document rebuild math. 6. Pattern: compatibility-keyed projection. 7. Debt decreases.
