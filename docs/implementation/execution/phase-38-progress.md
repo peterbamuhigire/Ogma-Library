@@ -111,3 +111,8 @@ performance runs, interrupted-upgrade recovery, and physical rollback drills
 remain Phase 39 release-acceptance gates. No private signing key is stored in
 the repository. The local release-schema freeze subgate is closed; beta owner
 approval remains open.
+
+The Aug-39 Definition of Done now records detached update-descriptor/package
+tamper rejection as closed. Performance/SLO, signed-install, physical
+upgrade/rollback, and combined schema-freeze/beta-owner approval gates remain
+unchecked.

@@ -80,7 +80,7 @@ Support last released schema forward migration and rollback policy; freeze schem
 ## Definition of Done
 - [ ] All accepted performance/SLO budgets pass.
 - [ ] Signed Windows installer/MSIX and signed/notarized macOS artifact install cleanly.
-- [ ] Update descriptor tampering is rejected.
+- [x] Update descriptor tampering is rejected.
 - [ ] Upgrade/rollback/migration drills pass.
 - [ ] Release schema freeze and beta evidence pack approved.
 
