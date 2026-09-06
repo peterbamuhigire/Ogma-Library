@@ -35,6 +35,10 @@ Date: 2026-09-04
 - Added an explicit, unchecked-by-default consent control for local page and
   note evidence; its request boundary is covered by default-deny and rendered
   headless UI tests.
+- Closed the retrieval-contract dependency against Phase 26's executable v1
+  freeze (`semantic-search-v1`, `rrf-v1`, `hybrid-v1`, and versioned offline
+  evaluation). Evidence:
+  `evidence/phase-30-retrieval-contract-dependency-2026-09-06.md`.
 
 ## Design decisions
 
@@ -67,6 +71,7 @@ Date: 2026-09-04
 The offline threshold and feedback-consent/UI gates are closed by focused
 tests; the evaluator is ready to consume a real human-labeled set without
 treating missing evidence as approval. Quarantined live-provider evaluation,
-full-shell accessibility/keyboard evidence, and final AI retrieval freeze
-remain before Phase 30 closure. Physical file-picker walkthrough evidence is
-still a platform/release gate.
+and full-shell accessibility/keyboard evidence remain before Phase 30 closure.
+The final AI retrieval-contract dependency is closed by the Phase 26 v1 shape
+and version guard. Physical file-picker walkthrough evidence is still a
+platform/release gate.
