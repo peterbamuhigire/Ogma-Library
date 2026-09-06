@@ -47,6 +47,10 @@ no syntax errors.
 child process, requiring the valid synthetic fixture to return zero and the
 stale migration-count fixture to return the precise fail-closed error. The
 focused test passed 1/1 locally and is part of the core Windows/macOS CI suite.
+The same regression creates a temporary record with an unknown top-level
+property and requires rejection. The script mirrors each schema object's
+`additionalProperties: false` boundary, so manually validated records cannot
+silently carry fields the JSON contract forbids.
 
 ## Residual gates
 

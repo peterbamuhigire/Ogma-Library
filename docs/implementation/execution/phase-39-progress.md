@@ -43,6 +43,9 @@ Date: 2026-09-05
 - Added a core cross-platform regression that launches the acceptance
   PowerShell validator and exercises both fixtures. The focused local run
   passed 1/1; protected CI now owns ongoing Windows/macOS reproduction.
+- Mirrored the schema's closed property sets in the executable validator and
+  added unknown-property rejection to the cross-platform test, preventing
+  drift between manual script acceptance and the JSON contract.
 
 ## Remaining handover gate
 

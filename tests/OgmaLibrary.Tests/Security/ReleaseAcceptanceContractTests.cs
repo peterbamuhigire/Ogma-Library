@@ -23,6 +23,24 @@ public sealed class ReleaseAcceptanceContractTests
 
         ProcessResult valid = await RunValidatorAsync(scriptPath, validFixture);
         ProcessResult invalid = await RunValidatorAsync(scriptPath, invalidFixture);
+        string unsupportedPropertyFixture = Path.Combine(
+            Path.GetTempPath(),
+            $"ogma-release-acceptance-unsupported-{Guid.NewGuid():N}.json");
+        ProcessResult unsupported;
+        try
+        {
+            string validJson = await File.ReadAllTextAsync(validFixture);
+            string withUnsupportedProperty = validJson.Replace(
+                "\"schema\": \"ogma-release-acceptance-v1\",",
+                "\"schema\": \"ogma-release-acceptance-v1\",\n  \"unexpected\": true,",
+                StringComparison.Ordinal);
+            await File.WriteAllTextAsync(unsupportedPropertyFixture, withUnsupportedProperty);
+            unsupported = await RunValidatorAsync(scriptPath, unsupportedPropertyFixture);
+        }
+        finally
+        {
+            File.Delete(unsupportedPropertyFixture);
+        }
 
         Assert.Equal(0, valid.ExitCode);
         Assert.Contains("contract-fixture-do-not-release", valid.StandardOutput, StringComparison.Ordinal);
@@ -30,6 +48,11 @@ public sealed class ReleaseAcceptanceContractTests
         Assert.Contains(
             "Acceptance migration count does not match the frozen baseline.",
             invalid.StandardError + invalid.StandardOutput,
+            StringComparison.Ordinal);
+        Assert.NotEqual(0, unsupported.ExitCode);
+        Assert.Contains(
+            "Acceptance record contains unsupported property 'unexpected'.",
+            unsupported.StandardError + unsupported.StandardOutput,
             StringComparison.Ordinal);
     }
 
