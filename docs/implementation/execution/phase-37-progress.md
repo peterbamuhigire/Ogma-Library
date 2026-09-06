@@ -23,7 +23,7 @@ Date: 2026-09-06
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors after the final code changes.
 - Security-focused slice: 34 passed.
-- LAN-host slice: 61 passed, including session-throttle, response-header,
+- Current LAN-host slice: 67 passed, including session-throttle, response-header,
   profile-sync tamper, and oversize tests.
 - `npm audit --omit=dev`: 0 vulnerabilities.
 - NuGet vulnerable-package scan: no vulnerable packages reported.
@@ -78,3 +78,9 @@ The 2026-09-06 static safety scan retains a medium follow-up for hostile-PDF
 physical/third-party-corpus evidence; the synthetic exception/recovery subgate
 is now closed. Evidence:
 `../../security/safety-scan-2026-09-06.md`.
+
+Aug-39 Definition-of-Done reconciliation: no top-level Phase 37 criterion is
+closed. Each criterion intentionally combines repository evidence with at
+least one still-unassessed physical, independent-review, cross-platform,
+data-flow/DPIA, or accountable risk-acceptance condition. The local sub-gates
+above remain valid without being promoted into a broader pass.
