@@ -143,6 +143,40 @@ public sealed class AiProxyEndpointHandlerTests
     }
 
     [Fact]
+    public async Task SearchAsync_ExhaustedQuota_BlocksBeforeProviderCall()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeProvider("No call expected.");
+            await using ServiceProvider services = await CreateServicesAsync(dataDirectory, provider);
+            await SeedBookAsync(services);
+            Guid profileId = await EnrollAsync(services);
+            await services.GetRequiredService<ISchoolAiPolicyService>()
+                .SavePolicyAsync(new SchoolAiPolicy(
+                    AiPrivacyTier.MetadataOnly,
+                    ContentAwareEnabled: false,
+                    PerStudentDailyTokenBudget: 0,
+                    ClassDailyTokenBudget: 10_000,
+                    PerStudentQueriesPerMinute: 5,
+                    AnswerModeEnabled: false));
+            var handler = services.GetRequiredService<IAiProxyEndpointHandler>();
+
+            SchoolAiProxyException error = await Assert.ThrowsAsync<SchoolAiProxyException>(() =>
+                handler.SearchAsync(Request(profileId, confirmed: true)));
+
+            Assert.Equal("school_ai_quota_exhausted", error.Code);
+            Assert.Equal(429, error.StatusCode);
+            Assert.Equal(0, provider.Calls);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task SearchAsync_OverlongQuery_IsRejectedBeforeProviderOrQuota()
     {
         string dataDirectory = CreateTempDirectory();

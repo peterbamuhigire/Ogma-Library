@@ -35,6 +35,9 @@ Date: 2026-09-04
   overwrite proof in one normalized credential scope.
 - Provider failure, payload-preview, quota, rate-limit, DPIA, grounded citation,
   provider-key custody, and overlong-request paths are covered by focused tests.
+- The Host AI proxy integration slice now passes 6/6, including direct proof
+  that an exhausted student token budget returns `school_ai_quota_exhausted`
+  before the configured provider is invoked.
 - School AI history/scaffold controls passed 14/14; the current SchoolAdmin
   namespace slice passed 44/44 after erasure auditing was added.
 - Added online SQLite school backup and non-destructive restore rehearsal with

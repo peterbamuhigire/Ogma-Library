@@ -405,13 +405,13 @@ Full task detail in `tasks.md`.
 - [x] ADR-0013 authored and owner-ratified.
 - [ ] School API key retrievable from `ICredentialStore` on Host; not present in
       any HTTP response body or log file (verified by secret-scan tool in CI).
-- [ ] `POST /api/v1/ai/search` routes through `IAiProvider` on Host; integration
+- [x] `POST /api/v1/ai/search` routes through `IAiProvider` on Host; integration
       test with mock provider verifies the full pipeline (payload preview →
       DPIA → quota → provider call → grounding → response).
-- [ ] Student who exceeds daily token quota receives a quota-exhausted message;
+- [x] Student who exceeds daily token quota receives a quota-exhausted message;
       no provider call is made (verified by mock provider call-count assertion).
-- [ ] Rate limiter enforces queries/minute per student (integration test).
-- [ ] `ClassroomAnswerGrounder` removes any citation not in Host catalogue
+- [x] Rate limiter enforces queries/minute per student (integration test).
+- [x] `ClassroomAnswerGrounder` removes any citation not in Host catalogue
       (integration test with fabricated citation).
 - [ ] DPIA screening blocks a call when jurisdiction policy is unset (architecture
       test: `DpiaScreeningService_BlocksCall_WhenJurisdictionNotConfigured`).
@@ -420,7 +420,7 @@ Full task detail in `tasks.md`.
 - [ ] Revoked profile: enrolled student's next request returns 401.
 - [ ] Usage dashboard shows correct query count and cost after 10 student queries
       (integration test: `AiUsageLedger` aggregation verified).
-- [ ] `M018_AddSchoolAdminTables` UP and DOWN migrations both succeed in isolation.
+- [x] `M018_AddSchoolAdminTables` UP and DOWN migrations both succeed in isolation.
 
 ---
 
