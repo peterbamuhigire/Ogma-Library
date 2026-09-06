@@ -50,3 +50,8 @@ closed to the accessible 2D/list path.
 The current TypeScript build, deterministic performance budget, and bounded
 texture-residency checks passed through 10,000 items. Evidence:
 `evidence/phase-31-33-shelf-build-2026-09-06.md`.
+
+The Aug-39 Definition of Done now records bounded 1,000/5,000/10,000-item
+strategy and accessible 2D/keyboard action parity as closed by local executable
+evidence. Real GPU/WebView metrics, the reference-hardware 500-book frame gate,
+and the independently accepted 3D contract freeze remain unchecked.

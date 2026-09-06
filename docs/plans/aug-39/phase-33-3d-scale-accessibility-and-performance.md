@@ -80,8 +80,8 @@ Reset incompatible old camera prefs with notice.
 ## Definition of Done
 - [ ] Real GPU/WebView metrics replace arithmetic-only claims.
 - [ ] 500-book target meets accepted frame budget on reference hardware.
-- [ ] 1k/5k/10k strategy remains bounded and usable.
-- [ ] All actions work in accessible 2D/keyboard paths.
+- [x] 1k/5k/10k strategy remains bounded and usable.
+- [x] All actions work in accessible 2D/keyboard paths.
 - [ ] 3D contract freeze recorded.
 
 ## Kaizen Review
