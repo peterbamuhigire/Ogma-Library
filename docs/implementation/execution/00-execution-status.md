@@ -13,6 +13,12 @@ verification passed 1,125 tests (925 core, 41 architecture, 159 UI), with 0
 failures and 0 skips. The detailed current-worktree record is
 `evidence/solution-regression-current-worktree-2026-09-06.md`; the prior
 2026-09-05 record remains historical evidence.
+The protected `main` branch then passed the complete Windows/macOS CI matrix at
+commit `bb277254eb0b93de1247c9762fdc5efdaecd2991`; per-platform totals were
+1,125 passed tests. The run also recorded explicit `NOT ASSESSED` diagnostics
+for unsupported macOS/Linux Tesseract native packaging and unavailable hosted
+macOS worker private-resource counters. See
+`evidence/ci-cross-platform-regression-2026-09-06.md`.
 An earlier concurrent run exposed a timing-sensitive LAN catalogue P95
 outlier; the isolated test and this subsequent complete run both passed. This
 refresh closes only the repaired automated gates; per-phase platform, physical,

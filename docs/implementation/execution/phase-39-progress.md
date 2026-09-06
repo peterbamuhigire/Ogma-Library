@@ -30,6 +30,11 @@ Date: 2026-09-05
   regression passed 1,125/1,125 with no failures or skips. These results close
   only repository-verifiable sub-gates; they do not substitute for installed
   reference-machine or owner evidence.
+- Protected-main CI then passed on both Windows and macOS at commit
+  `bb277254eb0b93de1247c9762fdc5efdaecd2991`, with 1,125 tests passing per
+  platform. This closes the automated cross-platform CI sub-gate only; the
+  explicit hosted-macOS capability diagnostics and physical handover gates
+  remain open. Evidence: `evidence/ci-cross-platform-regression-2026-09-06.md`.
 
 ## Remaining handover gate
 

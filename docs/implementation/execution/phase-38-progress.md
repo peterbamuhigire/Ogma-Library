@@ -91,6 +91,9 @@ Date: 2026-09-06
   integrity verification. Candidate SHA-256 was
   `6f7576cf6232207bcf7b7cc104d8e8404844d95e9a9fb42637e5dce92bc143c9`.
   Evidence: `evidence/phase-38-cross-target-packaging-2026-09-06.md`.
+- Protected-main cross-platform CI completed successfully for commit
+  `bb277254eb0b93de1247c9762fdc5efdaecd2991`, including both full test
+  matrices. Evidence: `evidence/ci-cross-platform-regression-2026-09-06.md`.
 
 ## Remaining phase gate
 
