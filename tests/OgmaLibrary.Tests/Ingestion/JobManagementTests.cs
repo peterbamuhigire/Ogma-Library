@@ -53,6 +53,32 @@ public sealed class JobManagementTests : IDisposable
     }
 
     [Fact]
+    public async Task JobRecovery_AtStartup_DoesNotStealAnotherWorkersValidLease()
+    {
+        DateTimeOffset leaseExpiry = DateTimeOffset.UtcNow.AddMinutes(5);
+        _fx.Context.Jobs.Add(new JobRow
+        {
+            JobType = "MetadataExtraction",
+            IdempotencyKey = "recovery-valid-lease",
+            Status = (int)OgmaLibrary.Application.Ingestion.JobRuntimeStatus.Running,
+            LeaseOwner = "other-live-process",
+            LeaseExpiresUtc = leaseExpiry,
+            StartedUtc = DateTimeOffset.UtcNow,
+        });
+        await _fx.Context.SaveChangesAsync();
+
+        int recovered = await _fx.JobRecovery.RecoverAsync();
+
+        JobRow active = await _fx.Context.Jobs.SingleAsync(job =>
+            job.IdempotencyKey == "recovery-valid-lease");
+        Assert.Equal(0, recovered);
+        Assert.Equal((int)OgmaLibrary.Application.Ingestion.JobRuntimeStatus.Running, active.Status);
+        Assert.Equal("other-live-process", active.LeaseOwner);
+        Assert.Equal(leaseExpiry, active.LeaseExpiresUtc);
+        Assert.Equal(0, active.RetryCount);
+    }
+
+    [Fact]
     public async Task IngestionOrchestrator_PerFileIsolation_BatchContinuesOnFailure()
     {
         // Scan the real PDFs first to register them.

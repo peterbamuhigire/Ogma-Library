@@ -91,12 +91,17 @@ Date: 2026-09-04
   Dashboard regression slice: 32 passed, 0 failed, 0 skipped.
 - Library Health batch-control regression: 10 passed, proving unsupported
   active pause is rejected by state rather than misreported.
+- Startup recovery now leaves another process's unexpired lease untouched while
+  reclaiming legacy unleased and expired running rows. The recovery/runtime
+  regression passed 12/12. Evidence:
+  `evidence/phase-17-valid-lease-preservation-2026-09-06.md`.
 
 ## Remaining phase gate
 
 The local durable lease/runtime, queue-backed stage-worker, restart-style
 recovery/load, Windows process-kill/restart, and pending-job cancellation
-subgates are closed. Active OCR pause/cancel/resume is now cooperative at page
+subgates are closed. Valid leases are no longer stolen during startup recovery.
+Active OCR pause/cancel/resume is now cooperative at page
 boundaries; unsupported active generic pause is fail-safe and leaves the lease
 running, but those handlers do not yet expose safe cooperative cancellation.
 Crash recovery under the full application queue, a complete

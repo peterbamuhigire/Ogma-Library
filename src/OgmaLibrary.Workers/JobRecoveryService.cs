@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
@@ -34,9 +35,10 @@ public sealed class JobRecoveryService
     }
 
     /// <summary>
-    /// Loads all jobs with <c>Status = Running</c> and resets them to
-    /// <c>Status = Pending</c> with <c>RetryCount + 1</c>, appending an audit event
-    /// per recovered job (NFR-OGMA-009).
+    /// Loads legacy unleased or expired jobs with <c>Status = Running</c> and
+    /// resets them to <c>Status = Pending</c> with <c>RetryCount + 1</c>,
+    /// appending an audit event per recovered job (NFR-OGMA-009). A valid lease
+    /// is never stolen from another live process.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The number of jobs recovered.</returns>
@@ -47,16 +49,24 @@ public sealed class JobRecoveryService
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        List<JobRow> stuck = await context.Jobs
-            .Where(j => j.Status == 1) // Running
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        List<JobRow> running = await context.Jobs
+            .Where(job => job.Status == (int)JobRuntimeStatus.Running)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        List<JobRow> stuck = running
+            .Where(job => job.LeaseExpiresUtc is null || job.LeaseExpiresUtc < now)
+            .ToList();
 
         foreach (JobRow job in stuck)
         {
-            job.Status = 0; // Pending
+            job.Status = (int)JobRuntimeStatus.Pending;
             job.RetryCount += 1;
             job.StartedUtc = null;
+            job.LeaseOwner = null;
+            job.LeaseExpiresUtc = null;
+            job.NextAttemptUtc = now;
+            job.FailureCode = "startup_recovery";
 
             context.AuditEvents.Add(new AuditEventRow
             {
