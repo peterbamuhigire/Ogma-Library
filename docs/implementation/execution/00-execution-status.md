@@ -9,8 +9,8 @@ Ledger normalized: 2026-09-06
 
 Automated validation refresh: the protected `main` branch passed the complete
 Windows/macOS CI matrix at commit
-`18726cb992b29b20ba8f355eeef09ea916909c3f`; per-platform totals were 1,149
-passed tests (945 core, 41 architecture, 163 UI). The run also recorded explicit
+`03256a3c79246f8fccfba0760e5d59de77f57e6e`; per-platform totals were 1,153
+passed tests (949 core, 41 architecture, 163 UI). The run also recorded explicit
 `NOT ASSESSED` diagnostics
 for unsupported macOS/Linux Tesseract native packaging and unavailable hosted
 macOS worker private-resource counters. See
