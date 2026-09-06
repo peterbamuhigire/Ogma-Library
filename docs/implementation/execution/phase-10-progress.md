@@ -35,3 +35,11 @@ platform-contract research is recorded in
 that the Windows candidate API is experimental and that macOS enforcement is
 entitlement/signing based, so neither is treated as implemented from a
 wrapper or environment flag alone.
+
+The Aug-39 Definition of Done now records the locally executable resource,
+password-handling, and failure-isolation gates as closed. OS-level escape
+proof and independent two-platform security approval remain unchecked and
+`NOT ASSESSED`.
+
+Focused worker-isolation and catalogue-secret regression on 2026-09-06:
+**12 passed, 0 failed, 0 skipped**.

@@ -79,9 +79,9 @@ Previously processed assets are not declared safe; revalidate by policy/version.
 
 ## Definition of Done
 - [ ] Escape tests prove denied network/filesystem/child process.
-- [ ] CPU/memory/time/output limits work.
-- [ ] Password is not in environment/log/database.
-- [ ] One failure cannot block a scan.
+- [x] CPU/memory/time/output limits work.
+- [x] Password is not in environment/log/database.
+- [x] One failure cannot block a scan.
 - [ ] Security review approves both platforms.
 
 ## Kaizen Review
