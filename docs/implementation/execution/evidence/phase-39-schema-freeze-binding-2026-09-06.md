@@ -43,6 +43,11 @@ exit 1: Acceptance migration count does not match the frozen baseline.
 All three JSON documents parsed successfully and the PowerShell parser reported
 no syntax errors.
 
+`ReleaseAcceptanceContractTests` now invokes the PowerShell validator as a
+child process, requiring the valid synthetic fixture to return zero and the
+stale migration-count fixture to return the precise fail-closed error. The
+focused test passed 1/1 locally and is part of the core Windows/macOS CI suite.
+
 ## Residual gates
 
 This closes contract/schema consistency and schema-freeze binding only. No

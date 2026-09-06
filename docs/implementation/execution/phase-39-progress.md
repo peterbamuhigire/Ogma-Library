@@ -40,6 +40,9 @@ Date: 2026-09-05
   Clearly labelled synthetic fixtures prove a matching record passes and a
   stale migration baseline fails; they are not release evidence. See
   `evidence/phase-39-schema-freeze-binding-2026-09-06.md`.
+- Added a core cross-platform regression that launches the acceptance
+  PowerShell validator and exercises both fixtures. The focused local run
+  passed 1/1; protected CI now owns ongoing Windows/macOS reproduction.
 
 ## Remaining handover gate
 
