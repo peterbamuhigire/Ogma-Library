@@ -28,7 +28,7 @@ optionally synced to the Host, even if the LAN link drops mid-session.
 | **Platforms** | Windows 10/11 (WebView2) + macOS 13+ (WKWebView) |
 | **Status** | In progress â€” WP1 ADR/scaffold started locally 2026-06-02 |
 | **Depends on** | Phase 16 (Host endpoints, session tokens, cert TOFU), Phase 03 (design system), Phase 09 (annotation model) |
-| **ADRs introduced** | ADR-0012 (proposed â€” see Â§7) |
+| **ADRs introduced** | ADR-0012 (accepted â€” see Â§7) |
 
 ---
 
@@ -162,7 +162,7 @@ When this phase is done, all of the following are true:
 
 ## 7. Architecture & approach
 
-### ADR-0012 (proposed)
+### ADR-0012 (accepted)
 
 **Title:** Classroom identity, roles, and per-student private state model.
 
@@ -375,7 +375,7 @@ Full task detail in `tasks.md`.
 
 ### Phase-17-specific exit criteria
 
-- [ ] ADR-0012 authored and owner-ratified; identity/role/sync decisions recorded.
+- [x] ADR-0012 authored and owner-ratified; identity/role/sync decisions recorded.
 - [ ] Mode switch (Standalone â†” Client) persists across app restart; correct DB
       loaded per mode; no Standalone catalogue DB modified by Client mode.
 - [ ] mDNS discovery lists a running Phase 16 Host within 5 s on same subnet.

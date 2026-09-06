@@ -226,6 +226,6 @@ bridge:
 
 ## Remaining Phase 17 Work
 
-- Owner ratification for ADR-0012.
-- Live Windows/macOS credential-store verification and cross-platform real-LAN
-  verification.
+ADR-0012 is accepted and owner-ratified in the canonical ADR record. Live
+Windows/macOS credential-store verification and cross-platform real-LAN
+verification remain open and are not inferred from the ratification.
