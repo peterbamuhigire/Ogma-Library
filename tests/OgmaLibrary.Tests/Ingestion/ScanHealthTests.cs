@@ -104,5 +104,59 @@ public sealed class ScanHealthTests : IDisposable
 
         Assert.Equal(3, jobs.Count);
         Assert.All(jobs, j => Assert.Equal(0, j.Status)); // Pending
+        Assert.All(jobs, job => Assert.Null(job.CompletedUtc));
+    }
+
+    [Fact]
+    public async Task HealthReport_RetryJob_OnlyRequeuesFailedWorkAndClearsRuntimeState()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var failed = new JobRow
+        {
+            JobType = "MetadataExtraction",
+            IdempotencyKey = "retry-single-failed",
+            Status = (int)JobRuntimeStatus.Failed,
+            FailureCode = "provider_timeout",
+            ErrorMessage = "safe failure",
+            CompletedUtc = now,
+            LeaseOwner = "expired-worker",
+            LeaseExpiresUtc = now.AddMinutes(-1),
+        };
+        var completed = new JobRow
+        {
+            JobType = "MetadataExtraction",
+            IdempotencyKey = "retry-single-completed",
+            Status = (int)JobRuntimeStatus.Completed,
+            CompletedUtc = now,
+        };
+        var running = new JobRow
+        {
+            JobType = "MetadataExtraction",
+            IdempotencyKey = "retry-single-running",
+            Status = (int)JobRuntimeStatus.Running,
+            LeaseOwner = "active-worker",
+            LeaseExpiresUtc = now.AddMinutes(5),
+        };
+        _fx.Context.Jobs.AddRange(failed, completed, running);
+        await _fx.Context.SaveChangesAsync();
+
+        await _fx.HealthService.RetryJobAsync(failed.JobId);
+        await _fx.HealthService.RetryJobAsync(completed.JobId);
+        await _fx.HealthService.RetryJobAsync(running.JobId);
+
+        Assert.Equal((int)JobRuntimeStatus.Pending, failed.Status);
+        Assert.Equal(1, failed.RetryCount);
+        Assert.Null(failed.StartedUtc);
+        Assert.Null(failed.CompletedUtc);
+        Assert.Null(failed.LeaseOwner);
+        Assert.Null(failed.LeaseExpiresUtc);
+        Assert.NotNull(failed.NextAttemptUtc);
+        Assert.Null(failed.FailureCode);
+        Assert.Null(failed.ErrorMessage);
+        Assert.Equal((int)JobRuntimeStatus.Completed, completed.Status);
+        Assert.Equal(now, completed.CompletedUtc);
+        Assert.Equal((int)JobRuntimeStatus.Running, running.Status);
+        Assert.Equal("active-worker", running.LeaseOwner);
+        Assert.Equal(0, running.RetryCount);
     }
 }

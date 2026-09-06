@@ -95,6 +95,10 @@ Date: 2026-09-04
   reclaiming legacy unleased and expired running rows. The recovery/runtime
   regression passed 12/12. Evidence:
   `evidence/phase-17-valid-lease-preservation-2026-09-06.md`.
+- Scan-health retry now accepts failed jobs only, preserves running/completed
+  work, and clears stale completion, lease, schedule, and failure state through
+  one normalization path. The focused scan-health slice passed 5/5. Evidence:
+  `evidence/phase-17-scan-retry-state-safety-2026-09-06.md`.
 
 ## Remaining phase gate
 

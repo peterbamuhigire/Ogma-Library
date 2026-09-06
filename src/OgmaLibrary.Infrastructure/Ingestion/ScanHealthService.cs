@@ -134,9 +134,7 @@ public sealed class ScanHealthService : IScanHealthService
 
         foreach (JobRow job in failed)
         {
-            job.Status = 0; // Pending
-            job.RetryCount += 1;
-            job.ErrorMessage = null;
+            PrepareRetry(job);
         }
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -151,15 +149,30 @@ public sealed class ScanHealthService : IScanHealthService
         CatalogueDbContext context = lease.Context;
 
         JobRow? job = await context.Jobs
-            .FirstOrDefaultAsync(j => j.JobId == jobId, cancellationToken)
+            .FirstOrDefaultAsync(
+                candidate =>
+                    candidate.JobId == jobId &&
+                    candidate.Status == (int)JobRuntimeStatus.Failed,
+                cancellationToken)
             .ConfigureAwait(false);
 
         if (job is not null)
         {
-            job.Status = 0; // Pending
-            job.RetryCount += 1;
-            job.ErrorMessage = null;
+            PrepareRetry(job);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private static void PrepareRetry(JobRow job)
+    {
+        job.Status = (int)JobRuntimeStatus.Pending;
+        job.RetryCount += 1;
+        job.StartedUtc = null;
+        job.CompletedUtc = null;
+        job.LeaseOwner = null;
+        job.LeaseExpiresUtc = null;
+        job.NextAttemptUtc = DateTimeOffset.UtcNow;
+        job.FailureCode = null;
+        job.ErrorMessage = null;
     }
 }
