@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using OgmaLibrary.Application.ClassroomClient;
 
 namespace OgmaLibrary.Infrastructure.ClassroomClient;
@@ -5,7 +6,7 @@ namespace OgmaLibrary.Infrastructure.ClassroomClient;
 /// <summary>In-memory classroom credential store until platform stores are wired.</summary>
 internal sealed class InMemoryClassroomCredentialStore : IClassroomCredentialStore
 {
-    private readonly Dictionary<string, string> _secrets = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string> _secrets = new(StringComparer.Ordinal);
 
     public Task SaveSecretAsync(string key, string value, CancellationToken cancellationToken = default)
     {
@@ -28,7 +29,7 @@ internal sealed class InMemoryClassroomCredentialStore : IClassroomCredentialSto
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         cancellationToken.ThrowIfCancellationRequested();
-        _secrets.Remove(key);
+        _secrets.TryRemove(key, out _);
         return Task.CompletedTask;
     }
 }

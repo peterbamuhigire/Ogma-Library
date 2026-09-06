@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
     private readonly string _profileRoot;
     private readonly IClassroomCredentialStore _credentialStore;
     private readonly IAtRestEncryptionService _encryption;
+    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _keyInitializationGates = new();
 
     public StudentPrivateRepository(string dataDirectory)
         : this(
@@ -614,28 +616,40 @@ internal sealed class StudentPrivateRepository : IStudentPrivateRepository
             .GetSecretAsync(secretName, cancellationToken)
             .ConfigureAwait(false);
 
-        byte[] deviceSecret;
         if (string.IsNullOrWhiteSpace(encodedSecret))
         {
-            deviceSecret = RandomNumberGenerator.GetBytes(32);
+            SemaphoreSlim gate = _keyInitializationGates.GetOrAdd(profileId, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                await _credentialStore.SaveSecretAsync(
-                        secretName,
-                        Convert.ToBase64String(deviceSecret),
-                        cancellationToken)
+                encodedSecret = await _credentialStore
+                    .GetSecretAsync(secretName, cancellationToken)
                     .ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(encodedSecret))
+                {
+                    byte[] generatedSecret = RandomNumberGenerator.GetBytes(32);
+                    try
+                    {
+                        encodedSecret = Convert.ToBase64String(generatedSecret);
+                        await _credentialStore.SaveSecretAsync(
+                                secretName,
+                                encodedSecret,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(generatedSecret);
+                    }
+                }
             }
             finally
             {
-                CryptographicOperations.ZeroMemory(deviceSecret);
+                gate.Release();
             }
-
-            encodedSecret = await _credentialStore
-                .GetSecretAsync(secretName, cancellationToken)
-                .ConfigureAwait(false);
         }
 
+        byte[] deviceSecret;
         try
         {
             deviceSecret = Convert.FromBase64String(encodedSecret!);

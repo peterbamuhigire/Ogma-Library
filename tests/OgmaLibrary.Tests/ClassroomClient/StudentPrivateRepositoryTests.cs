@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Infrastructure.ClassroomClient;
 
@@ -278,9 +279,65 @@ public sealed class StudentPrivateRepositoryTests
         }
     }
 
+    [Fact]
+    public async Task StudentPrivateRepository_ConcurrentFirstUseKeepsOneProfileKeyAndIsolation()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            var credentials = new TestCredentialStore();
+            var repository = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
+            Guid profileId = Guid.NewGuid();
+            Guid otherProfileId = Guid.NewGuid();
+            StudentAnnotation[] annotations = Enumerable.Range(1, 8)
+                .Select(index => new StudentAnnotation(
+                    $"concurrent-{index}",
+                    "host-concurrent",
+                    "book-concurrent",
+                    index,
+                    "Note",
+                    null,
+                    $"Private body {index}",
+                    Now,
+                    Now.AddSeconds(index)))
+                .ToArray();
+
+            await Task.WhenAll(annotations.Select(annotation =>
+                repository.SaveAnnotationAsync(profileId, annotation)));
+
+            var reopened = new StudentPrivateRepository(
+                dataDirectory,
+                credentials,
+                new OgmaLibrary.Infrastructure.Security.AesGcmAtRestEncryptionService());
+            IReadOnlyList<StudentAnnotation> persisted = await reopened.ListAnnotationsAsync(
+                profileId,
+                "host-concurrent",
+                "book-concurrent");
+            IReadOnlyList<StudentAnnotation> otherProfile = await reopened.ListAnnotationsAsync(
+                otherProfileId,
+                "host-concurrent",
+                "book-concurrent");
+
+            Assert.Equal(annotations.Select(annotation => annotation.Id), persisted.Select(annotation => annotation.Id));
+            Assert.Equal(annotations.Select(annotation => annotation.Body), persisted.Select(annotation => annotation.Body));
+            Assert.Empty(otherProfile);
+            Assert.Equal(2, credentials.Count);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private sealed class TestCredentialStore : IClassroomCredentialStore
     {
-        private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, string> _values = new(StringComparer.Ordinal);
+
+        public int Count => _values.Count;
 
         public Task SaveSecretAsync(string key, string value, CancellationToken cancellationToken = default)
         {
@@ -293,7 +350,7 @@ public sealed class StudentPrivateRepositoryTests
 
         public Task DeleteSecretAsync(string key, CancellationToken cancellationToken = default)
         {
-            _values.Remove(key);
+            _values.TryRemove(key, out _);
             return Task.CompletedTask;
         }
     }

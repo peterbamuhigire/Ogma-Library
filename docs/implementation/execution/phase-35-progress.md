@@ -31,12 +31,18 @@ Date: 2026-09-04
 - Made transport failure during connection/session renewal publish an explicit
   offline state while retaining the last Host connection as the cache scope;
   successful reconnect renews and persists the selected profile's session.
+- Made first-use private-state key creation single-flight per profile and the
+  in-memory credential adapter concurrency-safe, preventing simultaneous
+  operations from encrypting rows under competing keys. A concurrent eight-
+  annotation write remains decryptable after repository recreation and cannot
+  be read through another profile. Evidence:
+  `evidence/phase-35-concurrent-profile-key-isolation-2026-09-06.md`.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors.
-- Classroom-client slice: 111 passed.
+- Classroom-client slice: 112 passed.
 - Complete current Release solution suite: 1,110 passed (914 core, 41
   architecture, 155 UI), with 0 failures and 0 skips.
 - Focused HostSharingViewModel suite: 18 passed, 0 failed, 0 skipped; the
@@ -48,6 +54,8 @@ Date: 2026-09-04
   focused classroom slice passed 111 tests and the offline-chip UI passed 2.
 - Network-drop/reconnect evidence is recorded in
   `evidence/phase-35-network-drop-reconnect-2026-09-06.md`.
+- Concurrent private-repository first-use and profile-isolation tests passed
+  8/8; the complete classroom-client slice passed 112/112.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-35-local-gate-reconciliation-2026-09-04.md`.
 
@@ -55,5 +63,5 @@ Date: 2026-09-04
 
 Physical Windows/macOS credential-store and host/client pairing evidence, a
 physical two-machine network interruption and offline-reader UX/accessibility
-capture, two-user hostile isolation, and cross-machine load evidence remain
-release gates.
+capture, physical two-user hostile isolation, and cross-machine load evidence
+remain release gates.
