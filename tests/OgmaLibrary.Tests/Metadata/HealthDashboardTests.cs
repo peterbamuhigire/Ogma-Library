@@ -78,7 +78,7 @@ public sealed class HealthDashboardTests
 
         // Failed jobs.
         Assert.NotEmpty(snapshot.FailedJobs);
-        Assert.Contains(snapshot.FailedJobs, j => j.ErrorMessage == "Provider timeout");
+        Assert.Contains(snapshot.FailedJobs, job => job.FailureCode == "job_failed");
 
         // Snapshot loaded time is recent.
         Assert.True(
@@ -283,7 +283,13 @@ public sealed class HealthDashboardTests
         const string batchId = "batch-operator";
         SeedBatchJob(context, batchId, "BE_OP_1", status: 0);
         SeedBatchJob(context, batchId, "BE_OP_2", status: 1);
-        SeedBatchJob(context, batchId, "BE_OP_3", status: 3, error: "Provider, timeout");
+        SeedBatchJob(
+            context,
+            batchId,
+            "BE_OP_3",
+            status: 3,
+            error: "Provider timeout at C:\\Users\\student\\library.pdf token=secret-value");
+        context.Jobs.Local.Single(job => job.BookId == "BE_OP_3").FailureCode = "provider_timeout";
         await context.SaveChangesAsync();
 
         var service = new LibraryHealthService(context);
@@ -296,8 +302,10 @@ public sealed class HealthDashboardTests
         Assert.Equal(1, run.FailedJobs);
 
         string csv = await service.ExportFailedJobsCsvAsync();
-        Assert.Contains("JobId,JobType,BookId,ErrorMessage,FailedUtc", csv, StringComparison.Ordinal);
-        Assert.Contains("\"Provider, timeout\"", csv, StringComparison.Ordinal);
+        Assert.Contains("JobId,JobType,BookId,FailureCode,FailedUtc", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("student", csv, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secret-value", csv, StringComparison.Ordinal);
+        Assert.Contains("provider_timeout", csv, StringComparison.Ordinal);
 
         await service.PauseBatchEnrichmentAsync(batchId);
         Assert.Equal(1, context.Jobs.Count(job => job.Status == 6));

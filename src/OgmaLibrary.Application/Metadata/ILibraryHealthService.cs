@@ -41,13 +41,13 @@ public sealed record UnavailableFileEntry(string BookId, string? Title, string? 
 /// <param name="JobId">The stable job identifier.</param>
 /// <param name="JobType">The type of job (e.g. "Enrich", "ThumbnailGeneration").</param>
 /// <param name="BookId">The book this job was for, if applicable.</param>
-/// <param name="ErrorMessage">The failure error message.</param>
+/// <param name="FailureCode">Stable redacted failure category; never free-form exception text.</param>
 /// <param name="FailedUtc">UTC timestamp when the job was marked failed.</param>
 public sealed record FailedJobEntry(
     long JobId,
     string JobType,
     string? BookId,
-    string? ErrorMessage,
+    string FailureCode,
     DateTimeOffset? FailedUtc);
 
 /// <summary>

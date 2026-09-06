@@ -143,14 +143,14 @@ public sealed class LibraryHealthService : ILibraryHealthService
         IReadOnlyList<FailedJobEntry> failedJobs = await LoadFailedJobsAsync(cancellationToken)
             .ConfigureAwait(false);
         var csv = new StringBuilder();
-        csv.AppendLine("JobId,JobType,BookId,ErrorMessage,FailedUtc");
+        csv.AppendLine("JobId,JobType,BookId,FailureCode,FailedUtc");
         foreach (FailedJobEntry job in failedJobs)
         {
             csv
                 .Append(job.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',')
                 .Append(EscapeCsv(job.JobType)).Append(',')
                 .Append(EscapeCsv(job.BookId)).Append(',')
-                .Append(EscapeCsv(job.ErrorMessage)).Append(',')
+                .Append(EscapeCsv(job.FailureCode)).Append(',')
                 .Append(EscapeCsv(job.FailedUtc?.ToString("O", System.Globalization.CultureInfo.InvariantCulture)))
                 .AppendLine();
         }
@@ -296,7 +296,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
                 j.JobId,
                 j.JobType,
                 j.BookId,
-                j.ErrorMessage,
+                j.FailureCode,
                 j.CompletedUtc,
             })
             .ToListAsync(cancellationToken)
@@ -306,7 +306,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
             f.JobId,
             f.JobType,
             f.BookId,
-            f.ErrorMessage,
+            string.IsNullOrWhiteSpace(f.FailureCode) ? "job_failed" : f.FailureCode,
             f.CompletedUtc)).ToList();
     }
 

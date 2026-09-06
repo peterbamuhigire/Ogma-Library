@@ -53,6 +53,11 @@ Date: 2026-09-06
   table-count verification. This closes Phase 37's local non-destructive
   backup/restore sub-gate; see
   `evidence/phase-36-backup-restore-rehearsal-2026-09-06.md`.
+- Removed persisted free-form job errors from the Library Health projection and
+  CSV export. Operators receive stable failure codes, with `job_failed` for
+  uncategorized legacy rows; a path/token leakage regression passed in the
+  10-test Health Dashboard slice. Evidence:
+  `evidence/phase-37-job-diagnostic-redaction-2026-09-06.md`.
 
 ## Remaining phase gate
 
