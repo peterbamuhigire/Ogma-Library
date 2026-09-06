@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.SchoolAdmin;
 
 namespace OgmaLibrary.Tests.SchoolAdmin;
@@ -150,6 +151,59 @@ public sealed class SchoolProfileEnrollmentServiceTests
             EnrolledProfile? redeemed = await enrollment.RedeemTokenAsync(token.ProfileId, token.Token);
 
             Assert.Null(redeemed);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ProfileEnrollmentService_Revoke_RevokesOnlyMatchingOutstandingSessions()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            await using ServiceProvider provider = await CreateServicesAsync(dataDirectory);
+            var enrollment = provider.GetRequiredService<IProfileEnrollmentService>();
+            EnrollmentToken token = await enrollment.EnrollAsync(new EnrollProfileRequest(
+                "Amina Reader",
+                "Student",
+                BirthYear: 2014));
+            await using (CatalogueDbContext seed = provider.GetRequiredService<CatalogueDbContext>())
+            {
+                seed.HostClientSessions.AddRange(
+                    new HostClientSessionRow
+                    {
+                        TokenHash = new string('a', 64),
+                        ClientId = token.ProfileId.ToString("D"),
+                        Role = "student",
+                        IssuedUtc = DateTimeOffset.UtcNow,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(5),
+                    },
+                    new HostClientSessionRow
+                    {
+                        TokenHash = new string('b', 64),
+                        ClientId = Guid.NewGuid().ToString("D"),
+                        Role = "student",
+                        IssuedUtc = DateTimeOffset.UtcNow,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(5),
+                    });
+                await seed.SaveChangesAsync();
+            }
+
+            await enrollment.RevokeAsync(token.ProfileId);
+
+            await using CatalogueDbContext verify = provider.GetRequiredService<CatalogueDbContext>();
+            EnrolledProfileRow profile = await verify.EnrolledProfiles.SingleAsync();
+            HostClientSessionRow matching = await verify.HostClientSessions.SingleAsync(
+                session => session.ClientId == token.ProfileId.ToString("D"));
+            HostClientSessionRow unrelated = await verify.HostClientSessions.SingleAsync(
+                session => session.ClientId != token.ProfileId.ToString("D"));
+            Assert.NotNull(profile.RevokedUtc);
+            Assert.Equal(profile.RevokedUtc, matching.RevokedUtc);
+            Assert.Null(unrelated.RevokedUtc);
         }
         finally
         {
