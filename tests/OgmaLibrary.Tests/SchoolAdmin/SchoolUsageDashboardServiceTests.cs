@@ -29,7 +29,8 @@ public sealed class SchoolUsageDashboardServiceTests
                 ClassDailyTokenBudget: 500,
                 PerStudentQueriesPerMinute: 5,
                 AnswerModeEnabled: false));
-            await AddLedgerAsync(provider, firstProfileId, Today(), tokens: 25, queries: 3, cost: 0.12m);
+            await AddLedgerAsync(provider, firstProfileId, Today().AddDays(-1), tokens: 25, queries: 4, cost: 0.12m);
+            await AddLedgerAsync(provider, firstProfileId, Today(), tokens: 35, queries: 6, cost: 0.18m);
             await AddLedgerAsync(provider, secondProfileId, Today(), tokens: 50, queries: 5, cost: 0.25m);
 
             IReadOnlyList<UsageDashboardEntry> entries = await provider
@@ -39,10 +40,10 @@ public sealed class SchoolUsageDashboardServiceTests
             UsageDashboardEntry first = Assert.Single(entries, entry => entry.ProfileId == firstProfileId);
             UsageDashboardEntry second = Assert.Single(entries, entry => entry.ProfileId == secondProfileId);
             Assert.Equal("Amina Reader", first.DisplayName);
-            Assert.Equal(3, first.QueryCount);
-            Assert.Equal(25, first.TokensUsed);
-            Assert.Equal(0.12m, first.EstimatedCostUsd);
-            Assert.Equal(25d, first.QuotaPercent);
+            Assert.Equal(10, first.QueryCount);
+            Assert.Equal(60, first.TokensUsed);
+            Assert.Equal(0.30m, first.EstimatedCostUsd);
+            Assert.Equal(60d, first.QuotaPercent);
             Assert.NotNull(first.LastQueryUtc);
             Assert.Equal("Okello Reader", second.DisplayName);
             Assert.Equal(5, second.QueryCount);

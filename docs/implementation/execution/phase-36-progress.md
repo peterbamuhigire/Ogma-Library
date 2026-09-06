@@ -41,6 +41,8 @@ Date: 2026-09-04
 - Managed profile revocation now revokes every outstanding Host session for the
   same profile in the same database save. The real HTTPS Host endpoint flow
   proves the already-issued bearer token receives 401 on its next request.
+- Usage-dashboard integration evidence now aggregates ten student queries over
+  two daily ledger rows and verifies the combined token, cost, and quota values.
 - School AI history/scaffold controls passed 14/14; the current SchoolAdmin
   namespace slice passed 44/44 after erasure auditing was added.
 - Added online SQLite school backup and non-destructive restore rehearsal with

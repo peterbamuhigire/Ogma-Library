@@ -418,7 +418,7 @@ Full task detail in `tasks.md`.
 - [x] Admin can enroll a profile, student connects, and student's session token
       contains the admin-assigned role (end-to-end test).
 - [x] Revoked profile: enrolled student's next request returns 401.
-- [ ] Usage dashboard shows correct query count and cost after 10 student queries
+- [x] Usage dashboard shows correct query count and cost after 10 student queries
       (integration test: `AiUsageLedger` aggregation verified).
 - [x] `M018_AddSchoolAdminTables` UP and DOWN migrations both succeed in isolation.
 
