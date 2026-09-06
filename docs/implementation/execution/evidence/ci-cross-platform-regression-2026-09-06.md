@@ -2,9 +2,9 @@
 
 Date: 2026-09-06
 
-Commit: `831ed9b125e7682ef12c56175416da94ae55c578`
+Commit: `8321ea62c666326bf620294afa95448bc1f58016`
 
-Workflow: [CI run 34012939882](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34012939882)
+Workflow: [CI run 34020083799](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34020083799)
 
 ## Result
 
@@ -15,17 +15,23 @@ source/performance budget, secret scan, and the full test matrix.
 
 | Platform | Architecture tests | Core tests | UI tests | Result |
 | --- | ---: | ---: | ---: | --- |
-| Windows runner | 41 | 930 | 159 | PASS |
-| macOS runner | 41 | 930 | 159 | PASS |
+| Windows runner | 41 | 936 | 159 | PASS |
+| macOS runner | 41 | 936 | 159 | PASS |
 
-The run therefore provides repository-level cross-platform evidence for 1,130
+The run therefore provides repository-level cross-platform evidence for 1,136
 tests per platform. It does not close physical reference-machine, signing,
 installer, accessibility, or owner-acceptance gates.
+
+The 936-test core run includes the concurrency-safe classroom profile-key
+initialization, atomic writeback promotion, safe generic batch-pause semantics,
+transactional school AI-history purge audit, explicit local embedding
+token/zero-egress/zero-external-cost accounting, and frozen v1 search contract.
 
 The Phase 16 production-worker disk benchmark also reproduced the same encoded
 maximum on both runners: 78,274 bytes per book and a 3.645-GiB worst-sample
 projection at 50,000 books. The synthetic hostile-PDF boundary regression was
-included in the 930-test core suite on both platforms.
+included in the core suite on both platforms. The earlier authoritative run for
+that 930-test baseline was CI run 34012939882 at commit `831ed9b`.
 
 ## Explicit capability limits
 

@@ -14,8 +14,8 @@ closed; it does not imply later physical release acceptance.
 
 ## Current validation
 
-The latest complete protected-`main` regression at `831ed9b` passed 1,130 tests
-per platform with 0 failures and 0 skips: 930 core, 41 architecture, and 159 UI
+The latest complete protected-`main` regression at `8321ea6` passed 1,136 tests
+per platform with 0 failures and 0 skips: 936 core, 41 architecture, and 159 UI
 on both Windows and macOS. The authoritative record is
 `evidence/ci-cross-platform-regression-2026-09-06.md`.
 
