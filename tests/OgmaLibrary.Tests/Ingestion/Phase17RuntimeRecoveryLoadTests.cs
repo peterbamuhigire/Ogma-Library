@@ -54,21 +54,23 @@ public sealed class Phase17RuntimeRecoveryLoadTests
 
             Stopwatch stopwatch = Stopwatch.StartNew();
             int processed = 0;
-            while (true)
+            using (CatalogueDbContext workerContext = CreateContext(dbPath))
             {
-                using CatalogueDbContext workerContext = CreateContext(dbPath);
                 JobRuntimeService runtime = new(workerContext);
-                JobLease? lease = await runtime.ClaimNextAsync(
-                    ["MetadataExtraction"],
-                    $"worker-restart-{processed / 8:00}",
-                    TimeSpan.FromMinutes(1));
-                if (lease is null)
+                while (true)
                 {
-                    break;
-                }
+                    JobLease? lease = await runtime.ClaimNextAsync(
+                        ["MetadataExtraction"],
+                        $"worker-restart-{processed / 8:00}",
+                        TimeSpan.FromMinutes(1));
+                    if (lease is null)
+                    {
+                        break;
+                    }
 
-                await runtime.CompleteAsync(lease.JobId, lease.LeaseOwner);
-                processed++;
+                    await runtime.CompleteAsync(lease.JobId, lease.LeaseOwner);
+                    processed++;
+                }
             }
 
             stopwatch.Stop();

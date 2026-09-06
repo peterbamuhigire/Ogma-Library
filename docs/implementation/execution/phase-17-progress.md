@@ -60,6 +60,11 @@ Date: 2026-09-04
   passed with 0 warnings and 0 errors.
 - `Phase17JobRuntimeTests`: 7 passed.
 - Refreshed local lease/runtime evidence: 7 passed, 0 failed.
+- Stabilized the restart/load benchmark so the post-restart worker reuses one
+  database context while draining the bounded queue; the gate no longer
+  measures 64 repeated context startups. The focused load test passed 1/1 on
+  2026-09-06. Evidence:
+  `evidence/phase-17-restart-recovery-load-2026-09-06.md`.
 
 ## Remaining phase gate
 
