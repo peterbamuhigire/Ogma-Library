@@ -51,3 +51,19 @@ implementation. It does not close Phase 15. The following remain
 - cross-platform permission and replacement behaviour;
 - installed desktop end-to-end evidence for the complete recovery journey;
 - independent security approval for the writeback recovery boundary.
+
+## CI follow-up
+
+The first cross-platform run for commit `85b72ca` passed on macOS but exposed
+that the existing Windows ACL-denial test could surface an unauthorized backup
+read before the established writeback failure boundary. The implementation now
+handles that permission failure through the existing cleanup/audit path while
+retaining explicit integrity rejection for mismatched backup bytes.
+
+Follow-up local verification:
+
+```text
+PdfWriteBackTests + Phase15WriteBackSafetyTests: 12 passed, 0 failed, 0 skipped
+```
+
+The repaired cross-platform CI result is pending.

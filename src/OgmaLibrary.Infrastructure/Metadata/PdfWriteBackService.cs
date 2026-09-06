@@ -259,11 +259,30 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 "The write-back backup is missing. Create a new backup before writing metadata.");
         }
 
-        await EnsureBackupIntegrityAsync(backupToken, cancellationToken)
-            .ConfigureAwait(false);
+        string tempPath = backupToken.OriginalAbsolutePath + ".ogma_tmp";
+        try
+        {
+            await EnsureBackupIntegrityAsync(backupToken, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            await CleanupAfterFailureAsync(tempPath, backupToken, bookId, "Cancelled")
+                .ConfigureAwait(false);
+            throw;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await CleanupAfterFailureAsync(
+                    tempPath,
+                    backupToken,
+                    bookId,
+                    "Metadata write-back failed.")
+                .ConfigureAwait(false);
+            return false;
+        }
 
         string originalPath = backupToken.OriginalAbsolutePath;
-        string tempPath = originalPath + ".ogma_tmp";
 
         try
         {
