@@ -4,7 +4,7 @@ The final handover record is a JSON document conforming to
 `packaging/release-acceptance.schema.json`. Validate it with:
 
 ```powershell
-./scripts/Test-ReleaseAcceptance.ps1 -RecordPath .\acceptance-record.json
+./scripts/Test-ReleaseAcceptance.ps1 -RecordPath .\acceptance-record.json -ExpectedCommitSha <40-character-release-commit-sha>
 ```
 
 The command is intentionally fail-closed. A signed descriptor is necessary but

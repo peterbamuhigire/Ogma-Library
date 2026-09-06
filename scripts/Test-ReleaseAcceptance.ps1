@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)] [string] $RecordPath
+    [Parameter(Mandatory = $true)] [string] $RecordPath,
+    [Parameter(Mandatory = $true)] [string] $ExpectedCommitSha
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,6 +23,8 @@ if ($record.schema -ne 'ogma-release-acceptance-v1') { throw 'Unsupported accept
 Assert-AllowedProperties $record @('schema', 'releaseId', 'commitSha', 'evidence', 'artifacts', 'hardware', 'schemaFreeze', 'migration', 'approval') 'Acceptance record'
 if ([string]::IsNullOrWhiteSpace($record.releaseId) -or $record.releaseId.Length -gt 128 -or $record.releaseId -notmatch '^[A-Za-z0-9._-]+$') { throw 'Acceptance releaseId is missing or unsafe.' }
 if ($record.commitSha -notmatch '^[0-9a-fA-F]{40}$') { throw 'Acceptance record must bind to a full commit SHA.' }
+if ($ExpectedCommitSha -notmatch '^[0-9a-fA-F]{40}$') { throw 'ExpectedCommitSha must be a full commit SHA.' }
+if (-not [string]::Equals($record.commitSha, $ExpectedCommitSha, [StringComparison]::OrdinalIgnoreCase)) { throw 'Acceptance record commit does not match the expected release commit.' }
 $recordDirectory = Split-Path -Parent ([IO.Path]::GetFullPath($RecordPath))
 $directoryPrefix = $recordDirectory.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 $pathComparison = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }

@@ -23,6 +23,7 @@ public sealed class ReleaseAcceptanceContractTests
 
         ProcessResult valid = await RunValidatorAsync(scriptPath, validFixture);
         ProcessResult invalid = await RunValidatorAsync(scriptPath, invalidFixture);
+        ProcessResult wrongCommit = await RunValidatorAsync(scriptPath, validFixture, new string('f', 40));
         string fixtureDirectory = Path.GetDirectoryName(validFixture)!;
         string unsupportedPropertyFixture = Path.Combine(
             fixtureDirectory,
@@ -63,6 +64,11 @@ public sealed class ReleaseAcceptanceContractTests
             "Acceptance record contains unsupported property 'unexpected'.",
             unsupported.StandardError + unsupported.StandardOutput,
             StringComparison.Ordinal);
+        Assert.NotEqual(0, wrongCommit.ExitCode);
+        Assert.Contains(
+            "Acceptance record commit does not match the expected release commit.",
+            wrongCommit.StandardError + wrongCommit.StandardOutput,
+            StringComparison.Ordinal);
         Assert.NotEqual(0, tamperedEvidence.ExitCode);
         Assert.Contains(
             "Acceptance evidence digest for 'test-only-evidence' does not match.",
@@ -70,7 +76,10 @@ public sealed class ReleaseAcceptanceContractTests
             StringComparison.Ordinal);
     }
 
-    private static async Task<ProcessResult> RunValidatorAsync(string scriptPath, string recordPath)
+    private static async Task<ProcessResult> RunValidatorAsync(
+        string scriptPath,
+        string recordPath,
+        string? expectedCommitSha = null)
     {
         string executable = OperatingSystem.IsWindows() ? "powershell.exe" : "pwsh";
         var startInfo = new ProcessStartInfo
@@ -91,6 +100,8 @@ public sealed class ReleaseAcceptanceContractTests
         startInfo.ArgumentList.Add(scriptPath);
         startInfo.ArgumentList.Add("-RecordPath");
         startInfo.ArgumentList.Add(recordPath);
+        startInfo.ArgumentList.Add("-ExpectedCommitSha");
+        startInfo.ArgumentList.Add(expectedCommitSha ?? new string('0', 40));
 
         using Process process = Process.Start(startInfo) ??
             throw new InvalidOperationException("Could not start the PowerShell acceptance validator.");

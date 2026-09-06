@@ -33,10 +33,10 @@ owner `TEST FIXTURE - NOT AN APPROVAL`. They are contract tests, not release
 evidence.
 
 ```text
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\Test-ReleaseAcceptance.ps1 -RecordPath tests\fixtures\release-acceptance-contract-valid.json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\Test-ReleaseAcceptance.ps1 -RecordPath tests\fixtures\release-acceptance-contract-valid.json -ExpectedCommitSha 0000000000000000000000000000000000000000
 exit 0: Release acceptance passed for contract-fixture-do-not-release ...
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\Test-ReleaseAcceptance.ps1 -RecordPath tests\fixtures\release-acceptance-contract-invalid-schema-freeze.json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\Test-ReleaseAcceptance.ps1 -RecordPath tests\fixtures\release-acceptance-contract-invalid-schema-freeze.json -ExpectedCommitSha 0000000000000000000000000000000000000000
 exit 1: Acceptance migration count does not match the frozen baseline.
 ```
 

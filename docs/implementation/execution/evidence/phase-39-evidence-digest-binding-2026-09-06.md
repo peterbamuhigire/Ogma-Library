@@ -30,10 +30,10 @@ and no production acceptance record exists.
 ## Verification
 
 ```text
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-ReleaseAcceptance.ps1 -RecordPath tests/fixtures/release-acceptance-contract-valid.json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-ReleaseAcceptance.ps1 -RecordPath tests/fixtures/release-acceptance-contract-valid.json -ExpectedCommitSha 0000000000000000000000000000000000000000
 Exit: 0
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-ReleaseAcceptance.ps1 -RecordPath tests/fixtures/release-acceptance-contract-invalid-schema-freeze.json
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-ReleaseAcceptance.ps1 -RecordPath tests/fixtures/release-acceptance-contract-invalid-schema-freeze.json -ExpectedCommitSha 0000000000000000000000000000000000000000
 Exit: 1 (expected stale migration-count rejection)
 
 dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-restore --filter "FullyQualifiedName~ReleaseAcceptanceContractTests"

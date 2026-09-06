@@ -50,6 +50,8 @@ Date: 2026-09-05
   path and verified SHA-256 digest. The cross-platform contract test rejects a
   tampered digest; the checked-in fixture remains explicitly test-only. See
   `evidence/phase-39-evidence-digest-binding-2026-09-06.md`.
+- The executable validator now requires the caller's expected full release
+  commit SHA and rejects a record bound to any other commit.
 
 ## Remaining handover gate
 
