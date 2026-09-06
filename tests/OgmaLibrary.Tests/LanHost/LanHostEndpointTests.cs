@@ -383,6 +383,65 @@ public sealed class LanHostEndpointTests
         }
     }
 
+    [Fact]
+    public async Task HostListener_StudentTeacherAndGuest_AuthenticateWithReaderPermissions()
+    {
+        string dataDirectory = CreateTempDirectory();
+        int port = GetFreeTcpPort();
+
+        try
+        {
+            await using ServiceProvider services = await CreateServicesAsync(dataDirectory);
+            await services.GetRequiredService<IHostModeSettingsRepository>()
+                .SaveAsync(new HostModeSettings(true, port, HostContentDeliveryMode.PageRender, "Ogma Role Test"));
+
+            ILibraryHostService host = services.GetRequiredService<ILibraryHostService>();
+            LibraryHostStatus started = await host.StartAsync();
+            string enrollmentCode = started.EnrollmentCode ??
+                                    throw new InvalidOperationException("Host did not issue an enrollment code.");
+
+            try
+            {
+                foreach (string role in new[] { "student", "teacher", "guest" })
+                {
+                    using HttpClient http = CreatePinnedTestClient(port);
+                    using HttpResponseMessage session = await http.PostAsJsonAsync(
+                        "/api/v1/auth/session",
+                        new
+                        {
+                            clientId = $"{role}-role-test",
+                            role,
+                            lifetimeMinutes = 5,
+                            enrollmentCode,
+                        });
+                    string token = await ReadJsonStringAsync(session, "token");
+                    ClientSessionSnapshot? activeSession = await services
+                        .GetRequiredService<IClientSessionService>()
+                        .GetActiveAsync(token);
+
+                    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    using HttpResponseMessage catalogue = await http.GetAsync("/api/v1/catalogue?pageSize=1");
+                    using HttpResponseMessage hostAdmin = await http.PostAsync(
+                        "/admin/ai/test-connection?providerId=openai",
+                        null);
+
+                    Assert.Equal(HttpStatusCode.OK, session.StatusCode);
+                    Assert.Equal(role, activeSession?.Role, ignoreCase: true);
+                    Assert.Equal(HttpStatusCode.OK, catalogue.StatusCode);
+                    Assert.Equal(HttpStatusCode.Forbidden, hostAdmin.StatusCode);
+                }
+            }
+            finally
+            {
+                await host.StopAsync();
+            }
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
     private static async Task<ServiceProvider> CreateServicesAsync(string dataDirectory)
     {
         ServiceProvider services = new ServiceCollection()

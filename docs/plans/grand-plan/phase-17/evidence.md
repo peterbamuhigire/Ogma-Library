@@ -218,6 +218,7 @@ bridge:
 | Host resource cache-aside tests | `CachingLibraryHostClientTests` |
 | Host API client foundation | `LibraryHostHttpClient` health, session, catalogue-page, book-detail, search, page-render, file-stream, and asset methods |
 | Host API client tests | `LibraryHostHttpClientTests` |
+| Live student/teacher/guest Host authorization matrix | `LanHostEndpointTests.HostListener_StudentTeacherAndGuest_AuthenticateWithReaderPermissions` |
 | TLS certificate fingerprint extraction | `IHostCertificateFingerprintProbe` and `TlsHostCertificateFingerprintProbe` |
 | TLS fingerprint extraction tests | `LibraryHostHttpClientTests.LibraryHostHttpClient_UsesTlsCertificateFingerprintWhenAvailable` and `LibraryHostHttpClientTests.LibraryHostHttpClient_RejectsHealthFingerprintMismatchWithTlsCertificate` |
 | Host PDF reader-file materializer | `IClassroomBookFileMaterializer` and `ClassroomBookFileMaterializer` |
@@ -235,5 +236,6 @@ per-profile private-state isolation, Keep-local conflict resolution, guest
 non-persistence, and Standalone regression criteria are closed by the focused
 tests listed above and the protected cross-platform acceptance run. The mDNS
 timing and full network-drop-to-reconnect journey remain physical integration
-gates. The three-role live Host authorization criterion remains open pending a
-dedicated endpoint test.
+gates. The three-role live Host authorization criterion is closed by a real
+HTTPS endpoint test that authenticates each supported classroom role, verifies
+catalogue access, and verifies denial of Host-local administration.

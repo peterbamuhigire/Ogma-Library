@@ -381,7 +381,7 @@ Full task detail in `tasks.md`.
 - [ ] mDNS discovery lists a running Phase 16 Host within 5 s on same subnet.
 - [x] Certificate TOFU client flow: pinned cert accepted; mismatched cert shows
       warning and blocks connection.
-- [ ] Three roles (`student`, `teacher`, `guest`) all authenticate and receive
+- [x] Three roles (`student`, `teacher`, `guest`) all authenticate and receive
       correct permissions as verified by integration test against Phase 16 Host.
 - [x] Per-student private DB: annotation written by student A not readable by
       student B profile (separate file, OS permissions).
