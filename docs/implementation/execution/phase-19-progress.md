@@ -84,3 +84,8 @@ server-side page-performance sub-gates are also closed.
   metadata/path exclusion, and asset serving; no raw local path is exposed.
 - Complete post-accessibility Release solution regression: 916 core + 41
   architecture + 158 UI = 1,115 passed, 0 failed, 0 skipped.
+
+The Aug-39 Definition of Done now records three-view action parity, real
+cover/processing-state presentation, and persisted correct filter/sort state as
+closed. Physical keyboard/screen-reader and named-reference 50,000-item gates
+remain unchecked.

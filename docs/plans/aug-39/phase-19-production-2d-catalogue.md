@@ -78,9 +78,9 @@ Query optimization and three view components can proceed against one DTO.
 Legacy sort/filter preferences map to validated values.
 
 ## Definition of Done
-- [ ] Grid/list/directory expose equivalent catalogue actions.
-- [ ] Real covers and processing states render.
-- [ ] Filters/sorts are persisted and correct.
+- [x] Grid/list/directory expose equivalent catalogue actions.
+- [x] Real covers and processing states render.
+- [x] Filters/sorts are persisted and correct.
 - [ ] Full keyboard/screen-reader flow passes.
 - [ ] 50k performance budget passes.
 
