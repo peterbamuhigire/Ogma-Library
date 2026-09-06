@@ -56,7 +56,7 @@ dotnet test OgmaLibrary.sln --configuration Release --no-restore --logger "conso
 | 33 | Virtualization, texture residency, metrics, eviction, fallback | GPU/WebView/context-loss/cross-platform accessibility open | [phase-33](phase-33-progress.md) |
 | 34 | Published scope, redaction, authenticated concurrency, host boundaries | Two-machine networking, firewall/mDNS/TOFU, hostile soak open | [phase-34](phase-34-progress.md) |
 | 35 | Tamper-evident cache, bounded sync, deterministic reconnect renewal, concurrency-safe per-profile private-key isolation | Physical credential/pairing/network interruption/offline UX/two-user/load evidence open | [phase-35](phase-35-progress.md) |
-| 36 | Key custody, scopes, quotas, DPIA minimization, managed-AI controls | E2E, backup/rotation/erasure/accessibility/soak/formal DPIA open | [phase-36](phase-36-progress.md) |
+| 36 | Key custody, scopes, quotas, DPIA minimization, managed-AI controls, transactional erasure audit | Physical E2E, backup/platform-key/erasure/accessibility/soak/formal DPIA open | [phase-36](phase-36-progress.md) |
 | 37 | Code safety, headers, throttling, integrity, audit minimization, synthetic hostile-PDF redaction/recovery corpus | Physical/third-party hostile corpus, secret store, penetration, backup, cross-platform soak open | [phase-37](phase-37-progress.md) |
 | 38 | Release descriptors, detached-signature verification, candidate package, migration checks | Signed artifacts, clean install, performance, recovery, rollback open | [phase-38](phase-38-progress.md) |
 | 39 | Fail-closed acceptance contract, 162-ID accountability | Reference machines, signing, install, performance, rollback, backup, owner acceptance open | [phase-39](phase-39-progress.md) |

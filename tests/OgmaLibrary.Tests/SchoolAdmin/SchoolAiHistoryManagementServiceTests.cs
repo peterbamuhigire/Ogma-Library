@@ -58,7 +58,19 @@ public sealed class SchoolAiHistoryManagementServiceTests
             Assert.Equal(1, result.UsageLedgerRowsDeleted);
             Assert.Empty(await verify.AiQueryHistory.ToListAsync());
             Assert.Empty(await verify.AiUsageLedger.ToListAsync());
-            Assert.Single(await verify.AuditEvents.ToListAsync());
+            List<AuditEventRow> auditEvents = await verify.AuditEvents
+                .OrderBy(audit => audit.EventId)
+                .ToListAsync();
+            Assert.Equal(2, auditEvents.Count);
+            AuditEventRow purgeAudit = Assert.Single(auditEvents, audit =>
+                audit.EventType == "SchoolAiHistoryPurged");
+            Assert.Equal("SchoolAi", purgeAudit.EntityType);
+            Assert.Equal("institution", purgeAudit.EntityId);
+            Assert.True(purgeAudit.IsLocalOnly);
+            Assert.Contains("\"queryHistoryRowsDeleted\":1", purgeAudit.AfterJson, StringComparison.Ordinal);
+            Assert.Contains("\"usageLedgerRowsDeleted\":1", purgeAudit.AfterJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("student question", purgeAudit.AfterJson, StringComparison.Ordinal);
+            Assert.DoesNotContain("profile-1", purgeAudit.AfterJson, StringComparison.Ordinal);
         }
         finally
         {

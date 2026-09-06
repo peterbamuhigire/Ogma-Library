@@ -20,6 +20,11 @@ Date: 2026-09-04
   exact birth year in the audit payload.
 - Added regression proof that overlong requests stop before provider invocation
   or quota reservation.
+- Made institution-wide AI-history erasure append a payload-minimized audit in
+  the same transaction as query-history and usage-ledger deletion. The event
+  records only deletion counts and UTC time; it excludes profile/query/response
+  data. Evidence:
+  `evidence/phase-36-ai-history-erasure-audit-2026-09-06.md`.
 
 ## Verification
 
@@ -30,12 +35,15 @@ Date: 2026-09-04
   overwrite proof in one normalized credential scope.
 - Provider failure, payload-preview, quota, rate-limit, DPIA, grounded citation,
   provider-key custody, and overlong-request paths are covered by focused tests.
+- School AI history/scaffold controls passed 14/14; the current SchoolAdmin
+  namespace slice passed 44/44 after erasure auditing was added.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-36-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Physical admin/student E2E, school backup/restore rehearsal, key rotation and
-revocation evidence, retention/erasure acceptance, accessibility/localisation
-capture, provider load/soak, and formal minors DPIA approval remain release
-gates. Managed AI remains metadata-only and fail-closed by default.
+Physical admin/student E2E, school backup/restore rehearsal, platform key
+rotation/revocation evidence, physical retention/erasure acceptance,
+accessibility/localisation capture, provider load/soak, and formal minors DPIA
+approval remain release gates. The local transactional erasure-audit subgate is
+closed. Managed AI remains metadata-only and fail-closed by default.

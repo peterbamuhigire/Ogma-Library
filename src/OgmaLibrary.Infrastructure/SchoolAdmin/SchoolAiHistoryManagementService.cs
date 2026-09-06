@@ -1,7 +1,9 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Infrastructure.SchoolAdmin;
 
@@ -35,6 +37,21 @@ internal sealed class SchoolAiHistoryManagementService : ISchoolAiHistoryManagem
                 int ledgerRows = await context.AiUsageLedger
                     .ExecuteDeleteAsync(cancellationToken)
                     .ConfigureAwait(false);
+                context.AuditEvents.Add(new AuditEventRow
+                {
+                    EventType = "SchoolAiHistoryPurged",
+                    EntityType = "SchoolAi",
+                    EntityId = "institution",
+                    Timestamp = purgedUtc,
+                    AfterJson = JsonSerializer.Serialize(new
+                    {
+                        queryHistoryRowsDeleted = historyRows,
+                        usageLedgerRowsDeleted = ledgerRows,
+                        purgedUtc,
+                    }),
+                    IsLocalOnly = true,
+                });
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 return new SchoolAiHistoryPurgeResult(historyRows, ledgerRows, purgedUtc);
             }
