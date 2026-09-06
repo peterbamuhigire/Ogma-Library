@@ -16,7 +16,7 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 public sealed class LibraryHealthService : ILibraryHealthService
 {
     private static readonly int[] PausableBatchStatuses =
-        [(int)JobRuntimeStatus.Pending, (int)JobRuntimeStatus.Running];
+        [(int)JobRuntimeStatus.Pending];
     private static readonly int[] ResumableBatchStatuses =
         [(int)JobRuntimeStatus.Failed, (int)JobRuntimeStatus.Paused];
 

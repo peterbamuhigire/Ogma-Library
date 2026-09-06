@@ -300,10 +300,12 @@ public sealed class HealthDashboardTests
         Assert.Contains("\"Provider, timeout\"", csv, StringComparison.Ordinal);
 
         await service.PauseBatchEnrichmentAsync(batchId);
-        Assert.Equal(2, context.Jobs.Count(job => job.Status == 6));
+        Assert.Equal(1, context.Jobs.Count(job => job.Status == 6));
+        Assert.Contains(context.Jobs, job => job.BookId == "BE_OP_2" && job.Status == 1);
 
         await service.ResumeBatchEnrichmentAsync(batchId);
-        Assert.Equal(3, context.Jobs.Count(job => job.Status == 0));
+        Assert.Equal(2, context.Jobs.Count(job => job.Status == 0));
+        Assert.Contains(context.Jobs, job => job.BookId == "BE_OP_2" && job.Status == 1);
         Assert.DoesNotContain(context.Jobs, job => job.ErrorMessage != null);
         Assert.Contains(context.Jobs, job => job.BookId == "BE_OP_3" && job.RetryCount == 1);
     }

@@ -65,6 +65,11 @@ Date: 2026-09-04
   observed by the worker at page boundaries. Pause/resume retains completed
   pages without duplicate OCR; active cancellation prevents future pickup.
   Evidence: `evidence/phase-17-ocr-cooperative-control-2026-09-06.md`.
+- Corrected generic batch pause to transition only queued enrichment work.
+  Actively leased enrichment now remains running instead of being falsely
+  labelled paused while its handler continues; resume also leaves that lease
+  untouched. Evidence:
+  `evidence/phase-17-generic-active-pause-safety-2026-09-06.md`.
 - The complete serialized Release core suite passed 924/924 after the
   process-recovery increment; architecture and UI baselines remain green at
   41/41 and 159/159.
@@ -84,14 +89,17 @@ Date: 2026-09-04
   failed, 0 skipped.
 - Cooperative OCR control, migration, runtime, Index Manager, and Health
   Dashboard regression slice: 32 passed, 0 failed, 0 skipped.
+- Library Health batch-control regression: 10 passed, proving unsupported
+  active pause is rejected by state rather than misreported.
 
 ## Remaining phase gate
 
 The local durable lease/runtime, queue-backed stage-worker, restart-style
 recovery/load, Windows process-kill/restart, and pending-job cancellation
 subgates are closed. Active OCR pause/cancel/resume is now cooperative at page
-boundaries; other active generic handlers do not yet expose safe cooperative
-cancellation. Crash recovery under the full application queue, a complete
+boundaries; unsupported active generic pause is fail-safe and leaves the lease
+running, but those handlers do not yet expose safe cooperative cancellation.
+Crash recovery under the full application queue, a complete
 activity-centre surface, physical reference-machine process behavior, and
 long-duration soak evidence remain before phase 17 closure; the compatibility poll is
 retained for pre-queue catalogue rows and is not a substitute for production

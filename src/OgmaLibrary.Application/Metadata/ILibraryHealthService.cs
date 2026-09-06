@@ -105,7 +105,11 @@ public interface ILibraryHealthService
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task RetryJobAsync(long jobId, CancellationToken cancellationToken = default);
 
-    /// <summary>Pauses pending or running jobs for a recoverable batch enrichment run.</summary>
+    /// <summary>
+    /// Pauses pending jobs for a recoverable batch enrichment run. Running jobs
+    /// finish their current safe work unit because enrichment has no active
+    /// cooperative checkpoint contract.
+    /// </summary>
     Task PauseBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default);
 
     /// <summary>Resumes paused or failed jobs for a recoverable batch enrichment run.</summary>
