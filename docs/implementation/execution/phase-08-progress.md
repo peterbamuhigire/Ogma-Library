@@ -49,3 +49,7 @@ Physical disconnected-volume/ACL behavior and cross-OS walkthroughs remain
 platform/release gates and are not silently treated as assessed by this Windows
 unit/integration run. The local operator review UI and decision boundary are
 closed.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 8's
+implementation scope. Physical disconnected-volume, ACL, and cross-platform
+walkthrough evidence remains assigned to the later release gates.

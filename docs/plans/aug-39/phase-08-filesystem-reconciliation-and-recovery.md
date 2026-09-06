@@ -78,11 +78,11 @@ Algorithm and recovery UI can proceed from a frozen decision table.
 Existing unavailable flags require non-destructive revalidation.
 
 ## Definition of Done
-- [ ] Root outage never marks individual deletion.
-- [ ] Moves preserve curation.
-- [ ] Replacements trigger exact invalidation.
-- [ ] Ambiguity is reviewed, not guessed.
-- [ ] Audit trail explains every transition.
+- [x] Root outage never marks individual deletion.
+- [x] Moves preserve curation.
+- [x] Replacements trigger exact invalidation.
+- [x] Ambiguity is reviewed, not guessed.
+- [x] Audit trail explains every transition.
 
 ## Kaizen Review
 1. Complexity: temporal presence. 2. Remove global missing sweep. 3. Simplify availability consumers. 4. Delete first-file update. 5. Document decision table. 6. Pattern: evidence-gated reconciliation. 7. Debt decreases sharply.
