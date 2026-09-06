@@ -42,6 +42,10 @@ The regression proves durable/idempotent pending cancellation, one redacted
 audit event, cancelled metrics/diagnostics visibility, and rejection that
 preserves an active worker lease.
 
+The same runtime tests were included in the 930-test core suite that passed on
+both Windows and macOS in protected-`main` CI run
+[34012939882](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34012939882).
+
 ## Gate disposition
 
 The shared-runtime queued-cancellation subgate is closed. Cooperative

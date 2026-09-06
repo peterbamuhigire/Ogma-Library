@@ -43,9 +43,13 @@ Duration: 8.34 seconds
 
 The one test performs seven hostile-input/recovery cycles.
 
+The test was subsequently included in the 930-test core suite that passed on
+both Windows and macOS in protected-`main` CI run
+[34012939882](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34012939882).
+
 ## Gate disposition
 
 The repeatable synthetic malformed-PDF exception/redaction/recovery subgate is
-closed. This does not replace a maintained third-party hostile corpus,
-independent containment review, physical platform testing, or long-duration
-soak; those Phase 37 release gates remain open.
+closed on Windows and macOS hosted runners. This does not replace a maintained
+third-party hostile corpus, independent containment review, physical platform
+testing, or long-duration soak; those Phase 37 release gates remain open.

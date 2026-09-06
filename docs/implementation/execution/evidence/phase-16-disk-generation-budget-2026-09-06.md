@@ -52,15 +52,26 @@ dotnet test tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj \
   --logger "console;verbosity=normal" -m:1
 ```
 
-Result: 1 passed, 0 failed, 0 skipped in 33.5 seconds.
+Local result: 1 passed, 0 failed, 0 skipped in 33.5 seconds.
+
+Protected-`main` CI run
+[34012939882](https://github.com/peterbamuhigire/Ogma-Library/actions/runs/34012939882)
+then reproduced the same maximum on both platforms:
+
+| Platform | Maximum bytes/book | 50k projection | Corpus generation timing |
+| --- | ---: | ---: | --- |
+| macOS hosted runner | 78,274 | 3.645 GiB | 12,247 / 2,834 / 3,698 ms |
+| Windows hosted runner | 78,274 | 3.645 GiB | 14,463 / 5,342 / 7,942 ms |
+
+Both complete platform jobs passed 930 core, 41 architecture, and 159 UI tests.
 
 ## Gate disposition
 
-The real-worker bounded disk-generation subgate is closed locally. The maximum
-sample projects to 3.645 GiB for 50,000 books, below the explicit 24.414-GiB
-ceiling implied by 512 KiB per book. This is encoded-size evidence for the
-versioned corpus; it is not a guarantee for every possible PDF.
+The real-worker bounded disk-generation subgate is closed on Windows and macOS
+hosted runners. The maximum sample projects to 3.645 GiB for 50,000 books,
+below the explicit 24.414-GiB ceiling implied by 512 KiB per book. This is
+encoded-size evidence for the versioned corpus; it is not a guarantee for every
+possible PDF.
 
-GPU/texture residency, physical UI journeys, reference-hardware throughput,
-and cross-platform CI execution of this new benchmark remain open. Those are
-not inferred from disk output.
+GPU/texture residency, physical UI journeys, and reference-hardware throughput
+remain open. Those are not inferred from hosted-runner disk output.

@@ -62,7 +62,8 @@ Date: 2026-09-05
 - The production isolated PDF worker generated all four bounded cover/spine
   variants across the three-file PDFium corpus. Maximum aggregate encoded size
   was 78,274 bytes per book, projecting to 3.645 GiB at 50,000 books against a
-  512-KiB-per-book ceiling. Evidence:
+  512-KiB-per-book ceiling. The same result passed on Windows and macOS hosted
+  runners in CI run 34012939882. Evidence:
   `evidence/phase-16-disk-generation-budget-2026-09-06.md`.
 - The seven-file real corpus produced four embedded-cover outputs and three
   explicit fallback signals in direct worker probing; fallback success is

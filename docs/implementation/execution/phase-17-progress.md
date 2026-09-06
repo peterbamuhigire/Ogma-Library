@@ -56,6 +56,9 @@ Date: 2026-09-04
   session surfaced an operation failure, and a new session rendered
   successfully. `PdfWorkerIsolationTests` passed 10/10; evidence:
   `evidence/phase-17-process-recovery-2026-09-05.md`.
+- Protected-`main` CI run 34012939882 reproduced the same process-kill/restart,
+  queued-cancellation, and complete core regression on Windows and macOS hosted
+  runners.
 - The complete serialized Release core suite passed 924/924 after the
   process-recovery increment; architecture and UI baselines remain green at
   41/41 and 159/159.
@@ -80,7 +83,7 @@ The local durable lease/runtime, queue-backed stage-worker, restart-style
 recovery/load, Windows process-kill/restart, and pending-job cancellation
 subgates are closed. Active generic handlers do not yet expose safe cooperative
 cancellation. Crash recovery under the full application queue, a complete
-activity-centre surface, cross-platform process behavior, and long-duration
-soak evidence remain before phase 17 closure; the compatibility poll is
+activity-centre surface, physical reference-machine process behavior, and
+long-duration soak evidence remain before phase 17 closure; the compatibility poll is
 retained for pre-queue catalogue rows and is not a substitute for production
 evidence.
