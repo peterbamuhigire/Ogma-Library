@@ -75,3 +75,8 @@ writeback-plan and explicit
 consent UI gates are closed by the restart-style, safety, and detail-panel
 evidence above. The streaming hash/copy and partial-backup cleanup subgate is
 also closed by the focused preparation evidence.
+
+The Aug-39 Definition of Done is reconciled as complete for the implemented
+writeback contract. Phase 15 remains `IN PROGRESS` for physical process-kill
+interruption and cross-platform permission evidence; those release gates are
+not inferred from local fault injection.

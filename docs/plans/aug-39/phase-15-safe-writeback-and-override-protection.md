@@ -78,11 +78,11 @@ Backup/write engine and consent UX may proceed from a frozen command contract.
 Disable legacy automatic path before any new code ships; retain prior audit evidence.
 
 ## Definition of Done
-- [ ] No enrichment path writes automatically.
-- [ ] Preview and explicit confirmation are mandatory.
-- [ ] Backup/restore and external-change detection pass.
-- [ ] Hash/artifact invalidation is atomic.
-- [ ] Metadata-contract freeze recorded.
+- [x] No enrichment path writes automatically.
+- [x] Preview and explicit confirmation are mandatory.
+- [x] Backup/restore and external-change detection pass.
+- [x] Hash/artifact invalidation is atomic.
+- [x] Metadata-contract freeze recorded.
 
 ## Kaizen Review
 1. Complexity: safe transaction. 2. Consolidate file mutations. 3. Simplify enrichment. 4. Delete automatic writeback. 5. Document recovery. 6. Pattern: confirm-backup-verify. 7. Debt decreases critically.
