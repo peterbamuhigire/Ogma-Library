@@ -38,6 +38,10 @@ Date: 2026-08-30
   asynchronous streaming hash/copy operations, byte verification, temporary-
   file cleanup and atomic promotion. A pre-cancelled preparation leaves no
   backup or durable writeback plan.
+- Removed delete-before-move replacement from writeback and undo. Verified PDFs
+  now use same-directory overwrite promotion, while failure restoration stages,
+  integrity-checks, and verifies a recovery copy before promotion. Evidence:
+  `evidence/phase-15-atomic-writeback-promotion-2026-09-06.md`.
 
 ## Current verification
 
@@ -57,12 +61,17 @@ Date: 2026-08-30
 - The combined writeback regression slice passed 13/13 after streaming backup
   preparation was added. Evidence:
   `evidence/phase-15-streaming-backup-2026-09-06.md`.
+- The same 13-test slice passed after atomic source/undo/failure-recovery
+  promotion replaced the destructive delete/copy windows; failure recovery
+  also leaves no temporary recovery file.
 
 ## Remaining phase gate
 
 The locally reproducible Windows ACL and cancellation-interruption subgate is
-closed. Process-kill interruption and cross-platform permission evidence remain
-before phase 15 closure. The first-class durable writeback-plan and explicit
+closed. The known delete-before-move and direct-copy interruption windows are
+also closed in code. Physical process-kill interruption and cross-platform
+permission evidence remain before phase 15 closure. The first-class durable
+writeback-plan and explicit
 consent UI gates are closed by the restart-style, safety, and detail-panel
 evidence above. The streaming hash/copy and partial-backup cleanup subgate is
 also closed by the focused preparation evidence.

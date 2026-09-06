@@ -160,6 +160,9 @@ public sealed class PdfWriteBackTests
             // Original must be restored from backup (byte-identical).
             byte[] restoredBytes = await File.ReadAllBytesAsync(originalPath);
             Assert.Equal(MinimalPdfContent, restoredBytes);
+            Assert.DoesNotContain(
+                Directory.EnumerateFiles(tempDir, "*.ogma_*", SearchOption.TopDirectoryOnly),
+                candidate => candidate.Contains("_tmp", StringComparison.Ordinal));
         }
         finally
         {

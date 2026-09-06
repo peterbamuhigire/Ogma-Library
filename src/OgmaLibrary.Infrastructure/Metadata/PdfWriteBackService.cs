@@ -319,16 +319,10 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             // Verify: PdfPig must be able to open the temp file.
             await Task.Run(() => VerifyPdf(tempPath), cancellationToken).ConfigureAwait(false);
 
-            // Atomic rename: on Windows we must delete the target first.
-            await Task.Run(() =>
-            {
-                if (File.Exists(originalPath))
-                {
-                    File.Delete(originalPath);
-                }
-
-                File.Move(tempPath, originalPath);
-            }, cancellationToken).ConfigureAwait(false);
+            // Same-directory overwrite promotion avoids a delete-then-move gap.
+            await Task.Run(
+                () => PromoteReplacement(tempPath, originalPath),
+                cancellationToken).ConfigureAwait(false);
 
             // Update Books row: new sha256 and mtime.
             string newSha256 = await ComputeSha256Async(originalPath, cancellationToken)
@@ -419,15 +413,9 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             await Task.Run(() => File.Copy(backupPath, tempPath, overwrite: true), cancellationToken)
                 .ConfigureAwait(false);
             await Task.Run(() => VerifyPdf(tempPath), cancellationToken).ConfigureAwait(false);
-            await Task.Run(() =>
-            {
-                if (File.Exists(originalPath))
-                {
-                    File.Delete(originalPath);
-                }
-
-                File.Move(tempPath, originalPath);
-            }, cancellationToken).ConfigureAwait(false);
+            await Task.Run(
+                () => PromoteReplacement(tempPath, originalPath),
+                cancellationToken).ConfigureAwait(false);
 
             string restoredSha256 = await ComputeSha256Async(originalPath, cancellationToken)
                 .ConfigureAwait(false);
@@ -655,19 +643,29 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         }
 
         bool restored = false;
+        string recoveryTempPath =
+            backupToken.OriginalAbsolutePath + ".ogma_recovery_tmp-" + Guid.NewGuid().ToString("N");
 
         // Restore original from backup.
         try
         {
             if (File.Exists(backupToken.BackupAbsolutePath))
             {
-                File.Copy(backupToken.BackupAbsolutePath, backupToken.OriginalAbsolutePath, overwrite: true);
+                await EnsureBackupIntegrityAsync(backupToken, CancellationToken.None).ConfigureAwait(false);
+                await CopyFileAsync(
+                        backupToken.BackupAbsolutePath,
+                        recoveryTempPath,
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
+                VerifyPdf(recoveryTempPath);
+                PromoteReplacement(recoveryTempPath, backupToken.OriginalAbsolutePath);
                 restored = true;
             }
         }
         catch (Exception)
         {
             // Best effort; can't restore, but we still write the audit event.
+            TryDelete(recoveryTempPath);
         }
 
         try
@@ -699,6 +697,9 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             // Best effort on audit save.
         }
     }
+
+    private static void PromoteReplacement(string preparedPath, string originalPath) =>
+        File.Move(preparedPath, originalPath, overwrite: true);
 
     private static async Task<string> ComputeSha256Async(string filePath, CancellationToken cancellationToken)
     {
