@@ -486,7 +486,7 @@ public sealed class VisualAssetService : IVisualAssetService
     }
 
     private static string? NormalizeLibraryRoot(string? libraryRoot) =>
-        string.IsNullOrWhiteSpace(libraryRoot) ? null : Path.GetFullPath(libraryRoot);
+        string.IsNullOrWhiteSpace(libraryRoot) ? null : PathGuard.CanonicalizeRoot(libraryRoot);
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {
