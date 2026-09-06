@@ -47,3 +47,7 @@ matrix in `evidence/ci-cross-platform-regression-2026-09-06.md`; the owning
 signoff remains fail-closed for manual operator review, accessibility, and
 stale-preflight evidence. See
 `evidence/phase-09-tooling-smoke-2026-09-06.md`.
+
+The Aug-39 Definition of Done is reconciled as complete for Phase 9's
+implementation scope. Physical operator and accessibility walkthroughs remain
+release-level acceptance work and do not reopen the frozen integrity contract.

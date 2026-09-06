@@ -78,11 +78,11 @@ Exact-copy and bibliographic proposal work may proceed separately; merge UI wait
 Legacy suspected duplicates are proposals only.
 
 ## Definition of Done
-- [ ] Four duplicate classes are executable and explained.
-- [ ] No low-confidence silent merge.
-- [ ] Merge/split is reversible.
-- [ ] Search/advisor grouping respects decisions.
-- [ ] Integrity-pipeline freeze is recorded.
+- [x] Four duplicate classes are executable and explained.
+- [x] No low-confidence silent merge.
+- [x] Merge/split is reversible.
+- [x] Search/advisor grouping respects decisions.
+- [x] Integrity-pipeline freeze is recorded.
 
 ## Kaizen Review
 1. Complexity: confidence/reversibility. 2. Consolidate normalization. 3. Simplify duplicate consumers. 4. Remove unsafe tiers. 5. Document score calibration. 6. Pattern: reviewable match proposal. 7. Debt decreases.
