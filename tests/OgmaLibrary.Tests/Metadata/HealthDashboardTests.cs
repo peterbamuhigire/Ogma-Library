@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Metadata;
 using OgmaLibrary.Tests.Catalogue;
@@ -131,6 +132,11 @@ public sealed class HealthDashboardTests
             IdempotencyKey = "retry-key-001",
             Status = 3, // Failed
             ErrorMessage = "Old error",
+            FailureCode = "old_failure",
+            CompletedUtc = DateTimeOffset.UtcNow,
+            LeaseOwner = "expired-worker",
+            LeaseExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(-1),
+            NextAttemptUtc = DateTimeOffset.UtcNow.AddHours(1),
         });
         await context.SaveChangesAsync();
 
@@ -140,6 +146,11 @@ public sealed class HealthDashboardTests
         var job = context.Jobs.Single(j => j.JobId == 1);
         Assert.Equal(0, job.Status); // Pending
         Assert.Null(job.ErrorMessage);
+        Assert.Null(job.FailureCode);
+        Assert.Null(job.CompletedUtc);
+        Assert.Null(job.LeaseOwner);
+        Assert.Null(job.LeaseExpiresUtc);
+        Assert.True(job.NextAttemptUtc <= DateTimeOffset.UtcNow);
     }
 
     [Fact]
@@ -290,6 +301,7 @@ public sealed class HealthDashboardTests
             status: 3,
             error: "Provider timeout at C:\\Users\\student\\library.pdf token=secret-value");
         context.Jobs.Local.Single(job => job.BookId == "BE_OP_3").FailureCode = "provider_timeout";
+        context.Jobs.Local.Single(job => job.BookId == "BE_OP_3").NextAttemptUtc = DateTimeOffset.UtcNow.AddHours(1);
         await context.SaveChangesAsync();
 
         var service = new LibraryHealthService(context);
@@ -315,6 +327,10 @@ public sealed class HealthDashboardTests
         Assert.Equal(2, context.Jobs.Count(job => job.Status == 0));
         Assert.Contains(context.Jobs, job => job.BookId == "BE_OP_2" && job.Status == 1);
         Assert.DoesNotContain(context.Jobs, job => job.ErrorMessage != null);
+        Assert.DoesNotContain(context.Jobs, job => job.FailureCode != null);
+        Assert.All(
+            context.Jobs.Where(job => job.Status == (int)JobRuntimeStatus.Pending),
+            job => Assert.True(job.NextAttemptUtc <= DateTimeOffset.UtcNow));
         Assert.Contains(context.Jobs, job => job.BookId == "BE_OP_3" && job.RetryCount == 1);
     }
 

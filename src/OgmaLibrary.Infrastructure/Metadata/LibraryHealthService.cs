@@ -96,10 +96,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
             return;
         }
 
-        job.Status = 0; // Pending
-        job.ErrorMessage = null;
-        job.CompletedUtc = null;
-        job.RetryCount++;
+        PrepareRetry(job, incrementRetryCount: true);
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -125,17 +122,28 @@ public sealed class LibraryHealthService : ILibraryHealthService
             statuses: ResumableBatchStatuses,
             update: job =>
             {
-                if (job.Status == (int)JobRuntimeStatus.Failed)
-                {
-                    job.RetryCount++;
-                }
-
-                job.Status = (int)JobRuntimeStatus.Pending;
-                job.StartedUtc = null;
-                job.CompletedUtc = null;
-                job.ErrorMessage = null;
+                PrepareRetry(
+                    job,
+                    incrementRetryCount: job.Status == (int)JobRuntimeStatus.Failed);
             },
             cancellationToken);
+
+    private static void PrepareRetry(JobRow job, bool incrementRetryCount)
+    {
+        job.Status = (int)JobRuntimeStatus.Pending;
+        if (incrementRetryCount)
+        {
+            job.RetryCount++;
+        }
+
+        job.StartedUtc = null;
+        job.CompletedUtc = null;
+        job.LeaseOwner = null;
+        job.LeaseExpiresUtc = null;
+        job.NextAttemptUtc = DateTimeOffset.UtcNow;
+        job.FailureCode = null;
+        job.ErrorMessage = null;
+    }
 
     /// <inheritdoc />
     public async Task<string> ExportFailedJobsCsvAsync(CancellationToken cancellationToken = default)

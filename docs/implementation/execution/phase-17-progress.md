@@ -99,6 +99,10 @@ Date: 2026-09-04
   work, and clears stale completion, lease, schedule, and failure state through
   one normalization path. The focused scan-health slice passed 5/5. Evidence:
   `evidence/phase-17-scan-retry-state-safety-2026-09-06.md`.
+- Library Health retry and batch resume now clear stale lease/completion/failure
+  state and override delayed schedules so user-resumed work is immediately
+  claimable. The 10-test Health Dashboard slice passed. Evidence:
+  `evidence/phase-17-health-retry-eligibility-2026-09-06.md`.
 
 ## Remaining phase gate
 
