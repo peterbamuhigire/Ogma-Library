@@ -62,6 +62,10 @@ Date: 2026-09-06
   references and stable failure codes. The 4-test scan-health slice proves an
   absolute student path and token-like value do not cross the boundary. See
   `evidence/phase-37-scan-health-payload-redaction-2026-09-06.md`.
+- Mapped Index Manager exception, rebuild, integrity, and OCR errors to
+  localized stable states instead of rendering adapter/legacy text. A UI
+  regression proves seeded path/token content stays hidden. Evidence:
+  `evidence/phase-37-index-manager-error-redaction-2026-09-06.md`.
 
 ## Remaining phase gate
 

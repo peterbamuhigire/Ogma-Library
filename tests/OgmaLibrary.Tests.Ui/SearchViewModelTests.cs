@@ -179,6 +179,25 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task IndexManagerViewModel_DoesNotRenderRawOperationalErrors()
+    {
+        const string sensitive = "C:\\Users\\student\\private.pdf token=secret-value";
+        using var vm = new IndexManagerViewModel(
+            new UnsafeDiagnosticIndexManagerService(sensitive),
+            new StubEmbeddingErasureService(),
+            new InMemoryLocalizationService());
+
+        await vm.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.DoesNotContain(vm.ErrorItems, item => item.Contains("student", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(vm.ErrorItems, item => item.Contains("secret-value", StringComparison.Ordinal));
+        OcrJobStatusDisplayItem job = Assert.Single(vm.OcrJobs);
+        Assert.Equal("Failed", job.ErrorMessage);
+        Assert.DoesNotContain("student", job.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [AvaloniaFact]
     public void SearchBar_CtrlK_Opens()
     {
         var localization = new InMemoryLocalizationService();
@@ -581,6 +600,37 @@ public sealed class SearchViewModelTests
                     LastQueryMilliseconds: 3.25,
                     RequiredIndexesHealthy: true,
                     MissingIndexes: []));
+    }
+
+    private sealed class UnsafeDiagnosticIndexManagerService(string sensitive) : IIndexManagerService
+    {
+        private readonly EventStream _events = new();
+
+        public IObservable<IndexStatusUpdate> Events => _events;
+
+        public Task<IndexManagerStatus> GetStatusAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new IndexManagerStatus(
+                1,
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                new FtsIntegrityResult(false, sensitive),
+                [],
+                [new OcrJobStatusItem(1, null, "Fixture", OcrJobState.Failed, 0, 1, sensitive)],
+                new SmartShelfQueryStats(-1, false, [])));
+
+        public Task<IndexRebuildResult> RebuildAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new IndexRebuildResult(false, 0, 0, 1, 0, false, sensitive));
+
+        public Task PauseOcrJobAsync(long jobId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task CancelOcrJobAsync(long jobId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task RetryOcrJobAsync(long jobId, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class SlowIndexManagerService : IIndexManagerService

@@ -411,12 +411,12 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             await Dispatcher.UIThread.InvokeAsync(() =>
                 StatusText = _localization["IndexManager.Status.Cancelled"]);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 StatusText = _localization["IndexManager.Status.RebuildFailed"];
-                ErrorItems.Add(ex.Message);
+                ErrorItems.Add(_localization["IndexManager.Status.RebuildFailed"]);
                 OnPropertyChanged(nameof(HasErrors));
             });
             throw;
@@ -461,7 +461,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 StatusText = _localization["IndexManager.Embeddings.EraseFailed"];
-                ErrorItems.Add(ex.Message);
+                ErrorItems.Add(_localization["IndexManager.Embeddings.EraseFailed"]);
                 OnPropertyChanged(nameof(HasErrors));
             });
             throw;
@@ -522,10 +522,11 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
     /// <inheritdoc />
     public void OnError(Exception error)
     {
+        ArgumentNullException.ThrowIfNull(error);
         Dispatcher.UIThread.Post(() =>
         {
-            StatusText = error.Message;
-            ErrorItems.Add(error.Message);
+            StatusText = _localization["IndexManager.Status.RebuildFailed"];
+            ErrorItems.Add(_localization["IndexManager.Status.RebuildFailed"]);
             OnPropertyChanged(nameof(HasErrors));
         });
     }
@@ -553,10 +554,10 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
                     IsRebuilding = false;
                     StatusText = completed.Result.Completed
                     ? _localization["IndexManager.Status.RebuildComplete"]
-                    : completed.Result.ErrorMessage ?? _localization["IndexManager.Status.RebuildFailed"];
+                    : _localization["IndexManager.Status.RebuildFailed"];
                     if (!completed.Result.Completed && !string.IsNullOrWhiteSpace(completed.Result.ErrorMessage))
                     {
-                        ErrorItems.Add(completed.Result.ErrorMessage);
+                        ErrorItems.Add(_localization["IndexManager.Status.RebuildFailed"]);
                         OnPropertyChanged(nameof(HasErrors));
                     }
                 });
@@ -603,7 +604,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             ErrorItems.Clear();
             if (!status.Integrity.IsHealthy && !string.IsNullOrWhiteSpace(status.Integrity.ErrorMessage))
             {
-                ErrorItems.Add(status.Integrity.ErrorMessage);
+                ErrorItems.Add(_localization["IndexManager.Summary.IntegrityFailed"]);
             }
 
             foreach (BookIndexStatusItem book in status.Books.Where(book =>
@@ -697,7 +698,9 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
                 string.IsNullOrWhiteSpace(job.Title) ? job.BookId ?? _localization["IndexManager.OcrJobs.UnknownBook"] : job.Title,
                 _localization[$"IndexManager.OcrJobs.State.{job.State}"],
                 FormatOcrProgress(job),
-                job.ErrorMessage ?? string.Empty,
+                string.IsNullOrWhiteSpace(job.ErrorMessage)
+                    ? string.Empty
+                    : _localization["IndexManager.OcrJobs.State.Failed"],
                 job.State is OcrJobState.Pending or OcrJobState.Running,
                 job.State is OcrJobState.Pending or OcrJobState.Running or OcrJobState.Failed or OcrJobState.Paused,
                 job.State is OcrJobState.Failed or OcrJobState.Cancelled or OcrJobState.Paused,
