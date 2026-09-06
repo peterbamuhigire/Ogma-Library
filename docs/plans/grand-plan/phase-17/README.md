@@ -376,22 +376,22 @@ Full task detail in `tasks.md`.
 ### Phase-17-specific exit criteria
 
 - [x] ADR-0012 authored and owner-ratified; identity/role/sync decisions recorded.
-- [ ] Mode switch (Standalone â†” Client) persists across app restart; correct DB
+- [x] Mode switch (Standalone â†” Client) persists across app restart; correct DB
       loaded per mode; no Standalone catalogue DB modified by Client mode.
 - [ ] mDNS discovery lists a running Phase 16 Host within 5 s on same subnet.
-- [ ] Certificate TOFU client flow: pinned cert accepted; mismatched cert shows
+- [x] Certificate TOFU client flow: pinned cert accepted; mismatched cert shows
       warning and blocks connection.
 - [ ] Three roles (`student`, `teacher`, `guest`) all authenticate and receive
       correct permissions as verified by integration test against Phase 16 Host.
-- [ ] Per-student private DB: annotation written by student A not readable by
+- [x] Per-student private DB: annotation written by student A not readable by
       student B profile (separate file, OS permissions).
 - [ ] Offline fault-injection test: LAN drop mid-session â†’ reader continues from
       cache for the open book â†’ "Offline" chip visible â†’ reconnect â†’ sync prompt.
-- [ ] Conflict surfacing: integration test produces a conflict; student chooses
+- [x] Conflict surfacing: integration test produces a conflict; student chooses
       "Keep local"; local value persists; Host value discarded.
-- [ ] Guest mode: no DB row written during session; app state clean on guest
+- [x] Guest mode: no DB row written during session; app state clean on guest
       logout.
-- [ ] Standalone golden-corpus regression: all Phase 00â€“15 tests pass unchanged.
+- [x] Standalone golden-corpus regression: all Phase 00â€“15 tests pass unchanged.
 
 ---
 

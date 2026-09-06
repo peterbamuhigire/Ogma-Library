@@ -229,3 +229,11 @@ bridge:
 ADR-0012 is accepted and owner-ratified in the canonical ADR record. Live
 Windows/macOS credential-store verification and cross-platform real-LAN
 verification remain open and are not inferred from the ratification.
+
+The persisted mode switch, certificate pin acceptance/mismatch rejection,
+per-profile private-state isolation, Keep-local conflict resolution, guest
+non-persistence, and Standalone regression criteria are closed by the focused
+tests listed above and the protected cross-platform acceptance run. The mDNS
+timing and full network-drop-to-reconnect journey remain physical integration
+gates. The three-role live Host authorization criterion remains open pending a
+dedicated endpoint test.
