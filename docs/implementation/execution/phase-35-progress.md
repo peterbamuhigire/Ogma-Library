@@ -28,24 +28,32 @@ Date: 2026-09-04
 - Added localized Client settings controls for Host-scoped ZIP export and
   explicit all-cache erasure confirmation, with native save-file selection and
   status feedback for unavailable storage or operation failures.
+- Made transport failure during connection/session renewal publish an explicit
+  offline state while retaining the last Host connection as the cache scope;
+  successful reconnect renews and persists the selected profile's session.
 
 ## Verification
 
 - `dotnet build OgmaLibrary.sln --configuration Release --no-restore` passed
   with 0 warnings and 0 errors.
-- Classroom-client slice: 110 passed.
+- Classroom-client slice: 111 passed.
 - Complete current Release solution suite: 1,110 passed (914 core, 41
   architecture, 155 UI), with 0 failures and 0 skips.
 - Focused HostSharingViewModel suite: 18 passed, 0 failed, 0 skipped; the
   classroom-client slice remains 110 passed, 0 failed, 0 skipped.
 - Added tests for cache tamper rejection, certificate-rotation cache isolation,
   oversized sync payload rejection, and host-scoped cache archive export.
+- Added a deterministic connected -> network drop -> offline -> reconnect
+  regression proving cache-context retention and session-token renewal; the
+  focused classroom slice passed 111 tests and the offline-chip UI passed 2.
+- Network-drop/reconnect evidence is recorded in
+  `evidence/phase-35-network-drop-reconnect-2026-09-06.md`.
 - Current-head local gate reconciliation is recorded in
   `evidence/phase-35-local-gate-reconciliation-2026-09-04.md`.
 
 ## Remaining phase gate
 
-Physical Windows/macOS credential-store and host/client pairing evidence,
-network-drop/reconnect with a renewed session, offline reader UX and
-accessibility capture, two-user hostile isolation, and cross-machine load
-evidence remain release gates.
+Physical Windows/macOS credential-store and host/client pairing evidence, a
+physical two-machine network interruption and offline-reader UX/accessibility
+capture, two-user hostile isolation, and cross-machine load evidence remain
+release gates.

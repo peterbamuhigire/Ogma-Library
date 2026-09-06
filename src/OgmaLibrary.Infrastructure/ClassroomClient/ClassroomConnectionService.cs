@@ -35,6 +35,28 @@ internal sealed class ClassroomConnectionService : IClassroomConnectionService
         ArgumentNullException.ThrowIfNull(request.JoinRequest);
         cancellationToken.ThrowIfCancellationRequested();
 
+        try
+        {
+            return await ConnectCoreAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsConnectivityFailure(ex, cancellationToken))
+        {
+            await _modeService
+                .SetConnectivityAsync(
+                    new ClassroomConnectivityStatus(
+                        IsOnline: false,
+                        UpdatedUtc: DateTimeOffset.UtcNow,
+                        Message: "Classroom Host unavailable; offline resources remain available."),
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private async Task<ClassroomConnectionResult> ConnectCoreAsync(
+        ClassroomConnectionRequest request,
+        CancellationToken cancellationToken)
+    {
         string presentedFingerprint = await ResolvePresentedFingerprintAsync(request, cancellationToken)
             .ConfigureAwait(false);
         HostTrustEvaluation trust = request.AcceptFirstUseTrust
@@ -117,6 +139,10 @@ internal sealed class ClassroomConnectionService : IClassroomConnectionService
             profile,
             connection);
     }
+
+    private static bool IsConnectivityFailure(Exception exception, CancellationToken cancellationToken) =>
+        exception is HttpRequestException or TimeoutException ||
+        exception is OperationCanceledException && !cancellationToken.IsCancellationRequested;
 
     private async Task<string> ResolvePresentedFingerprintAsync(
         ClassroomConnectionRequest request,

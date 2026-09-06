@@ -139,6 +139,55 @@ public sealed class ClassroomConnectionServiceTests
     }
 
     [Fact]
+    public async Task ConnectionService_NetworkDropMarksOfflineAndReconnectRenewsSession()
+    {
+        string dataDirectory = CreateTempDirectory();
+
+        try
+        {
+            TestHarness harness = CreateHarness(dataDirectory);
+            var request = new ClassroomJoinRequest(
+                "192.168.1.13",
+                7473,
+                Fingerprint,
+                DisplayName: "School Library");
+
+            ClassroomConnectionResult initial = await harness.Service.ConnectAsync(new ClassroomConnectionRequest(
+                request,
+                AcceptFirstUseTrust: true,
+                ProfileDisplayName: "Amina"));
+            ClassroomProfile profile = Assert.IsType<ClassroomProfile>(initial.Profile);
+            harness.HostClient.HealthFailure = new HttpRequestException("simulated network drop");
+
+            await Assert.ThrowsAsync<HttpRequestException>(() => harness.Service.ConnectAsync(
+                new ClassroomConnectionRequest(request, ProfileId: profile.ProfileId)));
+
+            ClassroomConnectivityStatus offline = await harness.ModeService.GetConnectivityAsync();
+            ClassroomHostConnection? retained = await harness.ConnectionService.GetActiveAsync();
+            Assert.False(offline.IsOnline);
+            Assert.Equal("Classroom Host unavailable; offline resources remain available.", offline.Message);
+            Assert.Equal("issued-session-token", retained!.SessionToken);
+
+            harness.HostClient.HealthFailure = null;
+            ClassroomConnectionResult reconnected = await harness.Service.ConnectAsync(
+                new ClassroomConnectionRequest(request, ProfileId: profile.ProfileId));
+
+            Assert.True(reconnected.IsConnected);
+            Assert.Equal("issued-session-token-2", reconnected.Connection!.SessionToken);
+            Assert.Equal("issued-session-token-2", (await harness.ConnectionService.GetActiveAsync())!.SessionToken);
+            Assert.Equal(
+                "issued-session-token-2",
+                await harness.ProfileService.GetSessionTokenAsync(profile.ProfileId));
+            Assert.True((await harness.ModeService.GetConnectivityAsync()).IsOnline);
+            Assert.Equal(2, harness.HostClient.SessionCalls);
+        }
+        finally
+        {
+            CleanupTempDirectory(dataDirectory);
+        }
+    }
+
+    [Fact]
     public async Task ConnectionService_GuestProfile_DoesNotPersistSessionToken()
     {
         string dataDirectory = CreateTempDirectory();
@@ -277,6 +326,8 @@ public sealed class ClassroomConnectionServiceTests
 
         public string HealthFingerprint { get; set; } = Fingerprint;
 
+        public Exception? HealthFailure { get; set; }
+
         public Guid ProfileId { get; private set; }
 
         public ClassroomRole Role { get; private set; }
@@ -289,6 +340,11 @@ public sealed class ClassroomConnectionServiceTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             HealthCalls++;
+            if (HealthFailure is not null)
+            {
+                return Task.FromException<LibraryHostHealth>(HealthFailure);
+            }
+
             return Task.FromResult(new LibraryHostHealth(
                 request.DisplayName ?? "School Library",
                 HealthFingerprint,
@@ -307,7 +363,7 @@ public sealed class ClassroomConnectionServiceTests
             Role = role;
             Lifetime = lifetime;
             return Task.FromResult(new LibraryHostSession(
-                "issued-session-token",
+                SessionCalls == 1 ? "issued-session-token" : $"issued-session-token-{SessionCalls}",
                 DateTimeOffset.UtcNow.Add(lifetime)));
         }
 
