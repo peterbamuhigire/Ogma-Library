@@ -64,16 +64,6 @@
                     Spacing="8"
                     VerticalAlignment="Top">
           <Button Padding="12,7"
-                  Background="{DynamicResource Brush.Accent.Slate}"
-                  Foreground="White"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  IsEnabled="{Binding CanChangeContentMode}"
-                  AutomationProperties.Name="{Binding ToggleContentModeText}"
-                  Click="ContentModeButton_Click">
-            <TextBlock Text="{Binding ToggleContentModeText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="12,7"
                   Background="{DynamicResource Brush.Accent.Sage}"
                   Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
@@ -97,10 +87,10 @@
       </Grid>
 
       <Grid Grid.Row="2"
-            RowDefinitions="Auto,Auto"
+            RowDefinitions="Auto"
             RowSpacing="10">
         <Border Grid.Row="0"
-                IsVisible="{Binding IsStartConfirmationOpen}"
+                IsVisible="False"
                 Padding="14"
                 BorderBrush="{DynamicResource Brush.Accent.Sage}"
                 BorderThickness="1"
@@ -139,45 +129,6 @@
           </Grid>
         </Border>
 
-        <Border Grid.Row="1"
-                IsVisible="{Binding IsFileStreamConfirmationOpen}"
-                Padding="14"
-                BorderBrush="{DynamicResource Brush.Accent.Clay}"
-                BorderThickness="1"
-                CornerRadius="{DynamicResource Radius.S}">
-          <Grid ColumnDefinitions="*,Auto"
-                ColumnSpacing="16">
-            <TextBlock Grid.Column="0"
-                       Text="{Binding FileStreamConfirmationText}"
-                       FontSize="{DynamicResource Type.Size.Body}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                       TextWrapping="Wrap"
-                       VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1"
-                        Orientation="Horizontal"
-                        Spacing="8">
-              <Button Padding="10,6"
-                      Background="Transparent"
-                      BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                      BorderThickness="1"
-                      CornerRadius="{DynamicResource Radius.S}"
-                      AutomationProperties.Name="{Binding CancelConfirmationText}"
-                      Click="CancelFileStreamButton_Click">
-                <TextBlock Text="{Binding CancelConfirmationText}"
-                           FontSize="{DynamicResource Type.Size.Caption}" />
-              </Button>
-              <Button Padding="10,6"
-                      Background="{DynamicResource Brush.Accent.Clay}"
-                      Foreground="White"
-                      CornerRadius="{DynamicResource Radius.S}"
-                      AutomationProperties.Name="{Binding ConfirmFileStreamText}"
-                      Click="ConfirmFileStreamButton_Click">
-                <TextBlock Text="{Binding ConfirmFileStreamText}"
-                           FontSize="{DynamicResource Type.Size.Caption}" />
-              </Button>
-            </StackPanel>
-          </Grid>
-        </Border>
       </Grid>
 
       <Grid Grid.Row="3"

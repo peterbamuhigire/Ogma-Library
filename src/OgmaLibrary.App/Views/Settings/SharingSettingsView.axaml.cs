@@ -38,25 +38,6 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void ContentModeButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (ViewModel is not null)
-        {
-            await ViewModel.RequestContentModeChangeAsync().ConfigureAwait(true);
-        }
-    }
-
-    private async void ConfirmFileStreamButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (ViewModel is not null)
-        {
-            await ViewModel.ConfirmFileStreamAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void CancelFileStreamButton_Click(object? sender, RoutedEventArgs e) =>
-        ViewModel?.CancelFileStreamConfirmation();
-
     private async void ConnectToHostButton_Click(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)

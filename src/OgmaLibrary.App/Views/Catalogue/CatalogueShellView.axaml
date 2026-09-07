@@ -551,12 +551,12 @@
             BorderThickness="1"
             CornerRadius="{DynamicResource Radius.S}"
             DataContext="{Binding HostSharing}"
-            IsVisible="{Binding IsSharePanelOpen, FallbackValue=False, TargetNullValue=False}"
+            IsVisible="False"
             x:CompileBindings="False">
       <StackPanel Spacing="10">
         <Grid ColumnDefinitions="*,Auto">
           <TextBlock Grid.Column="0"
-                     Text="{Binding SharePanelTitle}"
+                     Text="{Binding SharePanelTitle, FallbackValue='Share Library Host'}"
                      FontSize="{DynamicResource Type.Size.Subtitle}"
                      FontWeight="SemiBold"
                      Foreground="{DynamicResource Brush.Surface.OnParchment}"
@@ -573,7 +573,7 @@
           </Button>
         </Grid>
 
-        <TextBlock Text="{Binding SharePanelSubtitle}"
+        <TextBlock Text="{Binding SharePanelSubtitle, FallbackValue='Start the Host before sharing.'}"
                    FontSize="{DynamicResource Type.Size.Caption}"
                    Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                    TextWrapping="Wrap" />
@@ -623,7 +623,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CopyJoinLinkText}"
                   Click="HostCopyJoinLinkButton_Click">
-            <TextBlock Text="{Binding CopyJoinLinkText}"
+            <TextBlock Text="{Binding CopyJoinLinkText, FallbackValue='Copy join link'}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
           <Button Padding="10,5"
@@ -632,7 +632,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CopyFingerprintText}"
                   Click="HostCopyFingerprintButton_Click">
-            <TextBlock Text="{Binding CopyFingerprintText}"
+            <TextBlock Text="{Binding CopyFingerprintText, FallbackValue='Copy fingerprint'}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
         </StackPanel>
@@ -651,10 +651,10 @@
             BorderThickness="1"
             CornerRadius="{DynamicResource Radius.S}"
             DataContext="{Binding HostSharing}"
-            IsVisible="{Binding IsStartConfirmationOpen, FallbackValue=False, TargetNullValue=False}"
+            IsVisible="False"
             x:CompileBindings="False">
       <StackPanel Spacing="8">
-        <TextBlock Text="{Binding StartConfirmationText}"
+        <TextBlock Text="{Binding StartConfirmationText, FallbackValue='Starting Host mode opens this library to authenticated devices on your local network.'}"
                    FontSize="{DynamicResource Type.Size.Caption}"
                    Foreground="{DynamicResource Brush.Surface.OnParchment}"
                    TextWrapping="Wrap" />
@@ -668,7 +668,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CancelConfirmationText}"
                   Click="HostCancelStartConfirmationButton_Click">
-            <TextBlock Text="{Binding CancelConfirmationText}"
+            <TextBlock Text="{Binding CancelConfirmationText, FallbackValue='Cancel'}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
           <Button Padding="10,5"
@@ -677,52 +677,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding ConfirmStartText}"
                   Click="HostConfirmStartButton_Click">
-            <TextBlock Text="{Binding ConfirmStartText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-        </StackPanel>
-      </StackPanel>
-    </Border>
-
-    <Border Grid.Row="0"
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Bottom"
-            Width="360"
-            Margin="0,0,16,92"
-            Padding="12"
-            Background="{DynamicResource Brush.Surface.Parchment}"
-            BorderBrush="{DynamicResource Brush.Accent.Clay}"
-            BorderThickness="1"
-            CornerRadius="{DynamicResource Radius.S}"
-            DataContext="{Binding HostSharing}"
-            IsVisible="{Binding IsFileStreamConfirmationOpen, FallbackValue=False, TargetNullValue=False}"
-            x:CompileBindings="False">
-      <StackPanel Spacing="8">
-        <TextBlock Text="{Binding FileStreamConfirmationText}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                   TextWrapping="Wrap" />
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Spacing="8">
-          <Button Padding="10,5"
-                  Background="Transparent"
-                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding CancelConfirmationText}"
-                  Click="HostCancelFileStreamConfirmationButton_Click">
-            <TextBlock Text="{Binding CancelConfirmationText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="10,5"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding ConfirmFileStreamText}"
-                  Click="HostConfirmFileStreamButton_Click">
-            <TextBlock Text="{Binding ConfirmFileStreamText}"
+            <TextBlock Text="{Binding ConfirmStartText, FallbackValue='Start Host'}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
         </StackPanel>
@@ -772,7 +727,7 @@
                     Orientation="Horizontal"
                     Spacing="8"
                     VerticalAlignment="Center"
-                    IsVisible="{Binding IsHostSharingVisible}">
+                    IsVisible="False">
           <TextBlock Text="{Binding HostSharing.Title}"
                      FontSize="{DynamicResource Type.Size.Caption}"
                      FontWeight="SemiBold"
@@ -790,10 +745,6 @@
                      FontSize="{DynamicResource Type.Size.Caption}"
                      Foreground="{DynamicResource Brush.Accent.Slate}"
                      VerticalAlignment="Center" />
-          <TextBlock Text="{Binding HostSharing.ContentModeText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     VerticalAlignment="Center" />
           <Button Padding="8,3"
                   Background="{DynamicResource Brush.Accent.Oak}"
                   Foreground="White"
@@ -802,16 +753,6 @@
                   AutomationProperties.Name="{Binding HostSharing.ShareButtonText}"
                   Click="HostShareButton_Click">
             <TextBlock Text="{Binding HostSharing.ShareButtonText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="8,3"
-                  Background="{DynamicResource Brush.Accent.Slate}"
-                  Foreground="White"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  IsEnabled="{Binding HostSharing.CanChangeContentMode}"
-                  AutomationProperties.Name="{Binding HostSharing.ToggleContentModeText}"
-                  Click="HostContentModeButton_Click">
-            <TextBlock Text="{Binding HostSharing.ToggleContentModeText}"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
           <Button Padding="8,3"

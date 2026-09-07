@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Pdf;
@@ -40,6 +41,68 @@ internal sealed class JobRecoveryStartupTask : IApplicationStartupTask
 
     public Task ExecuteAsync(CancellationToken cancellationToken) =>
         _recovery.RecoverAsync(cancellationToken);
+}
+
+/// <summary>
+/// Requeues cover jobs that failed with the known pre-fix null-bitmap error so an
+/// application upgrade repairs existing libraries without rerunning unrelated work.
+/// </summary>
+internal sealed class ThumbnailRepairStartupTask : IApplicationStartupTask
+{
+    private const string KnownNullBitmapError = "Object reference not set to an instance of an object.";
+    private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
+
+    public ThumbnailRepairStartupTask(IDbContextFactory<CatalogueDbContext> contextFactory) =>
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+
+    public string Name => "assets.thumbnail-repair";
+
+    public StartupTaskCriticality Criticality => StartupTaskCriticality.Optional;
+
+    public string FailureMessage =>
+        "Previously failed cover images could not be queued for repair. Use the library health retry action.";
+
+    public async Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        CatalogueDbContext context = await _contextFactory
+            .CreateDbContextAsync(cancellationToken)
+            .ConfigureAwait(false);
+        try
+        {
+            List<OgmaLibrary.Infrastructure.Catalogue.Entities.JobRow> jobs = await context.Jobs
+                .Where(job => job.JobType == "ThumbnailGeneration" &&
+                              job.Status == 3 &&
+                              job.ErrorMessage == KnownNullBitmapError &&
+                              job.Payload != null)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            bool changed = false;
+            foreach (OgmaLibrary.Infrastructure.Catalogue.Entities.JobRow job in jobs)
+            {
+                if (!File.Exists(job.Payload))
+                {
+                    continue;
+                }
+
+                job.Status = 0;
+                job.RetryCount += 1;
+                job.ErrorMessage = null;
+                job.StartedUtc = null;
+                job.CompletedUtc = null;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            await context.DisposeAsync().ConfigureAwait(false);
+        }
+    }
 }
 
 internal sealed class HostedServicesStartupTask : IApplicationStartupTask, IApplicationStoppableTask

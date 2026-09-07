@@ -24,7 +24,9 @@
     <ListBox.ItemTemplate>
       <DataTemplate x:DataType="app:BookSummaryProjection">
         <Border Padding="12,8"
-                AutomationProperties.Name="{Binding Title}">
+                AutomationProperties.Name="{Binding Title}"
+                Cursor="Hand"
+                PointerPressed="BookRow_PointerPressed">
           <Grid ColumnDefinitions="56,*,60,40">
 
             <!-- Cover placeholder -->
@@ -51,8 +53,8 @@
                 <TextBlock.Text>
                   <MultiBinding StringFormat="{}{0}">
                     <Binding Path="PrimaryAuthor" />
-                  </MultiBinding>
-                </TextBlock.Text>
+                </MultiBinding>
+              </TextBlock.Text>
               </TextBlock>
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
                 <Border IsVisible="{Binding Processing.IsIndexed}"

@@ -289,30 +289,6 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void HostContentModeButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            await vm.HostSharing.RequestContentModeChangeAsync().ConfigureAwait(true);
-        }
-    }
-
-    private async void HostConfirmFileStreamButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            await vm.HostSharing.ConfirmFileStreamAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void HostCancelFileStreamConfirmationButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            vm.HostSharing.CancelFileStreamConfirmation();
-        }
-    }
-
     private void HostShareButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)

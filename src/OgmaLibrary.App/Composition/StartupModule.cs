@@ -13,11 +13,14 @@ internal sealed class StartupModule : IOgmaModuleRegistrar
     {
         services.AddSingleton<CatalogueMigrationStartupTask>();
         services.AddSingleton<JobRecoveryStartupTask>();
+        services.AddSingleton<ThumbnailRepairStartupTask>();
         services.AddSingleton<HostedServicesStartupTask>();
         services.AddSingleton<IApplicationStartupTask>(sp =>
             sp.GetRequiredService<CatalogueMigrationStartupTask>());
         services.AddSingleton<IApplicationStartupTask>(sp =>
             sp.GetRequiredService<JobRecoveryStartupTask>());
+        services.AddSingleton<IApplicationStartupTask>(sp =>
+            sp.GetRequiredService<ThumbnailRepairStartupTask>());
         services.AddSingleton<IApplicationStartupTask>(sp =>
             sp.GetRequiredService<HostedServicesStartupTask>());
         services.AddSingleton<IStartupCapabilityProbe, StartupCapabilityProbe>();
