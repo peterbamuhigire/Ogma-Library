@@ -89,7 +89,7 @@ public sealed class InDocumentSearchTests
     }
 
     [Fact]
-    public async Task SearchAsync_ScannedPage_AddsNoTextLayerNotice()
+    public async Task SearchAsync_PagesWithoutText_DoNotCreateFalseMatches()
     {
         var renderer = new MockPdfRenderer(2);
         var (session, textLayer, search) = CreateServices(renderer);

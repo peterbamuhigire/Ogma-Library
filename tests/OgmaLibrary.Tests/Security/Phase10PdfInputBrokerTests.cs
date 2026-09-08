@@ -34,6 +34,9 @@ public sealed class Phase10PdfInputBrokerTests : IDisposable
         Assert.Equal(PdfInputValidationStatus.Valid, result.Status);
         Assert.Equal(PathGuard.CanonicalizeRoot(path), result.CanonicalPath);
         Assert.Equal(13, result.SizeBytes);
+        Assert.True(result.HasStableIdentity);
+        Assert.Equal(64, result.ContentHash?.Length);
+        Assert.NotNull(result.LastWriteTimeUtc);
     }
 
     [Theory]

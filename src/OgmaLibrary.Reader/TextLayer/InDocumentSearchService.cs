@@ -53,13 +53,10 @@ public sealed class InDocumentSearchService : IInDocumentSearchService
             AppTextLayer layer = await _textLayerService.ExtractAsync(bookId, page, ct)
                 .ConfigureAwait(false);
 
-            if (layer.Quality == ExtractionQuality.Scanned)
+            if (layer.Quality is ExtractionQuality.Scanned or ExtractionQuality.Empty)
             {
-                // Add a placeholder match so the UI can show the "no text layer" notice.
-                matches.Add(new SearchMatch(
-                    page,
-                    "No text layer — OCR available in V1",
-                    []));
+                // A missing text layer is a page state, not a match. Returning a
+                // synthetic match made every scanned page appear to match every query.
                 continue;
             }
 

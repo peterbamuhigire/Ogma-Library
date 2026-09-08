@@ -1,14 +1,20 @@
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
-using UglyToad.PdfPig;
-using UglyToad.PdfPig.Outline;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
-/// <summary>PdfPig outline adapter with bounded, sanitized TOC output.</summary>
+/// <summary>Bounded, sanitized TOC output over the configured PDF boundary.</summary>
 public sealed class PdfTableOfContentsService : ITocExtractionService
 {
     private const int MaxEntries = 2048;
     private const int MaxTitleLength = 512;
+    private readonly IPdfRendererFactory _rendererFactory;
+
+    /// <summary>Initializes the TOC service at the configured PDF boundary.</summary>
+    public PdfTableOfContentsService(IPdfRendererFactory? rendererFactory = null)
+    {
+        _rendererFactory = rendererFactory ?? new PdfiumAdapterFactory();
+    }
 
     /// <inheritdoc />
     public Task<TocExtractionResult> ExtractAsync(
@@ -16,49 +22,37 @@ public sealed class PdfTableOfContentsService : ITocExtractionService
         CancellationToken cancellationToken = default) =>
         Task.Run(() => ExtractCore(absoluteFilePath, cancellationToken), cancellationToken);
 
-    private static TocExtractionResult ExtractCore(string filePath, CancellationToken cancellationToken)
+    private TocExtractionResult ExtractCore(string filePath, CancellationToken cancellationToken)
     {
         try
         {
-            using PdfDocument document = PdfDocument.Open(
-                filePath,
-                new ParsingOptions { UseLenientParsing = true });
-            if (!document.TryGetBookmarks(out Bookmarks? bookmarks) || bookmarks is null)
+            using IPdfRenderer renderer = _rendererFactory.Open(filePath);
+            if (renderer.PageCount <= 0)
+            {
+                return new TocExtractionResult([], TocExtractionQuality.Failed, "No readable pages");
+            }
+
+            IReadOnlyList<PdfOutlineEntry> outline = renderer.ReadOutline();
+            if (outline.Count == 0)
             {
                 return new TocExtractionResult([], TocExtractionQuality.Empty);
             }
 
-            var entries = new List<TocEntryRecord>(Math.Min(MaxEntries, bookmarks.Roots.Count));
-            bool skippedEntry = false;
-            foreach (BookmarkNode node in bookmarks.GetNodes())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (entries.Count >= MaxEntries)
-                {
-                    skippedEntry = true;
-                    break;
-                }
-
-                string title = NormalizeTitle(node.Title);
-                if (node is not DocumentBookmarkNode documentNode ||
-                    title.Length == 0 ||
-                    documentNode.PageNumber < 1 ||
-                    documentNode.PageNumber > document.NumberOfPages)
-                {
-                    skippedEntry = true;
-                    continue;
-                }
-
-                entries.Add(new TocEntryRecord(
-                    title,
-                    documentNode.PageNumber - 1,
-                    Math.Clamp(node.Level, 0, 32)));
-            }
-
-            TocExtractionQuality quality = entries.Count == 0
-                ? TocExtractionQuality.Empty
-                : skippedEntry ? TocExtractionQuality.Partial : TocExtractionQuality.Complete;
-            return new TocExtractionResult(entries, quality);
+            cancellationToken.ThrowIfCancellationRequested();
+            return new TocExtractionResult(
+                outline
+                    .Take(MaxEntries)
+                    .Select(entry => new TocEntryRecord(
+                        NormalizeTitle(entry.Title),
+                        entry.PageIndex,
+                        Math.Clamp(entry.Level, 0, 32)))
+                    .Where(entry => entry.Title.Length > 0 &&
+                                    entry.PageIndex >= 0 &&
+                                    entry.PageIndex < renderer.PageCount)
+                    .ToArray(),
+                outline.Count > MaxEntries
+                    ? TocExtractionQuality.Partial
+                    : TocExtractionQuality.Complete);
         }
         catch (OperationCanceledException)
         {

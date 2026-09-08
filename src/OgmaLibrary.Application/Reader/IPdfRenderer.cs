@@ -34,6 +34,25 @@ public interface IPdfRenderer : IDisposable
     int GetPageRotationDegrees(int pageIndex);
 
     /// <summary>
+    /// Gets the effective page geometry used by the reader layout and overlay
+    /// coordinate transform. Existing test doubles use the safe fallback.
+    /// </summary>
+    PdfPageGeometry GetPageGeometry(int pageIndex)
+    {
+        int rotation = GetPageRotationDegrees(pageIndex);
+        return PdfPageGeometry.Fallback(pageIndex, rotation);
+    }
+
+    /// <summary>The versioned reader capability profile for this processor.</summary>
+    PdfCapabilityProfile CapabilityProfile => PdfCapabilityProfile.Current;
+
+    /// <summary>Reads bounded document information and optional XMP metadata.</summary>
+    PdfDocumentMetadata ReadDocumentMetadata() => new();
+
+    /// <summary>Reads bounded, sanitized outline targets from the document.</summary>
+    IReadOnlyList<PdfOutlineEntry> ReadOutline() => [];
+
+    /// <summary>
     /// Synchronously extracts the text layer for a single page using PdfPig.
     /// Returns an empty layer (with <see cref="ExtractionQuality.Scanned"/>) for
     /// pages that contain no extractable text.
@@ -57,7 +76,66 @@ public sealed record RenderRequest(
     int WidthPx,
     int HeightPx = 0,
     double Scale = 1.0,
-    bool IsLowResPreview = false);
+    bool IsLowResPreview = false)
+{
+    /// <summary>Page box used when the renderer supports explicit page boxes.</summary>
+    public PdfPageBox PageBox { get; init; } = PdfPageBox.CropBox;
+
+    /// <summary>Whether annotation appearance streams are included in the raster.</summary>
+    public PdfAnnotationRenderMode AnnotationMode { get; init; } = PdfAnnotationRenderMode.Exclude;
+
+    /// <summary>Whether current form values are painted into the raster.</summary>
+    public bool IncludeFormValues { get; init; }
+
+    /// <summary>Optional-content policy for this render.</summary>
+    public PdfOptionalContentMode OptionalContentMode { get; init; } = PdfOptionalContentMode.Default;
+
+    /// <summary>Explicit page rotation override; null means use the PDF page rotation.</summary>
+    public int? RotationDegrees { get; init; }
+
+    /// <summary>Stable cache identity for all visual inputs.</summary>
+    public string CacheFingerprint => string.Join(
+        "|",
+        WidthPx,
+        HeightPx,
+        Scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+        IsLowResPreview,
+        PageBox,
+        AnnotationMode,
+        IncludeFormValues,
+        OptionalContentMode,
+        RotationDegrees?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "pdf");
+}
+
+/// <summary>Page box selection for a render request.</summary>
+public enum PdfPageBox
+{
+    /// <summary>The effective crop box, which is the normal display box.</summary>
+    CropBox = 0,
+
+    /// <summary>The physical media box when a print-oriented view is needed.</summary>
+    MediaBox = 1,
+}
+
+/// <summary>Controls whether annotation appearance streams are painted.</summary>
+public enum PdfAnnotationRenderMode
+{
+    /// <summary>Do not paint annotations.</summary>
+    Exclude = 0,
+
+    /// <summary>Paint safe appearance streams without executing actions.</summary>
+    AppearanceOnly = 1,
+}
+
+/// <summary>Controls optional-content visibility for a page render.</summary>
+public enum PdfOptionalContentMode
+{
+    /// <summary>Use the document/default configuration.</summary>
+    Default = 0,
+
+    /// <summary>Use only content explicitly known to be visible.</summary>
+    VisibleOnly = 1,
+}
 
 /// <summary>
 /// The result of a single-page render.
@@ -71,6 +149,90 @@ public sealed record RenderResult(
     double PageWidthPoints,
     double PageHeightPoints,
     int PageIndex);
+
+/// <summary>
+/// Effective geometry for one physical PDF page. Width and height are the
+/// unrotated PDF user-space dimensions; display dimensions include page rotation.
+/// </summary>
+public sealed record PdfPageGeometry(
+    int PageIndex,
+    double WidthPoints,
+    double HeightPoints,
+    int RotationDegrees,
+    bool IsFallback = false)
+{
+    /// <summary>Width after applying the page rotation for screen display.</summary>
+    public double DisplayWidthPoints => RotationDegrees is 90 or 270 ? HeightPoints : WidthPoints;
+
+    /// <summary>Height after applying the page rotation for screen display.</summary>
+    public double DisplayHeightPoints => RotationDegrees is 90 or 270 ? WidthPoints : HeightPoints;
+
+    /// <summary>Creates a safe A4-shaped fallback when geometry is unavailable.</summary>
+    public static PdfPageGeometry Fallback(int pageIndex, int rotationDegrees = 0) =>
+        new(pageIndex, 595, 842, NormalizeRotation(rotationDegrees), IsFallback: true);
+
+    private static int NormalizeRotation(int value) => ((value % 360) + 360) % 360;
+}
+
+/// <summary>Bounded PDF document information exposed to metadata consumers.</summary>
+public sealed record PdfDocumentMetadata(
+    string? Title = null,
+    string? Author = null,
+    string? Subject = null,
+    string? Keywords = null,
+    string? Creator = null,
+    string? XmpXml = null);
+
+/// <summary>Sanitized outline entry with a physical zero-based page target.</summary>
+public sealed record PdfOutlineEntry(string Title, int PageIndex, int Level);
+
+/// <summary>Support status for a PDF processor capability in the published profile.</summary>
+public enum PdfFeatureSupportStatus
+{
+    /// <summary>The capability is implemented and covered by the profile.</summary>
+    Supported = 0,
+
+    /// <summary>The capability is usable with documented limitations.</summary>
+    Degraded = 1,
+
+    /// <summary>The capability is intentionally blocked by reader policy.</summary>
+    Refused = 2,
+
+    /// <summary>The capability has not yet received release evidence.</summary>
+    NotAssessed = 3,
+}
+
+/// <summary>
+/// Versioned, deliberately bounded reader capability profile. This is a product
+/// contract, not a claim that every PDF 2.0 feature is implemented.
+/// </summary>
+public sealed record PdfCapabilityProfile(
+    string ProfileId,
+    string PdfStandard,
+    string EngineFamily,
+    string ProfileVersion,
+    IReadOnlyDictionary<string, PdfFeatureSupportStatus> Features)
+{
+    /// <summary>Current Ogma baseline profile used until a release profile is promoted.</summary>
+    public static PdfCapabilityProfile Current { get; } = new(
+        "ogma-reader-baseline",
+        "PDF 2.0 processor subset",
+        "PDFium + PdfPig",
+        "1",
+        new Dictionary<string, PdfFeatureSupportStatus>(StringComparer.Ordinal)
+        {
+            ["page-rendering"] = PdfFeatureSupportStatus.Supported,
+            ["page-geometry"] = PdfFeatureSupportStatus.Degraded,
+            ["text-extraction"] = PdfFeatureSupportStatus.Degraded,
+            ["outlines"] = PdfFeatureSupportStatus.Degraded,
+            ["annotations"] = PdfFeatureSupportStatus.Degraded,
+            ["forms"] = PdfFeatureSupportStatus.Refused,
+            ["javascript-and-launch-actions"] = PdfFeatureSupportStatus.Refused,
+            ["tagged-pdf-semantics"] = PdfFeatureSupportStatus.NotAssessed,
+            ["pdf-ua-2-input"] = PdfFeatureSupportStatus.NotAssessed,
+            ["pdf-a-4-input"] = PdfFeatureSupportStatus.NotAssessed,
+        });
+}
 
 /// <summary>
 /// Indicates the quality of text extracted from a PDF page by the text-layer service.

@@ -104,9 +104,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         _chunkRepository = chunkRepository;
         _chunker = chunker;
         _artifactService = new ExtractionArtifactService(context);
+        // The internal shared-context constructor is test-only; runtime composition
+        // supplies IIsbnDetectionService through the public DI constructor. Keep the
+        // fallback independent so page extraction is not performed twice in fixtures.
         _isbnDetection = isbnDetection ?? new IsbnDetectionService();
         _isbnEvidenceStore = isbnEvidenceStore ?? new IsbnEvidenceStore(context);
-        _tocExtraction = tocExtraction ?? new PdfTableOfContentsService();
+        _tocExtraction = tocExtraction ?? new PdfTableOfContentsService(rendererFactory);
     }
 
     /// <inheritdoc />

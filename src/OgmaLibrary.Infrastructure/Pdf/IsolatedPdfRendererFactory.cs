@@ -62,6 +62,26 @@ internal sealed class IsolatedPdfRenderer : IPdfRenderer
         return _session.GetPageRotationDegrees(pageIndex);
     }
 
+    public PdfPageGeometry GetPageGeometry(int pageIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
+        return _session.GetPageGeometry(pageIndex);
+    }
+
+    public PdfDocumentMetadata ReadDocumentMetadata()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _session.ReadDocumentMetadata();
+    }
+
+    public IReadOnlyList<PdfOutlineEntry> ReadOutline()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _session.ReadOutline();
+    }
+
     public TextLayer ExtractTextLayer(int pageIndex)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

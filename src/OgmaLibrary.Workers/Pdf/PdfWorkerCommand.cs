@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pdf;
 using PDFtoImage;
+using PdfSharp.Pdf.IO;
 using SkiaSharp;
 
 namespace OgmaLibrary.Workers.Pdf;
@@ -42,6 +44,27 @@ internal static class PdfWorkerCommand
                     }
 
                     return 0;
+                case "geometry":
+                    using (PdfiumAdapter renderer = GetRenderer(parsed))
+                    {
+                        WriteOk(renderer.GetPageGeometry(parsed.GetInt("--page")));
+                    }
+
+                    return 0;
+                case "metadata":
+                    using (PdfiumAdapter renderer = GetRenderer(parsed))
+                    {
+                        WriteOk(renderer.ReadDocumentMetadata());
+                    }
+
+                    return 0;
+                case "outline":
+                    using (PdfiumAdapter renderer = GetRenderer(parsed))
+                    {
+                        WriteOk(renderer.ReadOutline());
+                    }
+
+                    return 0;
                 case "text-layer":
                     using (PdfiumAdapter renderer = GetRenderer(parsed))
                     {
@@ -52,6 +75,9 @@ internal static class PdfWorkerCommand
                         WriteOk(layer);
                     }
 
+                    return 0;
+                case "write-metadata":
+                    WriteMetadata(parsed, sandbox);
                     return 0;
                 case "asset-cover":
                     RenderCover(parsed, sandbox);
@@ -99,7 +125,14 @@ internal static class PdfWorkerCommand
             parsed.GetInt("--width"),
             parsed.GetInt("--height"),
             parsed.GetDouble("--scale"),
-            parsed.GetBool("--low-res"));
+            parsed.GetBool("--low-res"))
+        {
+            PageBox = parsed.GetEnum("--page-box", PdfPageBox.CropBox),
+            AnnotationMode = parsed.GetEnum("--annotation-mode", PdfAnnotationRenderMode.Exclude),
+            IncludeFormValues = parsed.GetOptionalBool("--include-form-values", false),
+            OptionalContentMode = parsed.GetEnum("--optional-content", PdfOptionalContentMode.Default),
+            RotationDegrees = parsed.GetOptionalRotation("--rotation"),
+        };
 
         using PdfiumAdapter renderer = GetRenderer(parsed);
         RenderResult result = await renderer.RenderPageAsync(pageIndex, request, CancellationToken.None)
@@ -137,7 +170,14 @@ internal static class PdfWorkerCommand
                                     request.WidthPx,
                                     request.HeightPx,
                                     request.Scale,
-                                    request.IsLowResPreview),
+                                    request.IsLowResPreview)
+                                {
+                                    PageBox = request.PageBox,
+                                    AnnotationMode = request.AnnotationMode,
+                                    IncludeFormValues = request.IncludeFormValues,
+                                    OptionalContentMode = request.OptionalContentMode,
+                                    RotationDegrees = request.RotationDegrees,
+                                },
                                 CancellationToken.None)
                             .ConfigureAwait(false);
                         await File.WriteAllBytesAsync(outputPath, result.PngBytes)
@@ -151,6 +191,21 @@ internal static class PdfWorkerCommand
                         WriteServerResponse(new ServerResponse(
                             "ok",
                             RotationDegrees: renderer.GetPageRotationDegrees(request.PageIndex)));
+                        break;
+                    case "geometry":
+                        WriteServerResponse(new ServerResponse(
+                            "ok",
+                            PageGeometry: renderer.GetPageGeometry(request.PageIndex)));
+                        break;
+                    case "metadata":
+                        WriteServerResponse(new ServerResponse(
+                            "ok",
+                            DocumentMetadata: renderer.ReadDocumentMetadata()));
+                        break;
+                    case "outline":
+                        WriteServerResponse(new ServerResponse(
+                            "ok",
+                            Outline: renderer.ReadOutline()));
                         break;
                     case "text-layer":
                         WriteServerResponse(new ServerResponse(
@@ -273,6 +328,44 @@ internal static class PdfWorkerCommand
         canvas.DrawBitmap(rendered, new SKRect(0, 0, widthPx, heightPx));
 
         SaveJpeg(surface, outputPath);
+        WriteOk(new AssetResponse(outputPath));
+    }
+
+    private static void WriteMetadata(ParsedArgs parsed, string sandbox)
+    {
+        string inputPath = RequireInput(parsed.GetRequired("--input"));
+        string outputPath = RequireInsideSandbox(sandbox, parsed.GetRequired("--output"));
+        byte[] proposalBytes = Convert.FromBase64String(parsed.GetRequired("--proposals"));
+        AcceptedFieldProposal[] proposals = JsonSerializer.Deserialize<AcceptedFieldProposal[]>(
+                proposalBytes,
+                JsonOptions)
+            ?? throw new ArgumentException("The metadata proposal payload was empty.");
+
+        using var document = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+        foreach (AcceptedFieldProposal proposal in proposals)
+        {
+            switch (proposal.FieldName)
+            {
+                case "Title":
+                    document.Info.Title = proposal.AcceptedValue ?? string.Empty;
+                    break;
+                case "Author":
+                    document.Info.Author = proposal.AcceptedValue ?? string.Empty;
+                    break;
+                case "Subject":
+                case "Description":
+                    document.Info.Subject = proposal.AcceptedValue ?? string.Empty;
+                    break;
+                case "Publisher":
+                    document.Info.Creator = proposal.AcceptedValue ?? string.Empty;
+                    break;
+                case "Keywords":
+                    document.Info.Keywords = proposal.AcceptedValue ?? string.Empty;
+                    break;
+            }
+        }
+
+        document.Save(outputPath);
         WriteOk(new AssetResponse(outputPath));
     }
 
@@ -414,7 +507,12 @@ internal static class PdfWorkerCommand
         int HeightPx = 0,
         double Scale = 1.0,
         bool IsLowResPreview = false,
-        string? OutputName = null);
+        string? OutputName = null,
+        PdfPageBox PageBox = PdfPageBox.CropBox,
+        PdfAnnotationRenderMode AnnotationMode = PdfAnnotationRenderMode.Exclude,
+        bool IncludeFormValues = false,
+        PdfOptionalContentMode OptionalContentMode = PdfOptionalContentMode.Default,
+        int? RotationDegrees = null);
 
     private sealed record ServerResponse(
         string Status,
@@ -424,7 +522,10 @@ internal static class PdfWorkerCommand
         int RotationDegrees = 0,
         double PageWidthPoints = 595,
         double PageHeightPoints = 842,
-        TextLayer? TextLayer = null);
+        TextLayer? TextLayer = null,
+        PdfPageGeometry? PageGeometry = null,
+        PdfDocumentMetadata? DocumentMetadata = null,
+        IReadOnlyList<PdfOutlineEntry>? Outline = null);
 
     private sealed class ParsedArgs
     {
@@ -496,5 +597,29 @@ internal static class PdfWorkerCommand
 
         public bool GetBool(string name) =>
             bool.Parse(GetRequired(name));
+
+        public bool GetOptionalBool(string name, bool fallback) =>
+            _values.TryGetValue(name, out string? value) ? bool.Parse(value) : fallback;
+
+        public T GetEnum<T>(string name, T fallback)
+            where T : struct, Enum =>
+            _values.TryGetValue(name, out string? value) &&
+            Enum.TryParse(value, ignoreCase: true, out T parsed)
+                ? parsed
+                : fallback;
+
+        public int? GetOptionalRotation(string name)
+        {
+            if (!_values.TryGetValue(name, out string? value) ||
+                string.Equals(value, "pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            int rotation = int.Parse(value, CultureInfo.InvariantCulture);
+            return rotation is 0 or 90 or 180 or 270
+                ? rotation
+                : throw new ArgumentOutOfRangeException(name, "Rotation must be 0, 90, 180 or 270 degrees.");
+        }
     }
 }

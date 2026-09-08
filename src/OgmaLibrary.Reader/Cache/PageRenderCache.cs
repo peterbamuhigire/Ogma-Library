@@ -11,7 +11,7 @@ namespace OgmaLibrary.Reader.Cache;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Cache key: <c>(bookId, pageIndex, widthPx)</c>. Entries are evicted LRU-style
+/// Cache key: <c>(bookId, pageIndex, render-policy fingerprint)</c>. Entries are evicted LRU-style
 /// once the total bitmap memory exceeds the configured memory budget.
 /// </para>
 /// <para>
@@ -79,7 +79,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
 
-        var key = new CacheKey(bookId, pageIndex, request.WidthPx);
+        var key = new CacheKey(bookId, pageIndex, request.CacheFingerprint);
         using var benchmarkScope = _benchmark.Measure("PageRenderCache.GetOrRender");
 
         // Check full-res cache.
@@ -93,7 +93,10 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
         }
 
         // Check low-res cache while full-res is in flight.
-        var lowResKey = new CacheKey(bookId, pageIndex, request.WidthPx / 4);
+        var lowResKey = new CacheKey(
+            bookId,
+            pageIndex,
+            (request with { IsLowResPreview = true }).CacheFingerprint);
         lock (_syncRoot)
         {
             if (_entries.TryGetValue(lowResKey, out var preview) && preview.IsFull)
@@ -128,7 +131,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
         foreach (int page in pages)
         {
-            var key = new CacheKey(bookId, page, request.WidthPx);
+            var key = new CacheKey(bookId, page, request.CacheFingerprint);
             bool isCached;
             lock (_syncRoot)
             {
@@ -140,7 +143,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
                 // First kick off low-res preview.
                 var previewRequest = request with { IsLowResPreview = true };
                 _ = StartRender(
-                    new CacheKey(bookId, page, request.WidthPx / 4),
+                    new CacheKey(bookId, page, previewRequest.CacheFingerprint),
                     bookId, page, previewRequest);
 
                 // Then queue full-res.
@@ -422,7 +425,7 @@ public sealed class PageRenderCache : IPageRenderCache, IDisposable
 
     // ── Inner types ───────────────────────────────────────────────────────────────
 
-    private readonly record struct CacheKey(string BookId, int PageIndex, int WidthPx);
+    private readonly record struct CacheKey(string BookId, int PageIndex, string RenderFingerprint);
 
     private sealed class CacheEntry
     {

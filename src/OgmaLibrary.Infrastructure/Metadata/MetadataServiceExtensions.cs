@@ -4,6 +4,7 @@ using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Metadata.Providers;
+using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 
@@ -107,7 +108,9 @@ public static class MetadataServiceExtensions
                 sp.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<Catalogue.CatalogueDbContext>>(),
                 sp.GetRequiredService<ISidecarService>(),
                 libraryRoot,
-                sp.GetRequiredService<ILibrarySettingsService>()));
+                sp.GetRequiredService<ILibrarySettingsService>(),
+                sp.GetRequiredService<OgmaLibrary.Application.Reader.IPdfRendererFactory>(),
+                sp.GetRequiredService<PdfWorkerClient>()));
 
         // Batch enrichment orchestrator.
         services.AddSingleton<IBatchEnrichmentOrchestrator, BatchEnrichmentOrchestrator>();

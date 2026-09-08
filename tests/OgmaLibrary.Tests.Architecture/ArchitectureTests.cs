@@ -90,6 +90,29 @@ public sealed class ArchitectureTests
         Assert.Contains("TryReadVerifiedHash", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Architecture_PdfOperations_EnterApprovedBoundaries()
+    {
+        string root = LocateRepositoryRoot();
+        string[] productionFiles =
+        [
+            Path.Combine(root, "src", "OgmaLibrary.Infrastructure", "Pdf", "PdfTableOfContentsService.cs"),
+            Path.Combine(root, "src", "OgmaLibrary.Infrastructure", "Ingestion", "MetadataExtractionService.cs"),
+            Path.Combine(root, "src", "OgmaLibrary.Infrastructure", "Metadata", "IsbnDetectionService.cs"),
+            Path.Combine(root, "src", "OgmaLibrary.Infrastructure", "Metadata", "PdfWriteBackService.cs"),
+        ];
+
+        foreach (string file in productionFiles)
+        {
+            string source = File.ReadAllText(file);
+            Assert.DoesNotContain("PdfDocument.Open", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("PdfReader.Open", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("PdfPigDocument.Open", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("using UglyToad.PdfPig", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("using PdfSharp", source, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>The Domain project must depend on no other project (strict isolation).</summary>
     [Fact]
     public void Architecture_DomainProject_HasNoOutwardDependencies()

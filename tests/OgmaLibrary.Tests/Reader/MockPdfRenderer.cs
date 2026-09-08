@@ -30,6 +30,10 @@ public sealed class MockPdfRenderer : IPdfRenderer
     public IReadOnlyDictionary<int, int> PageRotations { get; set; } =
         new Dictionary<int, int>();
 
+    /// <summary>Optional document page geometries for layout/transform tests.</summary>
+    public IReadOnlyDictionary<int, PdfPageGeometry> PageGeometries { get; set; } =
+        new Dictionary<int, PdfPageGeometry>();
+
     /// <summary>
     /// Creates a mock renderer with the given page count.
     /// </summary>
@@ -66,6 +70,15 @@ public sealed class MockPdfRenderer : IPdfRenderer
         return PageRotations.TryGetValue(pageIndex, out int rotation)
             ? ((rotation % 360) + 360) % 360
             : 0;
+    }
+
+    /// <inheritdoc />
+    public PdfPageGeometry GetPageGeometry(int pageIndex)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        return PageGeometries.TryGetValue(pageIndex, out PdfPageGeometry? geometry)
+            ? geometry
+            : PdfPageGeometry.Fallback(pageIndex, GetPageRotationDegrees(pageIndex));
     }
 
     /// <inheritdoc />

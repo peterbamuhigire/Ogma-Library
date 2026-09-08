@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Security.Cryptography;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pathing;
 
@@ -82,10 +83,21 @@ public sealed class PdfInputBroker : IPdfInputBroker
                 return Invalid(PdfInputValidationStatus.InvalidMagic, canonicalPath, info.Length);
             }
 
+            stream.Position = 0;
+            byte[] hash = await SHA256.HashDataAsync(stream, cancellationToken)
+                .ConfigureAwait(false);
+            FileInfo after = new(canonicalPath);
+            if (after.Length != info.Length || after.LastWriteTimeUtc != info.LastWriteTimeUtc)
+            {
+                return Invalid(PdfInputValidationStatus.ChangedDuringRead, canonicalPath, after.Length);
+            }
+
             return new PdfInputValidationResult(
                 PdfInputValidationStatus.Valid,
                 info.Length,
-                canonicalPath);
+                canonicalPath,
+                Convert.ToHexStringLower(hash),
+                info.LastWriteTimeUtc);
         }
         catch (UnauthorizedAccessException)
         {

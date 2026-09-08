@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Pathing;
 using SkiaSharp;
@@ -135,6 +136,16 @@ public sealed class PdfWorkerClient
                     request.Scale.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "--low-res",
                     request.IsLowResPreview ? "true" : "false",
+                    "--page-box",
+                    request.PageBox.ToString(),
+                    "--annotation-mode",
+                    request.AnnotationMode.ToString(),
+                    "--include-form-values",
+                    request.IncludeFormValues ? "true" : "false",
+                    "--optional-content",
+                    request.OptionalContentMode.ToString(),
+                    "--rotation",
+                    request.RotationDegrees?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "pdf",
                     "--output",
                     outputPath,
                 ],
@@ -192,6 +203,77 @@ public sealed class PdfWorkerClient
             ],
             password);
         return envelope.Payload ?? new TextLayer(pageIndex, [], ExtractionQuality.Empty);
+    }
+
+    /// <summary>
+    /// Applies accepted document-information fields inside the isolated worker and
+    /// copies the verified worker artifact to the caller-provided temporary path.
+    /// </summary>
+    /// <param name="filePath">The absolute source PDF path.</param>
+    /// <param name="outputPath">The absolute temporary output path.</param>
+    /// <param name="proposals">The user-accepted metadata fields.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task WriteMetadataAsync(
+        string filePath,
+        string outputPath,
+        IReadOnlyList<AcceptedFieldProposal> proposals,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        ArgumentNullException.ThrowIfNull(proposals);
+
+        string fullOutputPath = Path.GetFullPath(outputPath);
+        string? outputDirectory = Path.GetDirectoryName(fullOutputPath);
+        if (string.IsNullOrWhiteSpace(outputDirectory))
+        {
+            throw new ArgumentException("The output path must include a directory.", nameof(outputPath));
+        }
+
+        byte[] proposalBytes = JsonSerializer.SerializeToUtf8Bytes(proposals, JsonOptions);
+        if (proposalBytes.Length > 16 * 1024)
+        {
+            throw new ArgumentException("The metadata proposal payload is too large.", nameof(proposals));
+        }
+
+        string proposalBase64 = Convert.ToBase64String(proposalBytes);
+        using PdfWorkerSandbox sandbox = CreateSandbox();
+        string workerOutputPath = Path.Combine(sandbox.Path, "metadata.pdf");
+        await RunJsonAsync<AssetResponse>(
+                [
+                    "write-metadata",
+                    "--input",
+                    RequireAbsoluteFile(filePath),
+                    "--output",
+                    workerOutputPath,
+                    "--proposals",
+                    proposalBase64,
+                ],
+                password: null,
+                sandbox,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        (byte[] bytes, _) = await ReadVerifiedOutputAsync(
+                workerOutputPath,
+                sandbox.Path,
+                _options.MaxOutputBytes,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        FileStream output = new(
+            fullOutputPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 64 * 1024,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await using (output.ConfigureAwait(false))
+        {
+            await output.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            output.Flush(flushToDisk: true);
+        }
     }
 
     /// <summary>
@@ -422,9 +504,39 @@ public sealed class PdfWorkerClient
 
     private static string CopyInputToSandbox(string inputPath, string sandboxPath)
     {
+        FileInfo before = new(inputPath);
+        string beforeHash = ComputeFileHash(inputPath);
         string destination = Path.Combine(sandboxPath, "input.pdf");
         File.Copy(inputPath, destination, overwrite: false);
+
+        FileInfo after = new(inputPath);
+        string afterHash = ComputeFileHash(inputPath);
+        if (before.Length != after.Length ||
+            before.LastWriteTimeUtc != after.LastWriteTimeUtc ||
+            !string.Equals(beforeHash, afterHash, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new IOException("The PDF source changed while it was being copied into the worker sandbox.");
+        }
+
+        string copiedHash = ComputeFileHash(destination);
+        if (!string.Equals(afterHash, copiedHash, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new IOException("The worker sandbox copy did not match the PDF source fingerprint.");
+        }
+
         return destination;
+    }
+
+    private static string ComputeFileHash(string path)
+    {
+        using FileStream stream = new(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 64 * 1024,
+            options: FileOptions.SequentialScan);
+        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     private static async Task<(byte[] Bytes, PdfWorkerOutputManifest Manifest)> ReadVerifiedOutputAsync(
@@ -816,7 +928,12 @@ public sealed class PdfWorkerClient
                         request.HeightPx,
                         request.Scale,
                         request.IsLowResPreview,
-                        outputName),
+                        outputName,
+                        request.PageBox,
+                        request.AnnotationMode,
+                        request.IncludeFormValues,
+                        request.OptionalContentMode,
+                        request.RotationDegrees),
                     cancellationToken).ConfigureAwait(false);
                 string outputPath = Path.Combine(_sandbox.Path, outputName);
                 (byte[] bytes, _) = await ReadVerifiedOutputAsync(
@@ -840,6 +957,20 @@ public sealed class PdfWorkerClient
         /// <summary>Reads a page rotation through the persistent isolated worker.</summary>
         public int GetPageRotationDegrees(int pageIndex) =>
             SendSynchronously(new ServerRequest("rotation", pageIndex)).RotationDegrees;
+
+        /// <summary>Reads effective page geometry through the persistent worker.</summary>
+        public PdfPageGeometry GetPageGeometry(int pageIndex) =>
+            SendSynchronously(new ServerRequest("geometry", pageIndex)).PageGeometry
+            ?? PdfPageGeometry.Fallback(pageIndex);
+
+        /// <summary>Reads document information through the persistent worker.</summary>
+        public PdfDocumentMetadata ReadDocumentMetadata() =>
+            SendSynchronously(new ServerRequest("metadata", -1)).DocumentMetadata
+            ?? new PdfDocumentMetadata();
+
+        /// <summary>Reads sanitized outline entries through the persistent worker.</summary>
+        public IReadOnlyList<PdfOutlineEntry> ReadOutline() =>
+            SendSynchronously(new ServerRequest("outline", -1)).Outline ?? [];
 
         /// <summary>Extracts a page text layer through the persistent isolated worker.</summary>
         public TextLayer ExtractTextLayer(int pageIndex) =>
@@ -943,7 +1074,12 @@ public sealed class PdfWorkerClient
             int HeightPx = 0,
             double Scale = 1.0,
             bool IsLowResPreview = false,
-            string? OutputName = null);
+            string? OutputName = null,
+            PdfPageBox PageBox = PdfPageBox.CropBox,
+            PdfAnnotationRenderMode AnnotationMode = PdfAnnotationRenderMode.Exclude,
+            bool IncludeFormValues = false,
+            PdfOptionalContentMode OptionalContentMode = PdfOptionalContentMode.Default,
+            int? RotationDegrees = null);
 
         private sealed record ServerResponse(
             string Status,
@@ -953,7 +1089,10 @@ public sealed class PdfWorkerClient
             int RotationDegrees = 0,
             double PageWidthPoints = 595,
             double PageHeightPoints = 842,
-            TextLayer? TextLayer = null);
+            TextLayer? TextLayer = null,
+            PdfPageGeometry? PageGeometry = null,
+            PdfDocumentMetadata? DocumentMetadata = null,
+            IReadOnlyList<PdfOutlineEntry>? Outline = null);
     }
 }
 

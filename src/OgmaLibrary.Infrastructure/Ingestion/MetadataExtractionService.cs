@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
-using UglyToad.PdfPig;
+using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -16,15 +17,20 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
 {
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly IPdfRendererFactory _rendererFactory;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataExtractionService"/>.
     /// </summary>
     /// <param name="context">The catalogue DB context.</param>
-    internal MetadataExtractionService(CatalogueDbContext context)
+    /// <param name="rendererFactory">The PDF renderer factory used for metadata reads.</param>
+    internal MetadataExtractionService(
+        CatalogueDbContext context,
+        IPdfRendererFactory? rendererFactory = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         _context = context;
+        _rendererFactory = rendererFactory ?? new PdfiumAdapterFactory();
     }
 
     /// <summary>
@@ -40,6 +46,8 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(serviceProvider);
         _contextFactory = contextFactory;
+        _rendererFactory = serviceProvider.GetService<IPdfRendererFactory>()
+            ?? new PdfiumAdapterFactory();
     }
 
     /// <inheritdoc />
@@ -98,33 +106,33 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
         }
     }
 
-    private static List<(string FieldName, string Value)> ExtractFields(string filePath)
+    private List<(string FieldName, string Value)> ExtractFields(string filePath)
     {
         var result = new List<(string, string)>();
 
         try
         {
-            using var document = PdfDocument.Open(filePath, new ParsingOptions { UseLenientParsing = true });
-            var info = document.Information;
+            using IPdfRenderer renderer = _rendererFactory.Open(filePath);
+            PdfDocumentMetadata metadata = renderer.ReadDocumentMetadata();
 
-            if (!string.IsNullOrWhiteSpace(info.Title))
+            if (!string.IsNullOrWhiteSpace(metadata.Title))
             {
-                result.Add(("Title", info.Title.Trim()));
+                result.Add(("Title", metadata.Title.Trim()));
             }
 
-            if (!string.IsNullOrWhiteSpace(info.Author))
+            if (!string.IsNullOrWhiteSpace(metadata.Author))
             {
-                result.Add(("Author", info.Author.Trim()));
+                result.Add(("Author", metadata.Author.Trim()));
             }
 
-            if (!string.IsNullOrWhiteSpace(info.Subject))
+            if (!string.IsNullOrWhiteSpace(metadata.Subject))
             {
-                result.Add(("Subject", info.Subject.Trim()));
+                result.Add(("Subject", metadata.Subject.Trim()));
             }
 
-            if (!string.IsNullOrWhiteSpace(info.Creator))
+            if (!string.IsNullOrWhiteSpace(metadata.Creator))
             {
-                result.Add(("Creator", info.Creator.Trim()));
+                result.Add(("Creator", metadata.Creator.Trim()));
             }
         }
         catch (Exception)

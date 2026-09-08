@@ -1,7 +1,8 @@
 # Ogma Library PDF conformance and reader-quality programme
 
 Date: 2026-09-04
-Status: Baseline and plan; implementation has not started from this document.
+Status: Active implementation; the first P0 boundary slice is implemented and
+focused gates pass. Physical sandbox and release evidence remain open.
 Owner: Ogma engineering owner
 Review cadence: at every PDF-related increment, then at each release candidate
 
@@ -34,6 +35,7 @@ missing controls and cross-phase sequencing that the existing plan needs.
 - [Acceptance corpus and release gates](./15-acceptance-corpus-and-gates.md)
 - [Open decisions](./16-open-decisions.md)
 - [Prioritised implementation backlog](./17-implementation-backlog.md)
+- [Execution status and evidence](./18-execution-status.md)
 
 Phase briefs are in [`phases/`](./phases/):
 

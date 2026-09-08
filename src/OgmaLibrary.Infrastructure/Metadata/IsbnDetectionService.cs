@@ -1,7 +1,8 @@
 using System.Text.RegularExpressions;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
-using UglyToad.PdfPig;
+using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 
@@ -12,6 +13,14 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class IsbnDetectionService : IIsbnDetectionService
 {
+    private readonly IPdfRendererFactory _rendererFactory;
+
+    /// <summary>Initializes ISBN detection behind the configured PDF boundary.</summary>
+    public IsbnDetectionService(IPdfRendererFactory? rendererFactory = null)
+    {
+        _rendererFactory = rendererFactory ?? new PdfiumAdapterFactory();
+    }
+
     // Compiled once: matches ISBN-10 or ISBN-13 with optional hyphens/spaces.
     // Group 1 captures the raw ISBN string for normalization.
     private static readonly Regex IsbnRegex = new(
@@ -35,7 +44,7 @@ public sealed class IsbnDetectionService : IIsbnDetectionService
         return Task.Run(() => DetectCore(absoluteFilePath), cancellationToken);
     }
 
-    private static IsbnDetectionResult DetectCore(string filePath)
+    private IsbnDetectionResult DetectCore(string filePath)
     {
         // Collect candidates per source. Use a dict of source → first candidate found
         // (a file rarely has multiple valid ISBNs from the same source).
@@ -48,61 +57,30 @@ public sealed class IsbnDetectionService : IIsbnDetectionService
         // Sources 1–3 require opening the PDF
         try
         {
-            using var doc = PdfDocument.Open(
-                filePath,
-                new ParsingOptions { UseLenientParsing = true });
+            using IPdfRenderer renderer = _rendererFactory.Open(filePath);
+            PdfDocumentMetadata metadata = renderer.ReadDocumentMetadata();
 
             // Source 1: DocInfo (highest priority)
-            var info = doc.Information;
             string docInfoText = string.Join(" ",
-                new[] { info.Title, info.Subject, info.Keywords, info.Author }
+                new[] { metadata.Title, metadata.Subject, metadata.Keywords, metadata.Author }
                     .Where(s => !string.IsNullOrWhiteSpace(s)));
             AddFromText(docInfoText, IsbnSource.DocInfo, bySource);
 
             // Source 2: XMP via TryGetXmpMetadata
-            try
+            if (!string.IsNullOrWhiteSpace(metadata.XmpXml))
             {
-                if (doc.TryGetXmpMetadata(out var xmp) && xmp != null)
-                {
-                    try
-                    {
-                        var xdoc = xmp.GetXDocument();
-                        string xmpText = xdoc?.ToString() ?? string.Empty;
-                        if (!string.IsNullOrWhiteSpace(xmpText))
-                        {
-                            AddFromText(xmpText, IsbnSource.Xmp, bySource);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // XMP XML parse is best-effort; try raw bytes.
-                        try
-                        {
-                            ReadOnlySpan<byte> xmpBytesSpan = xmp.GetXmlBytes();
-                            string xmpStr = System.Text.Encoding.UTF8.GetString(xmpBytesSpan);
-                            AddFromText(xmpStr, IsbnSource.Xmp, bySource);
-                        }
-                        catch (Exception)
-                        {
-                            // Fully ignore XMP on failure.
-                        }
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // XMP parsing is best-effort; ignore failures.
+                AddFromText(metadata.XmpXml, IsbnSource.Xmp, bySource);
             }
 
             // Source 3: first 2 pages of text
-            int pagesToScan = Math.Min(2, doc.NumberOfPages);
+            int pagesToScan = Math.Min(2, renderer.PageCount);
             var firstPageText = new System.Text.StringBuilder();
             for (int i = 0; i < pagesToScan; i++)
             {
                 try
                 {
-                    var page = doc.GetPage(i + 1);
-                    firstPageText.Append(page.Text);
+                    TextLayer layer = renderer.ExtractTextLayer(i);
+                    firstPageText.AppendJoin(' ', layer.Words.Select(word => word.Text));
                     firstPageText.Append(' ');
                 }
                 catch (Exception)

@@ -54,6 +54,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private int _currentPageIndex;
     private string _pageNumberInput = "1";
     private int _pageRotationDegrees;
+    private double _pageWidthPoints = 595.0;
+    private double _pageHeightPoints = 842.0;
+    private bool _pageGeometryIsFallback = true;
     private int _pageCount;
     private ZoomMode _zoomMode = ZoomMode.FitWidth;
     private double _zoomPercent = 100.0;
@@ -233,6 +236,15 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             }
         }
     }
+
+    /// <summary>The effective unrotated PDF page width in points.</summary>
+    public double PageWidthPoints => _pageWidthPoints;
+
+    /// <summary>The effective unrotated PDF page height in points.</summary>
+    public double PageHeightPoints => _pageHeightPoints;
+
+    /// <summary>Whether the reader is using the bounded fallback geometry.</summary>
+    public bool IsPageGeometryFallback => _pageGeometryIsFallback;
 
     /// <summary>The active reader zoom percentage.</summary>
     public double ZoomPercent
@@ -656,10 +668,17 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     }
 
     private double BasePageWidthAfterRotation =>
-        PageRotationDegrees is 90 or 270 ? BasePageSurfaceHeight : BasePageSurfaceWidth;
+        _pageGeometryIsFallback
+            ? PageRotationDegrees is 90 or 270 ? BasePageSurfaceHeight : BasePageSurfaceWidth
+            : BasePageSurfaceWidth;
 
     private double BasePageHeightAfterRotation =>
-        PageRotationDegrees is 90 or 270 ? BasePageSurfaceWidth : BasePageSurfaceHeight;
+        _pageGeometryIsFallback
+            ? PageRotationDegrees is 90 or 270 ? BasePageSurfaceWidth : BasePageSurfaceHeight
+            : BasePageWidthAfterRotation *
+              (PageRotationDegrees is 90 or 270
+                  ? _pageWidthPoints / Math.Max(1.0, _pageHeightPoints)
+                  : _pageHeightPoints / Math.Max(1.0, _pageWidthPoints));
 
     private double FitWidthScale
     {
@@ -1676,10 +1695,38 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         PageCount = session.PageCount;
         CurrentPageIndex = session.CurrentPageIndex;
         PageRotationDegrees = session.PageRotationDegrees;
+        ApplyPageGeometry();
         ZoomMode = session.ZoomMode;
         ZoomPercent = session.ZoomPercent;
         IsOpen = true;
         RequestPageRender();
+    }
+
+    private void ApplyPageGeometry()
+    {
+        PdfPageGeometry geometry = PdfPageGeometry.Fallback(CurrentPageIndex, PageRotationDegrees);
+        try
+        {
+            if (_sessions.CurrentRenderer is { } renderer)
+            {
+                geometry = renderer.GetPageGeometry(CurrentPageIndex);
+            }
+        }
+        catch (Exception)
+        {
+            // Keep the safe fallback when an optional page dictionary cannot be read.
+        }
+
+        _pageWidthPoints = Math.Max(1.0, geometry.WidthPoints);
+        _pageHeightPoints = Math.Max(1.0, geometry.HeightPoints);
+        _pageGeometryIsFallback = geometry.IsFallback;
+        PageRotationDegrees = geometry.RotationDegrees;
+        OnPropertyChanged(nameof(PageWidthPoints));
+        OnPropertyChanged(nameof(PageHeightPoints));
+        OnPropertyChanged(nameof(IsPageGeometryFallback));
+        OnPropertyChanged(nameof(OverlayZoomFactor));
+        OnPropertyChanged(nameof(PageSurfaceWidth));
+        OnPropertyChanged(nameof(PageSurfaceHeight));
     }
 
     /// <summary>

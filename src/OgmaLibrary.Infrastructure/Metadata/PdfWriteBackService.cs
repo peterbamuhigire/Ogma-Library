@@ -4,13 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Pathing;
-using PdfSharp.Pdf.IO;
-using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
-using PdfPigParsingOptions = UglyToad.PdfPig.ParsingOptions;
+using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 
@@ -32,6 +31,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     private readonly ISidecarService _sidecarService;
     private readonly string _libraryRoot;
     private readonly ILibrarySettingsService? _settingsService;
+    private readonly IPdfRendererFactory _rendererFactory;
+    private readonly PdfWorkerClient _workerClient;
 
     /// <summary>
     /// Initializes a new instance of <see cref="PdfWriteBackService"/>.
@@ -43,7 +44,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         CatalogueDbContext context,
         ISidecarService sidecarService,
         string libraryRoot)
-        : this(context, sidecarService, libraryRoot, settingsService: null)
+        : this(context, sidecarService, libraryRoot, settingsService: null, rendererFactory: null, workerClient: null)
     {
     }
 
@@ -56,7 +57,9 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         CatalogueDbContext context,
         ISidecarService sidecarService,
         string libraryRoot,
-        ILibrarySettingsService? settingsService)
+        ILibrarySettingsService? settingsService,
+        IPdfRendererFactory? rendererFactory = null,
+        PdfWorkerClient? workerClient = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(sidecarService);
@@ -65,6 +68,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         _sidecarService = sidecarService;
         _libraryRoot = Path.GetFullPath(libraryRoot);
         _settingsService = settingsService;
+        _rendererFactory = rendererFactory ?? new PdfiumAdapterFactory();
+        _workerClient = workerClient ?? new PdfWorkerClient();
     }
 
     /// <summary>
@@ -74,7 +79,9 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         IDbContextFactory<CatalogueDbContext> contextFactory,
         ISidecarService sidecarService,
         string libraryRoot,
-        ILibrarySettingsService? settingsService)
+        ILibrarySettingsService? settingsService,
+        IPdfRendererFactory? rendererFactory = null,
+        PdfWorkerClient? workerClient = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(sidecarService);
@@ -83,6 +90,8 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         _sidecarService = sidecarService;
         _libraryRoot = Path.GetFullPath(libraryRoot);
         _settingsService = settingsService;
+        _rendererFactory = rendererFactory ?? new PdfiumAdapterFactory();
+        _workerClient = workerClient ?? new PdfWorkerClient();
     }
 
     /// <inheritdoc />
@@ -215,7 +224,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         return Task.Run<IReadOnlyList<FieldDiff>>(() => BuildDiffCore(absoluteFilePath, acceptedProposals), cancellationToken);
     }
 
-    private static List<FieldDiff> BuildDiffCore(
+    private List<FieldDiff> BuildDiffCore(
         string filePath,
         IReadOnlyList<AcceptedFieldProposal> proposals)
     {
@@ -236,13 +245,13 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         return diffs;
     }
 
-    private static Dictionary<string, string?> ReadDocInfo(string filePath)
+    private Dictionary<string, string?> ReadDocInfo(string filePath)
     {
         var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            using var doc = PdfPigDocument.Open(filePath, new PdfPigParsingOptions { UseLenientParsing = true });
-            var info = doc.Information;
+            using IPdfRenderer renderer = _rendererFactory.Open(filePath);
+            PdfDocumentMetadata info = renderer.ReadDocumentMetadata();
             map["Title"] = info.Title;
             map["Author"] = info.Author;
             map["Subject"] = info.Subject;
@@ -312,11 +321,16 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
 
             EnsureExclusiveFileAccess(originalPath);
 
-            // Write to temp file using PDFsharp.
-            await Task.Run(() => WriteToPdfSharp(originalPath, tempPath, acceptedProposals), cancellationToken)
+            // Mutate only inside the isolated worker; the parent receives a
+            // bounded artifact and promotes it after independent verification.
+            await _workerClient.WriteMetadataAsync(
+                    originalPath,
+                    tempPath,
+                    acceptedProposals,
+                    cancellationToken)
                 .ConfigureAwait(false);
 
-            // Verify: PdfPig must be able to open the temp file.
+            // Reopen the worker artifact through the reader boundary before promotion.
             await Task.Run(() => VerifyPdf(tempPath), cancellationToken).ConfigureAwait(false);
 
             // Same-directory overwrite promotion avoids a delete-then-move gap.
@@ -562,54 +576,13 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         }
     }
 
-    private static void WriteToPdfSharp(
-        string sourcePath,
-        string destPath,
-        IReadOnlyList<AcceptedFieldProposal> proposals)
+    private void VerifyPdf(string filePath)
     {
-        using var document = PdfSharp.Pdf.IO.PdfReader.Open(sourcePath, PdfDocumentOpenMode.Modify);
-        var info = document.Info;
-
-        foreach (AcceptedFieldProposal proposal in proposals)
+        using IPdfRenderer renderer = _rendererFactory.Open(filePath);
+        if (renderer.PageCount <= 0)
         {
-            switch (proposal.FieldName)
-            {
-                case "Title":
-                    info.Title = proposal.AcceptedValue ?? string.Empty;
-                    break;
-                case "Author":
-                    info.Author = proposal.AcceptedValue ?? string.Empty;
-                    break;
-                case "Subject":
-                    info.Subject = proposal.AcceptedValue ?? string.Empty;
-                    break;
-                case "Publisher":
-                    // PDFsharp stores publisher in Creator field as a convention.
-                    info.Creator = proposal.AcceptedValue ?? string.Empty;
-                    break;
-                case "Description":
-                    info.Subject = proposal.AcceptedValue ?? string.Empty;
-                    break;
-                default:
-                    // Custom keywords via Keywords property.
-                    if (proposal.FieldName == "Keywords")
-                    {
-                        info.Keywords = proposal.AcceptedValue ?? string.Empty;
-                    }
-
-                    break;
-            }
+            throw new InvalidDataException("The PDF worker output did not contain a readable page tree.");
         }
-
-        document.Save(destPath);
-    }
-
-    private static void VerifyPdf(string filePath)
-    {
-        // Use PdfPig to verify the file is a valid PDF.
-        using var doc = PdfPigDocument.Open(filePath, new PdfPigParsingOptions { UseLenientParsing = true });
-        // If we can read at least 0 pages, the file is valid.
-        _ = doc.NumberOfPages;
     }
 
     private static void EnsureExclusiveFileAccess(string filePath)

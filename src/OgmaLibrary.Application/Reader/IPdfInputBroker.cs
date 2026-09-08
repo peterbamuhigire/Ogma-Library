@@ -23,16 +23,24 @@ public enum PdfInputValidationStatus
 
     /// <summary>Input could not be read.</summary>
     Unreadable = 6,
+
+    /// <summary>The source changed while its content fingerprint was being captured.</summary>
+    ChangedDuringRead = 7,
 }
 
 /// <summary>Redacted validation result safe for UI and diagnostics.</summary>
 public sealed record PdfInputValidationResult(
     PdfInputValidationStatus Status,
     long SizeBytes,
-    string? CanonicalPath)
+    string? CanonicalPath,
+    string? ContentHash = null,
+    DateTimeOffset? LastWriteTimeUtc = null)
 {
     /// <summary>Whether the file may be handed to a PDF parser or worker.</summary>
     public bool IsValid => Status == PdfInputValidationStatus.Valid;
+
+    /// <summary>Whether the result carries a stable source identity for derived artifacts.</summary>
+    public bool HasStableIdentity => IsValid && !string.IsNullOrWhiteSpace(ContentHash);
 }
 
 /// <summary>Validates PDF inputs before any parser or renderer consumes them.</summary>

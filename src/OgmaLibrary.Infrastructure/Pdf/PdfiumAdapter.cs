@@ -4,6 +4,7 @@ using PDFtoImage.Exceptions;
 using SkiaSharp;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
+using UglyToad.PdfPig.Outline;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
@@ -87,7 +88,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
             : Math.Max(1, request.WidthPx);
 
         // Render on a thread pool thread — never block the UI thread (NFR-PROD-005).
-        byte[] pngBytes = await Task.Run(() => DoRender(pageIndex, targetWidth, scale, ct), ct)
+        byte[] pngBytes = await Task.Run(() => DoRender(pageIndex, targetWidth, scale, request, ct), ct)
             .ConfigureAwait(false);
 
         ct.ThrowIfCancellationRequested();
@@ -107,17 +108,121 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         try
         {
-            IReadOnlyList<PageInfo> pages = _pageInfo.Value;
-            if (pageIndex >= pages.Count)
-            {
-                return 0;
-            }
-
-            return pages[pageIndex].Rotation;
+            return GetPageGeometry(pageIndex).RotationDegrees;
         }
         catch
         {
             return 0;
+        }
+    }
+
+    /// <inheritdoc />
+    public PdfPageGeometry GetPageGeometry(int pageIndex)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
+
+        try
+        {
+            IReadOnlyList<PageInfo> pages = _pageInfo.Value;
+            if (pageIndex < pages.Count)
+            {
+                PageInfo page = pages[pageIndex];
+                return new PdfPageGeometry(
+                    pageIndex,
+                    Math.Max(1, page.Width),
+                    Math.Max(1, page.Height),
+                    page.Rotation);
+            }
+        }
+        catch
+        {
+            // A page-level geometry failure degrades to a bounded fallback so a
+            // malformed optional page attribute cannot blank the whole document.
+        }
+
+        return PdfPageGeometry.Fallback(pageIndex);
+    }
+
+    /// <inheritdoc />
+    public PdfDocumentMetadata ReadDocumentMetadata()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        using PdfDocument document = OpenPdfPigDocument();
+        var info = document.Information;
+        string? xmpXml = null;
+        try
+        {
+            if (document.TryGetXmpMetadata(out var xmp) && xmp is not null)
+            {
+                xmpXml = xmp.GetXDocument()?.ToString();
+                if (xmpXml?.Length > 1_000_000)
+                {
+                    xmpXml = xmpXml[..1_000_000];
+                }
+            }
+        }
+        catch
+        {
+            // XMP is optional and malformed XML must not hide Info metadata.
+        }
+
+        return new PdfDocumentMetadata(
+            NormalizeMetadata(info.Title),
+            NormalizeMetadata(info.Author),
+            NormalizeMetadata(info.Subject),
+            NormalizeMetadata(info.Keywords),
+            NormalizeMetadata(info.Creator),
+            xmpXml);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<PdfOutlineEntry> ReadOutline()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        try
+        {
+            using PdfDocument document = OpenPdfPigDocument();
+            if (!document.TryGetBookmarks(out Bookmarks? bookmarks) || bookmarks is null)
+            {
+                return [];
+            }
+
+            var entries = new List<PdfOutlineEntry>();
+            foreach (BookmarkNode node in bookmarks.GetNodes())
+            {
+                if (entries.Count >= 2048 || node is not DocumentBookmarkNode documentNode)
+                {
+                    break;
+                }
+
+                string title = NormalizeMetadata(node.Title) ?? string.Empty;
+                if (title.Length > 512)
+                {
+                    title = title[..512];
+                }
+
+                if (title.Length == 0 ||
+                    documentNode.PageNumber < 1 ||
+                    documentNode.PageNumber > document.NumberOfPages)
+                {
+                    continue;
+                }
+
+                entries.Add(new PdfOutlineEntry(
+                    title,
+                    documentNode.PageNumber - 1,
+                    Math.Clamp(node.Level, 0, 32)));
+            }
+
+            return entries;
+        }
+        catch
+        {
+            return [];
         }
     }
 
@@ -218,7 +323,12 @@ public sealed class PdfiumAdapter : IPdfRenderer
         _disposed = true;
     }
 
-    private byte[] DoRender(int pageIndex, int targetWidth, double scale, CancellationToken ct)
+    private byte[] DoRender(
+        int pageIndex,
+        int targetWidth,
+        double scale,
+        RenderRequest request,
+        CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -227,10 +337,16 @@ public sealed class PdfiumAdapter : IPdfRenderer
             Dpi: (int)(72 * scale),
             Width: targetWidth,
             Height: null,
-            WithAnnotations: false,
-            WithFormFill: false,
+            WithAnnotations: request.AnnotationMode == PdfAnnotationRenderMode.AppearanceOnly,
+            WithFormFill: request.IncludeFormValues,
             WithAspectRatio: true,
-            Rotation: PdfRotation.Rotate0,
+            Rotation: request.RotationDegrees switch
+            {
+                90 => PdfRotation.Rotate90,
+                180 => PdfRotation.Rotate180,
+                270 => PdfRotation.Rotate270,
+                _ => PdfRotation.Rotate0,
+            },
             AntiAliasing: PdfAntiAliasing.All,
             BackgroundColor: null,
             Bounds: null,
@@ -404,6 +520,17 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
     private string? CreatePasswordString() =>
         _password is null ? null : new string(_password);
+
+    private static string? NormalizeMetadata(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        string normalized = value.Normalize(System.Text.NormalizationForm.FormC).Trim();
+        return normalized.Length > 4096 ? normalized[..4096] : normalized;
+    }
 
     private readonly record struct PageInfo(double Width, double Height, int Rotation);
 }
