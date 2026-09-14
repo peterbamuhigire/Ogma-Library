@@ -28,3 +28,6 @@ Individual executable planning briefs are under [phases/](phases/). Evidence, or
 - Peter's explicit feedback on the distracting, uncloseable palette and the poor right panel is incorporated in findings F01/F02 and phases 02/07.
 
 Start implementation, when separately instructed, with phases 01 and 02. Preserve this baseline and compare the same journeys after each phase.
+
+Implementation has now begun under the separate authorization. The first
+tranche's commit/test record is [Kaizen remediation execution evidence](../../implementation/execution/evidence/kaizen-audit-execution-2026-09-14.md); unresolved platform and release gates remain explicitly open.
