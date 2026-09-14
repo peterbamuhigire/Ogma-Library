@@ -194,7 +194,9 @@
       <TextBlock Text="{Binding ErrorText}"
                  IsVisible="{Binding HasError}"
                  Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
-      <TextBlock Text="{Binding StatusText}" />
+      <TextBlock Text="{Binding StatusText}"
+                 AutomationProperties.LiveSetting="Polite"
+                 TextWrapping="Wrap" />
     </StackPanel>
   </Grid>
 </UserControl>
