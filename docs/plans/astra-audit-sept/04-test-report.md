@@ -14,10 +14,12 @@ versions, or platform configuration. Generated logs and TRX files are under
 
 | Gate | Exact command | Result |
 | --- | --- | --- |
-| Requirement accountability | `./scripts/Test-RequirementAccountability.ps1` | **FAIL, exit 1.** The required canonical SRS `docs/references/Ogma-Library_SRS_v2.1_2026-08-13.docx` is absent. No substitute was used. |
+| Requirement accountability (initial audit run) | `./scripts/Test-RequirementAccountability.ps1` | **FAIL, exit 1.** The old default canonical SRS path was absent. This was corrected in phase 01 to the supplied refreshed SRS. |
+| Requirement accountability (phase 01 rerun) | `./scripts/Test-RequirementAccountability.ps1` | **PASS, exit 0.** 101 FRs, 29 NFRs, 32 controls; all 162 IDs assigned in the roadmap matrix. |
 | Locked restore | `dotnet restore OgmaLibrary.sln --locked-mode` | **PASS, exit 0.** All 10 solution projects restored. |
 | Release build | `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | **PASS, exit 0.** 0 warnings, 0 errors; elapsed 1:29.88. |
-| Serial solution tests | `dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1` | **PASS, exit 0.** Architecture 42/42, core 955/955, UI 163/163: 1,160 passed, 0 failed. The full-run log also records 0 aborted/not-executed tests. |
+| Serial solution tests (initial audit run) | `dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1` | **PASS, exit 0.** Architecture 42/42, core 955/955, UI 163/163: 1,160 passed, 0 failed. |
+| Serial solution tests (post-tranche rerun) | `dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity minimal -m:1` | **PASS, exit 0.** Architecture 42/42, core 956/956, UI 163/163: 1,161 passed, 0 failed, 0 skipped. |
 | Architecture replay | `dotnet test tests/OgmaLibrary.Tests.Architecture/OgmaLibrary.Tests.Architecture.csproj --configuration Release --no-build --verbosity normal -m:1` | **PASS, exit 0.** 42/42; dedicated TRX saved. |
 | Core replay | `dotnet test tests/OgmaLibrary.Tests/OgmaLibrary.Tests.csproj --configuration Release --no-build --verbosity normal -m:1` | **PASS, exit 0.** 955/955; dedicated TRX saved; elapsed 9.097 minutes. |
 | Format verification | `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | **FAIL, exit 2.** Extensive existing whitespace/end-of-line diagnostics and import-order diagnostics were reported; no formatting changes were applied. |
@@ -103,8 +105,8 @@ or fix those native findings.
 Observed: restore, Release build, serial tests, analyzer verification, NuGet
 vulnerability query, and all shelf3d gates passed on the Windows host.
 
-Observed: requirement accountability and format verification failed with the
-exit codes above.
+Observed: the initial accountability invocation and format verification failed
+with the exit codes above; the phase 01 accountability rerun passes.
 
 Inference: the green automated suite demonstrates substantial bounded contract
 coverage but cannot establish Windows/macOS release readiness or visual/native
