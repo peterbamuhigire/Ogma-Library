@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$SrsPath = "docs/references/Ogma-Library_SRS_v2.1_2026-08-13.docx",
+    [string]$SrsPath = "docs/references/Ogma-Library_SRS_v2.1_2026-08-13_refreshed_2026-09-10.docx",
     [string]$RoadmapMatrixPath = "docs/plans/aug-39/appendices/01-requirement-phase-matrix.md"
 )
 

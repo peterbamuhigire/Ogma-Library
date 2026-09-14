@@ -18,7 +18,7 @@ COMPLETE — 2026-08-20
 
 # Major Code Changes
 
-- Added [`scripts/Test-RequirementAccountability.ps1`](../../../scripts/Test-RequirementAccountability.ps1)
+- Added [`scripts/Test-RequirementAccountability.ps1`](../../../scripts/Test-RequirementAccountability.ps1); its default input is the refreshed SRS `Ogma-Library_SRS_v2.1_2026-08-13_refreshed_2026-09-10.docx`, the canonical SRS available in this repository.
   and wired it into the Windows/macOS CI matrix.
 - Corrected [`CLAUDE.md`](../../../CLAUDE.md) so contributors use the 39-phase
   roadmap, current evidence rules and locked verification commands.
