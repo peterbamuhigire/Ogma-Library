@@ -56,7 +56,8 @@
               BorderThickness="1"
               CornerRadius="6"
               Padding="12"
-              Background="{DynamicResource ThemeSurfaceSubtleBrush}">
+              Background="{DynamicResource ThemeSurfaceSubtleBrush}"
+              AutomationProperties.LiveSetting="Polite">
         <Grid RowDefinitions="Auto,*" RowSpacing="10">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <svg:Svg Width="18"
@@ -67,6 +68,7 @@
           </StackPanel>
           <ListBox Grid.Row="1"
                    ItemsSource="{Binding Books}"
+                   SelectionMode="Single"
                    MinHeight="320"
                    AutomationProperties.Name="{Binding FallbackListLabel}">
             <ListBox.ItemTemplate>
