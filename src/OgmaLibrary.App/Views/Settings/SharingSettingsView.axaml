@@ -35,7 +35,8 @@
             <TextBlock Text="{Binding StatusText}"
                        FontSize="{DynamicResource Type.Size.Body}"
                        FontWeight="SemiBold"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                       AutomationProperties.LiveSetting="Polite" />
             <TextBlock Text="{Binding ClientCountText}"
                        FontSize="{DynamicResource Type.Size.Caption}"
                        Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
@@ -249,7 +250,8 @@
                      FontSize="{DynamicResource Type.Size.Caption}"
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                      TextWrapping="Wrap"
-                     VerticalAlignment="Center" />
+                     VerticalAlignment="Center"
+                     AutomationProperties.LiveSetting="Polite" />
         </Grid>
 
         <Grid Grid.Row="5"
