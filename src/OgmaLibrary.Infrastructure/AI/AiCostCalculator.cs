@@ -26,9 +26,15 @@ public sealed class AiCostCalculator : IAiCostCalculator
             return null;
         }
 
-        _prices.TryGetValue(Key(request.Provider, request.Model), out AiModelPrice? price);
-        decimal inputCost = CostForTokens(completion.PromptTokens, price?.InputUsdPerMillionTokens ?? 0m);
-        decimal outputCost = CostForTokens(completion.CompletionTokens, price?.OutputUsdPerMillionTokens ?? 0m);
+        if (!_prices.TryGetValue(Key(request.Provider, request.Model), out AiModelPrice? price))
+        {
+            // An unknown price is unknown—not free. Callers must keep the cost
+            // nullable so budgets and audit UI cannot report a false zero.
+            return null;
+        }
+
+        decimal inputCost = CostForTokens(completion.PromptTokens, price.InputUsdPerMillionTokens);
+        decimal outputCost = CostForTokens(completion.CompletionTokens, price.OutputUsdPerMillionTokens);
         return decimal.Round(inputCost + outputCost, 8, MidpointRounding.AwayFromZero);
     }
 

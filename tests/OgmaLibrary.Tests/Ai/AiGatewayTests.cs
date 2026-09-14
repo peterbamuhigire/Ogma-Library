@@ -8,6 +8,17 @@ namespace OgmaLibrary.Tests.Ai;
 public sealed class AiGatewayTests
 {
     [Fact]
+    public void AiCostCalculator_UnknownModelRemainsUnknown()
+    {
+        var calculator = new AiCostCalculator();
+        decimal? estimate = calculator.EstimateCostUsd(
+            CreateRequest(),
+            new AiCompletion("answer", 100, 50, 10));
+
+        Assert.Null(estimate);
+    }
+
+    [Fact]
     public async Task AiGateway_Tier0_ThrowsWithoutProviderCall()
     {
         var provider = new FakeProvider();
