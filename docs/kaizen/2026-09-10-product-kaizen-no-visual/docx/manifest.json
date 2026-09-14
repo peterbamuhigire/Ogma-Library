@@ -1,0 +1,175 @@
+{
+  "project": "Ogma-Library",
+  "cycle": "2026-09-10",
+  "source_count": 19,
+  "generated_count": 19,
+  "errors": [],
+  "visual_checks": "SKIPPED / NOT ASSESSED per requester",
+  "source_register": [
+    [
+      "DR-WCAG-22",
+      "WCAG 2.2",
+      "W3C Recommendation, 2024-12-12",
+      "https://www.w3.org/TR/WCAG22/",
+      "Retain; review 2026-10-10"
+    ],
+    [
+      "DR-ASVS-5",
+      "OWASP ASVS",
+      "stable v5.0.0, 2025-05",
+      "https://github.com/OWASP/ASVS/releases",
+      "Retain stable release; review 2026-10-10"
+    ],
+    [
+      "DR-SSDF-11",
+      "NIST SSDF",
+      "v1.1, 2022-02-03; updated 2022-11-29",
+      "https://www.nist.gov/publications/secure-software-development-framework-ssdf-version-11-recommendations-mitigating-risk",
+      "Retain; review 2027-09-10"
+    ],
+    [
+      "DR-OPENAPI-311",
+      "OpenAPI",
+      "3.1.1, 2024-10-24; newer official entries exist",
+      "https://spec.openapis.org/oas/v3.1.1.html",
+      "Pin per project compatibility; review 2026-10-10"
+    ],
+    [
+      "DR-PHP-SUPPORT",
+      "PHP supported versions",
+      "official support table accessed current page",
+      "https://www.php.net/supported-versions.php",
+      "Require supported branch; review 2026-10-10"
+    ],
+    [
+      "DR-MYSQL-LTS",
+      "MySQL releases",
+      "8.4 LTS line",
+      "https://dev.mysql.com/doc/refman/8.4/en/mysql-releases.html",
+      "Candidate target only after rehearsal; review 2026-10-10"
+    ],
+    [
+      "DR-MODEL",
+      "Official model releases",
+      "GPT-6 Astra and GPT-5.6 pages accessed 2026-09-10",
+      "https://openai.com/index/gpt-6-astra/",
+      "Retain pins; runtime/account catalogue NOT ASSESSED"
+    ]
+  ],
+  "outputs": [
+    {
+      "source": "Ogma-Library_ADRs_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_ADRs_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 573,
+      "tables": 3
+    },
+    {
+      "source": "Ogma-Library_AgileArtifacts_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_AgileArtifacts_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 469,
+      "tables": 7
+    },
+    {
+      "source": "Ogma-Library_AuditReport_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_AuditReport_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 38,
+      "tables": 4
+    },
+    {
+      "source": "Ogma-Library_BusinessCase_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_BusinessCase_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 39,
+      "tables": 5
+    },
+    {
+      "source": "Ogma-Library_DeploymentOps_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_DeploymentOps_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 213,
+      "tables": 7
+    },
+    {
+      "source": "Ogma-Library_DeterministicChecks_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_DeterministicChecks_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 39,
+      "tables": 12
+    },
+    {
+      "source": "Ogma-Library_DevelopmentStandards_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_DevelopmentStandards_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 180,
+      "tables": 5
+    },
+    {
+      "source": "Ogma-Library_DPIA_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_DPIA_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 104,
+      "tables": 8
+    },
+    {
+      "source": "Ogma-Library_HLD_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_HLD_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 350,
+      "tables": 13
+    },
+    {
+      "source": "Ogma-Library_KaizenOverhaul_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_KaizenOverhaul_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 65,
+      "tables": 5
+    },
+    {
+      "source": "Ogma-Library_PRD_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_PRD_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 243,
+      "tables": 28
+    },
+    {
+      "source": "Ogma-Library_PublicWebsiteSpec_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_PublicWebsiteSpec_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 36,
+      "tables": 4
+    },
+    {
+      "source": "Ogma-Library_RiskRegister_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_RiskRegister_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 39,
+      "tables": 3
+    },
+    {
+      "source": "Ogma-Library_SRS_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_SRS_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 623,
+      "tables": 10
+    },
+    {
+      "source": "Ogma-Library_StakeholderAnalysis_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_StakeholderAnalysis_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 90,
+      "tables": 12
+    },
+    {
+      "source": "Ogma-Library_TestCompletionReport_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_TestCompletionReport_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 35,
+      "tables": 3
+    },
+    {
+      "source": "Ogma-Library_TestStrategy_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_TestStrategy_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 242,
+      "tables": 14
+    },
+    {
+      "source": "Ogma-Library_TraceabilityMatrix_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_TraceabilityMatrix_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 40,
+      "tables": 7
+    },
+    {
+      "source": "Ogma-Library_UserGuide_v2.1_2026-08-13.docx",
+      "output": "Ogma-Library_UserGuide_v2.1_2026-08-13_refreshed_2026-09-10.docx",
+      "paragraphs": 239,
+      "tables": 10
+    }
+  ]
+}
