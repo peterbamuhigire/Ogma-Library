@@ -118,7 +118,7 @@
                   Padding="6"
                   AutomationProperties.Name="{Binding SidebarToggleLabel}"
                   Click="SidebarToggle_Click">
-            <TextBlock Text="☰" FontSize="18" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <TextBlock Text="{Binding SidebarToggleLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
           <Button Grid.Column="1"
@@ -147,7 +147,7 @@
                     Padding="8,4"
                     AutomationProperties.Name="{Binding GridViewLabel}"
                     Click="GridViewButton_Click">
-              <TextBlock Text="⊞" FontSize="16" Foreground="{DynamicResource Brush.Accent.Oak}" />
+              <TextBlock Text="{Binding GridViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Accent.Oak}" />
             </Button>
 
             <Button Background="Transparent"
@@ -155,7 +155,7 @@
                     Padding="8,4"
                     AutomationProperties.Name="{Binding ListViewLabel}"
                     Click="ListViewButton_Click">
-              <TextBlock Text="☰" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock Text="{Binding ListViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
             </Button>
 
             <Button Background="Transparent"
@@ -163,7 +163,7 @@
                     Padding="8,4"
                     AutomationProperties.Name="{Binding DirectoryViewLabel}"
                     Click="DirectoryViewButton_Click">
-              <TextBlock Text="📁" FontSize="16" />
+              <TextBlock Text="{Binding DirectoryViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" />
             </Button>
 
             <Button Background="Transparent"
@@ -173,7 +173,7 @@
                     ToolTip.Tip="{Binding Shelf3DViewLabel}"
                     IsEnabled="{Binding IsShelf3DAvailable}"
                     Click="Bookshelf3DButton_Click">
-              <TextBlock Text="🗂" FontSize="16" Opacity="0.4" />
+              <TextBlock Text="{Binding Shelf3DViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Opacity="0.7" />
             </Button>
 
           </StackPanel>
@@ -270,7 +270,7 @@
                   Padding="8,4"
                   AutomationProperties.Name="{Binding FilterLabel}"
                   Click="FilterToggle_Click">
-            <TextBlock Text="⚗" FontSize="16" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <TextBlock Text="{Binding FilterLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           </Button>
 
           <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="4">
