@@ -687,7 +687,7 @@
     <cat:BookDetailView Grid.Row="0"
                         Grid.Column="2"
                         DataContext="{Binding BookDetail}"
-                        IsVisible="{Binding BookDetail.IsVisible}"
+                        IsVisible="{Binding IsVisible}"
                         x:CompileBindings="False" />
 
     <Border Grid.Row="1"

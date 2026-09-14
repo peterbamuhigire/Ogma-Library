@@ -20,7 +20,6 @@
     <!-- The palette is hosted at window level so it remains available across
          catalogue, reader, advisor, and classroom routes. -->
     <Border IsVisible="{Binding MainShell.IsCommandPaletteOpen}"
-            DataContext="{Binding MainShell}"
             x:CompileBindings="False"
             Width="520"
             MaxHeight="520"
@@ -32,19 +31,29 @@
             BorderBrush="{DynamicResource Brush.Focus}"
             BorderThickness="2"
             CornerRadius="{DynamicResource Radius.L}"
-            AutomationProperties.Name="{Binding CommandPaletteTitle}">
+            AutomationProperties.Name="{Binding MainShell.CommandPaletteTitle}">
       <StackPanel Spacing="8">
-        <TextBlock Text="{Binding CommandPaletteTitle}"
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                   Text="{Binding MainShell.CommandPaletteTitle}"
                    FontSize="{DynamicResource Type.Size.Subtitle}"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <Button Grid.Column="1"
+                  Content="×"
+                  MinWidth="36"
+                  MinHeight="36"
+                  Padding="0"
+                  AutomationProperties.Name="Close command palette"
+                  Click="CommandPaletteCloseButton_Click" />
+        </Grid>
         <TextBox x:Name="CommandPaletteBox"
-                 Text="{Binding CommandPaletteQuery, Mode=TwoWay}"
-                 Watermark="{Binding CommandPaletteWatermark}"
-                 AutomationProperties.Name="{Binding CommandPaletteWatermark}"
+                 Text="{Binding MainShell.CommandPaletteQuery, Mode=TwoWay}"
+                 Watermark="{Binding MainShell.CommandPaletteWatermark}"
+                 AutomationProperties.Name="{Binding MainShell.CommandPaletteWatermark}"
                  KeyDown="CommandPaletteBox_KeyDown" />
         <ScrollViewer MaxHeight="400">
-          <ItemsControl ItemsSource="{Binding CommandPaletteItems}">
+          <ItemsControl ItemsSource="{Binding MainShell.CommandPaletteItems}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Button HorizontalContentAlignment="Stretch"

@@ -77,6 +77,15 @@ public sealed partial class DesktopShellWindow : Window
         }
     }
 
+    private void CommandPaletteCloseButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is StartupShellViewModel { MainShell: { } shell })
+        {
+            shell.CloseCommandPalette();
+            e.Handled = true;
+        }
+    }
+
     private void CommandPaletteBox_KeyDown(object? sender, KeyEventArgs e)
     {
         if (DataContext is not StartupShellViewModel { MainShell: { } shell })
