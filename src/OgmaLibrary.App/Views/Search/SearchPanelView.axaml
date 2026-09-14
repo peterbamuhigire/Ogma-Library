@@ -76,7 +76,8 @@
                AutomationProperties.Name="{Binding StatusText}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:SearchResultItem">
-            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4"
+                  AutomationProperties.Name="{Binding Title}">
               <svg:Svg Grid.RowSpan="4"
                        Width="18"
                        Height="18"
