@@ -78,7 +78,8 @@ public partial class CatalogueShellView : UserControl
             return;
         }
 
-        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Key is not (Key.F or Key.K))
+        if (!(e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) ||
+            e.Key is not (Key.F or Key.K))
         {
             return;
         }

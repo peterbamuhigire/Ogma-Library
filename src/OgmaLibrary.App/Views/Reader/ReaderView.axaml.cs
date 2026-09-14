@@ -688,7 +688,7 @@ public partial class ReaderView : UserControl
             }
         }
 
-        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        if (!(e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
         {
             return;
         }

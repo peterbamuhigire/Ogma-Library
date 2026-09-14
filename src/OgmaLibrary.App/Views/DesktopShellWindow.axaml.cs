@@ -113,7 +113,7 @@ public sealed partial class DesktopShellWindow : Window
             e.Handled = true;
         }
         else if (e.Key == Key.P &&
-                 e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
+                 (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
                  e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
             shell.OpenCommandPalette();
