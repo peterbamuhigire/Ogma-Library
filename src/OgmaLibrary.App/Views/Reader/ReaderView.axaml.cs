@@ -122,6 +122,14 @@ public partial class ReaderView : UserControl
         }
     }
 
+    private void RetryRenderButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ReaderViewModel vm)
+        {
+            vm.RetryRender();
+        }
+    }
+
     private async void LastButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)

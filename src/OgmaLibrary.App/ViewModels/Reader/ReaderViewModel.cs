@@ -87,6 +87,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private double _selectionStartY;
     private Bitmap? _pageImage;
     private CancellationTokenSource? _renderCts;
+    private bool _hasRenderError;
 
     /// <summary>Creates a new reader view model.</summary>
     public ReaderViewModel(
@@ -318,6 +319,23 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>True when a rendered page bitmap is available for display.</summary>
     public bool HasPageImage => _pageImage is not null;
+
+    /// <summary>True when the current page could not be rendered.</summary>
+    public bool HasRenderError => _hasRenderError;
+
+    /// <summary>Actionable, localized render failure text.</summary>
+    public string RenderErrorText => _localization["Reader.RenderFailed"];
+
+    /// <summary>Localized retry action for the current page.</summary>
+    public string RetryRenderText => _localization["Reader.RetryRender"];
+
+    /// <summary>Retries rendering the current page after a transient failure.</summary>
+    public void RetryRender()
+    {
+        _hasRenderError = false;
+        OnPropertyChanged(nameof(HasRenderError));
+        RequestPageRender();
+    }
 
     /// <summary>True while opening or refreshing reader-side data.</summary>
     public bool IsBusy
@@ -1747,6 +1765,12 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (_hasRenderError)
+        {
+            _hasRenderError = false;
+            OnPropertyChanged(nameof(HasRenderError));
+        }
+
         var cts = new CancellationTokenSource();
         _renderCts = cts;
 
@@ -1817,7 +1841,12 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 #pragma warning disable CA1031 // A failed render must not crash the reader; keep the placeholder.
         catch (Exception)
         {
-            // Leave PageImage unchanged so the page-number placeholder remains visible.
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _hasRenderError = true;
+                PageImage = null;
+                OnPropertyChanged(nameof(HasRenderError));
+            });
         }
 #pragma warning restore CA1031
     }

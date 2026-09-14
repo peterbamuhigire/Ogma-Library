@@ -294,6 +294,21 @@
                      FontSize="{DynamicResource Type.Size.Display}"
                      Foreground="{DynamicResource Brush.Surface.OnParchment}" />
 
+          <StackPanel Grid.Row="0"
+                      IsVisible="{Binding HasRenderError}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Spacing="8">
+            <TextBlock Text="{Binding RenderErrorText}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <Button Content="{Binding RetryRenderText}"
+                    HorizontalAlignment="Center"
+                    AutomationProperties.Name="{Binding RetryRenderText}"
+                    Click="RetryRenderButton_Click" />
+          </StackPanel>
+
           <ItemsControl Grid.Row="0"
                         ItemsSource="{Binding AnnotationOverlays}"
                         Width="{Binding PageSurfaceWidth}"
