@@ -34,6 +34,7 @@
                 BorderThickness="1"
                 Cursor="Hand"
                 AutomationProperties.Name="{Binding Title}"
+                AutomationProperties.HelpText="{Binding PrimaryAuthor}"
                 ToolTip.Tip="{Binding Title}"
                 PointerPressed="BookCard_PointerPressed">
           <Border.Styles>
