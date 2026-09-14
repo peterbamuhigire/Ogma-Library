@@ -40,7 +40,7 @@ public sealed class ScanProgressTests
     [AvaloniaFact]
     public void MainWindow_AfterScan_ShowsScannedCount()
     {
-        // Arrange: create a fake progress service that reports 3 books scanned.
+        // Arrange: create a fake progress service that reports 3 source files scanned.
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("en");
 
@@ -63,6 +63,7 @@ public sealed class ScanProgressTests
         // Assert: status text shows scanned count.
         string statusText = viewModel.StatusText;
         Assert.Contains("3", statusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("files", statusText, StringComparison.OrdinalIgnoreCase);
 
         // Capture screenshot.
         var frame = window.CaptureRenderedFrame();

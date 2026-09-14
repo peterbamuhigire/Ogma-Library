@@ -258,7 +258,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
             "MainWindow.Action.ChooseFolder" => "Choose library folder",
             "MainWindow.Status.Ready" => "Ready — choose a library folder to begin",
             "MainWindow.Status.Skeleton" => "Skeleton build — Phase 02",
-            "Scan.Status.Scanned" => "Scanned {0} books",
+            "Scan.Status.Scanned" => "Scanned {0} files",
             "Scan.Phase.Idle" => "Ready",
             "Scan.Phase.Discovering" => "Discovering files…",
             "Scan.Phase.Processing" => "Processing…",
