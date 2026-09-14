@@ -1,0 +1,1269 @@
+﻿[
+    {
+        "Name":  "",
+        "Type":  "ControlType.Custom",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "268,291,860,560"
+    },
+    {
+        "Name":  "Collections",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "280,301,195,19"
+    },
+    {
+        "Name":  "New collection name",
+        "Type":  "ControlType.Edit",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "280,326,195,36"
+    },
+    {
+        "Name":  "Create",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "280,368,68,36"
+    },
+    {
+        "Name":  "Create",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "293,377,42,18"
+    },
+    {
+        "Name":  "Delete",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "353,368,67,36"
+    },
+    {
+        "Name":  "Delete",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "366,377,41,18"
+    },
+    {
+        "Name":  "Rename",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "425,368,78,36"
+    },
+    {
+        "Name":  "Rename",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "438,377,52,18"
+    },
+    {
+        "Name":  "Collections",
+        "Type":  "ControlType.List",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "268,414,219,411"
+    },
+    {
+        "Name":  "Toggle sidebar",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "500,299,29,36"
+    },
+    {
+        "Name":  "☰",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "506,305,17,24"
+    },
+    {
+        "Name":  "Library",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "537,299,57,36"
+    },
+    {
+        "Name":  "Library",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "548,305,35,24"
+    },
+    {
+        "Name":  "Grid view",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "606,299,29,36"
+    },
+    {
+        "Name":  "⊞",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "614,303,13,28"
+    },
+    {
+        "Name":  "List view",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "637,299,31,36"
+    },
+    {
+        "Name":  "☰",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "645,303,15,28"
+    },
+    {
+        "Name":  "Directory view",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "670,299,32,36"
+    },
+    {
+        "Name":  "📁",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "678,303,16,28"
+    },
+    {
+        "Name":  "3D shelf view",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "704,299,32,36"
+    },
+    {
+        "Name":  "🗂",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "712,303,16,28"
+    },
+    {
+        "Name":  "Search",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "614,299,80,36"
+    },
+    {
+        "Name":  "Search",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "644,303,42,28"
+    },
+    {
+        "Name":  "AI Smart Search",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "694,299,135,36"
+    },
+    {
+        "Name":  "AI Smart Search",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "724,303,97,28"
+    },
+    {
+        "Name":  "Advisor",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1450,299,58,36"
+    },
+    {
+        "Name":  "Advisor",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1460,304,38,26"
+    },
+    {
+        "Name":  "Reading plan",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1516,299,88,36"
+    },
+    {
+        "Name":  "Reading plan",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1527,305,66,24"
+    },
+    {
+        "Name":  "Index Manager",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "829,299,126,36"
+    },
+    {
+        "Name":  "Index Manager",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "859,303,88,28"
+    },
+    {
+        "Name":  "Split view",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "955,299,25,36"
+    },
+    {
+        "Name":  "||",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "963,303,9,28"
+    },
+    {
+        "Name":  "Filter",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "980,299,28,36"
+    },
+    {
+        "Name":  "⚗",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "988,303,12,28"
+    },
+    {
+        "Name":  "Sharing",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1008,299,55,36"
+    },
+    {
+        "Name":  "Sharing",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1016,303,39,28"
+    },
+    {
+        "Name":  "Relocation reviews",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1067,299,109,36"
+    },
+    {
+        "Name":  "Relocation reviews",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1075,303,93,28"
+    },
+    {
+        "Name":  "Choose library folder",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1184,299,127,36"
+    },
+    {
+        "Name":  "Choose library folder",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1195,305,105,24"
+    },
+    {
+        "Name":  "Open PDF",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1319,299,72,36"
+    },
+    {
+        "Name":  "Open PDF",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1330,305,50,24"
+    },
+    {
+        "Name":  "2 books",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1399,311,39,13"
+    },
+    {
+        "Name":  "Back to Library",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "500,352,102,36"
+    },
+    {
+        "Name":  "Back to Library",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "513,359,76,22"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Custom",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "488,397,320,428"
+    },
+    {
+        "Name":  "Reader",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "502,415,52,19"
+    },
+    {
+        "Name":  "Page 1 of 1",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Previous page",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "574,407,130,36"
+    },
+    {
+        "Name":  "\u003c",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "587,414,8,22"
+    },
+    {
+        "Name":  "Previous page",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "601,414,90,22"
+    },
+    {
+        "Name":  "Next page",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "710,407,106,36"
+    },
+    {
+        "Name":  "Next page",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "723,414,66,22"
+    },
+    {
+        "Name":  "\u003e",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "795,414,8,22"
+    },
+    {
+        "Name":  "Import reader state",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "826,407,144,36"
+    },
+    {
+        "Name":  "Import reader state",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "837,413,122,24"
+    },
+    {
+        "Name":  "Export reader state",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "976,407,144,36"
+    },
+    {
+        "Name":  "Export reader state",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "987,413,122,24"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.List",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1152,411,156,28"
+    },
+    {
+        "Name":  "Layer color (#FFCC66), selected",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1152,411,28,28"
+    },
+    {
+        "Name":  "*",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1164,419,4,12"
+    },
+    {
+        "Name":  "Choose highlight color (#FFCC66)",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1184,411,28,28"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Choose highlight color (#88AA77)",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1216,411,28,28"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Choose highlight color (#C7795A)",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1248,411,28,28"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Choose highlight color (#8E5A8A)",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1280,411,28,28"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Highlight",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1314,407,107,36"
+    },
+    {
+        "Name":  "Highlight",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1349,414,59,22"
+    },
+    {
+        "Name":  "Add note",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1427,407,106,36"
+    },
+    {
+        "Name":  "Add note",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1462,414,58,22"
+    },
+    {
+        "Name":  "Add bookmark",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1539,407,141,36"
+    },
+    {
+        "Name":  "Add bookmark",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1574,414,93,22"
+    },
+    {
+        "Name":  "Capture citation",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1686,407,149,36"
+    },
+    {
+        "Name":  "Capture citation",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1721,414,101,22"
+    },
+    {
+        "Name":  "First page",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "498,460,33,36"
+    },
+    {
+        "Name":  "|\u003c",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "509,466,11,24"
+    },
+    {
+        "Name":  "Previous page",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "537,460,30,36"
+    },
+    {
+        "Name":  "\u003c",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "548,466,8,24"
+    },
+    {
+        "Name":  "Jump to page",
+        "Type":  "ControlType.Edit",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "573,460,64,36"
+    },
+    {
+        "Name":  "/",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "643,470,5,17"
+    },
+    {
+        "Name":  "1",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "654,470,34,17"
+    },
+    {
+        "Name":  "Next page",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "694,460,30,36"
+    },
+    {
+        "Name":  "\u003e",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "705,466,8,24"
+    },
+    {
+        "Name":  "Last page",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "730,460,33,36"
+    },
+    {
+        "Name":  "\u003e|",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "741,466,11,24"
+    },
+    {
+        "Name":  "Zoom out",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "788,460,31,36"
+    },
+    {
+        "Name":  "−",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "799,466,9,24"
+    },
+    {
+        "Name":  "100%",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,470,52,17"
+    },
+    {
+        "Name":  "Zoom in",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "883,460,31,36"
+    },
+    {
+        "Name":  "+",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "894,466,9,24"
+    },
+    {
+        "Name":  "Fit width",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "920,460,36,36"
+    },
+    {
+        "Name":  "↔",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "931,466,14,24"
+    },
+    {
+        "Name":  "Fit page",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "962,460,38,36"
+    },
+    {
+        "Name":  "⛶",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "974,467,14,22"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Pane",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Image",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "509,539,718,928"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.List",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "508,523,720,960"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.ScrollBar",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "480,809,16,16"
+    },
+    {
+        "Name":  "Column left",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "480,809,16,16"
+    },
+    {
+        "Name":  "Column right",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "496,809,16,16"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.ScrollBar",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "488,503,16,306"
+    },
+    {
+        "Name":  "Line up",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "488,503,16,16"
+    },
+    {
+        "Name":  "Page up",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Page down",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "488,607,16,186"
+    },
+    {
+        "Name":  "Position",
+        "Type":  "ControlType.Thumb",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "500,519,2,89"
+    },
+    {
+        "Name":  "Line down",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "488,793,16,16"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Tab",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "489,503,319,322"
+    },
+    {
+        "Name":  "Annotations",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "489,503,176,48"
+    },
+    {
+        "Name":  "Annotations",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "523,513,130,29"
+    },
+    {
+        "Name":  "Bookmarks",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "489,551,168,48"
+    },
+    {
+        "Name":  "Bookmarks",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "523,561,122,29"
+    },
+    {
+        "Name":  "Annotation layers",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "489,599,236,48"
+    },
+    {
+        "Name":  "Annotation layers",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "523,609,190,29"
+    },
+    {
+        "Name":  "Reading memory",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "489,647,231,48"
+    },
+    {
+        "Name":  "Reading memory",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "523,657,185,29"
+    },
+    {
+        "Name":  "Annotations",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "513,709,271,17"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.List",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "513,736,271,77"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Custom",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "808,291,320,534"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,311,267,19"
+    },
+    {
+        "Name":  "Close",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1092,303,24,36"
+    },
+    {
+        "Name":  "✕",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1098,309,12,24"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Pane",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "809,347,319,418"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Custom",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,347,287,180"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,543,287,17"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,564,287,13"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Tab",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,593,287,272"
+    },
+    {
+        "Name":  "File",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,593,64,48"
+    },
+    {
+        "Name":  "Bibliographic",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "889,593,167,48"
+    },
+    {
+        "Name":  "Reading",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,641,114,48"
+    },
+    {
+        "Name":  "Enrichment",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "939,641,147,48"
+    },
+    {
+        "Name":  "AI",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,689,47,48"
+    },
+    {
+        "Name":  "Contents",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "872,689,121,48"
+    },
+    {
+        "Name":  "Provenance",
+        "Type":  "ControlType.TabItem",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "825,737,152,48"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "837,795,263,13"
+    },
+    {
+        "Name":  "Size:  bytes",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "837,814,263,13"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "837,833,263,13"
+    },
+    {
+        "Name":  "File unavailable — metadata remains available",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "837,852,263,13"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.ScrollBar",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1112,347,16,418"
+    },
+    {
+        "Name":  "Line up",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1112,347,16,16"
+    },
+    {
+        "Name":  "Page up",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Page down",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1112,665,16,84"
+    },
+    {
+        "Name":  "Position",
+        "Type":  "ControlType.Thumb",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1124,363,2,303"
+    },
+    {
+        "Name":  "Line down",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "1112,749,16,16"
+    },
+    {
+        "Name":  "Read",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "849,773,67,36"
+    },
+    {
+        "Name":  "Read",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "866,782,33,18"
+    },
+    {
+        "Name":  "Enrich",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "924,773,74,36"
+    },
+    {
+        "Name":  "Enrich",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "941,782,40,18"
+    },
+    {
+        "Name":  "Run OCR",
+        "Type":  "ControlType.Button",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "1006,773,83,36"
+    },
+    {
+        "Name":  "Run OCR",
+        "Type":  "ControlType.Text",
+        "Enabled":  false,
+        "Offscreen":  false,
+        "Bounds":  "1019,782,57,18"
+    },
+    {
+        "Name":  "Scanned 8 books",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "280,832,836,13"
+    },
+    {
+        "Name":  "Command palette",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,377,492,19"
+    },
+    {
+        "Name":  "Search commands",
+        "Type":  "ControlType.Edit",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,404,492,36"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Pane",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,448,492,252"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.List",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,448,492,252"
+    },
+    {
+        "Name":  "Return to library",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,448,150,36"
+    },
+    {
+        "Name":  "Return to library",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,457,103,18"
+    },
+    {
+        "Name":  "L",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "582,457,9,18"
+    },
+    {
+        "Name":  "Open search",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,484,157,36"
+    },
+    {
+        "Name":  "Open search",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,493,80,18"
+    },
+    {
+        "Name":  "Ctrl+F",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "559,493,39,18"
+    },
+    {
+        "Name":  "Open split reader",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,520,148,36"
+    },
+    {
+        "Name":  "Open split reader",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,529,110,18"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Open advisor",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,556,121,36"
+    },
+    {
+        "Name":  "Open advisor",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,565,83,18"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Open reading plan",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,592,155,36"
+    },
+    {
+        "Name":  "Open reading plan",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,601,117,18"
+    },
+    {
+        "Name":  "",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "Empty"
+    },
+    {
+        "Name":  "Cycle theme",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,628,147,36"
+    },
+    {
+        "Name":  "Cycle theme",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,637,79,18"
+    },
+    {
+        "Name":  "Dark",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "558,637,30,18"
+    },
+    {
+        "Name":  "Toggle density",
+        "Type":  "ControlType.Button",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "452,664,210,36"
+    },
+    {
+        "Name":  "Toggle density",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "463,673,93,18"
+    },
+    {
+        "Name":  "Comfortable",
+        "Type":  "ControlType.Text",
+        "Enabled":  true,
+        "Offscreen":  false,
+        "Bounds":  "572,673,79,18"
+    }
+]
