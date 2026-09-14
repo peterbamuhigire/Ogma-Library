@@ -1177,10 +1177,10 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         {
             UpdateOnUiThread(() =>
             {
-                WriteBackStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.WriteBack.FailedFormat"],
-                    ex.Message);
+                // Never surface exception text here: it may contain a private source path
+                // or provider detail. Diagnostics remain available through the redacted
+                // application diagnostics channel.
+                WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Failed"];
                 IsPreparingWriteBack = false;
             });
         }
