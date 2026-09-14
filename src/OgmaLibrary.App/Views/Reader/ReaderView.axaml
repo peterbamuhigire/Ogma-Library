@@ -414,7 +414,8 @@
                      IsVisible="{Binding HasStatusMessage}"
                      Margin="16"
                      FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Accent.Plum}" />
+                     Foreground="{DynamicResource Brush.Accent.Plum}"
+                     AutomationProperties.LiveSetting="Polite" />
 
           <Border Grid.RowSpan="2"
                   Width="420"
