@@ -273,6 +273,12 @@ public sealed partial class DesktopShellWindow : Window
             shell.IsShortcutSheetOpen = false;
             e.Handled = true;
         }
+        else if (e.Key == Key.G && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt))
+        {
+            // Hidden QA command (Sept-23 Phase 09): the living component gallery.
+            Dev.ComponentGallery.Show(this, shell.Localization);
+            e.Handled = true;
+        }
         else if (shell.TryExecuteGesture(e.Key, e.KeyModifiers, this))
         {
             // Gestures pressed outside the library surface (for example with the palette open).

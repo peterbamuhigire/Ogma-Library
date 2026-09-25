@@ -494,7 +494,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.Divider}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
-    <Setter Property="Padding" Value="{DynamicResource Spacing.M}" />
+    <Setter Property="Padding" Value="16" />
     <Setter Property="BoxShadow" Value="{DynamicResource Elevation.1}" />
   </Style>
 

@@ -513,6 +513,9 @@ public sealed partial class MainShellViewModel :
     /// <summary>The cancel button label.</summary>
     public string CancelScanText => _localization["Scan.Button.Cancel"];
 
+    /// <summary>The localization service (used by developer QA tools such as the component gallery).</summary>
+    internal ILocalizationService Localization => _localization;
+
     /// <summary>Grid view button accessible label.</summary>
     public string GridViewLabel => _localization["Icon.ic_cat_view_grid.Label"];
 

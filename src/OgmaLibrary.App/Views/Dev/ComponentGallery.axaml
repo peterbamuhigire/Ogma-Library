@@ -1,0 +1,149 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+             xmlns:dev="using:OgmaLibrary.App.Views.Dev"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+             x:Class="OgmaLibrary.App.Views.Dev.ComponentGallery"
+             x:DataType="dev:ComponentGalleryModel"
+             AutomationProperties.AutomationId="Dev.ComponentGallery">
+
+  <!--
+    Sept-23 Phase 09 (task 9.4): the living component gallery for visual QA. It renders every
+    token-driven component and state in the current theme. Reach it with Ctrl+Shift+Alt+G in the
+    shell (hidden QA command) or through Sept23Phase09GalleryTests, which saves Light and Dark
+    renders. Labels come from localization (Dev.Gallery.*).
+  -->
+
+  <ScrollViewer Background="{DynamicResource Brush.Surface.Canvas}">
+    <StackPanel Margin="32" Spacing="28" MaxWidth="1100" HorizontalAlignment="Left">
+
+      <StackPanel Spacing="4">
+        <TextBlock Classes="home-greeting" Text="{Binding Title}" />
+        <TextBlock Classes="caption" Text="{Binding Subtitle}" />
+      </StackPanel>
+
+      <!-- Type scale -->
+      <Border Classes="card">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="home-strip-title" Text="{Binding TypeHeading}" />
+          <TextBlock Classes="ogma-display" FontSize="{DynamicResource Type.Size.Display}" Text="{Binding SampleTitle}" Foreground="{DynamicResource Brush.Text.Primary}" />
+          <TextBlock Classes="ogma-display" FontSize="{DynamicResource Type.Size.Headline}" Text="{Binding SampleTitle}" Foreground="{DynamicResource Brush.Text.Primary}" />
+          <TextBlock Classes="ogma-display" FontSize="{DynamicResource Type.Size.Title}" Text="{Binding SampleTitle}" Foreground="{DynamicResource Brush.Text.Primary}" />
+          <TextBlock FontSize="{DynamicResource Type.Size.Subtitle}" Text="{Binding SampleBody}" Foreground="{DynamicResource Brush.Text.Primary}" />
+          <TextBlock FontSize="{DynamicResource Type.Size.Body}" Text="{Binding SampleBody}" Foreground="{DynamicResource Brush.Text.Primary}" />
+          <TextBlock FontSize="{DynamicResource Type.Size.Small}" Text="{Binding SampleBody}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+          <TextBlock Classes="caption" Text="{Binding SampleBody}" />
+          <TextBlock Classes="ogma-mono" FontSize="{DynamicResource Type.Size.Small}" Text="{Binding SampleMono}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Buttons: variants x states -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="home-strip-title" Text="{Binding ButtonsHeading}" />
+          <WrapPanel ItemSpacing="8" LineSpacing="8">
+            <Button Classes="primary" Content="{Binding Primary}" />
+            <Button Content="{Binding Secondary}" />
+            <Button Classes="tool" Content="{Binding Tool}" />
+            <Button Classes="danger" Content="{Binding Danger}" />
+            <Button Classes="link" Content="{Binding Link}" />
+            <Button Classes="tool active" Content="{Binding Active}" />
+            <Button Classes="primary busy" Content="{Binding Busy}" />
+            <Button Classes="compact" Content="{Binding Compact}" />
+          </WrapPanel>
+          <WrapPanel ItemSpacing="8" LineSpacing="8">
+            <Button Classes="primary" IsEnabled="False" Content="{Binding Disabled}" />
+            <Button IsEnabled="False" Content="{Binding Disabled}" />
+            <Button Classes="tool" IsEnabled="False" Content="{Binding Disabled}" />
+            <Button Classes="danger" IsEnabled="False" Content="{Binding Disabled}" />
+            <Button Classes="link" IsEnabled="False" Content="{Binding Disabled}" />
+          </WrapPanel>
+          <Border Classes="segmented" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment selected" Content="{Binding Grid}" />
+              <Button Classes="segment" Content="{Binding List}" />
+              <Button Classes="segment" Content="{Binding Directory}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <!-- Fields, toggles, badges, tabs, list -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="24">
+          <StackPanel Grid.Column="0" Spacing="10">
+            <TextBlock Classes="home-strip-title" Text="{Binding ControlsHeading}" />
+            <TextBox Watermark="{Binding SampleBody}" />
+            <ComboBox SelectedIndex="0" MinWidth="200">
+              <ComboBoxItem Content="{Binding Grid}" />
+              <ComboBoxItem Content="{Binding List}" />
+            </ComboBox>
+            <CheckBox IsChecked="True" Content="{Binding Primary}" />
+            <RadioButton IsChecked="True" Content="{Binding Secondary}" />
+            <ToggleSwitch IsChecked="True" OnContent="{Binding Active}" OffContent="{Binding Disabled}" />
+            <WrapPanel ItemSpacing="4" LineSpacing="4">
+              <Border Classes="badge success"><TextBlock Text="{Binding Success}" /></Border>
+              <Border Classes="badge warning"><TextBlock Text="{Binding Warning}" /></Border>
+              <Border Classes="badge danger"><TextBlock Text="{Binding Danger}" /></Border>
+              <Border Classes="badge info"><TextBlock Text="{Binding Info}" /></Border>
+              <Border Classes="badge ai"><TextBlock Text="{Binding Ai}" /></Border>
+              <Border Classes="badge"><TextBlock Text="{Binding Neutral}" /></Border>
+            </WrapPanel>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Spacing="10">
+            <TabControl Height="120">
+              <TabItem Header="{Binding Grid}"><TextBlock Text="{Binding SampleBody}" TextWrapping="Wrap" /></TabItem>
+              <TabItem Header="{Binding List}" />
+              <TabItem Header="{Binding Directory}" />
+              <TabItem Header="{Binding Secondary}" />
+            </TabControl>
+            <ListBox SelectedIndex="1" Height="130">
+              <ListBoxItem Content="{Binding Primary}" />
+              <ListBoxItem Content="{Binding Secondary}" />
+              <ListBoxItem Content="{Binding Tool}" />
+            </ListBox>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Generated covers -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="home-strip-title" Text="{Binding CoversHeading}" />
+          <ItemsControl ItemsSource="{Binding CoverTitles}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="12" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Classes="book-card" Width="120" Height="170">
+                  <Border Classes="book-card-cover" CornerRadius="{DynamicResource Radius.M}">
+                    <cat:GeneratedCover Title="{Binding}" Author="{Binding $parent[UserControl].((dev:ComponentGalleryModel)DataContext).SampleAuthor}" />
+                  </Border>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Icons -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="home-strip-title" Text="{Binding IconsHeading}" />
+          <ItemsControl ItemsSource="{Binding IconPaths}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel ItemSpacing="10" LineSpacing="10" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <svg:Svg Width="24" Height="24" Path="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
