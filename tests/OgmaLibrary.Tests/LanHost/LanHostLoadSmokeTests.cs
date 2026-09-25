@@ -145,7 +145,7 @@ public sealed class LanHostLoadSmokeTests
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
-            
+
             .UseLoopbackLanHost().AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
             .BuildServiceProvider();
 
