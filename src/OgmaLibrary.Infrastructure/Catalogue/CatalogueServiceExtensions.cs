@@ -64,6 +64,9 @@ public static class CatalogueServiceExtensions
 
         // Migrator — runs once at startup via explicit call.
         services.AddSingleton<CatalogueMigrator>();
+        services.AddSingleton<CatalogueReadinessGate>();
+        services.AddSingleton<OgmaLibrary.Application.Catalogue.ICatalogueReadiness>(sp =>
+            sp.GetRequiredService<CatalogueReadinessGate>());
 
         // Repository implementations.
         services.AddSingleton<ILegacyCatalogueRepository, LegacyCatalogueRepository>();
