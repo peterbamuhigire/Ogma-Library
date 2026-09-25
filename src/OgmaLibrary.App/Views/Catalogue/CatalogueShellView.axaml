@@ -6,6 +6,7 @@
              xmlns:reader="using:OgmaLibrary.App.Views.Reader"
              xmlns:search="using:OgmaLibrary.App.Views.Search"
              xmlns:settings="using:OgmaLibrary.App.Views.Settings"
+             xmlns:shell="using:OgmaLibrary.App.Views.Shell"
              xmlns:ai="using:OgmaLibrary.App.Views.Ai"
              xmlns:shelf3d="using:OgmaLibrary.App.Views.Shelf3D"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
@@ -15,547 +16,704 @@
              KeyDown="CatalogueShellView_KeyDown">
 
   <!--
-    The full catalogue shell (Phase 06): sidebar (shelves) + toolbar (view toggle,
-    sort, filter) + content area (grid/list/directory) + detail panel.
-    Replaces the empty-state-only window when books are present.
+    Sept-23 Phase 07 (K11, K12, K17): the routed shell. Navigation rail | destination host
+    (contextual toolbar, active-filter chips, content, one drawer, pager) | inspector, with the
+    status bar below. One route is current at a time (NavigationState); drawers belong to the
+    Library and close on navigation; the toolbar overflows by priority into "More".
+    Typography: Spectral for destination headings (ogma-display), Public Sans for everything
+    else (theme default). Colours and sizes are design tokens only.
   -->
 
-  <Grid ColumnDefinitions="Auto,*,Auto"
+  <UserControl.Styles>
+    <Style Selector="Border.rail">
+      <Setter Property="Width" Value="208" />
+    </Style>
+    <Style Selector="Border.rail.compact">
+      <Setter Property="Width" Value="64" />
+    </Style>
+    <Style Selector="Border.rail.compact TextBlock.rail-label">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Button.rail-item">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="MinHeight" Value="44" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="6,2" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.rail-item.selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Oak}" />
+      <Setter Property="BorderThickness" Value="3,0,0,0" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.rail-item:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.tool">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Button.tool.primary">
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Oak}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.OnAccent}" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.tool.active">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Oak}" />
+    </Style>
+    <Style Selector="Button.segment">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Button.segment.selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Oak}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.destination-heading">
+      <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Display}" />
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Title}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid x:Name="ShellGrid"
+        ColumnDefinitions="Auto,*,Auto"
         RowDefinitions="*,Auto">
 
-    <!-- ─── Left sidebar ───────────────────────────────────────────── -->
+    <!-- ─── Navigation rail (focus order 1) ─────────────────────────── -->
     <Border Grid.Row="0"
             Grid.Column="0"
-            Width="220"
-            IsVisible="{Binding IsSidebarOpen}"
+            Classes="rail"
+            Classes.compact="{Binding IsRailCompact}"
             Background="{DynamicResource Brush.Surface.Footer}"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,*,Auto">
-
-        <!-- Sidebar header -->
-        <Border Grid.Row="0" Padding="12,10">
-          <StackPanel Spacing="6">
-            <TextBlock Text="{Binding ShelfSidebar.ShelvesLabel}"
-                       FontSize="{DynamicResource Type.Size.Subtitle}"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            <TextBox Text="{Binding ShelfSidebar.NewShelfName, Mode=TwoWay}"
-                     Watermark="{Binding ShelfSidebar.NewShelfWatermark}"
-                     AutomationProperties.Name="{Binding ShelfSidebar.NewShelfWatermark}" />
-            <StackPanel Orientation="Horizontal" Spacing="5">
-              <Button AutomationProperties.Name="{Binding ShelfSidebar.CreateShelfLabel}"
-                      IsEnabled="{Binding ShelfSidebar.CanCreateShelf}"
-                      Click="CreateShelf_Click">
-                <TextBlock Text="{Binding ShelfSidebar.CreateShelfLabel}" />
-              </Button>
-              <Button AutomationProperties.Name="{Binding ShelfSidebar.DeleteShelfLabel}"
-                      IsEnabled="{Binding ShelfSidebar.CanDeleteSelectedShelf}"
-                      Click="DeleteShelf_Click">
-                <TextBlock Text="{Binding ShelfSidebar.DeleteShelfLabel}" />
-              </Button>
-              <Button AutomationProperties.Name="{Binding ShelfSidebar.RenameShelfLabel}"
-                      IsEnabled="{Binding ShelfSidebar.CanRenameSelectedShelf}"
-                      Click="RenameShelf_Click">
-                <TextBlock Text="{Binding ShelfSidebar.RenameShelfLabel}" />
-              </Button>
-            </StackPanel>
-            <TextBlock Text="{Binding ShelfSidebar.StatusText}"
-                       IsVisible="{Binding ShelfSidebar.HasStatus}"
-                       FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                       TextWrapping="Wrap" />
-          </StackPanel>
-        </Border>
-
-        <!-- Shelf list -->
-        <ListBox Grid.Row="1"
-                 ItemsSource="{Binding ShelfSidebar.Shelves}"
-                 SelectedItem="{Binding ShelfSidebar.SelectedShelf, Mode=TwoWay}"
-                 Background="Transparent"
-                 BorderThickness="0"
-                 AutomationProperties.Name="{Binding ShelfSidebar.ShelvesLabel}">
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,2">
-                <TextBlock Text="{Binding Name}"
-                           FontSize="{DynamicResource Type.Size.Body}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                           VerticalAlignment="Center" />
-                <Border CornerRadius="8"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        Padding="6,1">
-                  <TextBlock Text="{Binding BookCount}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
-                </Border>
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-
-        <!-- Sept-23 Phase 05: library folders and files that need attention. -->
-        <ScrollViewer Grid.Row="2"
-                      MaxHeight="440"
+      <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto"
-                      IsVisible="{Binding IsLibraryFoldersVisible}">
-          <cat:LibraryFoldersPanelView DataContext="{Binding LibraryFolders}" />
+                      HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl x:Name="RailList"
+                        Margin="0,8,0,0"
+                        ItemsSource="{Binding RailItems}"
+                        AutomationProperties.AutomationId="Shell.Rail"
+                        AutomationProperties.Name="{Binding RailName}"
+                        KeyDown="Rail_KeyDown">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:RailItemViewModel">
+                <Button Classes="rail-item"
+                        Classes.selected="{Binding IsSelected}"
+                        IsVisible="{Binding IsVisible}"
+                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                        AutomationProperties.Name="{Binding Label}"
+                        AutomationProperties.ItemStatus="{Binding Status}"
+                        ToolTip.Tip="{Binding ToolTip}"
+                        Click="RailItem_Click">
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <svg:Svg Width="20" Height="20" Path="{Binding IconPath}" />
+                    <TextBlock Classes="rail-label"
+                               Text="{Binding Label}"
+                               VerticalAlignment="Center"
+                               FontSize="{DynamicResource Type.Size.Body}" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </ScrollViewer>
+
+        <Button Grid.Row="1"
+                Classes="rail-item"
+                Margin="6,4,6,8"
+                AutomationProperties.AutomationId="Shell.Nav.ToggleRail"
+                AutomationProperties.Name="{Binding RailToggleLabel}"
+                ToolTip.Tip="{Binding RailToggleLabel}"
+                Click="ToggleRail_Click">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBlock Text="{Binding RailToggleGlyph}"
+                       Width="20"
+                       TextAlignment="Center"
+                       FontSize="{DynamicResource Type.Size.Subtitle}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <TextBlock Classes="rail-label"
+                       Text="{Binding RailToggleLabel}"
+                       VerticalAlignment="Center"
+                       FontSize="{DynamicResource Type.Size.Small}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </StackPanel>
+        </Button>
       </Grid>
     </Border>
 
-    <!-- ─── Main content area ─────────────────────────────────────── -->
+    <!-- ─── Destination host (focus order 2: toolbar, then content) ───── -->
     <Grid Grid.Row="0"
           Grid.Column="1"
-          RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+          RowDefinitions="Auto,Auto,*,Auto">
 
-      <!-- Toolbar: view toggle + sort + filter -->
+      <!-- Contextual toolbar -->
       <Border Grid.Row="0"
-              Padding="12,8"
+              Padding="16,8,12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <!-- Stopgap (Sept-23 K11): wraps instead of scrolling so every action stays reachable. -->
-        <WrapPanel Orientation="Horizontal" ItemSpacing="2" LineSpacing="4">
+        <Grid ColumnDefinitions="Auto,*">
+          <TextBlock Grid.Column="0"
+                     Classes="destination-heading"
+                     Margin="0,0,16,0"
+                     Text="{Binding DestinationHeading}"
+                     AutomationProperties.AutomationId="Shell.Heading"
+                     AutomationProperties.HeadingLevel="1" />
 
-          <!-- Sidebar toggle -->
-          <Button
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="6"
-                  AutomationProperties.AutomationId="Shell.Action.Sidebar"
-                  AutomationProperties.Name="{Binding SidebarToggleLabel}"
-                  Click="SidebarToggle_Click">
-            <TextBlock Text="{Binding SidebarToggleLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          </Button>
+          <!-- Library toolbar: at most 7 visible controls; the rest overflow into More. -->
+          <Grid Grid.Column="1"
+                ColumnDefinitions="*,Auto"
+                IsVisible="{Binding IsLibraryDestination}">
+            <shell:PriorityToolbarPanel x:Name="LibraryToolbar"
+                                        Grid.Column="0"
+                                        Spacing="6"
+                                        VerticalAlignment="Center">
+              <Button x:Name="AddFolderButton"
+                      shell:PriorityToolbarPanel.Priority="0"
+                      Classes="tool primary"
+                      AutomationProperties.AutomationId="Shell.Action.ChooseFolder"
+                      AutomationProperties.Name="{Binding AddFolderLabel}"
+                      Click="ChooseFolderButton_Click">
+                <TextBlock Text="{Binding AddFolderLabel}" />
+              </Button>
+              <Button x:Name="FilterButton"
+                      shell:PriorityToolbarPanel.Priority="1"
+                      Classes="tool"
+                      Classes.active="{Binding IsFilterPanelOpen}"
+                      AutomationProperties.AutomationId="Shell.Action.Filter"
+                      AutomationProperties.Name="{Binding FilterLabel}"
+                      Click="FilterToggle_Click">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <svg:Svg Width="16" Height="16" Path="{Binding FilterIconPath}" />
+                  <TextBlock Text="{Binding FilterLabel}" />
+                </StackPanel>
+              </Button>
+              <StackPanel x:Name="ViewSwitcher"
+                          shell:PriorityToolbarPanel.Priority="2"
+                          Orientation="Horizontal"
+                          AutomationProperties.Name="{Binding ViewSwitcherLabel}">
+                <Border BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        ClipToBounds="True">
+                  <StackPanel Orientation="Horizontal">
+                    <Button Classes="segment"
+                            Classes.selected="{Binding IsGridViewSelected}"
+                            AutomationProperties.AutomationId="Catalogue.View.Grid"
+                            AutomationProperties.Name="{Binding GridViewLabel}"
+                            Click="GridViewButton_Click">
+                      <TextBlock Text="{Binding GridViewLabel}" />
+                    </Button>
+                    <Button Classes="segment"
+                            Classes.selected="{Binding IsListViewSelected}"
+                            AutomationProperties.AutomationId="Catalogue.View.List"
+                            AutomationProperties.Name="{Binding ListViewLabel}"
+                            Click="ListViewButton_Click">
+                      <TextBlock Text="{Binding ListViewLabel}" />
+                    </Button>
+                    <Button Classes="segment"
+                            Classes.selected="{Binding IsDirectoryViewSelected}"
+                            AutomationProperties.AutomationId="Catalogue.View.Directory"
+                            AutomationProperties.Name="{Binding DirectoryViewLabel}"
+                            Click="DirectoryViewButton_Click">
+                      <TextBlock Text="{Binding DirectoryViewLabel}" />
+                    </Button>
+                    <Button Classes="segment"
+                            Classes.selected="{Binding IsBookshelf3DActive}"
+                            IsVisible="{Binding IsShelf3DAvailable}"
+                            AutomationProperties.AutomationId="Catalogue.View.Shelf3D"
+                            AutomationProperties.Name="{Binding Shelf3DViewLabel}"
+                            Click="Bookshelf3DButton_Click">
+                      <TextBlock Text="{Binding Shelf3DViewLabel}" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+              <Button x:Name="RescanButton"
+                      shell:PriorityToolbarPanel.Priority="3"
+                      Classes="tool"
+                      IsVisible="{Binding IsLibraryFoldersVisible}"
+                      AutomationProperties.AutomationId="Shell.Action.Rescan"
+                      AutomationProperties.Name="{Binding RescanLibraryText}"
+                      Click="Rescan_Click">
+                <TextBlock Text="{Binding RescanLibraryText}" />
+              </Button>
+              <StackPanel x:Name="SortGroup"
+                          shell:PriorityToolbarPanel.Priority="4"
+                          Orientation="Horizontal"
+                          Spacing="4">
+                <ComboBox MinWidth="120"
+                          ItemsSource="{Binding Catalogue.Filter.SortOptions}"
+                          SelectedItem="{Binding Catalogue.Filter.SortField, Mode=TwoWay}"
+                          AutomationProperties.AutomationId="Catalogue.Filter.Sort"
+                          AutomationProperties.Name="{Binding SortLabel}" />
+                <Button Classes="tool"
+                        AutomationProperties.AutomationId="Catalogue.Filter.SortDirection"
+                        AutomationProperties.Name="{Binding Catalogue.Filter.SortDirectionText}"
+                        Click="ToggleSortDirection_Click">
+                  <TextBlock Text="{Binding Catalogue.Filter.SortDirectionText}" />
+                </Button>
+              </StackPanel>
+              <Button x:Name="FoldersButton"
+                      shell:PriorityToolbarPanel.Priority="5"
+                      Classes="tool"
+                      Classes.active="{Binding IsFoldersDrawerOpen}"
+                      IsVisible="{Binding IsLibraryFoldersVisible}"
+                      AutomationProperties.AutomationId="Shell.Action.Folders"
+                      AutomationProperties.Name="{Binding FoldersLabel}"
+                      Click="FoldersToggle_Click">
+                <TextBlock Text="{Binding FoldersLabel}" />
+              </Button>
+              <TextBlock x:Name="CountText"
+                         shell:PriorityToolbarPanel.Priority="6"
+                         VerticalAlignment="Center"
+                         Margin="6,0"
+                         Text="{Binding CatalogueCountText}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            </shell:PriorityToolbarPanel>
 
-          <Button
-                  Background="{DynamicResource Brush.Surface.Footer}"
-                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  Padding="10,5"
-                  Margin="8,0,4,0"
-                  AutomationProperties.AutomationId="Shell.Nav.Library"
-                  AutomationProperties.Name="{Binding LibraryLabel}"
-                  Click="LibraryButton_Click">
-            <TextBlock Text="{Binding LibraryLabel}"
-                       FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          </Button>
+            <DropDownButton x:Name="LibraryMoreButton"
+                            Grid.Column="1"
+                            Margin="6,0,0,0"
+                            AutomationProperties.AutomationId="Shell.Action.More"
+                            AutomationProperties.Name="{Binding MoreActionsLabel}">
+              <TextBlock Text="{Binding MoreActionsLabel}" />
+              <DropDownButton.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight"
+                            Opening="LibraryMoreFlyout_Opening" />
+              </DropDownButton.Flyout>
+            </DropDownButton>
+          </Grid>
 
-          <Button
-                  Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  Padding="10,5"
-                  Margin="8,0,0,0"
-                  AutomationProperties.AutomationId="Shell.Action.ChooseFolder"
-                  AutomationProperties.Name="{Binding ChooseFolderText}"
-                  Click="ChooseFolderButton_Click">
-            <TextBlock Text="{Binding ChooseFolderText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-
-          <Button
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  Padding="10,5"
-                  Margin="8,0,0,0"
-                  AutomationProperties.AutomationId="Shell.Action.OpenPdf"
-                  AutomationProperties.Name="{Binding OpenPdfText}"
-                  Click="OpenPdfButton_Click">
-            <TextBlock Text="{Binding OpenPdfText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-
-          <!-- View toggle buttons -->
-          <StackPanel
+          <!-- Reading toolbar -->
+          <StackPanel Grid.Column="1"
                       Orientation="Horizontal"
-                      Spacing="2"
-                      VerticalAlignment="Center"
-                      Margin="8,0">
-
-            <Button Background="Transparent"
-                    BorderThickness="0"
-                    Padding="8,4"
-                    AutomationProperties.AutomationId="Catalogue.View.Grid"
-                    AutomationProperties.Name="{Binding GridViewLabel}"
-                    Click="GridViewButton_Click">
-              <TextBlock Text="{Binding GridViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Accent.Oak}" />
+                      Spacing="6"
+                      IsVisible="{Binding IsReadingDestination}">
+            <Button Classes="tool primary"
+                    IsVisible="{Binding IsReaderContentVisible}"
+                    AutomationProperties.AutomationId="Reader.BackToLibrary"
+                    AutomationProperties.Name="{Binding BackToLibraryLabel}"
+                    Click="BackToLibrary_Click">
+              <TextBlock Text="{Binding BackToLibraryLabel}" />
             </Button>
-
-            <Button Background="Transparent"
-                    BorderThickness="0"
-                    Padding="8,4"
-                    AutomationProperties.AutomationId="Catalogue.View.List"
-                    AutomationProperties.Name="{Binding ListViewLabel}"
-                    Click="ListViewButton_Click">
-              <TextBlock Text="{Binding ListViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <Button Classes="tool"
+                    Classes.active="{Binding IsSplitViewActive}"
+                    AutomationProperties.AutomationId="Reader.SplitView"
+                    AutomationProperties.Name="{Binding SplitViewLabel}"
+                    Click="SplitViewButton_Click">
+              <TextBlock Text="{Binding SplitViewLabel}" />
             </Button>
-
-            <Button Background="Transparent"
-                    BorderThickness="0"
-                    Padding="8,4"
-                    AutomationProperties.AutomationId="Catalogue.View.Directory"
-                    AutomationProperties.Name="{Binding DirectoryViewLabel}"
-                    Click="DirectoryViewButton_Click">
-              <TextBlock Text="{Binding DirectoryViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" />
-            </Button>
-
-            <Button Background="Transparent"
-                    BorderThickness="0"
-                    Padding="8,4"
-                    AutomationProperties.AutomationId="Catalogue.View.Shelf3D"
-                    AutomationProperties.Name="{Binding Shelf3DViewLabel}"
-                    ToolTip.Tip="{Binding Shelf3DViewLabel}"
-                    IsEnabled="{Binding IsShelf3DAvailable}"
-                    Click="Bookshelf3DButton_Click">
-              <TextBlock Text="{Binding Shelf3DViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Opacity="0.7" />
-            </Button>
-
           </StackPanel>
 
-          <!-- Search panel toggle -->
-          <Button
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="8,4"
-                  AutomationProperties.AutomationId="Shell.Nav.Search"
-                  AutomationProperties.Name="{Binding SearchLabel}"
-                  Click="SearchToggle_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="{Binding SearchIconPath}" />
-              <TextBlock Text="{Binding SearchLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            </StackPanel>
-          </Button>
-
-          <!-- Student smart-search route -->
-          <Button
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="8,4"
-                  IsVisible="{Binding IsStudentSmartSearchVisible}"
-                  AutomationProperties.AutomationId="Shell.Nav.StudentSearch"
-                  AutomationProperties.Name="{Binding StudentSmartSearchLabel}"
-                  Click="StudentSmartSearchButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="{Binding StudentSmartSearchIconPath}" />
-              <TextBlock Text="{Binding StudentSmartSearchLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            </StackPanel>
-          </Button>
-
-          <Button
-                  Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  BorderThickness="0"
-                  Padding="10,5"
-                  Margin="8,0,0,0"
-                  AutomationProperties.AutomationId="Shell.Nav.Advisor"
-                  AutomationProperties.Name="{Binding AdvisorLabel}"
-                  Click="AdvisorButton_Click">
-            <TextBlock Text="{Binding AdvisorLabel}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-
-          <Button
-                  Background="{DynamicResource Brush.Surface.Footer}"
+          <!-- Advisor toolbar: Ask | Reading plan -->
+          <Border Grid.Column="1"
+                  HorizontalAlignment="Left"
+                  IsVisible="{Binding IsAdvisorDestination}"
                   BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                   BorderThickness="1"
                   CornerRadius="{DynamicResource Radius.S}"
-                  Padding="10,5"
-                  Margin="8,0,0,0"
-                  AutomationProperties.AutomationId="Shell.Nav.ReadingPlan"
-                  AutomationProperties.Name="{Binding ReadingPlanLabel}"
-                  Click="ReadingPlanButton_Click">
-            <TextBlock Text="{Binding ReadingPlanLabel}"
-                       FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          </Button>
-
-          <!-- Filter panel toggle -->
-          <Button
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="8,4"
-                  AutomationProperties.AutomationId="Shell.Action.Filter"
-                  AutomationProperties.Name="{Binding FilterLabel}"
-                  Click="FilterToggle_Click">
-            <TextBlock Text="{Binding FilterLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          </Button>
-
-          <!-- Index Manager panel toggle -->
-          <Button
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="8,4"
-                  AutomationProperties.AutomationId="Shell.Nav.IndexManager"
-                  AutomationProperties.Name="{Binding IndexManagerLabel}"
-                  Click="IndexManagerToggle_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="{Binding IndexManagerIconPath}" />
-              <TextBlock Text="{Binding IndexManagerLabel}" FontSize="13" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  ClipToBounds="True">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment"
+                      Classes.selected="{Binding IsAdvisorActive}"
+                      AutomationProperties.AutomationId="Advisor.Tab.Ask"
+                      AutomationProperties.Name="{Binding AdvisorAskLabel}"
+                      Click="AdvisorButton_Click">
+                <TextBlock Text="{Binding AdvisorAskLabel}" />
+              </Button>
+              <Button Classes="segment"
+                      Classes.selected="{Binding IsReadingPlanActive}"
+                      AutomationProperties.AutomationId="Advisor.Tab.ReadingPlan"
+                      AutomationProperties.Name="{Binding ReadingPlanLabel}"
+                      Click="ReadingPlanButton_Click">
+                <TextBlock Text="{Binding ReadingPlanLabel}" />
+              </Button>
             </StackPanel>
+          </Border>
+
+          <!-- Collections toolbar -->
+          <Button Grid.Column="1"
+                  HorizontalAlignment="Left"
+                  Classes="tool primary"
+                  IsVisible="{Binding IsCollectionsActive}"
+                  IsEnabled="{Binding CanShowSelectedCollection}"
+                  AutomationProperties.AutomationId="Collections.ShowInLibrary"
+                  AutomationProperties.Name="{Binding ShowCollectionLabel}"
+                  Click="ShowCollection_Click">
+            <TextBlock Text="{Binding ShowCollectionLabel}" />
           </Button>
 
-          <!-- Stopgap (Sept-23 K11): rarely used routes live in an overflow menu until Phase 07. -->
-          <DropDownButton Background="Transparent"
-                          BorderThickness="0"
-                          Padding="8,4"
-                          AutomationProperties.AutomationId="Shell.Action.More"
-                          AutomationProperties.Name="{Binding MoreActionsLabel}">
-            <TextBlock Text="{Binding MoreActionsLabel}"
-                       FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            <DropDownButton.Flyout>
-              <MenuFlyout>
-                <MenuItem Header="{Binding SplitViewLabel}"
-                          AutomationProperties.AutomationId="Shell.More.SplitView"
-                          AutomationProperties.Name="{Binding SplitViewLabel}"
-                          Click="SplitViewButton_Click" />
-                <MenuItem Header="{Binding SharingSettingsLabel}"
-                          AutomationProperties.AutomationId="Shell.More.Sharing"
-                          AutomationProperties.Name="{Binding SharingSettingsLabel}"
-                          Click="SharingSettingsButton_Click" />
-                <MenuItem Header="{Binding ReconciliationReviewLabel}"
-                          AutomationProperties.AutomationId="Shell.More.Reconciliation"
-                          AutomationProperties.Name="{Binding ReconciliationReviewLabel}"
-                          Click="ReconciliationReviewToggle_Click" />
-              </MenuFlyout>
-            </DropDownButton.Flyout>
-          </DropDownButton>
-
-          <!-- Count badge -->
-          <TextBlock
-                     VerticalAlignment="Center"
-                     Margin="8,0,4,0"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-            <TextBlock.Text>
-              <Binding Path="CatalogueCountText" />
-            </TextBlock.Text>
-          </TextBlock>
-
-        </WrapPanel>
+          <!-- Classroom toolbar: tabs only when both surfaces exist -->
+          <Border Grid.Column="1"
+                  HorizontalAlignment="Left"
+                  IsVisible="{Binding IsClassroomTabsVisible}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  ClipToBounds="True">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment"
+                      Classes.selected="{Binding IsSharingSettingsActive}"
+                      AutomationProperties.AutomationId="Classroom.Tab.Sharing"
+                      AutomationProperties.Name="{Binding SharingSettingsLabel}"
+                      Click="SharingSettingsButton_Click">
+                <TextBlock Text="{Binding SharingSettingsLabel}" />
+              </Button>
+              <Button Classes="segment"
+                      Classes.selected="{Binding IsStudentSmartSearchActive}"
+                      AutomationProperties.AutomationId="Classroom.Tab.SmartSearch"
+                      AutomationProperties.Name="{Binding StudentSmartSearchLabel}"
+                      Click="StudentSmartSearchButton_Click">
+                <TextBlock Text="{Binding StudentSmartSearchLabel}" />
+              </Button>
+            </StackPanel>
+          </Border>
+        </Grid>
       </Border>
 
-      <Panel Grid.Row="1"
-             IsVisible="{Binding IsSearchPanelOpen}">
-        <search:SearchPanelView x:Name="SearchPanel" DataContext="{Binding Search}" />
-      </Panel>
-
-      <Panel Grid.Row="2"
-             IsVisible="{Binding IsIndexManagerOpen}">
-        <search:IndexManagerPanelView DataContext="{Binding IndexManager}" />
-      </Panel>
-
-      <!-- Filter panel (inline, shown when open) -->
-      <Border Grid.Row="3"
-              IsVisible="{Binding IsFilterPanelOpen}"
-              Background="{DynamicResource Brush.Surface.Footer}"
+      <!-- Active-filter chips (K12): a filter can never apply out of sight. -->
+      <Border Grid.Row="1"
+              Padding="16,6"
+              IsVisible="{Binding HasActiveFilterChips}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-              BorderThickness="0,0,0,1"
-              Padding="12,8">
-        <StackPanel Orientation="Horizontal" Spacing="16">
-          <TextBlock Text="{Binding FiltersText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     VerticalAlignment="Center" />
-          <TextBox Width="150"
-                   Text="{Binding Catalogue.Filter.TitleSearch, Mode=TwoWay}"
-                   Watermark="{Binding FilterTitleWatermark}"
-                   AutomationProperties.AutomationId="Catalogue.Filter.Title"
-                   AutomationProperties.Name="{Binding FilterTitleWatermark}" />
-          <TextBox Width="150"
-                   Text="{Binding Catalogue.Filter.AuthorSearch, Mode=TwoWay}"
-                   Watermark="{Binding FilterAuthorWatermark}"
-                   AutomationProperties.AutomationId="Catalogue.Filter.Author"
-                   AutomationProperties.Name="{Binding FilterAuthorWatermark}" />
-          <ComboBox Width="120"
-                    ItemsSource="{Binding Catalogue.Filter.SortOptions}"
-                    SelectedItem="{Binding Catalogue.Filter.SortField, Mode=TwoWay}"
-                    AutomationProperties.AutomationId="Catalogue.Filter.Sort"
-                    AutomationProperties.Name="{Binding SortLabel}" />
-          <Button Padding="8,4"
-                  Background="Transparent"
-                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.AutomationId="Catalogue.Filter.SortDirection"
-                  AutomationProperties.Name="{Binding Catalogue.Filter.SortDirectionText}"
-                  Click="ToggleSortDirection_Click">
-            <TextBlock Text="{Binding Catalogue.Filter.SortDirectionText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="8,4"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
+              BorderThickness="0,0,0,1">
+        <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+          <ItemsControl ItemsSource="{Binding ActiveFilterChips}"
+                        AutomationProperties.AutomationId="Catalogue.FilterChips"
+                        AutomationProperties.Name="{Binding FilterChipsLabel}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:FilterChip">
+                <Border Padding="10,2,2,2"
+                        CornerRadius="{DynamicResource Radius.M}"
+                        Background="{DynamicResource Brush.Surface.Footer}"
+                        BorderBrush="{DynamicResource Brush.Accent.Oak}"
+                        BorderThickness="1">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{Binding Label}"
+                               VerticalAlignment="Center"
+                               FontSize="{DynamicResource Type.Size.Small}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            MinHeight="28"
+                            MinWidth="28"
+                            Padding="6,0"
+                            AutomationProperties.AutomationId="Catalogue.FilterChip.Remove"
+                            AutomationProperties.Name="{Binding RemoveName}"
+                            Click="RemoveFilterChip_Click">
+                      <TextBlock Text="×"
+                                 FontSize="{DynamicResource Type.Size.Body}"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="tool"
+                  MinHeight="30"
+                  Padding="8,2"
                   AutomationProperties.AutomationId="Catalogue.Filter.Clear"
                   AutomationProperties.Name="{Binding ClearFiltersText}"
                   Click="ClearFilters_Click">
-            <TextBlock Text="{Binding ClearFiltersText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
+            <TextBlock Text="{Binding ClearFiltersText}" FontSize="{DynamicResource Type.Size.Small}" />
           </Button>
-        </StackPanel>
+        </WrapPanel>
       </Border>
 
-      <!-- Main catalogue content (grid/list views) -->
-      <Grid Grid.Row="4">
+      <!-- Content (one destination at a time) and the Library drawer -->
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+        <Panel Grid.Column="0">
 
-        <!-- Grid view wrapper controls visibility from MainShellViewModel; inner view has CatalogueViewModel DC -->
-        <Grid IsVisible="{Binding IsCatalogueActive}">
-          <Panel IsVisible="{Binding Catalogue.IsGridView}">
-            <cat:CatalogueGridView DataContext="{Binding Catalogue}" />
-          </Panel>
+          <!-- Library: catalogue -->
+          <Grid IsVisible="{Binding IsCatalogueActive}">
+            <Panel IsVisible="{Binding Catalogue.IsGridView}">
+              <cat:CatalogueGridView DataContext="{Binding Catalogue}" />
+            </Panel>
+            <Panel IsVisible="{Binding Catalogue.IsListView}">
+              <cat:CatalogueListView DataContext="{Binding Catalogue}" />
+            </Panel>
+            <Panel IsVisible="{Binding Catalogue.IsDirectoryView}">
+              <cat:CatalogueDirectoryView DataContext="{Binding Catalogue}" />
+            </Panel>
 
-          <!-- List view -->
-          <Panel IsVisible="{Binding Catalogue.IsListView}">
-            <cat:CatalogueListView DataContext="{Binding Catalogue}" />
-          </Panel>
-
-          <!-- Directory view: virtualized library-root-relative paths. -->
-          <Panel IsVisible="{Binding Catalogue.IsDirectoryView}">
-            <cat:CatalogueDirectoryView DataContext="{Binding Catalogue}" />
-          </Panel>
-
-          <!-- Filtered-empty state (Sept-23 K12/K13): filters hide every book. -->
-          <StackPanel IsVisible="{Binding Catalogue.IsFilteredEmpty}"
-                      VerticalAlignment="Center"
-                      HorizontalAlignment="Center"
-                      Spacing="8">
-            <TextBlock Text="{Binding FilteredEmptyHeading}"
-                       AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Heading"
-                       FontSize="{DynamicResource Type.Size.Title}"
-                       FontWeight="SemiBold"
-                       TextAlignment="Center"
-                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            <Button HorizontalAlignment="Center"
-                    Padding="16,8"
-                    Background="{DynamicResource Brush.Accent.Oak}"
-                    Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                    CornerRadius="{DynamicResource Radius.S}"
-                    AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Clear"
-                    AutomationProperties.Name="{Binding ClearFiltersText}"
-                    Click="ClearFilters_Click">
-              <TextBlock Text="{Binding ClearFiltersText}" />
-            </Button>
-          </StackPanel>
-
-          <!-- Empty state -->
-          <Border IsVisible="{Binding Catalogue.IsEmpty}"
-                  AutomationProperties.AutomationId="Catalogue.EmptyState"
-                  VerticalAlignment="Center"
-                  HorizontalAlignment="Center">
-            <StackPanel Spacing="8" MaxWidth="400">
-              <TextBlock Text="{Binding EmptyStateHeading}"
-                         AutomationProperties.AutomationId="Catalogue.EmptyState.Heading"
+            <!-- Filtered-empty state (Sept-23 K12/K13): filters hide every book. -->
+            <StackPanel IsVisible="{Binding Catalogue.IsFilteredEmpty}"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="8">
+              <TextBlock Text="{Binding FilteredEmptyHeading}"
+                         AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Heading"
                          FontSize="{DynamicResource Type.Size.Title}"
                          FontWeight="SemiBold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-              <TextBlock Text="{Binding EmptyStateBody}"
-                         FontSize="{DynamicResource Type.Size.Body}"
-                         TextWrapping="Wrap"
-                         TextAlignment="Center"
-                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-              <StackPanel Orientation="Horizontal"
-                          HorizontalAlignment="Center"
-                          Spacing="8"
-                          Margin="0,8,0,0">
-                <Button Padding="16,8"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        AutomationProperties.AutomationId="Catalogue.EmptyState.ChooseFolder"
-                        AutomationProperties.Name="{Binding ChooseFolderText}"
-                        Click="ChooseFolderButton_Click">
-                  <TextBlock Text="{Binding ChooseFolderText}" />
-                </Button>
-                <Button Padding="16,8"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        AutomationProperties.AutomationId="Catalogue.EmptyState.OpenPdf"
-                        AutomationProperties.Name="{Binding OpenPdfText}"
-                        Click="OpenPdfButton_Click">
-                  <TextBlock Text="{Binding OpenPdfText}" />
-                </Button>
-              </StackPanel>
-            </StackPanel>
-          </Border>
-      </Grid>
-
-
-      <Border Grid.Row="3"
-              Grid.RowSpan="3"
-              Width="420"
-              Margin="12"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top"
-              IsVisible="{Binding IsReconciliationReviewPanelOpen}">
-        <cat:ReconciliationReviewPanelView DataContext="{Binding ReconciliationReviews}"
-                                           CloseRequested="ReconciliationReviewPanel_CloseRequested" />
-      </Border>
-
-        <Panel IsVisible="{Binding IsReaderActive}">
-          <Grid RowDefinitions="Auto,*">
-            <Border Grid.Row="0"
-                    Background="{DynamicResource Brush.Surface.Footer}"
-                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                    BorderThickness="0,0,0,1"
-                    Padding="12,8">
-              <Button Padding="12,6"
-                      HorizontalAlignment="Left"
-                      Background="{DynamicResource Brush.Accent.Oak}"
-                      Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                      CornerRadius="{DynamicResource Radius.S}"
-                      AutomationProperties.AutomationId="Reader.BackToLibrary"
-                      AutomationProperties.Name="{Binding BackToLibraryLabel}"
-                      Click="LibraryButton_Click">
-                <TextBlock Text="{Binding BackToLibraryLabel}"
-                           FontSize="{DynamicResource Type.Size.Caption}" />
+              <Button HorizontalAlignment="Center"
+                      Classes="tool primary"
+                      AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Clear"
+                      AutomationProperties.Name="{Binding ClearFiltersText}"
+                      Click="ClearFilters_Click">
+                <TextBlock Text="{Binding ClearFiltersText}" />
               </Button>
+            </StackPanel>
+
+            <!-- Empty state -->
+            <Border IsVisible="{Binding Catalogue.IsEmpty}"
+                    AutomationProperties.AutomationId="Catalogue.EmptyState"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Padding="16">
+              <StackPanel Spacing="8" MaxWidth="400">
+                <TextBlock Text="{Binding EmptyStateHeading}"
+                           AutomationProperties.AutomationId="Catalogue.EmptyState.Heading"
+                           Classes="ogma-display"
+                           FontSize="{DynamicResource Type.Size.Title}"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBlock Text="{Binding EmptyStateBody}"
+                           FontSize="{DynamicResource Type.Size.Body}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <WrapPanel Orientation="Horizontal"
+                           HorizontalAlignment="Center"
+                           ItemSpacing="8"
+                           LineSpacing="8"
+                           Margin="0,8,0,0">
+                  <Button Padding="16,8"
+                          Classes="tool primary"
+                          AutomationProperties.AutomationId="Catalogue.EmptyState.ChooseFolder"
+                          AutomationProperties.Name="{Binding ChooseFolderText}"
+                          Click="ChooseFolderButton_Click">
+                    <TextBlock Text="{Binding ChooseFolderText}" />
+                  </Button>
+                  <Button Padding="16,8"
+                          Classes="tool"
+                          AutomationProperties.AutomationId="Catalogue.EmptyState.OpenPdf"
+                          AutomationProperties.Name="{Binding OpenPdfText}"
+                          Click="OpenPdfButton_Click">
+                    <TextBlock Text="{Binding OpenPdfText}" />
+                  </Button>
+                </WrapPanel>
+              </StackPanel>
             </Border>
-
-            <reader:ReaderView Grid.Row="1" DataContext="{Binding Reader}" />
           </Grid>
+
+          <!-- Library: 3D shelf (capability-gated) -->
+          <Panel IsVisible="{Binding IsBookshelf3DActive}">
+            <shelf3d:Bookshelf3DView DataContext="{Binding Bookshelf3D}" />
+          </Panel>
+
+          <!-- Search -->
+          <Panel IsVisible="{Binding IsSearchActive}">
+            <search:SearchPanelView x:Name="SearchPanel" DataContext="{Binding Search}" />
+          </Panel>
+
+          <!-- Reading -->
+          <Panel IsVisible="{Binding IsReaderContentVisible}">
+            <reader:ReaderView DataContext="{Binding Reader}" />
+          </Panel>
+          <StackPanel IsVisible="{Binding IsReadingEmptyVisible}"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      MaxWidth="440"
+                      Margin="16"
+                      Spacing="8">
+            <TextBlock Text="{Binding ReadingEmptyHeading}"
+                       AutomationProperties.AutomationId="Reading.Empty.Heading"
+                       Classes="ogma-display"
+                       FontSize="{DynamicResource Type.Size.Title}"
+                       FontWeight="SemiBold"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <TextBlock Text="{Binding ReadingEmptyBody}"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <WrapPanel HorizontalAlignment="Center" ItemSpacing="8" LineSpacing="8" Margin="0,8,0,0">
+              <Button Classes="tool primary"
+                      IsVisible="{Binding CanResumeLastBook}"
+                      AutomationProperties.AutomationId="Reading.Empty.Resume"
+                      AutomationProperties.Name="{Binding ReadingResumeLabel}"
+                      Click="ResumeLastBook_Click">
+                <TextBlock Text="{Binding ReadingResumeLabel}" />
+              </Button>
+              <Button Classes="tool"
+                      AutomationProperties.AutomationId="Reading.Empty.GoToLibrary"
+                      AutomationProperties.Name="{Binding GoToLibraryLabel}"
+                      Click="LibraryButton_Click">
+                <TextBlock Text="{Binding GoToLibraryLabel}" />
+              </Button>
+            </WrapPanel>
+          </StackPanel>
+          <Panel IsVisible="{Binding IsSplitViewActive}">
+            <reader:SplitViewView DataContext="{Binding SplitView}" />
+          </Panel>
+
+          <!-- Advisor (ask and reading plan), with the honest "set up AI" state (G7, K17) -->
+          <Grid RowDefinitions="Auto,*" IsVisible="{Binding IsAdvisorDestination}">
+            <Border Grid.Row="0"
+                    IsVisible="{Binding IsAdvisorSetupNeeded}"
+                    Margin="16,12,16,0"
+                    Padding="16,12"
+                    CornerRadius="{DynamicResource Radius.M}"
+                    Background="{DynamicResource Brush.Surface.Card}"
+                    BorderBrush="{DynamicResource Brush.Accent.Ink}"
+                    BorderThickness="1">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           Text="{Binding AdvisorSetupHeading}"
+                           AutomationProperties.AutomationId="Advisor.Setup.Heading"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           Margin="0,4,12,0"
+                           Text="{Binding AdvisorSetupBody}"
+                           TextWrapping="Wrap"
+                           FontSize="{DynamicResource Type.Size.Small}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <Button Grid.Row="0"
+                        Grid.RowSpan="2"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Classes="tool primary"
+                        AutomationProperties.AutomationId="Advisor.SettingsRoute"
+                        AutomationProperties.Name="{Binding AdvisorSetupAction}"
+                        Click="AdvisorSettingsRoute_Click">
+                  <TextBlock Text="{Binding AdvisorSetupAction}" />
+                </Button>
+              </Grid>
+            </Border>
+            <Panel Grid.Row="1" IsVisible="{Binding IsAdvisorActive}">
+              <ai:RecommendationPanelView DataContext="{Binding Advisor}" />
+            </Panel>
+            <Panel Grid.Row="1" IsVisible="{Binding IsReadingPlanActive}">
+              <ai:ReadingPlanView DataContext="{Binding ReadingPlan}" />
+            </Panel>
+          </Grid>
+
+          <!-- Collections -->
+          <shell:CollectionsView IsVisible="{Binding IsCollectionsActive}" />
+
+          <!-- Activity: index and background jobs -->
+          <Panel IsVisible="{Binding IsActivityActive}">
+            <search:IndexManagerPanelView DataContext="{Binding IndexManager}" />
+          </Panel>
+
+          <!-- Classroom (only when the capability is on) -->
+          <Panel IsVisible="{Binding IsSharingSettingsActive}">
+            <settings:SharingSettingsView DataContext="{Binding HostSharing}" />
+          </Panel>
+          <Panel IsVisible="{Binding IsStudentSmartSearchActive}">
+            <classroom:StudentSmartSearchView DataContext="{Binding StudentSmartSearch}" />
+          </Panel>
+
+          <!-- Settings overview (content arrives in Phase 08) -->
+          <shell:SettingsOverviewView IsVisible="{Binding IsSettingsActive}" />
         </Panel>
 
-        <Panel IsVisible="{Binding IsSplitViewActive}">
-          <reader:SplitViewView DataContext="{Binding SplitView}" />
-        </Panel>
+        <!-- Library drawer: exactly one of Filter, Folders, Relocation reviews -->
+        <Border Grid.Column="1"
+                Width="340"
+                IsVisible="{Binding IsDrawerOpen}"
+                Background="{DynamicResource Brush.Surface.Footer}"
+                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderThickness="1,0,0,0"
+                AutomationProperties.AutomationId="Shell.Drawer">
+          <Grid RowDefinitions="Auto,*">
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,Auto"
+                  Margin="14,10,8,4"
+                  IsVisible="{Binding IsDrawerHeaderVisible}">
+              <TextBlock Grid.Column="0"
+                         Text="{Binding DrawerTitle}"
+                         AutomationProperties.AutomationId="Shell.Drawer.Title"
+                         FontSize="{DynamicResource Type.Size.Subtitle}"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <Button Grid.Column="1"
+                      Classes="tool"
+                      AutomationProperties.AutomationId="Shell.Drawer.Close"
+                      AutomationProperties.Name="{Binding CloseDrawerLabel}"
+                      ToolTip.Tip="{Binding CloseDrawerLabel}"
+                      Click="CloseDrawer_Click">
+                <TextBlock Text="×" />
+              </Button>
+            </Grid>
 
-        <Panel IsVisible="{Binding IsStudentSmartSearchActive}">
-          <classroom:StudentSmartSearchView DataContext="{Binding StudentSmartSearch}" />
-        </Panel>
+            <!-- Filter drawer -->
+            <StackPanel Grid.Row="1"
+                        Margin="14,4,14,14"
+                        Spacing="10"
+                        IsVisible="{Binding IsFilterPanelOpen}">
+              <TextBox Text="{Binding Catalogue.Filter.TitleSearch, Mode=TwoWay}"
+                       Watermark="{Binding FilterTitleWatermark}"
+                       AutomationProperties.AutomationId="Catalogue.Filter.Title"
+                       AutomationProperties.Name="{Binding FilterTitleWatermark}" />
+              <TextBox Text="{Binding Catalogue.Filter.AuthorSearch, Mode=TwoWay}"
+                       Watermark="{Binding FilterAuthorWatermark}"
+                       AutomationProperties.AutomationId="Catalogue.Filter.Author"
+                       AutomationProperties.Name="{Binding FilterAuthorWatermark}" />
+              <Button Classes="tool"
+                      AutomationProperties.AutomationId="Catalogue.Filter.ClearDrawer"
+                      AutomationProperties.Name="{Binding ClearFiltersText}"
+                      Click="ClearFilters_Click">
+                <TextBlock Text="{Binding ClearFiltersText}" />
+              </Button>
+            </StackPanel>
 
-        <Panel IsVisible="{Binding IsAdvisorActive}">
-          <ai:RecommendationPanelView DataContext="{Binding Advisor}" />
-        </Panel>
+            <!-- Library folders drawer (Phase 08 moves this into Settings) -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding IsFoldersDrawerOpen}">
+              <cat:LibraryFoldersPanelView DataContext="{Binding LibraryFolders}" />
+            </ScrollViewer>
 
-        <Panel IsVisible="{Binding IsReadingPlanActive}">
-          <ai:ReadingPlanView DataContext="{Binding ReadingPlan}" />
-        </Panel>
-
-        <Panel IsVisible="{Binding IsBookshelf3DActive}">
-          <shelf3d:Bookshelf3DView DataContext="{Binding Bookshelf3D}" />
-        </Panel>
-
-        <Panel IsVisible="{Binding IsSharingSettingsActive}">
-          <settings:SharingSettingsView DataContext="{Binding HostSharing}" />
-        </Panel>
-
+            <!-- Relocation reviews drawer -->
+            <Panel Grid.Row="0"
+                   Grid.RowSpan="2"
+                   IsVisible="{Binding IsReconciliationReviewPanelOpen}">
+              <cat:ReconciliationReviewPanelView Margin="8"
+                                                 DataContext="{Binding ReconciliationReviews}"
+                                                 CloseRequested="ReconciliationReviewPanel_CloseRequested" />
+            </Panel>
+          </Grid>
+        </Border>
       </Grid>
 
-      <!-- Bounded catalogue paging keeps large result sets responsive while
-           retaining the same virtualized grid/list/directory surfaces. -->
-      <Border Grid.Row="5"
+      <!-- Bounded catalogue paging keeps large result sets responsive. -->
+      <Border Grid.Row="3"
               IsVisible="{Binding IsPagerVisible}"
               Background="{DynamicResource Brush.Surface.Footer}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
@@ -563,207 +721,56 @@
               Padding="12,6">
         <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
           <Button Grid.Column="0"
-                  Padding="10,5"
+                  Classes="tool"
                   IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
                   AutomationProperties.AutomationId="Catalogue.Pager.Previous"
                   AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
                   Click="PreviousPage_Click">
             <TextBlock Text="{Binding Catalogue.PreviousPageText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
+                       FontSize="{DynamicResource Type.Size.Small}" />
           </Button>
           <TextBlock Grid.Column="1"
                      Text="{Binding Catalogue.PageSummaryText}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"
-                     FontSize="{DynamicResource Type.Size.Caption}"
+                     FontSize="{DynamicResource Type.Size.Small}"
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           <Button Grid.Column="2"
-                  Padding="10,5"
+                  Classes="tool"
                   IsEnabled="{Binding Catalogue.CanGoToNextPage}"
                   AutomationProperties.AutomationId="Catalogue.Pager.Next"
                   AutomationProperties.Name="{Binding Catalogue.NextPageText}"
                   Click="NextPage_Click">
             <TextBlock Text="{Binding Catalogue.NextPageText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
+                       FontSize="{DynamicResource Type.Size.Small}" />
           </Button>
         </Grid>
       </Border>
     </Grid>
 
-    <!-- ─── Book detail panel ─────────────────────────────────────── -->
-    <Border Grid.Row="0"
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Bottom"
-            Width="360"
-            Margin="0,0,16,16"
-            Padding="14"
-            Background="{DynamicResource Brush.Surface.Parchment}"
-            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-            BorderThickness="1"
-            CornerRadius="{DynamicResource Radius.S}"
-            DataContext="{Binding HostSharing}"
-            IsVisible="False"
-            x:CompileBindings="False">
-      <StackPanel Spacing="10">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Grid.Column="0"
-                     Text="{Binding SharePanelTitle, FallbackValue='Share Library Host'}"
-                     FontSize="{DynamicResource Type.Size.Subtitle}"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                     VerticalAlignment="Center" />
-          <Button Grid.Column="1"
-                  Padding="8,4"
-                  Background="Transparent"
-                  BorderThickness="0"
-                  AutomationProperties.Name="{Binding CloseSharePanelText}"
-                  Click="HostCloseSharePanelButton_Click">
-            <TextBlock Text="x"
-                       FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          </Button>
-        </Grid>
-
-        <TextBlock Text="{Binding SharePanelSubtitle, FallbackValue='Start the Host before sharing.'}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                   TextWrapping="Wrap" />
-
-        <Border HorizontalAlignment="Center"
-                Background="White"
-                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                BorderThickness="1"
-                Padding="8">
-          <TextBlock Text="{Binding QrCodeText}"
-                     FontFamily="Consolas, Menlo, monospace"
-                     FontSize="3"
-                     LineHeight="3"
-                     Foreground="Black" />
-        </Border>
-
-        <TextBox Text="{Binding ManualJoinUri, Mode=OneWay}"
-                 IsReadOnly="True"
-                 FontSize="{DynamicResource Type.Size.Caption}"
-                 TextWrapping="NoWrap"
-                 AutomationProperties.Name="LAN Host join link" />
-
-        <TextBlock Text="{Binding EnrollmentCodeText}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource Brush.Accent.Slate}"
-                   TextWrapping="Wrap"
-                   AutomationProperties.Name="LAN Host enrollment code" />
-
-        <TextBlock Text="{Binding FullFingerprintText}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   Foreground="{DynamicResource Brush.Accent.Slate}"
-                   TextWrapping="Wrap" />
-
-        <TextBlock Text="{Binding ShareConfirmationText}"
-                   IsVisible="{Binding HasShareConfirmation}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   Foreground="{DynamicResource Brush.Accent.Sage}"
-                   TextWrapping="Wrap" />
-
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Spacing="8">
-          <Button Padding="10,5"
-                  Background="{DynamicResource Brush.Accent.Slate}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding CopyJoinLinkText}"
-                  Click="HostCopyJoinLinkButton_Click">
-            <TextBlock Text="{Binding CopyJoinLinkText, FallbackValue='Copy join link'}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="10,5"
-                  Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding CopyFingerprintText}"
-                  Click="HostCopyFingerprintButton_Click">
-            <TextBlock Text="{Binding CopyFingerprintText, FallbackValue='Copy fingerprint'}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-        </StackPanel>
-      </StackPanel>
-    </Border>
-
-    <Border Grid.Row="0"
-            Grid.Column="1"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Bottom"
-            Width="360"
-            Margin="0,0,16,92"
-            Padding="12"
-            Background="{DynamicResource Brush.Surface.Parchment}"
-            BorderBrush="{DynamicResource Brush.Accent.Sage}"
-            BorderThickness="1"
-            CornerRadius="{DynamicResource Radius.S}"
-            DataContext="{Binding HostSharing}"
-            IsVisible="False"
-            x:CompileBindings="False">
-      <StackPanel Spacing="8">
-        <TextBlock Text="{Binding StartConfirmationText, FallbackValue='Starting Host mode opens this library to authenticated devices on your local network.'}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                   TextWrapping="Wrap" />
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Spacing="8">
-          <Button Padding="10,5"
-                  Background="Transparent"
-                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding CancelConfirmationText}"
-                  Click="HostCancelStartConfirmationButton_Click">
-            <TextBlock Text="{Binding CancelConfirmationText, FallbackValue='Cancel'}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="10,5"
-                  Background="{DynamicResource Brush.Accent.Sage}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding ConfirmStartText}"
-                  Click="HostConfirmStartButton_Click">
-            <TextBlock Text="{Binding ConfirmStartText, FallbackValue='Start Host'}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-        </StackPanel>
-      </StackPanel>
-    </Border>
-
-    <cat:BookDetailView Grid.Row="0"
-                        AutomationProperties.AutomationId="Detail.Panel"
+    <!-- ─── Inspector (focus order 3); overlays the content below 1280 px ─ -->
+    <cat:BookDetailView x:Name="Inspector"
+                        Grid.Row="0"
                         Grid.Column="2"
+                        AutomationProperties.AutomationId="Detail.Panel"
                         DataContext="{Binding BookDetail}"
                         IsVisible="{Binding IsVisible}"
                         x:CompileBindings="False" />
 
+    <!-- ─── Status bar ─────────────────────────────────────────────────── -->
     <Border Grid.Row="1"
             Grid.ColumnSpan="3"
             Background="{DynamicResource Brush.Surface.Footer}"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,1,0,0"
             Padding="12,6">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-        <!-- Sept-23 Phase 05 (T05.11): offer to add a loose book's folder. -->
-        <Button Grid.Column="3"
-                Padding="8,3"
-                Margin="10,0,0,0"
-                IsVisible="{Binding IsAddLooseFolderVisible}"
-                AutomationProperties.Name="{Binding AddLooseFolderText}"
-                Click="AddLooseFolder_Click">
-          <TextBlock Text="{Binding AddLooseFolderText}"
-                     FontSize="{DynamicResource Type.Size.Caption}" />
-        </Button>
+      <Grid ColumnDefinitions="*,Auto,Auto">
         <TextBlock Grid.Column="0"
                    AutomationProperties.AutomationId="Shell.Status"
+                   AutomationProperties.LiveSetting="Polite"
                    Text="{Binding StatusText}"
-                   FontSize="{DynamicResource Type.Size.Caption}"
+                   TextTrimming="CharacterEllipsis"
+                   FontSize="{DynamicResource Type.Size.Small}"
                    Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                    VerticalAlignment="Center" />
 
@@ -772,7 +779,7 @@
                 Background="{DynamicResource Brush.Accent.Clay}"
                 CornerRadius="{DynamicResource Radius.S}"
                 Padding="8,3"
-                Margin="0,0,10,0"
+                Margin="10,0,0,0"
                 VerticalAlignment="Center"
                 AutomationProperties.Name="{Binding ClassroomOfflineAutomationName}">
           <StackPanel Orientation="Horizontal"
@@ -787,59 +794,18 @@
           </StackPanel>
         </Border>
 
-        <StackPanel Grid.Column="2"
-                    Orientation="Horizontal"
-                    Spacing="8"
-                    VerticalAlignment="Center"
-                    IsVisible="False">
-          <TextBlock Text="{Binding HostSharing.Title}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                     VerticalAlignment="Center" />
-          <TextBlock Text="{Binding HostSharing.StatusText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     VerticalAlignment="Center" />
-          <TextBlock Text="{Binding HostSharing.ClientCountText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     VerticalAlignment="Center" />
-          <TextBlock Text="{Binding HostSharing.FingerprintText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Accent.Slate}"
-                     VerticalAlignment="Center" />
-          <Button Padding="8,3"
-                  Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  IsEnabled="{Binding HostSharing.CanShare}"
-                  AutomationProperties.Name="{Binding HostSharing.ShareButtonText}"
-                  Click="HostShareButton_Click">
-            <TextBlock Text="{Binding HostSharing.ShareButtonText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="8,3"
-                  Background="{DynamicResource Brush.Accent.Sage}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  IsEnabled="{Binding HostSharing.CanStart}"
-                  AutomationProperties.Name="Start Library Host"
-                  Click="HostStartButton_Click">
-            <TextBlock Text="Start"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <Button Padding="8,3"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  IsEnabled="{Binding HostSharing.CanStop}"
-                  AutomationProperties.Name="Stop Library Host"
-                  Click="HostStopButton_Click">
-            <TextBlock Text="Stop"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-        </StackPanel>
+        <!-- Sept-23 Phase 05 (T05.11): offer to add a loose book's folder. -->
+        <Button Grid.Column="2"
+                Classes="tool"
+                MinHeight="28"
+                Padding="8,3"
+                Margin="10,0,0,0"
+                IsVisible="{Binding IsAddLooseFolderVisible}"
+                AutomationProperties.Name="{Binding AddLooseFolderText}"
+                Click="AddLooseFolder_Click">
+          <TextBlock Text="{Binding AddLooseFolderText}"
+                     FontSize="{DynamicResource Type.Size.Small}" />
+        </Button>
       </Grid>
     </Border>
 

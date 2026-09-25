@@ -1,271 +1,377 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.Views.Shell;
+using OgmaLibrary.Application.Navigation;
 
 namespace OgmaLibrary.App.Views.Catalogue;
 
-/// <summary>Code-behind for the main catalogue shell (FR-CAT-001).</summary>
+/// <summary>
+/// Code-behind for the routed shell (FR-CAT-001; Sept-23 Phase 07). It forwards input to the
+/// view model, keeps the responsive state in step with the width, builds the "More" menu from
+/// the overflowed toolbar items and restores the catalogue scroll position on Back.
+/// </summary>
 public partial class CatalogueShellView : UserControl
 {
+    private MainShellViewModel? _viewModel;
+
     /// <summary>Initializes a new instance of <see cref="CatalogueShellView"/>.</summary>
     public CatalogueShellView()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+        SizeChanged += OnSizeChanged;
+        AddHandler(PointerPressedEvent, OnShellPointerPressed, RoutingStrategies.Tunnel);
     }
 
-    private void SidebarToggle_Click(object? sender, RoutedEventArgs e)
+    private MainShellViewModel? ViewModel => DataContext as MainShellViewModel;
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is MainShellViewModel vm)
+        if (_viewModel is not null)
         {
-            vm.ToggleSidebar();
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.Navigation.Changed -= OnNavigationChanged;
+            _viewModel.Navigation.ScrollOffsetProvider = null;
         }
-    }
 
-    private void FilterToggle_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
+        _viewModel = DataContext as MainShellViewModel;
+        if (_viewModel is not null)
         {
-            vm.ToggleFilterPanel();
-        }
-    }
-
-    private void SearchToggle_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.ToggleSearchPanel();
-            if (vm.IsSearchPanelOpen)
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.Navigation.Changed += OnNavigationChanged;
+            _viewModel.Navigation.ScrollOffsetProvider = () => CatalogueScrollViewer()?.Offset.Y ?? 0;
+            if (Bounds.Width > 0)
             {
-                FocusSearchPanel();
+                _viewModel.UpdateShellWidth(Bounds.Width);
             }
+
+            ApplyInspectorLayout();
         }
     }
 
-    private void AddLooseFolder_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(
-            async () =>
-            {
-                if (DataContext is MainShellViewModel vm)
-                {
-                    await vm.AddLooseFolderAsync().ConfigureAwait(true);
-                }
-            },
-            "catalogue.add_loose_folder_click");
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e) =>
+        ViewModel?.UpdateShellWidth(e.NewSize.Width);
 
-    private void IndexManagerToggle_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => IndexManagerToggle_ClickAsync(sender, e), "catalogue.index_manager_toggle_click");
-
-    private async Task IndexManagerToggle_ClickAsync(object? sender, RoutedEventArgs e)
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (DataContext is MainShellViewModel vm)
+        if (e.PropertyName == nameof(MainShellViewModel.IsInspectorOverlay))
         {
-            await vm.ToggleIndexManagerAsync().ConfigureAwait(true);
+            ApplyInspectorLayout();
         }
     }
 
-    private void CatalogueShellView_KeyDown(object? sender, KeyEventArgs e)
+    /// <summary>Below 1280 px the inspector overlays the content instead of taking a column.</summary>
+    private void ApplyInspectorLayout()
     {
-        if (DataContext is not MainShellViewModel vm)
+        if (ViewModel is not { } vm)
         {
             return;
         }
 
-        if (e.Key == Key.F5)
+        Grid.SetColumn(Inspector, vm.IsInspectorOverlay ? 1 : 2);
+        Inspector.HorizontalAlignment = vm.IsInspectorOverlay
+            ? Avalonia.Layout.HorizontalAlignment.Right
+            : Avalonia.Layout.HorizontalAlignment.Stretch;
+        Inspector.ZIndex = vm.IsInspectorOverlay ? 1 : 0;
+    }
+
+    private void OnNavigationChanged(object? sender, NavigationChangedEventArgs e)
+    {
+        if (e.Current.Kind == RouteKind.Search)
         {
-            // Sept-23 Phase 05 (T05.8): keyboard access to Rescan library.
-            UiActions.Run(vm.RescanLibraryAsync, "catalogue.rescan_key");
+            FocusSearchPanel();
+        }
+
+        if (e.IsHistoryMove && e.Current.Kind == RouteKind.Library && e.RestoredScrollOffset > 0)
+        {
+            double offset = e.RestoredScrollOffset;
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (CatalogueScrollViewer() is { } scroller)
+                    {
+                        scroller.Offset = scroller.Offset.WithY(offset);
+                    }
+                },
+                DispatcherPriority.Background);
+        }
+    }
+
+    private ScrollViewer? CatalogueScrollViewer() =>
+        this.GetVisualDescendants()
+            .OfType<ScrollViewer>()
+            .FirstOrDefault(scroller => scroller.IsEffectivelyVisible &&
+                                        (scroller.FindAncestorOfType<CatalogueGridView>() is not null ||
+                                         scroller.FindAncestorOfType<CatalogueListView>() is not null));
+
+    private void OnShellPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ViewModel is not { } vm)
+        {
+            return;
+        }
+
+        PointerPointProperties properties = e.GetCurrentPoint(this).Properties;
+        if (properties.IsXButton1Pressed)
+        {
+            vm.GoBack();
             e.Handled = true;
+        }
+        else if (properties.IsXButton2Pressed)
+        {
+            vm.GoForward();
+            e.Handled = true;
+        }
+    }
+
+    // ── Keyboard map (UX-005) ──────────────────────────────────────────────────
+
+    private void CatalogueShellView_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (ViewModel is not { } vm || e.Handled)
+        {
             return;
         }
 
         if (e.Key == Key.Escape)
         {
-            if (vm.IsSearchPanelOpen)
+            if (vm.CloseDrawer())
+            {
+                e.Handled = true;
+            }
+            else if (vm.IsSearchActive)
             {
                 vm.IsSearchPanelOpen = false;
                 e.Handled = true;
-                return;
-            }
-
-            if (vm.IsIndexManagerOpen)
-            {
-                vm.IsIndexManagerOpen = false;
-                e.Handled = true;
             }
 
             return;
         }
 
-        if (!(e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) ||
-            e.Key is not (Key.F or Key.K))
+        if (vm.TryExecuteGesture(e.Key, e.KeyModifiers, TopLevel.GetTopLevel(this)))
+        {
+            e.Handled = true;
+        }
+    }
+
+    private void Rail_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Up or Key.Down or Key.Home or Key.End) || e.KeyModifiers != KeyModifiers.None)
         {
             return;
         }
 
-        if (!vm.IsSearchPanelOpen)
+        List<Button> items = RailList.GetVisualDescendants()
+            .OfType<Button>()
+            .Where(button => button.IsEffectivelyVisible)
+            .ToList();
+        if (items.Count == 0)
         {
-            vm.ToggleSearchPanel();
+            return;
         }
 
-        FocusSearchPanel();
+        int current = items.FindIndex(button => button.IsFocused);
+        int next = e.Key switch
+        {
+            Key.Home => 0,
+            Key.End => items.Count - 1,
+            Key.Up => current <= 0 ? items.Count - 1 : current - 1,
+            _ => current < 0 || current >= items.Count - 1 ? 0 : current + 1,
+        };
+        items[next].Focus(NavigationMethod.Directional);
         e.Handled = true;
     }
 
     private void FocusSearchPanel() =>
-        Dispatcher.UIThread.Post(() => SearchPanel.FocusSearchBox());
+        Dispatcher.UIThread.Post(() => SearchPanel.FocusSearchBox(), DispatcherPriority.Input);
 
-    private void ClearFilters_Click(object? sender, RoutedEventArgs e)
+    // ── Rail ──────────────────────────────────────────────────────────────────
+
+    private void RailItem_Click(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is MainShellViewModel vm)
+        if (sender is Button { DataContext: RailItemViewModel item })
         {
-            vm.Catalogue.Filter.ClearAll();
+            ViewModel?.NavigateTo(item.Destination);
         }
     }
 
-    private void ReconciliationReviewToggle_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => ReconciliationReviewToggle_ClickAsync(sender, e), "catalogue.reconciliation_review_toggle_click");
+    private void ToggleRail_Click(object? sender, RoutedEventArgs e) => ViewModel?.ToggleRail();
 
-    private async Task ReconciliationReviewToggle_ClickAsync(object? sender, RoutedEventArgs e)
+    // ── Library toolbar and More menu ───────────────────────────────────────────
+
+    private void LibraryMoreFlyout_Opening(object? sender, EventArgs e)
     {
-        if (DataContext is MainShellViewModel vm)
+        if (sender is not MenuFlyout flyout || ViewModel is not { } vm)
         {
-            await vm.ToggleReconciliationReviewsAsync().ConfigureAwait(true);
+            return;
+        }
+
+        var items = new List<MenuItem>();
+        foreach (Control child in LibraryToolbar.OverflowedChildren)
+        {
+            if (child == SortGroup)
+            {
+                items.Add(SortMenu(vm));
+                continue;
+            }
+
+            foreach (Button button in ButtonsOf(child))
+            {
+                items.Add(MenuFor(button));
+            }
+        }
+
+        items.Add(Command(vm.OpenPdfText, "Shell.More.OpenPdf", () => OpenPdfButton_Click(LibraryMoreButton, new RoutedEventArgs())));
+        if (vm.ReconciliationReviews is not null)
+        {
+            items.Add(Command(vm.ReconciliationReviewLabel, "Shell.More.Reconciliation", () =>
+                UiActions.Run(() => vm.ToggleReconciliationReviewsAsync(), "catalogue.reconciliation_review_toggle_click")));
+        }
+
+        if (vm.ExportDiagnostics is not null)
+        {
+            items.Add(Command(vm.ExportDiagnosticsLabel, "Shell.More.ExportDiagnostics", () =>
+                UiActions.Run(() => vm.ExecuteCommandAsync("app.export-diagnostics", TopLevel.GetTopLevel(this)), "shell.more.export_diagnostics")));
+        }
+
+        flyout.Items.Clear();
+        foreach (MenuItem item in items)
+        {
+            flyout.Items.Add(item);
         }
     }
 
-    private void ReconciliationReviewPanel_CloseRequested(object? sender, EventArgs e)
+    private static IEnumerable<Button> ButtonsOf(Control child) =>
+        child is Button button
+            ? [button]
+            : child.GetLogicalDescendants().OfType<Button>().Where(candidate => candidate.IsVisible);
+
+    private static MenuItem MenuFor(Button button)
     {
-        if (DataContext is MainShellViewModel vm)
+        string name = AutomationPropertiesName(button);
+        var item = new MenuItem { Header = name };
+        Avalonia.Automation.AutomationProperties.SetName(item, name);
+        if (Avalonia.Automation.AutomationProperties.GetAutomationId(button) is { Length: > 0 } id)
         {
-            vm.CloseReconciliationReviews();
+            Avalonia.Automation.AutomationProperties.SetAutomationId(item, "Shell.More." + id);
+        }
+
+        item.Click += (_, _) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, button));
+        return item;
+    }
+
+    private static MenuItem Command(string label, string automationId, Action action)
+    {
+        var item = new MenuItem { Header = label };
+        Avalonia.Automation.AutomationProperties.SetName(item, label);
+        Avalonia.Automation.AutomationProperties.SetAutomationId(item, automationId);
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    private static MenuItem SortMenu(MainShellViewModel vm)
+    {
+        var sort = new MenuItem { Header = vm.SortLabel };
+        Avalonia.Automation.AutomationProperties.SetName(sort, vm.SortLabel);
+        Avalonia.Automation.AutomationProperties.SetAutomationId(sort, "Shell.More.Sort");
+        var children = new List<MenuItem>();
+        foreach (CatalogueSortField field in vm.Catalogue.Filter.SortOptions)
+        {
+            CatalogueSortField captured = field;
+            children.Add(Command(field.ToString(), "Shell.More.Sort." + field, () => vm.Catalogue.Filter.SortField = captured));
+        }
+
+        children.Add(Command(vm.Catalogue.Filter.SortDirectionText, "Shell.More.SortDirection", vm.Catalogue.Filter.ToggleSortDirection));
+        sort.ItemsSource = children;
+        return sort;
+    }
+
+    private static string AutomationPropertiesName(Control control) =>
+        Avalonia.Automation.AutomationProperties.GetName(control) ?? string.Empty;
+
+    private void FilterToggle_Click(object? sender, RoutedEventArgs e) => ViewModel?.ToggleFilterPanel();
+
+    private void FoldersToggle_Click(object? sender, RoutedEventArgs e) => ViewModel?.ToggleFoldersDrawer();
+
+    private void CloseDrawer_Click(object? sender, RoutedEventArgs e) => ViewModel?.CloseDrawer();
+
+    private void Rescan_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ViewModel?.RescanLibraryAsync() ?? Task.CompletedTask, "catalogue.rescan_click");
+
+    private void RemoveFilterChip_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: FilterChip chip })
+        {
+            ViewModel?.RemoveFilter(chip.Id);
         }
     }
 
-    private void ToggleSortDirection_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.Catalogue.Filter.ToggleSortDirection();
-        }
-    }
+    private void ClearFilters_Click(object? sender, RoutedEventArgs e) => ViewModel?.Catalogue.Filter.ClearAll();
 
-    private void PreviousPage_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.Catalogue.GoToPreviousPage();
-        }
-    }
+    private void ToggleSortDirection_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel?.Catalogue.Filter.ToggleSortDirection();
 
-    private void NextPage_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.Catalogue.GoToNextPage();
-        }
-    }
+    private void GridViewButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.ShowLibraryView(CatalogueView.Grid);
 
-    private void GridViewButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.Catalogue.CurrentView = CatalogueView.Grid;
-        }
-    }
+    private void ListViewButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.ShowLibraryView(CatalogueView.List);
 
-    private void LibraryButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => LibraryButton_ClickAsync(sender, e), "catalogue.library_button_click");
+    private void DirectoryViewButton_Click(object? sender, RoutedEventArgs e) =>
+        ViewModel?.ShowLibraryView(CatalogueView.Directory);
 
-    private async Task LibraryButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            await vm.ReturnToLibraryAsync().ConfigureAwait(true);
-        }
-    }
+    private void Bookshelf3DButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenBookshelf3D();
 
-    private void ListViewButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.Catalogue.CurrentView = CatalogueView.List;
-        }
-    }
+    private void ReconciliationReviewPanel_CloseRequested(object? sender, EventArgs e) =>
+        ViewModel?.CloseReconciliationReviews();
 
-    private void DirectoryViewButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.Catalogue.CurrentView = CatalogueView.Directory;
-        }
-    }
+    private void PreviousPage_Click(object? sender, RoutedEventArgs e) => ViewModel?.Catalogue.GoToPreviousPage();
 
-    private void SplitViewButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.OpenSplitViewScaffold();
-        }
-    }
+    private void NextPage_Click(object? sender, RoutedEventArgs e) => ViewModel?.Catalogue.GoToNextPage();
 
-    private void StudentSmartSearchButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.OpenStudentSmartSearch();
-        }
-    }
+    // ── Destination actions ─────────────────────────────────────────────────────
 
-    private void AdvisorButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.OpenAdvisor();
-        }
-    }
+    private void LibraryButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenCatalogue();
 
-    private void ReadingPlanButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.OpenReadingPlan();
-        }
-    }
+    private void BackToLibrary_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ViewModel?.ReturnToLibraryAsync() ?? Task.CompletedTask, "catalogue.library_button_click");
 
-    private void Bookshelf3DButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            vm.OpenBookshelf3D();
-        }
-    }
+    private void ResumeLastBook_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ViewModel?.ResumeLastBookAsync() ?? Task.CompletedTask, "reading.resume_click");
+
+    private void SplitViewButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenSplitView();
+
+    private void AdvisorButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenAdvisor();
+
+    private void ReadingPlanButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenReadingPlan();
+
+    private void AdvisorSettingsRoute_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenSettings("ai");
+
+    private void ShowCollection_Click(object? sender, RoutedEventArgs e) => ViewModel?.ShowSelectedCollectionInLibrary();
+
+    private void StudentSmartSearchButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenStudentSmartSearch();
 
     private void SharingSettingsButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => SharingSettingsButton_ClickAsync(sender, e), "catalogue.sharing_settings_button_click");
+        UiActions.Run(() => ViewModel?.OpenSharingSettingsAsync() ?? Task.CompletedTask, "catalogue.sharing_settings_button_click");
 
-    private async Task SharingSettingsButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            await vm.OpenSharingSettingsAsync().ConfigureAwait(true);
-        }
-    }
+    private void AddLooseFolder_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ViewModel?.AddLooseFolderAsync() ?? Task.CompletedTask, "catalogue.add_loose_folder_click");
 
     private void ChooseFolderButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => ChooseFolderButton_ClickAsync(sender, e), "catalogue.choose_folder_button_click");
+        UiActions.Run(() => ChooseFolderButton_ClickAsync(sender), "catalogue.choose_folder_button_click");
 
-    private async Task ChooseFolderButton_ClickAsync(object? sender, RoutedEventArgs e)
+    private async Task ChooseFolderButton_ClickAsync(object? sender)
     {
-        if (DataContext is MainShellViewModel vm)
+        if (ViewModel is { } vm)
         {
-            var topLevel = ResolveTopLevel(sender);
-
-            if (topLevel is not null)
+            if (ResolveTopLevel(sender) is { } topLevel)
             {
                 await vm.ChooseFolderAsync(topLevel).ConfigureAwait(true);
             }
@@ -277,15 +383,13 @@ public partial class CatalogueShellView : UserControl
     }
 
     private void OpenPdfButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => OpenPdfButton_ClickAsync(sender, e), "catalogue.open_pdf_button_click");
+        UiActions.Run(() => OpenPdfButton_ClickAsync(sender), "catalogue.open_pdf_button_click");
 
-    private async Task OpenPdfButton_ClickAsync(object? sender, RoutedEventArgs e)
+    private async Task OpenPdfButton_ClickAsync(object? sender)
     {
-        if (DataContext is MainShellViewModel vm)
+        if (ViewModel is { } vm)
         {
-            var topLevel = ResolveTopLevel(sender);
-
-            if (topLevel is not null)
+            if (ResolveTopLevel(sender) is { } topLevel)
             {
                 await vm.OpenPdfAsync(topLevel).ConfigureAwait(true);
             }
@@ -294,106 +398,6 @@ public partial class CatalogueShellView : UserControl
                 vm.ReportOpenPdfUnavailable();
             }
         }
-    }
-
-    private void HostStartButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            vm.HostSharing.RequestStartConfirmation();
-        }
-    }
-
-    private void HostConfirmStartButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => HostConfirmStartButton_ClickAsync(sender, e), "catalogue.host_confirm_start_button_click");
-
-    private async Task HostConfirmStartButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            await vm.HostSharing.ConfirmStartAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void HostCancelStartConfirmationButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            vm.HostSharing.CancelStartConfirmation();
-        }
-    }
-
-    private void HostStopButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => HostStopButton_ClickAsync(sender, e), "catalogue.host_stop_button_click");
-
-    private async Task HostStopButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            await vm.HostSharing.StopAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void HostShareButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            vm.HostSharing.OpenSharePanel();
-        }
-    }
-
-    private void HostCloseSharePanelButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            vm.HostSharing.CloseSharePanel();
-        }
-    }
-
-    private void HostCopyJoinLinkButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => HostCopyJoinLinkButton_ClickAsync(sender, e), "catalogue.host_copy_join_link_button_click");
-
-    private async Task HostCopyJoinLinkButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            if (await CopyHostShareTextAsync(sender, vm.HostSharing.ManualJoinUri).ConfigureAwait(true))
-            {
-                vm.HostSharing.MarkJoinLinkCopied();
-            }
-        }
-    }
-
-    private void HostCopyFingerprintButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => HostCopyFingerprintButton_ClickAsync(sender, e), "catalogue.host_copy_fingerprint_button_click");
-
-    private async Task HostCopyFingerprintButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel { HostSharing: not null } vm)
-        {
-            if (await CopyHostShareTextAsync(sender, vm.HostSharing.FullFingerprintText).ConfigureAwait(true))
-            {
-                vm.HostSharing.MarkFingerprintCopied();
-            }
-        }
-    }
-
-    private async Task<bool> CopyHostShareTextAsync(object? sender, string text)
-    {
-        if (DataContext is not MainShellViewModel { HostSharing: not null } vm)
-        {
-            return false;
-        }
-
-        var topLevel = ResolveTopLevel(sender);
-        if (topLevel?.Clipboard is null)
-        {
-            vm.HostSharing.ReportClipboardUnavailable();
-            return false;
-        }
-
-        await topLevel.Clipboard.SetTextAsync(text).ConfigureAwait(true);
-        return true;
     }
 
     private TopLevel? ResolveTopLevel(object? sender)
@@ -414,38 +418,5 @@ public partial class CatalogueShellView : UserControl
         }
 
         return null;
-    }
-
-    private void CreateShelf_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => CreateShelf_ClickAsync(sender, e), "catalogue.create_shelf_click");
-
-    private async Task CreateShelf_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            await vm.ShelfSidebar.CreateNewShelfAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void DeleteShelf_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => DeleteShelf_ClickAsync(sender, e), "catalogue.delete_shelf_click");
-
-    private async Task DeleteShelf_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            await vm.ShelfSidebar.DeleteSelectedShelfAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void RenameShelf_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => RenameShelf_ClickAsync(sender, e), "catalogue.rename_shelf_click");
-
-    private async Task RenameShelf_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainShellViewModel vm)
-        {
-            await vm.ShelfSidebar.RenameSelectedShelfAsync().ConfigureAwait(true);
-        }
     }
 }

@@ -162,12 +162,12 @@ public sealed partial class ShellReaderNavigationTests
             Assert.False(string.IsNullOrWhiteSpace(name), $"{control.GetType().Name} lacks an automation name.");
         });
 
-        Control sidebarToggle = Assert.Single(interactiveControls, control =>
+        Control railToggle = Assert.Single(interactiveControls, control =>
             control is Button &&
             control.GetValue(Avalonia.Automation.AutomationProperties.NameProperty) as string ==
-                shell.SidebarToggleLabel);
-        sidebarToggle.Focus();
-        Assert.True(sidebarToggle.IsFocused, "The visible sidebar toggle did not accept keyboard focus.");
+                shell.RailToggleLabel);
+        railToggle.Focus();
+        Assert.True(railToggle.IsFocused, "The visible navigation-rail toggle did not accept keyboard focus.");
 
         window.Close();
         shell.Dispose();

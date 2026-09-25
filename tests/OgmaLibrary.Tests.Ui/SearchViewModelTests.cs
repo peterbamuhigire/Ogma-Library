@@ -198,7 +198,7 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
-    public void SearchBar_CtrlK_Opens()
+    public void SearchBar_CtrlF_OpensSearchAndCtrlK_OpensPalette()
     {
         var localization = new InMemoryLocalizationService();
         var readModel = new EmptyCatalogueReadModel();
@@ -230,7 +230,8 @@ public sealed class SearchViewModelTests
         view.Focus();
         Dispatcher.UIThread.RunJobs();
 
-        window.KeyPressQwerty(PhysicalKey.K, RawInputModifiers.Control);
+        // Sept-23 Phase 07 (T07.8): Ctrl+F is search in context; Ctrl+K opens the palette.
+        window.KeyPressQwerty(PhysicalKey.F, RawInputModifiers.Control);
         Dispatcher.UIThread.RunJobs();
 
         Assert.True(shell.IsSearchPanelOpen);
@@ -238,6 +239,13 @@ public sealed class SearchViewModelTests
         window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
 
+        Assert.False(shell.IsSearchPanelOpen);
+
+        view.Focus();
+        window.KeyPressQwerty(PhysicalKey.K, RawInputModifiers.Control);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shell.IsCommandPaletteOpen);
         Assert.False(shell.IsSearchPanelOpen);
         window.Close();
     }
@@ -264,14 +272,13 @@ public sealed class SearchViewModelTests
 
         shell.OpenCommandPalette();
         Assert.True(shell.IsCommandPaletteOpen);
-        Assert.Contains(shell.CommandPaletteItems, item => item.Id == "search");
+        Assert.Contains(shell.CommandPaletteItems, item => item.Id == "nav.search");
 
         shell.CommandPaletteQuery = "density";
-        Assert.Single(shell.CommandPaletteItems);
-        Assert.Equal("toggle-density", shell.CommandPaletteItems[0].Id);
+        Assert.Equal("view.toggle-density", shell.CommandPaletteItems[0].Id);
 
         shell.CommandPaletteQuery = string.Empty;
-        await shell.ExecuteCommandAsync("search");
+        await shell.ExecuteCommandAsync("nav.search");
         Assert.True(shell.IsSearchPanelOpen);
         Assert.False(shell.IsCommandPaletteOpen);
     }

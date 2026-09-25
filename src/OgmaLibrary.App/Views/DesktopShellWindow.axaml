@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:OgmaLibrary.App.ViewModels"
-        xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+        xmlns:cat="using:OgmaLibrary.App.ViewModels.Catalogue"
+        xmlns:catv="using:OgmaLibrary.App.Views.Catalogue"
         x:Class="OgmaLibrary.App.Views.DesktopShellWindow"
         x:DataType="vm:StartupShellViewModel"
         Title="{Binding Title}"
@@ -13,60 +14,79 @@
 
   <Grid>
     <Grid x:Name="LibrarySurface" IsVisible="{Binding IsLibraryVisible}">
-      <cat:CatalogueShellView DataContext="{Binding MainShell}"
+      <catv:CatalogueShellView DataContext="{Binding MainShell}"
                               x:CompileBindings="False" />
     </Grid>
 
-    <!-- The palette is hosted at window level so it remains available across
-         catalogue, reader, advisor, and classroom routes. -->
+    <!-- Sept-23 Phase 07 (UX-003): the palette is hosted at window level so it is available on
+         every route. A transparent scrim closes it on an outside click; Escape and executing a
+         command close it too. Items come from the shared command registry. -->
+    <Border x:Name="CommandPaletteScrim"
+            IsVisible="{Binding MainShell.IsCommandPaletteOpen}"
+            x:CompileBindings="False"
+            Background="Transparent"
+            PointerPressed="CommandPaletteScrim_PointerPressed" />
     <Border IsVisible="{Binding MainShell.IsCommandPaletteOpen}"
             x:CompileBindings="False"
-            Width="520"
+            Width="560"
             MaxHeight="520"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
-            Margin="0,72,0,0"
+            Margin="16,72,16,0"
             Padding="12"
             Background="{DynamicResource Brush.Surface.Card}"
             BorderBrush="{DynamicResource Brush.Focus}"
             BorderThickness="2"
             CornerRadius="{DynamicResource Radius.L}"
+            AutomationProperties.AutomationId="Shell.Palette"
             AutomationProperties.Name="{Binding MainShell.CommandPaletteTitle}">
-      <StackPanel Spacing="8">
-        <Grid ColumnDefinitions="*,Auto">
+      <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
           <TextBlock Grid.Column="0"
-                   Text="{Binding MainShell.CommandPaletteTitle}"
-                   FontSize="{DynamicResource Type.Size.Subtitle}"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                     Text="{Binding MainShell.CommandPaletteTitle}"
+                     VerticalAlignment="Center"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           <Button Grid.Column="1"
                   Content="×"
                   MinWidth="36"
                   MinHeight="36"
                   Padding="0"
-                  AutomationProperties.Name="Close command palette"
+                  AutomationProperties.AutomationId="Shell.Palette.Close"
+                  AutomationProperties.Name="{Binding MainShell.CommandPaletteCloseLabel}"
                   Click="CommandPaletteCloseButton_Click" />
         </Grid>
         <TextBox x:Name="CommandPaletteBox"
+                 Grid.Row="1"
                  Text="{Binding MainShell.CommandPaletteQuery, Mode=TwoWay}"
                  Watermark="{Binding MainShell.CommandPaletteWatermark}"
+                 AutomationProperties.AutomationId="Shell.Palette.Query"
                  AutomationProperties.Name="{Binding MainShell.CommandPaletteWatermark}"
                  KeyDown="CommandPaletteBox_KeyDown" />
-        <ScrollViewer MaxHeight="400">
-          <ItemsControl ItemsSource="{Binding MainShell.CommandPaletteItems}">
+        <ScrollViewer Grid.Row="2" MaxHeight="400">
+          <ItemsControl x:Name="CommandPaletteList"
+                        ItemsSource="{Binding MainShell.CommandPaletteItems}"
+                        AutomationProperties.AutomationId="Shell.Palette.Results"
+                        KeyDown="CommandPaletteList_KeyDown">
             <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Button HorizontalContentAlignment="Stretch"
+              <DataTemplate x:DataType="cat:CommandPaletteItem">
+                <Button HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        BorderThickness="0"
                         Padding="10,8"
-                        AutomationProperties.Name="{Binding Label}"
+                        AutomationProperties.Name="{Binding AutomationName}"
                         Click="CommandPaletteItem_Click">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Grid.Column="0"
                                Text="{Binding Label}"
                                Foreground="{DynamicResource Brush.Surface.OnParchment}" />
                     <TextBlock Grid.Column="1"
+                               Classes="ogma-mono"
                                Text="{Binding Hint}"
                                Margin="16,0,0,0"
+                               FontSize="{DynamicResource Type.Size.Small}"
                                Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
                   </Grid>
                 </Button>
@@ -74,7 +94,63 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </ScrollViewer>
-      </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Sept-23 Phase 07 (T07.8): the keyboard shortcuts sheet (Ctrl/Cmd+/), generated from
+         the same registry as the palette. -->
+    <Border IsVisible="{Binding MainShell.IsShortcutSheetOpen}"
+            x:CompileBindings="False"
+            Background="Transparent"
+            PointerPressed="ShortcutScrim_PointerPressed" />
+    <Border IsVisible="{Binding MainShell.IsShortcutSheetOpen}"
+            x:CompileBindings="False"
+            Width="520"
+            MaxHeight="560"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="16,72,16,0"
+            Padding="16"
+            Background="{DynamicResource Brush.Surface.Card}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource Radius.L}"
+            AutomationProperties.AutomationId="Shell.Shortcuts"
+            AutomationProperties.Name="{Binding MainShell.ShortcutsTitle}">
+      <Grid RowDefinitions="Auto,*" RowSpacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding MainShell.ShortcutsTitle}"
+                     Classes="ogma-display"
+                     VerticalAlignment="Center"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <Button x:Name="ShortcutsCloseButton"
+                  Grid.Column="1"
+                  Content="{Binding MainShell.CloseLabel}"
+                  AutomationProperties.AutomationId="Shell.Shortcuts.Close"
+                  AutomationProperties.Name="{Binding MainShell.CloseLabel}"
+                  Click="ShortcutsClose_Click" />
+        </Grid>
+        <ScrollViewer Grid.Row="1">
+          <ItemsControl ItemsSource="{Binding MainShell.ShortcutRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cat:ShortcutRow">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                  <TextBlock Text="{Binding Label}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <TextBlock Grid.Column="1"
+                             Classes="ogma-mono"
+                             Text="{Binding Gesture}"
+                             Margin="16,0,0,0"
+                             FontSize="{DynamicResource Type.Size.Small}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
     </Border>
 
     <Border IsVisible="{Binding IsLoadingVisible}"
@@ -174,7 +250,7 @@
                     MinWidth="130"
                     MinHeight="40"
                     Background="{DynamicResource Brush.Accent.Oak}"
-                    Foreground="White"
+                    Foreground="{DynamicResource Brush.Accent.OnAccent}"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanRetry}"
                     Content="{Binding RetryText}"

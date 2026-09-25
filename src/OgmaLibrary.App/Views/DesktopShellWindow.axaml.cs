@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Catalogue;
@@ -15,6 +16,10 @@ public sealed partial class DesktopShellWindow : Window
 {
     private Button? _retryButton;
     private TextBox? _commandPaletteBox;
+    private ItemsControl? _commandPaletteList;
+    private Button? _shortcutsCloseButton;
+    private IInputElement? _focusBeforeOverlay;
+    private MainShellViewModel? _mainShell;
     private ItemsControl? _toastHost;
     private StartupShellViewModel? _viewModel;
 
@@ -24,6 +29,8 @@ public sealed partial class DesktopShellWindow : Window
         AvaloniaXamlLoader.Load(this);
         _retryButton = this.FindControl<Button>("RetryButton");
         _commandPaletteBox = this.FindControl<TextBox>("CommandPaletteBox");
+        _commandPaletteList = this.FindControl<ItemsControl>("CommandPaletteList");
+        _shortcutsCloseButton = this.FindControl<Button>("ShortcutsCloseButton");
         _toastHost = this.FindControl<ItemsControl>("ToastHost");
         DataContextChanged += OnDataContextChanged;
     }
@@ -81,6 +88,17 @@ public sealed partial class DesktopShellWindow : Window
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
+
+        if (_mainShell is not null)
+        {
+            _mainShell.PropertyChanged -= OnMainShellPropertyChanged;
+        }
+
+        _mainShell = _viewModel?.MainShell;
+        if (_mainShell is not null)
+        {
+            _mainShell.PropertyChanged += OnMainShellPropertyChanged;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -102,7 +120,7 @@ public sealed partial class DesktopShellWindow : Window
     private Task CommandPaletteItemAsync(object? sender) =>
         sender is Button { DataContext: CommandPaletteItem item } &&
         DataContext is StartupShellViewModel { MainShell: { } shell }
-            ? shell.ExecuteCommandAsync(item.Id)
+            ? shell.ExecuteCommandAsync(item.Id, this)
             : Task.CompletedTask;
 
     private void CommandPaletteCloseButton_Click(object? sender, RoutedEventArgs e)
@@ -114,6 +132,28 @@ public sealed partial class DesktopShellWindow : Window
         }
     }
 
+    private void CommandPaletteScrim_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is StartupShellViewModel { MainShell: { } shell })
+        {
+            shell.CloseCommandPalette();
+            e.Handled = true;
+        }
+    }
+
+    private void ShortcutScrim_PointerPressed(object? sender, PointerPressedEventArgs e) => CloseShortcuts(e);
+
+    private void ShortcutsClose_Click(object? sender, RoutedEventArgs e) => CloseShortcuts(e);
+
+    private void CloseShortcuts(RoutedEventArgs e)
+    {
+        if (DataContext is StartupShellViewModel { MainShell: { } shell })
+        {
+            shell.IsShortcutSheetOpen = false;
+            e.Handled = true;
+        }
+    }
+
     private void CommandPaletteBox_KeyDown(object? sender, KeyEventArgs e)
     {
         if (DataContext is not StartupShellViewModel { MainShell: { } shell })
@@ -121,16 +161,103 @@ public sealed partial class DesktopShellWindow : Window
             return;
         }
 
-        if (e.Key == Key.Escape)
+        switch (e.Key)
         {
-            shell.CloseCommandPalette();
-            e.Handled = true;
+            case Key.Escape:
+                shell.CloseCommandPalette();
+                e.Handled = true;
+                break;
+            case Key.Enter when shell.CommandPaletteItems.Count > 0:
+                string id = shell.CommandPaletteItems[0].Id;
+                UiActions.Run(() => shell.ExecuteCommandAsync(id, this), "shell.command_palette.execute");
+                e.Handled = true;
+                break;
+            case Key.Down:
+                PaletteButtons().FirstOrDefault()?.Focus(NavigationMethod.Directional);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void CommandPaletteList_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not StartupShellViewModel { MainShell: { } shell })
+        {
+            return;
+        }
+
+        List<Button> buttons = PaletteButtons().ToList();
+        int index = buttons.FindIndex(button => button.IsFocused);
+        switch (e.Key)
+        {
+            case Key.Escape:
+                shell.CloseCommandPalette();
+                e.Handled = true;
+                break;
+            case Key.Down when index >= 0 && index < buttons.Count - 1:
+                buttons[index + 1].Focus(NavigationMethod.Directional);
+                e.Handled = true;
+                break;
+            case Key.Up when index > 0:
+                buttons[index - 1].Focus(NavigationMethod.Directional);
+                e.Handled = true;
+                break;
+            case Key.Up when index == 0:
+                _commandPaletteBox?.Focus(NavigationMethod.Directional);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private IEnumerable<Button> PaletteButtons() =>
+        _commandPaletteList?.GetVisualDescendants().OfType<Button>() ?? [];
+
+    private void OnMainShellPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not MainShellViewModel shell)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(MainShellViewModel.IsCommandPaletteOpen))
+        {
+            if (shell.IsCommandPaletteOpen)
+            {
+                _focusBeforeOverlay ??= FocusManager?.GetFocusedElement();
+                Dispatcher.UIThread.Post(() => _commandPaletteBox?.Focus(), DispatcherPriority.Input);
+            }
+            else
+            {
+                RestoreFocus();
+            }
+        }
+        else if (e.PropertyName == nameof(MainShellViewModel.IsShortcutSheetOpen))
+        {
+            if (shell.IsShortcutSheetOpen)
+            {
+                _focusBeforeOverlay ??= FocusManager?.GetFocusedElement();
+                Dispatcher.UIThread.Post(() => _shortcutsCloseButton?.Focus(), DispatcherPriority.Input);
+            }
+            else
+            {
+                RestoreFocus();
+            }
+        }
+    }
+
+    private void RestoreFocus()
+    {
+        IInputElement? target = _focusBeforeOverlay;
+        _focusBeforeOverlay = null;
+        if (target is Control { IsEffectivelyVisible: true } control)
+        {
+            Dispatcher.UIThread.Post(() => control.Focus(), DispatcherPriority.Input);
         }
     }
 
     private void DesktopShellWindow_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (DataContext is not StartupShellViewModel { MainShell: { } shell })
+        if (e.Handled || DataContext is not StartupShellViewModel { MainShell: { } shell })
         {
             return;
         }
@@ -140,12 +267,14 @@ public sealed partial class DesktopShellWindow : Window
             shell.CloseCommandPalette();
             e.Handled = true;
         }
-        else if (e.Key == Key.P &&
-                 (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
-                 e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        else if (e.Key == Key.Escape && shell.IsShortcutSheetOpen)
         {
-            shell.OpenCommandPalette();
-            Dispatcher.UIThread.Post(() => _commandPaletteBox?.Focus());
+            shell.IsShortcutSheetOpen = false;
+            e.Handled = true;
+        }
+        else if (shell.TryExecuteGesture(e.Key, e.KeyModifiers, this))
+        {
+            // Gestures pressed outside the library surface (for example with the palette open).
             e.Handled = true;
         }
     }

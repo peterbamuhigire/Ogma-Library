@@ -1,8 +1,9 @@
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using OgmaLibrary.App.ViewModels.Catalogue;
-using OgmaLibrary.App.Views;
+using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
@@ -54,7 +55,7 @@ public sealed class SkeletonRenderTests
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("en");
 
-        var window = new MainWindow { DataContext = CreateViewModel(localization) };
+        var window = new Window { Width = 1180, Height = 760, Content = new CatalogueShellView { DataContext = CreateViewModel(localization) } };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -69,7 +70,7 @@ public sealed class SkeletonRenderTests
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("fr");
 
-        var window = new MainWindow { DataContext = CreateViewModel(localization) };
+        var window = new Window { Width = 1180, Height = 760, Content = new CatalogueShellView { DataContext = CreateViewModel(localization) } };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 

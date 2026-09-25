@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:proj="using:OgmaLibrary.Application.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Shell.CollectionsView"
+             x:DataType="vm:MainShellViewModel">
+
+  <!--
+    Sept-23 Phase 07: the Collections destination (user shelves). It replaces the always-open
+    shelf sidebar; selecting a collection and choosing "Show books in Library" filters the
+    catalogue, and the filter stays visible as a chip there (K12).
+  -->
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="16" Spacing="12" MaxWidth="640" HorizontalAlignment="Left">
+      <TextBlock Text="{Binding CollectionsHint}"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox Grid.Column="0"
+                 Text="{Binding ShelfSidebar.NewShelfName, Mode=TwoWay}"
+                 Watermark="{Binding ShelfSidebar.NewShelfWatermark}"
+                 AutomationProperties.AutomationId="Collections.NewName"
+                 AutomationProperties.Name="{Binding ShelfSidebar.NewShelfWatermark}" />
+        <Button Grid.Column="1"
+                Classes="tool primary"
+                IsEnabled="{Binding ShelfSidebar.CanCreateShelf}"
+                AutomationProperties.AutomationId="Collections.Create"
+                AutomationProperties.Name="{Binding ShelfSidebar.CreateShelfLabel}"
+                Click="CreateShelf_Click">
+          <TextBlock Text="{Binding ShelfSidebar.CreateShelfLabel}" />
+        </Button>
+      </Grid>
+
+      <ListBox ItemsSource="{Binding ShelfSidebar.Shelves}"
+               SelectedItem="{Binding ShelfSidebar.SelectedShelf, Mode=TwoWay}"
+               MinHeight="120"
+               Background="Transparent"
+               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+               BorderThickness="1"
+               CornerRadius="{DynamicResource Radius.S}"
+               AutomationProperties.AutomationId="Collections.List"
+               AutomationProperties.Name="{Binding ShelfSidebar.ShelvesLabel}">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem" x:DataType="proj:ShelfProjection">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="proj:ShelfProjection">
+            <Grid ColumnDefinitions="*,Auto" Margin="4,2">
+              <TextBlock Grid.Column="0"
+                         Text="{Binding Name}"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <Border Grid.Column="1"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      Background="{DynamicResource Brush.Accent.Oak}"
+                      Padding="8,1">
+                <TextBlock Text="{Binding BookCount}"
+                           FontSize="{DynamicResource Type.Size.Small}"
+                           Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+              </Border>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <WrapPanel ItemSpacing="8" LineSpacing="8">
+        <Button Classes="tool"
+                IsEnabled="{Binding ShelfSidebar.CanRenameSelectedShelf}"
+                AutomationProperties.AutomationId="Collections.Rename"
+                AutomationProperties.Name="{Binding ShelfSidebar.RenameShelfLabel}"
+                Click="RenameShelf_Click">
+          <TextBlock Text="{Binding ShelfSidebar.RenameShelfLabel}" />
+        </Button>
+        <Button Classes="tool"
+                IsEnabled="{Binding ShelfSidebar.CanDeleteSelectedShelf}"
+                AutomationProperties.AutomationId="Collections.Delete"
+                AutomationProperties.Name="{Binding ShelfSidebar.DeleteShelfLabel}"
+                Click="DeleteShelf_Click">
+          <TextBlock Text="{Binding ShelfSidebar.DeleteShelfLabel}" />
+        </Button>
+      </WrapPanel>
+
+      <TextBlock Text="{Binding ShelfSidebar.StatusText}"
+                 IsVisible="{Binding ShelfSidebar.HasStatus}"
+                 TextWrapping="Wrap"
+                 FontSize="{DynamicResource Type.Size.Small}"
+                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
