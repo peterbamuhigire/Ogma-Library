@@ -43,6 +43,15 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
 
         services.AddSingleton<JobRecoveryService>();
         services.AddSingleton<IOcrProvider, TesseractOcrProvider>();
+
+        // Sept-23 Phase 17: OCR policy (auto OCR of scanned books, bounded and battery-aware),
+        // verified language packs, and the per-book text status.
+        services.AddSingleton<IOcrPolicySettingsStore>(sp => new JsonOcrPolicySettingsStore(
+            Path.Combine(options.DataDirectory, "ocr-settings.json"),
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<JsonOcrPolicySettingsStore>>()));
+        services.AddSingleton<IPowerSource, SystemPowerSource>();
+        services.AddSingleton<IOcrLanguageCatalog>(_ => new TesseractOcrLanguageCatalog());
+        services.AddSingleton<IOcrAutoPolicy, OcrAutoPolicyService>();
         services.AddSingleton<OcrJobProcessor>();
         services.AddSingleton<IOcrJobProcessor>(sp => sp.GetRequiredService<OcrJobProcessor>());
         services.AddHostedService<BookIngestionWorker>();

@@ -47,7 +47,11 @@ public sealed class Phase24OcrQualityTests
     public void LanguagePolicy_OnlyAllowsKnownLocalPacks()
     {
         Assert.Equal("eng", OcrLanguagePolicy.Normalize("ENG"));
-        Assert.Equal("eng+fra", OcrLanguagePolicy.Normalize("fra+eng"));
+
+        // Sept-23 Phase 17: only packs that ship with a pinned checksum are allowed.
+        Assert.Equal(["eng"], OcrLanguagePolicy.AllowedLanguages);
+        Assert.Null(OcrLanguagePolicy.Normalize("fra+eng"));
+        Assert.Null(OcrLanguagePolicy.Normalize("deu"));
         Assert.Null(OcrLanguagePolicy.Normalize("eng;delete-all"));
         Assert.Null(OcrLanguagePolicy.Normalize("jpn"));
     }

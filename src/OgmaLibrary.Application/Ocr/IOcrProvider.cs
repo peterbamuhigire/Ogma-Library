@@ -24,11 +24,20 @@ internal interface IOcrProvider
 /// <param name="Confidence">Provider confidence in [0.0, 1.0].</param>
 public sealed record OcrPageResult(string Text, double Confidence);
 
-/// <summary>Allowed local OCR language-pack policy.</summary>
+/// <summary>
+/// Allowed local OCR language-pack policy. Only languages whose trained data ships with a
+/// pinned SHA-256 are allowed (Sept-23 Phase 17, task 5): <c>deu</c>, <c>fra</c>, <c>ita</c>
+/// and <c>spa</c> were listed but never shipped, so every job asking for them failed. See
+/// <c>docs/developer-guide/ocr-language-packs.md</c> for adding a pack.
+/// </summary>
 public static class OcrLanguagePolicy
 {
     private static readonly HashSet<string> SupportedLanguages =
-        ["deu", "eng", "fra", "ita", "spa"];
+        ["eng"];
+
+    /// <summary>Languages this build allows, in ordinal order.</summary>
+    public static IReadOnlyList<string> AllowedLanguages { get; } =
+        [.. SupportedLanguages.Order(StringComparer.Ordinal)];
 
     /// <summary>Maximum serialized language selector length.</summary>
     public const int MaximumLanguageSelectorLength = 32;
