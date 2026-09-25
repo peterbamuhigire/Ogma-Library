@@ -37,6 +37,10 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         builder.Property(b => b.MtimeTicks);
         builder.Property(b => b.EditionId);
         builder.Property(b => b.QualityScore).HasColumnType("REAL").HasDefaultValue(0.0);
+        // Sept-23 Phase 17: honest text status, text-quality score and OCR confidence.
+        builder.Property(b => b.TextStatus).HasDefaultValue(0);
+        builder.Property(b => b.TextQuality).HasColumnType("REAL").HasDefaultValue(0.0);
+        builder.Property(b => b.OcrConfidence).HasColumnType("REAL");
 
         // Availability index: query books by relative path quickly.
         builder.HasIndex(b => b.RelativePath).HasDatabaseName("IX_Books_RelativePath");
@@ -58,6 +62,7 @@ public sealed class BookConfiguration : IEntityTypeConfiguration<BookRow>
         // Phase 15 power-reader filters.
         builder.HasIndex(b => b.IsOcrDerived).HasDatabaseName("IX_Books_IsOcrDerived");
         builder.HasIndex(b => b.IsPasswordProtected).HasDatabaseName("IX_Books_IsPasswordProtected");
+        builder.HasIndex(b => b.TextStatus).HasDatabaseName("IX_Books_TextStatus");
 
         // Relationships
         builder.HasMany(b => b.BookFiles)

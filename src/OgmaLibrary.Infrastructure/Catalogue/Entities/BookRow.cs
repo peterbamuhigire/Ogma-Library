@@ -55,6 +55,18 @@ public sealed class BookRow
     /// <summary>Whether searchable text for this book includes OCR-derived content.</summary>
     public bool IsOcrDerived { get; set; }
 
+    /// <summary>
+    /// Honest text status (<c>OgmaLibrary.Application.Ocr.BookTextStatus</c>): 0=Unknown,
+    /// 1=Searchable, 2=PartlySearchable, 3=ImageOnly, 4=OcrInProgress, 5=OcrText, 6=NoText,
+    /// 7=OcrFailed (Sept-23 Phase 17).
+    /// </summary>
+    public int TextStatus { get; set; }
+
+    /// <summary>Share of pages with usable text in [0, 1], OCR pages weighted by confidence.</summary>
+    public double TextQuality { get; set; }
+
+    /// <summary>Mean confidence of the selected OCR text in [0, 1], when any.</summary>
+    public double? OcrConfidence { get; set; }
     /// <summary>Whether this book's source PDF was detected as password-protected.</summary>
     public bool IsPasswordProtected { get; set; }
 

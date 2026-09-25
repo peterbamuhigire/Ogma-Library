@@ -8,6 +8,7 @@ using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Metadata;
+using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Search;
@@ -35,6 +36,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
     private readonly IIsbnEvidenceStore _isbnEvidenceStore;
     private readonly ITocExtractionService _tocExtraction;
     private readonly IsbnPromotionService _isbnPromotion;
+    private readonly BookTextStatusService _textStatus;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ExtractionPipelineService"/>.
@@ -74,6 +76,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         _isbnEvidenceStore = isbnEvidenceStore;
         _tocExtraction = tocExtraction;
         _isbnPromotion = new IsbnPromotionService(contextFactory);
+        _textStatus = new BookTextStatusService(contextFactory);
     }
 
     /// <summary>
@@ -112,6 +115,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         _isbnEvidenceStore = isbnEvidenceStore ?? new IsbnEvidenceStore(context);
         _tocExtraction = tocExtraction ?? new PdfTableOfContentsService(rendererFactory);
         _isbnPromotion = new IsbnPromotionService(context);
+        _textStatus = new BookTextStatusService(context);
     }
 
     /// <inheritdoc />
@@ -275,6 +279,13 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             string message = locked ? "The PDF is password-protected." : "Search page extraction failed.";
             await RecordBookFailureAsync(bookId, book.ContentHash, message, cancellationToken)
                 .ConfigureAwait(false);
+            if (!locked)
+            {
+                // Sept-23 Phase 17: a document whose pages cannot be read is "No text could be
+                // read", not an indexed book.
+                await _textStatus.MarkUnreadableAsync(bookId, cancellationToken).ConfigureAwait(false);
+            }
+
             return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message, IsPermanent: locked);
         }
 
@@ -293,7 +304,15 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             .ExtractAsync(filePath, cancellationToken)
             .ConfigureAwait(false);
 
-        IReadOnlyList<SearchChunkRecord> pageChunks = BuildPageChunks(bookId, extracted.Pages);
+        // Sept-23 Phase 17: OCR text selected for a scanned page survives re-indexing (the
+        // FtsReindexJob queued after OCR used to rebuild page chunks from the empty native layer).
+        IReadOnlyList<ExtractedPageRecord> selectedPages = await SelectPageTextAsync(
+                bookId,
+                book.ContentHash,
+                extracted.Pages,
+                cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<SearchChunkRecord> pageChunks = BuildPageChunks(bookId, selectedPages);
         IReadOnlyList<SearchChunkRecord> tocChunks = BuildTocChunks(bookId, toc.Entries);
         IReadOnlyList<SearchChunkRecord> noteChunks = await BuildNoteChunksAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
@@ -362,6 +381,10 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             await _artifactService.FailAsync(artifact.Id, cancellationToken).ConfigureAwait(false);
         }
         await SetBookStatusAsync(bookId, finalStatus, cancellationToken).ConfigureAwait(false);
+
+        // Sept-23 Phase 17 (tasks 1, 2): the honest text status comes from the pages, not from
+        // this job finishing. Image-only books become "Image only" here, at ingest.
+        await _textStatus.RefreshAsync(bookId, cancellationToken).ConfigureAwait(false);
         if (finalStatus == SearchBookIndexStatus.Indexed)
         {
             await QueueEmbeddingJobAsync(bookId, book.ContentHash, cancellationToken)
@@ -420,8 +443,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         IReadOnlyList<ExtractedPageRecord> existingPages = await _extractedTextStore
             .ListForBookAsync(bookId, cancellationToken)
             .ConfigureAwait(false);
+        // Only the PDF's own text layer is reused here; OCR alternatives are rows of their own
+        // (Sept-23 Phase 17: a book with OCR rows used to fail re-indexing on a duplicate key).
         Dictionary<int, ExtractedPageRecord> existingByPage = existingPages
-            .ToDictionary(p => p.PageIndex);
+            .Where(p => string.Equals(p.Source, "Extraction", StringComparison.Ordinal))
+            .GroupBy(p => p.PageIndex)
+            .ToDictionary(group => group.Key, group => group.First());
 
         var records = new List<ExtractedPageRecord>(renderer.PageCount);
         int processed = 0;
@@ -495,6 +522,88 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         }
 
         return new ExtractPagesResult(records, processed, skipped, failed);
+    }
+
+    /// <summary>
+    /// Chooses, per page, between the PDF's own text and a current OCR alternative using
+    /// <see cref="OgmaLibrary.Application.Ocr.OcrPageQualityPolicy.ShouldSelectOcr"/>, stores the
+    /// selection flags and the book's OCR provenance, and returns the text to index.
+    /// </summary>
+    private async Task<IReadOnlyList<ExtractedPageRecord>> SelectPageTextAsync(
+        string bookId,
+        string? contentHash,
+        IReadOnlyList<ExtractedPageRecord> nativePages,
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        List<ExtractedPageRow> rows = await context.ExtractedPages
+            .Where(page => page.BookId == bookId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        Dictionary<int, ExtractedPageRow> ocrByPage = rows
+            .Where(page => page.Source == "OCR" &&
+                (page.ContentHash is null || string.Equals(page.ContentHash, contentHash, StringComparison.Ordinal)))
+            .GroupBy(page => page.PageNumber)
+            .ToDictionary(group => group.Key, group => group.First());
+        if (ocrByPage.Count == 0)
+        {
+            return nativePages;
+        }
+
+        Dictionary<int, ExtractedPageRow> nativeByPage = rows
+            .Where(page => page.Source == "Extraction")
+            .GroupBy(page => page.PageNumber)
+            .ToDictionary(group => group.Key, group => group.First());
+        var selected = new List<ExtractedPageRecord>(nativePages.Count);
+        bool anyOcr = false;
+        foreach (ExtractedPageRecord page in nativePages)
+        {
+            if (!ocrByPage.TryGetValue(page.PageIndex, out ExtractedPageRow? ocr))
+            {
+                selected.Add(page);
+                continue;
+            }
+
+            bool useOcr = OgmaLibrary.Application.Ocr.OcrPageQualityPolicy.ShouldSelectOcr(
+                page.Quality,
+                page.WordCount,
+                ocr.TextContent,
+                ocr.OcrConfidence ?? 0);
+            ocr.IsSelectedText = useOcr;
+            if (nativeByPage.TryGetValue(page.PageIndex, out ExtractedPageRow? native))
+            {
+                native.IsSelectedText = !useOcr;
+            }
+
+            if (useOcr)
+            {
+                anyOcr = true;
+                selected.Add(page with
+                {
+                    Id = ocr.ExtractedPageId,
+                    Text = ocr.TextContent,
+                    Quality = SearchExtractionQuality.Full,
+                    Source = "OCR",
+                    IsSelectedText = true,
+                });
+            }
+            else
+            {
+                selected.Add(page);
+            }
+        }
+
+        BookRow? bookRow = await context.Books
+            .FirstOrDefaultAsync(row => row.BookId == bookId, cancellationToken)
+            .ConfigureAwait(false);
+        if (bookRow is not null)
+        {
+            bookRow.IsOcrDerived = anyOcr;
+        }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return selected;
     }
 
     private List<SearchChunkRecord> BuildPageChunks(
