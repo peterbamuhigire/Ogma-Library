@@ -53,6 +53,81 @@ public sealed class ShelfSidebarTests
         Assert.Equal(1, writeService.DeletedCount);
     }
 
+    /// <summary>
+    /// Sept-23 K93: after a scan the shell reloads the sidebar on a thread-pool thread. Every bound
+    /// change (IsLoading and the Can* states it drives) must be raised inside the UI dispatcher.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task LoadAsync_FromThreadPool_RaisesBoundChangesOnlyInsideTheUiDispatcher()
+    {
+        var readModel = new ShelfReadModel();
+        readModel.Shelves.Add(new ShelfProjection("shelf-1", "Reading queue", false, 0));
+        var dispatcher = new RecordingDispatcher();
+        var viewModel = new ShelfSidebarViewModel(
+            readModel,
+            new ShelfWriteService(readModel),
+            new InMemoryLocalizationService(),
+            new CatalogueFilterViewModel(),
+            dispatcher);
+        var outside = new List<string>();
+        var raised = new List<string>();
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            lock (raised)
+            {
+                raised.Add(e.PropertyName!);
+                if (!RecordingDispatcher.IsInside)
+                {
+                    outside.Add(e.PropertyName!);
+                }
+            }
+        };
+
+        await Task.Run(() => viewModel.LoadAsync());
+
+        Assert.Empty(outside);
+        Assert.Contains(nameof(ShelfSidebarViewModel.IsLoading), raised);
+        Assert.Contains(nameof(ShelfSidebarViewModel.CanCreateShelf), raised);
+        Assert.False(viewModel.IsLoading);
+        Assert.Single(viewModel.Shelves);
+    }
+
+    private sealed class RecordingDispatcher : OgmaLibrary.Application.Diagnostics.IUiDispatcher
+    {
+        [ThreadStatic]
+        private static bool _inside;
+
+        private readonly Lock _gate = new();
+
+        public static bool IsInside => _inside;
+
+        public bool CheckAccess() => _inside;
+
+        public void Post(Action action) => Run(action);
+
+        public Task InvokeAsync(Action action, CancellationToken cancellationToken = default)
+        {
+            Run(action);
+            return Task.CompletedTask;
+        }
+
+        private void Run(Action action)
+        {
+            lock (_gate)
+            {
+                _inside = true;
+                try
+                {
+                    action();
+                }
+                finally
+                {
+                    _inside = false;
+                }
+            }
+        }
+    }
+
     private sealed class ShelfReadModel : ICatalogueReadModel
     {
         public List<ShelfProjection> Shelves { get; } = [];

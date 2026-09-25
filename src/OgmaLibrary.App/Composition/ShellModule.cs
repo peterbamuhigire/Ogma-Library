@@ -72,7 +72,12 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         var readModel = services.GetRequiredService<ICatalogueReadModel>();
         var writeService = services.GetRequiredService<ICatalogueWriteService>();
         var filter = new CatalogueFilterViewModel();
-        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var shelfSidebar = new ShelfSidebarViewModel(
+            readModel,
+            writeService,
+            localization,
+            filter,
+            services.GetRequiredService<IUiDispatcher>());
 
         MainShellViewModel? shell = null;
         var navigation = new NavigationServiceProxy(() => shell!);
