@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Search;
+using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.Workers;
 
@@ -8,67 +11,64 @@ namespace OgmaLibrary.Workers;
 /// Background worker for Phase 10 search indexing. It consumes durable
 /// FTS-reindex triggers when available and retains a compatibility stage poll
 /// for books created before queue-backed search jobs were introduced.
+/// Sept-23 Phase 06: guarded loop (T06.5), shutdown release (T06.2), permanent failures
+/// (locked PDF, removed book) are not retried (T06.1).
 /// </summary>
 public sealed class SearchExtractionWorker : BackgroundService
 {
     private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan ErrorDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(5);
     private readonly IExtractionPipelineService _pipeline;
     private readonly IJobRuntimeService? _jobRuntime;
+    private readonly IProcessingProgressService? _processingProgress;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SearchExtractionWorker"/>.
     /// </summary>
+    /// <param name="pipeline">The extraction pipeline.</param>
+    /// <param name="jobRuntime">The durable job runtime.</param>
+    /// <param name="processingProgress">Optional processing progress publisher.</param>
+    /// <param name="logger">Optional logger.</param>
     public SearchExtractionWorker(
         IExtractionPipelineService pipeline,
-        IJobRuntimeService? jobRuntime = null)
+        IJobRuntimeService? jobRuntime = null,
+        IProcessingProgressService? processingProgress = null,
+        ILogger<SearchExtractionWorker>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         _pipeline = pipeline;
         _jobRuntime = jobRuntime;
+        _processingProgress = processingProgress;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
     }
 
     /// <inheritdoc />
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        ResilientJobLoop.RunAsync(nameof(SearchExtractionWorker), RunOnceAsync, IdleDelay, _logger, stoppingToken);
+
+    private async Task<bool> RunOnceAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        if (_jobRuntime is not null)
         {
-            try
+            JobLease? lease = await _jobRuntime.ClaimNextAsync(
+                    ["FtsReindexJob", "SearchExtraction"],
+                    WorkerId,
+                    LeaseDuration,
+                    stoppingToken)
+                .ConfigureAwait(false);
+            if (lease is not null)
             {
-                if (_jobRuntime is not null)
-                {
-                    JobLease? lease = await _jobRuntime.ClaimNextAsync(
-                            ["FtsReindexJob", "SearchExtraction"],
-                            WorkerId,
-                            LeaseDuration,
-                            stoppingToken)
-                        .ConfigureAwait(false);
-                    if (lease is not null)
-                    {
-                        await ExecuteJobAsync(lease, stoppingToken).ConfigureAwait(false);
-                        continue;
-                    }
-                }
-
-                ExtractionBatchResult result = await _pipeline
-                    .IndexNextBatchAsync(maxBooks: 3, stoppingToken)
-                    .ConfigureAwait(false);
-
-                if (result.BooksAttempted == 0)
-                {
-                    await Task.Delay(IdleDelay, stoppingToken).ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception)
-            {
-                await Task.Delay(ErrorDelay, stoppingToken).ConfigureAwait(false);
+                _processingProgress?.NotifyChanged();
+                await ExecuteJobAsync(lease, stoppingToken).ConfigureAwait(false);
+                return true;
             }
         }
+
+        ExtractionBatchResult result = await _pipeline
+            .IndexNextBatchAsync(maxBooks: 3, stoppingToken)
+            .ConfigureAwait(false);
+        return result.BooksAttempted > 0;
     }
 
     private async Task ExecuteJobAsync(JobLease lease, CancellationToken stoppingToken)
@@ -81,11 +81,9 @@ public sealed class SearchExtractionWorker : BackgroundService
         {
             if (string.IsNullOrWhiteSpace(lease.BookId))
             {
-                await _jobRuntime!.FailAsync(
-                        lease.JobId,
-                        WorkerId,
-                        new JobFailure("missing_book_id", "The search job has no book identity.", Retryable: false, DeadLetter: true),
-                        cancellationToken: stoppingToken)
+                await FailSafelyAsync(
+                        lease,
+                        new JobFailure("missing_book_id", "The search job has no book identity.", Retryable: false, DeadLetter: true))
                     .ConfigureAwait(false);
                 return;
             }
@@ -98,27 +96,33 @@ public sealed class SearchExtractionWorker : BackgroundService
                 await _jobRuntime!.CompleteAsync(lease.JobId, WorkerId, stoppingToken)
                     .ConfigureAwait(false);
             }
+            else if (result.IsPermanent)
+            {
+                await FailSafelyAsync(
+                        lease,
+                        JobFailure.Cancelled("search_index_not_possible", "The book cannot be indexed in its current state."))
+                    .ConfigureAwait(false);
+            }
             else
             {
-                await _jobRuntime!.FailAsync(
-                        lease.JobId,
-                        WorkerId,
-                        new JobFailure("search_index_failed", "Search extraction did not complete.", Retryable: true),
-                        cancellationToken: stoppingToken)
+                await FailSafelyAsync(
+                        lease,
+                        new JobFailure("search_index_failed", "Search extraction did not complete.", Retryable: true))
                     .ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
+            await ReleaseSafelyAsync(lease).ConfigureAwait(false);
             throw;
         }
-        catch (Exception)
+        catch (Exception exception) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(exception))
         {
-            await _jobRuntime!.FailAsync(
-                    lease.JobId,
-                    WorkerId,
-                    new JobFailure("search_worker_exception", "Search extraction worker failed.", Retryable: true),
-                    cancellationToken: CancellationToken.None)
+            // Includes HttpClient timeouts (TaskCanceledException without shutdown): retryable.
+            InfrastructureLog.DegradedStep(_logger, exception, nameof(SearchExtractionWorker), "jobs.execute");
+            await FailSafelyAsync(
+                    lease,
+                    new JobFailure("search_worker_exception", "Search extraction worker failed.", Retryable: true))
                 .ConfigureAwait(false);
         }
         finally
@@ -130,7 +134,35 @@ public sealed class SearchExtractionWorker : BackgroundService
             }
             catch (OperationCanceledException) when (heartbeatCancellation.IsCancellationRequested)
             {
+                // Intentionally ignored: the heartbeat ends with its job.
             }
+
+            _processingProgress?.NotifyChanged();
+        }
+    }
+
+    private async Task FailSafelyAsync(JobLease lease, JobFailure failure)
+    {
+        try
+        {
+            await _jobRuntime!.FailAsync(lease.JobId, WorkerId, failure, cancellationToken: CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(exception))
+        {
+            InfrastructureLog.RecoveryStepFailed(_logger, exception, nameof(SearchExtractionWorker), "jobs.fail");
+        }
+    }
+
+    private async Task ReleaseSafelyAsync(JobLease lease)
+    {
+        try
+        {
+            await _jobRuntime!.ReleaseAsync(lease.JobId, WorkerId, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(exception))
+        {
+            InfrastructureLog.RecoveryStepFailed(_logger, exception, nameof(SearchExtractionWorker), "jobs.release");
         }
     }
 
@@ -147,6 +179,7 @@ public sealed class SearchExtractionWorker : BackgroundService
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            // Intentionally ignored: the heartbeat ends with its job.
         }
     }
 

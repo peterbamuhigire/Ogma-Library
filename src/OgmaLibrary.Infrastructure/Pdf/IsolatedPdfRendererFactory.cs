@@ -20,6 +20,14 @@ public sealed class IsolatedPdfRendererFactory : IPdfRendererFactory
     public IPdfRenderer Open(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        // Sept-23 Phase 06 (T06.10): inside a per-book processing batch, reuse the book's
+        // shared worker session instead of copying the file and starting another process.
+        if (PdfDocumentBatch.Find(filePath) is { } batch)
+        {
+            return new BorrowedPdfRenderer(batch.Acquire(_client));
+        }
+
         return new IsolatedPdfRenderer(_client, filePath, password: null);
     }
 
@@ -124,6 +132,15 @@ internal sealed class IsolatedPdfRenderer : IPdfRenderer, IPdfRendererHealth
         ExtractTextLayerAsync(pageIndex, CancellationToken.None).GetAwaiter().GetResult();
 
     public PdfRendererHealthSnapshot GetHealthSnapshot() => _supervisor.GetHealthSnapshot();
+
+    /// <summary>Generates a cover or spine in the supervised session (Sept-23 Phase 06, T06.10).</summary>
+    /// <param name="command">The asset command.</param>
+    /// <param name="widthPx">The asset width.</param>
+    /// <param name="heightPx">The asset height.</param>
+    /// <param name="ct">A token to cancel the request while it is queued.</param>
+    /// <returns>The verified JPEG bytes.</returns>
+    internal Task<byte[]> GenerateAssetAsync(string command, int widthPx, int heightPx, CancellationToken ct) =>
+        RunAsync((session, token) => session.GenerateAssetAsync(command, widthPx, heightPx, token), ct);
 
     public void Dispose()
     {

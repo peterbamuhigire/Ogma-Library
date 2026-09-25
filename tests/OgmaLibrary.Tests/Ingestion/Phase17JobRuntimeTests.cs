@@ -392,26 +392,12 @@ public sealed class Phase17JobRuntimeTests : IDisposable
         {
             IMigrator migrator = context.Database.GetService<IMigrator>();
             await migrator.MigrateAsync("20260905090519_Phase13ProviderLookupStaleness");
-            context.Jobs.AddRange(
-                new JobRow
-                {
-                    JobType = "OcrJob",
-                    IdempotencyKey = "phase17-legacy-paused-ocr",
-                    Status = 5,
-                },
-                new JobRow
-                {
-                    JobType = "Enrich",
-                    IdempotencyKey = "phase17-legacy-paused-enrich",
-                    Status = 5,
-                },
-                new JobRow
-                {
-                    JobType = "Unknown",
-                    IdempotencyKey = "phase17-existing-dead-letter",
-                    Status = (int)JobRuntimeStatus.DeadLetter,
-                });
-            await context.SaveChangesAsync();
+            // Raw SQL: the entity carries columns added by later migrations (Sept-23 Phase 06).
+            await context.Database.ExecuteSqlRawAsync(
+                "INSERT INTO Jobs (JobType, IdempotencyKey, Status, RetryCount) VALUES " +
+                "('OcrJob', 'phase17-legacy-paused-ocr', 5, 0), " +
+                "('Enrich', 'phase17-legacy-paused-enrich', 5, 0), " +
+                "('Unknown', 'phase17-existing-dead-letter', 5, 0)");
 
             await migrator.MigrateAsync();
             context.ChangeTracker.Clear();

@@ -13,7 +13,6 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// </summary>
 public sealed class JobRuntimeService : IJobRuntimeService
 {
-    private static readonly TimeSpan DefaultRetryDelay = TimeSpan.FromSeconds(5);
     private static readonly JsonSerializerOptions DiagnosticsJsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -47,11 +46,31 @@ public sealed class JobRuntimeService : IJobRuntimeService
     }
 
     /// <inheritdoc />
-    public async Task<JobLease?> ClaimNextAsync(
+    public Task<JobLease?> ClaimNextAsync(
         IReadOnlyCollection<string> jobTypes,
         string workerId,
         TimeSpan leaseDuration,
+        CancellationToken cancellationToken = default) =>
+        ClaimCoreAsync(jobTypes, bookId: null, workerId, leaseDuration, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<JobLease?> ClaimNextForBookAsync(
+        IReadOnlyCollection<string> jobTypes,
+        string bookId,
+        string workerId,
+        TimeSpan leaseDuration,
         CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        return ClaimCoreAsync(jobTypes, bookId, workerId, leaseDuration, cancellationToken);
+    }
+
+    private async Task<JobLease?> ClaimCoreAsync(
+        IReadOnlyCollection<string> jobTypes,
+        string? bookId,
+        string workerId,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jobTypes);
         ArgumentException.ThrowIfNullOrWhiteSpace(workerId);
@@ -70,10 +89,16 @@ public sealed class JobRuntimeService : IJobRuntimeService
         using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
             await context.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        List<JobRow> candidates = await context.Jobs
+        IQueryable<JobRow> query = context.Jobs
             .Where(job => jobTypes.Contains(job.JobType) &&
                           (job.Status == (int)JobRuntimeStatus.Pending ||
-                           job.Status == (int)JobRuntimeStatus.Running))
+                           job.Status == (int)JobRuntimeStatus.Running));
+        if (bookId is not null)
+        {
+            query = query.Where(job => job.BookId == bookId);
+        }
+
+        List<JobRow> candidates = await query
             .OrderBy(job => job.JobId)
             .Take(100)
             .ToListAsync(cancellationToken)
@@ -81,8 +106,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
         JobRow? job = null;
         foreach (JobRow candidate in candidates)
         {
-            if ((candidate.Status != (int)JobRuntimeStatus.Pending &&
-                 candidate.LeaseExpiresUtc is not null && candidate.LeaseExpiresUtc >= now) ||
+            if ((candidate.Status != (int)JobRuntimeStatus.Pending && HoldsLiveLease(candidate, now)) ||
                 (candidate.NextAttemptUtc is not null && candidate.NextAttemptUtc > now) ||
                 !await HasResourceCapacityAsync(context, candidate.JobType, now, cancellationToken)
                     .ConfigureAwait(false))
@@ -99,12 +123,17 @@ public sealed class JobRuntimeService : IJobRuntimeService
             return null;
         }
 
+        // Sept-23 Phase 06 (T06.2): an attempt is counted only here, when a worker really
+        // starts executing. Shutdown releases refund it; recovery and repair never add one.
         job.Status = (int)JobRuntimeStatus.Running;
         job.RetryCount++;
         job.StartedUtc = now;
         job.LeaseOwner = workerId.Trim();
         job.LeaseExpiresUtc = now.Add(leaseDuration);
+        job.LeaseOwnerPid = LeaseOwnerIdentity.CurrentPid;
+        job.LeaseOwnerStartTicks = LeaseOwnerIdentity.CurrentStartTicks;
         job.NextAttemptUtc = null;
+        job.WaitingCapability = null;
         AddAuditEvent(
             context,
             "JobClaimed",
@@ -135,10 +164,10 @@ public sealed class JobRuntimeService : IJobRuntimeService
         EnsureOwner(job, workerId);
         job.Status = (int)JobRuntimeStatus.Completed;
         job.CompletedUtc = DateTimeOffset.UtcNow;
-        job.LeaseOwner = null;
-        job.LeaseExpiresUtc = null;
+        ClearLease(job);
         job.FailureCode = null;
         job.ErrorMessage = null;
+        job.WaitingCapability = null;
         AddAuditEvent(
             lease.Context,
             "JobCompleted",
@@ -189,18 +218,40 @@ public sealed class JobRuntimeService : IJobRuntimeService
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         JobRow job = await FindJobAsync(lease.Context, jobId, cancellationToken).ConfigureAwait(false);
         EnsureOwner(job, workerId);
-        bool retry = !failure.DeadLetter && failure.Retryable && job.RetryCount < maxAttempts;
-        job.Status = (int)(failure.DeadLetter
-            ? JobRuntimeStatus.DeadLetter
-            : retry
-                ? JobRuntimeStatus.Pending
-                : JobRuntimeStatus.Failed);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        JobFailureKind kind = failure.EffectiveKind;
+        bool retry = false;
+        switch (kind)
+        {
+            case JobFailureKind.CapabilityMissing:
+                // Environment condition, not a failure: park without consuming the attempt.
+                job.Status = (int)JobRuntimeStatus.WaitingForCapability;
+                job.RetryCount = Math.Max(0, job.RetryCount - 1);
+                job.WaitingCapability = string.IsNullOrWhiteSpace(failure.Capability)
+                    ? "unknown"
+                    : failure.Capability.Trim();
+                job.StartedUtc = null;
+                job.CompletedUtc = null;
+                break;
+            case JobFailureKind.Cancelled:
+                job.Status = (int)JobRuntimeStatus.Cancelled;
+                job.CompletedUtc = now;
+                break;
+            case JobFailureKind.Retryable when !failure.DeadLetter && job.RetryCount < maxAttempts:
+                retry = true;
+                job.Status = (int)JobRuntimeStatus.Pending;
+                job.CompletedUtc = null;
+                break;
+            default:
+                job.Status = (int)(failure.DeadLetter ? JobRuntimeStatus.DeadLetter : JobRuntimeStatus.Failed);
+                job.CompletedUtc = now;
+                break;
+        }
+
         job.FailureCode = failure.Code.Trim();
         job.ErrorMessage = failure.SafeMessage;
-        job.LeaseOwner = null;
-        job.LeaseExpiresUtc = null;
-        job.NextAttemptUtc = retry ? DateTimeOffset.UtcNow.Add(DefaultRetryDelay) : null;
-        job.CompletedUtc = retry ? null : DateTimeOffset.UtcNow;
+        ClearLease(job);
+        job.NextAttemptUtc = retry ? now.Add(JobRetryPolicy.Delay(job.RetryCount)) : null;
         AddAuditEvent(
             lease.Context,
             "JobFailed",
@@ -210,6 +261,7 @@ public sealed class JobRuntimeService : IJobRuntimeService
                 jobType = job.JobType,
                 attempt = job.RetryCount,
                 failureCode = job.FailureCode,
+                failureKind = kind.ToString(),
                 retryScheduled = retry,
                 deadLetter = failure.DeadLetter,
             });
@@ -226,13 +278,13 @@ public sealed class JobRuntimeService : IJobRuntimeService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
         List<JobRow> expired = running
-            .Where(job => job.LeaseExpiresUtc is not null && job.LeaseExpiresUtc < now)
+            .Where(job => !HoldsLiveLease(job, now))
             .ToList();
         foreach (JobRow job in expired)
         {
             job.Status = (int)JobRuntimeStatus.Pending;
-            job.LeaseOwner = null;
-            job.LeaseExpiresUtc = null;
+            ClearLease(job);
+            job.RequeueCount++;
             job.NextAttemptUtc = now;
             job.FailureCode = "lease_expired";
             job.ErrorMessage = "The previous worker lease expired and the job was returned to the queue.";
@@ -253,6 +305,67 @@ public sealed class JobRuntimeService : IJobRuntimeService
         }
 
         return expired.Count;
+    }
+
+    /// <inheritdoc />
+    public async Task ReleaseAsync(long jobId, string workerId, CancellationToken cancellationToken = default)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        JobRow job = await FindJobAsync(lease.Context, jobId, cancellationToken).ConfigureAwait(false);
+        if (job.Status != (int)JobRuntimeStatus.Running ||
+            !string.Equals(job.LeaseOwner, workerId, StringComparison.Ordinal))
+        {
+            // Already completed, failed or reclaimed: nothing to release.
+            return;
+        }
+
+        // Shutdown is not an attempt (T06.2): refund the claim and requeue at once.
+        job.Status = (int)JobRuntimeStatus.Pending;
+        job.RetryCount = Math.Max(0, job.RetryCount - 1);
+        job.RequeueCount++;
+        job.StartedUtc = null;
+        job.NextAttemptUtc = null;
+        ClearLease(job);
+        AddAuditEvent(
+            lease.Context,
+            "JobReleased",
+            job,
+            new
+            {
+                jobType = job.JobType,
+                attempt = job.RetryCount,
+                requeues = job.RequeueCount,
+            });
+        await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> ResumeWaitingAsync(string capability, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(capability);
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        string normalized = capability.Trim();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        List<JobRow> waiting = await lease.Context.Jobs
+            .Where(job => job.Status == (int)JobRuntimeStatus.WaitingForCapability &&
+                          job.WaitingCapability == normalized)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach (JobRow job in waiting)
+        {
+            job.Status = (int)JobRuntimeStatus.Pending;
+            job.NextAttemptUtc = now;
+            job.WaitingCapability = null;
+            job.FailureCode = null;
+            job.ErrorMessage = null;
+        }
+
+        if (waiting.Count > 0)
+        {
+            await lease.Context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return waiting.Count;
     }
 
     /// <inheritdoc />
@@ -408,6 +521,9 @@ public sealed class JobRuntimeService : IJobRuntimeService
         int pausedCount = await jobs.CountAsync(
             job => job.Status == (int)JobRuntimeStatus.Paused,
             cancellationToken).ConfigureAwait(false);
+        int waitingCount = await jobs.CountAsync(
+            job => job.Status == (int)JobRuntimeStatus.WaitingForCapability,
+            cancellationToken).ConfigureAwait(false);
         int totalAttempts = await jobs
             .Select(job => (int?)job.RetryCount)
             .SumAsync(cancellationToken)
@@ -432,7 +548,8 @@ public sealed class JobRuntimeService : IJobRuntimeService
             DeadLetterCount: deadLetterCount,
             PausedCount: pausedCount,
             TotalAttempts: totalAttempts,
-            ActiveByJobType: activeByJobType);
+            ActiveByJobType: activeByJobType,
+            WaitingForCapabilityCount: waitingCount);
     }
 
     private sealed record JobLeaseMetricRow(string JobType, DateTimeOffset? LeaseExpiresUtc);
@@ -527,11 +644,27 @@ public sealed class JobRuntimeService : IJobRuntimeService
         List<JobRow> running = await context.Jobs
             .Where(job => groupedTypes.Contains(job.JobType) &&
                           job.Status == (int)JobRuntimeStatus.Running)
-            .Take(maximum + 1)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        int active = running.Count(job => job.LeaseExpiresUtc is not null && job.LeaseExpiresUtc >= now);
+        int active = running.Count(job => HoldsLiveLease(job, now));
         return active < maximum;
+    }
+
+    /// <summary>
+    /// A lease blocks others only while it is unexpired and its owner process is alive
+    /// (T06.7): a crashed process's leases are reclaimable at once, not after expiry.
+    /// </summary>
+    private static bool HoldsLiveLease(JobRow job, DateTimeOffset now) =>
+        job.LeaseExpiresUtc is not null &&
+        job.LeaseExpiresUtc >= now &&
+        LeaseOwnerIdentity.IsAlive(job.LeaseOwnerPid, job.LeaseOwnerStartTicks);
+
+    private static void ClearLease(JobRow job)
+    {
+        job.LeaseOwner = null;
+        job.LeaseExpiresUtc = null;
+        job.LeaseOwnerPid = null;
+        job.LeaseOwnerStartTicks = null;
     }
 
     private static void EnsureOwner(JobRow job, string workerId)

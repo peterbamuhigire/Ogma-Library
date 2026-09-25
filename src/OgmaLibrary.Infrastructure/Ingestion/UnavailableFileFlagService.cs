@@ -87,6 +87,7 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
 
         string normalizedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(libraryRoot));
         int flagged = 0;
+        var missingThisPass = new List<long>();
 
         foreach (BookFileRow fileRow in presentFiles)
         {
@@ -103,13 +104,20 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
 
             // Flag the file as missing.
             fileRow.FileStatus = 1; // Missing
+            missingThisPass.Add(fileRow.BookFileId);
 
             // Flag the owning book as Unavailable (only if currently Active).
             BookRow? book = await context.Books
                 .FirstOrDefaultAsync(b => b.BookId == fileRow.BookId, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (book is not null && book.Status == 0) // Active
+            // Sept-23 Phase 06 (T06.9): a book with another present occurrence stays available.
+            bool otherOccurrencePresent = book is not null && await context.BookFiles
+                .AnyAsync(
+                    f => f.BookId == fileRow.BookId && f.FileStatus == 0 && !missingThisPass.Contains(f.BookFileId),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (book is not null && book.Status == 0 && !otherOccurrencePresent) // Active
             {
                 book.Status = 1; // Unavailable
             }

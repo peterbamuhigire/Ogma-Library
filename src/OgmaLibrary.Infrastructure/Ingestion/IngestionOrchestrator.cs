@@ -381,7 +381,8 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
                 .FirstOrDefaultAsync(b => b.BookId == existing.BookId, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (book?.SizeBytes == file.SizeBytes && book?.MtimeTicks == file.MtimeTicks)
+            if (book is not null &&
+                await IsUnchangedAsync(context, book, file, cancellationToken).ConfigureAwait(false))
             {
                 // Incremental rescan fast path (FR-LIB-006): unchanged file.
                 if (existing.FileStatus != 0)
@@ -464,6 +465,39 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         }
     }
 
+    /// <summary>
+    /// Incremental fast path (FR-LIB-006). A book with several byte-identical occurrences
+    /// stores one size/mtime, so for such books a differing mtime is settled by the content
+    /// hash rather than re-identifying the book on every rescan (Sept-23 Phase 06, T06.9).
+    /// </summary>
+    private static async Task<bool> IsUnchangedAsync(
+        CatalogueDbContext context,
+        BookRow book,
+        DiscoveredFile file,
+        CancellationToken cancellationToken)
+    {
+        if (book.SizeBytes != file.SizeBytes)
+        {
+            return false;
+        }
+
+        if (book.MtimeTicks == file.MtimeTicks)
+        {
+            return true;
+        }
+
+        int occurrences = await context.BookFiles
+            .CountAsync(f => f.BookId == book.BookId, cancellationToken)
+            .ConfigureAwait(false);
+        if (occurrences < 2 || string.IsNullOrWhiteSpace(book.Sha256Hash))
+        {
+            return false;
+        }
+
+        string hash = await ComputeSha256Async(file.AbsolutePath, cancellationToken).ConfigureAwait(false);
+        return string.Equals(hash, book.Sha256Hash, StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task RegisterOrMoveAsync(
         string matchedBookId,
         DiscoveredFile file,
@@ -475,6 +509,16 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         if (await ShouldRegisterMatchedFileAsNewBookAsync(matchedBookId, file, context, cancellationToken)
                 .ConfigureAwait(false))
         {
+            // Sept-23 Phase 06 (T06.9, K23): a byte-identical copy is another occurrence of the
+            // same book, never a second book. Anything short of an exact content match stays a
+            // separate book (a grouping proposal at most); books are never auto-merged.
+            if (await TryAttachOccurrenceAsync(matchedBookId, file, contentHash, context, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                tally.Updated++;
+                return;
+            }
+
             await _registration.RegisterAsync(file, contentHash, cancellationToken).ConfigureAwait(false);
             tally.Added++;
             return;
@@ -494,6 +538,55 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
         {
             tally.Updated++;
         }
+    }
+
+    private static async Task<bool> TryAttachOccurrenceAsync(
+        string matchedBookId,
+        DiscoveredFile file,
+        string contentHash,
+        CatalogueDbContext context,
+        CancellationToken cancellationToken)
+    {
+        BookRow? book = await context.Books
+            .FirstOrDefaultAsync(b => b.BookId == matchedBookId, cancellationToken)
+            .ConfigureAwait(false);
+        if (book is null ||
+            !string.Equals(book.Sha256Hash, contentHash, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        bool alreadyTracked = await context.BookFiles
+            .AnyAsync(
+                f => f.BookId == matchedBookId &&
+                     f.LibraryRootId == file.LibraryRootId &&
+                     f.RelativePath == file.RelativePath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!alreadyTracked)
+        {
+            context.BookFiles.Add(new BookFileRow
+            {
+                BookId = matchedBookId,
+                LibraryRootId = file.LibraryRootId,
+                RelativePath = file.RelativePath,
+                FileStatus = 0,
+                FileValidity = (int)file.Validity,
+                LastSeenUtc = DateTimeOffset.UtcNow,
+            });
+            context.AuditEvents.Add(new AuditEventRow
+            {
+                EventType = "BookOccurrenceAttached",
+                EntityId = matchedBookId,
+                EntityType = "Book",
+                AfterJson = "{\"reason\":\"identical_content\"}",
+                Timestamp = DateTimeOffset.UtcNow,
+                IsLocalOnly = true,
+            });
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     private async Task<bool> ShouldRegisterMatchedFileAsNewBookAsync(
@@ -517,8 +610,9 @@ public sealed class IngestionOrchestrator : IIngestionOrchestrator
             .LoadAsync(context, cancellationToken)
             .ConfigureAwait(false);
 
-        // A matched book that still has its own present file elsewhere is a
-        // duplicate copy: register it separately (duplicates UI is Phase 10).
+        // A matched book that still has its own present file elsewhere is a copy, not a
+        // move: the caller attaches an identical copy as an occurrence (Phase 06) and
+        // registers anything else separately (duplicates UI is Phase 10).
         return presentFiles
             .Where(f => !(f.LibraryRootId == discovered.LibraryRootId &&
                           string.Equals(f.RelativePath, discovered.RelativePath, StringComparison.Ordinal)))

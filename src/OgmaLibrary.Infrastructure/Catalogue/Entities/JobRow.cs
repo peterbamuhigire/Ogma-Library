@@ -51,4 +51,20 @@ public sealed class JobRow
 
     /// <summary>Stable machine-readable failure code.</summary>
     public string? FailureCode { get; set; }
+
+    /// <summary>
+    /// How often the job was returned to the queue without a real attempt (shutdown release,
+    /// crash recovery, repair or re-registration). Kept apart from <see cref="RetryCount"/>
+    /// so restarts never consume attempts (Sept-23 Phase 06, T06.2).
+    /// </summary>
+    public int RequeueCount { get; set; }
+
+    /// <summary>The process id of the lease owner, used to reclaim leases of dead processes (T06.7).</summary>
+    public int? LeaseOwnerPid { get; set; }
+
+    /// <summary>The lease owner's process start time (UTC ticks), guarding against PID reuse (T06.7).</summary>
+    public long? LeaseOwnerStartTicks { get; set; }
+
+    /// <summary>The capability a <c>WaitingForCapability</c> job waits for (T06.1).</summary>
+    public string? WaitingCapability { get; set; }
 }

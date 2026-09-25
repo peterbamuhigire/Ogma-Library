@@ -16,6 +16,7 @@ public sealed class PdfWorkerClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly PdfWorkerOptions _options;
+    private long _processLaunches;
     private long _maxPeakWorkingSetBytes;
     private long _maxPrivateMemoryBytes;
 
@@ -96,6 +97,51 @@ public sealed class PdfWorkerClient
 
     /// <summary>Gets the resource policy applied to persistent reader sessions.</summary>
     internal PdfWorkerSessionLimits SessionLimits => _options.Session;
+
+    /// <summary>
+    /// The number of worker processes this client has launched (one-shot and session), used
+    /// to verify per-book launch budgets (Sept-23 Phase 06, T06.10).
+    /// </summary>
+    public long ProcessLaunches => Interlocked.Read(ref _processLaunches);
+
+    /// <summary>
+    /// Deletes worker sandboxes left behind by a crashed process (Sept-23 Phase 06, T06.10).
+    /// Only directories untouched for <paramref name="olderThan"/> are removed, so a live
+    /// session of another running instance is never disturbed.
+    /// </summary>
+    /// <param name="olderThan">The minimum idle age of a sandbox to delete.</param>
+    /// <returns>The number of sandboxes deleted.</returns>
+    public int CleanOrphanedSandboxes(TimeSpan olderThan)
+    {
+        string root = SandboxRoot;
+        if (!Directory.Exists(root))
+        {
+            return 0;
+        }
+
+        int deleted = 0;
+        DateTime cutoff = DateTime.UtcNow - olderThan;
+        foreach (string directory in Directory.EnumerateDirectories(root))
+        {
+            try
+            {
+                if (Directory.GetLastWriteTimeUtc(directory) > cutoff ||
+                    !Guid.TryParseExact(Path.GetFileName(directory), "N", out _))
+                {
+                    continue;
+                }
+
+                Directory.Delete(directory, recursive: true);
+                deleted++;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Intentionally ignored: a sandbox still in use or locked is retried next start.
+            }
+        }
+
+        return deleted;
+    }
 
     /// <summary>
     /// Gets the largest worker peak working-set observation recorded by this
@@ -349,6 +395,18 @@ public sealed class PdfWorkerClient
 
         Directory.CreateDirectory(directory);
 
+        if (PdfDocumentBatch.Find(filePath) is { } batch)
+        {
+            // Sept-23 Phase 06 (T06.10): inside a processing batch the asset comes from the
+            // book's shared worker session (one sandbox copy, one process for the book).
+            byte[] asset = batch.Acquire(this)
+                .GenerateAssetAsync($"asset-{command}", widthPx, heightPx, CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+            File.WriteAllBytes(fullOutputPath, asset);
+            return;
+        }
+
         using PdfWorkerSandbox sandbox = CreateSandbox();
         string workerOutputPath = Path.Combine(sandbox.Path, $"{command}.jpg");
         RunJson<AssetResponse>(
@@ -376,8 +434,48 @@ public sealed class PdfWorkerClient
 
     private WorkerEnvelope<T> RunJson<T>(IReadOnlyList<string> args, char[]? password, PdfWorkerSandbox? sandbox = null)
     {
-        using var cts = new CancellationTokenSource(_options.Timeout);
+        using var cts = new CancellationTokenSource(ScaledOneShotLimit(_options.Timeout, InputLength(args)));
         return RunJsonAsync<T>(args, password, sandbox, cts.Token).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Scales a one-shot wall-clock or CPU limit by input size (Sept-23 Phase 06, T06.10):
+    /// the base limit plus one second per 4 MB, capped at 120 s, so a large book gets its
+    /// cover instead of timing out at the 15 s default.
+    /// </summary>
+    /// <param name="baseLimit">The configured base limit.</param>
+    /// <param name="inputBytes">The input PDF size in bytes (0 when unknown).</param>
+    /// <returns>The scaled limit.</returns>
+    internal static TimeSpan ScaledOneShotLimit(TimeSpan baseLimit, long inputBytes)
+    {
+        TimeSpan cap = TimeSpan.FromSeconds(120);
+        if (baseLimit >= cap || inputBytes <= 0)
+        {
+            return baseLimit;
+        }
+
+        TimeSpan scaled = baseLimit + TimeSpan.FromSeconds(inputBytes / (4d * 1024 * 1024));
+        return scaled < cap ? scaled : cap;
+    }
+
+    private static long InputLength(IReadOnlyList<string> args)
+    {
+        for (int index = 0; index < args.Count - 1; index++)
+        {
+            if (string.Equals(args[index], "--input", StringComparison.Ordinal))
+            {
+                try
+                {
+                    return new FileInfo(args[index + 1]).Length;
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+                {
+                    return 0;
+                }
+            }
+        }
+
+        return 0;
     }
 
     private async Task<WorkerEnvelope<T>> RunJsonAsync<T>(
@@ -391,7 +489,10 @@ public sealed class PdfWorkerClient
         try
         {
             WorkerCommand command = ResolveWorkerCommand();
+            long inputBytes = InputLength(args);
             List<string> workerArguments = PrepareWorkerArguments(args, sandbox.Path);
+            TimeSpan wallClock = ScaledOneShotLimit(_options.Timeout, inputBytes);
+            TimeSpan cpuLimit = ScaledOneShotLimit(_options.CpuTimeLimit, inputBytes);
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo(command.FileName)
             {
@@ -419,16 +520,17 @@ public sealed class PdfWorkerClient
             SetSandboxEnvironment(process.StartInfo, sandbox.Path);
 
             process.Start();
+            Interlocked.Increment(ref _processLaunches);
             await SendPasswordAsync(process.StandardInput, password, closeAfterWrite: true)
                 .ConfigureAwait(false);
-            using WindowsChildProcessLimit? childProcessLimit = RequireWindowsProcessLimit(process, _options.CpuTimeLimit);
+            using WindowsChildProcessLimit? childProcessLimit = RequireWindowsProcessLimit(process, cpuLimit);
             Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
             Task<string> stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
             try
             {
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeoutCts.CancelAfter(_options.Timeout);
+                timeoutCts.CancelAfter(wallClock);
                 await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -511,41 +613,78 @@ public sealed class PdfWorkerClient
         return prepared;
     }
 
-    private static string CopyInputToSandbox(string inputPath, string sandboxPath)
+    /// <summary>
+    /// Copies the source PDF into the sandbox in one pass, hashing the bytes as they are
+    /// written (Sept-23 Phase 06, T06.10). The source is opened without write sharing, so it
+    /// cannot change during the copy; its size and write time are re-checked afterwards and
+    /// the copy's length must match. This replaces three full-file hashes and a separate
+    /// copy per operation with one read and one write.
+    /// </summary>
+    /// <param name="inputPath">The absolute source path.</param>
+    /// <param name="sandboxPath">The sandbox directory.</param>
+    /// <returns>The sandbox copy path.</returns>
+    internal static string CopyInputToSandbox(string inputPath, string sandboxPath) =>
+        CopyInputToSandbox(inputPath, sandboxPath, out _);
+
+    /// <summary>Copies the source into the sandbox and returns the SHA-256 of the copied bytes.</summary>
+    /// <param name="inputPath">The absolute source path.</param>
+    /// <param name="sandboxPath">The sandbox directory.</param>
+    /// <param name="sha256">The lower-case hex SHA-256 of the copy.</param>
+    /// <returns>The sandbox copy path.</returns>
+    internal static string CopyInputToSandbox(string inputPath, string sandboxPath, out string sha256)
     {
         FileInfo before = new(inputPath);
-        string beforeHash = ComputeFileHash(inputPath);
         string destination = Path.Combine(sandboxPath, "input.pdf");
-        File.Copy(inputPath, destination, overwrite: false);
+        using (var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
+        {
+            using (FileStream source = new(
+                       inputPath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.Read,
+                       bufferSize: 128 * 1024,
+                       options: FileOptions.SequentialScan))
+            using (FileStream target = new(
+                       destination,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.None,
+                       bufferSize: 128 * 1024,
+                       options: FileOptions.SequentialScan))
+            {
+                byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(128 * 1024);
+                try
+                {
+                    int read;
+                    while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        hash.AppendData(buffer, 0, read);
+                        target.Write(buffer, 0, read);
+                    }
+                }
+                finally
+                {
+                    System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
+
+            sha256 = Convert.ToHexStringLower(hash.GetHashAndReset());
+        }
 
         FileInfo after = new(inputPath);
-        string afterHash = ComputeFileHash(inputPath);
+        FileInfo copy = new(destination);
         if (before.Length != after.Length ||
-            before.LastWriteTimeUtc != after.LastWriteTimeUtc ||
-            !string.Equals(beforeHash, afterHash, StringComparison.OrdinalIgnoreCase))
+            before.LastWriteTimeUtc != after.LastWriteTimeUtc)
         {
             throw new IOException("The PDF source changed while it was being copied into the worker sandbox.");
         }
 
-        string copiedHash = ComputeFileHash(destination);
-        if (!string.Equals(afterHash, copiedHash, StringComparison.OrdinalIgnoreCase))
+        if (copy.Length != after.Length)
         {
             throw new IOException("The worker sandbox copy did not match the PDF source fingerprint.");
         }
 
         return destination;
-    }
-
-    private static string ComputeFileHash(string path)
-    {
-        using FileStream stream = new(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 64 * 1024,
-            options: FileOptions.SequentialScan);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     private static async Task<(byte[] Bytes, PdfWorkerOutputManifest Manifest)> ReadVerifiedOutputAsync(
@@ -660,11 +799,13 @@ public sealed class PdfWorkerClient
         };
     }
 
+    private string SandboxRoot => string.IsNullOrWhiteSpace(_options.SandboxRoot)
+        ? Path.Combine(Path.GetTempPath(), "OgmaLibraryPdfWorker")
+        : _options.SandboxRoot;
+
     private PdfWorkerSandbox CreateSandbox()
     {
-        string root = string.IsNullOrWhiteSpace(_options.SandboxRoot)
-            ? Path.Combine(Path.GetTempPath(), "OgmaLibraryPdfWorker")
-            : _options.SandboxRoot;
+        string root = SandboxRoot;
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
@@ -881,6 +1022,7 @@ public sealed class PdfWorkerClient
 
                 _process = new Process { StartInfo = startInfo };
                 _process.Start();
+                Interlocked.Increment(ref client._processLaunches);
 
                 // Interactive session policy: memory, active-process and kill-on-close
                 // containment, but no cumulative CPU cap (K30).
@@ -1088,6 +1230,50 @@ public sealed class PdfWorkerClient
             (await SendAsync(new ServerRequest("text-layer", pageIndex), WorkerRequestPriority.Control, cancellationToken)
                 .ConfigureAwait(false)).TextLayer
             ?? new TextLayer(pageIndex, [], ExtractionQuality.Empty);
+
+        /// <summary>
+        /// Generates a cover or spine JPEG inside the session's sandbox and returns its verified
+        /// bytes (Sept-23 Phase 06, T06.10). The worker writes only inside its sandbox; the
+        /// output is size- and dimension-checked before it leaves the boundary.
+        /// </summary>
+        /// <param name="command">One of <c>asset-cover</c>, <c>asset-embedded-cover</c> or <c>asset-spine</c>.</param>
+        /// <param name="widthPx">The asset width.</param>
+        /// <param name="heightPx">The asset height.</param>
+        /// <param name="cancellationToken">Cancels the request while it is queued.</param>
+        /// <returns>The JPEG bytes.</returns>
+        internal async Task<byte[]> GenerateAssetAsync(
+            string command,
+            int widthPx,
+            int heightPx,
+            CancellationToken cancellationToken)
+        {
+            if (command is not ("asset-cover" or "asset-embedded-cover" or "asset-spine"))
+            {
+                throw new ArgumentOutOfRangeException(nameof(command));
+            }
+
+            string outputName = $"{command}-{Guid.NewGuid():N}.jpg";
+            await SendAsync(
+                    new ServerRequest(command, -1, widthPx, heightPx, OutputName: outputName),
+                    WorkerRequestPriority.Render,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            string outputPath = Path.Combine(_sandbox.Path, outputName);
+            try
+            {
+                string verified = VerifyOutput(
+                    outputPath,
+                    _sandbox.Path,
+                    _client._options.MaxOutputBytes,
+                    widthPx,
+                    heightPx);
+                return await File.ReadAllBytesAsync(verified, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                TryDeleteOutput(outputPath);
+            }
+        }
 
         /// <summary>Stops the worker (bounded wait) and deletes its private sandbox.</summary>
         public void Dispose()

@@ -78,6 +78,7 @@ public sealed class MainShellViewModel :
     private readonly IIngestionOrchestrator? _orchestrator;
     private readonly ILibraryRootService? _libraryRootService;
     private readonly IScanProgressService? _scanProgress;
+    private readonly IProcessingProgressService? _processingProgress;
     private readonly IDirectPdfOpenService? _directPdfOpenService;
     private readonly IClassroomModeService? _classroomModeService;
     private readonly IUserPreferencesService? _userPreferencesService;
@@ -94,6 +95,9 @@ public sealed class MainShellViewModel :
     private int _filesFailed;
     private CancellationTokenSource _scanCts = new();
     private CancellationTokenSource? _catalogueRefreshCts;
+    private ProcessingSnapshot _processing = ProcessingSnapshot.Idle;
+    private DateTimeOffset _lastProgressiveRefreshUtc = DateTimeOffset.MinValue;
+    private bool _progressiveRefreshPending;
     private bool _isSidebarOpen = true;
     private bool _isFilterPanelOpen;
     private bool _isSearchPanelOpen;
@@ -140,6 +144,7 @@ public sealed class MainShellViewModel :
     /// <param name="reconciliationReviews">The operator relocation-review workflow.</param>
     /// <param name="logger">Optional logger (Sept-23 Phase 02).</param>
     /// <param name="libraryFolders">The Library folders panel and scan monitor (Sept-23 Phase 05).</param>
+    /// <param name="processingProgress">Background task progress, kept apart from scan files (Sept-23 Phase 06).</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -163,7 +168,8 @@ public sealed class MainShellViewModel :
         IUserPreferencesService? userPreferencesService = null,
         ReconciliationReviewPanelViewModel? reconciliationReviews = null,
         ILogger<MainShellViewModel>? logger = null,
-        LibraryFoldersViewModel? libraryFolders = null)
+        LibraryFoldersViewModel? libraryFolders = null,
+        IProcessingProgressService? processingProgress = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -189,6 +195,7 @@ public sealed class MainShellViewModel :
         _orchestrator = orchestrator;
         _libraryRootService = libraryRootService;
         _scanProgress = scanProgress;
+        _processingProgress = processingProgress;
         _directPdfOpenService = directPdfOpenService;
         _classroomModeService = classroomModeService;
         _userPreferencesService = userPreferencesService;
@@ -200,6 +207,13 @@ public sealed class MainShellViewModel :
         if (_scanProgress is not null)
         {
             _scanProgress.ProgressChanged += OnProgressChanged;
+        }
+
+        if (_processingProgress is not null)
+        {
+            _processing = _processingProgress.CurrentSnapshot;
+            _processingProgress.ProgressChanged += OnProcessingProgressChanged;
+            _processingProgress.NotifyChanged();
         }
 
         if (LibraryFolders is not null)
@@ -524,9 +538,16 @@ public sealed class MainShellViewModel :
                 return string.Format(culture, _localization["Scan.Progress.ScanningFormat"], processed, discovered);
             }
 
+            if (_processing.IsActive)
+            {
+                // Sept-23 Phase 06 (T06.6, K13): tasks, not files, with their own counters.
+                int total = Math.Max(_processing.Total, 0);
+                int done = Math.Clamp(_processing.Done, 0, total);
+                return string.Format(culture, _localization["Processing.Status.PreparingFormat"], done, total);
+            }
+
             if (_scanPhase == ScanPhase.GeneratingAssets)
             {
-                // Asset jobs share the file counters until Phase 06 separates them; show no counts.
                 return _localization["Scan.Progress.PreparingBooks"];
             }
 
@@ -549,7 +570,10 @@ public sealed class MainShellViewModel :
 
             if (bookCount > 0)
             {
-                return string.Format(culture, _localization["MainWindow.Status.LibraryReadyFormat"], bookCount);
+                // Jobs parked for a missing capability never keep the status "busy".
+                return _processing.WaitingByCapability.ContainsKey(JobCapabilities.SemanticEmbeddings)
+                    ? string.Format(culture, _localization["Processing.Status.ReadyWaitingFormat"], bookCount)
+                    : string.Format(culture, _localization["MainWindow.Status.LibraryReadyFormat"], bookCount);
             }
 
             return _localization["MainWindow.Status.Ready"];
@@ -562,6 +586,9 @@ public sealed class MainShellViewModel :
     /// <summary>Whether a scan is currently active.</summary>
     public bool IsScanning =>
         _scanPhase is ScanPhase.Discovering or ScanPhase.Processing or ScanPhase.GeneratingAssets;
+
+    /// <summary>Whether background tasks (covers, metadata, indexing) are queued or running.</summary>
+    public bool IsProcessing => _processing.IsActive;
 
     /// <summary>Progress in [0.0, 1.0].</summary>
     public double ScanProgress =>
@@ -1244,6 +1271,11 @@ public sealed class MainShellViewModel :
     public void Dispose()
     {
         Catalogue.PropertyChanged -= Catalogue_PropertyChanged;
+        if (_processingProgress is not null)
+        {
+            _processingProgress.ProgressChanged -= OnProcessingProgressChanged;
+        }
+
         _classroomConnectivitySubscription?.Dispose();
         if (LibraryFolders is not null)
         {
@@ -1365,6 +1397,53 @@ public sealed class MainShellViewModel :
             }
         });
     }
+
+    private void OnProcessingProgressChanged(object? sender, ProcessingSnapshot snapshot)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            ProcessingSnapshot previous = _processing;
+            _processing = snapshot;
+            OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(IsProcessing));
+
+            // T06.6: covers and metadata appear while processing continues, not only when the
+            // queue drains; refreshes are throttled to one every two seconds.
+            if (snapshot.AssetsCompleted != previous.AssetsCompleted ||
+                (previous.IsActive && !snapshot.IsActive))
+            {
+                RequestProgressiveRefresh();
+            }
+        });
+    }
+
+    private void RequestProgressiveRefresh()
+    {
+        TimeSpan sinceLast = DateTimeOffset.UtcNow - _lastProgressiveRefreshUtc;
+        if (sinceLast >= ProgressiveRefreshInterval)
+        {
+            _lastProgressiveRefreshUtc = DateTimeOffset.UtcNow;
+            ScheduleCatalogueRefresh();
+            return;
+        }
+
+        if (_progressiveRefreshPending)
+        {
+            return;
+        }
+
+        _progressiveRefreshPending = true;
+        Avalonia.Threading.DispatcherTimer.RunOnce(
+            () =>
+            {
+                _progressiveRefreshPending = false;
+                _lastProgressiveRefreshUtc = DateTimeOffset.UtcNow;
+                ScheduleCatalogueRefresh();
+            },
+            ProgressiveRefreshInterval - sinceLast);
+    }
+
+    private static readonly TimeSpan ProgressiveRefreshInterval = TimeSpan.FromSeconds(2);
 
     private void OnScanCompleted(object? sender, ScanSummary summary)
     {
@@ -1569,6 +1648,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(ScanPhaseText));
         OnPropertyChanged(nameof(IsScanning));
+        OnPropertyChanged(nameof(IsProcessing));
         OnPropertyChanged(nameof(ScanProgress));
         OnPropertyChanged(nameof(AppLogoLabel));
         OnPropertyChanged(nameof(SettingsLabel));

@@ -215,7 +215,9 @@ public sealed class Sept23Phase05LibraryRootScanTests : IDisposable
         await attention.IgnoreAsync(empty.IssueId);
         Assert.Equal(2, await attention.CountAsync());
         NeedsAttentionItem truncated = items.Single(item => item.Reason == FileValidity.Damaged);
-        await File.WriteAllBytesAsync(Path.Combine(lib, "Truncated Download.pdf"), good);
+        // A distinct repaired PDF: a byte-identical copy of another book would be attached to
+        // that book as a second occurrence (Sept-23 Phase 06, T06.9).
+        IngestionTestFixture.WriteSyntheticPdf(Path.Combine(lib, "Truncated Download.pdf"), "Repaired", "Author");
         Assert.True(await attention.RetryAsync(truncated.IssueId));
         await Orchestrator().ScanRootsAsync(null);
         Assert.Equal(1, await attention.CountAsync());

@@ -62,8 +62,8 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 03 | Shell emergency fixes: visible catalogue and truthful status | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-03-completion.md) |
 | 04 | Reader engine stability and page rendering | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-04-completion.md) |
 | 05 | Library roots, scanning and file validity | B | **IMPLEMENTED** 2026-09-25 (E2E journeys G2/G6 pending Phase 01) | [record](../../implementation/execution/phase-sept23-05-completion.md) |
-| 06 | Processing pipeline, jobs and identity promotion | B | IN PROGRESS (worktree lane) | — |
-| 07 | Navigation and information architecture | B | NOT STARTED | — |
+| 06 | Processing pipeline, jobs and identity promotion | B | **IMPLEMENTED** 2026-09-25 (E2E G2 processing journeys pending re-run) | [record](../../implementation/execution/phase-sept23-06-completion.md) |
+| 07 | Navigation and information architecture | B | IN PROGRESS (worktree lane) | — |
 | 08 | Settings and capability centre | B | NOT STARTED | — |
 | 09 | Design system and visual identity | C | NOT STARTED (needs D-07) | — |
 | 10 | Catalogue experience | C | NOT STARTED | — |

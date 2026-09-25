@@ -204,14 +204,18 @@ public sealed class BookRegistrationService : IBookRegistrationService
             return;
         }
 
-        if (existing.Status is 3 or 4)
+        if (existing.Status is 3 or 4 or 5)
         {
+            // Re-registration is new work, not another attempt (Sept-23 Phase 06, T06.2).
             existing.Status = 0; // Pending
             existing.Payload = filePath;
             existing.StartedUtc = null;
             existing.CompletedUtc = null;
             existing.ErrorMessage = null;
-            existing.RetryCount += 1;
+            existing.FailureCode = null;
+            existing.NextAttemptUtc = null;
+            existing.RetryCount = 0;
+            existing.RequeueCount += 1;
         }
     }
 

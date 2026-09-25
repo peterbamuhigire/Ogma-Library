@@ -31,6 +31,10 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<JobRow>
         builder.Property(j => j.LeaseExpiresUtc);
         builder.Property(j => j.NextAttemptUtc);
         builder.Property(j => j.FailureCode).HasMaxLength(128);
+        builder.Property(j => j.RequeueCount).HasDefaultValue(0);
+        builder.Property(j => j.LeaseOwnerPid);
+        builder.Property(j => j.LeaseOwnerStartTicks);
+        builder.Property(j => j.WaitingCapability).HasMaxLength(64);
 
         // The idempotency constraint — prevents duplicate job submissions (NFR-OGMA-009).
         builder.HasIndex(j => j.IdempotencyKey)

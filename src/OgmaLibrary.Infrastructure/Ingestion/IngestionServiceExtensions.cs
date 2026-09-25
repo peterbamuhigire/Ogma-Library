@@ -64,6 +64,9 @@ public static class IngestionServiceExtensions
         services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();
+        // Sept-23 Phase 06 (T06.6): processing tasks have their own progress, apart from scan files.
+        services.AddSingleton<ProcessingProgressService>();
+        services.AddSingleton<IProcessingProgressService>(sp => sp.GetRequiredService<ProcessingProgressService>());
         services.AddSingleton<IUnavailableFileFlagService, UnavailableFileFlagService>();
         services.AddSingleton<IBookRegistrationService, BookRegistrationService>();
         services.AddSingleton<IDirectPdfOpenService>(sp => new DirectPdfOpenService(

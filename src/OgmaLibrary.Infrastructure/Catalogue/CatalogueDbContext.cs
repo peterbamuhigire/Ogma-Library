@@ -226,6 +226,9 @@ public sealed class CatalogueDbContext : DbContext
     /// <summary>Discovered files that were not catalogued and need attention (Sept-23 Phase 05).</summary>
     public DbSet<FileIssueRow> FileIssues => Set<FileIssueRow>();
 
+    /// <summary>Search-extraction problems per book or page; not jobs (Sept-23 Phase 06, T06.4).</summary>
+    public DbSet<ExtractionIssueRow> ExtractionIssues => Set<ExtractionIssueRow>();
+
     /// <summary>Reviewed work/edition identity groups.</summary>
     public DbSet<IdentityGroupRow> IdentityGroups => Set<IdentityGroupRow>();
 
@@ -245,6 +248,7 @@ public sealed class CatalogueDbContext : DbContext
         modelBuilder.ApplyConfiguration(new BookConfiguration());
         modelBuilder.ApplyConfiguration(new BookFileConfiguration());
         modelBuilder.ApplyConfiguration(new FileIssueConfiguration());
+        modelBuilder.ApplyConfiguration(new ExtractionIssueConfiguration());
         modelBuilder.ApplyConfiguration(new BookMetadataFieldConfiguration());
         modelBuilder.ApplyConfiguration(new AuthorConfiguration());
         modelBuilder.ApplyConfiguration(new BookAuthorConfiguration());

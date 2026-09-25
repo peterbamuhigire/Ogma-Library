@@ -202,7 +202,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                 services.GetRequiredService<ILogger<LibraryFoldersViewModel>>())
             {
                 ConfiguredRoot = options.ConfiguredLibraryRoot,
-            });
+            },
+            services.GetService<IProcessingProgressService>());
 
         return shell;
     }

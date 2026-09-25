@@ -25,7 +25,8 @@ public sealed class ActivityCentreViewModelTests
 
         Assert.Equal(3, viewModel.Jobs.Count);
         Assert.Contains("Queued: 1", viewModel.QueueSummary, StringComparison.Ordinal);
-        Assert.Contains("Dead-letter: 1", viewModel.FailureSummary, StringComparison.Ordinal);
+        Assert.Contains("Needs attention (1)", viewModel.FailureSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain("Attempts", viewModel.FailureSummary, StringComparison.Ordinal);
         ActivityJobDisplayItem failed = viewModel.Jobs.Single(job => job.JobId == 2);
         ActivityJobDisplayItem pending = viewModel.Jobs.Single(job => job.JobId == 1);
         ActivityJobDisplayItem deadLetter = viewModel.Jobs.Single(job => job.JobId == 3);

@@ -156,6 +156,10 @@ internal static class PdfWorkerCommand
             requestId: 0,
             new ServerResponse("ok", PageCount: renderer.PageCount, ProtocolVersion: SessionProtocolVersion));
 
+        // Sept-23 Phase 06 (T06.10): a book's cover and spine come from the same first-page
+        // render, so a processing batch renders it once per session.
+        byte[]? firstPageAssetSource = null;
+
         while (await Console.In.ReadLineAsync().ConfigureAwait(false) is { } line)
         {
             long requestId = 0;
@@ -218,6 +222,40 @@ internal static class PdfWorkerCommand
                         WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             TextLayer: renderer.ExtractTextLayer(request.PageIndex)));
+                        break;
+                    case "asset-cover":
+                    case "asset-embedded-cover":
+                    case "asset-spine":
+                        string assetPath = RequireInsideSandbox(
+                            sandbox,
+                            Path.Combine(sandbox, request.OutputName ?? string.Empty));
+                        ValidateAssetDimensions(request.WidthPx, request.HeightPx);
+                        if (request.Command == "asset-embedded-cover")
+                        {
+                            byte[] embedded = renderer.TryExtractEmbeddedCoverImage()
+                                ?? throw new PdfEmbeddedCoverNotFoundException(
+                                    "The first PDF page has no bounded decodable embedded cover image.");
+                            WriteCoverImage(assetPath, embedded, request.WidthPx, request.HeightPx);
+                        }
+                        else
+                        {
+                            firstPageAssetSource ??= (await renderer.RenderPageAsync(
+                                        0,
+                                        new RenderRequest(200),
+                                        CancellationToken.None)
+                                    .ConfigureAwait(false))
+                                .PngBytes;
+                            if (request.Command == "asset-cover")
+                            {
+                                WriteCoverImage(assetPath, firstPageAssetSource, request.WidthPx, request.HeightPx);
+                            }
+                            else
+                            {
+                                WriteSpineImage(assetPath, firstPageAssetSource, request.WidthPx, request.HeightPx);
+                            }
+                        }
+
+                        WriteServerResponse(requestId, new ServerResponse("ok"));
                         break;
                     default:
                         throw new ArgumentException($"Unknown worker session command '{request.Command}'.");
@@ -284,14 +322,22 @@ internal static class PdfWorkerCommand
 
     private static void RenderCoverImage(ParsedArgs parsed, string outputPath, byte[] sourcePngBytes)
     {
+        WriteCoverImage(
+            outputPath,
+            sourcePngBytes,
+            parsed.GetOptionalInt("--width", 200),
+            parsed.GetOptionalInt("--height", 300));
+        WriteOk(new AssetResponse(outputPath));
+    }
+
+    private static void WriteCoverImage(string outputPath, byte[] sourcePngBytes, int widthPx, int heightPx)
+    {
         using SKBitmap? rendered = SKBitmap.Decode(sourcePngBytes);
         if (rendered is null)
         {
             throw new InvalidOperationException("The PDF cover image could not be decoded.");
         }
 
-        int widthPx = parsed.GetOptionalInt("--width", 200);
-        int heightPx = parsed.GetOptionalInt("--height", 300);
         ValidateAssetDimensions(widthPx, heightPx);
         using SKSurface surface = SKSurface.Create(
             new SKImageInfo(widthPx, heightPx, SKColorType.Rgba8888, SKAlphaType.Opaque));
@@ -306,7 +352,6 @@ internal static class PdfWorkerCommand
         canvas.DrawBitmap(rendered, new SKRect(offsetX, offsetY, offsetX + drawW, offsetY + drawH));
 
         SaveJpeg(surface, outputPath);
-        WriteOk(new AssetResponse(outputPath));
     }
 
     private static void RenderSpine(ParsedArgs parsed, string sandbox)
@@ -319,14 +364,22 @@ internal static class PdfWorkerCommand
                 CancellationToken.None)
             .GetAwaiter()
             .GetResult();
-        using SKBitmap? rendered = SKBitmap.Decode(page.PngBytes);
+        WriteSpineImage(
+            outputPath,
+            page.PngBytes,
+            parsed.GetOptionalInt("--width", 7),
+            parsed.GetOptionalInt("--height", 100));
+        WriteOk(new AssetResponse(outputPath));
+    }
+
+    private static void WriteSpineImage(string outputPath, byte[] pagePngBytes, int widthPx, int heightPx)
+    {
+        using SKBitmap? rendered = SKBitmap.Decode(pagePngBytes);
         if (rendered is null)
         {
             throw new InvalidOperationException("The first PDF page could not be decoded for its spine image.");
         }
 
-        int widthPx = parsed.GetOptionalInt("--width", 7);
-        int heightPx = parsed.GetOptionalInt("--height", 100);
         ValidateAssetDimensions(widthPx, heightPx);
         using SKSurface surface = SKSurface.Create(
             new SKImageInfo(widthPx, heightPx, SKColorType.Rgba8888, SKAlphaType.Opaque));
@@ -335,7 +388,6 @@ internal static class PdfWorkerCommand
         canvas.DrawBitmap(rendered, new SKRect(0, 0, widthPx, heightPx));
 
         SaveJpeg(surface, outputPath);
-        WriteOk(new AssetResponse(outputPath));
     }
 
     private static void WriteMetadata(ParsedArgs parsed, string sandbox)
