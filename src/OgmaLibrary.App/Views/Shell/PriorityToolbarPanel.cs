@@ -33,6 +33,12 @@ public sealed class PriorityToolbarPanel : Panel
         AffectsMeasure<PriorityToolbarPanel>(SpacingProperty);
     }
 
+    /// <summary>Initializes a new instance of the <see cref="PriorityToolbarPanel"/> class.</summary>
+    public PriorityToolbarPanel()
+    {
+        ClipToBounds = true;
+    }
+
     /// <summary>Raised after the set of overflowed children changes.</summary>
     public event EventHandler? OverflowChanged;
 
@@ -93,6 +99,7 @@ public sealed class PriorityToolbarPanel : Panel
             if (GetIsOverflowed(child) != overflowed)
             {
                 SetIsOverflowed(child, overflowed);
+                child.IsHitTestVisible = !overflowed;
                 KeyboardNavigation.SetIsTabStop(child, !overflowed);
                 KeyboardNavigation.SetTabNavigation(child, overflowed ? KeyboardNavigationMode.None : KeyboardNavigationMode.Continue);
                 changed = true;
@@ -129,7 +136,9 @@ public sealed class PriorityToolbarPanel : Panel
             }
             else
             {
-                child.Arrange(default);
+                // Park overflowed children outside the clipped panel: minimum sizes would
+                // otherwise let a zero-size child paint over its neighbours.
+                child.Arrange(new Rect(new Point(-100_000, 0), child.DesiredSize));
             }
         }
 
