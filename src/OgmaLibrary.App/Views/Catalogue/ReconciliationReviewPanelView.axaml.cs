@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
 namespace OgmaLibrary.App.Views.Catalogue;
@@ -13,7 +14,10 @@ public partial class ReconciliationReviewPanelView : UserControl
     /// <summary>Initializes the relocation review panel.</summary>
     public ReconciliationReviewPanelView() => InitializeComponent();
 
-    private async void Reload_Click(object? sender, RoutedEventArgs e)
+    private void Reload_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Reload_ClickAsync(sender, e), "catalogue.reload_click");
+
+    private async Task Reload_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReconciliationReviewPanelViewModel viewModel)
         {
@@ -21,7 +25,10 @@ public partial class ReconciliationReviewPanelView : UserControl
         }
     }
 
-    private async void Accept_Click(object? sender, RoutedEventArgs e)
+    private void Accept_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Accept_ClickAsync(sender, e), "catalogue.accept_click");
+
+    private async Task Accept_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReconciliationReviewPanelViewModel viewModel)
         {
@@ -29,7 +36,10 @@ public partial class ReconciliationReviewPanelView : UserControl
         }
     }
 
-    private async void Reject_Click(object? sender, RoutedEventArgs e)
+    private void Reject_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Reject_ClickAsync(sender, e), "catalogue.reject_click");
+
+    private async Task Reject_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReconciliationReviewPanelViewModel viewModel)
         {
