@@ -12,7 +12,7 @@ namespace OgmaLibrary.Tests.Search;
 
 /// <summary>
 /// Sept-23 Phase 13 (task 13.9): keyword query latency over a 2,000-book synthetic catalogue
-/// (10 text pages per book). Budget: p95 ≤ 300 ms locally. Excluded from the fast suite.
+/// (10 text pages per book). Budget: p95 ≤ 300 ms locally. Category=Benchmark: excluded from the fast suite (scripts/Test-Performance.ps1).
 /// </summary>
 public sealed class UnifiedSearchPerformanceTests
 {
@@ -31,7 +31,7 @@ public sealed class UnifiedSearchPerformanceTests
     }
 
     [Fact]
-    [Trait("Category", "Performance")]
+    [Trait("Category", "Benchmark")]
     public async Task UnifiedSearch_2000Books_P95Within300ms()
     {
         (CatalogueDbContext context, string dbPath) = CatalogueTestHelper.CreateTempFileContext();
