@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
 namespace OgmaLibrary.App.Views.Settings;
@@ -19,7 +20,10 @@ public partial class SharingSettingsView : UserControl
     private void StartButton_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.RequestStartConfirmation();
 
-    private async void ConfirmStartButton_Click(object? sender, RoutedEventArgs e)
+    private void ConfirmStartButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConfirmStartButton_ClickAsync(sender, e), "sharing.confirm_start_button_click");
+
+    private async Task ConfirmStartButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -30,7 +34,10 @@ public partial class SharingSettingsView : UserControl
     private void CancelStartButton_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.CancelStartConfirmation();
 
-    private async void StopButton_Click(object? sender, RoutedEventArgs e)
+    private void StopButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => StopButton_ClickAsync(sender, e), "sharing.stop_button_click");
+
+    private async Task StopButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -38,7 +45,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void ConnectToHostButton_Click(object? sender, RoutedEventArgs e)
+    private void ConnectToHostButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConnectToHostButton_ClickAsync(sender, e), "sharing.connect_to_host_button_click");
+
+    private async Task ConnectToHostButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -46,7 +56,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void DiscoverHostsButton_Click(object? sender, RoutedEventArgs e)
+    private void DiscoverHostsButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DiscoverHostsButton_ClickAsync(sender, e), "sharing.discover_hosts_button_click");
+
+    private async Task DiscoverHostsButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -54,7 +67,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void SyncNowButton_Click(object? sender, RoutedEventArgs e)
+    private void SyncNowButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SyncNowButton_ClickAsync(sender, e), "sharing.sync_now_button_click");
+
+    private async Task SyncNowButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -62,7 +78,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void RefreshSchoolAdminButton_Click(object? sender, RoutedEventArgs e)
+    private void RefreshSchoolAdminButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => RefreshSchoolAdminButton_ClickAsync(sender, e), "sharing.refresh_school_admin_button_click");
+
+    private async Task RefreshSchoolAdminButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -70,7 +89,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void SaveSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e)
+    private void SaveSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SaveSchoolAiKeyButton_ClickAsync(sender, e), "sharing.save_school_ai_key_button_click");
+
+    private async Task SaveSchoolAiKeyButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
         {
@@ -82,7 +104,10 @@ public partial class SharingSettingsView : UserControl
         await ViewModel.SaveSchoolAiKeyAsync(key).ConfigureAwait(true);
     }
 
-    private async void DeleteSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e)
+    private void DeleteSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteSchoolAiKeyButton_ClickAsync(sender, e), "sharing.delete_school_ai_key_button_click");
+
+    private async Task DeleteSchoolAiKeyButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -90,7 +115,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void TestSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e)
+    private void TestSchoolAiKeyButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => TestSchoolAiKeyButton_ClickAsync(sender, e), "sharing.test_school_ai_key_button_click");
+
+    private async Task TestSchoolAiKeyButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -98,7 +126,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void SaveSchoolAiPolicyButton_Click(object? sender, RoutedEventArgs e)
+    private void SaveSchoolAiPolicyButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SaveSchoolAiPolicyButton_ClickAsync(sender, e), "sharing.save_school_ai_policy_button_click");
+
+    private async Task SaveSchoolAiPolicyButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -106,7 +137,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void EnrollProfileButton_Click(object? sender, RoutedEventArgs e)
+    private void EnrollProfileButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => EnrollProfileButton_ClickAsync(sender, e), "sharing.enroll_profile_button_click");
+
+    private async Task EnrollProfileButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -114,7 +148,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void RevokeProfileButton_Click(object? sender, RoutedEventArgs e)
+    private void RevokeProfileButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => RevokeProfileButton_ClickAsync(sender, e), "sharing.revoke_profile_button_click");
+
+    private async Task RevokeProfileButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -122,7 +159,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void PurgeAiHistoryButton_Click(object? sender, RoutedEventArgs e)
+    private void PurgeAiHistoryButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => PurgeAiHistoryButton_ClickAsync(sender, e), "sharing.purge_ai_history_button_click");
+
+    private async Task PurgeAiHistoryButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -130,7 +170,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void ExportSchoolAuditCsvButton_Click(object? sender, RoutedEventArgs e)
+    private void ExportSchoolAuditCsvButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ExportSchoolAuditCsvButton_ClickAsync(sender, e), "sharing.export_school_audit_csv_button_click");
+
+    private async Task ExportSchoolAuditCsvButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -145,7 +188,10 @@ public partial class SharingSettingsView : UserControl
     private void CancelOfflineCacheClearButton_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.CancelOfflineCacheClearConfirmation();
 
-    private async void ConfirmOfflineCacheClearButton_Click(object? sender, RoutedEventArgs e)
+    private void ConfirmOfflineCacheClearButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConfirmOfflineCacheClearButton_ClickAsync(sender, e), "sharing.confirm_offline_cache_clear_button_click");
+
+    private async Task ConfirmOfflineCacheClearButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -153,7 +199,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void ExportOfflineCacheButton_Click(object? sender, RoutedEventArgs e)
+    private void ExportOfflineCacheButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ExportOfflineCacheButton_ClickAsync(sender, e), "sharing.export_offline_cache_button_click");
+
+    private async Task ExportOfflineCacheButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
         {
@@ -193,7 +242,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void SyncSettingsCheckBox_Click(object? sender, RoutedEventArgs e)
+    private void SyncSettingsCheckBox_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SyncSettingsCheckBox_ClickAsync(sender, e), "sharing.sync_settings_check_box_click");
+
+    private async Task SyncSettingsCheckBox_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -201,7 +253,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void KeepLocalConflictButton_Click(object? sender, RoutedEventArgs e)
+    private void KeepLocalConflictButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => KeepLocalConflictButton_ClickAsync(sender, e), "sharing.keep_local_conflict_button_click");
+
+    private async Task KeepLocalConflictButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -209,7 +264,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void KeepServerConflictButton_Click(object? sender, RoutedEventArgs e)
+    private void KeepServerConflictButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => KeepServerConflictButton_ClickAsync(sender, e), "sharing.keep_server_conflict_button_click");
+
+    private async Task KeepServerConflictButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -217,7 +275,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void CopyJoinLinkButton_Click(object? sender, RoutedEventArgs e)
+    private void CopyJoinLinkButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CopyJoinLinkButton_ClickAsync(sender, e), "sharing.copy_join_link_button_click");
+
+    private async Task CopyJoinLinkButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null &&
             await CopyTextAsync(sender, ViewModel.ManualJoinUri).ConfigureAwait(true))
@@ -226,7 +287,10 @@ public partial class SharingSettingsView : UserControl
         }
     }
 
-    private async void CopyFingerprintButton_Click(object? sender, RoutedEventArgs e)
+    private void CopyFingerprintButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CopyFingerprintButton_ClickAsync(sender, e), "sharing.copy_fingerprint_button_click");
+
+    private async Task CopyFingerprintButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null &&
             await CopyTextAsync(sender, ViewModel.FullFingerprintText).ConfigureAwait(true))

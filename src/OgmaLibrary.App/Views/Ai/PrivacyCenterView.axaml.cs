@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.Domain.Ai;
 
@@ -17,7 +18,10 @@ public sealed partial class PrivacyCenterView : UserControl
 
     private PrivacyCenterViewModel? ViewModel => DataContext as PrivacyCenterViewModel;
 
-    private async void Tier_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void Tier_SelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        UiActions.Run(() => Tier_SelectionChangedAsync(sender, e), "advisor.tier_selection_changed");
+
+    private async Task Tier_SelectionChangedAsync(object? sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox { SelectedItem: AiPrivacyTier tier } && ViewModel is not null)
         {
@@ -25,7 +29,10 @@ public sealed partial class PrivacyCenterView : UserControl
         }
     }
 
-    private async void DeleteHistory_Click(object? sender, RoutedEventArgs e)
+    private void DeleteHistory_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteHistory_ClickAsync(sender, e), "advisor.delete_history_click");
+
+    private async Task DeleteHistory_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -33,7 +40,10 @@ public sealed partial class PrivacyCenterView : UserControl
         }
     }
 
-    private async void EraseEmbeddings_Click(object? sender, RoutedEventArgs e)
+    private void EraseEmbeddings_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => EraseEmbeddings_ClickAsync(sender, e), "advisor.erase_embeddings_click");
+
+    private async Task EraseEmbeddings_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -41,7 +51,10 @@ public sealed partial class PrivacyCenterView : UserControl
         }
     }
 
-    private async void ExportAudit_Click(object? sender, RoutedEventArgs e)
+    private void ExportAudit_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ExportAudit_ClickAsync(sender, e), "advisor.export_audit_click");
+
+    private async Task ExportAudit_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -50,7 +63,10 @@ public sealed partial class PrivacyCenterView : UserControl
         }
     }
 
-    private async void ExportHistory_Click(object? sender, RoutedEventArgs e)
+    private void ExportHistory_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ExportHistory_ClickAsync(sender, e), "advisor.export_history_click");
+
+    private async Task ExportHistory_ClickAsync(object? sender, RoutedEventArgs e)
     {
         TopLevel? topLevel = TopLevel.GetTopLevel(this);
         if (ViewModel is null || topLevel?.StorageProvider.CanSave != true)
