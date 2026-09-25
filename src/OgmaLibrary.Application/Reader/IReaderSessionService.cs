@@ -75,6 +75,17 @@ public interface IReaderSessionService
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(percent);
     }
+
+    /// <summary>
+    /// Tells the session the raster width the reader surface currently requests, so
+    /// neighbour prefetches use the same width and page turns are cache hits. The width
+    /// follows zoom and monitor scaling (<see cref="ReaderRenderDefaults.ComputePageWidthPx"/>).
+    /// </summary>
+    /// <param name="widthPx">The bucketed render width in pixels.</param>
+    void UpdateRenderWidth(int widthPx)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(widthPx);
+    }
 }
 
 /// <summary>

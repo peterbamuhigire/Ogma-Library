@@ -55,6 +55,16 @@ public abstract record ReaderEvent
     /// <summary>The reader session was closed.</summary>
     /// <param name="BookId">The book whose session was closed.</param>
     public sealed record SessionClosed(string BookId) : ReaderEvent;
+
+    /// <summary>
+    /// The isolated reader worker was lost and transparently replaced
+    /// (<c>reader.session.respawned</c>). Carries no path or document content.
+    /// </summary>
+    /// <param name="BookId">The affected book.</param>
+    /// <param name="Reason">Stable reason code, for example <c>worker_exited</c> or <c>request_timeout</c>.</param>
+    /// <param name="RespawnCount">Recoveries so far for this session.</param>
+    /// <param name="Elapsed">Time taken to start the replacement worker.</param>
+    public sealed record EngineRecovered(string BookId, string Reason, int RespawnCount, TimeSpan Elapsed) : ReaderEvent;
 }
 
 /// <summary>
