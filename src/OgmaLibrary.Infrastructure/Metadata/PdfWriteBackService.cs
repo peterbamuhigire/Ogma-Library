@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Metadata;
@@ -8,6 +10,7 @@ using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Diagnostics;
 using OgmaLibrary.Infrastructure.Pathing;
 using OgmaLibrary.Infrastructure.Pdf;
 
@@ -33,6 +36,7 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
     private readonly ILibrarySettingsService? _settingsService;
     private readonly IPdfRendererFactory _rendererFactory;
     private readonly PdfWorkerClient _workerClient;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="PdfWriteBackService"/>.
@@ -59,9 +63,11 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string libraryRoot,
         ILibrarySettingsService? settingsService,
         IPdfRendererFactory? rendererFactory = null,
-        PdfWorkerClient? workerClient = null)
+        PdfWorkerClient? workerClient = null,
+        ILogger<PdfWriteBackService>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(context);
+        _logger = logger ?? (ILogger)NullLogger.Instance;
         ArgumentNullException.ThrowIfNull(sidecarService);
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
         _context = context;
@@ -81,9 +87,11 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
         string libraryRoot,
         ILibrarySettingsService? settingsService,
         IPdfRendererFactory? rendererFactory = null,
-        PdfWorkerClient? workerClient = null)
+        PdfWorkerClient? workerClient = null,
+        ILogger<PdfWriteBackService>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
+        _logger = logger ?? (ILogger)NullLogger.Instance;
         ArgumentNullException.ThrowIfNull(sidecarService);
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
         _contextFactory = contextFactory;
@@ -257,9 +265,10 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             map["Subject"] = info.Subject;
             map["Creator"] = info.Creator;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // If the PDF can't be read, return empty.
+            // Intentionally ignored: an unreadable PDF yields an empty field map.
+            InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(PdfWriteBackService), "writeback.read_docinfo");
         }
 
         return map;
@@ -555,9 +564,10 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             });
             await lease.Context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // An undo failure must not hide the original operation error.
+            // Intentionally ignored: an undo-audit failure must not hide the original operation error.
+            InfrastructureLog.RecoveryStepFailed(_logger, exception, nameof(PdfWriteBackService), "writeback.undo_audit");
         }
     }
 
@@ -570,9 +580,10 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 File.Delete(path);
             }
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Best effort cleanup; the audit remains the source of truth.
+            // Intentionally ignored: best-effort cleanup; the audit remains the source of truth.
+            System.Diagnostics.Trace.WriteLine("ogma writeback temp cleanup skipped: " + exception.GetType().Name);
         }
     }
 
@@ -610,9 +621,10 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
                 File.Delete(tempPath);
             }
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Best effort.
+            // Intentionally ignored: best-effort removal of the failed temp file.
+            InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(PdfWriteBackService), "writeback.delete_temp");
         }
 
         bool restored = false;
@@ -665,9 +677,10 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
 
             await context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Best effort on audit save.
+            // Intentionally ignored: the file was already restored; record the lost audit row in the log (K07).
+            InfrastructureLog.RecoveryStepFailed(_logger, exception, nameof(PdfWriteBackService), "writeback.failure_audit");
         }
     }
 

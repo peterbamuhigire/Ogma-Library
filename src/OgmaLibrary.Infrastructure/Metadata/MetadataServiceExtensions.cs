@@ -110,7 +110,8 @@ public static class MetadataServiceExtensions
                 libraryRoot,
                 sp.GetRequiredService<ILibrarySettingsService>(),
                 sp.GetRequiredService<OgmaLibrary.Application.Reader.IPdfRendererFactory>(),
-                sp.GetRequiredService<PdfWorkerClient>()));
+                sp.GetRequiredService<PdfWorkerClient>(),
+                sp.GetService<Microsoft.Extensions.Logging.ILogger<PdfWriteBackService>>()));
 
         // Batch enrichment orchestrator.
         services.AddSingleton<IBatchEnrichmentOrchestrator, BatchEnrichmentOrchestrator>();

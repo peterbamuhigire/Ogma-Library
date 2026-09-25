@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application.Catalogue;
 
@@ -19,7 +20,10 @@ public partial class CatalogueGridView : UserControl
         InitializeComponent();
     }
 
-    private async void BookCard_PointerPressed(object? sender, PointerPressedEventArgs e)
+    private void BookCard_PointerPressed(object? sender, PointerPressedEventArgs e) =>
+        UiActions.Run(() => BookCard_PointerPressedAsync(sender, e), "catalogue.book_card_pointer_pressed");
+
+    private async Task BookCard_PointerPressedAsync(object? sender, PointerPressedEventArgs e)
     {
         Control source = sender as Control ?? this;
         if (e.ClickCount != 2 ||

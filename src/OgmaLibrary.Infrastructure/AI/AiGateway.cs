@@ -1,7 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Domain.Ai;
+using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.Infrastructure.AI;
 
@@ -11,6 +14,7 @@ namespace OgmaLibrary.Infrastructure.AI;
 /// </summary>
 public sealed class AiGateway : IAiGateway
 {
+    private readonly ILogger _logger;
     private readonly IAiProvider _provider;
     private readonly IAiPrivacyService _privacy;
     private readonly IAiPayloadBuilder _payloadBuilder;
@@ -30,8 +34,10 @@ public sealed class AiGateway : IAiGateway
         IAiAuditRepository audit,
         IAiQueryHistoryRepository history,
         IAiCostCalculator costs,
-        IAiUsageBudgetService? budget = null)
+        IAiUsageBudgetService? budget = null,
+        ILogger<AiGateway>? logger = null)
     {
+        _logger = logger ?? (ILogger)NullLogger.Instance;
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(privacy);
         ArgumentNullException.ThrowIfNull(payloadBuilder);
@@ -175,9 +181,10 @@ public sealed class AiGateway : IAiGateway
         {
             await _budget.ReleaseAsync(reservation, CancellationToken.None).ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // The budget service remains authoritative in memory; preserve the original gateway failure.
+            // Intentionally ignored: the budget service remains authoritative in memory; preserve the original gateway failure.
+            InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(AiGateway), "ai.budget.release");
         }
     }
 

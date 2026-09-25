@@ -2,8 +2,12 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Search;
 
@@ -14,6 +18,7 @@ namespace OgmaLibrary.App.ViewModels.Search;
 /// </summary>
 public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<IndexStatusUpdate>, IDisposable
 {
+    private readonly ILogger _logger;
     private readonly IIndexManagerService _indexManager;
     private readonly IEmbeddingErasureService _embeddingErasure;
     private readonly ILocalizationService _localization;
@@ -44,9 +49,11 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         IEmbeddingErasureService embeddingErasure,
         ILocalizationService localization,
         TimeSpan? erasureConfirmationDelay = null,
-        IJobRuntimeService? jobRuntime = null)
+        IJobRuntimeService? jobRuntime = null,
+        ILogger<IndexManagerViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(indexManager);
+        _logger = logger ?? (ILogger)NullLogger.Instance;
         ArgumentNullException.ThrowIfNull(embeddingErasure);
         ArgumentNullException.ThrowIfNull(localization);
 
@@ -424,15 +431,16 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
             await Dispatcher.UIThread.InvokeAsync(() =>
                 StatusText = _localization["IndexManager.Status.Cancelled"]);
         }
-        catch (Exception)
+        catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
         {
+            // Sept-23 Phase 02 (T02.2): report as an error state instead of rethrowing into a UI handler.
+            AppLog.ViewModelOperationFailed(_logger, exception, nameof(IndexManagerViewModel), "search.index.rebuild");
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 StatusText = _localization["IndexManager.Status.RebuildFailed"];
                 ErrorItems.Add(_localization["IndexManager.Status.RebuildFailed"]);
                 OnPropertyChanged(nameof(HasErrors));
             });
-            throw;
         }
         finally
         {
@@ -469,15 +477,16 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
                     result.BooksReset);
             });
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException && !ExceptionClassification.IsFatal(ex))
         {
+            // Sept-23 Phase 02 (T02.2): report as an error state instead of rethrowing into a UI handler.
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(IndexManagerViewModel), "search.embeddings.erase");
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 StatusText = _localization["IndexManager.Embeddings.EraseFailed"];
                 ErrorItems.Add(_localization["IndexManager.Embeddings.EraseFailed"]);
                 OnPropertyChanged(nameof(HasErrors));
             });
-            throw;
         }
         finally
         {
@@ -787,8 +796,11 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         return string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:0.#} MiB", kib / 1024d);
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>Localized OCR job row for the Index Manager UI.</summary>

@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.Application.Reader;
 
@@ -75,7 +76,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void PageScrollViewer_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private void PageScrollViewer_PointerWheelChanged(object? sender, PointerWheelEventArgs e) =>
+        UiActions.Run(() => PageScrollViewer_PointerWheelChangedAsync(sender, e), "reader.page_scroll_viewer_pointer_wheel_changed");
+
+    private async Task PageScrollViewer_PointerWheelChangedAsync(object? sender, PointerWheelEventArgs e)
     {
         if (DataContext is not ReaderViewModel vm)
         {
@@ -98,7 +102,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void FirstButton_Click(object? sender, RoutedEventArgs e)
+    private void FirstButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => FirstButton_ClickAsync(sender, e), "reader.first_button_click");
+
+    private async Task FirstButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -106,7 +113,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void PreviousButton_Click(object? sender, RoutedEventArgs e)
+    private void PreviousButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => PreviousButton_ClickAsync(sender, e), "reader.previous_button_click");
+
+    private async Task PreviousButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -114,7 +124,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void NextButton_Click(object? sender, RoutedEventArgs e)
+    private void NextButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => NextButton_ClickAsync(sender, e), "reader.next_button_click");
+
+    private async Task NextButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -130,7 +143,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void LastButton_Click(object? sender, RoutedEventArgs e)
+    private void LastButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => LastButton_ClickAsync(sender, e), "reader.last_button_click");
+
+    private async Task LastButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -170,7 +186,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void PageNumberBox_KeyDown(object? sender, KeyEventArgs e)
+    private void PageNumberBox_KeyDown(object? sender, KeyEventArgs e) =>
+        UiActions.Run(() => PageNumberBox_KeyDownAsync(sender, e), "reader.page_number_box_key_down");
+
+    private async Task PageNumberBox_KeyDownAsync(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || DataContext is not ReaderViewModel vm)
         {
@@ -181,7 +200,10 @@ public partial class ReaderView : UserControl
         e.Handled = true;
     }
 
-    private async void AddBookmarkButton_Click(object? sender, RoutedEventArgs e)
+    private void AddBookmarkButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => AddBookmarkButton_ClickAsync(sender, e), "reader.add_bookmark_button_click");
+
+    private async Task AddBookmarkButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -189,7 +211,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void CaptureCitationButton_Click(object? sender, RoutedEventArgs e)
+    private void CaptureCitationButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CaptureCitationButton_ClickAsync(sender, e), "reader.capture_citation_button_click");
+
+    private async Task CaptureCitationButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -197,7 +222,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void ExportReaderStateButton_Click(object? sender, RoutedEventArgs e)
+    private void ExportReaderStateButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ExportReaderStateButton_ClickAsync(sender, e), "reader.export_reader_state_button_click");
+
+    private async Task ExportReaderStateButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ReaderViewModel vm || !vm.CanUsePortability)
         {
@@ -236,7 +264,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void ImportReaderStateButton_Click(object? sender, RoutedEventArgs e)
+    private void ImportReaderStateButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ImportReaderStateButton_ClickAsync(sender, e), "reader.import_reader_state_button_click");
+
+    private async Task ImportReaderStateButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ReaderViewModel vm || !vm.CanUsePortability)
         {
@@ -275,7 +306,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void SelectionHighlightButton_Click(object? sender, RoutedEventArgs e)
+    private void SelectionHighlightButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SelectionHighlightButton_ClickAsync(sender, e), "reader.selection_highlight_button_click");
+
+    private async Task SelectionHighlightButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -283,7 +317,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void SelectionNoteButton_Click(object? sender, RoutedEventArgs e)
+    private void SelectionNoteButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SelectionNoteButton_ClickAsync(sender, e), "reader.selection_note_button_click");
+
+    private async Task SelectionNoteButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -291,7 +328,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void SelectionCitationButton_Click(object? sender, RoutedEventArgs e)
+    private void SelectionCitationButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SelectionCitationButton_ClickAsync(sender, e), "reader.selection_citation_button_click");
+
+    private async Task SelectionCitationButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -299,12 +339,18 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void CopyCitationButton_Click(object? sender, RoutedEventArgs e)
+    private void CopyCitationButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CopyCitationButton_ClickAsync(sender, e), "reader.copy_citation_button_click");
+
+    private async Task CopyCitationButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         await CopyCitationToClipboardAsync().ConfigureAwait(true);
     }
 
-    private async void ExportCitationButton_Click(object? sender, RoutedEventArgs e)
+    private void ExportCitationButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ExportCitationButton_ClickAsync(sender, e), "reader.export_citation_button_click");
+
+    private async Task ExportCitationButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         await CopyCitationToClipboardAsync().ConfigureAwait(true);
 
@@ -322,7 +368,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void CreateHighlightButton_Click(object? sender, RoutedEventArgs e)
+    private void CreateHighlightButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CreateHighlightButton_ClickAsync(sender, e), "reader.create_highlight_button_click");
+
+    private async Task CreateHighlightButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -339,7 +388,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void CreateNoteButton_Click(object? sender, RoutedEventArgs e)
+    private void CreateNoteButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CreateNoteButton_ClickAsync(sender, e), "reader.create_note_button_click");
+
+    private async Task CreateNoteButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -365,7 +417,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void ConfirmDeleteAnnotationButton_Click(object? sender, RoutedEventArgs e)
+    private void ConfirmDeleteAnnotationButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConfirmDeleteAnnotationButton_ClickAsync(sender, e), "reader.confirm_delete_annotation_button_click");
+
+    private async Task ConfirmDeleteAnnotationButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -400,7 +455,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void NoteEditor_LostFocus(object? sender, RoutedEventArgs e)
+    private void NoteEditor_LostFocus(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => NoteEditor_LostFocusAsync(sender, e), "reader.note_editor_lost_focus");
+
+    private async Task NoteEditor_LostFocusAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -419,7 +477,10 @@ public partial class ReaderView : UserControl
         e.Handled = true;
     }
 
-    private async void AddLayerButton_Click(object? sender, RoutedEventArgs e)
+    private void AddLayerButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => AddLayerButton_ClickAsync(sender, e), "reader.add_layer_button_click");
+
+    private async Task AddLayerButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -427,7 +488,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void LayerVisibility_Click(object? sender, RoutedEventArgs e)
+    private void LayerVisibility_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => LayerVisibility_ClickAsync(sender, e), "reader.layer_visibility_click");
+
+    private async Task LayerVisibility_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ReaderViewModel vm ||
             sender is not CheckBox { DataContext: LayerListItem layer } checkBox)
@@ -438,7 +502,10 @@ public partial class ReaderView : UserControl
         await vm.SetLayerVisibilityAsync(layer, checkBox.IsChecked == true).ConfigureAwait(true);
     }
 
-    private async void LayerFilter_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void LayerFilter_SelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        UiActions.Run(() => LayerFilter_SelectionChangedAsync(sender, e), "reader.layer_filter_selection_changed");
+
+    private async Task LayerFilter_SelectionChangedAsync(object? sender, SelectionChangedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is ComboBox { SelectedItem: LayerFilterOption option })
@@ -447,7 +514,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void LayerName_LostFocus(object? sender, RoutedEventArgs e)
+    private void LayerName_LostFocus(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => LayerName_LostFocusAsync(sender, e), "reader.layer_name_lost_focus");
+
+    private async Task LayerName_LostFocusAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is TextBox { DataContext: LayerListItem layer } textBox)
@@ -456,7 +526,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void DeleteLayerButton_Click(object? sender, RoutedEventArgs e)
+    private void DeleteLayerButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteLayerButton_ClickAsync(sender, e), "reader.delete_layer_button_click");
+
+    private async Task DeleteLayerButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is Button { DataContext: LayerListItem layer })
@@ -465,7 +538,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void MergeLayerButton_Click(object? sender, RoutedEventArgs e)
+    private void MergeLayerButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => MergeLayerButton_ClickAsync(sender, e), "reader.merge_layer_button_click");
+
+    private async Task MergeLayerButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is Button { DataContext: LayerListItem layer })
@@ -474,7 +550,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void SaveMemoryButton_Click(object? sender, RoutedEventArgs e)
+    private void SaveMemoryButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SaveMemoryButton_ClickAsync(sender, e), "reader.save_memory_button_click");
+
+    private async Task SaveMemoryButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -482,7 +561,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void ReadingMemoryField_LostFocus(object? sender, RoutedEventArgs e)
+    private void ReadingMemoryField_LostFocus(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ReadingMemoryField_LostFocusAsync(sender, e), "reader.reading_memory_field_lost_focus");
+
+    private async Task ReadingMemoryField_LostFocusAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
@@ -490,7 +572,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void BookmarkLabel_LostFocus(object? sender, RoutedEventArgs e)
+    private void BookmarkLabel_LostFocus(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => BookmarkLabel_LostFocusAsync(sender, e), "reader.bookmark_label_lost_focus");
+
+    private async Task BookmarkLabel_LostFocusAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is TextBox { DataContext: BookmarkListItem bookmark } textBox)
@@ -499,7 +584,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void DeleteBookmarkButton_Click(object? sender, RoutedEventArgs e)
+    private void DeleteBookmarkButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteBookmarkButton_ClickAsync(sender, e), "reader.delete_bookmark_button_click");
+
+    private async Task DeleteBookmarkButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is Button { DataContext: BookmarkListItem bookmark })
@@ -530,7 +618,10 @@ public partial class ReaderView : UserControl
         e.Handled = true;
     }
 
-    private async void DeleteBookmarkMenuItem_Click(object? sender, RoutedEventArgs e)
+    private void DeleteBookmarkMenuItem_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteBookmarkMenuItem_ClickAsync(sender, e), "reader.delete_bookmark_menu_item_click");
+
+    private async Task DeleteBookmarkMenuItem_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is MenuItem menuItem &&
@@ -552,7 +643,10 @@ public partial class ReaderView : UserControl
             ?? menuItem.DataContext as BookmarkListItem;
     }
 
-    private async void BookmarkNavigateButton_Click(object? sender, RoutedEventArgs e)
+    private void BookmarkNavigateButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => BookmarkNavigateButton_ClickAsync(sender, e), "reader.bookmark_navigate_button_click");
+
+    private async Task BookmarkNavigateButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm &&
             sender is Button { DataContext: BookmarkListItem bookmark })
@@ -561,7 +655,10 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private async void Bookmarks_KeyDown(object? sender, KeyEventArgs e)
+    private void Bookmarks_KeyDown(object? sender, KeyEventArgs e) =>
+        UiActions.Run(() => Bookmarks_KeyDownAsync(sender, e), "reader.bookmarks_key_down");
+
+    private async Task Bookmarks_KeyDownAsync(object? sender, KeyEventArgs e)
     {
         if (sender is not ListBox listBox)
         {
@@ -659,7 +756,10 @@ public partial class ReaderView : UserControl
             _ => false,
         };
 
-    private async void ReaderView_KeyDown(object? sender, KeyEventArgs e)
+    private void ReaderView_KeyDown(object? sender, KeyEventArgs e) =>
+        UiActions.Run(() => ReaderView_KeyDownAsync(sender, e), "reader.reader_view_key_down");
+
+    private async Task ReaderView_KeyDownAsync(object? sender, KeyEventArgs e)
     {
         if (DataContext is not ReaderViewModel vm)
         {

@@ -4,8 +4,12 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Reader.Annotations;
@@ -88,6 +92,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private Bitmap? _pageImage;
     private CancellationTokenSource? _renderCts;
     private bool _hasRenderError;
+    private readonly ILogger _logger;
 
     /// <summary>Creates a new reader view model.</summary>
     public ReaderViewModel(
@@ -100,7 +105,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         ILocalizationService localization,
         ITextLayerService? textLayers = null,
         IPageRenderCache? renderCache = null,
-        IReaderPortabilityService? portability = null)
+        IReaderPortabilityService? portability = null,
+        ILogger<ReaderViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(annotations);
@@ -120,6 +126,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _textLayers = textLayers;
         _renderCache = renderCache;
         _portability = portability;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
 
         if (_renderCache is not null)
         {
@@ -923,8 +930,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// <summary>Localized label for closing a citation card.</summary>
     public string CloseCitationLabel => _localization["Icon.ic_close.Label"];
 
-    /// <summary>Opens a reader session and refreshes all Phase 09 side-panel data.</summary>
-    public async Task OpenAsync(string bookId, int? pageHint, CancellationToken cancellationToken)
+    /// <summary>
+    /// Opens a reader session and refreshes all Phase 09 side-panel data. A failure is logged
+    /// and reported through <see cref="StatusMessage"/>; it is not rethrown into UI handlers
+    /// (Sept-23 Phase 02, T02.2).
+    /// </summary>
+    /// <returns><see langword="true"/> when the book opened.</returns>
+    public async Task<bool> OpenAsync(string bookId, int? pageHint, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
@@ -945,15 +957,17 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 .ConfigureAwait(true);
 
             await UpdateSessionAsync(session, cancellationToken).ConfigureAwait(true);
+            return true;
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch
+        catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
         {
+            AppLog.ReaderOpenFailed(_logger, exception);
             StatusMessage = _localization["Reader.Error.FileNotFound"];
-            throw;
+            return false;
         }
         finally
         {
@@ -987,9 +1001,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             throw;
         }
 #pragma warning disable CA1031 // A failed flush must not block returning to the library.
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Best-effort close; the shell still returns to the catalogue.
+            // Intentionally ignored: best-effort close; the shell still returns to the catalogue.
+            AppLog.ReaderCloseFailed(_logger, exception);
         }
 #pragma warning restore CA1031
 
@@ -1730,9 +1745,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 geometry = renderer.GetPageGeometry(CurrentPageIndex);
             }
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Keep the safe fallback when an optional page dictionary cannot be read.
+            // Intentionally ignored: keep the safe fallback when an optional page dictionary cannot be read.
+            AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.page_geometry");
         }
 
         _pageWidthPoints = Math.Max(1.0, geometry.WidthPoints);
@@ -1839,8 +1855,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             // The renderer was disposed as the document closed mid-render.
         }
 #pragma warning disable CA1031 // A failed render must not crash the reader; keep the placeholder.
-        catch (Exception)
+        catch (Exception exception)
         {
+            AppLog.ReaderRenderFailed(_logger, exception, pageIndex);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _hasRenderError = true;
@@ -1856,7 +1873,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// currently in view — typically the full-res render arriving after a low-res
     /// preview. Never replaces a higher-resolution bitmap with a lower-resolution one.
     /// </summary>
-    private async void OnRenderCompleted(object? sender, RenderCompletedEventArgs e)
+    private void OnRenderCompleted(object? sender, RenderCompletedEventArgs e) =>
+        UiActions.Run(() => OnRenderCompletedAsync(sender, e), "reader.on_render_completed");
+
+    private async Task OnRenderCompletedAsync(object? sender, RenderCompletedEventArgs e)
     {
         if (!IsOpen || !string.Equals(e.BookId, BookId, StringComparison.Ordinal) ||
             e.PageIndex != CurrentPageIndex)
@@ -1888,9 +1908,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             });
         }
 #pragma warning disable CA1031 // A failed upgrade must not crash the reader; keep the displayed page.
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Keep whatever is already displayed.
+            // Intentionally ignored: keep whatever is already displayed.
+            AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.render_upgrade");
         }
 #pragma warning restore CA1031
     }
@@ -2220,9 +2241,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 throw;
             }
 #pragma warning disable CA1031 // Selection text extraction should not block annotation capture.
-            catch (Exception)
+            catch (Exception exception)
             {
-                // Fall through to the deterministic placeholder text.
+                // Intentionally ignored: fall through to the deterministic placeholder text.
+                AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.selection_text");
             }
 #pragma warning restore CA1031
         }
@@ -2475,8 +2497,11 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }
 
 /// <summary>A display row for a bookmark in the reader sidebar.</summary>

@@ -1,7 +1,10 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.Diagnostics;
 using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
@@ -13,12 +16,16 @@ namespace OgmaLibrary.Infrastructure.Metadata;
 /// </summary>
 public sealed class IsbnDetectionService : IIsbnDetectionService
 {
+    private readonly ILogger _logger;
     private readonly IPdfRendererFactory _rendererFactory;
 
     /// <summary>Initializes ISBN detection behind the configured PDF boundary.</summary>
-    public IsbnDetectionService(IPdfRendererFactory? rendererFactory = null)
+    public IsbnDetectionService(
+        IPdfRendererFactory? rendererFactory = null,
+        ILogger<IsbnDetectionService>? logger = null)
     {
         _rendererFactory = rendererFactory ?? new PdfiumAdapterFactory();
+        _logger = logger ?? (ILogger)NullLogger.Instance;
     }
 
     // Compiled once: matches ISBN-10 or ISBN-13 with optional hyphens/spaces.
@@ -83,17 +90,19 @@ public sealed class IsbnDetectionService : IIsbnDetectionService
                     firstPageText.AppendJoin(' ', layer.Words.Select(word => word.Text));
                     firstPageText.Append(' ');
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
-                    // Ignore individual page failures.
+                    // Intentionally ignored: one unreadable page must not stop ISBN detection.
+                    InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(IsbnDetectionService), "metadata.isbn.page_text");
                 }
             }
 
             AddFromText(firstPageText.ToString(), IsbnSource.FirstPage, bySource);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // If the file cannot be opened for any reason, we still return the filename candidate.
+            // Intentionally ignored: if the file cannot be opened we still return the filename candidate.
+            InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(IsbnDetectionService), "metadata.isbn.open");
         }
 
         // Build the sorted candidate list (DocInfo first, then XMP, FirstPage, Filename).

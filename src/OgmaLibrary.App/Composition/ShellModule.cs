@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Ai;
@@ -10,6 +11,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Metadata;
@@ -59,7 +61,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             localization,
             services.GetRequiredService<ILibrarySettingsService>(),
             options.LibraryRoot,
-            services.GetRequiredService<ICatalogueViewStateStore>());
+            services.GetRequiredService<ICatalogueViewStateStore>(),
+            services.GetRequiredService<IUiDispatcher>(),
+            services.GetRequiredService<ILogger<CatalogueViewModel>>());
         var bookDetail = new BookDetailViewModel(
             readModel,
             navigation,
@@ -99,7 +103,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             localization,
             services.GetRequiredService<ITextLayerService>(),
             services.GetRequiredService<IPageRenderCache>(),
-            services.GetRequiredService<IReaderPortabilityService>());
+            services.GetRequiredService<IReaderPortabilityService>(),
+            services.GetRequiredService<ILogger<ReaderViewModel>>());
         var reader = CreateReader();
         var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(
@@ -115,7 +120,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),
             localization,
-            jobRuntime: services.GetRequiredService<IJobRuntimeService>());
+            jobRuntime: services.GetRequiredService<IJobRuntimeService>(),
+            logger: services.GetRequiredService<ILogger<IndexManagerViewModel>>());
         var reconciliationReviews = new ReconciliationReviewPanelViewModel(
             services.GetRequiredService<IReconciliationReviewService>(),
             localization);
@@ -183,7 +189,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             bookshelf3D,
             services.GetRequiredService<ILibraryRootService>(),
             services.GetRequiredService<IUserPreferencesService>(),
-            reconciliationReviews);
+            reconciliationReviews,
+            services.GetRequiredService<ILogger<MainShellViewModel>>());
 
         return shell;
     }

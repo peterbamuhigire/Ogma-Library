@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
 namespace OgmaLibrary.App.Views.Classroom;
@@ -14,7 +15,10 @@ public partial class StudentSmartSearchView : UserControl
 
     private StudentSmartSearchViewModel? ViewModel => DataContext as StudentSmartSearchViewModel;
 
-    private async void PreviewButton_Click(object? sender, RoutedEventArgs e)
+    private void PreviewButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => PreviewButton_ClickAsync(sender, e), "classroom.preview_button_click");
+
+    private async Task PreviewButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -22,7 +26,10 @@ public partial class StudentSmartSearchView : UserControl
         }
     }
 
-    private async void ConfirmSearchButton_Click(object? sender, RoutedEventArgs e)
+    private void ConfirmSearchButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConfirmSearchButton_ClickAsync(sender, e), "classroom.confirm_search_button_click");
+
+    private async Task ConfirmSearchButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {
@@ -36,7 +43,10 @@ public partial class StudentSmartSearchView : UserControl
     private void ClearAnswerButton_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.ClearAnswer();
 
-    private async void DeleteHistoryButton_Click(object? sender, RoutedEventArgs e)
+    private void DeleteHistoryButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteHistoryButton_ClickAsync(sender, e), "classroom.delete_history_button_click");
+
+    private async Task DeleteHistoryButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is not null)
         {

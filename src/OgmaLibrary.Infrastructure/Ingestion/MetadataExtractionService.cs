@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Diagnostics;
 using OgmaLibrary.Infrastructure.Pdf;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
@@ -15,6 +18,7 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// </summary>
 public sealed class MetadataExtractionService : IMetadataExtractionService
 {
+    private readonly ILogger _logger = NullLogger.Instance;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly IPdfRendererFactory _rendererFactory;
@@ -48,6 +52,8 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
         _contextFactory = contextFactory;
         _rendererFactory = serviceProvider.GetService<IPdfRendererFactory>()
             ?? new PdfiumAdapterFactory();
+        _logger = serviceProvider.GetService<ILogger<MetadataExtractionService>>() ??
+            (ILogger)NullLogger.Instance;
     }
 
     /// <inheritdoc />
@@ -135,9 +141,10 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
                 result.Add(("Creator", metadata.Creator.Trim()));
             }
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Lenient: bad/encrypted PDFs return empty list, never throw.
+            // Intentionally ignored: lenient extraction; bad or encrypted PDFs return an empty list, never throw.
+            InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(MetadataExtractionService), "ingestion.extract_fields");
         }
 
         return result;

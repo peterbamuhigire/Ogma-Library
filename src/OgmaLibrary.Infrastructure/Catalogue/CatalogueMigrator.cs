@@ -1,6 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.Infrastructure.Catalogue;
 
@@ -36,6 +39,7 @@ public sealed class CatalogueMigrator
         "IX_AiUsageLedger_Date",
     ];
 
+    private readonly ILogger _logger = NullLogger.Instance;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
 
@@ -71,6 +75,7 @@ public sealed class CatalogueMigrator
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(serviceProvider);
         _contextFactory = contextFactory;
+        _logger = serviceProvider.GetService<ILogger<CatalogueMigrator>>() ?? (ILogger)NullLogger.Instance;
     }
 
     /// <summary>
@@ -143,9 +148,10 @@ public sealed class CatalogueMigrator
                     VerifyBackup(backupPath);
                     File.Copy(backupPath, dbPath, overwrite: true);
                 }
-                catch (Exception)
+                catch (Exception restoreFailure)
                 {
-                    // Best-effort restore; the original exception is the primary concern.
+                    // Intentionally ignored: best-effort restore; the original exception is the primary concern.
+                    InfrastructureLog.RecoveryStepFailed(_logger, restoreFailure, nameof(CatalogueMigrator), "catalogue.migration.restore_backup");
                 }
             }
 

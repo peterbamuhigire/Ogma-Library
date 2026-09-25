@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Bookshelf3D.Bridge;
 
@@ -21,7 +22,10 @@ public partial class Bookshelf3DView : UserControl
         DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
 
-    private async void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e) =>
+        UiActions.Run(() => OnAttachedToVisualTreeAsync(sender, e), "shelf3d.on_attached_to_visual_tree");
+
+    private async Task OnAttachedToVisualTreeAsync(object? sender, VisualTreeAttachmentEventArgs e)
     {
         if (DataContext is not Bookshelf3DViewModel viewModel)
         {
@@ -32,7 +36,10 @@ public partial class Bookshelf3DView : UserControl
         await InitializeNativeHostIfVisibleAsync(viewModel).ConfigureAwait(true);
     }
 
-    private async void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e) =>
+        UiActions.Run(() => OnDetachedFromVisualTreeAsync(sender, e), "shelf3d.on_detached_from_visual_tree");
+
+    private async Task OnDetachedFromVisualTreeAsync(object? sender, VisualTreeAttachmentEventArgs e)
     {
         foreach (IDisposable subscription in _visibilitySubscriptions)
         {
@@ -123,7 +130,10 @@ public partial class Bookshelf3DView : UserControl
         }
     }
 
-    private async void ShelfLayout_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void ShelfLayout_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+        UiActions.Run(() => ShelfLayout_ClickAsync(sender, e), "shelf3d.shelf_layout_click");
+
+    private async Task ShelfLayout_ClickAsync(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is Bookshelf3DViewModel viewModel)
         {
@@ -131,7 +141,10 @@ public partial class Bookshelf3DView : UserControl
         }
     }
 
-    private async void GridLayout_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void GridLayout_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+        UiActions.Run(() => GridLayout_ClickAsync(sender, e), "shelf3d.grid_layout_click");
+
+    private async Task GridLayout_ClickAsync(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is Bookshelf3DViewModel viewModel)
         {

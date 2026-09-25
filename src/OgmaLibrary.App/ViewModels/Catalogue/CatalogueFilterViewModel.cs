@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using OgmaLibrary.App.Infrastructure;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
@@ -180,6 +181,9 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasActiveFilters));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }

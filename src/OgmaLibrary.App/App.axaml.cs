@@ -4,12 +4,17 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OgmaLibrary.App.Ai;
 using OgmaLibrary.App.Configuration;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.Views;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
+using OgmaLibrary.Application.Diagnostics;
+using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Infrastructure.Diagnostics;
 using OgmaLibrary.Infrastructure.Localization;
 
 namespace OgmaLibrary.App;
@@ -18,6 +23,8 @@ namespace OgmaLibrary.App;
 public sealed class App : Avalonia.Application, IDisposable
 {
     private readonly CancellationTokenSource _applicationLifetimeCancellation = new();
+    private readonly ILogger _logger = AppDiagnostics.CreateLogger<App>();
+    private NotificationCenterViewModel? _notifications;
     private ServiceProvider? _services;
     private bool _disposed;
 
@@ -30,10 +37,17 @@ public sealed class App : Avalonia.Application, IDisposable
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var localization = new InMemoryLocalizationService();
+            NotificationCenterViewModel notifications = InstallSafetyNet(localization);
             StartupShellViewModel startupShell = StartupShellViewModel.CreateBootstrap(localization);
             var window = new DesktopShellWindow { DataContext = startupShell };
+            window.AttachNotifications(notifications);
             desktop.Exit += (_, _) => StopApplicationServices();
             desktop.MainWindow = window;
+            Program.InstanceGuard?.StartListening(
+                _ => Dispatcher.UIThread.Post(window.BringToFront),
+                _logger);
+            Dispatcher.UIThread.Post(() => ShowCrashRecoveryNotice(notifications), DispatcherPriority.Background);
+            ScheduleInjectedFaultForE2E();
 
             // Yield a frame before configuration, graph validation and view-model
             // construction. The cold-start shell must never wait for database or
@@ -55,7 +69,9 @@ public sealed class App : Avalonia.Application, IDisposable
     {
         try
         {
-            ComposedRuntime ComposeRuntime() => App.ComposeRuntime(window);
+            NotificationCenterViewModel notifications = _notifications ??
+                throw new InvalidOperationException("The safety net must be installed before composition.");
+            ComposedRuntime ComposeRuntime() => App.ComposeRuntime(window, notifications);
 
             ComposedRuntime runtime = await Task.Run(ComposeRuntime, cancellationToken)
                 .ConfigureAwait(true);
@@ -66,6 +82,9 @@ public sealed class App : Avalonia.Application, IDisposable
             }
 
             _services = runtime.Services;
+            AppLog.CompositionCompleted(_logger);
+            notifications.UseLocalization(runtime.Services.GetRequiredService<ILocalizationService>());
+            _ = UpdateRedactionRootsAsync(runtime.Services, cancellationToken);
             runtime.StartupShell.MainShell?.UserPreferencesChanged +=
                 (_, preferences) => ApplyUserPreferences(preferences);
             if (runtime.StartupShell.MainShell is { } mainShell)
@@ -80,8 +99,10 @@ public sealed class App : Avalonia.Application, IDisposable
         {
             // Normal application shutdown during startup.
         }
-        catch (Exception)
+        catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
         {
+            StartupFailureKind kind = StartupFailureClassifier.Classify(exception);
+            AppLog.CompositionFailed(_logger, exception, StartupFailureClassifier.ToCode(kind));
             if (_services is not null)
             {
                 try
@@ -89,9 +110,10 @@ public sealed class App : Avalonia.Application, IDisposable
                     await ApplicationStartup.StopAsync(_services, CancellationToken.None)
                         .ConfigureAwait(true);
                 }
-                catch (Exception)
+                catch (Exception cleanupFailure) when (!ExceptionClassification.IsFatal(cleanupFailure))
                 {
                     // Preserve the original safe failure state during best-effort cleanup.
+                    AppLog.CompositionCleanupFailed(_logger, cleanupFailure);
                 }
 
                 _services.Dispose();
@@ -100,10 +122,115 @@ public sealed class App : Avalonia.Application, IDisposable
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                window.DataContext = StartupShellViewModel.CreateConfigurationFailure(
+                Func<Task>? retry = StartupFailureClassifier.CanRetry(kind)
+                    ? () => RetryCompositionAsync(window, bootstrapLocalization, cancellationToken)
+                    : null;
+                window.DataContext = StartupShellViewModel.CreateCompositionFailure(
                     bootstrapLocalization,
-                    "Ogma application services could not be loaded safely. No PDF files were changed. Correct the application settings and restart Ogma.");
+                    kind,
+                    retry,
+                    _notifications);
             }
+        }
+    }
+
+    /// <summary>
+    /// Reruns the whole composition (T02.8): the failure may have been a locked database, a
+    /// missing folder or a transient permission problem that the user has since corrected.
+    /// </summary>
+    private Task RetryCompositionAsync(
+        DesktopShellWindow window,
+        InMemoryLocalizationService bootstrapLocalization,
+        CancellationToken cancellationToken)
+    {
+        window.DataContext = StartupShellViewModel.CreateBootstrap(bootstrapLocalization);
+        return ComposeAndStartAsync(window, bootstrapLocalization, cancellationToken);
+    }
+
+    private NotificationCenterViewModel InstallSafetyNet(ILocalizationService localization)
+    {
+        var notifications = new NotificationCenterViewModel(localization, AvaloniaUiDispatcher.Instance);
+        notifications.ExportDiagnosticsAction = cancellationToken =>
+            DiagnosticsExport.ExportAsync(notifications, cancellationToken: cancellationToken);
+        _notifications = notifications;
+        UiActions.Configure(AppDiagnostics.LoggerFactory.CreateLogger(typeof(UiActions).FullName!), notifications);
+        UiThreadGuard.Configure(
+            UiThreadGuard.ResolveMode(),
+            Dispatcher.UIThread.CheckAccess,
+            AppDiagnostics.LoggerFactory.CreateLogger(typeof(UiThreadGuard).FullName!));
+        GlobalExceptionHandlers.InstallDispatcherHandler(Dispatcher.UIThread, notifications);
+        return notifications;
+    }
+
+    private static void ShowCrashRecoveryNotice(NotificationCenterViewModel notifications)
+    {
+        if (AppDiagnostics.LogsDirectory is not { } logs || CrashMarker.TryConsume(logs) is null)
+        {
+            return;
+        }
+
+        notifications.Notify(new UserNotification(
+            "Notification.CrashRecovered",
+            UserNotificationSeverity.Warning,
+            UserNotificationActionKind.ExportDiagnostics));
+    }
+
+    /// <summary>
+    /// The hidden E2E test commands of T02.1, active only with <c>OGMA_E2E=1</c>:
+    /// <c>OGMA_E2E_INJECT_UI_FAULT=1</c> throws once on the UI thread after startup to prove the
+    /// dispatcher safety net keeps the app alive and logs the failure;
+    /// <c>OGMA_E2E_INJECT_CRASH=1</c> throws on a background thread to prove a terminating
+    /// failure is logged and leaves <c>last-crash.json</c> for the next launch's notice.
+    /// </summary>
+    private void ScheduleInjectedFaultForE2E()
+    {
+        if (!IsSet("OGMA_E2E"))
+        {
+            return;
+        }
+
+        if (IsSet("OGMA_E2E_INJECT_UI_FAULT"))
+        {
+            _ = InjectFaultAsync(crash: false);
+        }
+
+        if (IsSet("OGMA_E2E_INJECT_CRASH"))
+        {
+            _ = InjectFaultAsync(crash: true);
+        }
+
+        static bool IsSet(string name) =>
+            string.Equals(Environment.GetEnvironmentVariable(name), "1", StringComparison.Ordinal);
+    }
+
+    private async Task InjectFaultAsync(bool crash)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+        AppLog.FaultInjected(_logger);
+        if (crash)
+        {
+            new Thread(() => throw new InvalidOperationException("OGMA_E2E injected crash.")) { IsBackground = true }
+                .Start();
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() => throw new InvalidOperationException("OGMA_E2E injected UI-thread fault."));
+    }
+
+    private async Task UpdateRedactionRootsAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (services.GetService<ILibrarySettingsService>() is { } settings &&
+                await settings.GetLibraryRootAsync(cancellationToken).ConfigureAwait(false) is { } root)
+            {
+                AppDiagnostics.Redactor.SetLibraryRoots([root]);
+            }
+        }
+        catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
+        {
+            // PDF names stay hashed by the generic rule; only the root prefix is not collapsed.
+            AppLog.RedactionRootsFailed(_logger, exception);
         }
     }
 
@@ -143,11 +270,20 @@ public sealed class App : Avalonia.Application, IDisposable
         }
     }
 
-    private static ComposedRuntime ComposeRuntime(DesktopShellWindow ownerWindow)
+    private static ComposedRuntime ComposeRuntime(
+        DesktopShellWindow ownerWindow,
+        NotificationCenterViewModel notifications)
     {
         OgmaRuntimeOptions options = OgmaRuntimeOptions.FromEnvironment();
-        var serviceCollection = new ServiceCollection()
-            .AddOgmaLibrary(options);
+
+        // The process logging sink, error surface and UI dispatcher are bound here, in the
+        // composition root only; modules fall back to null implementations when absent.
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(AppDiagnostics.LoggerFactory);
+        serviceCollection.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+        serviceCollection.AddSingleton<IUserNotifier>(notifications);
+        serviceCollection.AddSingleton<IUiDispatcher>(AvaloniaUiDispatcher.Instance);
+        serviceCollection.AddOgmaLibrary(options);
 
         // Infrastructure composition remains fail-closed for workers and tests.
         // The interactive desktop shell is the only boundary allowed to replace

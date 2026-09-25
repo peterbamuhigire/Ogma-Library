@@ -4,6 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
 namespace OgmaLibrary.App.Views.Catalogue;
@@ -45,7 +46,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void IndexManagerToggle_Click(object? sender, RoutedEventArgs e)
+    private void IndexManagerToggle_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => IndexManagerToggle_ClickAsync(sender, e), "catalogue.index_manager_toggle_click");
+
+    private async Task IndexManagerToggle_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -104,7 +108,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void ReconciliationReviewToggle_Click(object? sender, RoutedEventArgs e)
+    private void ReconciliationReviewToggle_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ReconciliationReviewToggle_ClickAsync(sender, e), "catalogue.reconciliation_review_toggle_click");
+
+    private async Task ReconciliationReviewToggle_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -152,7 +159,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void LibraryButton_Click(object? sender, RoutedEventArgs e)
+    private void LibraryButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => LibraryButton_ClickAsync(sender, e), "catalogue.library_button_click");
+
+    private async Task LibraryButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -216,7 +226,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void SharingSettingsButton_Click(object? sender, RoutedEventArgs e)
+    private void SharingSettingsButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => SharingSettingsButton_ClickAsync(sender, e), "catalogue.sharing_settings_button_click");
+
+    private async Task SharingSettingsButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -224,7 +237,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void ChooseFolderButton_Click(object? sender, RoutedEventArgs e)
+    private void ChooseFolderButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ChooseFolderButton_ClickAsync(sender, e), "catalogue.choose_folder_button_click");
+
+    private async Task ChooseFolderButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -241,7 +257,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void OpenPdfButton_Click(object? sender, RoutedEventArgs e)
+    private void OpenPdfButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => OpenPdfButton_ClickAsync(sender, e), "catalogue.open_pdf_button_click");
+
+    private async Task OpenPdfButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -266,7 +285,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void HostConfirmStartButton_Click(object? sender, RoutedEventArgs e)
+    private void HostConfirmStartButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => HostConfirmStartButton_ClickAsync(sender, e), "catalogue.host_confirm_start_button_click");
+
+    private async Task HostConfirmStartButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)
         {
@@ -282,7 +304,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void HostStopButton_Click(object? sender, RoutedEventArgs e)
+    private void HostStopButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => HostStopButton_ClickAsync(sender, e), "catalogue.host_stop_button_click");
+
+    private async Task HostStopButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)
         {
@@ -306,7 +331,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void HostCopyJoinLinkButton_Click(object? sender, RoutedEventArgs e)
+    private void HostCopyJoinLinkButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => HostCopyJoinLinkButton_ClickAsync(sender, e), "catalogue.host_copy_join_link_button_click");
+
+    private async Task HostCopyJoinLinkButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)
         {
@@ -317,7 +345,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void HostCopyFingerprintButton_Click(object? sender, RoutedEventArgs e)
+    private void HostCopyFingerprintButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => HostCopyFingerprintButton_ClickAsync(sender, e), "catalogue.host_copy_fingerprint_button_click");
+
+    private async Task HostCopyFingerprintButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel { HostSharing: not null } vm)
         {
@@ -366,7 +397,10 @@ public partial class CatalogueShellView : UserControl
         return null;
     }
 
-    private async void CreateShelf_Click(object? sender, RoutedEventArgs e)
+    private void CreateShelf_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CreateShelf_ClickAsync(sender, e), "catalogue.create_shelf_click");
+
+    private async Task CreateShelf_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -374,7 +408,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void DeleteShelf_Click(object? sender, RoutedEventArgs e)
+    private void DeleteShelf_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => DeleteShelf_ClickAsync(sender, e), "catalogue.delete_shelf_click");
+
+    private async Task DeleteShelf_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
@@ -382,7 +419,10 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
-    private async void RenameShelf_Click(object? sender, RoutedEventArgs e)
+    private void RenameShelf_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => RenameShelf_ClickAsync(sender, e), "catalogue.rename_shelf_click");
+
+    private async Task RenameShelf_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainShellViewModel vm)
         {
