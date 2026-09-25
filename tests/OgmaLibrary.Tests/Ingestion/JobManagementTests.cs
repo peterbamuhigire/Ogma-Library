@@ -49,7 +49,8 @@ public sealed class JobManagementTests : IDisposable
             .ToListAsync();
 
         Assert.All(recoveredJobs, j => Assert.Equal(0, j.Status)); // Pending
-        Assert.All(recoveredJobs, j => Assert.True(j.RetryCount >= 1));
+        // Sept-23 Phase 06 (T06.2): recovery is not an attempt; it is counted as a requeue.
+        Assert.All(recoveredJobs, j => Assert.Equal(1, j.RequeueCount));
     }
 
     [Fact]

@@ -28,9 +28,13 @@ internal sealed class CatalogueMigrationStartupTask : IApplicationStartupTask
 internal sealed class JobRecoveryStartupTask : IApplicationStartupTask
 {
     private readonly JobRecoveryService _recovery;
+    private readonly PdfWorkerClient? _pdfWorker;
 
-    public JobRecoveryStartupTask(JobRecoveryService recovery) =>
+    public JobRecoveryStartupTask(JobRecoveryService recovery, PdfWorkerClient? pdfWorker = null)
+    {
         _recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        _pdfWorker = pdfWorker;
+    }
 
     public string Name => "jobs.recovery";
 
@@ -39,8 +43,13 @@ internal sealed class JobRecoveryStartupTask : IApplicationStartupTask
     public string FailureMessage =>
         "Interrupted background jobs could not be recovered. The catalogue can open, but processing stays paused until retry succeeds.";
 
-    public Task ExecuteAsync(CancellationToken cancellationToken) =>
-        _recovery.RecoverAsync(cancellationToken);
+    public async Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        await _recovery.RecoverAsync(cancellationToken).ConfigureAwait(false);
+
+        // Sept-23 Phase 06 (T06.10): sandboxes of a crashed process hold whole-PDF copies.
+        _pdfWorker?.CleanOrphanedSandboxes(TimeSpan.FromHours(1));
+    }
 }
 
 /// <summary>
@@ -85,8 +94,12 @@ internal sealed class ThumbnailRepairStartupTask : IApplicationStartupTask
                     continue;
                 }
 
+                // Sept-23 Phase 06 (T06.2): a repair is not an attempt. The earlier failures
+                // came from a fixed code defect, so the job gets a fresh attempt budget.
                 job.Status = 0;
-                job.RetryCount += 1;
+                job.RetryCount = 0;
+                job.RequeueCount += 1;
+                job.NextAttemptUtc = null;
                 job.ErrorMessage = null;
                 job.StartedUtc = null;
                 job.CompletedUtc = null;

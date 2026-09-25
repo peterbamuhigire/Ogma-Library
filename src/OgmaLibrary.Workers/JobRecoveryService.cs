@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Workers;
 
@@ -35,10 +36,13 @@ public sealed class JobRecoveryService
     }
 
     /// <summary>
-    /// Loads legacy unleased or expired jobs with <c>Status = Running</c> and
-    /// resets them to <c>Status = Pending</c> with <c>RetryCount + 1</c>,
-    /// appending an audit event per recovered job (NFR-OGMA-009). A valid lease
-    /// is never stolen from another live process.
+    /// Returns interrupted <c>Running</c> jobs to <c>Pending</c>: unleased or expired leases
+    /// and leases whose owner process is no longer alive (Sept-23 Phase 06, T06.7), so a crash
+    /// never blocks a resource group until the lease expires. Recovery is not an attempt
+    /// (T06.2): the interrupted claim is refunded and counted in <c>RequeueCount</c>, except
+    /// after <see cref="JobRetryPolicy.MaxFreeRequeues"/> interruptions, when the claim stands
+    /// so a job that keeps killing its process still reaches a terminal state. A live lease
+    /// of another process is never stolen. An audit event is appended per job (NFR-OGMA-009).
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The number of jobs recovered.</returns>
@@ -55,16 +59,26 @@ public sealed class JobRecoveryService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
         List<JobRow> stuck = running
-            .Where(job => job.LeaseExpiresUtc is null || job.LeaseExpiresUtc < now)
+            .Where(job => job.LeaseExpiresUtc is null ||
+                          job.LeaseExpiresUtc < now ||
+                          !LeaseOwnerIdentity.IsAlive(job.LeaseOwnerPid, job.LeaseOwnerStartTicks))
             .ToList();
 
         foreach (JobRow job in stuck)
         {
             job.Status = (int)JobRuntimeStatus.Pending;
-            job.RetryCount += 1;
+            if (job.RequeueCount < JobRetryPolicy.MaxFreeRequeues)
+            {
+                // An interrupted claim is not a real attempt (T06.2).
+                job.RetryCount = Math.Max(0, job.RetryCount - 1);
+            }
+
+            job.RequeueCount += 1;
             job.StartedUtc = null;
             job.LeaseOwner = null;
             job.LeaseExpiresUtc = null;
+            job.LeaseOwnerPid = null;
+            job.LeaseOwnerStartTicks = null;
             job.NextAttemptUtc = now;
             job.FailureCode = "startup_recovery";
 
@@ -73,7 +87,7 @@ public sealed class JobRecoveryService
                 EventType = "JobRecovered",
                 EntityId = job.JobId.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 EntityType = "Job",
-                AfterJson = $"{{\"retryCount\":{job.RetryCount}}}",
+                AfterJson = $"{{\"retryCount\":{job.RetryCount},\"requeueCount\":{job.RequeueCount}}}",
                 Timestamp = DateTimeOffset.UtcNow,
                 IsLocalOnly = true,
             });
