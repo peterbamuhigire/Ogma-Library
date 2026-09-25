@@ -20,7 +20,7 @@ public sealed class VisibilityAssertionTests
     [Trait("Category", "E2E")]
     [Trait("Journey", "Harness")]
     [Trait("Tag", "Harness")]
-    public void AssertVisiblyPainted_DetectsCoveredClippedAndUnpaintedElements()
+    public void AssertVisiblyPainted_DetectsCoveredClippedAndUnpaintedElements() => Journey.RunCheck("Harness", () =>
     {
         using var synthetic = new SyntheticWindow(form =>
         {
@@ -49,31 +49,31 @@ public sealed class VisibilityAssertionTests
         Assert.False(blank.Passed, blank.ToString());
         Assert.True(blank.PaintedFraction < Visibility.DefaultMinimumPainted, blank.ToString());
         Assert.Throws<Xunit.Sdk.TrueException>(() => Visibility.AssertVisiblyPainted(window, Uia.WaitFor(root, "Covered"), "Covered"));
-    }
+    });
 
     /// <summary>The record-dump detector used by the UIA audit (T01.7).</summary>
     [Fact]
     [Trait("Category", "E2E")]
     [Trait("Journey", "Harness")]
     [Trait("Tag", "Harness")]
-    public void RecordDumpDetector_FlagsRecordToStringNames()
+    public void RecordDumpDetector_FlagsRecordToStringNames() => Journey.RunCheck("Harness", () =>
     {
         Assert.True(UiaAudit.IsRecordDump("BookSummaryProjection { BookId = 01M3, Title = A }"));
         Assert.True(UiaAudit.IsRecordDump("SearchResultItem { BookId = x }"));
         Assert.False(UiaAudit.IsRecordDump("Algorithms Explained"));
         Assert.False(UiaAudit.IsRecordDump("{ not a record"));
-    }
+    });
 
     /// <summary>T01.12: sizes below the shell's minimum width are rejected by the wrapper; the parser is strict.</summary>
     [Fact]
     [Trait("Category", "E2E")]
     [Trait("Journey", "Harness")]
     [Trait("Tag", "Harness")]
-    public void WindowSize_ParsesStrictly()
+    public void WindowSize_ParsesStrictly() => Journey.RunCheck("Harness", () =>
     {
         Assert.Equal(new WindowSize(1280, 800), WindowSize.Parse("1280x800"));
         Assert.Throws<FormatException>(() => WindowSize.Parse("1280*800"));
-    }
+    });
 
     private sealed class SyntheticWindow : IDisposable
     {

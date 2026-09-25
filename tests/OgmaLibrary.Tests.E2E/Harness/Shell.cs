@@ -44,7 +44,10 @@ public static class Shell
         AutomationElement button = Uia.WaitFor(app.MainWindow, buttonId);
         Uia.Activate(button);
         context.Mark("library.chooseFolderPressed");
-        bool dialogOpened = Uia.Poll(() => FolderPicker.TryFindDialog(app) is not null, TimeSpan.FromSeconds(3));
+        // Without the hook the real dialog must appear (it can take several seconds on a busy first
+        // run); with the hook, a dialog only appears when the build lacks OGMA_E2E.
+        bool dialogOpened = !context.PickerHookRequested ||
+                            Uia.Poll(() => FolderPicker.TryFindDialog(app) is not null, TimeSpan.FromSeconds(3));
         PickerRoute route;
         if (dialogOpened)
         {

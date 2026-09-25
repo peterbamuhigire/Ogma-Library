@@ -127,6 +127,9 @@ public sealed class JourneyContext : IDisposable
     /// <summary>Where screenshots, dumps and timings go.</summary>
     public string EvidenceDirectory { get; }
 
+    /// <summary>Whether the last launch passed <c>OGMA_E2E_PICK_FOLDER</c> (the hook route).</summary>
+    public bool PickerHookRequested { get; private set; }
+
     /// <summary>Elapsed journey time.</summary>
     public TimeSpan Elapsed => _clock.Elapsed;
 
@@ -140,6 +143,7 @@ public sealed class JourneyContext : IDisposable
         }
 
         SeedPreferences();
+        PickerHookRequested = environment?.ContainsKey("OGMA_E2E_PICK_FOLDER") == true;
         App = OgmaApp.Launch(Session, environment);
         Record(label + ".timeToWindowMs", (long)App.TimeToWindow.TotalMilliseconds);
         App.Resize(Size);
@@ -394,6 +398,22 @@ public static class Journey
             }
 
             context.Complete("FAIL", ex.GetType().Name + ": " + ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>Runs a harness self-check that needs no app and records its result row.</summary>
+    public static void RunCheck(string journey, Action body, [System.Runtime.CompilerServices.CallerMemberName] string test = "")
+    {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            body();
+            JourneyResults.Append(journey, test, "n/a", "PASS", null, clock.ElapsedMilliseconds, E2ESettings.ArtifactsDirectory);
+        }
+        catch (Exception ex)
+        {
+            JourneyResults.Append(journey, test, "n/a", "FAIL", ex.GetType().Name + ": " + ex.Message, clock.ElapsedMilliseconds, E2ESettings.ArtifactsDirectory);
             throw;
         }
     }
