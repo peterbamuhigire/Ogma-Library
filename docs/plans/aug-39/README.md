@@ -1,5 +1,10 @@
 # Ogma Library August 39-Phase Plan
 
+> **Status (2026-09-25):** the execution sequence is now the
+> [Sept-23 Kaizen plan](../sept-23-kaizen/README.md). This roadmap and its
+> [requirement-phase matrix](appendices/01-requirement-phase-matrix.md) remain the requirement
+> accountability authority (owner decision D-02).
+
 This directory is the canonical execution plan for the C#/.NET Avalonia Ogma Library application on Windows and macOS. It contains exactly 39 implementation phases. There are no mobile, PWA or separate web-application phases. The Three.js bookshelf is an embedded renderer owned by the desktop application.
 
 Start with the [roadmap overview](./00-master-roadmap.md), then execute the phase files in dependency order. Phase numbers are stable traceability identifiers; renaming a phase requires updating the requirement and module matrices.

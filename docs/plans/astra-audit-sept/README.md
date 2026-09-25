@@ -1,5 +1,9 @@
 # Ogma Library: September product audit and 21-phase remediation plan
 
+> **Superseded as an execution plan (2026-09-25)** by the
+> [Sept-23 Kaizen plan](../sept-23-kaizen/README.md). Kept as history; its findings F01–F30 are
+> reconciled in [06-prior-plans-reconciliation.md](../sept-23-kaizen/06-prior-plans-reconciliation.md).
+
 Date: 14 September 2026. Requested by Peter Bamuhigire, Lead Consultant.
 Audited commit: `a93900a2bd7313a2948a29d2813ec3e14696f877`.
 Scope: audit, testing and planning only. No application remediation is included.

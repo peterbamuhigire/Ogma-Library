@@ -1,5 +1,9 @@
 # Ogma Library Kaizen: final report
 
+> **Superseded as an execution plan (2026-09-25)** by the
+> [Sept-23 Kaizen plan](../../plans/sept-23-kaizen/README.md). Its no-visual score (65 capped) was
+> contradicted by the real-window audit (30/100).
+
 Date: 2026-09-10  
 Published score: **65.0/100 capped**  
 Raw score: **82.2/100**  

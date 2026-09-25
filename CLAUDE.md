@@ -18,7 +18,8 @@ Read these in order when sources disagree:
 
 | Authority | Path |
 | --- | --- |
-| Approved 39-phase execution roadmap | `docs/plans/aug-39/README.md` |
+| **Execution sequence** (Sept-23 Kaizen, 29 phases; supersedes Aug-39 phase order, astra 21-phase and Sept-10 Kaizen as execution plans) | `docs/plans/sept-23-kaizen/README.md` |
+| Approved 39-phase roadmap (requirement accountability) | `docs/plans/aug-39/README.md` |
 | Requirement-to-phase accountability | `docs/plans/aug-39/appendices/01-requirement-phase-matrix.md` |
 | Canonical v2.1 requirements | `docs/references/Ogma-Library_SRS_v2.1_2026-08-13.docx` |
 | Other approved SDLC references | `docs/references/` |
@@ -87,7 +88,10 @@ recorded as `NOT ASSESSED`; they are never silently treated as passing.
 
 ## Current execution status
 
-The authoritative roadmap contains exactly 39 phases. Phase claims are valid
-only when their completion record and executable evidence exist under
-`docs/implementation/execution/`. Consult `00-execution-status.md` before making
-or repeating work.
+Work proceeds in the order of the Sept-23 Kaizen plan
+(`docs/plans/sept-23-kaizen/README.md` status register and `EXECUTION-LOG.md`).
+The Aug-39 matrix remains the requirement accountability authority. Phase
+claims are valid only when their completion record and executable evidence
+exist under `docs/implementation/execution/`, and behaviour changes need
+real-window proof (`docs/plans/sept-23-kaizen/AGENT_BRIEF.md`). Consult
+`00-execution-status.md` before making or repeating work.

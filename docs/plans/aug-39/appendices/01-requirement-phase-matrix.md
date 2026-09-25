@@ -27,17 +27,16 @@ The source is `Ogma-Library_SRS_v2.1_2026-08-13.docx` unless otherwise stated. G
 | FR-META-006 | SRS Metadata | 13, 17 | Resilience | Cache/TTL/quota/timeout/backoff/outage tests |
 | FR-META-007 | SRS Metadata | 12–14 | Quality | Possible-match queue, quality states and review E2E |
 | FR-META-008 | SRS Metadata | 14, 17 | Health | Version/status/reprocess/retry evidence |
-| FR-READ-001, FR-READ-002, FR-READ-003 | SRS Reader | 21 | Core reader | Physical both-OS open/resume/navigation/zoom/layout/fullscreen |
-| FR-READ-004 | SRS Reader | 21, 23 | Reader search | Query→snippet→page jump E2E |
-| FR-READ-005, FR-READ-006 | SRS Reader | 21 | Bookmarks/annotations | Crash durability, coordinate and UI acceptance |
-| FR-READ-007 | SRS Reader | 10, 21 | Password PDFs | Secure IPC and physical password-flow tests |
-| FR-READ-008 | SRS Reader | 10, 24 | OCR | Selective image/mixed PDF accuracy/resource suite |
-| FR-READ-009 | SRS Reader | 21 | Citations | Capture/source/export/round-trip evidence |
-| FR-READ-010 | SRS Reader | 21 | Split view | Functional two-document/session E2E; placeholder removed |
-| FR-READ-011 | SRS Reader | 21 | Export | Versioned export/reimport round-trip |
-| FR-READ-012, FR-READ-013 | SRS Reader | 20–21 | Memory/layers | Local/private persistence and layer behavior tests |
-| FR-READ-014 | SRS Reader | 17, 21 | Durability | Kill/restart/resume fault-injection suite |
-| FR-READ-015 | SRS Reader | 18, 21 | Accessibility | Keyboard, Narrator and VoiceOver physical acceptance |
+| FR-READ-001, FR-READ-002, FR-READ-003 | SRS Reader | 21 | Resume/navigation/zoom | Physical both-OS open/resume/navigation/zoom acceptance |
+| FR-READ-004, FR-READ-005 | SRS Reader | 21 | Display modes/full-screen | Single/spread/continuous persisted per book; full-screen with Escape exit |
+| FR-READ-006 | SRS Reader | 21, 23 | In-document search | Query→highlight→matching-page list E2E |
+| FR-READ-007, FR-READ-008 | SRS Reader | 21 | Bookmarks/annotations | Crash durability, coordinate and UI acceptance |
+| FR-READ-009 | SRS Reader | 10, 21 | Password PDFs | Secure IPC and physical password-flow tests |
+| FR-READ-010 | SRS Reader | 10, 24 | OCR | Selective image/mixed PDF accuracy/resource suite |
+| FR-READ-011 | SRS Reader | 21 | Citations | Capture/source evidence |
+| FR-READ-012 | SRS Reader | 21 | Split view | Functional two-document/session E2E; placeholder removed |
+| FR-READ-013 | SRS Reader | 21 | Export | BibTeX/RIS/CSL JSON/Markdown export and reimport round-trip |
+| FR-READ-014, FR-READ-015 | SRS Reader | 20–21 | Memory/layers | Local/private persistence and layer behavior tests |
 | FR-SEARCH-001 | SRS Search | 22 | Structured/fuzzy | “tolkein” and 50k p95 ≤150 ms gate |
 | FR-SEARCH-002, FR-SEARCH-003 | SRS Search | 23 | Full text | Page-aware FTS/snippet/reader navigation and ≤500 ms gate |
 | FR-SEARCH-004 | SRS Search | 25–26 | Semantic | Versioned vector lifecycle, relevance and scale suite |

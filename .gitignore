@@ -78,3 +78,7 @@ desktop.ini
 
 # Throwaway icon-fetch browser tooling (Phase 03 exploration)
 tools/icon-fetch/
+
+# Ad-hoc alternate build outputs (Sept-23 Kaizen K06: 3.4 GB accumulated under src/*/tmp)
+src/*/tmp/
+tests/*/tmp/

@@ -1,6 +1,20 @@
 # Ogma Library implementation execution status
 
-Authority: [approved 39-phase roadmap](../../plans/aug-39/README.md)
+Authority: execution sequence = [Sept-23 Kaizen plan](../../plans/sept-23-kaizen/README.md);
+requirement accountability = [approved 39-phase roadmap](../../plans/aug-39/README.md).
+
+## Sept-23 Kaizen (current)
+
+A real-window audit on 2026-09-25 at `0ad3c0c` measured the product at **30/100** (raw 30, capped
+reporting) and recorded 46 defects in the
+[defect register](../../plans/sept-23-kaizen/03-defect-register.md). The measured faults include a
+catalogue hidden by a mis-nested pager, a reader crash after about 20 page turns, and covers resolved
+against the wrong root. Headless tests were green throughout, so the Aug-39 COMPLETE and IN PROGRESS
+claims below describe gate evidence, not a working product. Phase progress is tracked in the Sept-23
+[status register](../../plans/sept-23-kaizen/README.md#status-register) and
+[execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+
+## Aug-39 ledger (historical gate evidence)
 
 Requirement baseline: Ogma Library SRS v2.1, 101 FRs, 29 NFRs and 32 controls
 
