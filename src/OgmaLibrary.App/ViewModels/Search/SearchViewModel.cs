@@ -24,7 +24,11 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Delay between the last keystroke and the search.</summary>
     public static readonly TimeSpan DebounceDelay = TimeSpan.FromMilliseconds(150);
 
+    /// <summary>How often an open query is refreshed while books are still being prepared.</summary>
+    public static readonly TimeSpan LiveRefreshInterval = TimeSpan.FromSeconds(2);
+
     private const int MaxResults = 30;
+    private static readonly TimeSpan LiveRefreshLimit = TimeSpan.FromMinutes(10);
 
     private readonly IUnifiedSearchService _searchService;
     private readonly IReaderNavigationService _navigation;
@@ -290,16 +294,34 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 await Task.Delay(DebounceDelay, cancellationToken).ConfigureAwait(true);
             }
 
-            UnifiedSearchResponse response = await Task.Run(
-                    () => _searchService.SearchAsync(query, MaxResults, cancellationToken),
-                    cancellationToken)
-                .ConfigureAwait(true);
-            if (version != _requestVersion)
+            DateTimeOffset started = DateTimeOffset.UtcNow;
+            while (true)
             {
-                return;
-            }
+                UnifiedSearchResponse response = await Task.Run(
+                        () => _searchService.SearchAsync(query, MaxResults, cancellationToken),
+                        cancellationToken)
+                    .ConfigureAwait(true);
+                if (version != _requestVersion)
+                {
+                    return;
+                }
 
-            Apply(response);
+                Apply(response);
+
+                // While books are still being read, re-run the same query so results appear
+                // as the library finishes processing, instead of a stale empty list (K41).
+                if (response.Coverage.PendingBooks == 0 || DateTimeOffset.UtcNow - started > LiveRefreshLimit)
+                {
+                    break;
+                }
+
+                IsSearching = false;
+                await Task.Delay(LiveRefreshInterval, cancellationToken).ConfigureAwait(true);
+                if (version != _requestVersion)
+                {
+                    return;
+                }
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -329,13 +351,19 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private void Apply(UnifiedSearchResponse response)
     {
         _lastResponse = response;
-        Results.Clear();
-        foreach (UnifiedSearchResult result in response.Results)
+        List<SearchResultItem> mapped = response.Results.Select(MapResult).ToList();
+        if (!mapped.Select(Identity).SequenceEqual(Results.Select(Identity), StringComparer.Ordinal))
         {
-            Results.Add(MapResult(result));
+            string? selectedBookId = SelectedResult?.BookId;
+            Results.Clear();
+            foreach (SearchResultItem item in mapped)
+            {
+                Results.Add(item);
+            }
+
+            SelectedResult = Results.FirstOrDefault(item => item.BookId == selectedBookId) ?? Results.FirstOrDefault();
         }
 
-        SelectedResult = Results.FirstOrDefault();
         HasError = false;
         IsEmptyState = Results.Count == 0;
         SemanticState = response.Semantic == SemanticSearchState.NotApplicable
@@ -344,6 +372,9 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         SetCoverage(response.Coverage);
         StatusText = FormatStatus(response);
     }
+
+    private static string Identity(SearchResultItem item) =>
+        item.BookId + "|" + item.AutomationName + "|" + item.Snippet + "|" + item.MatchLocations;
 
     private void SetCoverage(SearchIndexCoverage coverage)
     {

@@ -162,6 +162,22 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task SearchViewModel_RefreshesOpenQueryWhileBooksArePrepared()
+    {
+        var search = new PreparingUnifiedSearchService();
+        using var vm = new SearchViewModel(search, new RecordingReaderNavigation(), new InMemoryLocalizationService());
+
+        vm.Query = "Namutebi";
+        await WaitForAsync(() => vm.IsEmptyState);
+        Assert.Contains("still being prepared", vm.CoverageText, StringComparison.Ordinal);
+
+        await WaitForAsync(() => vm.Results.Count == 1);
+        Assert.Equal("Algorithms Explained", vm.Results[0].Title);
+        Assert.False(vm.IsEmptyState);
+        Assert.Equal(2, search.Calls);
+    }
+
+    [AvaloniaFact]
     public async Task SearchPanel_KeyboardMovesIntoResultsAndEnterOpensAtPage()
     {
         var navigation = new RecordingReaderNavigation();
@@ -529,6 +545,36 @@ public sealed class SearchViewModelTests
 
         public Task<SearchIndexCoverage> GetCoverageAsync(CancellationToken cancellationToken) =>
             Task.FromResult(new SearchIndexCoverage(17, 16, 1, 0));
+    }
+
+    private sealed class PreparingUnifiedSearchService : IUnifiedSearchService
+    {
+        public int Calls { get; private set; }
+
+        public Task<UnifiedSearchResponse> SearchAsync(string? queryText, int maxResults, CancellationToken cancellationToken)
+        {
+            Calls++;
+            ParsedSearchQuery parsed = SearchQueryParser.Parse(queryText);
+            if (Calls == 1)
+            {
+                return Task.FromResult(new UnifiedSearchResponse(
+                    parsed, [], SemanticSearchState.Unavailable, false, new SearchIndexCoverage(13, 8, 2, 3), TimeSpan.Zero));
+            }
+
+            UnifiedSearchResult result = new(
+                "BOOKALGO0000000000000001",
+                "Algorithms Explained",
+                "Grace Namutebi",
+                0.03,
+                [new UnifiedMatch(UnifiedMatchKind.Author)],
+                null,
+                null);
+            return Task.FromResult(new UnifiedSearchResponse(
+                parsed, [result], SemanticSearchState.Unavailable, false, new SearchIndexCoverage(13, 11, 2, 0), TimeSpan.Zero));
+        }
+
+        public Task<SearchIndexCoverage> GetCoverageAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new SearchIndexCoverage(13, 8, 2, 3));
     }
 
     private sealed class RecordingReaderNavigation : IReaderNavigationService, IBookDetailNavigationService
