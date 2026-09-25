@@ -151,8 +151,10 @@ public sealed class OcrJobProcessorTests : IDisposable
 
         _context.ChangeTracker.Clear();
         JobRow job = _context.Jobs.Single(row => row.JobType == OcrJobProcessor.JobType);
-        Assert.Equal((int)JobRuntimeStatus.Pending, job.Status);
-        Assert.Equal("ocr_page_limit", job.FailureCode);
+        // Sept-23 Phase 17: a resource limit cannot be fixed by retrying the same file, so the
+        // typed failure is permanent (was: retried with "ocr_page_limit").
+        Assert.Equal((int)JobRuntimeStatus.Failed, job.Status);
+        Assert.Equal(OcrFailureCodes.ResourceLimit, job.FailureCode);
         Assert.DoesNotContain("10,001", job.ErrorMessage ?? string.Empty, StringComparison.Ordinal);
     }
 

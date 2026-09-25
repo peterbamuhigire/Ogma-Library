@@ -97,4 +97,37 @@ public static partial class InfrastructureLog
     [LoggerMessage(EventId = 5014, EventName = "settings.recovered", Level = LogLevel.Warning,
         Message = "A settings file could not be read; recoveredFromBackup={RecoveredFromBackup}")]
     public static partial void SettingsRecovered(ILogger logger, Exception exception, bool recoveredFromBackup);
+
+    /// <summary>An OCR job failed with a typed reason (Sept-23 Phase 17, task 4).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The underlying error, when one was thrown.</param>
+    /// <param name="jobId">The OCR job id.</param>
+    /// <param name="failureCode">The stable failure code.</param>
+    /// <param name="retryable">Whether the retry policy may run it again.</param>
+    [LoggerMessage(EventId = 5020, EventName = "ocr.job.failed", Level = LogLevel.Warning,
+        Message = "OCR job {JobId} failed: {FailureCode} (retryable={Retryable})")]
+    public static partial void OcrJobFailed(ILogger logger, Exception? exception, long jobId, string failureCode, bool retryable);
+
+    /// <summary>An OCR job finished (Sept-23 Phase 17).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="jobId">The OCR job id.</param>
+    /// <param name="pagesRecognised">Pages sent through OCR by this run.</param>
+    /// <param name="chunks">Search chunks written for the book.</param>
+    /// <param name="textStatus">The book's resulting text status.</param>
+    [LoggerMessage(EventId = 5021, EventName = "ocr.job.completed", Level = LogLevel.Information,
+        Message = "OCR job {JobId} completed: pages={PagesRecognised} chunks={Chunks} textStatus={TextStatus}")]
+    public static partial void OcrJobCompleted(ILogger logger, long jobId, int pagesRecognised, int chunks, OgmaLibrary.Application.Ocr.BookTextStatus textStatus);
+
+    /// <summary>The automatic OCR policy queued scanned books (Sept-23 Phase 17, task 3).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="queued">Books queued by this sweep.</param>
+    [LoggerMessage(EventId = 5022, EventName = "ocr.auto.queued", Level = LogLevel.Information,
+        Message = "Automatic OCR queued {Queued} scanned book(s)")]
+    public static partial void OcrAutoQueued(ILogger logger, int queued);
+
+    /// <summary>Automatic OCR is waiting because the device runs on battery (Sept-23 Phase 17).</summary>
+    /// <param name="logger">The logger.</param>
+    [LoggerMessage(EventId = 5023, EventName = "ocr.auto.paused_on_battery", Level = LogLevel.Information,
+        Message = "Automatic OCR is paused while the device runs on battery power")]
+    public static partial void OcrAutoPausedOnBattery(ILogger logger);
 }

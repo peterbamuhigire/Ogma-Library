@@ -69,7 +69,10 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
             .OrderByDescending(job => job.JobId)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (existing is { Status: 0 or 1 or 2 or 5 })
+        // Pending, running, completed, paused or waiting: nothing to queue. Failed, cancelled
+        // and dead-lettered jobs are queued again (Sept-23 Phase 17; a paused job used to get a
+        // duplicate row that collided with the idempotency key).
+        if (existing is { Status: 0 or 1 or 2 or 6 or 7 })
         {
             return new OcrQueueResult(false, true, existing.JobId, null);
         }
@@ -91,15 +94,21 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
             ProcessedPages = 0,
         });
 
-        if (existing is { Status: 3 or 4 })
+        if (existing is { Status: 3 or 4 or 5 })
         {
+            // A user request starts a fresh set of attempts; the requeue is counted apart
+            // (Sept-23 Phase 06, T06.2).
             existing.Status = 0;
             existing.Payload = payload;
             existing.StartedUtc = null;
             existing.CompletedUtc = null;
+            existing.NextAttemptUtc = null;
             existing.ErrorMessage = null;
-            existing.RetryCount += 1;
+            existing.FailureCode = null;
+            existing.RetryCount = 0;
+            existing.RequeueCount += 1;
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await MarkInProgressAsync(context, bookId, cancellationToken).ConfigureAwait(false);
             return new OcrQueueResult(true, false, existing.JobId, null);
         }
 
@@ -113,7 +122,75 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
         };
         context.Jobs.Add(job);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await MarkInProgressAsync(context, bookId, cancellationToken).ConfigureAwait(false);
         return new OcrQueueResult(true, false, job.JobId, null);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountBooksNeedingOcrAsync(CancellationToken cancellationToken = default)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        return await NeedingOcr(lease.Context).CountAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> QueueBooksNeedingOcrAsync(
+        string languageHint = "eng",
+        int maxBooks = 500,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBooks);
+        List<string> bookIds;
+        using (ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false))
+        {
+            bookIds = await NeedingOcr(lease.Context)
+                .OrderBy(book => book.BookId)
+                .Select(book => book.BookId)
+                .Take(maxBooks)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        int queued = 0;
+        foreach (string bookId in bookIds)
+        {
+            OcrQueueResult result = await QueueBookAsync(bookId, languageHint, cancellationToken).ConfigureAwait(false);
+            if (result.Queued)
+            {
+                queued++;
+            }
+        }
+
+        return queued;
+    }
+
+    /// <summary>
+    /// Active, readable books whose text status says OCR would help (image only, partly
+    /// searchable, or a failed OCR attempt) and that have no OCR job in flight.
+    /// </summary>
+    internal static IQueryable<BookRow> NeedingOcr(CatalogueDbContext context) =>
+        context.Books
+            .AsNoTracking()
+            .Where(book => book.Status == 0 &&
+                !book.IsPasswordProtected &&
+                (book.TextStatus == (int)BookTextStatus.ImageOnly ||
+                 book.TextStatus == (int)BookTextStatus.PartlySearchable ||
+                 book.TextStatus == (int)BookTextStatus.OcrFailed) &&
+                !context.Jobs.Any(job => job.JobType == OcrJobType &&
+                    job.BookId == book.BookId &&
+                    (job.Status == 0 || job.Status == 1 || job.Status == 6 || job.Status == 7)));
+
+    private static async Task MarkInProgressAsync(
+        CatalogueDbContext context,
+        string bookId,
+        CancellationToken cancellationToken)
+    {
+        await context.Books
+            .Where(book => book.BookId == bookId)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(book => book.TextStatus, (int)BookTextStatus.OcrInProgress),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private string? ResolveFilePath(BookRow book, IReadOnlyDictionary<string, LibraryRootLocation> roots)
