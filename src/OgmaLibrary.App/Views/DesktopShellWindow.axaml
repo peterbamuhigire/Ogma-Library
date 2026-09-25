@@ -86,6 +86,7 @@
             Background="{DynamicResource Brush.Surface.Card}"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="1"
+            AutomationProperties.AutomationId="Shell.Loading"
             AutomationProperties.Name="{Binding StartingHeading}"
             AutomationProperties.LiveSetting="Polite">
       <StackPanel Spacing="14">
@@ -123,6 +124,7 @@
             Background="{DynamicResource Brush.Surface.Card}"
             BorderBrush="{DynamicResource Brush.Accent.Clay}"
             BorderThickness="2"
+            AutomationProperties.AutomationId="Shell.Degraded"
             AutomationProperties.Name="{Binding DegradedHeading}"
             AutomationProperties.LiveSetting="Assertive">
       <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -176,6 +178,7 @@
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanRetry}"
                     Content="{Binding RetryText}"
+                    AutomationProperties.AutomationId="Shell.Degraded.Retry"
                     AutomationProperties.Name="{Binding RetryText}"
                     Click="RetryButton_Click" />
             <Button MinWidth="150"
@@ -187,6 +190,7 @@
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanExportDiagnostics}"
                     Content="{Binding ExportDiagnosticsText}"
+                    AutomationProperties.AutomationId="Shell.Degraded.ExportDiagnostics"
                     AutomationProperties.Name="{Binding ExportDiagnosticsText}"
                     Click="ExportDiagnosticsButton_Click" />
           </StackPanel>
@@ -205,6 +209,7 @@
                   VerticalAlignment="Bottom"
                   Width="400"
                   Margin="16"
+                  AutomationProperties.AutomationId="Shell.Toasts"
                   AutomationProperties.Name="{Binding RegionName}"
                   AutomationProperties.LiveSetting="Assertive">
       <ItemsControl.ItemsPanel>
@@ -220,6 +225,7 @@
                   BorderBrush="{DynamicResource Brush.Accent.Slate}"
                   BorderThickness="2"
                   Classes.error="{Binding IsError}"
+                  AutomationProperties.AutomationId="Shell.Toast"
                   AutomationProperties.Name="{Binding Message}">
             <Border.Styles>
               <Style Selector="Border.error">

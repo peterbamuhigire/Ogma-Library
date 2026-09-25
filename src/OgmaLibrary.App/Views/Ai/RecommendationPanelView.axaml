@@ -14,15 +14,18 @@
       <TextBox Text="{Binding Query, Mode=TwoWay}"
                Watermark="{Binding QueryWatermark}"
                MinWidth="280"
+               AutomationProperties.AutomationId="Advisor.Query"
                AutomationProperties.Name="{Binding QueryWatermark}" />
       <Button Grid.Column="1"
               IsEnabled="{Binding CanLoad}"
               Content="{Binding LoadLabel}"
+              AutomationProperties.AutomationId="Advisor.Recommend"
               AutomationProperties.Name="{Binding LoadLabel}"
               Click="Load_Click" />
       <Button Grid.Column="2"
               IsEnabled="{Binding CanAsk}"
               Content="{Binding AskLabel}"
+              AutomationProperties.AutomationId="Advisor.Ask"
               AutomationProperties.Name="{Binding AskLabel}"
               Click="Ask_Click" />
     </Grid>
@@ -31,6 +34,7 @@
               Grid.ColumnSpan="3"
               IsChecked="{Binding ContentAwareConsent, Mode=TwoWay}"
               Content="{Binding ContentAwareConsentLabel}"
+              AutomationProperties.AutomationId="Advisor.Consent"
               AutomationProperties.Name="{Binding ContentAwareConsentLabel}" />
 
     <Border Grid.Row="3"
@@ -52,6 +56,7 @@
             BorderThickness="1"
             CornerRadius="{DynamicResource Radius.S}"
             Padding="10"
+            AutomationProperties.AutomationId="Advisor.Answer"
             AutomationProperties.Name="{Binding AnswerTitle}">
       <StackPanel Spacing="8">
         <TextBlock Text="{Binding AnswerTitle}"

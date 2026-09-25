@@ -38,6 +38,7 @@
                 Background="{DynamicResource Brush.Accent.Ink}"
                 Foreground="White"
                 IsEnabled="{Binding CanOpenReader}"
+                AutomationProperties.AutomationId="Detail.Action.Read"
                 AutomationProperties.Name="{Binding ReadText}"
                 Click="ReadButton_Click">
           <TextBlock Text="{Binding ReadText}" FontSize="{DynamicResource Type.Size.Caption}" />
@@ -47,6 +48,7 @@
                 BorderThickness="0"
                 Padding="6"
                 VerticalAlignment="Center"
+                AutomationProperties.AutomationId="Detail.Action.Close"
                 AutomationProperties.Name="{Binding CloseButtonText}"
                 Click="CloseButton_Click">
           <TextBlock Text="✕" FontSize="14" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />

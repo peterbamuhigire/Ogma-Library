@@ -36,6 +36,7 @@
                     VerticalAlignment="Center">
           <Button Padding="12,6"
                   IsEnabled="{Binding CanGoPrevious}"
+                  AutomationProperties.AutomationId="Reader.Previous"
                   AutomationProperties.Name="{Binding PreviousPageLabel}"
                   Click="PreviousButton_Click">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -45,6 +46,7 @@
           </Button>
           <Button Padding="12,6"
                   IsEnabled="{Binding CanGoNext}"
+                  AutomationProperties.AutomationId="Reader.Next"
                   AutomationProperties.Name="{Binding NextPageLabel}"
                   Click="NextButton_Click">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -177,6 +179,7 @@
                   Spacing="6">
         <Button Padding="10,5"
                 IsEnabled="{Binding CanGoFirst}"
+                AutomationProperties.AutomationId="Reader.First"
                 AutomationProperties.Name="{Binding FirstPageLabel}"
                 ToolTip.Tip="{Binding FirstPageLabel}"
                 Click="FirstButton_Click">
@@ -184,6 +187,7 @@
         </Button>
         <Button Padding="10,5"
                 IsEnabled="{Binding CanGoPrevious}"
+                AutomationProperties.AutomationId="Reader.Nav.Previous"
                 AutomationProperties.Name="{Binding PreviousPageLabel}"
                 ToolTip.Tip="{Binding PreviousPageLabel}"
                 Click="PreviousButton_Click">
@@ -193,6 +197,7 @@
                  Width="56"
                  Text="{Binding PageNumberInput, Mode=TwoWay}"
                  HorizontalContentAlignment="Center"
+                 AutomationProperties.AutomationId="Reader.PageNumber"
                  AutomationProperties.Name="{Binding JumpToPageLabel}"
                  ToolTip.Tip="{Binding JumpToPageLabel}"
                  KeyDown="PageNumberBox_KeyDown" />
@@ -205,6 +210,7 @@
                    Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
         <Button Padding="10,5"
                 IsEnabled="{Binding CanGoNext}"
+                AutomationProperties.AutomationId="Reader.Nav.Next"
                 AutomationProperties.Name="{Binding NextPageLabel}"
                 ToolTip.Tip="{Binding NextPageLabel}"
                 Click="NextButton_Click">
@@ -212,6 +218,7 @@
         </Button>
         <Button Padding="10,5"
                 IsEnabled="{Binding CanGoLast}"
+                AutomationProperties.AutomationId="Reader.Last"
                 AutomationProperties.Name="{Binding LastPageLabel}"
                 ToolTip.Tip="{Binding LastPageLabel}"
                 Click="LastButton_Click">
@@ -258,6 +265,7 @@
 
     <Grid Grid.Row="2" ColumnDefinitions="*,320">
       <ScrollViewer x:Name="PageScrollViewer"
+                    AutomationProperties.AutomationId="Reader.Viewport"
                     Grid.Column="0"
                     HorizontalScrollBarVisibility="Auto"
                     VerticalScrollBarVisibility="Auto"
@@ -279,6 +287,7 @@
                 PointerReleased="PageSurface_PointerReleased">
         <Grid RowDefinitions="*,Auto" ClipToBounds="True">
           <Image Grid.Row="0"
+                 AutomationProperties.AutomationId="Reader.Page"
                  Source="{Binding PageImage}"
                  Stretch="Uniform"
                  HorizontalAlignment="Stretch"
