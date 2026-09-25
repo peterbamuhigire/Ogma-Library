@@ -34,53 +34,76 @@
     <Style Selector="Border.rail.compact TextBlock.rail-label">
       <Setter Property="IsVisible" Value="False" />
     </Style>
+    <!-- Sept-23 Phase 09: the rail is deep midnight ink in both themes; each destination owns a
+         jewel hue for its icon and active indicator (Brush.Dest.*). -->
     <Style Selector="Button.rail-item">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.ForegroundMuted}" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Left" />
       <Setter Property="MinHeight" Value="44" />
       <Setter Property="Padding" Value="12,8" />
-      <Setter Property="Margin" Value="6,2" />
+      <Setter Property="Margin" Value="8,2" />
       <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.rail-item:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Rail.ItemHover}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Foreground}" />
+    </Style>
+    <Style Selector="Button.rail-item:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Rail.ItemSelected}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Foreground}" />
     </Style>
     <Style Selector="Button.rail-item.selected">
-      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Oak}" />
-      <Setter Property="BorderThickness" Value="3,0,0,0" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Rail.ItemSelected}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Foreground}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
-    <Style Selector="Button.rail-item:focus">
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+    <Style Selector="Button.rail-item:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Rail.Focus}" />
       <Setter Property="BorderThickness" Value="2" />
     </Style>
-    <Style Selector="Button.tool">
+    <Style Selector="Button.rail-item:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Rail.Focus}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.rail-indicator">
+      <Setter Property="Width" Value="4" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="CornerRadius" Value="2" />
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.CardBorder}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="Padding" Value="10,6" />
     </Style>
-    <Style Selector="Button.tool.primary">
-      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Oak}" />
-      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.OnAccent}" />
-      <Setter Property="BorderThickness" Value="0" />
+    <Style Selector="Border.dest-accent">
+      <Setter Property="Width" Value="4" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Primary}" />
     </Style>
-    <Style Selector="Button.tool.active">
-      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Oak}" />
+    <Style Selector="Button.rail-item.selected[Tag=Library] Border.rail-indicator, Border.dest-accent[Tag=Library]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Library}" />
     </Style>
-    <Style Selector="Button.segment">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="0" />
-      <Setter Property="Padding" Value="10,6" />
+    <Style Selector="Button.rail-item.selected[Tag=Search] Border.rail-indicator, Border.dest-accent[Tag=Search]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Search}" />
     </Style>
-    <Style Selector="Button.segment.selected">
-      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
-      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Oak}" />
-      <Setter Property="FontWeight" Value="SemiBold" />
+    <Style Selector="Button.rail-item.selected[Tag=Reading] Border.rail-indicator, Border.dest-accent[Tag=Reading]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Reading}" />
+    </Style>
+    <Style Selector="Button.rail-item.selected[Tag=Advisor] Border.rail-indicator, Border.dest-accent[Tag=Advisor]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Advisor}" />
+    </Style>
+    <Style Selector="Button.rail-item.selected[Tag=Collections] Border.rail-indicator, Border.dest-accent[Tag=Collections]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Collections}" />
+    </Style>
+    <Style Selector="Button.rail-item.selected[Tag=Activity] Border.rail-indicator, Border.dest-accent[Tag=Activity]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Activity}" />
+    </Style>
+    <Style Selector="Button.rail-item.selected[Tag=Classroom] Border.rail-indicator, Border.dest-accent[Tag=Classroom]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Classroom}" />
+    </Style>
+    <Style Selector="Button.rail-item.selected[Tag=Settings] Border.rail-indicator, Border.dest-accent[Tag=Settings]">
+      <Setter Property="Background" Value="{DynamicResource Brush.Dest.Settings}" />
     </Style>
     <Style Selector="TextBlock.destination-heading">
       <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Display}" />
@@ -100,9 +123,7 @@
             Grid.Column="0"
             Classes="rail"
             Classes.compact="{Binding IsRailCompact}"
-            Background="{DynamicResource Brush.Surface.Footer}"
-            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-            BorderThickness="0,0,1,0">
+            Background="{DynamicResource Brush.Rail.Background}">
       <Grid RowDefinitions="*,Auto">
         <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto"
@@ -117,14 +138,16 @@
               <DataTemplate x:DataType="vm:RailItemViewModel">
                 <Button Classes="rail-item"
                         Classes.selected="{Binding IsSelected}"
+                        Tag="{Binding HueKey}"
                         IsVisible="{Binding IsVisible}"
                         AutomationProperties.AutomationId="{Binding AutomationId}"
                         AutomationProperties.Name="{Binding Label}"
                         AutomationProperties.ItemStatus="{Binding Status}"
                         ToolTip.Tip="{Binding ToolTip}"
                         Click="RailItem_Click">
-                  <StackPanel Orientation="Horizontal" Spacing="12">
-                    <svg:Svg Width="20" Height="20" Path="{Binding IconPath}" />
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Classes="rail-indicator" VerticalAlignment="Center" />
+                    <svg:Svg Width="22" Height="22" Path="{Binding IconPath}" />
                     <TextBlock Classes="rail-label"
                                Text="{Binding Label}"
                                VerticalAlignment="Center"
@@ -146,14 +169,13 @@
           <StackPanel Orientation="Horizontal" Spacing="12">
             <TextBlock Text="{Binding RailToggleGlyph}"
                        Width="20"
+                       Margin="14,0,0,0"
                        TextAlignment="Center"
-                       FontSize="{DynamicResource Type.Size.Subtitle}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                       FontSize="{DynamicResource Type.Size.Subtitle}" />
             <TextBlock Classes="rail-label"
                        Text="{Binding RailToggleLabel}"
                        VerticalAlignment="Center"
-                       FontSize="{DynamicResource Type.Size.Small}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                       FontSize="{DynamicResource Type.Size.Small}" />
           </StackPanel>
         </Button>
       </Grid>
@@ -170,12 +192,18 @@
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="Auto,*">
-          <TextBlock Grid.Column="0"
-                     Classes="destination-heading"
-                     Margin="0,0,16,0"
-                     Text="{Binding DestinationHeading}"
-                     AutomationProperties.AutomationId="Shell.Heading"
-                     AutomationProperties.HeadingLevel="1" />
+          <StackPanel Grid.Column="0"
+                      Orientation="Horizontal"
+                      Spacing="8"
+                      Margin="0,0,12,0">
+            <Border Classes="dest-accent"
+                    Tag="{Binding CurrentDestinationHueKey}"
+                    VerticalAlignment="Center" />
+            <TextBlock Classes="destination-heading"
+                       Text="{Binding DestinationHeading}"
+                       AutomationProperties.AutomationId="Shell.Heading"
+                       AutomationProperties.HeadingLevel="1" />
+          </StackPanel>
 
           <!-- Library toolbar: at most 7 visible controls; the rest overflow into More. -->
           <Grid Grid.Column="1"
@@ -209,10 +237,7 @@
                           shell:PriorityToolbarPanel.Priority="2"
                           Orientation="Horizontal"
                           AutomationProperties.Name="{Binding ViewSwitcherLabel}">
-                <Border BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                        BorderThickness="1"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        ClipToBounds="True">
+                <Border Classes="segmented">
                   <StackPanel Orientation="Horizontal">
                     <Button Classes="segment"
                             Classes.selected="{Binding IsGridViewSelected}"
@@ -432,7 +457,7 @@
                                VerticalAlignment="Center"
                                FontSize="{DynamicResource Type.Size.Small}"
                                Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                    <Button Background="Transparent"
+                    <Button Classes="tool"
                             BorderThickness="0"
                             MinHeight="28"
                             MinWidth="28"

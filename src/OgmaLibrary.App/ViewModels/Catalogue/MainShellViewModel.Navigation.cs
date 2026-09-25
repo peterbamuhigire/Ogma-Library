@@ -77,6 +77,12 @@ public sealed class RailItemViewModel : INotifyPropertyChanged
     /// <summary>The icon path.</summary>
     public string IconPath { get; }
 
+    /// <summary>
+    /// The destination's hue key (Sept-23 Phase 09): the rail styles map it to
+    /// <c>Brush.Dest.&lt;key&gt;</c> for the active indicator.
+    /// </summary>
+    public string HueKey => Destination.ToString();
+
     /// <summary>The visible label.</summary>
     public string Label { get => _label; set => Set(ref _label, value); }
 
@@ -144,6 +150,12 @@ public sealed partial class MainShellViewModel
 
     /// <summary>The current rail destination.</summary>
     public ShellDestination CurrentDestination => _navigation.Current.Destination;
+
+    /// <summary>
+    /// The current destination's hue key (Sept-23 Phase 09): the header accent maps it to
+    /// <c>Brush.Dest.&lt;key&gt;</c>.
+    /// </summary>
+    public string CurrentDestinationHueKey => CurrentDestination.ToString();
 
     /// <summary>Optional diagnostics export, supplied by the startup shell.</summary>
     public Func<Task>? ExportDiagnostics { get; set; }
@@ -1223,7 +1235,7 @@ public sealed partial class MainShellViewModel
         RefreshRailState();
         foreach (string name in new[]
                  {
-                     nameof(CurrentRoute), nameof(CurrentDestination), nameof(ActiveView), nameof(DestinationHeading),
+                     nameof(CurrentRoute), nameof(CurrentDestination), nameof(CurrentDestinationHueKey), nameof(ActiveView), nameof(DestinationHeading),
                      nameof(IsCatalogueActive), nameof(IsLibraryDestination), nameof(IsPagerVisible), nameof(IsReaderActive),
                      nameof(IsReaderContentVisible), nameof(IsReadingEmptyVisible), nameof(IsSplitViewActive),
                      nameof(IsReadingDestination), nameof(IsSharingSettingsActive), nameof(IsStudentSmartSearchActive),
