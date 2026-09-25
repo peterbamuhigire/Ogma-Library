@@ -58,8 +58,8 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 |---:|---|:---:|---|---|
 | 00 | Ground truth, repository and toolchain recovery | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-00-completion.md) |
 | 01 | Real-window acceptance harness and golden journeys | A | NOT STARTED | — |
-| 02 | Crash safety, logging and threading foundation | A | NOT STARTED | — |
-| 03 | Shell emergency fixes: visible catalogue and truthful status | A | NOT STARTED (fix verified in scratch) | — |
+| 02 | Crash safety, logging and threading foundation | A | IN PROGRESS (worktree lane) | — |
+| 03 | Shell emergency fixes: visible catalogue and truthful status | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-03-completion.md) |
 | 04 | Reader engine stability and page rendering | A | NOT STARTED | — |
 | 05 | Library roots, scanning and file validity | B | NOT STARTED (needs D-03, D-04) | — |
 | 06 | Processing pipeline, jobs and identity promotion | B | NOT STARTED | — |
