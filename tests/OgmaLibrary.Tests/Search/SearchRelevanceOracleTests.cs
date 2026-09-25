@@ -78,15 +78,18 @@ public sealed class SearchRelevanceOracleTests : IClassFixture<SearchRelevanceOr
         /// <summary>Runs one query through the search destination's service and returns display titles.</summary>
         public async Task<IReadOnlyList<string>> SearchTitlesAsync(string query)
         {
-            var service = new SemanticSearchService(
-                _corpus.Context,
-                new AbsentProvider(),
-                new CombinedSearchService(
-                    new MetadataSearchService(_corpus.Context),
-                    new FtsIndexService(_corpus.Context)));
-            SemanticSearchResponse response = await service.SearchAsync(query, 30, CancellationToken.None);
-            return response.Results.Select(result => result.Title ?? "Untitled").ToList();
+            UnifiedSearchResponse response = await SearchAsync(query);
+            return response.Results.Select(result => result.Title).ToList();
         }
+
+        /// <summary>Runs one query through the unified pipeline with no semantic provider.</summary>
+        public Task<UnifiedSearchResponse> SearchAsync(string query) =>
+            new UnifiedSearchService(
+                    _corpus.Context,
+                    new FtsIndexService(_corpus.Context),
+                    semantic: null,
+                    provider: new AbsentProvider())
+                .SearchAsync(query, 30, CancellationToken.None);
 
         /// <inheritdoc />
         public void Dispose() => _corpus.Dispose();
