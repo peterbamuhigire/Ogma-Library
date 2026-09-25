@@ -228,6 +228,27 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Localized badge for a password-protected book (Sept-23 Phase 05).</summary>
     public string LockedBadgeText => _localization["Catalogue.Badge.Locked"];
 
+    /// <summary>Localized "Searchable" text-status badge (Sept-23 Phase 17).</summary>
+    public string TextSearchableBadgeText => _localization["Catalogue.Badge.TextSearchable"];
+
+    /// <summary>Localized "Partly searchable" text-status badge.</summary>
+    public string TextPartlyBadgeText => _localization["Catalogue.Badge.TextPartly"];
+
+    /// <summary>Localized "Scanned, needs OCR" text-status badge.</summary>
+    public string TextImageOnlyBadgeText => _localization["Catalogue.Badge.TextImageOnly"];
+
+    /// <summary>Localized "OCR in progress" text-status badge.</summary>
+    public string TextOcrInProgressBadgeText => _localization["Catalogue.Badge.TextOcrInProgress"];
+
+    /// <summary>Localized "OCR text" text-status badge; the confidence is shown beside it.</summary>
+    public string TextOcrBadgeText => _localization["Catalogue.Badge.TextOcr"];
+
+    /// <summary>Localized "No readable text" text-status badge.</summary>
+    public string TextNoneBadgeText => _localization["Catalogue.Badge.TextNone"];
+
+    /// <summary>Localized "OCR failed" text-status badge.</summary>
+    public string TextOcrFailedBadgeText => _localization["Catalogue.Badge.TextOcrFailed"];
+
     /// <summary>Localized favourite badge label.</summary>
     public string FavouriteBadgeText => _localization["Catalogue.Badge.Favourite"];
 
@@ -421,6 +442,12 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             query = query.Where(b => b.Status == status);
         }
 
+        // Sept-23 Phase 17: "Needs OCR" (image only, partly searchable, or OCR failed).
+        if (Filter.NeedsOcrOnly)
+        {
+            query = query.Where(b => b.Processing?.NeedsOcr == true && !b.IsLocked);
+        }
+
         // Rating range filter.
         if (Filter.MinRating.HasValue)
         {
@@ -608,6 +635,13 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(OcrBadgeText));
         OnPropertyChanged(nameof(UnavailableBadgeText));
         OnPropertyChanged(nameof(LockedBadgeText));
+        OnPropertyChanged(nameof(TextSearchableBadgeText));
+        OnPropertyChanged(nameof(TextPartlyBadgeText));
+        OnPropertyChanged(nameof(TextImageOnlyBadgeText));
+        OnPropertyChanged(nameof(TextOcrInProgressBadgeText));
+        OnPropertyChanged(nameof(TextOcrBadgeText));
+        OnPropertyChanged(nameof(TextNoneBadgeText));
+        OnPropertyChanged(nameof(TextOcrFailedBadgeText));
         OnPropertyChanged(nameof(FavouriteBadgeText));
         OnPropertyChanged(nameof(QualityBadgeFormat));
         OnPropertyChanged(nameof(DirectoryPathUnavailableText));

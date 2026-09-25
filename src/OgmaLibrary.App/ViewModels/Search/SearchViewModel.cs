@@ -282,6 +282,23 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             : string.Empty;
         SearchSnippet snippet = SearchSnippetParser.Parse(result.Snippet);
         SearchResultBadge[] matchBadges = CreateMatchBadges(result);
+        if (result.IsOcrText)
+        {
+            // Sept-23 Phase 17 (task 8): text read from a scanned page by OCR is labelled.
+            string ocrLabel = _localization["Search.Result.FromOcrText"];
+            matchBadges =
+            [
+                .. matchBadges,
+                new SearchResultBadge(
+                    IconCatalog.GetAvaresPath("ic_filter_chip_page") ?? string.Empty,
+                    ocrLabel,
+                    string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        _localization["Search.MatchLocation.AccessibleFormat"],
+                        ocrLabel)),
+            ];
+        }
+
         string matchLocations = string.Join(
             _localization["Search.Result.Separator"],
             matchBadges.Select(badge => badge.Label));

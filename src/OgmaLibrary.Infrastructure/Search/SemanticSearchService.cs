@@ -260,7 +260,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
                     MatchLocations: _matchLocations.GetLocations(result, semanticResult: null),
                     ConfidenceLabel: null,
                     PageIndex: result.FtsHits.Count > 0 ? result.FtsHits[0].PageIndex : null,
-                    PageJumpTarget: result.FtsHits.Count > 0 ? result.FtsHits[0].PageJumpTarget : null))
+                    PageJumpTarget: result.FtsHits.Count > 0 ? result.FtsHits[0].PageJumpTarget : null,
+                    IsOcrText: result.FtsHits.Count > 0 && result.FtsHits[0].IsOcrText))
                 .Take(maxResults)
                 .ToList(),
             availability);
@@ -285,7 +286,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
             MatchLocations: enrichment.MatchLocations,
             ConfidenceLabel: enrichment.ConfidenceLabel,
             PageIndex: semantic?.PageIndex ?? fts?.PageIndex,
-            PageJumpTarget: semantic?.PageJumpTarget ?? fts?.PageJumpTarget);
+            PageJumpTarget: semantic?.PageJumpTarget ?? fts?.PageJumpTarget,
+            IsOcrText: semantic?.IsOcrText == true || (semantic?.ChunkId is null && fts?.IsOcrText == true));
     }
 
     private async Task<IReadOnlyDictionary<string, HybridBookSignals>> LoadBookSignalsAsync(

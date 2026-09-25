@@ -87,17 +87,20 @@ public sealed class OcrJobQueueServiceTests : IDisposable
         await _context.SaveChangesAsync();
         var service = new OcrJobQueueService(_context, _libraryRoot);
 
-        var result = await service.QueueBookAsync(bookId, languageHint: "fra");
+        var result = await service.QueueBookAsync(bookId, languageHint: "eng");
         _context.ChangeTracker.Clear();
 
         Assert.True(result.Queued);
         JobRow job = await _context.Jobs.SingleAsync(job => job.BookId == bookId && job.JobType == "OcrJob");
         Assert.Equal(0, job.Status);
-        Assert.Equal(1, job.RetryCount);
+
+        // Sept-23 Phase 06/17: a user re-queue starts fresh attempts and is counted as a requeue.
+        Assert.Equal(0, job.RetryCount);
+        Assert.Equal(1, job.RequeueCount);
         Assert.Null(job.ErrorMessage);
         Assert.Null(job.CompletedUtc);
         using JsonDocument payload = JsonDocument.Parse(job.Payload!);
-        Assert.Equal("fra", payload.RootElement.GetProperty("Language").GetString());
+        Assert.Equal("eng", payload.RootElement.GetProperty("Language").GetString());
     }
 
     [Fact]

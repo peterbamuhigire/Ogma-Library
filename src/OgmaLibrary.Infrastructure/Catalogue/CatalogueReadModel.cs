@@ -170,6 +170,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.EmbeddingStatus,
                 b.QualityScore,
                 b.IsOcrDerived,
+                b.TextStatus,
+                b.TextQuality,
+                b.OcrConfidence,
                 b.Year,
                 b.Sha256Hash,
                 IsLocked = b.IsPasswordProtected || b.BookFiles.Any(f => f.FileValidity == 4),
@@ -263,7 +266,12 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                      LockedAwareIndexStatus(item.IndexStatus, item.IsLocked),
                      (global::OgmaLibrary.Application.Search.SearchEmbeddingStatus)item.EmbeddingStatus,
                      Math.Clamp(item.QualityScore, 0, 1),
-                     item.IsOcrDerived)));
+                     item.IsOcrDerived,
+                     item.IsLocked
+                         ? global::OgmaLibrary.Application.Ocr.BookTextStatus.Unknown
+                         : (global::OgmaLibrary.Application.Ocr.BookTextStatus)item.TextStatus,
+                     Math.Clamp(item.TextQuality, 0, 1),
+                     item.OcrConfidence)));
         }
 
         if (smartConditions is not null)
@@ -335,6 +343,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.Sha256Hash,
                 b.SizeBytes,
                 b.IsOcrDerived,
+                b.TextStatus,
+                b.TextQuality,
+                b.OcrConfidence,
                 IsPasswordProtected = b.IsPasswordProtected || b.BookFiles.Any(f => f.FileValidity == 4),
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
                 Authors = b.BookAuthors
@@ -375,6 +386,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         providerLookups = providerLookups
             .OrderByDescending(lookup => lookup.Timestamp)
             .ToList();
+
+        (global::OgmaLibrary.Application.Ocr.BookOcrJobState _, string? ocrFailureCode) =
+            await Ocr.BookTextStatusService.LoadOcrJobStateAsync(context, result.BookId, cancellationToken)
+                .ConfigureAwait(false);
 
         ReadingProgressProjection? progress = result.Progress is not null
             ? new ReadingProgressProjection(
@@ -417,7 +432,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
              IsPasswordProtected: result.IsPasswordProtected,
              IsFavourite: result.IsFavourite,
              IsAvailable: result.HasPresentFile,
-             ProviderLookups: providerLookups);
+             ProviderLookups: providerLookups,
+             TextStatus: result.IsPasswordProtected
+                 ? global::OgmaLibrary.Application.Ocr.BookTextStatus.Unknown
+                 : (global::OgmaLibrary.Application.Ocr.BookTextStatus)result.TextStatus,
+             TextQuality: Math.Clamp(result.TextQuality, 0, 1),
+             OcrConfidence: result.OcrConfidence,
+             OcrFailureCode: ocrFailureCode);
     }
 
     private static string ResolveTitle(

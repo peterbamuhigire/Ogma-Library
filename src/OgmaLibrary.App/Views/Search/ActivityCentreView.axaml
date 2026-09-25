@@ -8,7 +8,7 @@
           BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
           BorderThickness="1"
           CornerRadius="{DynamicResource Radius.S}">
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <TextBlock Text="{Binding Title}"
                    FontWeight="SemiBold"
@@ -45,7 +45,34 @@
         <TextBlock Text="{Binding FailureSummary}" />
       </UniformGrid>
 
-      <ListBox Grid.Row="2"
+      <!-- Sept-23 Phase 17: suggestion banner for scanned books that cannot be searched yet. -->
+      <Border Grid.Row="2"
+              Margin="0,8,0,0"
+              Padding="8,6"
+              IsVisible="{Binding HasOcrSuggestion}"
+              Background="{DynamicResource Brush.Surface.Parchment}"
+              BorderBrush="{DynamicResource Brush.Accent.Slate}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding OcrSuggestionText}"
+                     AutomationProperties.AutomationId="Activity.Ocr.Suggestion"
+                     VerticalAlignment="Center"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <Button Grid.Column="1"
+                  Margin="8,0,0,0"
+                  Padding="8,4"
+                  IsEnabled="{Binding CanAct}"
+                  AutomationProperties.AutomationId="Activity.Ocr.MakeSearchable"
+                  AutomationProperties.Name="{Binding MakeSearchableLabel}"
+                  Click="MakeSearchable_Click">
+            <TextBlock Text="{Binding MakeSearchableLabel}" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <ListBox Grid.Row="3"
                Margin="0,8,0,0"
                MaxHeight="160"
                IsVisible="{Binding HasJobs}"

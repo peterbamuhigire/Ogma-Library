@@ -26,6 +26,10 @@ public interface IFtsIndexService
 }
 
 /// <summary>One full-text search hit.</summary>
+/// <remarks>
+/// <see cref="IsOcrText"/> marks a snippet whose text came from OCR of a scanned page
+/// (Sept-23 Phase 17, task 8), so the UI can label it "from OCR text".
+/// </remarks>
 public sealed record FtsSearchResult(
     string BookId,
     string? Title,
@@ -37,7 +41,8 @@ public sealed record FtsSearchResult(
     string Snippet,
     double Score,
     SearchSnippet? HighlightedSnippet = null,
-    SearchPageJumpTarget? PageJumpTarget = null);
+    SearchPageJumpTarget? PageJumpTarget = null,
+    bool IsOcrText = false);
 
 /// <summary>Plain-text search snippet with ranges that may be rendered as highlights.</summary>
 public sealed record SearchSnippet(

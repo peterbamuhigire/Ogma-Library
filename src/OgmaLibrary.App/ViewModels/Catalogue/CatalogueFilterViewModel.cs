@@ -41,6 +41,7 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
     private bool? _availabilityFilter;
     private string? _titleSearch;
     private string? _authorSearch;
+    private bool _needsOcrOnly;
     private string? _selectedShelfId;
 
     private CatalogueSortField _sortField = CatalogueSortField.Title;
@@ -98,6 +99,16 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
         set => SetField(ref _authorSearch, value);
     }
 
+    /// <summary>
+    /// "Needs OCR" filter (Sept-23 Phase 17): only books that are image only, partly
+    /// searchable, or whose OCR failed.
+    /// </summary>
+    public bool NeedsOcrOnly
+    {
+        get => _needsOcrOnly;
+        set => SetField(ref _needsOcrOnly, value);
+    }
+
     /// <summary>Selected shelf ID; <see langword="null"/> shows all shelves.</summary>
     public string? SelectedShelfId
     {
@@ -147,7 +158,8 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
         AvailabilityFilter.HasValue ||
         !string.IsNullOrWhiteSpace(TitleSearch) ||
         !string.IsNullOrWhiteSpace(AuthorSearch) ||
-        SelectedShelfId is not null;
+        SelectedShelfId is not null ||
+        NeedsOcrOnly;
 
     /// <summary>Resets every filter dimension and raises <see cref="PropertyChanged"/>.</summary>
     public void ClearAll()
@@ -159,6 +171,7 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
         _titleSearch = null;
         _authorSearch = null;
         _selectedShelfId = null;
+        _needsOcrOnly = false;
         OnPropertyChanged(nameof(StatusFilter));
         OnPropertyChanged(nameof(MinRating));
         OnPropertyChanged(nameof(MaxRating));
@@ -166,6 +179,7 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TitleSearch));
         OnPropertyChanged(nameof(AuthorSearch));
         OnPropertyChanged(nameof(SelectedShelfId));
+        OnPropertyChanged(nameof(NeedsOcrOnly));
         OnPropertyChanged(nameof(HasActiveFilters));
     }
 

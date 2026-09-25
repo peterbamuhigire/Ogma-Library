@@ -40,7 +40,7 @@ public enum SemanticSearchAvailability
     Degraded = 3,
 }
 
-/// <summary>Book-level semantic search result.</summary>
+/// <summary>Book-level semantic search result. <c>IsOcrText</c> marks a snippet from OCR text (Sept-23 Phase 17).</summary>
 public sealed record SemanticSearchResult(
     string BookId,
     string? Title,
@@ -53,4 +53,5 @@ public sealed record SemanticSearchResult(
     IReadOnlyList<MatchLocation>? MatchLocations = null,
     ConfidenceLabel? ConfidenceLabel = null,
     int? PageIndex = null,
-    SearchPageJumpTarget? PageJumpTarget = null);
+    SearchPageJumpTarget? PageJumpTarget = null,
+    bool IsOcrText = false);

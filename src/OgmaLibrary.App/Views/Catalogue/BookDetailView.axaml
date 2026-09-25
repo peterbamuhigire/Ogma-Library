@@ -596,6 +596,28 @@
                      TextWrapping="Wrap"
                      Margin="0,6,0,0" />
 
+          <!-- Sept-23 Phase 17: honest text status, text quality and OCR failure reason. -->
+          <TextBlock Text="{Binding TextStatusText}"
+                     IsVisible="{Binding HasTextStatus}"
+                     AutomationProperties.AutomationId="Detail.TextStatus"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     TextWrapping="Wrap"
+                     Margin="0,6,0,0" />
+          <TextBlock Text="{Binding TextQualityText}"
+                     IsVisible="{Binding HasTextStatus}"
+                     AutomationProperties.AutomationId="Detail.TextQuality"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     TextWrapping="Wrap" />
+          <TextBlock Text="{Binding OcrFailureText}"
+                     IsVisible="{Binding HasOcrFailure}"
+                     AutomationProperties.AutomationId="Detail.OcrFailure"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     TextWrapping="Wrap" />
+
           <Button Padding="10,6"
                   Margin="0,10,0,0"
                   HorizontalAlignment="Left"

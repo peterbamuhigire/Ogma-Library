@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Ocr;
 
 namespace OgmaLibrary.App.ViewModels.Search;
 
@@ -14,17 +15,26 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
 {
     private readonly IJobRuntimeService _runtime;
     private readonly ILocalizationService _localization;
+    private readonly IOcrJobQueueService? _ocrJobs;
     private IReadOnlyList<JobRuntimeDiagnostic> _diagnostics = [];
+    private int _booksNeedingOcr;
     private bool _isBusy;
     private string _statusText;
 
     /// <summary>Initializes a new instance of the <see cref="ActivityCentreViewModel"/> class.</summary>
-    public ActivityCentreViewModel(IJobRuntimeService runtime, ILocalizationService localization)
+    /// <param name="runtime">The job runtime.</param>
+    /// <param name="localization">The localisation service.</param>
+    /// <param name="ocrJobs">Optional OCR queue for the "make scanned books searchable" banner.</param>
+    public ActivityCentreViewModel(
+        IJobRuntimeService runtime,
+        ILocalizationService localization,
+        IOcrJobQueueService? ocrJobs = null)
     {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(localization);
         _runtime = runtime;
         _localization = localization;
+        _ocrJobs = ocrJobs;
         _statusText = _localization["ActivityCentre.Status.Ready"];
         _localization.CultureChanged += OnCultureChanged;
     }
@@ -97,6 +107,47 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
     /// <summary>Localized failure totals.</summary>
     public string FailureSummary { get; private set; } = string.Empty;
 
+    /// <summary>Books whose text status says OCR would make them searchable (Sept-23 Phase 17).</summary>
+    public int BooksNeedingOcr => _booksNeedingOcr;
+
+    /// <summary>Whether the "make scanned books searchable" banner is shown.</summary>
+    public bool HasOcrSuggestion => _ocrJobs is not null && _booksNeedingOcr > 0;
+
+    /// <summary>Localized banner text, for example "2 scanned book(s) cannot be searched yet."</summary>
+    public string OcrSuggestionText => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["ActivityCentre.Ocr.SuggestionFormat"],
+        _booksNeedingOcr);
+
+    /// <summary>Localized banner action, for example "Make 2 scanned book(s) searchable".</summary>
+    public string MakeSearchableLabel => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        _localization["ActivityCentre.Ocr.MakeSearchableFormat"],
+        _booksNeedingOcr);
+
+    /// <summary>
+    /// Queues OCR for every book that needs it (banner action; Sept-23 Phase 17, task 3), then
+    /// refreshes the snapshot.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of books queued.</returns>
+    public async Task<int> MakeScannedBooksSearchableAsync(CancellationToken cancellationToken = default)
+    {
+        if (_ocrJobs is null || IsBusy)
+        {
+            return 0;
+        }
+
+        int queued = await _ocrJobs.QueueBooksNeedingOcrAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        await LoadAsync(cancellationToken).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+            StatusText = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["ActivityCentre.Ocr.QueuedFormat"],
+                queued));
+        return queued;
+    }
+
     /// <summary>Loads a bounded operational snapshot.</summary>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -111,8 +162,15 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
             JobRuntimeDiagnostics snapshot = await _runtime
                 .GetDiagnosticsAsync(100, cancellationToken)
                 .ConfigureAwait(false);
+            int needingOcr = _ocrJobs is null
+                ? 0
+                : await _ocrJobs.CountBooksNeedingOcrAsync(cancellationToken).ConfigureAwait(false);
             _diagnostics = snapshot.RecentJobs;
-            await Dispatcher.UIThread.InvokeAsync(() => ApplySnapshot(snapshot));
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _booksNeedingOcr = needingOcr;
+                ApplySnapshot(snapshot);
+            });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -230,17 +288,44 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         OnPropertyChanged(nameof(HasJobs));
         OnPropertyChanged(nameof(QueueSummary));
         OnPropertyChanged(nameof(FailureSummary));
+        RaiseOcrSuggestionChanged();
     }
 
-    private ActivityJobDisplayItem ToDisplayItem(JobRuntimeDiagnostic job) => new(
-        job.JobId,
-        job.JobType,
-        _localization[$"ActivityCentre.State.{job.Status}"],
-        job.Attempt,
-        job.Status == JobRuntimeStatus.Failed,
-        job.Status == JobRuntimeStatus.Pending,
-        RetryLabel,
-        CancelLabel);
+    private void RaiseOcrSuggestionChanged()
+    {
+        OnPropertyChanged(nameof(BooksNeedingOcr));
+        OnPropertyChanged(nameof(HasOcrSuggestion));
+        OnPropertyChanged(nameof(OcrSuggestionText));
+        OnPropertyChanged(nameof(MakeSearchableLabel));
+    }
+
+    private ActivityJobDisplayItem ToDisplayItem(JobRuntimeDiagnostic job)
+    {
+        string state = _localization[$"ActivityCentre.State.{job.Status}"];
+
+        // Sept-23 Phase 17 (task 4): an OCR failure shows its localised reason, never a raw code.
+        bool ocrFailure = OcrFailureCodes.IsOcrCode(job.FailureCode) &&
+            job.Status is JobRuntimeStatus.Failed or JobRuntimeStatus.DeadLetter or JobRuntimeStatus.Pending;
+        string? failureText = ocrFailure
+            ? _localization[OcrFailureCodes.LocalizationKey(job.FailureCode)]
+            : null;
+        return new ActivityJobDisplayItem(
+            job.JobId,
+            job.JobType,
+            failureText is null
+                ? state
+                : string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    _localization["ActivityCentre.FailureReasonFormat"],
+                    state,
+                    failureText),
+            job.Attempt,
+            job.Status == JobRuntimeStatus.Failed,
+            job.Status == JobRuntimeStatus.Pending,
+            RetryLabel,
+            CancelLabel,
+            failureText);
+    }
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {
@@ -258,6 +343,7 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         OnPropertyChanged(nameof(CancelLabel));
         OnPropertyChanged(nameof(RetryAllLabel));
         OnPropertyChanged(nameof(HasJobs));
+        RaiseOcrSuggestionChanged();
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -276,4 +362,5 @@ public sealed record ActivityJobDisplayItem(
     bool CanRetry,
     bool CanCancel,
     string RetryLabel,
-    string CancelLabel);
+    string CancelLabel,
+    string? FailureText = null);

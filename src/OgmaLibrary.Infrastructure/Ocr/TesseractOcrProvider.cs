@@ -33,7 +33,9 @@ internal sealed class TesseractOcrProvider : IOcrProvider
         string? normalizedLanguage = OcrLanguagePolicy.Normalize(languageHint);
         if (normalizedLanguage is null)
         {
-            throw new ArgumentException("Unsupported OCR language pack.", nameof(languageHint));
+            // Sept-23 Phase 17: a language this build does not ship is a typed, localised
+            // failure, not an argument error swallowed by the worker.
+            throw new OcrFailureException(OcrFailureCodes.MissingLanguageData);
         }
 
         byte[] imageBytes;
@@ -53,14 +55,23 @@ internal sealed class TesseractOcrProvider : IOcrProvider
             TesseractTrainingDataVerifier.Verify(_tessdataPath, language);
         if (!verification.IsValid)
         {
-            throw new InvalidOperationException(
-                $"OCR training data integrity check failed for '{verification.Language}': {verification.Code}.");
+            throw new OcrFailureException(
+                OcrFailureCodes.MissingLanguageData,
+                new InvalidOperationException(
+                    $"OCR training data integrity check failed for '{verification.Language}': {verification.Code}."));
         }
 
-        using var engine = new TesseractEngine(_tessdataPath, language, EngineMode.Default);
-        using Pix pix = Pix.LoadFromMemory(imageBytes);
-        using Page page = engine.Process(pix);
-        string text = page.GetText() ?? string.Empty;
-        return new OcrPageResult(text, page.GetMeanConfidence());
+        try
+        {
+            using var engine = new TesseractEngine(_tessdataPath, language, EngineMode.Default);
+            using Pix pix = Pix.LoadFromMemory(imageBytes);
+            using Page page = engine.Process(pix);
+            string text = page.GetText() ?? string.Empty;
+            return new OcrPageResult(text, page.GetMeanConfidence());
+        }
+        catch (Exception exception) when (exception is TesseractException or IOException or InvalidOperationException)
+        {
+            throw new OcrFailureException(OcrFailureCodes.UnreadablePage, exception);
+        }
     }
 }

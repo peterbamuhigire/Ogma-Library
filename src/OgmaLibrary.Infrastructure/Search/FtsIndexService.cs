@@ -80,7 +80,8 @@ public sealed class FtsIndexService : IFtsIndexService
                 c.ChunkIndex,
                 c.Source,
                 snippet(SearchFts5, 0, '<b>', '</b>', '...', 20) AS Snippet,
-                bm25(SearchFts5) AS Rank
+                bm25(SearchFts5) AS Rank,
+                CASE WHEN ep.Source = 'OCR' THEN 1 ELSE 0 END AS IsOcrText
             FROM SearchFts5
             INNER JOIN SearchChunks c ON c.ChunkId = SearchFts5.rowid
             INNER JOIN Books b ON b.BookId = c.BookId
@@ -131,7 +132,8 @@ public sealed class FtsIndexService : IFtsIndexService
                 HighlightedSnippet: highlightedSnippet,
                 PageJumpTarget: source == SearchChunkSource.Page && pageIndex is int page
                     ? new SearchPageJumpTarget(bookId, chunkId, page)
-                    : null));
+                    : null,
+                IsOcrText: reader.GetInt32(9) == 1));
         }
 
         return results;

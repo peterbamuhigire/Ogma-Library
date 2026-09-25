@@ -48,6 +48,9 @@ Three test projects:
   app through Windows UI Automation (`Category=E2E`, excluded from the fast
   suite). See [e2e-harness.md](e2e-harness.md).
 
+OCR language packs, the per-book text status and the automatic OCR policy are in
+[ocr-language-packs.md](ocr-language-packs.md).
+
 Search indexing details are in [search-index.md](search-index.md), including
 the Phase 10 FTS5 external-content table and trigger maintenance rules.
 

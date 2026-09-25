@@ -756,6 +756,11 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(SizeBytes));
             OnPropertyChanged(nameof(Sha256Hash));
             OnPropertyChanged(nameof(IsOcrDerived));
+            OnPropertyChanged(nameof(TextStatusText));
+            OnPropertyChanged(nameof(HasTextStatus));
+            OnPropertyChanged(nameof(TextQualityText));
+            OnPropertyChanged(nameof(OcrFailureText));
+            OnPropertyChanged(nameof(HasOcrFailure));
             OnPropertyChanged(nameof(IsPasswordProtected));
             OnPropertyChanged(nameof(ReadingStatus));
             OnPropertyChanged(nameof(ReadingProgressPct));
@@ -832,6 +837,41 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Whether the loaded book has OCR-derived searchable text.</summary>
     public bool IsOcrDerived => _book?.IsOcrDerived == true;
+
+    /// <summary>
+    /// Localised honest text status, for example "Image only: run OCR to make it searchable"
+    /// or "OCR text (confidence 92 %)" (Sept-23 Phase 17).
+    /// </summary>
+    public string? TextStatusText => _book is null || _book.IsPasswordProtected
+        ? null
+        : _book.TextStatus == BookTextStatus.OcrText
+            ? string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                _localization["Catalogue.TextStatus.OcrTextFormat"],
+                (int)Math.Round(Math.Clamp(_book.OcrConfidence ?? 0, 0, 1) * 100))
+            : _localization[$"Catalogue.TextStatus.{_book.TextStatus}"];
+
+    /// <summary>Whether a text status line is shown.</summary>
+    public bool HasTextStatus => !string.IsNullOrWhiteSpace(TextStatusText);
+
+    /// <summary>Localised text-quality score ("Text quality: 80 % of pages readable"), when known.</summary>
+    public string? TextQualityText => _book is null || _book.TextStatus == BookTextStatus.Unknown || _book.IsPasswordProtected
+        ? null
+        : string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["Catalogue.BookDetail.TextQualityFormat"],
+            (int)Math.Round(Math.Clamp(_book.TextQuality, 0, 1) * 100));
+
+    /// <summary>Localised reason the latest OCR attempt failed, when it did.</summary>
+    public string? OcrFailureText => string.IsNullOrWhiteSpace(_book?.OcrFailureCode)
+        ? null
+        : string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["Catalogue.BookDetail.OcrFailureFormat"],
+            _localization[OcrFailureCodes.LocalizationKey(_book.OcrFailureCode)]);
+
+    /// <summary>Whether an OCR failure reason is shown.</summary>
+    public bool HasOcrFailure => !string.IsNullOrWhiteSpace(OcrFailureText);
 
     /// <summary>Whether the loaded book's PDF requires a password.</summary>
     public bool IsPasswordProtected => _book?.IsPasswordProtected == true;
@@ -2031,6 +2071,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(WriteBackStatusText));
         OnPropertyChanged(nameof(EnrichmentStatusText));
         OnPropertyChanged(nameof(OcrStatusText));
+        OnPropertyChanged(nameof(TextStatusText));
+        OnPropertyChanged(nameof(TextQualityText));
+        OnPropertyChanged(nameof(OcrFailureText));
         OnPropertyChanged(nameof(PasswordStatusText));
         OnPropertyChanged(nameof(CurationStatusText));
         OnPropertyChanged(nameof(TagsStatusText));

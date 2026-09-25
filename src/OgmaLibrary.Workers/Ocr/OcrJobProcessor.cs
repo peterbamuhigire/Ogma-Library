@@ -2,13 +2,17 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Diagnostics;
 using OgmaLibrary.Infrastructure.Ingestion;
+using OgmaLibrary.Infrastructure.Ocr;
 
 namespace OgmaLibrary.Workers.Ocr;
 
@@ -38,6 +42,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
     private readonly ISearchChunkRepository _chunkRepository;
     private readonly SearchChunker _chunker;
     private readonly IJobRuntimeService _jobRuntime;
+    private readonly BookTextStatusService _textStatus;
+    private readonly ILogger _logger;
 
     /// <summary>Initializes a new instance of <see cref="OcrJobProcessor"/>.</summary>
     public OcrJobProcessor(
@@ -47,7 +53,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         IExtractedTextStore textStore,
         ISearchChunkRepository chunkRepository,
         SearchChunker chunker,
-        IJobRuntimeService? jobRuntime = null)
+        IJobRuntimeService? jobRuntime = null,
+        ILogger<OcrJobProcessor>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(rendererFactory);
@@ -63,6 +70,8 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         _chunkRepository = chunkRepository;
         _chunker = chunker;
         _jobRuntime = jobRuntime ?? new JobRuntimeService(contextFactory);
+        _textStatus = new BookTextStatusService(contextFactory);
+        _logger = logger ?? (ILogger)NullLogger.Instance;
     }
 
     /// <inheritdoc />
@@ -95,6 +104,9 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             return true;
         }
 
+        // Sept-23 Phase 17: the badge says "OCR in progress" while this job runs (a retry from
+        // the Activity Centre does not go through the queue service).
+        await RefreshTextStatusAsync(job.BookId, cancellationToken).ConfigureAwait(false);
         OcrProcessingResult processing = await ProcessAsync(context, job, cancellationToken).ConfigureAwait(false);
         if (processing.Stopped ||
             await IsStopRequestedAsync(lease.JobId, cancellationToken).ConfigureAwait(false))
@@ -108,18 +120,34 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
             {
                 await _jobRuntime.CompleteAsync(lease.JobId, WorkerId, cancellationToken)
                     .ConfigureAwait(false);
+                BookTextAssessment? assessment = await RefreshTextStatusAsync(job.BookId, cancellationToken)
+                    .ConfigureAwait(false);
+                InfrastructureLog.OcrJobCompleted(
+                    _logger,
+                    lease.JobId,
+                    processing.PagesRecognised,
+                    processing.Chunks,
+                    assessment?.Status ?? BookTextStatus.Unknown);
             }
             else
             {
+                // Sept-23 Phase 17 (task 4): a typed, logged failure on the job; codes that a
+                // retry cannot fix (missing language data, resource limits) are permanent.
+                string code = processing.FailureCode ?? OcrFailureCodes.Unexpected;
+                bool retryable = OcrFailureCodes.IsRetryable(code);
+                InfrastructureLog.OcrJobFailed(_logger, processing.Error, lease.JobId, code, retryable);
                 await _jobRuntime.FailAsync(
                         lease.JobId,
                         WorkerId,
-                    new JobFailure(
-                        processing.FailureCode ?? "ocr_processing_failed",
-                        "OCR processing failed; the job was returned to the bounded retry policy.",
-                        Retryable: true),
+                        new JobFailure(
+                            code,
+                            retryable
+                                ? "OCR processing failed; the job was returned to the bounded retry policy."
+                                : "OCR processing failed and cannot succeed by retrying.",
+                            Retryable: retryable),
                         cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
+                await RefreshTextStatusAsync(job.BookId, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (InvalidOperationException)
@@ -141,14 +169,23 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
         if (string.IsNullOrWhiteSpace(job.BookId))
         {
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return OcrProcessingResult.Failed("ocr_invalid_payload");
+            return OcrProcessingResult.Failed(OcrFailureCodes.InvalidJob);
         }
 
-        OcrJobPayload payload = ParsePayload(job.Payload);
+        OcrJobPayload payload;
+        try
+        {
+            payload = ParsePayload(job.Payload);
+        }
+        catch (JsonException error)
+        {
+            return OcrProcessingResult.Failed(OcrFailureCodes.InvalidJob, error);
+        }
+
         if (string.IsNullOrWhiteSpace(payload.FilePath))
         {
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return OcrProcessingResult.Failed("ocr_invalid_payload");
+            return OcrProcessingResult.Failed(OcrFailureCodes.InvalidJob);
         }
 
         job.StartedUtc ??= DateTimeOffset.UtcNow;
@@ -170,6 +207,7 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                 .ConfigureAwait(false);
             HashSet<int> completedPages = await LoadCompletedOcrPagesAsync(context, job.BookId, cancellationToken)
                 .ConfigureAwait(false);
+            int recognisedThisRun = 0;
 
             payload = payload with
             {
@@ -218,6 +256,7 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                     cancellationToken).ConfigureAwait(false);
 
                 completedPages.Add(pageIndex);
+                recognisedThisRun++;
                 payload = payload with { ProcessedPages = completedPages.Count };
                 await SaveProgressAsync(context, job, payload, cancellationToken).ConfigureAwait(false);
             }
@@ -237,34 +276,82 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
 
             job.ErrorMessage = null;
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return OcrProcessingResult.Success;
+            return OcrProcessingResult.Completed(recognisedThisRun, chunkCount);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (OcrResourceLimitException error)
+        catch (Exception error) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(error))
         {
-            return OcrProcessingResult.Failed(error.Code);
-        }
-        catch (Exception)
-        {
-            return OcrProcessingResult.Failed("ocr_processing_failed");
+            // Sept-23 Phase 17 (task 4): never swallowed; classified, logged by the caller and
+            // recorded on the job with a code the UI maps to a localised reason.
+            return OcrProcessingResult.Failed(Classify(error), error);
         }
     }
 
-    private sealed record OcrProcessingResult(bool Succeeded, bool Stopped, string? FailureCode)
+    /// <summary>Maps an OCR-time exception to a stable failure code (Sept-23 Phase 17).</summary>
+    /// <param name="error">The exception.</param>
+    /// <returns>A code from <see cref="OcrFailureCodes"/>.</returns>
+    internal static string Classify(Exception error) => error switch
     {
-        public static OcrProcessingResult Success { get; } = new(true, false, null);
+        OcrFailureException typed => typed.Code,
+        OcrResourceLimitException => OcrFailureCodes.ResourceLimit,
+        TimeoutException or OperationCanceledException => OcrFailureCodes.Timeout,
+        FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException => OcrFailureCodes.FileUnavailable,
+        PdfPasswordRequiredException or PdfPasswordIncorrectException => OcrFailureCodes.UnreadablePage,
+        PdfRendererUnavailableException or IOException => OcrFailureCodes.UnreadablePage,
+        _ => OcrFailureCodes.Unexpected,
+    };
 
+    private async Task<BookTextAssessment?> RefreshTextStatusAsync(string? bookId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(bookId))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _textStatus.RefreshAsync(bookId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is DbUpdateException or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException)
+        {
+            InfrastructureLog.DegradedStep(_logger, error, nameof(OcrJobProcessor), "ocr.text_status");
+            return null;
+        }
+    }
+
+    private sealed record OcrProcessingResult(
+        bool Succeeded,
+        bool Stopped,
+        string? FailureCode,
+        Exception? Error = null,
+        int PagesRecognised = 0,
+        int Chunks = 0)
+    {
         public static OcrProcessingResult StoppedByControl { get; } = new(false, true, null);
 
-        public static OcrProcessingResult Failed(string code) => new(false, false, code);
+        public static OcrProcessingResult Completed(int pages, int chunks) => new(true, false, null, null, pages, chunks);
+
+        public static OcrProcessingResult Failed(string code, Exception? error = null) => new(false, false, code, error);
     }
 
-    private sealed class OcrResourceLimitException(string code) : InvalidOperationException
+    private sealed class OcrResourceLimitException : InvalidOperationException
     {
-        public string Code { get; } = code;
+        public OcrResourceLimitException()
+        {
+        }
+
+        public OcrResourceLimitException(string message)
+            : base(message)
+        {
+        }
+
+        public OcrResourceLimitException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
     }
 
     private async Task<bool> IsStopRequestedAsync(long jobId, CancellationToken cancellationToken)

@@ -59,28 +59,72 @@ public sealed record BookSummaryProjection(
 /// <param name="EmbeddingStatus">Semantic embedding state.</param>
 /// <param name="QualityScore">Metadata quality score in [0, 1].</param>
 /// <param name="IsOcrDerived">Whether searchable content includes OCR output.</param>
+/// <param name="TextStatus">Honest text status derived from pages and OCR (Sept-23 Phase 17).</param>
+/// <param name="TextQuality">Share of pages with usable text in [0, 1], OCR weighted by confidence.</param>
+/// <param name="OcrConfidence">Mean confidence of the selected OCR text, when any.</param>
 public sealed record CatalogueProcessingProjection(
     global::OgmaLibrary.Application.Search.SearchBookIndexStatus IndexStatus,
     global::OgmaLibrary.Application.Search.SearchEmbeddingStatus EmbeddingStatus,
     double QualityScore,
-    bool IsOcrDerived)
+    bool IsOcrDerived,
+    global::OgmaLibrary.Application.Ocr.BookTextStatus TextStatus = global::OgmaLibrary.Application.Ocr.BookTextStatus.Unknown,
+    double TextQuality = 0,
+    double? OcrConfidence = null)
 {
+    /// <summary>Whether a text status is known (extraction finished at least once).</summary>
+    public bool HasTextStatus => TextStatus != global::OgmaLibrary.Application.Ocr.BookTextStatus.Unknown;
+
+    /// <summary>Whether the book's text is searchable from its own text layer.</summary>
+    public bool IsTextSearchable => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.Searchable;
+
+    /// <summary>Whether some pages are scanned images without text.</summary>
+    public bool IsPartlySearchable => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.PartlySearchable;
+
+    /// <summary>Whether the book is scanned images only and needs OCR.</summary>
+    public bool IsImageOnly => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.ImageOnly;
+
+    /// <summary>Whether OCR is queued or running.</summary>
+    public bool IsOcrInProgress => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.OcrInProgress;
+
+    /// <summary>Whether the searchable text of scanned pages came from OCR.</summary>
+    public bool IsOcrText => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.OcrText;
+
+    /// <summary>Whether no text could be read.</summary>
+    public bool IsNoText => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.NoText;
+
+    /// <summary>Whether OCR failed for this book.</summary>
+    public bool IsOcrFailed => TextStatus == global::OgmaLibrary.Application.Ocr.BookTextStatus.OcrFailed;
+
+    /// <summary>Whether OCR would make more of the book searchable ("Needs OCR" filter).</summary>
+    public bool NeedsOcr =>
+        global::OgmaLibrary.Application.Ocr.BookTextStatusPolicy.NeedsOcr(TextStatus) || IsOcrFailed;
+
+    /// <summary>Whether the legacy "OCR" provenance badge applies (no text status yet).</summary>
+    public bool ShowLegacyOcrBadge => IsOcrDerived && !HasTextStatus;
+
+    /// <summary>OCR confidence as a whole percentage for display, or 0.</summary>
+    public int OcrConfidencePercent => (int)Math.Round(Math.Clamp(OcrConfidence ?? 0, 0, 1) * 100);
+
     /// <summary>Whether at least one processing indicator has useful state.</summary>
     public bool HasProcessingState =>
         IndexStatus != global::OgmaLibrary.Application.Search.SearchBookIndexStatus.NotIndexed ||
         EmbeddingStatus != global::OgmaLibrary.Application.Search.SearchEmbeddingStatus.NotEmbedded;
 
-    /// <summary>Whether the full-text index is current.</summary>
+    /// <summary>
+    /// Whether the full-text index is current. Sept-23 Phase 17 (K21): once a text status is
+    /// known it decides the badge, so a scanned book with an index job but no text is never
+    /// shown as indexed.
+    /// </summary>
     public bool IsIndexed =>
-        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed;
+        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed && !HasTextStatus;
 
     /// <summary>Whether full-text extraction/indexing is in progress.</summary>
     public bool IsIndexing =>
-        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Extracting;
+        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Extracting && !HasTextStatus;
 
     /// <summary>Whether the latest full-text indexing attempt failed.</summary>
     public bool IsIndexFailed =>
-        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Failed;
+        IndexStatus == global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Failed && !HasTextStatus;
 
     /// <summary>Whether semantic embeddings are current.</summary>
     public bool IsEmbedded =>
@@ -124,6 +168,10 @@ public sealed record CatalogueProcessingProjection(
 /// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
 /// <param name="IsAvailable">Whether at least one library file is currently present.</param>
 /// <param name="ProviderLookups">Recent deterministic metadata-provider lookup status.</param>
+/// <param name="TextStatus">Honest text status (Sept-23 Phase 17).</param>
+/// <param name="TextQuality">Share of pages with usable text in [0, 1].</param>
+/// <param name="OcrConfidence">Mean confidence of the selected OCR text, when any.</param>
+/// <param name="OcrFailureCode">Failure code of the latest failed OCR job, when any.</param>
 public sealed record BookDetailProjection(
     string BookId,
     string? Title,
@@ -145,7 +193,11 @@ public sealed record BookDetailProjection(
     bool IsPasswordProtected = false,
     bool IsFavourite = false,
     bool IsAvailable = true,
-    IReadOnlyList<ProviderLookupProjection>? ProviderLookups = null);
+    IReadOnlyList<ProviderLookupProjection>? ProviderLookups = null,
+    global::OgmaLibrary.Application.Ocr.BookTextStatus TextStatus = global::OgmaLibrary.Application.Ocr.BookTextStatus.Unknown,
+    double TextQuality = 0,
+    double? OcrConfidence = null,
+    string? OcrFailureCode = null);
 
 /// <summary>Recent deterministic metadata-provider lookup status for a book.</summary>
 /// <param name="Provider">The provider that returned the lookup result.</param>
