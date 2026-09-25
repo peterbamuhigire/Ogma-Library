@@ -1,0 +1,88 @@
+diff --git a/docs/developer-guide/images/scan-en.png b/docs/developer-guide/images/scan-en.png
+index c3f5885..34493a9 100644
+Binary files a/docs/developer-guide/images/scan-en.png and b/docs/developer-guide/images/scan-en.png differ
+diff --git a/src/OgmaLibrary.App/Views/Catalogue/CatalogueShellView.axaml b/src/OgmaLibrary.App/Views/Catalogue/CatalogueShellView.axaml
+index 7709b6e..3b09baf 100644
+--- a/src/OgmaLibrary.App/Views/Catalogue/CatalogueShellView.axaml
++++ b/src/OgmaLibrary.App/Views/Catalogue/CatalogueShellView.axaml
+@@ -447,39 +447,6 @@
+           </Border>
+       </Grid>
+ 
+-      <!-- Bounded catalogue paging keeps large result sets responsive while
+-           retaining the same virtualized grid/list/directory surfaces. -->
+-      <Border Grid.Row="5"
+-              IsVisible="{Binding IsCatalogueActive}"
+-              Background="{DynamicResource Brush.Surface.Footer}"
+-              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+-              BorderThickness="0,1,0,0"
+-              Padding="12,6">
+-        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+-          <Button Grid.Column="0"
+-                  Padding="10,5"
+-                  IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
+-                  AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
+-                  Click="PreviousPage_Click">
+-            <TextBlock Text="{Binding Catalogue.PreviousPageText}"
+-                       FontSize="{DynamicResource Type.Size.Caption}" />
+-          </Button>
+-          <TextBlock Grid.Column="1"
+-                     Text="{Binding Catalogue.PageSummaryText}"
+-                     HorizontalAlignment="Center"
+-                     VerticalAlignment="Center"
+-                     FontSize="{DynamicResource Type.Size.Caption}"
+-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+-          <Button Grid.Column="2"
+-                  Padding="10,5"
+-                  IsEnabled="{Binding Catalogue.CanGoToNextPage}"
+-                  AutomationProperties.Name="{Binding Catalogue.NextPageText}"
+-                  Click="NextPage_Click">
+-            <TextBlock Text="{Binding Catalogue.NextPageText}"
+-                       FontSize="{DynamicResource Type.Size.Caption}" />
+-          </Button>
+-        </Grid>
+-      </Border>
+ 
+       <Border Grid.Row="3"
+               Grid.RowSpan="3"
+@@ -540,6 +507,40 @@
+         </Panel>
+ 
+       </Grid>
++
++      <!-- Bounded catalogue paging keeps large result sets responsive while
++           retaining the same virtualized grid/list/directory surfaces. -->
++      <Border Grid.Row="5"
++              IsVisible="{Binding IsCatalogueActive}"
++              Background="{DynamicResource Brush.Surface.Footer}"
++              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
++              BorderThickness="0,1,0,0"
++              Padding="12,6">
++        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
++          <Button Grid.Column="0"
++                  Padding="10,5"
++                  IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
++                  AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
++                  Click="PreviousPage_Click">
++            <TextBlock Text="{Binding Catalogue.PreviousPageText}"
++                       FontSize="{DynamicResource Type.Size.Caption}" />
++          </Button>
++          <TextBlock Grid.Column="1"
++                     Text="{Binding Catalogue.PageSummaryText}"
++                     HorizontalAlignment="Center"
++                     VerticalAlignment="Center"
++                     FontSize="{DynamicResource Type.Size.Caption}"
++                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
++          <Button Grid.Column="2"
++                  Padding="10,5"
++                  IsEnabled="{Binding Catalogue.CanGoToNextPage}"
++                  AutomationProperties.Name="{Binding Catalogue.NextPageText}"
++                  Click="NextPage_Click">
++            <TextBlock Text="{Binding Catalogue.NextPageText}"
++                       FontSize="{DynamicResource Type.Size.Caption}" />
++          </Button>
++        </Grid>
++      </Border>
+     </Grid>
+ 
+     <!-- ─── Book detail panel ─────────────────────────────────────── -->

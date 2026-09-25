@@ -1,0 +1,7 @@
+== OgmaLibrary.Tests.Architecture
+Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration: 19 s - OgmaLibrary.Tests.Architecture.dll (net10.0)
+== OgmaLibrary.Tests
+  Failed OgmaLibrary.Tests.Ocr.Phase24RealOcrCorpusTests.PackagedTesseract_RecognizesExpectedWordsFromGeneratedScannedFixture [4 s]
+Failed!  - Failed:     1, Passed:   955, Skipped:     0, Total:   956, Duration: 18 m 1 s - OgmaLibrary.Tests.dll (net10.0)
+== OgmaLibrary.Tests.Ui
+Passed!  - Failed:     0, Passed:   163, Skipped:     0, Total:   163, Duration: 39 s - OgmaLibrary.Tests.Ui.dll (net10.0)

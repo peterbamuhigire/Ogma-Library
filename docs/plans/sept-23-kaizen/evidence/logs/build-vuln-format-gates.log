@@ -1,0 +1,22 @@
+== build
+    0 Error(s)
+    0 Warning(s)
+Time Elapsed 00:03:11.85
+EXIT 0
+== vuln
+The given project `OgmaLibrary.App` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Application` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Bookshelf3D` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Domain` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Infrastructure` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Reader` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Workers` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Tests.Architecture` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Tests` has no vulnerable packages given the current sources.
+The given project `OgmaLibrary.Tests.Ui` has no vulnerable packages given the current sources.
+== format
+<scratch>\head\src\OgmaLibrary.App\Startup\StartupTasks.cs(1,1): error IMPORTS: Fix imports ordering. [<scratch>\head\src\OgmaLibrary.App\OgmaLibrary.App.csproj]
+<scratch>\head\src\OgmaLibrary.Workers\Pdf\PdfWorkerCommand.cs(1,1): error IMPORTS: Fix imports ordering. [<scratch>\head\src\OgmaLibrary.Workers\OgmaLibrary.Workers.csproj]
+EXIT 2
+== analyzers
+EXIT 0

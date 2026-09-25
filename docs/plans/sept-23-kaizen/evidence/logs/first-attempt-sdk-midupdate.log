@@ -1,0 +1,22 @@
+== accountability
+/usr/bin/bash: line 8: pwsh: command not found
+Requirement accountability verified: 101 FRs, 29 NFRs, 32 controls; all 162 IDs are assigned in the roadmap matrix.
+EXIT 0
+== restore
+  Restored <scratch>\head\src\OgmaLibrary.App\OgmaLibrary.App.csproj (in 4.68 sec).
+  Restored <scratch>\head\tests\OgmaLibrary.Tests.Architecture\OgmaLibrary.Tests.Architecture.csproj (in 381 ms).
+  Restored <scratch>\head\tests\OgmaLibrary.Tests\OgmaLibrary.Tests.csproj (in 386 ms).
+  Restored <scratch>\head\tests\OgmaLibrary.Tests.Ui\OgmaLibrary.Tests.Ui.csproj (in 4.73 sec).
+  Restored <scratch>\head\src\OgmaLibrary.Infrastructure\OgmaLibrary.Infrastructure.csproj (in 4.8 sec).
+EXIT 0
+== build
+C:\Program Files\dotnet\sdk\10.0.401\Current\SolutionFile\ImportAfter\Microsoft.NET.Sdk.Solution.targets(14,3): error MSB4019: The imported project "C:\Program Files\dotnet\sdk\10.0.401\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.Common.targets" was not found. Confirm that the expression in the Import declaration "$(MSBuildSDKsPath)\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.Common.targets", which evaluated to "C:\Program Files\dotnet\sdk\10.0.401\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.Common.targets", is correct, and that the file exists on disk.
+C:\Program Files\dotnet\sdk\10.0.401\Current\SolutionFile\ImportAfter\Microsoft.NET.Sdk.Solution.targets(14,3): error MSB4019: The imported project "C:\Program Files\dotnet\sdk\10.0.401\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.Common.targets" was not found. Confirm that the expression in the Import declaration "$(MSBuildSDKsPath)\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.Common.targets", which evaluated to "C:\Program Files\dotnet\sdk\10.0.401\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.Common.targets", is correct, and that the file exists on disk.
+    0 Warning(s)
+    1 Error(s)
+Time Elapsed 00:00:00.29
+EXIT 1
+== vuln
+== format
+Warnings were encountered while loading the workspace. Set the verbosity option to the 'diagnostic' level to log warnings.
+EXIT 0
