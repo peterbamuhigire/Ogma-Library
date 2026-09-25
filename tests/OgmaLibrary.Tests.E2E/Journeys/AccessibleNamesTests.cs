@@ -15,7 +15,7 @@ public sealed class AccessibleNamesTests
     [Trait("Tag", "Accessibility")]
     [Trait("Tag", "Catalogue")]
     public void CatalogueItems_HaveReadableAccessibleNames(string size) =>
-        Journey.Run("A11yNames", size, JourneySupport.Standard, context =>
+        Journey.Run("A11yNames", size, JourneySupport.Standard, evidenceFolder: "catalogue", body: context =>
         {
             context.Launch(Shell.SeedEnvironment(context));
             Shell.WaitReady(context);
@@ -34,7 +34,7 @@ public sealed class AccessibleNamesTests
     [Trait("Tag", "Accessibility")]
     [Trait("Tag", "Search")]
     public void SearchResults_HaveReadableAccessibleNames(string size) =>
-        Journey.Run("A11yNames", size, JourneySupport.Standard, context =>
+        Journey.Run("A11yNames", size, JourneySupport.Standard, evidenceFolder: "search", body: context =>
         {
             context.Launch(Shell.SeedEnvironment(context));
             Shell.WaitReady(context);

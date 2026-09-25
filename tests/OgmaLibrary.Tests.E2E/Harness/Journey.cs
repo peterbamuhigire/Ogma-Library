@@ -86,13 +86,15 @@ public sealed class JourneyContext : IDisposable
     private readonly Dictionary<string, object?> _timings = new(StringComparer.Ordinal);
     private bool _beforeCaptured;
 
-    internal JourneyContext(string journey, string test, WindowSize size)
+    internal JourneyContext(string journey, string test, WindowSize size, string? evidenceFolder = null)
     {
         Journey = journey;
         Test = test;
         Size = size;
         Session = new E2ESession($"{journey}-{size}");
-        EvidenceDirectory = Path.Combine(E2ESettings.ArtifactsDirectory, journey);
+        EvidenceDirectory = evidenceFolder is null
+            ? Path.Combine(E2ESettings.ArtifactsDirectory, journey)
+            : Path.Combine(E2ESettings.ArtifactsDirectory, journey, evidenceFolder);
         Directory.CreateDirectory(EvidenceDirectory);
         _timings["journey"] = journey;
         _timings["test"] = test;
@@ -260,6 +262,18 @@ public sealed class JourneyContext : IDisposable
     {
         _timings["status"] = status;
         _timings["totalMs"] = (long)_clock.Elapsed.TotalMilliseconds;
+        try
+        {
+            IReadOnlyList<string> log = LogLines();
+            _timings["log.warningsOrAbove"] = log.Count(l => l.Contains("\"level\":\"Warning\"", StringComparison.Ordinal) ||
+                                                            l.Contains("\"level\":\"Error\"", StringComparison.Ordinal) ||
+                                                            l.Contains("\"level\":\"Critical\"", StringComparison.Ordinal));
+            _timings["log.uiThreadViolations"] = log.Count(l => l.Contains("\"ui.thread.violation\"", StringComparison.Ordinal));
+        }
+        catch (IOException ex)
+        {
+            _timings["log.error"] = ex.Message;
+        }
         if (App is not null)
         {
             CloseResult close = App.Close();
@@ -336,7 +350,13 @@ public static class Journey
     /// Runs <paramref name="body"/> at <paramref name="size"/>. Unsupported run parameters are
     /// NOT ASSESSED; failures capture a screenshot, a UIA dump and the app log.
     /// </summary>
-    public static void Run(string journey, string size, JourneySupport support, Action<JourneyContext> body, [System.Runtime.CompilerServices.CallerMemberName] string test = "")
+    /// <param name="journey">The journey id (G1..G12 or a named scenario).</param>
+    /// <param name="size">The window size, <c>WIDTHxHEIGHT</c>.</param>
+    /// <param name="support">The run parameters the journey honours.</param>
+    /// <param name="body">The journey steps and assertions.</param>
+    /// <param name="evidenceFolder">A sub-folder for journeys with more than one test, so evidence never collides.</param>
+    /// <param name="test">The calling test method (filled in by the compiler).</param>
+    public static void Run(string journey, string size, JourneySupport support, Action<JourneyContext> body, string? evidenceFolder = null, [System.Runtime.CompilerServices.CallerMemberName] string test = "")
     {
         IReadOnlyList<string> unsupported = support.Unsupported();
         var windowSize = WindowSize.Parse(size);
@@ -347,7 +367,7 @@ public static class Journey
             throw new NotAssessedException(reason);
         }
 
-        using var context = new JourneyContext(journey, test, windowSize);
+        using var context = new JourneyContext(journey, test, windowSize, evidenceFolder);
         try
         {
             body(context);

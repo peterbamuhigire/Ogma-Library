@@ -1,14 +1,91 @@
 {
   "schema": "ogma-e2e-baseline/1",
-  "description": "Known journey failures recorded by Phase 01 (Sept-23 Kaizen). The runner reports a failing test that matches an entry as BASELINE-FAIL instead of FAIL. Tests never encode these as skipped or expected-to-fail. When an owning phase fixes the defect, the runner reports 'PASS (baseline cleared)' and the entry must be removed in that phase.",
+  "description": "Known journey failures recorded by Phase 01 (Sept-23 Kaizen). The runner reports a failing test as BASELINE-FAIL only when its test name matches an entry AND its failure message matches the entry's messagePattern, so a different, new failure in the same journey is still FAIL. Tests never encode these as skipped or expected-to-fail. When an owning phase fixes the defect, the runner reports 'PASS (baseline cleared)' and the entry must be removed in that phase.",
   "entries": [
-    { "journey": "G2", "test": "G2_AddLibrary_ScanShowsValidBooksWithCovers", "defects": ["K21", "K20"], "owner": "Phase 05", "reason": "Invalid files and the duplicate copy become catalogue cards (17 shown, 12 expected); cover share below 80 % while covers are generated." },
-    { "journey": "G3", "test": "G3_Read_TurnFiftyPagesAndReturn", "defects": ["K32", "K94"], "owner": "Phase 04", "reason": "Page turns take about 0.5-0.8 s each, Next presses are ignored while a turn is in flight, and the reader stalls before 50 turns." },
-    { "journey": "G4", "test": "G4_Search_ExpectedBookInTopThree", "defects": ["K40", "K41"], "owner": "Phase 13", "reason": "Search returns no or wrong results for title, author, phrase, typo and Unicode probes." },
-    { "journey": "G6", "test": "G6_InvalidFiles_AreFlaggedNotShownAsBooks", "defects": ["K21"], "owner": "Phase 05", "reason": "0-byte, non-PDF, truncated and password-protected files are shown as normal books with no needs-attention indicator." },
-    { "journey": "G7", "test": "G7_Advisor_UnconfiguredShowsRouteToSettings", "defects": ["G7"], "owner": "Phases 15-16", "reason": "With AI unconfigured the Advisor offers no route to Settings (dead end)." },
-    { "journey": "G8", "test": "G8_WorkerKilledDuringReading_AppSurvivesAndLogs", "defects": ["K30"], "owner": "Phase 04", "reason": "After the PDF worker is killed the reader never renders another page and shows no recoverable message (no respawn yet)." },
-    { "journey": "G8", "test": "G8_CorruptLibrarySettings_AppStartsWithRecoverableMessage", "defects": ["K95", "K28"], "owner": "Phase 05", "reason": "A corrupt library-settings.json is logged but the user sees no message." },
-    { "journey": "A11yNames", "test": "SearchResults_HaveReadableAccessibleNames", "defects": ["K40", "K41"], "owner": "Phase 13", "reason": "Search returns no result items to audit, so search-result names cannot be checked." }
+    {
+      "journey": "G2",
+      "test": "G2_AddLibrary_ScanShowsValidBooksWithCovers",
+      "defects": [
+        "K21",
+        "K20"
+      ],
+      "owner": "Phase 05",
+      "reason": "Invalid files and the duplicate copy become catalogue cards (17 shown, 12 expected); cover share below 80 % while covers are generated.",
+      "messagePattern": "\\[K2[01]\\]"
+    },
+    {
+      "journey": "G3",
+      "test": "G3_Read_TurnFiftyPagesAndReturn",
+      "defects": [
+        "K32",
+        "K94"
+      ],
+      "owner": "Phase 04",
+      "reason": "Page turns take about 0.5-0.8 s each, Next presses are ignored while a turn is in flight, and the reader stalls before 50 turns.",
+      "messagePattern": "\\[K32"
+    },
+    {
+      "journey": "G4",
+      "test": "G4_Search_ExpectedBookInTopThree",
+      "defects": [
+        "K40",
+        "K41"
+      ],
+      "owner": "Phase 13",
+      "reason": "Search returns no or wrong results for title, author, phrase, typo and Unicode probes.",
+      "messagePattern": "^TrueException: Search misses"
+    },
+    {
+      "journey": "G6",
+      "test": "G6_InvalidFiles_AreFlaggedNotShownAsBooks",
+      "defects": [
+        "K21"
+      ],
+      "owner": "Phase 05",
+      "reason": "0-byte, non-PDF, truncated and password-protected files are shown as normal books with no needs-attention indicator.",
+      "messagePattern": "\\[K21\\]"
+    },
+    {
+      "journey": "G7",
+      "test": "G7_Advisor_UnconfiguredShowsRouteToSettings",
+      "defects": [
+        "G7"
+      ],
+      "owner": "Phases 15-16",
+      "reason": "With AI unconfigured the Advisor offers no route to Settings (dead end).",
+      "messagePattern": "\\[G7,"
+    },
+    {
+      "journey": "G8",
+      "test": "G8_WorkerKilledDuringReading_AppSurvivesAndLogs",
+      "defects": [
+        "K30"
+      ],
+      "owner": "Phase 04",
+      "reason": "After the PDF worker is killed the reader never renders another page and shows no recoverable message (no respawn yet).",
+      "messagePattern": "neither rendered nor produced a recoverable message"
+    },
+    {
+      "journey": "G8",
+      "test": "G8_CorruptLibrarySettings_AppStartsWithRecoverableMessage",
+      "defects": [
+        "K95",
+        "K28"
+      ],
+      "owner": "Phase 05",
+      "reason": "A corrupt library-settings.json is logged but the user sees no message.",
+      "messagePattern": "No recoverable message"
+    },
+    {
+      "journey": "A11yNames",
+      "test": "SearchResults_HaveReadableAccessibleNames",
+      "defects": [
+        "K40",
+        "K41"
+      ],
+      "owner": "Phase 13",
+      "reason": "Search returns no result items to audit, so search-result names cannot be checked.",
+      "messagePattern": "\\[K40, K41\\]"
+    }
   ]
 }

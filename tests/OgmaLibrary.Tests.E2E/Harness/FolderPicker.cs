@@ -36,31 +36,35 @@ public static class FolderPicker
     {
         AutomationElement dialog = Uia.WaitUntil(() => TryFindDialog(app), timeout ?? TimeSpan.FromSeconds(15), "the native folder dialog");
         nint handle = dialog.Properties.NativeWindowHandle.Value;
-        string technique = TryWin32(handle, folder) ? "win32" : KeyboardAndOffsetClick(handle, folder);
+        string? win32Failure = TryWin32(handle, folder);
+        string technique = win32Failure is null ? "win32" : $"{KeyboardAndOffsetClick(handle, folder)} (win32: {win32Failure})";
         bool closed = Uia.Poll(() => !Native.IsWindow(handle) || !Native.IsWindowVisible(handle), TimeSpan.FromSeconds(10));
         Assert.True(closed, $"The folder dialog is still open after the '{technique}' technique.");
         return technique;
     }
 
-    private static bool TryWin32(nint dialog, string folder)
+    /// <summary>Returns null on success, otherwise why the Win32 route did not complete.</summary>
+    private static string? TryWin32(nint dialog, string folder)
     {
         nint combo = Native.GetDlgItem(dialog, FolderNameComboId);
         nint ok = Native.GetDlgItem(dialog, OkButtonId);
         if (combo == 0 || ok == 0)
         {
-            return false;
+            return $"no {(combo == 0 ? "folder box (cmb13)" : "IDOK button")}";
         }
 
-        nint edit = FindDescendant(combo, "Edit");
+        nint edit = Native.ClassNameOf(combo) == "Edit" ? combo : FindDescendant(combo, "Edit");
         if (edit == 0)
         {
-            return false;
+            return "no Edit inside the folder box";
         }
 
         Native.SendMessageW(edit, Native.WmSetText, 0, folder);
         Native.ForceForeground(dialog);
         Native.SendMessageW(ok, Native.BmClick, 0, 0);
-        return Uia.Poll(() => !Native.IsWindow(dialog) || !Native.IsWindowVisible(dialog), TimeSpan.FromSeconds(4));
+        return Uia.Poll(() => !Native.IsWindow(dialog) || !Native.IsWindowVisible(dialog), TimeSpan.FromSeconds(4))
+            ? null
+            : "dialog stayed open after WM_SETTEXT + BM_CLICK";
     }
 
     private static string KeyboardAndOffsetClick(nint dialog, string folder)

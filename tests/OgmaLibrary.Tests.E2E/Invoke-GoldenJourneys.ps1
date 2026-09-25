@@ -49,7 +49,9 @@ param(
     [switch]$Strict,
     # Drive a different exe (for example an older build) instead of the E2E build.
     [string]$Exe,
-    [string]$RunId
+    [string]$RunId,
+    # Only re-summarise an existing run (artifacts/e2e/<RunId>) against baseline.json.
+    [switch]$ReportOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,7 +66,7 @@ function Fail([string]$message) {
 }
 
 # ---- Validate parameters -------------------------------------------------------------------
-if (-not $All -and -not $Journey -and -not $Tag) {
+if (-not $All -and -not $Journey -and -not $Tag -and -not $ReportOnly) {
     Fail 'Specify -All, -Journey <id> or -Tag <name>.'
 }
 
@@ -112,6 +114,11 @@ if (-not $isWindowsHost) {
     exit 0
 }
 
+if ($ReportOnly) {
+    if (-not $PSBoundParameters.ContainsKey('RunId')) { Fail '-ReportOnly needs -RunId.' }
+    $NoBuild = $true
+}
+
 # ---- Build ---------------------------------------------------------------------------------
 $appOut = Join-Path $repo 'artifacts\e2e\app'
 if (-not $Exe) { $Exe = Join-Path $appOut 'OgmaLibrary.App.exe' }
@@ -138,7 +145,7 @@ if (-not $NoBuild) {
     }
 }
 
-if (-not (Test-Path $Exe)) { Fail "App under test not found: $Exe" }
+if (-not $ReportOnly -and -not (Test-Path $Exe)) { Fail "App under test not found: $Exe" }
 
 # ---- Run -----------------------------------------------------------------------------------
 $settings = @{
@@ -156,6 +163,11 @@ $testExit = 0
 $runDirs = @()
 try {
     foreach ($theme in $Themes) {
+        if ($ReportOnly) {
+            $runDirs += $(if ($Themes.Count -gt 1 -or $theme -ne 'Light') { Join-Path $runRoot $theme } else { $runRoot })
+            continue
+        }
+
         $themeRunId = $(if ($Themes.Count -gt 1 -or $theme -ne 'Light') { "$RunId\$theme" } else { $RunId })
         $artifacts = Join-Path $repo "artifacts\e2e\$themeRunId"
         New-Item -ItemType Directory -Force $artifacts | Out-Null
@@ -191,9 +203,9 @@ foreach ($dir in $runDirs) {
         $known = @($baseline | Where-Object { $_.journey -eq $r.journey -and (-not $_.test -or $_.test -eq $r.test) }) | Select-Object -First 1
         $label = $r.status
         $defects = ''
-        if ($known) { $defects = ($known.defects -join ', ') + ' (' + $known.owner + ')' }
-        if ($r.status -eq 'FAIL' -and $known) { $label = 'BASELINE-FAIL' }
+        if ($r.status -eq 'FAIL' -and $known -and ([string]$r.message -match $known.messagePattern)) { $label = 'BASELINE-FAIL' }
         if ($r.status -eq 'PASS' -and $known) { $label = 'PASS (baseline cleared)' }
+        if ($known -and $label -ne 'FAIL') { $defects = ($known.defects -join ', ') + ' (' + $known.owner + ')' }
         $rows += [pscustomobject]@{
             Theme    = (Split-Path -Leaf $dir)
             Journey  = $r.journey

@@ -18,7 +18,7 @@ public sealed class G08ResilienceTests
     [Trait("Journey", "G8")]
     [Trait("Tag", "Reader")]
     public void G8_WorkerKilledDuringReading_AppSurvivesAndLogs(string size) =>
-        Journey.Run("G8", size, JourneySupport.Standard, context =>
+        Journey.Run("G8", size, JourneySupport.Standard, evidenceFolder: "worker-kill", body: context =>
         {
             CorpusReader probe = Corpus.Oracle.Reader;
             context.Launch(Shell.SeedEnvironment(context));
@@ -69,7 +69,7 @@ public sealed class G08ResilienceTests
     [Trait("Journey", "G8")]
     [Trait("Tag", "Settings")]
     public void G8_CorruptLibrarySettings_AppStartsWithRecoverableMessage(string size) =>
-        Journey.Run("G8", size, JourneySupport.Standard, context =>
+        Journey.Run("G8", size, JourneySupport.Standard, evidenceFolder: "corrupt-settings", body: context =>
         {
             File.WriteAllText(Path.Combine(context.Session.DataDirectory, "library-settings.json"), "{ \"libraryRoot\": oops not json");
             context.Launch();
