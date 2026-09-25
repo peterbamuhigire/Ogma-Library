@@ -145,7 +145,8 @@ public sealed class LanHostLoadSmokeTests
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
-            .AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
+            
+            .UseLoopbackLanHost().AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
             .BuildServiceProvider();
 
         await using CatalogueDbContext context = services.GetRequiredService<CatalogueDbContext>();

@@ -122,7 +122,8 @@ public sealed class LanBookFileResolverTests
         ServiceProvider services = new ServiceCollection()
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddLanHostServices(dataDirectory)
-            .BuildServiceProvider();
+            
+            .UseLoopbackLanHost().BuildServiceProvider();
 
         await using CatalogueDbContext context = services.GetRequiredService<CatalogueDbContext>();
         await context.Database.MigrateAsync();
