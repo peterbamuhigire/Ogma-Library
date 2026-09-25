@@ -34,6 +34,9 @@ public sealed class MockPdfRenderer : IPdfRenderer
     public IReadOnlyDictionary<int, PdfPageGeometry> PageGeometries { get; set; } =
         new Dictionary<int, PdfPageGeometry>();
 
+    /// <summary>When set, geometry requests fail with this exception (worker-loss simulation).</summary>
+    public Exception? GeometryFailure { get; set; }
+
     /// <summary>
     /// Creates a mock renderer with the given page count.
     /// </summary>
@@ -76,6 +79,11 @@ public sealed class MockPdfRenderer : IPdfRenderer
     public PdfPageGeometry GetPageGeometry(int pageIndex)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
+        if (GeometryFailure is { } failure)
+        {
+            throw failure;
+        }
+
         return PageGeometries.TryGetValue(pageIndex, out PdfPageGeometry? geometry)
             ? geometry
             : PdfPageGeometry.Fallback(pageIndex, GetPageRotationDegrees(pageIndex));

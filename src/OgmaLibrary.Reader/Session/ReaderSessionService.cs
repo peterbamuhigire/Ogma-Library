@@ -9,16 +9,29 @@ namespace OgmaLibrary.Reader.Session;
 /// and closing a PDF document. Implements FR-READ-001 (open + resume) and feeds the
 /// <see cref="IReaderSessionReadModel"/> event stream for LAN-projection readiness.
 /// </summary>
+/// <remarks>
+/// Sept-23 Kaizen Phase 04: navigation never performs synchronous worker IPC, page
+/// geometry comes from the renderer's per-document cache, renderer teardown runs off
+/// the calling thread, and open/close are serialised so a double open cannot leak a
+/// worker.
+/// </remarks>
 public sealed class ReaderSessionService : IReaderSessionService, IReaderSessionReadModel, IDisposable
 {
+    /// <summary>Pages kept in flight around the target page when the reader turns pages.</summary>
+    internal const int KeepWindow = 2;
+
     private readonly IPdfRendererFactory _rendererFactory;
     private readonly IReadingProgressService _progressService;
     private readonly IBookFileLocator _fileLocator;
     private readonly PageRenderCache _renderCache;
     private readonly Subject<ReaderEvent> _events = new();
+    private readonly Lock _eventsSync = new();
+    private readonly SemaphoreSlim _lifecycle = new(1, 1);
 
     private ReaderSession? _currentSession;
     private IPdfRenderer? _currentRenderer;
+    private int _renderWidthPx = ReaderRenderDefaults.PageWidthPx;
+    private long _navigationSequence;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ReaderSessionService"/>.
@@ -45,13 +58,16 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
     }
 
     /// <inheritdoc />
-    public ReaderSession? CurrentSession => _currentSession;
+    public ReaderSession? CurrentSession => Volatile.Read(ref _currentSession);
 
     /// <inheritdoc />
-    public IPdfRenderer? CurrentRenderer => _currentRenderer;
+    public IPdfRenderer? CurrentRenderer => Volatile.Read(ref _currentRenderer);
 
     /// <inheritdoc />
     public IObservable<ReaderEvent> Events => _events;
+
+    /// <summary>Gets the render width, in pixels, used for prefetching neighbour pages.</summary>
+    public int RenderWidthPx => Volatile.Read(ref _renderWidthPx);
 
     /// <inheritdoc />
     public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct) =>
@@ -75,126 +91,212 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
         char[]? password,
         CancellationToken ct)
     {
-        // Close any existing session first.
-        if (_currentSession is not null)
+        // Serialise open/close: two racing opens must not both create workers and
+        // leave one orphaned (T04.7).
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            await CloseAsync(ct).ConfigureAwait(false);
-        }
+            if (_currentSession is not null)
+            {
+                await CloseCoreAsync(ct).ConfigureAwait(false);
+            }
 
-        // Locate the file.
-        string? filePath = await _fileLocator.LocateAsync(bookId, ct).ConfigureAwait(false);
-        if (filePath is null)
+            // Locate the file.
+            string? filePath = await _fileLocator.LocateAsync(bookId, ct).ConfigureAwait(false);
+            if (filePath is null)
+            {
+                throw new FileNotFoundException($"No available PDF file found for book '{bookId}'.");
+            }
+
+            // Load saved progress (FR-READ-001 resume).
+            ReaderProgress progress = await _progressService.LoadAsync(bookId, ct).ConfigureAwait(false);
+
+            // Renderer construction starts the isolated worker, copies and parses the PDF.
+            // Keep it off the UI thread even though the factory API is synchronous.
+            IPdfRenderer renderer = await Task.Run(
+                () => password is null
+                    ? _rendererFactory.Open(filePath)
+                    : _rendererFactory.Open(filePath, password),
+                ct).ConfigureAwait(false);
+
+            int startPage;
+            int rotation;
+            try
+            {
+                startPage = pageHint ?? progress.LastPageIndex;
+                startPage = Math.Clamp(startPage, 0, Math.Max(0, renderer.PageCount - 1));
+                rotation = renderer.PageCount > 0
+                    ? await GetRotationAsync(renderer, startPage, fallback: 0, ct).ConfigureAwait(false)
+                    : 0;
+            }
+            catch
+            {
+                await DisposeRendererAsync(renderer).ConfigureAwait(false);
+                throw;
+            }
+
+            Volatile.Write(ref _currentRenderer, renderer);
+            if (renderer is IPdfRendererHealth health)
+            {
+                health.Recovered += OnRendererRecovered;
+            }
+
+            // Register renderer with the cache.
+            _renderCache.SetRenderer(bookId, renderer);
+
+            var session = new ReaderSession(
+                bookId,
+                filePath,
+                renderer.PageCount,
+                startPage,
+                progress.ScrollOffset,
+                progress.ZoomMode,
+                progress.ZoomPercent,
+                progress.DisplayMode,
+                rotation);
+
+            Volatile.Write(ref _currentSession, session);
+
+            // Kick off pre-renders for first page and its neighbour.
+            TriggerPrefetch(session);
+
+            Publish(new ReaderEvent.SessionOpened(bookId));
+            Publish(new ReaderEvent.PageChanged(bookId, startPage, renderer.PageCount));
+
+            return session;
+        }
+        finally
         {
-            throw new FileNotFoundException($"No available PDF file found for book '{bookId}'.");
+            _lifecycle.Release();
         }
-
-        // Load saved progress (FR-READ-001 resume).
-        ReaderProgress progress = await _progressService.LoadAsync(bookId, ct).ConfigureAwait(false);
-
-        // Renderer construction can read and parse a large PDF. Keep it off the
-        // UI thread even though the factory API is synchronous.
-        IPdfRenderer renderer = await Task.Run(
-            () => password is null
-                ? _rendererFactory.Open(filePath)
-                : _rendererFactory.Open(filePath, password),
-            ct).ConfigureAwait(false);
-        _currentRenderer = renderer;
-
-        // Register renderer with the cache.
-        _renderCache.SetRenderer(bookId, renderer);
-
-        int startPage = pageHint ?? progress.LastPageIndex;
-        startPage = Math.Clamp(startPage, 0, Math.Max(0, renderer.PageCount - 1));
-
-        var session = new ReaderSession(
-            bookId,
-            filePath,
-            renderer.PageCount,
-            startPage,
-            progress.ScrollOffset,
-            progress.ZoomMode,
-            progress.ZoomPercent,
-            progress.DisplayMode,
-            await Task.Run(
-                () => GetPageRotationDegrees(renderer, startPage),
-                ct).ConfigureAwait(false));
-
-        _currentSession = session;
-
-        // Kick off pre-renders for first page and its neighbour.
-        TriggerPrefetch(session);
-
-        _events.OnNext(new ReaderEvent.SessionOpened(bookId));
-        _events.OnNext(new ReaderEvent.PageChanged(bookId, startPage, renderer.PageCount));
-
-        return session;
     }
 
     /// <inheritdoc />
     public async Task CloseAsync(CancellationToken ct)
     {
-        if (_currentSession is null)
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await CloseCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycle.Release();
+        }
+    }
+
+    private async Task CloseCoreAsync(CancellationToken ct)
+    {
+        ReaderSession? session = _currentSession;
+        if (session is null)
         {
             return;
         }
 
-        string bookId = _currentSession.BookId;
+        string bookId = session.BookId;
+        Interlocked.Increment(ref _navigationSequence);
 
-        // Flush progress synchronously for durability (NFR-OGMA-008).
+        // Flush progress for durability (NFR-OGMA-008).
         var progress = new ReaderProgress(
-            _currentSession.CurrentPageIndex,
-            _currentSession.ScrollOffset,
-            _currentSession.ZoomMode,
-            _currentSession.ZoomPercent,
-            _currentSession.DisplayMode);
+            session.CurrentPageIndex,
+            session.ScrollOffset,
+            session.ZoomMode,
+            session.ZoomPercent,
+            session.DisplayMode);
 
-        await _progressService.SaveImmediateAsync(bookId, progress, ct).ConfigureAwait(false);
+        try
+        {
+            await _progressService.SaveImmediateAsync(bookId, progress, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            IPdfRenderer? renderer = Interlocked.Exchange(ref _currentRenderer, null);
+            Volatile.Write(ref _currentSession, null);
+            if (renderer is IPdfRendererHealth health)
+            {
+                health.Recovered -= OnRendererRecovered;
+            }
 
-        // Invalidate cache entries for this book.
-        _renderCache.Invalidate(bookId);
+            // Cancelling pending renders and stopping the worker waits (bounded) for the
+            // worker to exit; never do that on the caller's (UI) thread.
+            await Task.Run(
+                    () =>
+                    {
+                        _renderCache.Invalidate(bookId);
+                        renderer?.Dispose();
+                    },
+                    CancellationToken.None)
+                .ConfigureAwait(false);
 
-        _events.OnNext(new ReaderEvent.SessionClosed(bookId));
-
-        _currentRenderer?.Dispose();
-        _currentRenderer = null;
-        _currentSession = null;
+            Publish(new ReaderEvent.SessionClosed(bookId));
+        }
     }
 
     /// <inheritdoc />
     public async Task NavigateToAsync(int pageIndex, double scrollOffset = 0.0)
     {
-        if (_currentSession is null)
+        ReaderSession? session = _currentSession;
+        IPdfRenderer? renderer = _currentRenderer;
+        if (session is null)
         {
             return;
         }
 
-        pageIndex = Math.Clamp(pageIndex, 0, _currentSession.PageCount - 1);
+        long sequence = Interlocked.Increment(ref _navigationSequence);
+        pageIndex = Math.Clamp(pageIndex, 0, Math.Max(0, session.PageCount - 1));
 
-        _currentSession = _currentSession.WithPage(
-            pageIndex,
-            scrollOffset,
-            GetPageRotationDegrees(_currentRenderer, pageIndex));
+        // Geometry is cached per document by the renderer, so after the first visit this
+        // completes synchronously; the first visit is awaited, never blocked on (K32).
+        int rotation = await GetRotationAsync(
+                renderer,
+                pageIndex,
+                fallback: session.PageRotationDegrees,
+                CancellationToken.None)
+            .ConfigureAwait(false);
 
-        // Cancel stale renders for pages outside the ±1 window.
-        _renderCache.CancelOutside(
-            _currentSession.BookId,
-            GetPrefetchRange(_currentSession));
+        // A newer navigation or a close superseded this one while geometry was loading.
+        if (sequence != Interlocked.Read(ref _navigationSequence) ||
+            !ReferenceEquals(renderer, _currentRenderer) ||
+            _currentSession is not { } current ||
+            !string.Equals(current.BookId, session.BookId, StringComparison.Ordinal))
+        {
+            return;
+        }
 
-        TriggerPrefetch(_currentSession);
+        current = current.WithPage(pageIndex, scrollOffset, rotation);
+        Volatile.Write(ref _currentSession, current);
 
-        _events.OnNext(new ReaderEvent.PageChanged(
-            _currentSession.BookId, pageIndex, _currentSession.PageCount));
+        // Cancel queued renders that are no longer near the target page.
+        _renderCache.CancelOutside(current.BookId, GetKeepRange(current));
+
+        TriggerPrefetch(current);
+
+        Publish(new ReaderEvent.PageChanged(current.BookId, pageIndex, current.PageCount));
 
         // Debounce progress write (500 ms).
         var progress = new ReaderProgress(
             pageIndex,
             scrollOffset,
-            _currentSession.ZoomMode,
-            _currentSession.ZoomPercent,
-            _currentSession.DisplayMode);
-        _progressService.ScheduleSave(_currentSession.BookId, progress);
+            current.ZoomMode,
+            current.ZoomPercent,
+            current.DisplayMode);
+        _progressService.ScheduleSave(current.BookId, progress);
+    }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+    /// <inheritdoc />
+    public void UpdateRenderWidth(int widthPx)
+    {
+        int bounded = Math.Clamp(widthPx, ReaderRenderDefaults.MinPageWidthPx, ReaderRenderDefaults.MaxPageWidthPx);
+        if (Interlocked.Exchange(ref _renderWidthPx, bounded) == bounded)
+        {
+            return;
+        }
+
+        if (_currentSession is { } session)
+        {
+            // Neighbours rendered at the old width are useless now; warm the new bucket.
+            TriggerPrefetch(session);
+        }
     }
 
     /// <inheritdoc />
@@ -205,17 +307,18 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
             return;
         }
 
-        _currentSession = _currentSession with { ScrollOffset = scrollOffset };
+        ReaderSession session = _currentSession with { ScrollOffset = scrollOffset };
+        Volatile.Write(ref _currentSession, session);
 
-        _events.OnNext(new ReaderEvent.Scrolled(_currentSession.BookId, scrollOffset));
+        Publish(new ReaderEvent.Scrolled(session.BookId, scrollOffset));
 
         var progress = new ReaderProgress(
-            _currentSession.CurrentPageIndex,
+            session.CurrentPageIndex,
             scrollOffset,
-            _currentSession.ZoomMode,
-            _currentSession.ZoomPercent,
-            _currentSession.DisplayMode);
-        _progressService.ScheduleSave(_currentSession.BookId, progress);
+            session.ZoomMode,
+            session.ZoomPercent,
+            session.DisplayMode);
+        _progressService.ScheduleSave(session.BookId, progress);
     }
 
     /// <summary>Updates zoom mode and triggers a progress save.</summary>
@@ -228,17 +331,18 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
             return;
         }
 
-        _currentSession = _currentSession.WithZoom(mode, percent);
+        ReaderSession session = _currentSession.WithZoom(mode, percent);
+        Volatile.Write(ref _currentSession, session);
 
-        _events.OnNext(new ReaderEvent.ZoomChanged(_currentSession.BookId, mode, percent));
+        Publish(new ReaderEvent.ZoomChanged(session.BookId, mode, percent));
 
         var progress = new ReaderProgress(
-            _currentSession.CurrentPageIndex,
-            _currentSession.ScrollOffset,
+            session.CurrentPageIndex,
+            session.ScrollOffset,
             mode,
             percent,
-            _currentSession.DisplayMode);
-        _progressService.ScheduleSave(_currentSession.BookId, progress);
+            session.DisplayMode);
+        _progressService.ScheduleSave(session.BookId, progress);
     }
 
     /// <summary>Updates display mode and triggers a progress save.</summary>
@@ -250,44 +354,101 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
             return;
         }
 
-        _currentSession = _currentSession.WithDisplayMode(mode);
+        ReaderSession session = _currentSession.WithDisplayMode(mode);
+        Volatile.Write(ref _currentSession, session);
 
-        _events.OnNext(new ReaderEvent.DisplayModeChanged(_currentSession.BookId, mode));
+        Publish(new ReaderEvent.DisplayModeChanged(session.BookId, mode));
 
         var progress = new ReaderProgress(
-            _currentSession.CurrentPageIndex,
-            _currentSession.ScrollOffset,
-            _currentSession.ZoomMode,
-            _currentSession.ZoomPercent,
+            session.CurrentPageIndex,
+            session.ScrollOffset,
+            session.ZoomMode,
+            session.ZoomPercent,
             mode);
-        _progressService.ScheduleSave(_currentSession.BookId, progress);
+        _progressService.ScheduleSave(session.BookId, progress);
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
+        IPdfRenderer? renderer = Interlocked.Exchange(ref _currentRenderer, null);
+        if (renderer is IPdfRendererHealth health)
+        {
+            health.Recovered -= OnRendererRecovered;
+        }
+
         _events.Dispose();
-        _currentRenderer?.Dispose();
+        renderer?.Dispose();
     }
 
     private void TriggerPrefetch(ReaderSession session)
     {
-        var pages = GetPrefetchRange(session);
+        IEnumerable<int> pages = GetPrefetchRange(session);
+
         // Must match the reader surface's render width so prefetched neighbours are
         // cache hits on the next/previous page turn (NFR-OGMA-005).
-        var request = new RenderRequest(ReaderRenderDefaults.PageWidthPx);
+        var request = new RenderRequest(RenderWidthPx);
         _renderCache.Prefetch(session.BookId, pages, request);
     }
 
-    private static int GetPageRotationDegrees(IPdfRenderer? renderer, int pageIndex)
+    private void Publish(ReaderEvent readerEvent)
     {
-        if (renderer is null)
+        // Renderer recovery is reported from worker threads; keep the Rx contract of
+        // serialised OnNext calls.
+        lock (_eventsSync)
         {
-            return 0;
+            _events.OnNext(readerEvent);
+        }
+    }
+
+    private void OnRendererRecovered(object? sender, PdfRendererRecoveredEventArgs e)
+    {
+        if (_currentSession is { } session && ReferenceEquals(sender, _currentRenderer))
+        {
+            Publish(new ReaderEvent.EngineRecovered(session.BookId, e.Reason, e.RespawnCount, e.Elapsed));
+        }
+    }
+
+    private static async Task<int> GetRotationAsync(
+        IPdfRenderer? renderer,
+        int pageIndex,
+        int fallback,
+        CancellationToken ct)
+    {
+        if (renderer is null || renderer.PageCount == 0)
+        {
+            return fallback;
         }
 
-        int rotation = renderer.GetPageRotationDegrees(pageIndex);
-        return ((rotation % 360) + 360) % 360;
+        try
+        {
+            PdfPageGeometry geometry = await renderer.GetPageGeometryAsync(pageIndex, ct).ConfigureAwait(false);
+            return ((geometry.RotationDegrees % 360) + 360) % 360;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException
+                                              or ObjectDisposedException or PdfRendererUnavailableException)
+        {
+            // Rotation is a presentation hint. A lost or stopped worker must not turn a
+            // page turn into a crash; the render path reports the failure to the user.
+            return fallback;
+        }
+    }
+
+    private static async Task DisposeRendererAsync(IPdfRenderer renderer) =>
+        await Task.Run(renderer.Dispose, CancellationToken.None).ConfigureAwait(false);
+
+    private static IEnumerable<int> GetKeepRange(ReaderSession session)
+    {
+        int first = Math.Max(0, session.CurrentPageIndex - KeepWindow);
+        int last = Math.Min(session.PageCount - 1, session.CurrentPageIndex + KeepWindow);
+        for (int page = first; page <= last; page++)
+        {
+            yield return page;
+        }
     }
 
     private static IEnumerable<int> GetPrefetchRange(ReaderSession session)
@@ -298,14 +459,14 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
         // requests, so putting the neighbours first makes opening feel stalled.
         yield return cur;
 
-        if (cur > 0)
-        {
-            yield return cur - 1;
-        }
-
         if (cur < max)
         {
             yield return cur + 1;
+        }
+
+        if (cur > 0)
+        {
+            yield return cur - 1;
         }
     }
 }
