@@ -759,12 +759,18 @@ public sealed class PdfWorkerClient
             {
                 process.Kill(entireProcessTree: true);
             }
+
+            // Kill is asynchronous. Wait (bounded) so the worker's handles on sandbox
+            // files are released before the caller deletes the sandbox.
+            process.WaitForExit(ProcessExitWaitMilliseconds);
         }
         catch (InvalidOperationException)
         {
-            // Process already exited.
+            // Process already exited or was never started.
         }
     }
+
+    private const int ProcessExitWaitMilliseconds = 5_000;
 
     private sealed record WorkerCommand(string FileName, IReadOnlyList<string> PrefixArguments);
 
@@ -1164,20 +1170,32 @@ internal sealed class PdfWorkerSandbox : IDisposable
 
     public void Dispose()
     {
-        try
+        // The OS can release a just-exited worker's file handles slightly after the
+        // process ends, so retry briefly before giving up.
+        for (int attempt = 1; attempt <= DeleteAttempts; attempt++)
         {
-            if (Directory.Exists(Path))
+            try
             {
-                Directory.Delete(Path, recursive: true);
+                if (Directory.Exists(Path))
+                {
+                    Directory.Delete(Path, recursive: true);
+                }
+
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                if (attempt == DeleteAttempts)
+                {
+                    // Best-effort cleanup; stale sandboxes are under the controlled temp root.
+                    return;
+                }
+
+                Thread.Sleep(DeleteRetryDelayMilliseconds * attempt);
             }
         }
-        catch (IOException)
-        {
-            // Best-effort cleanup; stale sandboxes are under the controlled temp root.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // Best-effort cleanup; stale sandboxes are under the controlled temp root.
-        }
     }
+
+    private const int DeleteAttempts = 4;
+    private const int DeleteRetryDelayMilliseconds = 50;
 }
