@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
     private static readonly TimeSpan ProbeTtl = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan ProbeBudget = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan SnapshotMaxAge = TimeSpan.FromMinutes(5);
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -34,6 +36,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
     private Task<bool>? _probe;
     private bool _probeValue;
     private DateTimeOffset _probeExpiresUtc = DateTimeOffset.MinValue;
+    private CatalogueSnapshot? _snapshot;
 
     /// <summary>Initializes the unified search pipeline.</summary>
     [ActivatorUtilitiesConstructor]
@@ -76,8 +79,9 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         var clock = Stopwatch.StartNew();
         ParsedSearchQuery query = SearchQueryParser.Parse(queryText);
 
-        List<SearchBookCandidate> books = await LoadCandidatesAsync(cancellationToken).ConfigureAwait(false);
-        SearchIndexCoverage coverage = SearchBookCandidateLoader.Coverage(books);
+        CatalogueSnapshot snapshot = await GetSnapshotAsync(cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<SearchBookCandidate> books = snapshot.Books;
+        SearchIndexCoverage coverage = snapshot.Coverage;
         if (query.IsEmpty)
         {
             return new UnifiedSearchResponse(query, [], SemanticSearchState.NotApplicable, false, coverage, clock.Elapsed);
@@ -85,7 +89,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
 
         Task<(SemanticSearchState State, IReadOnlyList<SemanticSearchResult> Results)> semanticTask =
             RunSemanticAsync(query, maxResults, cancellationToken);
-        MetadataOutcome metadata = MetadataMatcher.Match(query, books);
+        MetadataOutcome metadata = MetadataMatcher.Match(query, snapshot.Prepared);
         Dictionary<string, SearchBookCandidate> visible = books.ToDictionary(book => book.BookId, StringComparer.Ordinal);
 
         bool Admit(string bookId) =>
@@ -129,8 +133,8 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
     /// <inheritdoc />
     public async Task<SearchIndexCoverage> GetCoverageAsync(CancellationToken cancellationToken)
     {
-        List<SearchBookCandidate> books = await LoadCandidatesAsync(cancellationToken).ConfigureAwait(false);
-        return SearchBookCandidateLoader.Coverage(books);
+        CatalogueSnapshot snapshot = await GetSnapshotAsync(cancellationToken).ConfigureAwait(false);
+        return snapshot.Coverage;
     }
 
     private static List<UnifiedSearchResult> Fuse(
@@ -297,20 +301,79 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         return available;
     }
 
-    private async Task<List<SearchBookCandidate>> LoadCandidatesAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Returns the cached catalogue snapshot, reloading it when a cheap change signature of
+    /// the catalogue tables differs (or after <see cref="SnapshotMaxAge"/>). Typing a query
+    /// therefore loads and folds the catalogue once, not on every keystroke.
+    /// </summary>
+    private async Task<CatalogueSnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
     {
         if (_contextFactory is not null)
         {
             CatalogueDbContext context = await _contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
             await using (context.ConfigureAwait(false))
             {
-                return await SearchBookCandidateLoader.LoadAsync(context, cancellationToken).ConfigureAwait(false);
+                return await GetSnapshotAsync(context, cancellationToken).ConfigureAwait(false);
             }
         }
 
         // Tests share one context; the pipeline uses it sequentially.
-        return await SearchBookCandidateLoader.LoadAsync(_context!, cancellationToken).ConfigureAwait(false);
+        return await GetSnapshotAsync(_context!, cancellationToken).ConfigureAwait(false);
     }
+
+    private async Task<CatalogueSnapshot> GetSnapshotAsync(CatalogueDbContext context, CancellationToken cancellationToken)
+    {
+        string signature = await ReadSignatureAsync(context, cancellationToken).ConfigureAwait(false);
+        CatalogueSnapshot? cached = Volatile.Read(ref _snapshot);
+        if (cached is not null &&
+            string.Equals(cached.Signature, signature, StringComparison.Ordinal) &&
+            DateTimeOffset.UtcNow - cached.LoadedUtc < SnapshotMaxAge)
+        {
+            return cached;
+        }
+
+        List<SearchBookCandidate> books = await SearchBookCandidateLoader
+            .LoadAsync(context, cancellationToken)
+            .ConfigureAwait(false);
+        var snapshot = new CatalogueSnapshot(
+            signature,
+            DateTimeOffset.UtcNow,
+            books,
+            MetadataMatcher.Prepare(books),
+            SearchBookCandidateLoader.Coverage(books));
+        Volatile.Write(ref _snapshot, snapshot);
+        return snapshot;
+    }
+
+    private static async Task<string> ReadSignatureAsync(CatalogueDbContext context, CancellationToken cancellationToken)
+    {
+        DbConnection connection = context.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        using DbCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+                (SELECT COUNT(*) || '.' || IFNULL(SUM(Status + 3 * TextStatus + 17 * IndexStatus + 31 * IsPasswordProtected + LENGTH(IFNULL(Title, '')) + LENGTH(IFNULL(IsbnNormalized, '')) + IFNULL(Year, 0)), 0) FROM Books)
+                || '|' || (SELECT COUNT(*) || '.' || IFNULL(MAX(FieldId), 0) || '.' || IFNULL(SUM(LENGTH(IFNULL(Value, '')) + IsOverridden), 0) FROM BookMetadataFields)
+                || '|' || (SELECT COUNT(*) || '.' || IFNULL(SUM(AuthorId + DisplayOrder), 0) FROM BookAuthors)
+                || '|' || (SELECT COUNT(*) || '.' || IFNULL(SUM(FileStatus + 7 * FileValidity), 0) FROM BookFiles)
+                || '|' || (SELECT COUNT(*) FROM ShelfBooks)
+                || '|' || (SELECT COUNT(*) || '.' || IFNULL(SUM(LENGTH(Name)), 0) FROM Shelves)
+                || '|' || (SELECT COUNT(*) || '.' || IFNULL(SUM(IsEnabled), 0) || '.' || COUNT(RemovedUtc) FROM LibraryRoots);
+            """;
+        object? value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
+    private sealed record CatalogueSnapshot(
+        string Signature,
+        DateTimeOffset LoadedUtc,
+        IReadOnlyList<SearchBookCandidate> Books,
+        IReadOnlyList<MetadataMatcher.FoldedSearchBook> Prepared,
+        SearchIndexCoverage Coverage);
 
     private sealed class FusedBook(SearchBookCandidate candidate)
     {

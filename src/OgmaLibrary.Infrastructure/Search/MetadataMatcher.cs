@@ -35,8 +35,23 @@ internal static class MetadataMatcher
     /// <summary>Matches <paramref name="query"/> against <paramref name="books"/>.</summary>
     public static MetadataOutcome Match(ParsedSearchQuery query, IReadOnlyList<SearchBookCandidate> books)
     {
-        ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(books);
+        return Match(query, Prepare(books));
+    }
+
+    /// <summary>Folds the matching fields of <paramref name="books"/> once.</summary>
+    public static IReadOnlyList<FoldedSearchBook> Prepare(IReadOnlyList<SearchBookCandidate> books)
+    {
+        ArgumentNullException.ThrowIfNull(books);
+        return books.Select(book => new FoldedSearchBook(book)).ToList();
+    }
+
+    /// <summary>Matches <paramref name="query"/> against prepared books.</summary>
+    public static MetadataOutcome Match(ParsedSearchQuery query, IReadOnlyList<FoldedSearchBook> prepared)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(prepared);
+        IReadOnlyList<SearchBookCandidate> books = prepared.Select(book => book.Source).ToList();
 
         IReadOnlyList<string> tokens = query.FreeTextTokens;
         bool lastIsPrefix = query.Terms.Count > 0 && query.Phrases.Count == 0;
@@ -51,9 +66,9 @@ internal static class MetadataMatcher
         var fuzzyHits = new List<MetadataHit>();
         HashSet<string>? allowed = metadataFilters.Any(filter => !filter.Exclude) ? new(StringComparer.Ordinal) : null;
         var excluded = new HashSet<string>(StringComparer.Ordinal);
-        foreach (SearchBookCandidate book in books)
+        foreach (FoldedSearchBook fields in prepared)
         {
-            var fields = new FoldedBook(book);
+            SearchBookCandidate book = fields.Source;
             if (exclusions.Any(exclusion => fields.CoversAll(exclusion, FieldGroup.TitleAuthor, lastIsPrefix: false)))
             {
                 excluded.Add(book.BookId);
@@ -104,7 +119,7 @@ internal static class MetadataMatcher
     }
 
     private static MetadataHit? MatchFreeText(
-        FoldedBook book,
+        FoldedSearchBook book,
         IReadOnlyList<string> tokens,
         bool lastIsPrefix,
         ParsedSearchQuery query)
@@ -200,7 +215,7 @@ internal static class MetadataMatcher
     }
 
     private static bool PassesFilters(
-        FoldedBook book,
+        FoldedSearchBook book,
         IReadOnlyList<SearchFieldFilter> filters,
         out List<UnifiedMatch> matches,
         out bool usedFuzzy)
@@ -232,7 +247,7 @@ internal static class MetadataMatcher
         return true;
     }
 
-    private static bool MatchesFilter(FoldedBook book, SearchFieldFilter filter, out bool fuzzy)
+    private static bool MatchesFilter(FoldedSearchBook book, SearchFieldFilter filter, out bool fuzzy)
     {
         fuzzy = false;
         IReadOnlyList<string> tokens = SearchTextNormalizer.Tokens(filter.Value);
@@ -297,7 +312,7 @@ internal static class MetadataMatcher
     private static List<UnifiedMatch> Distinct(IEnumerable<UnifiedMatch> matches) =>
         matches.GroupBy(match => match.Kind).Select(group => group.First()).ToList();
 
-    private enum FieldGroup
+    internal enum FieldGroup
     {
         Title,
         Author,
@@ -306,7 +321,8 @@ internal static class MetadataMatcher
         Shelf,
     }
 
-    private sealed class FoldedBook
+    /// <summary>A candidate with its matching fields folded once (cached with the snapshot).</summary>
+    internal sealed class FoldedSearchBook
     {
         private readonly string[] _title;
         private readonly string[][] _titles;
@@ -316,7 +332,7 @@ internal static class MetadataMatcher
         private readonly string[] _file;
         private readonly string _joinedText;
 
-        public FoldedBook(SearchBookCandidate source)
+        public FoldedSearchBook(SearchBookCandidate source)
         {
             Source = source;
             _titles = source.Titles.Select(title => SearchTextNormalizer.Tokens(title).ToArray()).ToArray();
