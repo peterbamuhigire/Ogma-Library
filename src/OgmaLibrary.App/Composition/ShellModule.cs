@@ -1,12 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OgmaLibrary.App.Configuration;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.Navigation;
+using OgmaLibrary.App.Settings;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
+using OgmaLibrary.App.ViewModels.Settings;
 using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
@@ -23,6 +26,7 @@ using OgmaLibrary.Application.SchoolAdmin;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Bookshelf3D.Bridge;
 using OgmaLibrary.Domain;
+using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.App.Composition;
 
@@ -35,6 +39,23 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         services.AddTransient<Bookshelf3DViewModel>();
         services.AddTransient<SplitViewViewModel>();
         services.AddTransient<PasswordUnlockViewModel>();
+
+        // Sept-23 Phase 08 (8.2): capabilities resolve as environment override, then the
+        // user's preference, then off. One instance backs navigation, Settings, the start-up
+        // probe and the metadata network gate.
+        services.AddSingleton(sp => new RuntimeCapabilityState(
+            isAiConfigured: () => sp.GetRequiredService<IAiAdvisorService>().IsEnabled,
+            overrides: new CapabilityOverrides(
+                options.EnableExternalMetadataProviders,
+                options.EnableThreeDimensionalShelf,
+                options.EnableClassroomHost)));
+        services.AddSingleton<ICapabilityState>(sp => sp.GetRequiredService<RuntimeCapabilityState>());
+        services.AddSingleton<ICapabilitySettings>(sp => sp.GetRequiredService<RuntimeCapabilityState>());
+        services.AddSingleton<IMetadataProviderPolicy>(sp => sp.GetRequiredService<RuntimeCapabilityState>());
+        services.AddSingleton(sp => new UserPreferencesController(
+            sp.GetRequiredService<IUserPreferencesService>(),
+            sp.GetRequiredService<ICapabilitySettings>(),
+            sp.GetRequiredService<ILocalizationService>()));
 
         services.AddSingleton<MainShellViewModel>(sp => CreateMainShell(sp, options));
         services.AddSingleton<IBookDetailNavigationService>(sp =>
@@ -152,8 +173,10 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             readModel,
             navigation,
             localization);
-        HostSharingViewModel? hostSharing = options.EnableClassroomHost
-            ? new HostSharingViewModel(
+        // Sept-23 Phase 08 (8.3): the Host view model always exists; the classroom capability
+        // (Settings or OGMA_ENABLE_CLASSROOM_HOST) decides whether it is reachable, and turning
+        // the capability off stops a running Host.
+        var hostSharing = new HostSharingViewModel(
                 services.GetRequiredService<ILibraryHostService>(),
                 services.GetRequiredService<IHostModeSettingsRepository>(),
                 services.GetRequiredService<IClassroomJoinParser>(),
@@ -170,8 +193,36 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                 services.GetRequiredService<IAuditRepository>(),
                 localization,
                 services.GetRequiredService<IOfflineCacheService>(),
-                services.GetRequiredService<IClassroomHostConnectionService>())
-            : null;
+                services.GetRequiredService<IClassroomHostConnectionService>());
+        var libraryFolders = new LibraryFoldersViewModel(
+            services.GetRequiredService<ILibraryRootService>(),
+            services.GetRequiredService<ILibraryMonitor>(),
+            services.GetRequiredService<ILibraryAttentionService>(),
+            localization,
+            services.GetRequiredService<IUiDispatcher>(),
+            services.GetRequiredService<ILogger<LibraryFoldersViewModel>>())
+        {
+            ConfiguredRoot = options.ConfiguredLibraryRoot,
+        };
+        var capabilities = services.GetRequiredService<RuntimeCapabilityState>();
+        var preferences = services.GetRequiredService<UserPreferencesController>();
+        var settings = new SettingsViewModel(
+            localization,
+            preferences,
+            capabilities,
+            new SettingsEnvironmentInfo(
+                AppDiagnostics.AppVersion,
+                options.DataDirectory,
+                AppDiagnostics.LogsDirectory ?? DiagnosticsBundleWriter.GetLogsDirectory(options.DataDirectory),
+                assetRoot),
+            libraryFolders);
+        var ocrOptions = new OcrSettingsViewModel(
+            services.GetRequiredService<IOcrPolicySettingsStore>(),
+            services.GetRequiredService<IOcrLanguageCatalog>(),
+            localization,
+            services.GetRequiredService<ILogger<OcrSettingsViewModel>>());
+        settings.TextRecognitionOptions = ocrOptions;
+        _ = ocrOptions.LoadAsync();
 
         shell = new MainShellViewModel(
             localization,
@@ -196,22 +247,11 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IUserPreferencesService>(),
             reconciliationReviews,
             services.GetRequiredService<ILogger<MainShellViewModel>>(),
-            new LibraryFoldersViewModel(
-                services.GetRequiredService<ILibraryRootService>(),
-                services.GetRequiredService<ILibraryMonitor>(),
-                services.GetRequiredService<ILibraryAttentionService>(),
-                localization,
-                services.GetRequiredService<IUiDispatcher>(),
-                services.GetRequiredService<ILogger<LibraryFoldersViewModel>>())
-            {
-                ConfiguredRoot = options.ConfiguredLibraryRoot,
-            },
+            libraryFolders,
             services.GetService<IProcessingProgressService>(),
-            new RuntimeCapabilityState(
-                classroomHostEnabled: options.EnableClassroomHost,
-                shelf3DAvailable: options.EnableThreeDimensionalShelf,
-                metadataProvidersEnabled: options.EnableExternalMetadataProviders,
-                isAiConfigured: () => aiAdvisor.IsEnabled));
+            capabilities,
+            preferences,
+            settings);
 
         return shell;
     }

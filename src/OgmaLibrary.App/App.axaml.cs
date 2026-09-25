@@ -9,6 +9,7 @@ using OgmaLibrary.App.Ai;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels;
+using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.Views;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
@@ -96,7 +97,14 @@ public sealed class App : Avalonia.Application, IDisposable
                 // Sept-23 Phase 07 (T07.7): the palette offers the same export as the toasts.
                 mainShell.ExportDiagnostics = () =>
                     DiagnosticsExport.ExportAsync(notifications, cancellationToken: cancellationToken);
+                if (mainShell.Settings is { } settings)
+                {
+                    // Sept-23 Phase 08 (8.9): Settings offers the same redacted export.
+                    settings.ExportDiagnostics = mainShell.ExportDiagnostics;
+                }
+
                 await mainShell.InitializePreferencesAsync(cancellationToken).ConfigureAwait(true);
+                ShowPreferencesRecoveryNotice(mainShell, notifications);
             }
             window.DataContext = runtime.StartupShell;
             StartupShellViewModel startupShell = runtime.StartupShell;
@@ -180,6 +188,20 @@ public sealed class App : Avalonia.Application, IDisposable
 
         notifications.Notify(new UserNotification(
             recovery.RestoredFromBackup ? "Notification.SettingsRestoredFromBackup" : "Notification.SettingsReset",
+            UserNotificationSeverity.Warning,
+            UserNotificationActionKind.ExportDiagnostics));
+    }
+
+    private static void ShowPreferencesRecoveryNotice(MainShellViewModel shell, NotificationCenterViewModel notifications)
+    {
+        // Sept-23 Phase 08: a damaged user-preferences.json falls back to defaults with a notice.
+        if (!shell.Preferences.LastLoadWasRecovered)
+        {
+            return;
+        }
+
+        notifications.Notify(new UserNotification(
+            "Notification.PreferencesReset",
             UserNotificationSeverity.Warning,
             UserNotificationActionKind.ExportDiagnostics));
     }

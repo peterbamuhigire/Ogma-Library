@@ -28,6 +28,22 @@ The current skeleton renders a localized main window (English/French):
 
 ![Skeleton — English](images/skeleton-en.png)
 
+### Settings and environment overrides
+
+Users turn optional features on in **Settings** (Sept-23 Phase 08); the choice is stored in
+`user-preferences.json` in the data folder and applies without a restart. The environment
+variables below are **administrator and test overrides**, not the way to enable features. When
+one is set it wins over the user's choice, and Settings shows the switch disabled with the
+variable's name.
+
+| Variable | Overrides | Values |
+|---|---|---|
+| `OGMA_ENABLE_METADATA_PROVIDERS` | Settings → Online services → Look up book details online | `true`/`1` or `false`/`0` |
+| `OGMA_ENABLE_3D_SHELF` | Settings → Optional features → 3D bookshelf (preview) | `true`/`1` or `false`/`0` |
+| `OGMA_ENABLE_CLASSROOM_HOST` | Settings → Optional features → Classroom Host | `true`/`1` or `false`/`0` |
+| `OGMA_LIBRARY_DATA_DIR` | The data folder (tests and E2E always set it) | absolute path |
+| `OGMA_LIBRARY_ROOT` | Adds and scans one library folder at start-up | absolute path |
+
 ## Test
 
 ```bash

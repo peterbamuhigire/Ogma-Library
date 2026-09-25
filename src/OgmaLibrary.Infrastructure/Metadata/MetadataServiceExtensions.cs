@@ -25,8 +25,10 @@ public static class MetadataServiceExtensions
     /// path-traversal validation.
     /// </param>
     /// <param name="enableExternalProviders">
-    /// Whether external provider adapters may be resolved. Disabled registration
-    /// keeps deterministic local metadata services available without network egress.
+    /// Whether external provider adapters are registered. Without them, deterministic local
+    /// metadata services stay available with no network egress. When they are registered, every
+    /// lookup is still gated at call time by a registered <see cref="IMetadataProviderPolicy"/>
+    /// (the desktop app binds the user's Settings choice, Sept-23 Phase 08).
     /// </param>
     /// <returns>The same service collection for chaining.</returns>
     public static IServiceCollection AddMetadataEnrichment(

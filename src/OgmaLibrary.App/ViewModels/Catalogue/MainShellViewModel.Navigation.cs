@@ -792,7 +792,13 @@ public sealed partial class MainShellViewModel
 
     /// <summary>Opens the Settings destination at a section.</summary>
     /// <param name="section">The section, or <see langword="null"/>.</param>
-    public void OpenSettings(string? section = null) => NavigateTo(NavigationRoute.Settings(section));
+    public void OpenSettings(string? section = null)
+    {
+        NavigateTo(NavigationRoute.Settings(section));
+
+        // The route may already be current (same section); still show the requested section.
+        Settings?.SelectSection(section);
+    }
 
     /// <summary>Reopens the last book in the reader.</summary>
     /// <returns>A task that completes when the reader is open.</returns>
@@ -915,6 +921,13 @@ public sealed partial class MainShellViewModel
             return Task.CompletedTask;
         }
 
+        ShellCommand SettingsCommand(string section) => new(
+            "settings." + section,
+            "Command.Settings." + char.ToUpperInvariant(section[0]) + section[1..],
+            CommandGroup.Navigate,
+            _ => Run(() => OpenSettings(section)),
+            () => Settings is not null);
+
         var registry = new CommandRegistry();
         registry
             .Add(new ShellCommand("nav.library", "Command.Nav.Library", CommandGroup.Navigate,
@@ -933,6 +946,15 @@ public sealed partial class MainShellViewModel
                 _ => Run(() => NavigateTo(ShellDestination.Activity)), null, Primary(Key.D6)))
             .Add(new ShellCommand("nav.settings", "Command.Nav.Settings", CommandGroup.Navigate,
                 _ => Run(() => NavigateTo(ShellDestination.Settings)), null, Primary(Key.D7)))
+            // Sept-23 Phase 08: every Settings section is reachable from the palette.
+            .Add(SettingsCommand("library"))
+            .Add(SettingsCommand("appearance"))
+            .Add(SettingsCommand("language"))
+            .Add(SettingsCommand("online"))
+            .Add(SettingsCommand("features"))
+            .Add(SettingsCommand("privacy"))
+            .Add(SettingsCommand("ocr"))
+            .Add(SettingsCommand("diagnostics"))
             .Add(new ShellCommand("nav.classroom", "Command.Nav.Classroom", CommandGroup.Navigate,
                 _ => Run(() => NavigateTo(ShellDestination.Classroom)), () => IsClassroomAvailable, Primary(Key.D8)))
             .Add(new ShellCommand("nav.back", "Command.Nav.Back", CommandGroup.Navigate,
@@ -1041,6 +1063,9 @@ public sealed partial class MainShellViewModel
 
         switch (e.Current.Kind)
         {
+            case RouteKind.Settings when Settings is not null:
+                Settings.SelectSection(e.Current.Section);
+                break;
             case RouteKind.Activity when IndexManager is not null:
                 UiActions.Run(() => IndexManager.LoadAsync(), "shell.route.activity");
                 break;
@@ -1117,6 +1142,13 @@ public sealed partial class MainShellViewModel
             if (CurrentRoute.Kind == RouteKind.Classroom && !IsClassroomAvailable)
             {
                 _navigation.Replace(NavigationRoute.Library);
+            }
+
+            // Sept-23 Phase 08 (8.3): turning the classroom Host off in Settings stops a
+            // running Host rather than leaving an unreachable listener.
+            if (!_capabilities.IsClassroomHostEnabled && HostSharing is { IsRunning: true } host)
+            {
+                UiActions.Run(() => host.StopAsync(), "shell.classroom.host_disabled");
             }
         }
 
