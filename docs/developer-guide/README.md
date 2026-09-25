@@ -7,7 +7,7 @@ contributing. For the full plan see `docs/plans/grand-plan/`; for decisions see
 
 ## Prerequisites
 
-- **.NET 10 SDK** (`dotnet --version` → 10.x).
+- **.NET 10 SDK 10.0.401 or a later 10.0 feature band**, pinned by `global.json` (`dotnet --version` in the repo must print 10.0.4xx or later). CI installs the same SDK from `global.json`.
 - **Git** 2.40+.
 - Windows: the **WebView2** Evergreen runtime (for the 3D shelf, Phase 14+).
 - macOS: WKWebView ships with the OS.
