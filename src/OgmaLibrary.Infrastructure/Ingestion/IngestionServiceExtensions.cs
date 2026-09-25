@@ -35,7 +35,9 @@ public static class IngestionServiceExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
 
-        services.AddSingleton<ILibrarySettingsService>(_ => new LibrarySettingsService(dataDirectory));
+        services.AddSingleton<ILibrarySettingsService>(sp => new LibrarySettingsService(
+            dataDirectory,
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<LibrarySettingsService>>()));
         services.AddSingleton<ICatalogueViewStateStore>(_ => new FileCatalogueViewStateStore(dataDirectory));
         services.AddSingleton<ILibraryRootPlatformAdapter, FileSystemLibraryRootPlatformAdapter>();
         services.AddSingleton<ILibraryRootService, LibraryRootService>();
@@ -47,9 +49,18 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IReconciliationReviewService, ReconciliationReviewService>();
         services.AddSingleton<IIdentityGroupingService, IdentityGroupingService>();
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
+        // Garbage collection deletes only inside the app-data asset store (D-04).
         services.AddSingleton<IVisualAssetService>(sp => new VisualAssetService(
             sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>(),
-            libraryRoot));
+            dataDirectory));
+        services.AddSingleton<IPdfFileValidityClassifier, PdfFileValidityClassifier>();
+        services.AddSingleton<ILibraryAttentionService, LibraryAttentionService>();
+        services.AddSingleton(sp => new LegacyAssetMigrationService(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>(),
+            dataDirectory,
+            sp.GetService<Microsoft.Extensions.Logging.ILogger<LegacyAssetMigrationService>>()));
+        services.AddSingleton<LibraryMonitorService>();
+        services.AddSingleton<ILibraryMonitor>(sp => sp.GetRequiredService<LibraryMonitorService>());
         services.TryAddSingleton<PdfWorkerClient>();
         services.AddSingleton<IPdfDiscoveryService, PdfDiscoveryService>();
         services.AddSingleton<IScanProgressService, ScanProgressService>();
