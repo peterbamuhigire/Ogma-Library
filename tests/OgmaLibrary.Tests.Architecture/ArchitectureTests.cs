@@ -90,6 +90,31 @@ public sealed class ArchitectureTests
         Assert.Contains("TryReadVerifiedHash", source, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Sept-23 Kaizen K30/K32 (T04.3): reader code never blocks on asynchronous work.
+    /// Covers the whole Reader project and the App's reader view model and views.
+    /// </summary>
+    [Fact]
+    public void Architecture_ReaderPaths_DoNotBlockOnAsyncWork()
+    {
+        string root = LocateRepositoryRoot();
+        IEnumerable<string> files = Directory
+            .EnumerateFiles(Path.Combine(root, "src", "OgmaLibrary.Reader"), "*.cs", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(Path.Combine(root, "src", "OgmaLibrary.App", "ViewModels", "Reader"), "*.cs"))
+            .Concat(Directory.EnumerateFiles(Path.Combine(root, "src", "OgmaLibrary.App", "Views", "Reader"), "*.cs"))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                           !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+        string[] blockingPatterns = [".GetAwaiter().GetResult()", ".Wait()", ".Wait(TimeSpan", "SendSynchronously"];
+
+        var offenders = files
+            .SelectMany(file => blockingPatterns
+                .Where(pattern => File.ReadAllText(file).Contains(pattern, StringComparison.Ordinal))
+                .Select(pattern => $"{Path.GetFileName(file)}: {pattern}"))
+            .ToList();
+
+        Assert.True(offenders.Count == 0, "Blocking waits in reader code: " + string.Join(", ", offenders));
+    }
+
     [Fact]
     public void Architecture_PdfOperations_EnterApprovedBoundaries()
     {

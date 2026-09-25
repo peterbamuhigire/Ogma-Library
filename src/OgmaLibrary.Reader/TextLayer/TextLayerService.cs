@@ -48,7 +48,7 @@ public sealed class TextLayerService : ITextLayerService
         ct.ThrowIfCancellationRequested();
 
         // Extraction is CPU-bound; run off-thread.
-        AppTextLayer layer = await Task.Run(() =>
+        AppTextLayer layer = await Task.Run(async () =>
         {
             // Re-check cache inside the task (avoid duplicate extraction on concurrent calls).
             lock (_lock)
@@ -63,7 +63,7 @@ public sealed class TextLayerService : ITextLayerService
             if (_session?.CurrentSession?.BookId == bookId &&
                 _session.CurrentRenderer is { } renderer)
             {
-                return renderer.ExtractTextLayer(pageIndex);
+                return await renderer.ExtractTextLayerAsync(pageIndex, ct).ConfigureAwait(false);
             }
 
             return new AppTextLayer(pageIndex, [], ExtractionQuality.Empty);
@@ -123,7 +123,7 @@ public sealed class TextLayerService : ITextLayerService
 
         ct.ThrowIfCancellationRequested();
 
-        AppTextLayer layer = await Task.Run(() => renderer.ExtractTextLayer(pageIndex), ct)
+        AppTextLayer layer = await Task.Run(() => renderer.ExtractTextLayerAsync(pageIndex, ct), ct)
             .ConfigureAwait(false);
 
         lock (_lock)

@@ -44,14 +44,6 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private const double MinimumZoomPercent = 25.0;
     private const double MaximumZoomPercent = 400.0;
 
-    /// <summary>
-    /// Supersampling factor applied to the page-surface width when rendering so the
-    /// rasterized page stays crisp at the displayed logical size and on HiDPI screens.
-    /// </summary>
-    private const double PageRenderSupersample = 2.0;
-
-    /// <summary>Upper bound on render width in pixels, guarding memory on extreme zoom.</summary>
-    private const int MaxPageRenderWidthPx = 3000;
     private readonly Dictionary<string, AnnotationV2> _annotationsById = new(StringComparer.Ordinal);
 
     private string? _bookId;
@@ -93,6 +85,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _renderCts;
     private bool _hasRenderError;
     private readonly ILogger _logger;
+    private bool _isEngineUnavailable;
+    private double _renderScaling = 1.0;
+    private long _geometryRequestSequence;
 
     /// <summary>Creates a new reader view model.</summary>
     public ReaderViewModel(
@@ -331,18 +326,70 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     public bool HasRenderError => _hasRenderError;
 
     /// <summary>Actionable, localized render failure text.</summary>
-    public string RenderErrorText => _localization["Reader.RenderFailed"];
+    public string RenderErrorText => _isEngineUnavailable
+        ? _localization["Reader.Engine.Unavailable"]
+        : _localization["Reader.RenderFailed"];
 
     /// <summary>Localized retry action for the current page.</summary>
-    public string RetryRenderText => _localization["Reader.RetryRender"];
+    public string RetryRenderText => _isEngineUnavailable
+        ? _localization["Reader.Engine.Reopen"]
+        : _localization["Reader.RetryRender"];
 
-    /// <summary>Retries rendering the current page after a transient failure.</summary>
+    /// <summary>
+    /// True when the isolated reader engine stopped after repeated worker failures and
+    /// the book must be reopened (Sept-23 Kaizen T04.5).
+    /// </summary>
+    public bool IsEngineUnavailable => _isEngineUnavailable;
+
+    /// <summary>
+    /// Retries rendering the current page after a transient failure, or reopens the
+    /// book at the current page when the reader engine stopped.
+    /// </summary>
     public void RetryRender()
     {
         _hasRenderError = false;
         OnPropertyChanged(nameof(HasRenderError));
+        if (_isEngineUnavailable && BookId is { } bookId)
+        {
+            _ = ReopenAfterEngineFailureAsync(bookId, CurrentPageIndex);
+            return;
+        }
+
         RequestPageRender();
     }
+
+    /// <summary>
+    /// Updates the monitor render scaling (1.0 = 96 dpi) of the window hosting the
+    /// reader so pages are rasterised at device resolution (Sept-23 Kaizen K33).
+    /// </summary>
+    /// <param name="scaling">The top-level render scaling.</param>
+    public void UpdateRenderScaling(double scaling)
+    {
+        if (double.IsNaN(scaling) || double.IsInfinity(scaling) || scaling <= 0)
+        {
+            return;
+        }
+
+        if (Math.Abs(_renderScaling - scaling) < 0.01)
+        {
+            return;
+        }
+
+        _renderScaling = scaling;
+        if (IsOpen)
+        {
+            RequestPageRender();
+        }
+    }
+
+    /// <summary>
+    /// Gets the raster width requested for the current page: displayed width × zoom ×
+    /// monitor scaling, bucketed and bounded (<see cref="ReaderRenderDefaults.ComputePageWidthPx"/>).
+    /// </summary>
+    public int CurrentRenderWidthPx => ReaderRenderDefaults.ComputePageWidthPx(
+        PageSurfaceWidth,
+        _renderScaling,
+        PageSurfaceWidth > 0 ? PageSurfaceHeight / PageSurfaceWidth : 1.414);
 
     /// <summary>True while opening or refreshing reader-side data.</summary>
     public bool IsBusy
@@ -1703,18 +1750,28 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             return;
         }
 
-        await _sessions.NavigateToAsync(pageIndex).ConfigureAwait(true);
-        ReaderSession? current = _sessions.CurrentSession;
-        if (current is not null)
+        try
         {
-            ApplySession(current);
+            await _sessions.NavigateToAsync(pageIndex).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (IsRecoverableEngineFailure(exception))
+        {
+            // A lost or stopped worker must never turn a page turn into a crash (K30).
+            // The render path shows the actionable error for the page.
+            AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.navigate");
+        }
+
+        ReaderSession? current = _sessions.CurrentSession;
+        if (current is not null && current.CurrentPageIndex == pageIndex)
+        {
+            await ApplySessionAsync(current).ConfigureAwait(true);
             await RefreshAnnotationsAsync(CancellationToken.None).ConfigureAwait(true);
         }
     }
 
     private async Task UpdateSessionAsync(ReaderSession session, CancellationToken cancellationToken)
     {
-        ApplySession(session);
+        await ApplySessionAsync(session).ConfigureAwait(true);
         await EnsureDefaultLayerAsync(cancellationToken).ConfigureAwait(true);
         await RefreshLayersAsync(cancellationToken).ConfigureAwait(true);
         await RefreshAnnotationsAsync(cancellationToken).ConfigureAwait(true);
@@ -1722,33 +1779,44 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         await RefreshReadingMemoryAsync(cancellationToken).ConfigureAwait(true);
     }
 
-    private void ApplySession(ReaderSession session)
+    private async Task ApplySessionAsync(ReaderSession session)
     {
         BookId = session.BookId;
         PageCount = session.PageCount;
         CurrentPageIndex = session.CurrentPageIndex;
         PageRotationDegrees = session.PageRotationDegrees;
-        ApplyPageGeometry();
         ZoomMode = session.ZoomMode;
         ZoomPercent = session.ZoomPercent;
         IsOpen = true;
+        await ApplyPageGeometryAsync().ConfigureAwait(true);
         RequestPageRender();
     }
 
-    private void ApplyPageGeometry()
+    private async Task ApplyPageGeometryAsync()
     {
-        PdfPageGeometry geometry = PdfPageGeometry.Fallback(CurrentPageIndex, PageRotationDegrees);
-        try
+        int pageIndex = CurrentPageIndex;
+        long sequence = ++_geometryRequestSequence;
+        PdfPageGeometry geometry = PdfPageGeometry.Fallback(pageIndex, PageRotationDegrees);
+        if (_sessions.CurrentRenderer is { PageCount: > 0 } renderer && pageIndex < renderer.PageCount)
         {
-            if (_sessions.CurrentRenderer is { } renderer)
+            try
             {
-                geometry = renderer.GetPageGeometry(CurrentPageIndex);
+                // Geometry is cached per document by the isolated renderer and is
+                // scheduled ahead of queued renders; it is awaited, never blocked on (K32).
+                geometry = await renderer.GetPageGeometryAsync(pageIndex, CancellationToken.None)
+                    .ConfigureAwait(true);
+            }
+            catch (Exception exception) when (IsRecoverableEngineFailure(exception) || exception is ArgumentException)
+            {
+                // Keep the safe fallback when an optional page dictionary cannot be read
+                // or the worker is being recovered.
+                AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.page_geometry");
             }
         }
-        catch (Exception exception)
+
+        if (sequence != _geometryRequestSequence || pageIndex != CurrentPageIndex)
         {
-            // Intentionally ignored: keep the safe fallback when an optional page dictionary cannot be read.
-            AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.page_geometry");
+            return;
         }
 
         _pageWidthPoints = Math.Max(1.0, geometry.WidthPoints);
@@ -1792,12 +1860,11 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
         int pageIndex = CurrentPageIndex;
 
-        // At default (fit-width) zoom this resolves to ReaderRenderDefaults.PageWidthPx,
-        // matching the prefetch width so neighbour page turns are warm cache hits.
-        int widthPx = Math.Clamp(
-            (int)Math.Round(BasePageSurfaceWidth * Math.Max(1.0, OverlayZoomFactor) * PageRenderSupersample),
-            1,
-            MaxPageRenderWidthPx);
+        // Rasterise at device resolution: displayed width × zoom × monitor scaling,
+        // bucketed so resizing reuses cache entries (K33). The session prefetches
+        // neighbours at the same width so page turns are warm cache hits.
+        int widthPx = CurrentRenderWidthPx;
+        _sessions.UpdateRenderWidth(widthPx);
 
         _ = RenderCurrentPageAsync(renderer, pageIndex, widthPx, cts);
     }
@@ -1858,15 +1925,56 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         catch (Exception exception)
         {
             AppLog.ReaderRenderFailed(_logger, exception, pageIndex);
+            bool engineStopped = exception is PdfRendererUnavailableException;
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                if (cts.Token.IsCancellationRequested || CurrentPageIndex != pageIndex)
+                {
+                    return;
+                }
+
                 _hasRenderError = true;
+                if (engineStopped && !_isEngineUnavailable)
+                {
+                    _isEngineUnavailable = true;
+                    OnPropertyChanged(nameof(IsEngineUnavailable));
+                    OnPropertyChanged(nameof(RenderErrorText));
+                    OnPropertyChanged(nameof(RetryRenderText));
+                }
+
                 PageImage = null;
                 OnPropertyChanged(nameof(HasRenderError));
             });
         }
 #pragma warning restore CA1031
     }
+
+    private async Task ReopenAfterEngineFailureAsync(string bookId, int pageIndex)
+    {
+        _isEngineUnavailable = false;
+        OnPropertyChanged(nameof(IsEngineUnavailable));
+        OnPropertyChanged(nameof(RenderErrorText));
+        OnPropertyChanged(nameof(RetryRenderText));
+        try
+        {
+            await OpenAsync(bookId, pageIndex, CancellationToken.None).ConfigureAwait(true);
+        }
+#pragma warning disable CA1031 // Reopen is a user retry; its failure is shown, never thrown into the UI loop.
+        catch (Exception)
+        {
+            _hasRenderError = true;
+            _isEngineUnavailable = true;
+            OnPropertyChanged(nameof(IsEngineUnavailable));
+            OnPropertyChanged(nameof(RenderErrorText));
+            OnPropertyChanged(nameof(RetryRenderText));
+            OnPropertyChanged(nameof(HasRenderError));
+        }
+#pragma warning restore CA1031
+    }
+
+    private static bool IsRecoverableEngineFailure(Exception exception) =>
+        exception is PdfRendererUnavailableException or IOException or InvalidOperationException
+            or ObjectDisposedException or TimeoutException;
 
     /// <summary>
     /// Upgrades the on-screen page when a background render completes for the page

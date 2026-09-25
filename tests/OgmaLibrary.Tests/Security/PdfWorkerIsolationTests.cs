@@ -113,7 +113,7 @@ public sealed class PdfWorkerIsolationTests : IDisposable
             Assert.True(process.WaitForExit(5_000));
         }
 
-        Assert.ThrowsAny<Exception>(() => session.ExtractTextLayer(0));
+        await Assert.ThrowsAnyAsync<Exception>(() => session.ExtractTextLayerAsync(0, CancellationToken.None));
 
         using PdfWorkerClient.PdfWorkerSession recovered = _client.OpenSession(pdfPath);
         Assert.Equal(1, recovered.PageCount);

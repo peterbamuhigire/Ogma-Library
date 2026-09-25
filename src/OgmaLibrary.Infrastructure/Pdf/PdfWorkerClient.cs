@@ -29,7 +29,13 @@ public sealed class PdfWorkerClient
         if (_options.Timeout <= TimeSpan.Zero ||
             _options.CpuTimeLimit <= TimeSpan.Zero ||
             _options.MaxMemoryBytes <= 0 ||
-            _options.MaxOutputBytes <= 0)
+            _options.MaxOutputBytes <= 0 ||
+            _options.Session is null ||
+            _options.Session.RequestTimeout <= TimeSpan.Zero ||
+            _options.Session.StartupTimeout <= TimeSpan.Zero ||
+            _options.Session.IdleTimeout <= TimeSpan.Zero ||
+            _options.Session.MaxRespawns < 0 ||
+            _options.Session.RespawnWindow <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Worker resource limits must be positive.");
         }
@@ -87,6 +93,9 @@ public sealed class PdfWorkerClient
     /// <returns>A disposable session that keeps the document identity and password bounded.</returns>
     public PdfWorkerSession OpenSession(string filePath, char[]? password = null) =>
         new(this, RequireAbsoluteFile(filePath), password);
+
+    /// <summary>Gets the resource policy applied to persistent reader sessions.</summary>
+    internal PdfWorkerSessionLimits SessionLimits => _options.Session;
 
     /// <summary>
     /// Gets the largest worker peak working-set observation recorded by this
@@ -412,7 +421,7 @@ public sealed class PdfWorkerClient
             process.Start();
             await SendPasswordAsync(process.StandardInput, password, closeAfterWrite: true)
                 .ConfigureAwait(false);
-            using WindowsChildProcessLimit? childProcessLimit = RequireWindowsProcessLimit(process);
+            using WindowsChildProcessLimit? childProcessLimit = RequireWindowsProcessLimit(process, _options.CpuTimeLimit);
             Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
             Task<string> stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
@@ -457,12 +466,12 @@ public sealed class PdfWorkerClient
         }
     }
 
-    private WindowsChildProcessLimit? RequireWindowsProcessLimit(Process process)
+    private WindowsChildProcessLimit? RequireWindowsProcessLimit(Process process, TimeSpan? cpuTimeLimit)
     {
         WindowsChildProcessLimit? limit = WindowsChildProcessLimit.TryAssign(
             process,
             _options.MaxMemoryBytes,
-            _options.CpuTimeLimit);
+            cpuTimeLimit);
         if (OperatingSystem.IsWindows() && limit is null)
         {
             KillProcessTree(process);
@@ -751,7 +760,7 @@ public sealed class PdfWorkerClient
         return fullPath;
     }
 
-    private static void KillProcessTree(Process process)
+    private static void KillProcessTree(Process process, int waitMilliseconds = ProcessExitWaitMilliseconds)
     {
         try
         {
@@ -762,7 +771,7 @@ public sealed class PdfWorkerClient
 
             // Kill is asynchronous. Wait (bounded) so the worker's handles on sandbox
             // files are released before the caller deletes the sandbox.
-            process.WaitForExit(ProcessExitWaitMilliseconds);
+            process.WaitForExit(waitMilliseconds);
         }
         catch (InvalidOperationException)
         {
@@ -803,24 +812,45 @@ public sealed class PdfWorkerClient
         }
     }
 
-    /// <summary>Persistent worker-backed operations for one validated PDF document.</summary>
+    /// <summary>
+    /// Persistent worker-backed operations for one validated PDF document. Requests are
+    /// correlated by id, scheduled by priority and bounded by a per-request wall clock;
+    /// the session never blocks a caller's thread on worker IPC.
+    /// </summary>
     public sealed class PdfWorkerSession : IDisposable
     {
+        /// <summary>Protocol version echoed by the worker's ready line.</summary>
+        internal const int ProtocolVersion = 2;
+
+        private const int WorkerExitWaitMilliseconds = 2_000;
+        private const int MaxRetainedDiagnosticLines = 16;
+        private const int MaxDiagnosticLineLength = 256;
+
         private readonly PdfWorkerClient _client;
+        private readonly PdfWorkerSessionLimits _limits;
         private readonly PdfWorkerSandbox _sandbox;
         private readonly Process _process;
         private readonly WindowsChildProcessLimit? _childProcessLimit;
         private readonly StreamReader _reader;
         private readonly StreamWriter _writer;
-        private readonly SemaphoreSlim _requestGate = new(1, 1);
+        private readonly PriorityRequestGate _requestGate = new();
+        private readonly WorkerResponseRouter<ServerResponse> _router = new();
+        private readonly Queue<string> _diagnosticLines = new();
+        private readonly Lock _diagnosticSync = new();
         private readonly char[]? _password;
-        private bool _disposed;
+        private long _stderrLineCount;
+        private long _lastActivityTicks;
+        private int _activeRequests;
+        private string? _faultReason;
+        private int _disposed;
 
         internal PdfWorkerSession(PdfWorkerClient client, string filePath, char[]? password)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
+            _limits = client._options.Session;
             _password = password?.ToArray();
             _sandbox = client.CreateSandbox();
+            Touch();
 
             try
             {
@@ -851,16 +881,29 @@ public sealed class PdfWorkerClient
 
                 _process = new Process { StartInfo = startInfo };
                 _process.Start();
-                _childProcessLimit = _client.RequireWindowsProcessLimit(_process);
+
+                // Interactive session policy: memory, active-process and kill-on-close
+                // containment, but no cumulative CPU cap (K30).
+                _childProcessLimit = _client.RequireWindowsProcessLimit(_process, cpuTimeLimit: null);
                 _reader = _process.StandardOutput;
                 _writer = _process.StandardInput;
+
+                // The worker's stderr was never read before; a chatty worker could fill
+                // the pipe and stall. Drain it for bounded diagnostics.
+                _ = Task.Run(DrainStandardErrorAsync);
+
                 SendPasswordAsync(_writer, _password, closeAfterWrite: false)
+                    .WaitAsync(_limits.StartupTimeout)
                     .GetAwaiter()
                     .GetResult();
 
-                ServerResponse ready = ReadResponseAsync().GetAwaiter().GetResult();
+                ServerResponse ready = ReadReadyAsync()
+                    .WaitAsync(_limits.StartupTimeout)
+                    .GetAwaiter()
+                    .GetResult();
                 ThrowIfError(ready);
                 PageCount = ready.PageCount;
+                _ = Task.Run(ReadLoopAsync);
             }
             catch
             {
@@ -874,6 +917,42 @@ public sealed class PdfWorkerClient
 
         /// <summary>Gets the worker process identifier for bounded diagnostics and tests.</summary>
         internal int ProcessId => _process.Id;
+
+        /// <summary>Gets whether the session can no longer serve requests.</summary>
+        public bool IsFaulted => Volatile.Read(ref _faultReason) is not null || Volatile.Read(ref _disposed) != 0;
+
+        /// <summary>Gets the stable reason the session faulted, if it has.</summary>
+        public string? FaultReason => Volatile.Read(ref _faultReason);
+
+        /// <summary>Gets the UTC time of the last request activity.</summary>
+        internal DateTime LastActivityUtc => new(Interlocked.Read(ref _lastActivityTicks), DateTimeKind.Utc);
+
+        /// <summary>Gets whether a request is queued or in flight.</summary>
+        internal bool IsBusy => Volatile.Read(ref _activeRequests) > 0;
+
+        /// <summary>Gets the number of requests waiting for the worker.</summary>
+        internal int QueueDepth => _requestGate.QueueDepth;
+
+        /// <summary>Gets the number of late responses discarded after timeout or cancellation.</summary>
+        internal long DiscardedResponses => _router.DiscardedCount;
+
+        /// <summary>Gets the number of stderr lines drained from the worker.</summary>
+        internal long StandardErrorLines => Interlocked.Read(ref _stderrLineCount);
+
+        /// <summary>Gets the Job Object limits applied to this session's worker.</summary>
+        internal JobLimitSnapshot? AppliedLimits => _childProcessLimit?.QueryLimits();
+
+        /// <summary>Gets the most recent bounded worker diagnostic lines.</summary>
+        internal IReadOnlyList<string> RecentDiagnosticLines
+        {
+            get
+            {
+                lock (_diagnosticSync)
+                {
+                    return [.. _diagnosticLines];
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the peak resident working set observed for this worker process.
@@ -916,17 +995,21 @@ public sealed class PdfWorkerClient
         }
 
         /// <summary>Renders a page through the persistent isolated worker.</summary>
+        /// <param name="pageIndex">The zero-based page index.</param>
+        /// <param name="request">The render request.</param>
+        /// <param name="cancellationToken">
+        /// Cancels the request while it is queued. A render already running in the worker
+        /// finishes (it is bounded by the per-request wall clock) and its output is discarded.
+        /// </param>
+        /// <returns>The rendered page.</returns>
         public async Task<RenderResult> RenderPageAsync(
             int pageIndex,
             RenderRequest request,
             CancellationToken cancellationToken)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                string outputName = $"page-{Guid.NewGuid():N}.png";
-                ServerResponse response = await SendAsync(
+            ArgumentNullException.ThrowIfNull(request);
+            string outputName = $"page-{Guid.NewGuid():N}.png";
+            ServerResponse response = await SendAsync(
                     new ServerRequest(
                         "render-page",
                         pageIndex,
@@ -940,14 +1023,19 @@ public sealed class PdfWorkerClient
                         request.IncludeFormValues,
                         request.OptionalContentMode,
                         request.RotationDegrees),
-                    cancellationToken).ConfigureAwait(false);
-                string outputPath = Path.Combine(_sandbox.Path, outputName);
+                    request.IsLowResPreview ? WorkerRequestPriority.Preview : WorkerRequestPriority.Render,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            string outputPath = Path.Combine(_sandbox.Path, outputName);
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 (byte[] bytes, _) = await ReadVerifiedOutputAsync(
-                    outputPath,
-                    _sandbox.Path,
-                    _client._options.MaxOutputBytes,
-                    cancellationToken).ConfigureAwait(false);
-                File.Delete(outputPath);
+                        outputPath,
+                        _sandbox.Path,
+                        _client._options.MaxOutputBytes,
+                        cancellationToken)
+                    .ConfigureAwait(false);
                 return new RenderResult(
                     bytes,
                     response.PageWidthPoints,
@@ -956,55 +1044,73 @@ public sealed class PdfWorkerClient
             }
             finally
             {
-                _requestGate.Release();
+                TryDeleteOutput(outputPath);
             }
         }
 
         /// <summary>Reads a page rotation through the persistent isolated worker.</summary>
-        public int GetPageRotationDegrees(int pageIndex) =>
-            SendSynchronously(new ServerRequest("rotation", pageIndex)).RotationDegrees;
+        /// <param name="pageIndex">The zero-based page index.</param>
+        /// <param name="cancellationToken">Cancels the request while it is queued.</param>
+        /// <returns>The clockwise rotation in degrees.</returns>
+        public async Task<int> GetPageRotationDegreesAsync(int pageIndex, CancellationToken cancellationToken) =>
+            (await SendAsync(new ServerRequest("rotation", pageIndex), WorkerRequestPriority.Control, cancellationToken)
+                .ConfigureAwait(false)).RotationDegrees;
 
         /// <summary>Reads effective page geometry through the persistent worker.</summary>
-        public PdfPageGeometry GetPageGeometry(int pageIndex) =>
-            SendSynchronously(new ServerRequest("geometry", pageIndex)).PageGeometry
+        /// <param name="pageIndex">The zero-based page index.</param>
+        /// <param name="cancellationToken">Cancels the request while it is queued.</param>
+        /// <returns>The page geometry, or a safe fallback.</returns>
+        public async Task<PdfPageGeometry> GetPageGeometryAsync(int pageIndex, CancellationToken cancellationToken) =>
+            (await SendAsync(new ServerRequest("geometry", pageIndex), WorkerRequestPriority.Control, cancellationToken)
+                .ConfigureAwait(false)).PageGeometry
             ?? PdfPageGeometry.Fallback(pageIndex);
 
         /// <summary>Reads document information through the persistent worker.</summary>
-        public PdfDocumentMetadata ReadDocumentMetadata() =>
-            SendSynchronously(new ServerRequest("metadata", -1)).DocumentMetadata
+        /// <param name="cancellationToken">Cancels the request while it is queued.</param>
+        /// <returns>The document metadata.</returns>
+        public async Task<PdfDocumentMetadata> ReadDocumentMetadataAsync(CancellationToken cancellationToken) =>
+            (await SendAsync(new ServerRequest("metadata", -1), WorkerRequestPriority.Control, cancellationToken)
+                .ConfigureAwait(false)).DocumentMetadata
             ?? new PdfDocumentMetadata();
 
         /// <summary>Reads sanitized outline entries through the persistent worker.</summary>
-        public IReadOnlyList<PdfOutlineEntry> ReadOutline() =>
-            SendSynchronously(new ServerRequest("outline", -1)).Outline ?? [];
+        /// <param name="cancellationToken">Cancels the request while it is queued.</param>
+        /// <returns>The outline entries.</returns>
+        public async Task<IReadOnlyList<PdfOutlineEntry>> ReadOutlineAsync(CancellationToken cancellationToken) =>
+            (await SendAsync(new ServerRequest("outline", -1), WorkerRequestPriority.Control, cancellationToken)
+                .ConfigureAwait(false)).Outline ?? [];
 
         /// <summary>Extracts a page text layer through the persistent isolated worker.</summary>
-        public TextLayer ExtractTextLayer(int pageIndex) =>
-            SendSynchronously(new ServerRequest("text-layer", pageIndex)).TextLayer
+        /// <param name="pageIndex">The zero-based page index.</param>
+        /// <param name="cancellationToken">Cancels the request while it is queued.</param>
+        /// <returns>The text layer.</returns>
+        public async Task<TextLayer> ExtractTextLayerAsync(int pageIndex, CancellationToken cancellationToken) =>
+            (await SendAsync(new ServerRequest("text-layer", pageIndex), WorkerRequestPriority.Control, cancellationToken)
+                .ConfigureAwait(false)).TextLayer
             ?? new TextLayer(pageIndex, [], ExtractionQuality.Empty);
 
-        /// <summary>Stops the worker and deletes its private sandbox.</summary>
+        /// <summary>Stops the worker (bounded wait) and deletes its private sandbox.</summary>
         public void Dispose()
         {
-            if (_disposed)
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
             {
                 return;
             }
 
-            _disposed = true;
+            Interlocked.CompareExchange(ref _faultReason, "disposed", null);
+
+            // Construction can fail before Process.Start (for example when a packaged
+            // worker is missing). Preserve the original failure rather than masking it
+            // with a null-process cleanup failure.
             if (_process is not null)
             {
                 _client.RecordResourceUsage(PeakWorkingSetBytes, PrivateMemoryBytes);
+                KillProcessTree(_process, WorkerExitWaitMilliseconds);
             }
-            // Construction can fail before Process.Start (for example when a
-            // packaged worker is missing). Preserve the original failure rather
-            // than masking it with a null-process cleanup failure.
-            if (_process is not null)
-            {
-                KillProcessTree(_process);
-            }
-            _childProcessLimit?.Dispose();
+
+            _router.FailAll(new ObjectDisposedException(nameof(PdfWorkerSession)));
             _requestGate.Dispose();
+            _childProcessLimit?.Dispose();
             if (_password is not null)
             {
                 Array.Clear(_password);
@@ -1014,35 +1120,147 @@ public sealed class PdfWorkerClient
             _process?.Dispose();
         }
 
-        private ServerResponse SendSynchronously(ServerRequest request)
+        private async Task<ServerResponse> SendAsync(
+            ServerRequest request,
+            WorkerRequestPriority priority,
+            CancellationToken cancellationToken)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            _requestGate.Wait();
+            ThrowIfUnusable();
+            Interlocked.Increment(ref _activeRequests);
+            Touch();
             try
             {
-                return SendAsync(request, CancellationToken.None).GetAwaiter().GetResult();
+                try
+                {
+                    await _requestGate.WaitAsync(priority, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException exception)
+                {
+                    throw new PdfWorkerSessionLostException(FaultReason ?? "disposed", exception);
+                }
+
+                try
+                {
+                    ThrowIfUnusable();
+                    long requestId = _router.NextRequestId();
+                    Task<ServerResponse> responseTask = _router.Register(requestId);
+                    try
+                    {
+                        await _writer.WriteLineAsync(
+                                JsonSerializer.Serialize(request with { RequestId = requestId }))
+                            .ConfigureAwait(false);
+                        await _writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (exception is IOException or ObjectDisposedException or InvalidOperationException)
+                    {
+                        _router.Abandon(requestId);
+                        Fault("pipe_broken");
+                        throw new PdfWorkerSessionLostException("pipe_broken", exception);
+                    }
+
+                    ServerResponse response;
+                    try
+                    {
+                        response = await responseTask
+                            .WaitAsync(_limits.RequestTimeout, CancellationToken.None)
+                            .ConfigureAwait(false);
+                    }
+                    catch (TimeoutException exception)
+                    {
+                        // Runaway protection that replaces the cumulative CPU cap: a request
+                        // that exceeds its wall clock kills the worker. The request id means a
+                        // late reply could never be consumed by another request anyway.
+                        _router.Abandon(requestId);
+                        Fault("request_timeout");
+                        throw new PdfWorkerSessionLostException("request_timeout", exception);
+                    }
+
+                    ThrowIfError(response);
+                    return response;
+                }
+                finally
+                {
+                    _requestGate.Release();
+                }
             }
             finally
             {
-                _requestGate.Release();
+                Touch();
+                Interlocked.Decrement(ref _activeRequests);
             }
         }
 
-        private async Task<ServerResponse> SendAsync(
-            ServerRequest request,
-            CancellationToken cancellationToken)
+        private async Task ReadLoopAsync()
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            await _writer.WriteLineAsync(JsonSerializer.Serialize(request)).ConfigureAwait(false);
-            await _writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-            ServerResponse response = await ReadResponseAsync()
-                .WaitAsync(_client._options.Timeout, CancellationToken.None)
-                .ConfigureAwait(false);
-            ThrowIfError(response);
-            return response;
+            string reason = "worker_exited";
+            Exception? failure = null;
+            try
+            {
+                while (await _reader.ReadLineAsync().ConfigureAwait(false) is { } line)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        continue;
+                    }
+
+                    ServerResponse? response;
+                    try
+                    {
+                        response = JsonSerializer.Deserialize<ServerResponse>(line, JsonOptions);
+                    }
+                    catch (JsonException exception)
+                    {
+                        reason = "protocol_violation";
+                        failure = exception;
+                        break;
+                    }
+
+                    if (response is null || response.RequestId <= 0)
+                    {
+                        reason = "protocol_violation";
+                        break;
+                    }
+
+                    _router.TryComplete(response.RequestId, response);
+                }
+            }
+            catch (Exception exception) when (exception is IOException or ObjectDisposedException or InvalidOperationException)
+            {
+                reason = "pipe_broken";
+                failure = exception;
+            }
+
+            Fault(reason, failure);
         }
 
-        private async Task<ServerResponse> ReadResponseAsync()
+        private async Task DrainStandardErrorAsync()
+        {
+            try
+            {
+                StreamReader stderr = _process.StandardError;
+                while (await stderr.ReadLineAsync().ConfigureAwait(false) is { } line)
+                {
+                    Interlocked.Increment(ref _stderrLineCount);
+                    string bounded = line.Length > MaxDiagnosticLineLength
+                        ? line[..MaxDiagnosticLineLength]
+                        : line;
+                    lock (_diagnosticSync)
+                    {
+                        _diagnosticLines.Enqueue(bounded);
+                        while (_diagnosticLines.Count > MaxRetainedDiagnosticLines)
+                        {
+                            _diagnosticLines.Dequeue();
+                        }
+                    }
+                }
+            }
+            catch (Exception exception) when (exception is IOException or ObjectDisposedException or InvalidOperationException)
+            {
+                // Intentionally ignored: the worker exited or the session was disposed; the read loop reports the fault.
+            }
+        }
+
+        private async Task<ServerResponse> ReadReadyAsync()
         {
             string? line = await _reader.ReadLineAsync().ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(line))
@@ -1050,8 +1268,65 @@ public sealed class PdfWorkerClient
                 throw new InvalidOperationException("The PDF worker session ended without a response.");
             }
 
-            return JsonSerializer.Deserialize<ServerResponse>(line, JsonOptions)
+            ServerResponse ready = JsonSerializer.Deserialize<ServerResponse>(line, JsonOptions)
                 ?? throw new InvalidOperationException("The PDF worker session returned invalid JSON.");
+            if (string.Equals(ready.Status, "ok", StringComparison.OrdinalIgnoreCase) &&
+                ready.ProtocolVersion != ProtocolVersion)
+            {
+                throw new InvalidOperationException("The PDF worker protocol version does not match the application.");
+            }
+
+            return ready;
+        }
+
+        private void Fault(string reason, Exception? cause = null)
+        {
+            if (Interlocked.CompareExchange(ref _faultReason, reason, null) is not null)
+            {
+                return;
+            }
+
+            _router.FailAll(cause is null
+                ? new PdfWorkerSessionLostException(reason)
+                : new PdfWorkerSessionLostException(reason, cause));
+            try
+            {
+                if (!_process.HasExited)
+                {
+                    _process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
+            {
+                // Intentionally ignored: the worker already exited; the fault is recorded either way.
+            }
+        }
+
+        private void ThrowIfUnusable()
+        {
+            if (Volatile.Read(ref _disposed) != 0)
+            {
+                throw new PdfWorkerSessionLostException("disposed");
+            }
+
+            if (Volatile.Read(ref _faultReason) is { } reason)
+            {
+                throw new PdfWorkerSessionLostException(reason);
+            }
+        }
+
+        private void Touch() => Interlocked.Exchange(ref _lastActivityTicks, DateTime.UtcNow.Ticks);
+
+        private static void TryDeleteOutput(string outputPath)
+        {
+            try
+            {
+                File.Delete(outputPath);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Intentionally ignored: best effort; the sandbox is deleted when the session is disposed.
+            }
         }
 
         private static void ThrowIfError(ServerResponse response)
@@ -1085,7 +1360,8 @@ public sealed class PdfWorkerClient
             PdfAnnotationRenderMode AnnotationMode = PdfAnnotationRenderMode.Exclude,
             bool IncludeFormValues = false,
             PdfOptionalContentMode OptionalContentMode = PdfOptionalContentMode.Default,
-            int? RotationDegrees = null);
+            int? RotationDegrees = null,
+            long RequestId = 0);
 
         private sealed record ServerResponse(
             string Status,
@@ -1098,7 +1374,9 @@ public sealed class PdfWorkerClient
             TextLayer? TextLayer = null,
             PdfPageGeometry? PageGeometry = null,
             PdfDocumentMetadata? DocumentMetadata = null,
-            IReadOnlyList<PdfOutlineEntry>? Outline = null);
+            IReadOnlyList<PdfOutlineEntry>? Outline = null,
+            long RequestId = 0,
+            int ProtocolVersion = 0);
     }
 }
 
@@ -1133,15 +1411,26 @@ public sealed class PdfWorkerOptions
     public string? SandboxRoot { get; set; }
 
     /// <summary>
-    /// Gets or sets the worker operation timeout.
+    /// Gets or sets the one-shot worker operation timeout (ingestion, covers,
+    /// write-back). Reader sessions use <see cref="Session"/> instead.
     /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(15);
 
-    /// <summary>Maximum worker process memory enforced by Windows Job Objects.</summary>
+    /// <summary>
+    /// Maximum worker process memory enforced by Windows Job Objects. Applies to
+    /// one-shot jobs and reader sessions alike.
+    /// </summary>
     public long MaxMemoryBytes { get; set; } = 768L * 1024L * 1024L;
 
-    /// <summary>Maximum worker CPU time enforced by Windows Job Objects.</summary>
+    /// <summary>
+    /// Maximum cumulative CPU time for one-shot worker jobs, enforced by Windows Job
+    /// Objects. Persistent reader sessions deliberately have no cumulative CPU cap
+    /// (Sept-23 Kaizen K30); see <see cref="Session"/>.
+    /// </summary>
     public TimeSpan CpuTimeLimit { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>Resource policy for persistent interactive reader sessions.</summary>
+    public PdfWorkerSessionLimits Session { get; set; } = new();
 
     /// <summary>Maximum size of one sandbox output artifact.</summary>
     public long MaxOutputBytes { get; set; } = 64L * 1024L * 1024L;

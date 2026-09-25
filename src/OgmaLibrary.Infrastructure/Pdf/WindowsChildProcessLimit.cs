@@ -20,10 +20,22 @@ internal sealed class WindowsChildProcessLimit : IDisposable
         _handle = handle;
     }
 
+    /// <summary>
+    /// Creates a Job Object, applies the containment limits and assigns the process.
+    /// </summary>
+    /// <param name="process">The started worker process.</param>
+    /// <param name="maxMemoryBytes">The per-process committed memory ceiling.</param>
+    /// <param name="cpuTimeLimit">
+    /// The cumulative per-process user CPU limit for one-shot jobs, or <see langword="null"/>
+    /// for an interactive reader session. Reader sessions are protected by a per-request
+    /// wall-clock watchdog and an idle timeout instead, because a cumulative CPU cap kills
+    /// a healthy long reading session (Sept-23 Kaizen K30). Memory, active-process and
+    /// kill-on-close limits always apply.
+    /// </param>
     public static WindowsChildProcessLimit? TryAssign(
         Process process,
         long maxMemoryBytes,
-        TimeSpan cpuTimeLimit)
+        TimeSpan? cpuTimeLimit)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -42,10 +54,10 @@ internal sealed class WindowsChildProcessLimit : IDisposable
             {
                 LimitFlags = JobObjectLimitKillOnJobClose |
                              JobObjectLimitActiveProcess |
-                             JobObjectLimitProcessTime |
+                             (cpuTimeLimit is null ? 0u : JobObjectLimitProcessTime) |
                              JobObjectLimitProcessMemory,
                 ActiveProcessLimit = 1,
-                PerProcessUserTimeLimit = cpuTimeLimit.Ticks,
+                PerProcessUserTimeLimit = cpuTimeLimit?.Ticks ?? 0,
             },
             ProcessMemoryLimit = (nuint)maxMemoryBytes,
         };
@@ -81,10 +93,61 @@ internal sealed class WindowsChildProcessLimit : IDisposable
         }
     }
 
+    /// <summary>Reads back the limits the operating system applied to this Job Object.</summary>
+    /// <returns>The applied limit flags and values, or <see langword="null"/> when unavailable.</returns>
+    public JobLimitSnapshot? QueryLimits()
+    {
+        if (!OperatingSystem.IsWindows() || _handle.IsInvalid || _handle.IsClosed)
+        {
+            return null;
+        }
+
+        int length = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
+        IntPtr infoPtr = Marshal.AllocHGlobal(length);
+        try
+        {
+            if (!QueryInformationJobObject(
+                    _handle,
+                    JobObjectExtendedLimitInformationClass,
+                    infoPtr,
+                    (uint)length,
+                    out _))
+            {
+                return null;
+            }
+
+            JobObjectExtendedLimitInformation info = Marshal.PtrToStructure<JobObjectExtendedLimitInformation>(infoPtr);
+            uint flags = info.BasicLimitInformation.LimitFlags;
+            return new JobLimitSnapshot(
+                KillOnJobClose: (flags & JobObjectLimitKillOnJobClose) != 0,
+                ActiveProcessLimit: (flags & JobObjectLimitActiveProcess) != 0
+                    ? (int)info.BasicLimitInformation.ActiveProcessLimit
+                    : null,
+                ProcessMemoryLimitBytes: (flags & JobObjectLimitProcessMemory) != 0
+                    ? (long)info.ProcessMemoryLimit
+                    : null,
+                CpuTimeLimit: (flags & JobObjectLimitProcessTime) != 0
+                    ? TimeSpan.FromTicks(info.BasicLimitInformation.PerProcessUserTimeLimit)
+                    : null);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(infoPtr);
+        }
+    }
+
     public void Dispose()
     {
         _handle.Dispose();
     }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool QueryInformationJobObject(
+        SafeFileHandle hJob,
+        int jobObjectInfoClass,
+        IntPtr lpJobObjectInfo,
+        uint cbJobObjectInfoLength,
+        out uint lpReturnLength);
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern SafeFileHandle CreateJobObjectW(IntPtr lpJobAttributes, string? lpName);
@@ -135,3 +198,14 @@ internal sealed class WindowsChildProcessLimit : IDisposable
         public nuint PeakJobMemoryUsed;
     }
 }
+
+/// <summary>Limits applied to a worker Job Object, read back from the operating system.</summary>
+/// <param name="KillOnJobClose">Whether closing the job handle kills the worker.</param>
+/// <param name="ActiveProcessLimit">The active-process ceiling, when set.</param>
+/// <param name="ProcessMemoryLimitBytes">The per-process memory ceiling, when set.</param>
+/// <param name="CpuTimeLimit">The cumulative per-process CPU ceiling, when set.</param>
+internal sealed record JobLimitSnapshot(
+    bool KillOnJobClose,
+    int? ActiveProcessLimit,
+    long? ProcessMemoryLimitBytes,
+    TimeSpan? CpuTimeLimit);

@@ -60,6 +60,133 @@ public interface IPdfRenderer : IDisposable
     /// <param name="pageIndex">Zero-based page index.</param>
     /// <returns>The extracted text layer.</returns>
     TextLayer ExtractTextLayer(int pageIndex);
+
+    /// <summary>
+    /// Asynchronously returns the PDF-standard clockwise rotation for a page. Reader and
+    /// UI callers must use the asynchronous members so no worker IPC blocks the UI thread
+    /// (Sept-23 Kaizen K32). Test doubles inherit a synchronous fallback.
+    /// </summary>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="ct">A token to cancel the request while it is queued.</param>
+    /// <returns>The page rotation in degrees.</returns>
+    Task<int> GetPageRotationDegreesAsync(int pageIndex, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(GetPageRotationDegrees(pageIndex));
+    }
+
+    /// <summary>Asynchronously gets the effective page geometry.</summary>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="ct">A token to cancel the request while it is queued.</param>
+    /// <returns>The page geometry, or a safe fallback.</returns>
+    Task<PdfPageGeometry> GetPageGeometryAsync(int pageIndex, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(GetPageGeometry(pageIndex));
+    }
+
+    /// <summary>Asynchronously reads bounded document information.</summary>
+    /// <param name="ct">A token to cancel the request while it is queued.</param>
+    /// <returns>The document metadata.</returns>
+    Task<PdfDocumentMetadata> ReadDocumentMetadataAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ReadDocumentMetadata());
+    }
+
+    /// <summary>Asynchronously reads bounded, sanitized outline targets.</summary>
+    /// <param name="ct">A token to cancel the request while it is queued.</param>
+    /// <returns>The outline entries.</returns>
+    Task<IReadOnlyList<PdfOutlineEntry>> ReadOutlineAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ReadOutline());
+    }
+
+    /// <summary>Asynchronously extracts the text layer for a single page.</summary>
+    /// <param name="pageIndex">Zero-based page index.</param>
+    /// <param name="ct">A token to cancel the request while it is queued.</param>
+    /// <returns>The extracted text layer.</returns>
+    Task<TextLayer> ExtractTextLayerAsync(int pageIndex, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(ExtractTextLayer(pageIndex));
+    }
+}
+
+/// <summary>
+/// Optional health surface of a supervised PDF renderer. The reader forwards recovery
+/// notifications as <see cref="ReaderEvent.EngineRecovered"/> events so diagnostics and
+/// logging can observe worker respawns without depending on Infrastructure.
+/// </summary>
+public interface IPdfRendererHealth
+{
+    /// <summary>Raised after the renderer transparently replaced a lost worker session.</summary>
+    event EventHandler<PdfRendererRecoveredEventArgs>? Recovered;
+
+    /// <summary>Gets a bounded, content-free snapshot of renderer health counters.</summary>
+    /// <returns>The current health counters.</returns>
+    PdfRendererHealthSnapshot GetHealthSnapshot();
+}
+
+/// <summary>Describes one transparent worker-session recovery.</summary>
+/// <param name="Reason">A stable, content-free reason code such as <c>worker_exited</c>.</param>
+/// <param name="RespawnCount">The number of recoveries in this renderer's lifetime.</param>
+/// <param name="Elapsed">Time taken to start the replacement worker.</param>
+public sealed class PdfRendererRecoveredEventArgs(string Reason, int RespawnCount, TimeSpan Elapsed) : EventArgs
+{
+    /// <summary>The stable reason code (never a path or document content).</summary>
+    public string Reason { get; } = Reason;
+
+    /// <summary>The number of recoveries so far.</summary>
+    public int RespawnCount { get; } = RespawnCount;
+
+    /// <summary>Time taken to start the replacement worker.</summary>
+    public TimeSpan Elapsed { get; } = Elapsed;
+}
+
+/// <summary>Content-free health counters for a supervised renderer.</summary>
+/// <param name="State">Healthy, Idle, Respawning or Failed.</param>
+/// <param name="RespawnCount">Recoveries after worker loss.</param>
+/// <param name="IdleCloseCount">Workers closed by the idle timeout.</param>
+/// <param name="QueueDepth">Requests waiting for the worker.</param>
+/// <param name="DiscardedResponses">Late responses discarded after a timeout or cancellation.</param>
+/// <param name="StandardErrorLines">Worker diagnostic lines drained from standard error.</param>
+public sealed record PdfRendererHealthSnapshot(
+    string State,
+    int RespawnCount,
+    int IdleCloseCount,
+    int QueueDepth,
+    long DiscardedResponses,
+    long StandardErrorLines);
+
+/// <summary>
+/// Thrown when the isolated reader worker could not be recovered within the respawn
+/// budget. The message is a stable, content-free diagnostic; callers show a localized
+/// message and offer to reopen the book.
+/// </summary>
+public sealed class PdfRendererUnavailableException : Exception
+{
+    /// <summary>Initializes the exception.</summary>
+    public PdfRendererUnavailableException()
+        : base("The PDF reader engine is unavailable.")
+    {
+    }
+
+    /// <summary>Initializes the exception with a diagnostic message.</summary>
+    /// <param name="message">The content-free diagnostic message.</param>
+    public PdfRendererUnavailableException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>Initializes the exception with a diagnostic message and cause.</summary>
+    /// <param name="message">The content-free diagnostic message.</param>
+    /// <param name="innerException">The last worker failure.</param>
+    public PdfRendererUnavailableException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }
 
 /// <summary>
