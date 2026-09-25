@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Reader;
 
 namespace OgmaLibrary.App.Views.Reader;
@@ -13,7 +14,10 @@ public partial class SplitViewView : UserControl
         InitializeComponent();
     }
 
-    private async void OpenReferenceButton_Click(object? sender, RoutedEventArgs e)
+    private void OpenReferenceButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => OpenReferenceButton_ClickAsync(sender, e), "reader.open_reference_button_click");
+
+    private async Task OpenReferenceButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is SplitViewViewModel vm)
         {

@@ -134,6 +134,21 @@ public static partial class AppLog
         Message = "A catalogue refresh was superseded by a newer refresh")]
     public static partial void CatalogueLoadSuperseded(ILogger logger);
 
+    /// <summary>A reader session could not be opened.</summary>
+    [LoggerMessage(EventId = 4001, EventName = "reader.open.failed", Level = LogLevel.Error,
+        Message = "The reader could not open the selected book")]
+    public static partial void ReaderOpenFailed(ILogger logger, Exception exception);
+
+    /// <summary>A page render failed; the reader shows its retry state.</summary>
+    [LoggerMessage(EventId = 4002, EventName = "reader.render.failed", Level = LogLevel.Warning,
+        Message = "Rendering page {PageIndex} failed")]
+    public static partial void ReaderRenderFailed(ILogger logger, Exception exception, int pageIndex);
+
+    /// <summary>Closing a reader session failed; the shell still returned to the library.</summary>
+    [LoggerMessage(EventId = 4003, EventName = "reader.close.failed", Level = LogLevel.Warning,
+        Message = "Closing the reader session did not finish cleanly")]
+    public static partial void ReaderCloseFailed(ILogger logger, Exception exception);
+
     /// <summary>A view-model operation failed and was turned into a visible error state.</summary>
     [LoggerMessage(EventId = 3003, EventName = "viewmodel.operation.failed", Level = LogLevel.Error,
         Message = "{ViewModel} operation {Operation} failed")]
