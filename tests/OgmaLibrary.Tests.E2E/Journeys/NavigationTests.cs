@@ -132,7 +132,8 @@ public sealed class NavigationTests
             AutomationElement route = Uia.WaitFor(window, "Advisor.SettingsRoute");
             Visibility.AssertReachable(context.Window, route, "Advisor route to Settings");
             Uia.Activate(route);
-            Assert.True(Uia.Poll(() => Uia.TryFind(window, "Settings.Capabilities") is not null, TimeSpan.FromSeconds(5)), "The Settings route shows no capability list.");
+            // Sept-23 Phase 08: the route opens Settings at "AI and privacy", which states the AI state honestly.
+            Assert.True(Uia.Poll(() => Uia.TryFind(window, "Settings.Privacy.Status") is not null, TimeSpan.FromSeconds(5)), "The Settings route does not show the AI and privacy section.");
         });
 
     /// <summary>Oracle: Ctrl+K opens the palette, typing and Enter run a command and close it; Escape closes it.</summary>
@@ -158,7 +159,7 @@ public sealed class NavigationTests
             Thread.Sleep(300);
             Keyboard.Press(VirtualKeyShort.RETURN);
             Assert.True(Uia.Poll(() => Uia.TryFind(window, "Shell.Palette.Query") is null, TimeSpan.FromSeconds(5)), "The palette stayed open after running a command.");
-            Assert.True(Uia.Poll(() => Uia.TryFind(window, "Settings.Capabilities") is not null, TimeSpan.FromSeconds(5)), "The palette did not run 'Go to Settings'.");
+            Assert.True(Uia.Poll(() => Uia.TryFind(window, "Settings.Sections") is not null, TimeSpan.FromSeconds(5)), "The palette did not open Settings.");
 
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_K);
             Uia.WaitFor(window, "Shell.Palette.Query");
