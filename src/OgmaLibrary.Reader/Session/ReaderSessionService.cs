@@ -389,7 +389,21 @@ public sealed class ReaderSessionService : IReaderSessionService, IReaderSession
         // cache hits on the next/previous page turn (NFR-OGMA-005).
         var request = new RenderRequest(RenderWidthPx);
         _renderCache.Prefetch(session.BookId, pages, request);
+
+        // Warm neighbour geometry too: it is scheduled ahead of renders and cached by
+        // the renderer, so the next page turn resolves rotation without waiting for an
+        // in-flight render (K32).
+        if (_currentRenderer is { PageCount: > 0 } renderer)
+        {
+            foreach (int page in GetPrefetchRange(session).Where(page => page != session.CurrentPageIndex))
+            {
+                _ = WarmGeometryAsync(renderer, page);
+            }
+        }
     }
+
+    private static async Task WarmGeometryAsync(IPdfRenderer renderer, int pageIndex) =>
+        await GetRotationAsync(renderer, pageIndex, fallback: 0, CancellationToken.None).ConfigureAwait(false);
 
     private void Publish(ReaderEvent readerEvent)
     {
