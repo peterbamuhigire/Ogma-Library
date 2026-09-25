@@ -116,6 +116,9 @@ jobs:
     runs-on: windows-latest
     continue-on-error: true
     timeout-minutes: 60
+    env:
+      # Hosted runners have no user at the desk; pin the window so nothing can cover it.
+      OGMA_E2E_TOPMOST: "1"
     steps:
       - uses: actions/checkout@v4
 

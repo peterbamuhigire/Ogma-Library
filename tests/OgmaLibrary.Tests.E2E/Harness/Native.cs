@@ -13,6 +13,7 @@ internal static class Native
     internal const uint SwpShowWindow = 0x0040;
     internal const uint KeyEventFKeyUp = 0x0002;
     internal const byte VkMenu = 0x12;
+    internal static readonly nint HwndTop = nint.Zero;
     internal static readonly nint HwndTopmost = new(-1);
     internal static readonly nint HwndNoTopmost = new(-2);
 

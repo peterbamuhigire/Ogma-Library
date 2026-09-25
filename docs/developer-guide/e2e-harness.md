@@ -9,7 +9,10 @@ not done until the golden journeys pass in the real window at 1280×800 and 1920
 ## Requirements
 
 - Windows 10/11 with an interactive desktop session (not a service or a locked screen). Keep
-  other windows off the top-left of the primary screen; the harness puts the app there as topmost.
+  other windows off the top-left of the primary screen. The harness moves the app there and brings
+  it to the front but does **not** pin it above other windows (captures use `PrintWindow`, actions use
+  UI Automation). Unattended runners may set `OGMA_E2E_TOPMOST=1` to pin it. The folder dialog still
+  needs the foreground briefly, so avoid typing into other windows while G1/G2 run.
 - .NET SDK from `global.json`, and Python 3 with `pip install pymupdf pypdf` for the corpus.
 - Nothing touches your real library: every test gets `%TEMP%\ogma-e2e\<run-id>\<test>\{data,lib}`
   as `OGMA_LIBRARY_DATA_DIR` and library folder, deleted afterwards (`OGMA_E2E_KEEP=1` keeps it).

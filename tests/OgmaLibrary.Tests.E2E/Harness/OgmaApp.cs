@@ -191,12 +191,22 @@ public sealed class OgmaApp : IDisposable
         }
     }
 
-    /// <summary>Moves the window to the top-left corner, sets its outer size and keeps it on top.</summary>
+    /// <summary>
+    /// Moves the window to the top-left corner and sets its outer size. It is brought to the front
+    /// but NOT pinned above other windows: captures use PrintWindow and actions use UI Automation,
+    /// so occlusion does not matter, and pinning took over the owner's desktop. Unattended runners
+    /// may opt in with OGMA_E2E_TOPMOST=1.
+    /// </summary>
     public void Resize(WindowSize size)
     {
-        Native.SetWindowPos(Handle, Native.HwndTopmost, 0, 0, size.Width, size.Height, Native.SwpShowWindow | Native.SwpNoActivate);
+        nint insertAfter = PinTopmost ? Native.HwndTopmost : Native.HwndTop;
+        Native.SetWindowPos(Handle, insertAfter, 0, 0, size.Width, size.Height, Native.SwpShowWindow | Native.SwpNoActivate);
         Thread.Sleep(700);
     }
+
+    /// <summary>Whether windows are pinned topmost (opt-in for unattended runners only).</summary>
+    internal static bool PinTopmost =>
+        string.Equals(Environment.GetEnvironmentVariable("OGMA_E2E_TOPMOST"), "1", StringComparison.Ordinal);
 
     /// <summary>Worker processes started by this app.</summary>
     public IReadOnlyList<int> WorkerProcessIds() =>
