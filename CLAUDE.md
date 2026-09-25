@@ -71,6 +71,9 @@ recorded as `NOT ASSESSED`; they are never silently treated as passing.
 - PDFs, filenames and paths are untrusted. Use the approved path and isolated
   processing boundaries; do not bypass them for convenience.
 - Architecture tests in `OgmaLibrary.Tests.Architecture` are release gates.
+- Optional capabilities (online metadata providers, 3D shelf, classroom Host)
+  are user choices in Settings. `OGMA_ENABLE_*` environment variables are
+  administrator/test overrides only (see `docs/developer-guide/README.md`).
 
 ## Engineering conventions
 
