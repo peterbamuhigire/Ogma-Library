@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="3D view not available">
-  <path d="M12 3 21 8 12 13 3 8z" fill="#D9C6A3"/>
-  <path d="M3 8v8l9 5v-8z" fill="#8B5A2B"/>
-  <path d="M21 8v8l-9 5v-8z" fill="#3E6B89"/>
-  <path d="M4 4l16 16" stroke="#C75F3A" stroke-width="2.2" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="#A8870A" fill-opacity="0.2" stroke="#A8870A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><g><circle cx="12" cy="12" r="10"/><path d="m9 15l6-6"/></g></g></svg>

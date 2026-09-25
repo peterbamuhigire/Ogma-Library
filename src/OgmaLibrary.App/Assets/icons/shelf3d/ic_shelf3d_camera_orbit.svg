@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Orbit camera">
-  <circle cx="12" cy="12" r="3" fill="#7A5CFF"/>
-  <path d="M4 12c0-3.3 3.6-6 8-6 2.2 0 4.2.7 5.6 1.8M20 12c0 3.3-3.6 6-8 6-2.2 0-4.2-.7-5.6-1.8" fill="none" stroke="#52616B" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M17.4 4.8v3.4h-3.4M6.6 19.2v-3.4h3.4" fill="none" stroke="#C75F3A" stroke-width="1.5" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="#A8870A" fill-opacity="0.2" stroke="#A8870A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><g><path d="M20.341 6.484A10 10 0 0 1 10.266 21.85m-6.607-4.334A10 10 0 0 1 13.74 2.152"/><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/></g></g></svg>

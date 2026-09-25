@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Grid layout">
-  <path d="M12 3 21 8 12 13 3 8z" fill="#D9C6A3"/>
-  <path d="M3 8v8l9 5v-8z" fill="#8B5A2B"/>
-  <path d="M21 8v8l-9 5v-8z" fill="#3E6B89"/>
-  <path d="M7.5 10.5 16.5 5.5M12 13v8" stroke="#2F241D" stroke-width="1"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="#A8870A" fill-opacity="0.2" stroke="#A8870A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><g><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3zM7 16.5l-4.74-2.85M7 16.5l5-3m-5 3v5.17m5-8.17V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5zm5 3l-5-3m5 3l4.74-2.85M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3l5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0zM12 8L7.26 5.15M12 8l4.74-2.85M12 13.5V8"/></g></g></svg>
