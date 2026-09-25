@@ -12,7 +12,76 @@
     Selecting a book routes through IBookDetailNavigationService.
   -->
 
-  <ListBox ItemsSource="{Binding FilteredItems}"
+  <DockPanel>
+    <!-- Sept-23 Phase 09: the library home header. A greeting, the library size and a strip of
+         books to continue (progress rings) or, when nothing is in progress, the first shelved
+         books. Selecting a strip book opens its detail, like the grid. -->
+    <Border DockPanel.Dock="Top"
+            Classes="home-hero"
+            IsVisible="{Binding HasHomeStrip}"
+            AutomationProperties.AutomationId="Catalogue.Home">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="24">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="4" MaxWidth="260">
+          <TextBlock Classes="home-greeting"
+                     Text="{Binding HomeGreeting}"
+                     AutomationProperties.HeadingLevel="2" />
+          <TextBlock Classes="caption"
+                     Text="{Binding HomeSummaryText}" />
+          <TextBlock Classes="home-strip-title"
+                     Margin="0,10,0,0"
+                     Text="{Binding HomeStripTitle}" />
+        </StackPanel>
+        <ListBox Grid.Column="1"
+                 Classes="home-strip card-grid"
+                 ItemsSource="{Binding HomeStripItems}"
+                 SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
+                 SelectionMode="Single"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                 AutomationProperties.AutomationId="Catalogue.Home.Strip"
+                 AutomationProperties.Name="{Binding HomeStripTitle}">
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem" x:DataType="app:BookSummaryProjection">
+              <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+              <Setter Property="AutomationProperties.AutomationId" Value="{Binding BookId, StringFormat='Catalogue.Home.Item.{0}'}" />
+            </Style>
+          </ListBox.Styles>
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="4" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="app:BookSummaryProjection">
+              <Border Classes="book-card mini"
+                      Width="66"
+                      Height="96"
+                      Margin="4,6"
+                      ToolTip.Tip="{Binding Title}">
+                <Panel>
+                  <Border Classes="book-card-cover mini">
+                    <cat:CoverImageView RelativePath="{Binding CoverRelativePath}"
+                                        RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
+                                        Label="{Binding Title}" />
+                  </Border>
+                  <cat:ProgressRing Width="22"
+                                    Height="22"
+                                    Margin="0,0,4,4"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Percent="{Binding ReadingProgressPct}" />
+                </Panel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+
+  <ListBox Classes="card-grid"
+           ItemsSource="{Binding FilteredItems}"
            SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
            SelectionMode="Single"
            Background="Transparent"
@@ -34,34 +103,29 @@
     </ListBox.ItemsPanel>
     <ListBox.ItemTemplate>
       <DataTemplate x:DataType="app:BookSummaryProjection">
-        <Border Width="160"
-                Height="230"
-                Margin="6"
-                CornerRadius="{DynamicResource Radius.S}"
-                Background="{DynamicResource Brush.Surface.Card}"
-                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                BorderThickness="1"
-                Cursor="Hand"
+        <Border Classes="book-card"
+                Width="160"
+                MinHeight="248"
+                Margin="8"
                 AutomationProperties.Name="{Binding Title}"
                 AutomationProperties.HelpText="{Binding PrimaryAuthor}"
                 ToolTip.Tip="{Binding Title}"
                 PointerPressed="BookCard_PointerPressed">
-          <Border.Styles>
-            <Style Selector="Border:pointerover">
-              <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Oak}" />
-            </Style>
-          </Border.Styles>
           <StackPanel Spacing="0">
-            <!-- Cover placeholder — will be replaced by real cover in Phase 07 -->
-            <cat:CoverImageView Height="160"
-                                AutomationProperties.AutomationId="Catalogue.Item.Cover"
-                                RelativePath="{Binding CoverRelativePath}"
-                                RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
-                                Label="{Binding Title}" />
+            <!-- Extracted cover, or a generated cloth-bound cover (Sept-23 Phase 09). -->
+            <Border Classes="book-card-cover">
+              <cat:CoverImageView Height="160"
+                                  AutomationProperties.AutomationId="Catalogue.Item.Cover"
+                                  RelativePath="{Binding CoverRelativePath}"
+                                  RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
+                                  Label="{Binding Title}"
+                                  Subtitle="{Binding CoverAuthor}" />
+            </Border>
             <!-- Metadata area -->
             <StackPanel Margin="10,8,10,8" Spacing="3">
               <TextBlock Text="{Binding Title}"
-                         FontSize="{DynamicResource Type.Size.Small}"
+                         Classes="ogma-display"
+                         FontSize="{DynamicResource Type.Size.Body}"
                          FontWeight="SemiBold"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}"
                          TextTrimming="CharacterEllipsis"
@@ -73,144 +137,82 @@
                          Text="{Binding PrimaryAuthor}" />
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
                 <Border IsVisible="{Binding Processing.IsIndexed}"
-                        Background="{DynamicResource Brush.Accent.Sage}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge success">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexedBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Indexed"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Indexed" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsIndexing}"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge warning">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexingBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Indexing"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Indexing" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsIndexFailed}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge danger">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexFailedBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.IndexFailed"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.IndexFailed" />
                 </Border>
                 <!-- Sept-23 Phase 17 (K21): honest text status, derived from pages and OCR. -->
                 <Border IsVisible="{Binding Processing.IsTextSearchable}"
-                        Background="{DynamicResource Brush.Accent.Sage}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge success">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextSearchableBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Searchable"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Searchable" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsPartlySearchable}"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge warning">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextPartlyBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.PartlySearchable"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.PartlySearchable" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsImageOnly}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextImageOnlyBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.ImageOnly"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.ImageOnly" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrInProgress}"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge warning">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrInProgressBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrInProgress"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrInProgress" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrText}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge">
                   <StackPanel Orientation="Horizontal" Spacing="3">
                     <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrBadgeText}"
-                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrText"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrText" />
                     <TextBlock Text="{Binding Processing.OcrConfidencePercent, StringFormat={}{0} %}"
-                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrConfidence"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrConfidence" />
                   </StackPanel>
                 </Border>
                 <Border IsVisible="{Binding Processing.IsNoText}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge danger">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextNoneBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.NoText"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.NoText" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrFailed}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge danger">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrFailedBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrFailed"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrFailed" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsEmbedded}"
-                        Background="{DynamicResource Brush.Accent.Ink}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.EmbeddedBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge info">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.EmbeddedBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.ShowLegacyOcrBadge}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.OcrBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.OcrBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.HasQualityScore}"
-                        Background="{DynamicResource Brush.Accent.Plum}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding Processing.QualityScore, StringFormat={}{0:P0}}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge ai">
+                  <TextBlock Text="{Binding Processing.QualityScore, StringFormat={}{0:P0}}" />
                 </Border>
                 <Border IsVisible="{Binding !IsAvailable}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge danger">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.UnavailableBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Unavailable"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Unavailable" />
                 </Border>
                 <Border IsVisible="{Binding IsLocked}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1"
+                        Classes="badge"
                         AutomationProperties.Name="{Binding $parent[UserControl].DataContext.LockedBadgeText}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.LockedBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked" />
                 </Border>
               </WrapPanel>
             </StackPanel>
@@ -219,4 +221,5 @@
       </DataTemplate>
     </ListBox.ItemTemplate>
   </ListBox>
+  </DockPanel>
 </UserControl>

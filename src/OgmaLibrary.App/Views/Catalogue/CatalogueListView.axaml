@@ -44,7 +44,8 @@
                                 Height="54"
                                 RelativePath="{Binding CoverRelativePath}"
                                 RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
-                                Label="{Binding Title}" />
+                                Label="{Binding Title}"
+                                Subtitle="{Binding CoverAuthor}" />
 
             <!-- Title + Author -->
             <StackPanel Grid.Column="1"
@@ -67,140 +68,78 @@
               </TextBlock>
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
                 <Border IsVisible="{Binding Processing.IsIndexed}"
-                        Background="{DynamicResource Brush.Accent.Sage}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexedBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge success">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexedBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsIndexing}"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexingBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge warning">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexingBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsIndexFailed}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexFailedBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge danger">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexFailedBadgeText}" />
                 </Border>
                 <!-- Sept-23 Phase 17 (K21): honest text status, derived from pages and OCR. -->
                 <Border IsVisible="{Binding Processing.IsTextSearchable}"
-                        Background="{DynamicResource Brush.Accent.Sage}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge success">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextSearchableBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Searchable"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Searchable" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsPartlySearchable}"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge warning">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextPartlyBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.PartlySearchable"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.PartlySearchable" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsImageOnly}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextImageOnlyBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.ImageOnly"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.ImageOnly" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrInProgress}"
-                        Background="{DynamicResource Brush.Accent.Oak}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge warning">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrInProgressBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrInProgress"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrInProgress" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrText}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge">
                   <StackPanel Orientation="Horizontal" Spacing="3">
                     <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrBadgeText}"
-                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrText"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrText" />
                     <TextBlock Text="{Binding Processing.OcrConfidencePercent, StringFormat={}{0} %}"
-                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrConfidence"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                               AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrConfidence" />
                   </StackPanel>
                 </Border>
                 <Border IsVisible="{Binding Processing.IsNoText}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge danger">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextNoneBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.NoText"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.NoText" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrFailed}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
+                        Classes="badge danger">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrFailedBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrFailed"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrFailed" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsEmbedded}"
-                        Background="{DynamicResource Brush.Accent.Ink}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.EmbeddedBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge info">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.EmbeddedBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.ShowLegacyOcrBadge}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.OcrBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.OcrBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.HasQualityScore}"
-                        Background="{DynamicResource Brush.Accent.Plum}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding Processing.QualityScore, StringFormat={}{0:P0}}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge ai">
+                  <TextBlock Text="{Binding Processing.QualityScore, StringFormat={}{0:P0}}" />
                 </Border>
                 <Border IsVisible="{Binding !IsAvailable}"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1">
-                  <TextBlock Text="{Binding $parent[UserControl].DataContext.UnavailableBadgeText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                        Classes="badge danger">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.UnavailableBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding IsLocked}"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        CornerRadius="{DynamicResource Radius.S}"
-                        Padding="4,1"
+                        Classes="badge"
                         AutomationProperties.Name="{Binding $parent[UserControl].DataContext.LockedBadgeText}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.LockedBadgeText}"
-                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked" />
                 </Border>
               </WrapPanel>
             </StackPanel>

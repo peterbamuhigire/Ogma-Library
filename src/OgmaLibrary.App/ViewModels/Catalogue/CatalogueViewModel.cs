@@ -36,6 +36,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     private readonly List<BookSummaryProjection> _allItems = [];
     private readonly ObservableCollection<BookSummaryProjection> _filteredItems = [];
+    private readonly ObservableCollection<BookSummaryProjection> _homeStripItems = [];
 
     private BookSummaryProjection? _selectedBook;
     private CatalogueView _currentView = CatalogueView.Grid;
@@ -200,6 +201,40 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Localized next-page label.</summary>
     public string NextPageText => _localization["Catalogue.Paging.Next"];
+
+    /// <summary>
+    /// Library home strip (Sept-23 Phase 09): books in progress (furthest first), or the first
+    /// shelved books when nothing is in progress. At most <see cref="HomeStripSize"/> items.
+    /// </summary>
+    public ObservableCollection<BookSummaryProjection> HomeStripItems => _homeStripItems;
+
+    /// <summary>The maximum number of books in the home strip.</summary>
+    public const int HomeStripSize = 8;
+
+    /// <summary>Whether the home header is shown (the library has books).</summary>
+    public bool HasHomeStrip => _homeStripItems.Count > 0;
+
+    /// <summary>Whether any book is in progress (the strip reads "Continue reading").</summary>
+    public bool HasBooksInProgress => _allItems.Any(IsInProgress);
+
+    /// <summary>The time-of-day greeting for the library home header.</summary>
+    public string HomeGreeting => DateTime.Now.Hour switch
+    {
+        < 12 => _localization["Catalogue.Home.Greeting.Morning"],
+        < 18 => _localization["Catalogue.Home.Greeting.Afternoon"],
+        _ => _localization["Catalogue.Home.Greeting.Evening"],
+    };
+
+    /// <summary>The home strip heading ("Continue reading" or "On your shelves").</summary>
+    public string HomeStripTitle => HasBooksInProgress
+        ? _localization["Catalogue.Home.ContinueReading"]
+        : _localization["Catalogue.Home.OnYourShelves"];
+
+    /// <summary>The home header summary line ("17 books in your library").</summary>
+    public string HomeSummaryText => string.Format(
+        _localization.CurrentCulture,
+        _localization["Catalogue.Home.CountFormat"],
+        _allItems.Count);
 
     /// <summary>Localized catalogue badge labels shared by grid and list views.</summary>
     public string IndexedBadgeText => _localization["Catalogue.Badge.Indexed"];
@@ -504,6 +539,8 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             .Take(PageSize)
             .ToList();
 
+        List<BookSummaryProjection> strip = BuildHomeStrip();
+
         void UpdateFiltered()
         {
             _filteredItems.Clear();
@@ -511,6 +548,18 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             {
                 _filteredItems.Add(item);
             }
+
+            _homeStripItems.Clear();
+            foreach (var item in strip)
+            {
+                _homeStripItems.Add(item);
+            }
+
+            OnPropertyChanged(nameof(HasHomeStrip));
+            OnPropertyChanged(nameof(HasBooksInProgress));
+            OnPropertyChanged(nameof(HomeStripTitle));
+            OnPropertyChanged(nameof(HomeSummaryText));
+            OnPropertyChanged(nameof(HomeGreeting));
 
             OnPropertyChanged(nameof(FilteredCount));
             OnPropertyChanged(nameof(TotalFilteredCount));
@@ -621,8 +670,30 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
+    private static bool IsInProgress(BookSummaryProjection book) =>
+        book.ReadingProgressPct is > 0 and < 100;
+
+    private List<BookSummaryProjection> BuildHomeStrip()
+    {
+        List<BookSummaryProjection> inProgress = _allItems
+            .Where(IsInProgress)
+            .OrderByDescending(b => b.ReadingProgressPct)
+            .ThenBy(b => b.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .Take(HomeStripSize)
+            .ToList();
+        return inProgress.Count > 0
+            ? inProgress
+            : _allItems
+                .OrderBy(b => b.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                .Take(HomeStripSize)
+                .ToList();
+    }
+
     private void OnCultureChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(HomeGreeting));
+        OnPropertyChanged(nameof(HomeStripTitle));
+        OnPropertyChanged(nameof(HomeSummaryText));
         OnPropertyChanged(nameof(PageSummaryText));
         OnPropertyChanged(nameof(PreviousPageText));
         OnPropertyChanged(nameof(NextPageText));

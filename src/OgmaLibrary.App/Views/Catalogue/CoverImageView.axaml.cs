@@ -25,6 +25,10 @@ public partial class CoverImageView : UserControl, INotifyPropertyChanged
     public static readonly StyledProperty<string?> LabelProperty =
         AvaloniaProperty.Register<CoverImageView, string?>(nameof(Label));
 
+    /// <summary>Secondary cover line, normally the primary author (generated covers only).</summary>
+    public static readonly StyledProperty<string?> SubtitleProperty =
+        AvaloniaProperty.Register<CoverImageView, string?>(nameof(Subtitle));
+
     private CancellationTokenSource? _loadCancellation;
     private Bitmap? _image;
 
@@ -56,6 +60,13 @@ public partial class CoverImageView : UserControl, INotifyPropertyChanged
     {
         get => GetValue(LabelProperty);
         set => SetValue(LabelProperty, value);
+    }
+
+    /// <summary>Secondary cover line (author).</summary>
+    public string? Subtitle
+    {
+        get => GetValue(SubtitleProperty);
+        set => SetValue(SubtitleProperty, value);
     }
 
     /// <summary>Loaded image, if the safe path resolved and decoded.</summary>

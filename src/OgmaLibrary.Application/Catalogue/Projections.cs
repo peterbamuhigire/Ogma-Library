@@ -48,6 +48,13 @@ public sealed record BookSummaryProjection(
     public string PrimaryAuthor =>
         Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim() ??
         "Unknown author";
+
+    /// <summary>
+    /// The first real author, or null when none is recorded (generated covers omit the author
+    /// line rather than printing a fallback).
+    /// </summary>
+    public string? CoverAuthor =>
+        Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim();
 }
 
 /// <summary>
