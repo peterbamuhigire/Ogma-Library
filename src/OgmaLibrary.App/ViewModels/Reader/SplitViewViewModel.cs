@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 
 namespace OgmaLibrary.App.ViewModels.Reader;
@@ -100,6 +101,9 @@ public sealed class SplitViewViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(OpenReferenceLabel));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }

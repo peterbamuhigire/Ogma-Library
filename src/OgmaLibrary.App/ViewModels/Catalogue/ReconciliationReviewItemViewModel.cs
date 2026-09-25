@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application.Ingestion;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
@@ -55,6 +56,9 @@ public sealed class ReconciliationReviewItemViewModel : INotifyPropertyChanged
     /// <summary>The review creation timestamp.</summary>
     public DateTimeOffset CreatedUtc => Review.CreatedUtc;
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }

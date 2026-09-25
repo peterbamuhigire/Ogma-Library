@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
@@ -78,6 +81,7 @@ public sealed class MainShellViewModel :
     private readonly IDirectPdfOpenService? _directPdfOpenService;
     private readonly IClassroomModeService? _classroomModeService;
     private readonly IUserPreferencesService? _userPreferencesService;
+    private readonly ILogger _logger;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
     private readonly string _studentSmartSearchIconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
@@ -132,6 +136,7 @@ public sealed class MainShellViewModel :
     /// <param name="libraryRootService">The durable library-root identity service.</param>
     /// <param name="userPreferencesService">The persisted desktop appearance preference service.</param>
     /// <param name="reconciliationReviews">The operator relocation-review workflow.</param>
+    /// <param name="logger">Optional logger (Sept-23 Phase 02).</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -153,7 +158,8 @@ public sealed class MainShellViewModel :
         Bookshelf3DViewModel? bookshelf3D = null,
         ILibraryRootService? libraryRootService = null,
         IUserPreferencesService? userPreferencesService = null,
-        ReconciliationReviewPanelViewModel? reconciliationReviews = null)
+        ReconciliationReviewPanelViewModel? reconciliationReviews = null,
+        ILogger<MainShellViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -181,6 +187,7 @@ public sealed class MainShellViewModel :
         _directPdfOpenService = directPdfOpenService;
         _classroomModeService = classroomModeService;
         _userPreferencesService = userPreferencesService;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
 
         _localization.CultureChanged += (_, _) => RaiseAllChanged();
         Catalogue.PropertyChanged += Catalogue_PropertyChanged;
@@ -211,13 +218,18 @@ public sealed class MainShellViewModel :
     {
         try
         {
-            await Catalogue.LoadAsync(cancellationToken).ConfigureAwait(false);
-            await ShelfSidebar.LoadAsync(cancellationToken).ConfigureAwait(false);
+            // Stay on the caller's (UI) context: the catalogue marshals its own list swap,
+            // and the shelf sidebar's state is bound (Sept-23 Phase 02, K72).
+            await Catalogue.LoadAsync(cancellationToken).ConfigureAwait(true);
+            await ShelfSidebar.LoadAsync(cancellationToken).ConfigureAwait(true);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException &&
+                                   !OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
+            // K81: never show raw exception text; the detail goes to the redacted log.
+            AppLog.CatalogueLoadFailed(_logger, ex);
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                SetStatusOverride($"Catalogue load failed: {ex.Message}"));
+                SetStatusOverride(_localization["Catalogue.LoadFailed"]));
         }
     }
 
@@ -838,12 +850,10 @@ public sealed class MainShellViewModel :
                     AllowMultiple = false,
                 }).ConfigureAwait(true);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
-            SetStatusOverride(string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["MainWindow.FolderPicker.FailedFormat"],
-                ex.Message));
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "catalogue.choose_folder");
+            SetStatusOverride(_localization["MainWindow.FolderPicker.Failed"]);
             return;
         }
 
@@ -877,12 +887,10 @@ public sealed class MainShellViewModel :
 
             await _settingsService.SetLibraryRootAsync(path).ConfigureAwait(true);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
-            SetStatusOverride(string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["MainWindow.FolderPicker.FailedFormat"],
-                ex.Message));
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "catalogue.choose_folder");
+            SetStatusOverride(_localization["MainWindow.FolderPicker.Failed"]);
             return;
         }
         SetStatusOverride(_localization["MainWindow.FolderPicker.ScanStarting"]);
@@ -905,13 +913,11 @@ public sealed class MainShellViewModel :
             {
                 // Scan was cancelled — normal path.
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
             {
+                AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "scan.run");
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    SetStatusOverride(string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
-                        _localization["MainWindow.FolderPicker.ScanFailedFormat"],
-                        ex.Message)));
+                    SetStatusOverride(_localization["MainWindow.FolderPicker.ScanFailed"]));
             }
         });
     }
@@ -962,12 +968,10 @@ public sealed class MainShellViewModel :
                     ],
                 }).ConfigureAwait(true);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
-            SetStatusOverride(string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["MainWindow.PdfPicker.FailedFormat"],
-                ex.Message));
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "catalogue.open_pdf_picker");
+            SetStatusOverride(_localization["MainWindow.PdfPicker.Failed"]);
             return;
         }
 
@@ -1006,12 +1010,10 @@ public sealed class MainShellViewModel :
             await OpenReaderAsync(bookId, pageHint: null, cancellationToken).ConfigureAwait(true);
             SetStatusOverride(_localization["MainWindow.PdfPicker.OpenedWithMetadata"]);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
-            SetStatusOverride(string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["MainWindow.PdfPicker.FailedFormat"],
-                ex.Message));
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "catalogue.open_pdf");
+            SetStatusOverride(_localization["MainWindow.PdfPicker.Failed"]);
         }
     }
 
@@ -1251,10 +1253,11 @@ public sealed class MainShellViewModel :
             await Catalogue.LoadAsync(CancellationToken.None).ConfigureAwait(false);
             await ShelfSidebar.LoadAsync(CancellationToken.None).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "classroom.catalogue_refresh");
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                SetStatusOverride($"Connected, but catalogue refresh failed: {ex.Message}"));
+                SetStatusOverride(_localization["Catalogue.RefreshAfterConnectFailed"]));
         }
     }
 
@@ -1371,8 +1374,11 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(CommandPaletteWatermark));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     private sealed class ConnectivityObserver : IObserver<ClassroomConnectivityStatus>
     {

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Domain.Ai;
@@ -476,8 +477,11 @@ public sealed class StudentSmartSearchViewModel : INotifyPropertyChanged, IDispo
         OnPropertyChanged(nameof(CanDeleteHistory));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {

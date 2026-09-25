@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ingestion;
 
@@ -238,8 +239,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(CancelScanText));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     /// <summary>A minimal English localization used only by the design-time constructor.</summary>
     private sealed class DesignLocalizationService : ILocalizationService

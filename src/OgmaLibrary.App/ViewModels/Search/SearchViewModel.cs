@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Search;
@@ -405,8 +406,11 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 Results.Count);
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>Search result item for the Avalonia list.</summary>

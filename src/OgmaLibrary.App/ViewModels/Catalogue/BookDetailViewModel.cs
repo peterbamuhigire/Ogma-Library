@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Metadata;
@@ -1955,8 +1956,11 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         });
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {

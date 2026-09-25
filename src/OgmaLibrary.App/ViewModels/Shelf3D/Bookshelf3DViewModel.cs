@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
@@ -167,7 +168,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
             Books.Clear();
             await foreach (BookSummaryProjection summary in _catalogue.GetBookSummariesAsync(
                 new CatalogueFilter(Status: 0, MaxResults: 0),
-                cancellationToken).ConfigureAwait(false))
+                cancellationToken).ConfigureAwait(true))
             {
                 Books.Add(ToSceneItem(summary));
             }
@@ -176,7 +177,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
             {
                 await _bridge.PostMessageAsync(
                     new SetSceneMessage(Books.ToArray(), DefaultCamera()),
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(true);
             }
             catch (Exception) when (!cancellationToken.IsCancellationRequested)
             {
@@ -202,7 +203,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         CurrentLayout = layout;
         try
         {
-            await _bridge.PostMessageAsync(new SetLayoutMessage(layout), cancellationToken).ConfigureAwait(false);
+            await _bridge.PostMessageAsync(new SetLayoutMessage(layout), cancellationToken).ConfigureAwait(true);
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -227,7 +228,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            await _hostCoordinator.InitializeAsync(host, cancellationToken).ConfigureAwait(false);
+            await _hostCoordinator.InitializeAsync(host, cancellationToken).ConfigureAwait(true);
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -253,7 +254,7 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            await _bridge.PostMessageAsync(new FocusBookMessage(bookId), cancellationToken).ConfigureAwait(false);
+            await _bridge.PostMessageAsync(new FocusBookMessage(bookId), cancellationToken).ConfigureAwait(true);
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -369,6 +370,9 @@ public sealed class Bookshelf3DViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(WebViewHostLabel));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }

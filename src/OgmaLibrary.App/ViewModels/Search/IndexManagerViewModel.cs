@@ -796,8 +796,11 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         return string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:0.#} MiB", kib / 1024d);
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>Localized OCR job row for the Index Manager UI.</summary>

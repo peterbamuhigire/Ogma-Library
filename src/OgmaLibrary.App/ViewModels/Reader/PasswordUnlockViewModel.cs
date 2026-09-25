@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Reader;
 
@@ -125,6 +126,9 @@ public sealed class PasswordUnlockViewModel : INotifyPropertyChanged
         }
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }

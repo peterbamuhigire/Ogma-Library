@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
@@ -153,9 +154,9 @@ public sealed class ReadingPlanViewModel : INotifyPropertyChanged, IDisposable
             ReadingPlan plan = await _advisor.GetReadingPlanAsync(
                 new ReadingPlanRequest(string.IsNullOrWhiteSpace(Goal) ? _localization["Ai.Advisor.Plan.Goal.Default"] : Goal),
                 new RecommendationGenerationOptions(AiPrivacyTier.MetadataOnly, "openai", "gpt-test"),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(true);
             Goal = plan.Goal;
-            await LoadPlanAsync(plan, cancellationToken).ConfigureAwait(false);
+            await LoadPlanAsync(plan, cancellationToken).ConfigureAwait(true);
             StatusText = string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 _localization["Ai.Advisor.Status.PlanLoadedFormat"],
@@ -191,7 +192,7 @@ public sealed class ReadingPlanViewModel : INotifyPropertyChanged, IDisposable
         for (int i = 0; i < plan.Steps.Count; i++)
         {
             ReadingPlanStep step = plan.Steps[i];
-            BookDetailProjection? detail = await _catalogue.GetBookDetailAsync(step.BookId.Value, cancellationToken).ConfigureAwait(false);
+            BookDetailProjection? detail = await _catalogue.GetBookDetailAsync(step.BookId.Value, cancellationToken).ConfigureAwait(true);
             Steps.Add(new PlanStepViewModel(i + 1, step, detail?.Title ?? step.BookId.Value, _localization));
         }
 
@@ -217,8 +218,11 @@ public sealed class ReadingPlanViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(EmptyText));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>Display model for one reading-plan step.</summary>
@@ -281,8 +285,11 @@ public sealed class PlanStepViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AccessibleLabel));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>Display model for one reading-plan checkpoint.</summary>

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.ClassroomClient;
 using OgmaLibrary.Application.LanHost;
@@ -911,11 +912,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
-        _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(false);
-        await RefreshProfilesAsync(cancellationToken).ConfigureAwait(false);
-        await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(false);
-        await RefreshSchoolAdminAsync(cancellationToken).ConfigureAwait(false);
+        _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(true);
+        _status = await _hostService.GetStatusAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshProfilesAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshSyncStatusAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshSchoolAdminAsync(cancellationToken).ConfigureAwait(true);
         RaiseStatusChanged();
     }
 
@@ -1410,8 +1411,8 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             IsStartConfirmationOpen = false;
-            _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
-            _status = await _hostService.StartAsync(cancellationToken).ConfigureAwait(false);
+            _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(true);
+            _status = await _hostService.StartAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
         {
@@ -1432,7 +1433,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         {
             IsStartConfirmationOpen = false;
             IsFileStreamConfirmationOpen = false;
-            _status = await _hostService.StopAsync(cancellationToken).ConfigureAwait(false);
+            _status = await _hostService.StopAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
         {
@@ -1457,12 +1458,12 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             IsFileStreamConfirmationOpen = false;
-            _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
+            _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(true);
             HostContentDeliveryMode nextMode = _settings.ContentMode == HostContentDeliveryMode.PageRender
                 ? HostContentDeliveryMode.FileStream
                 : HostContentDeliveryMode.PageRender;
             _settings = _settings with { ContentMode = nextMode };
-            await _settingsRepository.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
+            await _settingsRepository.SaveAsync(_settings, cancellationToken).ConfigureAwait(true);
         }
         finally
         {
@@ -1491,7 +1492,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         }
 
         IsStartConfirmationOpen = false;
-        await StartAsync(cancellationToken).ConfigureAwait(false);
+        await StartAsync(cancellationToken).ConfigureAwait(true);
     }
 
     public async Task RequestContentModeChangeAsync(CancellationToken cancellationToken = default)
@@ -1501,14 +1502,14 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
             return;
         }
 
-        _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(false);
+        _settings = await _settingsRepository.GetAsync(cancellationToken).ConfigureAwait(true);
         if (_settings.ContentMode == HostContentDeliveryMode.PageRender)
         {
             IsFileStreamConfirmationOpen = true;
             return;
         }
 
-        await ToggleContentModeAsync(cancellationToken).ConfigureAwait(false);
+        await ToggleContentModeAsync(cancellationToken).ConfigureAwait(true);
     }
 
     public void CancelFileStreamConfirmation() => IsFileStreamConfirmationOpen = false;
@@ -1521,7 +1522,7 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         }
 
         IsFileStreamConfirmationOpen = false;
-        await ToggleContentModeAsync(cancellationToken).ConfigureAwait(false);
+        await ToggleContentModeAsync(cancellationToken).ConfigureAwait(true);
     }
 
     public void OpenSharePanel()
@@ -2001,8 +2002,11 @@ public sealed class HostSharingViewModel : INotifyPropertyChanged, IDisposable
         return builder.ToString();
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     private string Localize(string key, string fallback) =>
         _localization is null ? fallback : _localization[key];

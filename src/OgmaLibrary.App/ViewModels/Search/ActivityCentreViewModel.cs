@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Avalonia.Threading;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ingestion;
 
@@ -217,8 +218,11 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         OnPropertyChanged(nameof(HasJobs));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>UI-safe background job row.</summary>

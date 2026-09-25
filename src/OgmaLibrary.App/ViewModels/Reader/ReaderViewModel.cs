@@ -2497,8 +2497,11 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         return true;
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }
 
 /// <summary>A display row for a bookmark in the reader sidebar.</summary>

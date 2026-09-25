@@ -1,8 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Navigation;
 
@@ -24,6 +28,11 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private readonly ILibrarySettingsService? _settings;
     private readonly ICatalogueViewStateStore? _viewStateStore;
     private readonly string? _assetRootPath;
+    private readonly IUiDispatcher _ui;
+    private readonly ILogger _logger;
+    private readonly SemaphoreSlim _loadGate = new(1, 1);
+    private CancellationTokenSource? _loadCts;
+    private int _loadGeneration;
 
     private readonly List<BookSummaryProjection> _allItems = [];
     private readonly ObservableCollection<BookSummaryProjection> _filteredItems = [];
@@ -45,13 +54,17 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <param name="settings">Optional persisted settings used to resolve local assets.</param>
     /// <param name="assetRootPath">The configured sidecar root used for local visual assets.</param>
     /// <param name="viewStateStore">Optional store for persisted catalogue presentation state.</param>
+    /// <param name="uiDispatcher">Marshals bound state onto the UI thread (inline when absent).</param>
+    /// <param name="logger">Optional logger.</param>
     public CatalogueViewModel(
         ICatalogueReadModel readModel,
         IBookDetailNavigationService navigation,
         ILocalizationService localization,
         ILibrarySettingsService? settings = null,
         string? assetRootPath = null,
-        ICatalogueViewStateStore? viewStateStore = null)
+        ICatalogueViewStateStore? viewStateStore = null,
+        IUiDispatcher? uiDispatcher = null,
+        ILogger<CatalogueViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -63,6 +76,8 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         _settings = settings;
         _assetRootPath = assetRootPath;
         _viewStateStore = viewStateStore;
+        _ui = uiDispatcher ?? InlineUiDispatcher.Instance;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
         _localization.CultureChanged += OnCultureChanged;
 
         Filter = new CatalogueFilterViewModel();
@@ -256,41 +271,99 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// Loads all books from the read model into the in-memory collection,
     /// then applies the current filter and sort.
     /// </summary>
+    /// <remarks>
+    /// Sept-23 Phase 02 (T02.5, K72): refreshes are single-flight. A newer call cancels the
+    /// running one and queued older calls are coalesced away; the list is built off the UI
+    /// thread and swapped in, with every bound mutation marshalled through
+    /// <see cref="IUiDispatcher"/>. A superseded call returns without publishing.
+    /// </remarks>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
-        IsLoading = true;
+        int generation = Interlocked.Increment(ref _loadGeneration);
+        var loadCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Interlocked.Exchange(ref _loadCts, loadCts)?.Cancel();
+        CancellationToken token = loadCts.Token;
 
         try
         {
-            await RestoreViewStateAsync(cancellationToken).ConfigureAwait(false);
+            await _loadGate.WaitAsync(token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            AppLog.CatalogueLoadSuperseded(_logger);
+            loadCts.Dispose();
+            return;
+        }
 
+        try
+        {
+            if (generation != Volatile.Read(ref _loadGeneration))
+            {
+                // A newer refresh is queued behind this one; let it do the work.
+                AppLog.CatalogueLoadSuperseded(_logger);
+                return;
+            }
+
+            await _ui.InvokeAsync(() => IsLoading = true, token).ConfigureAwait(false);
+
+            CatalogueViewState? viewState = _viewStateStore is null
+                ? null
+                : await _viewStateStore.LoadAsync(token).ConfigureAwait(false);
+            if (viewState is not null)
+            {
+                await _ui.InvokeAsync(() => ApplyViewState(viewState), token).ConfigureAwait(false);
+            }
+
+            string? libraryRoot = LibraryRootPath;
             if (!string.IsNullOrWhiteSpace(_assetRootPath))
             {
-                LibraryRootPath = _assetRootPath;
+                libraryRoot = _assetRootPath;
             }
             else if (_settings is not null)
             {
-                LibraryRootPath = await _settings.GetLibraryRootAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                libraryRoot = await _settings.GetLibraryRootAsync(token).ConfigureAwait(false);
             }
 
-            _allItems.Clear();
-
+            // Build the new list off the UI thread, then swap it in on the UI thread.
+            var items = new List<BookSummaryProjection>();
             var filter = new CatalogueFilter(MaxResults: 0);
-            await foreach (var book in _readModel.GetBookSummariesAsync(filter, cancellationToken)
+            await foreach (var book in _readModel.GetBookSummariesAsync(filter, token)
                                .ConfigureAwait(false))
             {
-                _allItems.Add(book);
+                items.Add(book);
             }
 
-            ApplyFilterAndSort(resetPage: false);
+            token.ThrowIfCancellationRequested();
+            await _ui.InvokeAsync(
+                () =>
+                {
+                    LibraryRootPath = libraryRoot;
+                    _allItems.Clear();
+                    _allItems.AddRange(items);
+                    ApplyFilterAndSort(resetPage: false);
+                },
+                token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            AppLog.CatalogueLoadSuperseded(_logger);
         }
         finally
         {
-            IsLoading = false;
-            OnPropertyChanged(nameof(IsEmpty));
-            OnPropertyChanged(nameof(TotalCount));
+            _loadGate.Release();
+            if (generation == Volatile.Read(ref _loadGeneration))
+            {
+                _ui.Post(() =>
+                {
+                    IsLoading = false;
+                    OnPropertyChanged(nameof(IsEmpty));
+                    OnPropertyChanged(nameof(TotalCount));
+                });
+            }
+
+            Interlocked.CompareExchange(ref _loadCts, null, loadCts);
+            loadCts.Dispose();
         }
     }
 
@@ -437,25 +510,15 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        Interlocked.Exchange(ref _loadCts, null)?.Cancel();
         _viewStateSaveCts?.Cancel();
         _viewStateSaveCts?.Dispose();
         _localization.CultureChanged -= OnCultureChanged;
         // No unmanaged resources; Filter subscription uses a lambda so no explicit removal needed.
     }
 
-    private async Task RestoreViewStateAsync(CancellationToken cancellationToken)
+    private void ApplyViewState(CatalogueViewState state)
     {
-        if (_viewStateStore is null)
-        {
-            return;
-        }
-
-        CatalogueViewState? state = await _viewStateStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-        if (state is null)
-        {
-            return;
-        }
-
         if (Enum.TryParse(state.View, ignoreCase: true, out CatalogueView view))
         {
             _currentView = view;
@@ -521,8 +584,11 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {

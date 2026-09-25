@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using OgmaLibrary.App.Icons;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Navigation;
@@ -374,7 +375,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
             IReadOnlyList<RecommendationCard> cards = await _advisor.GetRecommendationsAsync(
                 new RecommendationQuery(string.IsNullOrWhiteSpace(Query) ? _localization["Ai.Advisor.Query.Default"] : Query),
                 new RecommendationGenerationOptions(AiPrivacyTier.MetadataOnly, "openai", "gpt-test"),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(true);
 
             Recommendations.Clear();
             foreach (RecommendationCard card in cards)
@@ -421,7 +422,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
                     Query.Trim(),
                     maxCitations: 5,
                     allowContentAwareTier: ContentAwareConsent),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(true);
 
             AnswerText = response.Answer;
             foreach (AnswerCitation citation in response.Citations)
@@ -480,7 +481,7 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
                         SubmittedUtc: DateTimeOffset.UtcNow),
                     consentGranted: true,
                     cancellationToken)
-                .ConfigureAwait(false);
+                .ConfigureAwait(true);
             FeedbackStatusText = _localization["Ai.Advisor.Feedback.Saved"];
         }
         catch (AdvisorFeedbackConsentRequiredException)
@@ -507,10 +508,10 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
     {
         if (_focusBook is not null)
         {
-            await _focusBook(bookId, cancellationToken).ConfigureAwait(false);
+            await _focusBook(bookId, cancellationToken).ConfigureAwait(true);
         }
 
-        await _navigation.OpenDetailAsync(bookId, cancellationToken).ConfigureAwait(false);
+        await _navigation.OpenDetailAsync(bookId, cancellationToken).ConfigureAwait(true);
     }
 
     /// <summary>Opens a grounded answer citation at its validated reader page.</summary>
@@ -539,18 +540,18 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         AnswerCitationViewModel citation,
         CancellationToken cancellationToken)
     {
-        await _focusBook!(citation.BookId, cancellationToken).ConfigureAwait(false);
+        await _focusBook!(citation.BookId, cancellationToken).ConfigureAwait(true);
         if (_readerNavigation is not null)
         {
             int? pageHint = citation.PageNumber is > 0
                 ? citation.PageNumber.Value - 1
                 : null;
             await _readerNavigation.OpenReaderAsync(citation.BookId, pageHint, cancellationToken)
-                .ConfigureAwait(false);
+                .ConfigureAwait(true);
             return;
         }
 
-        await _navigation.OpenDetailAsync(citation.BookId, cancellationToken).ConfigureAwait(false);
+        await _navigation.OpenDetailAsync(citation.BookId, cancellationToken).ConfigureAwait(true);
     }
 
     /// <inheritdoc />
@@ -585,8 +586,11 @@ public sealed class RecommendationPanelViewModel : INotifyPropertyChanged, IDisp
         OnPropertyChanged(nameof(FeedbackSubmitLabel));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 
     private string RateAnswerLabel(int rating) => string.Format(
         System.Globalization.CultureInfo.CurrentCulture,
@@ -681,8 +685,11 @@ public sealed class RecommendationCardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(UncertaintyText));
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 /// <summary>Display model for one provenance chip.</summary>

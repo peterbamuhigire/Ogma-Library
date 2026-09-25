@@ -11,6 +11,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.LanHost;
 using OgmaLibrary.Application.Metadata;
@@ -60,7 +61,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             localization,
             services.GetRequiredService<ILibrarySettingsService>(),
             options.LibraryRoot,
-            services.GetRequiredService<ICatalogueViewStateStore>());
+            services.GetRequiredService<ICatalogueViewStateStore>(),
+            services.GetRequiredService<IUiDispatcher>(),
+            services.GetRequiredService<ILogger<CatalogueViewModel>>());
         var bookDetail = new BookDetailViewModel(
             readModel,
             navigation,
@@ -186,7 +189,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             bookshelf3D,
             services.GetRequiredService<ILibraryRootService>(),
             services.GetRequiredService<IUserPreferencesService>(),
-            reconciliationReviews);
+            reconciliationReviews,
+            services.GetRequiredService<ILogger<MainShellViewModel>>());
 
         return shell;
     }
