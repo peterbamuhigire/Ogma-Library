@@ -144,6 +144,19 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             query = query.Where(b => b.Status == filter.Status.Value);
         }
 
+        // Sept-23 Phase 05 (K21, K22): a book is listed only when at least one of its
+        // files is a readable PDF (valid or locked) in an enabled library folder, or is
+        // a loose file. Empty, non-PDF and damaged files live in "Needs attention", and
+        // a disabled or removed folder hides only its own books.
+        List<string> activeRootIds = [.. await Ingestion.LibraryRootPaths
+            .GetActiveRootIdsAsync(context, cancellationToken)
+            .ConfigureAwait(false)];
+        query = query.Where(b =>
+            !b.BookFiles.Any() ||
+            b.BookFiles.Any(f =>
+                (f.FileValidity == 0 || f.FileValidity == 4) &&
+                (f.LibraryRootId == null || activeRootIds.Contains(f.LibraryRootId))));
+
         var projected = query
             .OrderBy(b => b.Title ?? string.Empty)
             .Select(b => new
@@ -159,6 +172,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.IsOcrDerived,
                 b.Year,
                 b.Sha256Hash,
+                IsLocked = b.IsPasswordProtected || b.BookFiles.Any(f => f.FileValidity == 4),
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
                     .Select(ba => ba.Author!.NormalizedName)
@@ -244,8 +258,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 Year: item.Year,
                  Sha256Hash: item.Sha256Hash,
                  RelativePath: item.PrimaryRelativePath,
+                 IsLocked: item.IsLocked,
                  Processing: new CatalogueProcessingProjection(
-                     (global::OgmaLibrary.Application.Search.SearchBookIndexStatus)item.IndexStatus,
+                     LockedAwareIndexStatus(item.IndexStatus, item.IsLocked),
                      (global::OgmaLibrary.Application.Search.SearchEmbeddingStatus)item.EmbeddingStatus,
                      Math.Clamp(item.QualityScore, 0, 1),
                      item.IsOcrDerived)));
@@ -320,7 +335,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.Sha256Hash,
                 b.SizeBytes,
                 b.IsOcrDerived,
-                b.IsPasswordProtected,
+                IsPasswordProtected = b.IsPasswordProtected || b.BookFiles.Any(f => f.FileValidity == 4),
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
@@ -479,6 +494,21 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             .ThenBy(f => f.Source)
             .Select(f => f.Value)
             .FirstOrDefault();
+
+    /// <summary>
+    /// A locked PDF cannot be indexed until it is unlocked (Phase 12), so its
+    /// in-progress or failed index state is shown as not indexed rather than as
+    /// "Indexing" or "Index failed" (Sept-23 Phase 05, K25 hand-off).
+    /// </summary>
+    private static global::OgmaLibrary.Application.Search.SearchBookIndexStatus LockedAwareIndexStatus(
+        int indexStatus,
+        bool isLocked)
+    {
+        var status = (global::OgmaLibrary.Application.Search.SearchBookIndexStatus)indexStatus;
+        return isLocked && status != global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed
+            ? global::OgmaLibrary.Application.Search.SearchBookIndexStatus.NotIndexed
+            : status;
+    }
 
     /// <inheritdoc />
     public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(

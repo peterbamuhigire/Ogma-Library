@@ -67,9 +67,16 @@ public sealed class BookIdentityService : IBookIdentityService
 
         // ── Tier 1: Relative path ────────────────────────────────────────────────
         string relativePath = ComputeRelativePath(absoluteFilePath, libraryRootPath);
+        string? rootId = await FindRootIdAsync(context, libraryRootPath, cancellationToken)
+            .ConfigureAwait(false);
+
+        // Sept-23 Phase 05: a relative path only identifies a file within its own root;
+        // "Science/a.pdf" in one folder is not "Science/a.pdf" in another.
         BookFileRow? byPath = await context.BookFiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(f => f.RelativePath == relativePath && f.FileStatus == 0, cancellationToken)
+            .Where(f => f.RelativePath == relativePath && f.FileStatus == 0)
+            .Where(f => rootId == null ? f.LibraryRootId == null : f.LibraryRootId == rootId)
+            .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
         if (byPath is not null)
@@ -127,6 +134,29 @@ public sealed class BookIdentityService : IBookIdentityService
         // ISBN extraction from PDF metadata requires PdfPig (Phase 05 wires this).
         // For now, return NewBook so Phase 05 can import and assign identity.
         return new BookMatchResult.NewBook();
+    }
+
+    private static async Task<string?> FindRootIdAsync(
+        CatalogueDbContext context,
+        string libraryRootPath,
+        CancellationToken cancellationToken)
+    {
+        string canonical;
+        try
+        {
+            canonical = OgmaLibrary.Infrastructure.Pathing.PathGuard.CanonicalizeRoot(libraryRootPath);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+
+        return await context.LibraryRoots
+            .AsNoTracking()
+            .Where(root => root.CanonicalLocator == canonical)
+            .Select(root => root.LibraryRootId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>

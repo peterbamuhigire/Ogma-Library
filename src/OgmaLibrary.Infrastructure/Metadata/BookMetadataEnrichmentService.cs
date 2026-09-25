@@ -6,6 +6,7 @@ using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Assets;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Infrastructure.Metadata;
 
@@ -275,19 +276,22 @@ public sealed class BookMetadataEnrichmentService : IBookMetadataEnrichmentServi
         string? libraryRoot = await _settings.GetLibraryRootAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        string? relativePath = book.BookFiles
-            .Where(f => f.FileStatus == 0)
-            .Select(f => f.RelativePath)
-            .FirstOrDefault() ?? book.RelativePath;
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyDictionary<string, LibraryRootLocation> roots = await LibraryRootPaths
+            .LoadAsync(lease.Context, cancellationToken)
+            .ConfigureAwait(false);
 
-        if (string.IsNullOrWhiteSpace(libraryRoot) || string.IsNullOrWhiteSpace(relativePath))
-        {
-            return absoluteFilePath;
-        }
+        // Sept-23 Phase 05: resolve through the file's own root.
+        BookFileRow? file = book.BookFiles.FirstOrDefault(f => f.FileStatus == 0);
+        string? resolved = file is not null
+            ? LibraryRootPaths.Resolve(roots, file, libraryRoot)
+            : string.IsNullOrWhiteSpace(book.RelativePath)
+                ? null
+                : LibraryRootPaths.Resolve(roots, null, book.RelativePath, libraryRoot);
 
-        return Path.GetFullPath(Path.Combine(
-            libraryRoot,
-            relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        return resolved ?? absoluteFilePath;
     }
 
     private async Task TryWriteBackAsync(

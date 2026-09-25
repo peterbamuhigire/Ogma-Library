@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -19,6 +20,7 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
     private readonly CatalogueMigrator? _migrator;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly Pdf.PdfFileValidityClassifier _validity = new();
 
     /// <summary>Initializes a new instance of <see cref="DirectPdfOpenService"/>.</summary>
     /// <param name="settings">The library settings service.</param>
@@ -65,6 +67,12 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             throw new InvalidOperationException("The selected file is not a PDF document.");
         }
 
+        FileValidity validity = await _validity.ClassifyAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        if (validity is FileValidity.Empty or FileValidity.NotAPdf)
+        {
+            throw new InvalidPdfFileException(validity);
+        }
+
         if (_migrator is not null)
         {
             await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
@@ -72,43 +80,49 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
 
         try
         {
-            return await RegisterOrUpdateAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            return await RegisterOrUpdateAsync(fullPath, validity, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (_migrator is not null && IsMissingSqliteTable(ex))
         {
             await _migrator.ApplyAsync(cancellationToken).ConfigureAwait(false);
-            return await RegisterOrUpdateAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            return await RegisterOrUpdateAsync(fullPath, validity, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async Task<string> RegisterOrUpdateAsync(
         string fullPath,
+        FileValidity validity,
         CancellationToken cancellationToken)
     {
-        string containingFolder = Path.GetDirectoryName(fullPath)
-            ?? throw new InvalidOperationException("The selected PDF has no containing folder.");
-
-        string? existingRoot = await _settings.GetLibraryRootAsync(cancellationToken)
+        string? legacyRoot = await _settings.GetLibraryRootAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        string identityRoot;
-        string relativePath;
-        if (string.IsNullOrWhiteSpace(existingRoot))
+        // Sept-23 Phase 05 (K28): never change library roots here. A file inside an
+        // enabled root is recorded against that root; anything else is a loose book.
+        string? rootId = null;
+        string identityRoot = Path.GetDirectoryName(fullPath)
+            ?? throw new InvalidOperationException("The selected PDF has no containing folder.");
+        string relativePath = NormalizeStoredPath(fullPath);
+        if (_contextFactory is not null || _context is not null)
         {
-            identityRoot = containingFolder;
-            relativePath = Path.GetFileName(fullPath);
-            await _settings.SetLibraryRootAsync(identityRoot, cancellationToken)
+            using ContextLease rootLease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+            await LibraryRootPaths.BackfillLegacyRootAsync(rootLease.Context, legacyRoot, cancellationToken)
                 .ConfigureAwait(false);
+            IReadOnlyList<LibraryRootLocation> roots = await LibraryRootPaths
+                .GetActiveRootsAsync(rootLease.Context, cancellationToken)
+                .ConfigureAwait(false);
+            LibraryRootLocation? root = LibraryRootPaths.FindContainingRoot(roots, fullPath);
+            if (root is not null)
+            {
+                rootId = root.RootId;
+                identityRoot = root.CanonicalPath;
+                relativePath = LibraryRootPaths.ToRelativePath(root.CanonicalPath, fullPath);
+            }
         }
-        else if (IsUnderRoot(fullPath, existingRoot))
+        else if (!string.IsNullOrWhiteSpace(legacyRoot) && IsUnderRoot(fullPath, legacyRoot))
         {
-            identityRoot = Path.GetFullPath(existingRoot);
+            identityRoot = Path.GetFullPath(legacyRoot);
             relativePath = NormalizeStoredPath(Path.GetRelativePath(identityRoot, fullPath));
-        }
-        else
-        {
-            identityRoot = Path.GetFullPath(existingRoot);
-            relativePath = NormalizeStoredPath(fullPath);
         }
 
         var info = new FileInfo(fullPath);
@@ -116,12 +130,14 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
             AbsolutePath: fullPath,
             RelativePath: relativePath,
             SizeBytes: info.Length,
-            MtimeTicks: info.LastWriteTimeUtc.Ticks);
+            MtimeTicks: info.LastWriteTimeUtc.Ticks,
+            LibraryRootId: rootId,
+            Validity: validity == FileValidity.Locked ? FileValidity.Locked : FileValidity.Valid);
 
         string contentHash = await ComputeSha256Async(fullPath, cancellationToken)
             .ConfigureAwait(false);
 
-        string? registeredBookId = await FindRegisteredBookIdByPathAsync(relativePath, cancellationToken)
+        string? registeredBookId = await FindRegisteredBookIdByPathAsync(rootId, relativePath, cancellationToken)
             .ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(registeredBookId))
         {
@@ -131,6 +147,15 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
 
         if (_contextFactory is not null || _context is not null)
         {
+            // The same bytes opened from another place are another occurrence of
+            // the same book, not a second book (T05.11).
+            string? sameContentBookId = await AddOccurrenceToExistingContentAsync(
+                discovered, contentHash, cancellationToken).ConfigureAwait(false);
+            if (sameContentBookId is not null)
+            {
+                return sameContentBookId;
+            }
+
             return await _registration
                 .RegisterAsync(discovered, contentHash, cancellationToken)
                 .ConfigureAwait(false);
@@ -174,6 +199,7 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
     }
 
     private async Task<string?> FindRegisteredBookIdByPathAsync(
+        string? rootId,
         string relativePath,
         CancellationToken cancellationToken)
     {
@@ -188,10 +214,48 @@ public sealed class DirectPdfOpenService : IDirectPdfOpenService
 
         return await context.BookFiles
             .AsNoTracking()
-            .Where(f => f.RelativePath == relativePath && f.FileStatus == 0)
+            .Where(f => f.RelativePath == relativePath && f.LibraryRootId == rootId)
+            .OrderBy(f => f.FileStatus)
             .Select(f => f.BookId)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private async Task<string?> AddOccurrenceToExistingContentAsync(
+        DiscoveredFile discovered,
+        string contentHash,
+        CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookRow? book = await context.Books
+            .Where(b => b.Sha256Hash == contentHash)
+            .OrderBy(b => b.BookId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (book is null)
+        {
+            return null;
+        }
+
+        context.BookFiles.Add(new BookFileRow
+        {
+            BookId = book.BookId,
+            LibraryRootId = discovered.LibraryRootId,
+            RelativePath = discovered.RelativePath,
+            FileStatus = 0,
+            FileValidity = (int)discovered.Validity,
+            LastSeenUtc = DateTimeOffset.UtcNow,
+        });
+        if (book.Status == 1)
+        {
+            book.Status = 0;
+        }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return book.BookId;
     }
 
     private static bool IsMissingSqliteTable(Exception exception)

@@ -787,6 +787,14 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
             // equality and is never accepted through prefix matching.
         }
 
+        string? containingRoot = await FindContainingLibraryRootAsync(fullPath, cancellationToken)
+            .ConfigureAwait(false);
+        if (containingRoot is not null)
+        {
+            // Sept-23 Phase 05: any enabled library root, not only the legacy one.
+            return containingRoot;
+        }
+
         if (await IsRegisteredAbsoluteFileAsync(bookId, fullPath, cancellationToken)
                 .ConfigureAwait(false))
         {
@@ -797,6 +805,38 @@ public sealed class PdfWriteBackService : IMetadataWriteBackService
 
         throw new InvalidOperationException(
             $"Write-back path '{absolutePath}' is outside the library root '{fullRoot}' and is not the registered absolute file for book '{bookId}'.");
+    }
+
+    private async Task<string?> FindContainingLibraryRootAsync(
+        string fullPath,
+        CancellationToken cancellationToken)
+    {
+        if (_contextFactory is null && _context is null)
+        {
+            return null;
+        }
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<Ingestion.LibraryRootLocation> roots = await Ingestion.LibraryRootPaths
+            .GetActiveRootsAsync(lease.Context, cancellationToken)
+            .ConfigureAwait(false);
+        Ingestion.LibraryRootLocation? root = Ingestion.LibraryRootPaths.FindContainingRoot(roots, fullPath);
+        if (root is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            PathGuard.EnsureWithinRoot(fullPath, root.CanonicalPath);
+            return Path.GetFullPath(root.CanonicalPath);
+        }
+        catch (PathTraversalException)
+        {
+            return null;
+        }
     }
 
     private async Task<string> GetActiveLibraryRootAsync(CancellationToken cancellationToken)

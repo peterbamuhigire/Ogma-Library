@@ -20,6 +20,7 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="IsFavourite">Whether the reader marked the book as a favourite.</param>
 /// <param name="RelativePath">Desktop-only library-root-relative source path; never expose in LAN projections.</param>
 /// <param name="Processing">Non-sensitive indexing, embedding, OCR, and quality state.</param>
+/// <param name="IsLocked">Whether the PDF needs a password to open (Sept-23 Phase 05).</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -34,7 +35,8 @@ public sealed record BookSummaryProjection(
     string? Sha256Hash = null,
     bool IsFavourite = false,
     string? RelativePath = null,
-    CatalogueProcessingProjection? Processing = null)
+    CatalogueProcessingProjection? Processing = null,
+    bool IsLocked = false)
 {
     /// <summary>Whether a non-empty title is available for display.</summary>
     public bool HasTitle => !string.IsNullOrWhiteSpace(Title);

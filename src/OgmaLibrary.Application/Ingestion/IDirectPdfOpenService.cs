@@ -8,8 +8,10 @@ public interface IDirectPdfOpenService
 {
     /// <summary>
     /// Adds or re-matches the supplied PDF file without requiring a whole-folder
-    /// scan. The containing folder becomes the active library root for reader
-    /// resolution of the selected file.
+    /// scan. Library roots are never changed (Sept-23 Phase 05, K28): a file inside
+    /// an enabled root is recorded against that root; any other file becomes a
+    /// loose book tracked by its absolute path. A file whose content already exists
+    /// in the catalogue becomes another occurrence of that book.
     /// </summary>
     /// <param name="absoluteFilePath">Absolute path to a PDF file.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
