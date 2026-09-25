@@ -28,6 +28,8 @@ public partial class CatalogueShellView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        LibraryToolbar.OverflowChanged += (_, _) =>
+            Dispatcher.UIThread.Post(RebuildMoreMenu, DispatcherPriority.Background);
         SizeChanged += OnSizeChanged;
         AddHandler(PointerPressedEvent, OnShellPointerPressed, RoutingStrategies.Tunnel);
     }
@@ -55,6 +57,7 @@ public partial class CatalogueShellView : UserControl
             }
 
             ApplyInspectorLayout();
+            RebuildMoreMenu();
         }
     }
 
@@ -66,6 +69,12 @@ public partial class CatalogueShellView : UserControl
         if (e.PropertyName == nameof(MainShellViewModel.IsInspectorOverlay))
         {
             ApplyInspectorLayout();
+        }
+        else if (e.PropertyName is nameof(MainShellViewModel.DestinationHeading) or
+                 nameof(MainShellViewModel.ExportDiagnosticsLabel))
+        {
+            // Labels follow the culture.
+            RebuildMoreMenu();
         }
     }
 
@@ -208,9 +217,13 @@ public partial class CatalogueShellView : UserControl
 
     // ── Library toolbar and More menu ───────────────────────────────────────────
 
-    private void LibraryMoreFlyout_Opening(object? sender, EventArgs e)
+    /// <summary>
+    /// Rebuilds the More menu from the overflowed toolbar items. It runs when the overflow set
+    /// changes, never while the flyout is opening (an empty flyout would not open).
+    /// </summary>
+    private void RebuildMoreMenu()
     {
-        if (sender is not MenuFlyout flyout || ViewModel is not { } vm)
+        if (LibraryMoreButton.Flyout is not MenuFlyout flyout || ViewModel is not { } vm)
         {
             return;
         }
@@ -262,7 +275,7 @@ public partial class CatalogueShellView : UserControl
         Avalonia.Automation.AutomationProperties.SetName(item, name);
         if (Avalonia.Automation.AutomationProperties.GetAutomationId(button) is { Length: > 0 } id)
         {
-            Avalonia.Automation.AutomationProperties.SetAutomationId(item, "Shell.More." + id);
+            Avalonia.Automation.AutomationProperties.SetAutomationId(item, "Shell.More." + id[(id.LastIndexOf('.') + 1)..]);
         }
 
         item.Click += (_, _) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, button));

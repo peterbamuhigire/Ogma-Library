@@ -297,8 +297,7 @@
                             AutomationProperties.Name="{Binding MoreActionsLabel}">
               <TextBlock Text="{Binding MoreActionsLabel}" />
               <DropDownButton.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedRight"
-                            Opening="LibraryMoreFlyout_Opening" />
+                <MenuFlyout Placement="BottomEdgeAlignedRight" />
               </DropDownButton.Flyout>
             </DropDownButton>
           </Grid>
@@ -490,7 +489,7 @@
               <StackPanel Spacing="8" MaxWidth="400">
                 <TextBlock Text="{Binding EmptyStateHeading}"
                            AutomationProperties.AutomationId="Catalogue.EmptyState.Heading"
-                           Classes="ogma-display"
+                           HorizontalAlignment="Center"
                            FontSize="{DynamicResource Type.Size.Title}"
                            FontWeight="SemiBold"
                            TextAlignment="Center"
@@ -547,7 +546,7 @@
                       Spacing="8">
             <TextBlock Text="{Binding ReadingEmptyHeading}"
                        AutomationProperties.AutomationId="Reading.Empty.Heading"
-                       Classes="ogma-display"
+                       HorizontalAlignment="Center"
                        FontSize="{DynamicResource Type.Size.Title}"
                        FontWeight="SemiBold"
                        TextAlignment="Center"

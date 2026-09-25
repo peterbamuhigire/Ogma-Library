@@ -181,22 +181,42 @@ public sealed class NavigationTests
     private static bool MoreMenuOffers(JourneyContext context, AutomationElement more, string name, bool invoke = false)
     {
         AutomationElement window = context.RequireApp.MainWindow;
-        Uia.Activate(more);
+
+        // A real click: the flyout opens from pointer or keyboard activation of the button.
+        Native.ForceForeground(context.RequireApp.Handle);
+        Rectangle r = more.BoundingRectangle;
+        Mouse.Click(new Point(r.X + (r.Width / 2), r.Y + (r.Height / 2)));
         AutomationElement? item = null;
         bool found = Uia.Poll(
             () =>
             {
                 int pid = context.RequireApp.Process.Id;
+                // Avalonia hosts flyouts in popup windows: search them and the main window.
                 item = context.RequireApp.Automation.GetDesktop()
                     .FindAllChildren(cf => cf.ByProcessId(pid))
-                    .SelectMany(top => top.FindAllDescendants(cf => cf.ByControlType(ControlType.MenuItem)))
-                    .FirstOrDefault(candidate => candidate.Properties.Name.ValueOrDefault == name);
+                    .Append(window)
+                    .SelectMany(top => top.FindAllDescendants(cf => cf.ByName(name)))
+                    .FirstOrDefault(candidate => candidate.ControlType == ControlType.MenuItem);
                 return item is not null;
             },
             TimeSpan.FromSeconds(5));
+        if (!found)
+        {
+            context.Shot("more-menu-missing");
+            context.Dump("more-menu-missing");
+            int pidDiag = context.RequireApp.Process.Id;
+            context.Record(
+                "more.topLevels",
+                context.RequireApp.Automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(pidDiag))
+                    .Select(top => $"{top.ControlType}:{top.ClassName}:{top.Properties.Name.ValueOrDefault}:{top.FindAllDescendants().Length}")
+                    .ToArray());
+        }
+
         if (found && invoke)
         {
-            Uia.Activate(item!);
+            // Avalonia menu items expose no UIA activation pattern (Phase 21); click them.
+            Rectangle bounds = item!.BoundingRectangle;
+            Mouse.Click(new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2)));
         }
         else
         {
