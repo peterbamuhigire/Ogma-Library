@@ -1,18 +1,17 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.Workers.Ocr;
 
 /// <summary>
 /// Background worker for Phase 15 OCR jobs. The processor owns idempotency and
-/// resume behavior; this worker only schedules work away from the UI thread.
+/// resume behavior; this worker only schedules work away from the UI thread, through the
+/// shared guarded loop (Sept-23 Phase 06, T06.5).
 /// </summary>
 internal sealed class OcrWorker : BackgroundService
 {
     private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan ErrorDelay = TimeSpan.FromSeconds(15);
     private readonly IOcrJobProcessor _processor;
     private readonly ILogger _logger;
 
@@ -27,29 +26,11 @@ internal sealed class OcrWorker : BackgroundService
     }
 
     /// <inheritdoc />
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                bool processed = await _processor.ProcessNextAsync(stoppingToken)
-                    .ConfigureAwait(false);
-
-                if (!processed)
-                {
-                    await Task.Delay(IdleDelay, stoppingToken).ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception exception)
-            {
-                InfrastructureLog.WorkerRetryScheduled(_logger, exception, nameof(OcrWorker));
-                await Task.Delay(ErrorDelay, stoppingToken).ConfigureAwait(false);
-            }
-        }
-    }
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        ResilientJobLoop.RunAsync(
+            nameof(OcrWorker),
+            token => _processor.ProcessNextAsync(token),
+            IdleDelay,
+            _logger,
+            stoppingToken);
 }
