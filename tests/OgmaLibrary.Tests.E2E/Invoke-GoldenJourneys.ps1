@@ -221,7 +221,9 @@ foreach ($dir in $runDirs) {
 }
 
 $rows | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $runRoot 'results.json') -Encoding UTF8
-$md = @('# Golden journey results', '', "Run ``$RunId``; filter ``$filter``; sizes $($settings.OGMA_E2E_SIZES); themes $($Themes -join ', '); exe ``$Exe``.", '',
+$header = "Run ``$RunId``; filter ``$filter``; sizes $($settings.OGMA_E2E_SIZES); themes $($Themes -join ', '); exe ``$Exe``."
+if ($ReportOnly) { $header = "Run ``$RunId``, re-summarised against baseline.json (filter, sizes and exe are those of the original run)." }
+$md = @('# Golden journey results', '', $header, '',
     '| Journey | Test | Size | Result | Known defects | s | Evidence |', '|---|---|---|---|---|---|---|')
 foreach ($row in ($rows | Sort-Object Journey, Test, Size)) {
     $md += "| $($row.Journey) | $($row.Test) | $($row.Size) | $($row.Result) | $($row.Defects) | $($row.Seconds) | $($row.Evidence) |"
