@@ -1,15 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:settings="using:OgmaLibrary.App.Views.Settings"
              x:Class="OgmaLibrary.App.Views.Shell.SettingsOverviewView"
              x:DataType="vm:MainShellViewModel">
 
   <!--
-    Sept-23 Phase 07: the Settings route and host. Phase 08 fills in the sections; until then
-    the page lists every optional capability and whether it is available, so no feature is
-    silently missing (K17 mitigation).
+    Sept-23 Phase 07: the Settings route and host. Phase 08 (K16) hosts the sectioned Settings
+    view here. The capability list below remains only for shells composed without Settings
+    (headless tests), so no feature is ever silently missing (K17 mitigation).
   -->
-  <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <Panel>
+  <Panel IsVisible="{Binding Settings, Converter={x:Static ObjectConverters.IsNotNull}}">
+    <settings:SettingsView DataContext="{Binding Settings}" />
+  </Panel>
+  <ScrollViewer VerticalScrollBarVisibility="Auto"
+                IsVisible="{Binding Settings, Converter={x:Static ObjectConverters.IsNull}}">
     <StackPanel Margin="16" Spacing="12" MaxWidth="720" HorizontalAlignment="Left">
       <TextBlock Text="{Binding SettingsIntro}"
                  TextWrapping="Wrap"
@@ -20,7 +26,7 @@
                  FontWeight="SemiBold"
                  Foreground="{DynamicResource Brush.Surface.OnParchment}" />
       <ItemsControl ItemsSource="{Binding CapabilityRows}"
-                    AutomationProperties.AutomationId="Settings.Capabilities"
+                    AutomationProperties.AutomationId="Settings.Capabilities.Overview"
                     AutomationProperties.Name="{Binding SettingsCapabilitiesTitle}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -57,4 +63,5 @@
       </ItemsControl>
     </StackPanel>
   </ScrollViewer>
+  </Panel>
 </UserControl>

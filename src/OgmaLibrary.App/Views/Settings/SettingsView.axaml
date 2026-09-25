@@ -1,0 +1,308 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Settings"
+             xmlns:cvm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Settings.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <!--
+    Sept-23 Phase 08 (K16): the Settings destination. A section list on the left and one
+    section on the right. Typeface decision: Public Sans (theme body) for labels, help lines
+    and controls; Spectral (ogma-display) for the section title only; JetBrains Mono
+    (ogma-mono) for folder paths, version and environment-variable names. Colours, sizes and
+    radii are design tokens only. Every control has a visible label, a help line and an
+    accessible name; the tab order follows the visual order (section list, then the section).
+  -->
+  <UserControl.Styles>
+    <Style Selector="ListBox.settings-sections > ListBoxItem" x:DataType="vm:SettingsSectionItem">
+      <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+      <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="MinHeight" Value="40" />
+    </Style>
+    <Style Selector="TextBlock.settings-label">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.BodyMedium}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.settings-help">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.settings-body">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.settings-path">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.settings-card">
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="RadioButton, CheckBox">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:CapabilityToggleViewModel">
+      <Border Classes="settings-card">
+        <StackPanel Spacing="6">
+          <CheckBox IsChecked="{Binding IsOn}"
+                    IsEnabled="{Binding CanChange}"
+                    AutomationProperties.AutomationId="{Binding AutomationId}"
+                    AutomationProperties.Name="{Binding Title}"
+                    AutomationProperties.HelpText="{Binding Help}">
+            <TextBlock Classes="settings-label" Text="{Binding Title}" />
+          </CheckBox>
+          <TextBlock Classes="settings-help" Text="{Binding Help}" />
+          <TextBlock Classes="settings-help"
+                     Text="{Binding StateText}"
+                     FontWeight="SemiBold" />
+          <TextBlock Classes="settings-help ogma-mono"
+                     IsVisible="{Binding IsManaged}"
+                     Text="{Binding ManagedText}"
+                     AutomationProperties.AutomationId="{Binding AutomationId, StringFormat='{}{0}.Managed'}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Grid ColumnDefinitions="220,*">
+    <ListBox Grid.Column="0"
+             Classes="settings-sections"
+             Margin="8,8,0,8"
+             ItemsSource="{Binding Sections}"
+             SelectedItem="{Binding SelectedSection}"
+             Background="Transparent"
+             AutomationProperties.AutomationId="Settings.Sections"
+             AutomationProperties.Name="{Binding SectionsLabel}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:SettingsSectionItem">
+          <TextBlock Text="{Binding Label}"
+                     TextWrapping="Wrap"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <ScrollViewer Grid.Column="1"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  AutomationProperties.AutomationId="Settings.Content">
+      <StackPanel Margin="24,12,24,24" Spacing="16" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Classes="ogma-display"
+                   Text="{Binding SectionTitle}"
+                   FontSize="{DynamicResource Type.Size.Title}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                   AutomationProperties.AutomationId="Settings.SectionTitle" />
+
+        <!-- Library (D-03): the Phase 05 folder panel, hosted here. -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsLibrarySection}">
+          <TextBlock Classes="settings-help" Text="{Binding LibraryIntro}" />
+          <Border Classes="settings-card" Padding="0" IsVisible="{Binding HasLibraryFolders}">
+            <cat:LibraryFoldersPanelView DataContext="{Binding LibraryFolders}"
+                                         AutomationProperties.AutomationId="Settings.Library.Folders" />
+          </Border>
+          <TextBlock Classes="settings-help"
+                     IsVisible="{Binding !HasLibraryFolders}"
+                     Text="{Binding LibraryUnavailableText}" />
+        </StackPanel>
+
+        <!-- Appearance -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsAppearanceSection}">
+          <Border Classes="settings-card">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="settings-label" Text="{Binding ThemeLabel}" />
+              <TextBlock Classes="settings-help" Text="{Binding ThemeHelp}" />
+              <RadioButton GroupName="SettingsTheme"
+                           IsChecked="{Binding IsThemeLight}"
+                           Content="{Binding ThemeLightText}"
+                           AutomationProperties.AutomationId="Settings.Theme.Light"
+                           AutomationProperties.Name="{Binding ThemeLightText}" />
+              <RadioButton GroupName="SettingsTheme"
+                           IsChecked="{Binding IsThemeDark}"
+                           Content="{Binding ThemeDarkText}"
+                           AutomationProperties.AutomationId="Settings.Theme.Dark"
+                           AutomationProperties.Name="{Binding ThemeDarkText}" />
+              <RadioButton GroupName="SettingsTheme"
+                           IsChecked="{Binding IsThemeSystem}"
+                           Content="{Binding ThemeSystemText}"
+                           AutomationProperties.AutomationId="Settings.Theme.System"
+                           AutomationProperties.Name="{Binding ThemeSystemText}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="settings-card">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="settings-label" Text="{Binding DensityLabel}" />
+              <TextBlock Classes="settings-help" Text="{Binding DensityHelp}" />
+              <RadioButton GroupName="SettingsDensity"
+                           IsChecked="{Binding IsDensityComfortable}"
+                           Content="{Binding DensityComfortableText}"
+                           AutomationProperties.AutomationId="Settings.Density.Comfortable"
+                           AutomationProperties.Name="{Binding DensityComfortableText}" />
+              <RadioButton GroupName="SettingsDensity"
+                           IsChecked="{Binding IsDensityCompact}"
+                           Content="{Binding DensityCompactText}"
+                           AutomationProperties.AutomationId="Settings.Density.Compact"
+                           AutomationProperties.Name="{Binding DensityCompactText}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Language -->
+        <Border Classes="settings-card" IsVisible="{Binding IsLanguageSection}">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="settings-label" Text="{Binding LanguageLabel}" />
+            <TextBlock Classes="settings-help" Text="{Binding LanguageHelp}" />
+            <RadioButton GroupName="SettingsLanguage"
+                         IsChecked="{Binding IsLanguageSystem}"
+                         Content="{Binding LanguageSystemText}"
+                         AutomationProperties.AutomationId="Settings.Language.System"
+                         AutomationProperties.Name="{Binding LanguageSystemText}" />
+            <RadioButton GroupName="SettingsLanguage"
+                         IsChecked="{Binding IsLanguageEnglish}"
+                         Content="{Binding LanguageEnglishText}"
+                         AutomationProperties.AutomationId="Settings.Language.English"
+                         AutomationProperties.Name="{Binding LanguageEnglishText}" />
+            <RadioButton GroupName="SettingsLanguage"
+                         IsChecked="{Binding IsLanguageFrench}"
+                         Content="{Binding LanguageFrenchText}"
+                         AutomationProperties.AutomationId="Settings.Language.French"
+                         AutomationProperties.Name="{Binding LanguageFrenchText}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Online services -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsOnlineSection}">
+          <ContentControl Content="{Binding MetadataProviders}" />
+          <Border Classes="settings-card">
+            <StackPanel Spacing="6" AutomationProperties.AutomationId="Settings.Online.Disclosure">
+              <TextBlock Classes="settings-label" Text="{Binding DisclosureTitle}" />
+              <TextBlock Classes="settings-body" Text="{Binding DisclosureSent}" />
+              <TextBlock Classes="settings-body" Text="{Binding DisclosureNotSent}" />
+              <TextBlock Classes="settings-help" Text="{Binding DisclosureOff}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Optional features: 3D shelf preview and classroom Host -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsFeaturesSection}">
+          <TextBlock Classes="settings-help" Text="{Binding FeaturesIntro}" />
+          <ContentControl Content="{Binding Shelf3D}" />
+          <ContentControl Content="{Binding ClassroomHost}" />
+        </StackPanel>
+
+        <!-- AI and privacy: the Phase 15 Privacy Center mounts here. -->
+        <Border Classes="settings-card" IsVisible="{Binding IsPrivacySection}">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="settings-label" Text="{Binding PrivacyStatusTitle}" />
+            <TextBlock Classes="settings-body"
+                       Text="{Binding PrivacyStatusText}"
+                       AutomationProperties.AutomationId="Settings.Privacy.Status" />
+            <TextBlock Classes="settings-help" Text="{Binding PrivacyLocalText}" />
+            <TextBlock Classes="settings-help" Text="{Binding PrivacyNextText}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Text recognition: the Phase 17 OCR policy extension point. -->
+        <Border Classes="settings-card" IsVisible="{Binding IsTextRecognitionSection}">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="settings-body" Text="{Binding TextRecognitionBody}" />
+            <TextBlock Classes="settings-help"
+                       IsVisible="{Binding IsTextRecognitionPendingVisible}"
+                       Text="{Binding TextRecognitionPendingText}" />
+            <ContentControl IsVisible="{Binding HasTextRecognitionOptions}"
+                            Content="{Binding TextRecognitionOptions}"
+                            AutomationProperties.AutomationId="Settings.Ocr.Options" />
+          </StackPanel>
+        </Border>
+
+        <!-- Diagnostics and about -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsDiagnosticsSection}">
+          <Border Classes="settings-card">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="8">
+              <TextBlock Grid.Row="0" Classes="settings-label" Text="{Binding VersionLabel}" />
+              <TextBlock Grid.Row="0" Grid.Column="1" Classes="settings-path ogma-mono"
+                         Text="{Binding VersionText}"
+                         AutomationProperties.AutomationId="Settings.Diagnostics.Version" />
+              <TextBlock Grid.Row="1" Classes="settings-label" Text="{Binding DataFolderLabel}" />
+              <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                <TextBlock Classes="settings-path ogma-mono"
+                           Text="{Binding DataFolderPath}"
+                           AutomationProperties.AutomationId="Settings.Diagnostics.DataFolder" />
+                <TextBlock Classes="settings-help" Text="{Binding DataFolderHelp}" />
+              </StackPanel>
+              <TextBlock Grid.Row="2" Classes="settings-label" Text="{Binding AssetFolderLabel}" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Classes="settings-path ogma-mono" Text="{Binding AssetFolderPath}" />
+              <TextBlock Grid.Row="3" Classes="settings-label" Text="{Binding LogsFolderLabel}" />
+              <TextBlock Grid.Row="3" Grid.Column="1" Classes="settings-path ogma-mono" Text="{Binding LogsFolderPath}" />
+            </Grid>
+          </Border>
+          <WrapPanel Orientation="Horizontal">
+            <Button Margin="0,0,8,8"
+                    Content="{Binding OpenDataFolderText}"
+                    Click="OpenDataFolder_Click"
+                    AutomationProperties.AutomationId="Settings.Diagnostics.OpenData"
+                    AutomationProperties.Name="{Binding OpenDataFolderText}" />
+            <Button Margin="0,0,8,8"
+                    Content="{Binding OpenLogsText}"
+                    Click="OpenLogs_Click"
+                    AutomationProperties.AutomationId="Settings.Diagnostics.OpenLogs"
+                    AutomationProperties.Name="{Binding OpenLogsText}" />
+            <Button Margin="0,0,8,8"
+                    Content="{Binding ExportText}"
+                    Click="Export_Click"
+                    AutomationProperties.AutomationId="Settings.Diagnostics.Export"
+                    AutomationProperties.Name="{Binding ExportText}"
+                    AutomationProperties.HelpText="{Binding ExportHelp}" />
+          </WrapPanel>
+          <TextBlock Classes="settings-help" Text="{Binding ExportHelp}" />
+          <TextBlock Classes="settings-help"
+                     IsVisible="{Binding HasDiagnosticsStatus}"
+                     Text="{Binding DiagnosticsStatus}" />
+          <TextBlock Classes="ogma-display settings-label"
+                     Text="{Binding CapabilitiesTitle}"
+                     FontSize="{DynamicResource Type.Size.Subtitle}" />
+          <ItemsControl ItemsSource="{Binding CapabilityRows}"
+                        AutomationProperties.AutomationId="Settings.Capabilities"
+                        AutomationProperties.Name="{Binding CapabilitiesTitle}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cvm:CapabilityRow">
+                <Border Classes="settings-card">
+                  <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                    <TextBlock Grid.Column="0" Classes="settings-label" Text="{Binding Name}" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Status}"
+                               FontSize="{DynamicResource Type.Size.Small}"
+                               Foreground="{DynamicResource Brush.Accent.Ink}" />
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0"
+                               Classes="settings-help" Text="{Binding Detail}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>
