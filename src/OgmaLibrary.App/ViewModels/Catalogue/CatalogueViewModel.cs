@@ -543,17 +543,10 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
         void UpdateFiltered()
         {
-            _filteredItems.Clear();
-            foreach (var item in results)
-            {
-                _filteredItems.Add(item);
-            }
-
-            _homeStripItems.Clear();
-            foreach (var item in strip)
-            {
-                _homeStripItems.Add(item);
-            }
+            // Sept-23 Phase 09: update in place so unchanged cards keep their containers (no
+            // flicker, stable UI Automation elements) while background processing refreshes.
+            SyncInPlace(_filteredItems, results);
+            SyncInPlace(_homeStripItems, strip);
 
             OnPropertyChanged(nameof(HasHomeStrip));
             OnPropertyChanged(nameof(HasBooksInProgress));
@@ -669,6 +662,43 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+
+    private static void SyncInPlace(ObservableCollection<BookSummaryProjection> target, List<BookSummaryProjection> source)
+    {
+        for (int i = 0; i < source.Count; i++)
+        {
+            if (i >= target.Count)
+            {
+                target.Add(source[i]);
+            }
+            else if (!IsSameCard(target[i], source[i]))
+            {
+                target[i] = source[i];
+            }
+        }
+
+        while (target.Count > source.Count)
+        {
+            target.RemoveAt(target.Count - 1);
+        }
+    }
+
+    private static bool IsSameCard(BookSummaryProjection a, BookSummaryProjection b) =>
+        ReferenceEquals(a, b) ||
+        (a.BookId == b.BookId &&
+         a.Title == b.Title &&
+         a.CoverRelativePath == b.CoverRelativePath &&
+         a.Status == b.Status &&
+         a.Rating == b.Rating &&
+         a.ReadingProgressPct == b.ReadingProgressPct &&
+         a.IsAvailable == b.IsAvailable &&
+         a.Year == b.Year &&
+         a.IsFavourite == b.IsFavourite &&
+         a.IsLocked == b.IsLocked &&
+         a.RelativePath == b.RelativePath &&
+         Equals(a.Processing, b.Processing) &&
+         a.Authors.SequenceEqual(b.Authors) &&
+         a.ShelfIds.SequenceEqual(b.ShelfIds));
 
     private static bool IsInProgress(BookSummaryProjection book) =>
         book.ReadingProgressPct is > 0 and < 100;
