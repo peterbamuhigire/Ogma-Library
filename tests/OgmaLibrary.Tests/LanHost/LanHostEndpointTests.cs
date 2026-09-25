@@ -448,7 +448,7 @@ public sealed class LanHostEndpointTests
             .AddCatalogueContext(dataDirectory, dataDirectory)
             .AddSingleton<IPdfRendererFactory>(new MockPdfRendererFactory(pageCount: 3))
             .AddLanHostServices(dataDirectory)
-            
+
             .UseLoopbackLanHost().AddSingleton<IAiProvider>(new FakeAiProvider())
             .AddSchoolAdminServices(dataDirectory)
             .AddSingleton<ILanBindAddressSelector>(new StaticLanBindAddressSelector(IPAddress.Loopback))
