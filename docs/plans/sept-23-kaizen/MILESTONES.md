@@ -73,9 +73,12 @@ CODE (real engines in tests); real-window run in progress.
 | G6 invalid files | **PASS** | both sizes (was failing) |
 | G7 Advisor without AI | **PASS** | routes to Settings instead of a dead end |
 | Navigation | **PASS** | four sizes, 860–2560 px |
+| Settings | **PASS** | both sizes: theme and language persist; env-managed switch shown locked |
+| ScanOcrSearch | failing | OCR runs automatically, but one fixture yields no text and search misses depend on Phase 13 |
 | G3 read 50 pages (p95 ≤ 250 ms from click to page number) | failing | measured 500–632 ms end to end under load; the geometry wait is the known remaining cost |
 | G4 search | failing | Phase 13 in progress |
-| G8 resilience | in re-check | fixes landed in `936c587` |
+| G8 worker killed while reading | **PASS** | both sizes; baseline cleared |
+| G8 corrupt settings file | failing | the notice is not yet visible; stabilisation lane |
 | LaunchCycles (20 launch/close) | **failing** | 3 of 20 closes still needed a kill after 10 s; under investigation |
 | G9–G12 | NOT ASSESSED | owned by Phases 10, 11, 18, 19–20 |
 
@@ -95,6 +98,18 @@ CODE (real engines in tests); real-window run in progress.
   design system.
 - **Phase 13, unified search.** Phrases, typos, Unicode names and field queries; honest status;
   no race.
+
+## Stabilisation lane (in progress)
+
+The real-window run of 25 September (`artifacts/e2e/20260925-145558`) found integration defects between phases, now owned by a dedicated lane:
+
+- the collections sidebar updates state off the UI thread (K93; 194 violations per run);
+- database queries run before the startup migration has created the tables;
+- closes hang when they arrive during startup (LaunchCycles, K71);
+- the corrupt-settings notice is not shown (K95);
+- one scanned fixture yields no OCR text;
+- the locked-PDF error message is garbled;
+- a G6 harness flake.
 
 ## Open issues
 
