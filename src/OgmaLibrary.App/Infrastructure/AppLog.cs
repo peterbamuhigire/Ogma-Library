@@ -79,6 +79,16 @@ public static partial class AppLog
         Message = "Stopping background services failed; exiting anyway")]
     public static partial void ShutdownStopFailed(ILogger logger, Exception exception);
 
+    /// <summary>The desktop lifetime is exiting; records whether startup work was still running.</summary>
+    [LoggerMessage(EventId = 1305, EventName = "app.exit.requested", Level = LogLevel.Information,
+        Message = "Exit requested (composed={Composed}, startupRunning={StartupRunning})")]
+    public static partial void ShutdownRequested(ILogger logger, bool composed, bool startupRunning);
+
+    /// <summary>The UI thread did not run a queued input-priority job for over a second (E2E probe).</summary>
+    [LoggerMessage(EventId = 1306, EventName = "ui.stall", Level = LogLevel.Warning,
+        Message = "The UI thread was unresponsive for {StallMs} ms (phase {PhaseBefore} -> {PhaseAfter})")]
+    public static partial void UiStalled(ILogger logger, int stallMs, string phaseBefore, string phaseAfter);
+
     /// <summary>Composition failed.</summary>
     [LoggerMessage(EventId = 1401, EventName = "app.composition.failed", Level = LogLevel.Error,
         Message = "Application composition failed ({FailureCode})")]
@@ -158,6 +168,11 @@ public static partial class AppLog
     [LoggerMessage(EventId = 4003, EventName = "reader.close.failed", Level = LogLevel.Warning,
         Message = "Closing the reader session did not finish cleanly")]
     public static partial void ReaderCloseFailed(ILogger logger, Exception exception);
+
+    /// <summary>The book is password-protected; the reader shows the locked state.</summary>
+    [LoggerMessage(EventId = 4005, EventName = "reader.open.password_required", Level = LogLevel.Information,
+        Message = "The book is password-protected and was not opened")]
+    public static partial void ReaderOpenPasswordRequired(ILogger logger);
 
     /// <summary>The reader's PDF engine was lost and transparently restarted.</summary>
     [LoggerMessage(EventId = 4004, EventName = "reader.engine.recovered", Level = LogLevel.Warning,

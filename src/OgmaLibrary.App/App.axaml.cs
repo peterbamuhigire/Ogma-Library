@@ -32,6 +32,9 @@ public sealed class App : Avalonia.Application, IDisposable
     private NotificationCenterViewModel? _notifications;
     private ServiceProvider? _services;
     private bool _disposed;
+    private volatile bool _startupRunning;
+    private volatile string _phase = "bootstrap";
+    private UiResponsivenessProbe? _responsivenessProbe;
 
     /// <inheritdoc />
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -53,6 +56,7 @@ public sealed class App : Avalonia.Application, IDisposable
                 _logger);
             Dispatcher.UIThread.Post(() => ShowCrashRecoveryNotice(notifications), DispatcherPriority.Background);
             ScheduleInjectedFaultForE2E();
+            _responsivenessProbe = UiResponsivenessProbe.StartIfRequested(_logger, () => _phase);
 
             // Yield a frame before configuration, graph validation and view-model
             // construction. The cold-start shell must never wait for database or
@@ -72,12 +76,14 @@ public sealed class App : Avalonia.Application, IDisposable
         InMemoryLocalizationService bootstrapLocalization,
         CancellationToken cancellationToken)
     {
+        _startupRunning = true;
         try
         {
             NotificationCenterViewModel notifications = _notifications ??
                 throw new InvalidOperationException("The safety net must be installed before composition.");
             ComposedRuntime ComposeRuntime() => App.ComposeRuntime(window, notifications);
 
+            _phase = "composing";
             ComposedRuntime runtime = await Task.Run(ComposeRuntime, cancellationToken)
                 .ConfigureAwait(true);
             if (cancellationToken.IsCancellationRequested)
@@ -87,6 +93,7 @@ public sealed class App : Avalonia.Application, IDisposable
             }
 
             _services = runtime.Services;
+            _phase = "composed";
             AppLog.CompositionCompleted(_logger);
             notifications.UseLocalization(runtime.Services.GetRequiredService<ILocalizationService>());
             _ = UpdateRedactionRootsAsync(runtime.Services, cancellationToken);
@@ -103,12 +110,16 @@ public sealed class App : Avalonia.Application, IDisposable
                     settings.ExportDiagnostics = mainShell.ExportDiagnostics;
                 }
 
+                _phase = "preferences";
                 await mainShell.InitializePreferencesAsync(cancellationToken).ConfigureAwait(true);
                 ShowPreferencesRecoveryNotice(mainShell, notifications);
             }
+            _phase = "shell-bind";
             window.DataContext = runtime.StartupShell;
             StartupShellViewModel startupShell = runtime.StartupShell;
+            _phase = "startup-tasks";
             await startupShell.StartAsync(cancellationToken).ConfigureAwait(true);
+            _phase = "ready";
             ShowSettingsRecoveryNotice(runtime.Services, notifications);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -147,6 +158,10 @@ public sealed class App : Avalonia.Application, IDisposable
                     retry,
                     _notifications);
             }
+        }
+        finally
+        {
+            _startupRunning = false;
         }
     }
 
@@ -275,6 +290,12 @@ public sealed class App : Avalonia.Application, IDisposable
             // Sept-23 Phase 05: every library folder's prefix is collapsed in logs.
             if (services.GetService<ILibraryRootService>() is { } libraryRoots)
             {
+                // The folder table exists only after the startup migration (fresh data folder).
+                if (services.GetService<OgmaLibrary.Application.Catalogue.ICatalogueReadiness>() is { } readiness)
+                {
+                    await readiness.WaitUntilReadyAsync(cancellationToken).ConfigureAwait(false);
+                }
+
                 roots.AddRange((await libraryRoots.ListAsync(cancellationToken).ConfigureAwait(false))
                     .Select(descriptor => descriptor.CanonicalLocator)
                     .OfType<string>());
@@ -378,6 +399,10 @@ public sealed class App : Avalonia.Application, IDisposable
             return;
         }
 
+        AppLog.ShutdownRequested(_logger, _services is not null, _startupRunning);
+        _phase = "exiting";
+        _responsivenessProbe?.Dispose();
+        _responsivenessProbe = null;
         _applicationLifetimeCancellation.Cancel();
         if (_services is null)
         {
@@ -424,6 +449,8 @@ public sealed class App : Avalonia.Application, IDisposable
             _applicationLifetimeCancellation.Cancel();
         }
 
+        _responsivenessProbe?.Dispose();
+        _responsivenessProbe = null;
         _services?.Dispose();
         _services = null;
         _applicationLifetimeCancellation.Dispose();

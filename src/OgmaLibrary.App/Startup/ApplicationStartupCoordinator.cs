@@ -13,6 +13,7 @@ public sealed class ApplicationStartupCoordinator : IApplicationStartupCoordinat
     private readonly IBenchmarkContext _benchmark;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _disposed;
+    private volatile bool _stoppableTaskEntered;
 
     /// <summary>Initializes the coordinator.</summary>
     public ApplicationStartupCoordinator(
@@ -44,6 +45,11 @@ public sealed class ApplicationStartupCoordinator : IApplicationStartupCoordinat
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 string operationName = $"Startup.{task.Name}";
+                if (task is IApplicationStoppableTask)
+                {
+                    _stoppableTaskEntered = true;
+                }
+
                 try
                 {
                     using (_benchmark.Measure(operationName))
@@ -121,7 +127,20 @@ public sealed class ApplicationStartupCoordinator : IApplicationStartupCoordinat
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (!await _gate.WaitAsync(0, CancellationToken.None).ConfigureAwait(false))
+        {
+            // Startup is still running (a close during startup, Sept-23 K71). When it has not yet
+            // reached a task that starts stoppable resources there is nothing to stop: the
+            // cancelled startup ends at its next task boundary, so exit need not wait for the
+            // migration or backfill in progress.
+            if (!_stoppableTaskEntered)
+            {
+                return;
+            }
+
+            await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             foreach (IApplicationStoppableTask task in _tasks
