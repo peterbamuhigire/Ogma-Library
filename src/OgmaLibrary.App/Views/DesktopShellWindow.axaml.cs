@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Catalogue;
 
@@ -14,6 +15,7 @@ public sealed partial class DesktopShellWindow : Window
 {
     private Button? _retryButton;
     private TextBox? _commandPaletteBox;
+    private ItemsControl? _toastHost;
     private StartupShellViewModel? _viewModel;
 
     /// <summary>Initializes the window.</summary>
@@ -22,24 +24,50 @@ public sealed partial class DesktopShellWindow : Window
         AvaloniaXamlLoader.Load(this);
         _retryButton = this.FindControl<Button>("RetryButton");
         _commandPaletteBox = this.FindControl<TextBox>("CommandPaletteBox");
+        _toastHost = this.FindControl<ItemsControl>("ToastHost");
         DataContextChanged += OnDataContextChanged;
     }
 
-    private async void RetryButton_Click(object? sender, RoutedEventArgs e)
+    /// <summary>Binds the process notification surface (T02.7) independently of the window's DataContext.</summary>
+    /// <param name="notifications">The notification centre.</param>
+    public void AttachNotifications(NotificationCenterViewModel notifications)
     {
-        if (DataContext is StartupShellViewModel viewModel)
+        ArgumentNullException.ThrowIfNull(notifications);
+        if (_toastHost is not null)
         {
-            await viewModel.RetryAsync().ConfigureAwait(true);
+            _toastHost.DataContext = notifications;
         }
     }
 
-    private async void ExportDiagnosticsButton_Click(object? sender, RoutedEventArgs e)
+    /// <summary>Restores and activates the window when a second launch hands off to this instance (K70).</summary>
+    public void BringToFront()
     {
-        if (DataContext is StartupShellViewModel viewModel)
+        if (WindowState == WindowState.Minimized)
         {
-            await viewModel.ExportDiagnosticsAsync().ConfigureAwait(true);
+            WindowState = WindowState.Normal;
         }
+
+        Show();
+        Activate();
+
+        // Pulse Topmost so the window comes forward even when another app owns the foreground.
+        Topmost = true;
+        Topmost = false;
     }
+
+    private void RetryButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(RetryAsync, "startup.retry");
+
+    private Task RetryAsync() =>
+        DataContext is StartupShellViewModel viewModel ? viewModel.RetryAsync() : Task.CompletedTask;
+
+    private void ExportDiagnosticsButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(ExportDiagnosticsAsync, "startup.export_diagnostics");
+
+    private Task ExportDiagnosticsAsync() =>
+        DataContext is StartupShellViewModel viewModel
+            ? viewModel.ExportDiagnosticsAsync()
+            : Task.CompletedTask;
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
@@ -68,14 +96,14 @@ public sealed partial class DesktopShellWindow : Window
         }
     }
 
-    private async void CommandPaletteItem_Click(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button { DataContext: CommandPaletteItem item } &&
-            DataContext is StartupShellViewModel { MainShell: { } shell })
-        {
-            await shell.ExecuteCommandAsync(item.Id).ConfigureAwait(true);
-        }
-    }
+    private void CommandPaletteItem_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CommandPaletteItemAsync(sender), "shell.command_palette.execute");
+
+    private Task CommandPaletteItemAsync(object? sender) =>
+        sender is Button { DataContext: CommandPaletteItem item } &&
+        DataContext is StartupShellViewModel { MainShell: { } shell }
+            ? shell.ExecuteCommandAsync(item.Id)
+            : Task.CompletedTask;
 
     private void CommandPaletteCloseButton_Click(object? sender, RoutedEventArgs e)
     {

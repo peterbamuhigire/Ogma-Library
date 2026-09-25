@@ -3,10 +3,13 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Avalonia.Threading;
 using OgmaLibrary.App.Configuration;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.Startup;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.App.ViewModels;
 
@@ -24,6 +27,9 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
     private readonly OgmaRuntimeOptions? _options;
     private readonly ILocalizationService _localization;
     private readonly CatalogueMigrator? _catalogueMigrator;
+    private readonly Func<Task>? _compositionRetry;
+    private readonly IUserNotifier? _notifier;
+    private readonly StartupFailureKind? _compositionFailure;
     private CancellationToken _applicationCancellationToken;
     private ApplicationStartupReport? _report;
     private bool _isStarting = true;
@@ -62,15 +68,21 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
     private StartupShellViewModel(
         ILocalizationService localization,
         string? safeMessage,
-        bool isBootstrap)
+        bool isBootstrap,
+        StartupFailureKind? compositionFailure = null,
+        Func<Task>? compositionRetry = null,
+        IUserNotifier? notifier = null)
     {
         _localization = localization ?? throw new ArgumentNullException(nameof(localization));
         ConfigurationFailureMessage = safeMessage;
+        _compositionFailure = compositionFailure;
+        _compositionRetry = compositionRetry;
+        _notifier = notifier;
         _isStarting = isBootstrap;
         _isLoadingVisible = isBootstrap;
         _isDegraded = !isBootstrap;
-        _canRetry = false;
-        _canExportDiagnostics = false;
+        _canRetry = compositionRetry is not null;
+        _canExportDiagnostics = compositionFailure is not null;
     }
 
     /// <summary>Creates the lightweight shell shown before dependency composition.</summary>
@@ -84,6 +96,35 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
 
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>
+    /// Creates the fail-closed shell for a classified composition failure (Sept-23 Phase 02,
+    /// T02.8). The message is localised per failure class; <paramref name="retry"/> reruns the
+    /// whole composition and is offered only where retrying is safe.
+    /// </summary>
+    /// <param name="localization">The bootstrap localisation service.</param>
+    /// <param name="kind">The failure class.</param>
+    /// <param name="retry">Reruns composition, or <see langword="null"/> when retrying cannot help.</param>
+    /// <param name="notifier">Receives the diagnostics export outcome.</param>
+    /// <returns>The degraded startup shell.</returns>
+    public static StartupShellViewModel CreateCompositionFailure(
+        ILocalizationService localization,
+        StartupFailureKind kind,
+        Func<Task>? retry,
+        IUserNotifier? notifier = null)
+    {
+        ArgumentNullException.ThrowIfNull(localization);
+        return new(
+            localization,
+            localization[StartupFailureClassifier.MessageKey(kind)],
+            isBootstrap: false,
+            kind,
+            retry,
+            notifier);
+    }
+
+    /// <summary>The composition failure class, when composition itself failed.</summary>
+    public StartupFailureKind? CompositionFailure => _compositionFailure;
 
     /// <summary>The normal catalogue shell, absent when composition itself failed.</summary>
     public MainShellViewModel? MainShell { get; }
@@ -165,7 +206,9 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
                         "configuration",
                         StartupTaskCriticality.Required,
                         false,
-                        "configuration_unusable",
+                        _compositionFailure is { } failure
+                            ? StartupFailureClassifier.ToCode(failure)
+                            : "configuration_unusable",
                         ConfigurationFailureMessage,
                         TimeSpan.Zero),
                 ];
@@ -266,12 +309,23 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Retries failed or unavailable startup work.</summary>
-    public Task RetryAsync() => StartAsync(_applicationCancellationToken);
+    /// <summary>
+    /// Retries failed or unavailable startup work. After a composition failure this reruns the
+    /// whole composition rather than only the startup tasks.
+    /// </summary>
+    /// <returns>A task that completes when the retry has finished.</returns>
+    public Task RetryAsync() => _compositionRetry is { } retry
+        ? retry()
+        : StartAsync(_applicationCancellationToken);
 
     /// <summary>Exports redacted startup evidence without exception details or configured paths.</summary>
     public async Task<string?> ExportDiagnosticsAsync(CancellationToken cancellationToken = default)
     {
+        if (_compositionFailure is { } failure)
+        {
+            return await ExportCompositionFailureAsync(failure, cancellationToken).ConfigureAwait(true);
+        }
+
         if (_report is null || _options is null)
         {
             return null;
@@ -313,6 +367,16 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
                 document,
                 DiagnosticJsonOptions,
                 cancellationToken).ConfigureAwait(true);
+            await stream.DisposeAsync().ConfigureAwait(true);
+
+            // Sept-23 Phase 02: the export also carries the redacted rolling logs.
+            await DiagnosticsBundleWriter.CreateAsync(
+                _options.DataDirectory,
+                new Dictionary<string, string>
+                {
+                    ["startup.json"] = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(true),
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(true);
             ExportStatus = _localization["Startup.Export.Succeeded"];
             return path;
         }
@@ -321,6 +385,28 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
             ExportStatus = _localization["Startup.Export.Failed"];
             return null;
         }
+    }
+
+    private async Task<string?> ExportCompositionFailureAsync(
+        StartupFailureKind failure,
+        CancellationToken cancellationToken)
+    {
+        string document = JsonSerializer.Serialize(
+            new
+            {
+                schemaVersion = 1,
+                failure = StartupFailureClassifier.ToCode(failure),
+                exportedUtc = DateTimeOffset.UtcNow,
+            },
+            DiagnosticJsonOptions);
+        string? path = await DiagnosticsExport.ExportAsync(
+            _notifier ?? NullUserNotifier.Instance,
+            new Dictionary<string, string> { ["startup-failure.json"] = document },
+            cancellationToken).ConfigureAwait(true);
+        ExportStatus = path is null
+            ? _localization["Startup.Export.Failed"]
+            : _localization["Startup.Export.Succeeded"];
+        return path;
     }
 
     private async Task RevealLoadingAfterDelayAsync(CancellationToken cancellationToken)
@@ -398,6 +484,9 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
         OnPropertyChanged(propertyName);
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        UiThreadGuard.Verify(this, propertyName, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
