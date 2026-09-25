@@ -12,6 +12,7 @@ namespace OgmaLibrary.Tests.Catalogue;
 public sealed class CatalogueReadModelTests
 {
     [Fact]
+    [Trait("Category", "Benchmark")]
     public async Task GetBookSummaries_50kServerSidePage_CompletesWithinTwoSeconds()
     {
         (CatalogueDbContext context, string dbPath) = CatalogueTestHelper.CreateTempFileContext();

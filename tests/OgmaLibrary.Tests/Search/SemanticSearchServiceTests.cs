@@ -132,6 +132,7 @@ public sealed class SemanticSearchServiceTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public async Task PerfBenchmark_SemanticSearch_P95_LessThan1500ms()
     {
         const int bookCount = 50_000;

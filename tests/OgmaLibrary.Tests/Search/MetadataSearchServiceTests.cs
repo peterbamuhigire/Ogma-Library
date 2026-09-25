@@ -129,6 +129,7 @@ public sealed class MetadataSearchServiceTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public async Task PerfBenchmark_MetadataSearch_P95_LessThan150ms()
     {
         SeedPerfCorpus(50_000);

@@ -61,6 +61,7 @@ public sealed class OcrGoldenCorpusTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public async Task OcrJob_VeryLargePdf_NoOutOfMemory()
     {
         const int pageCount = 1_000;

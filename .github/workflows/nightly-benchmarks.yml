@@ -1,0 +1,39 @@
+name: Nightly benchmarks
+
+# Category=Benchmark tests (10k/50k-scale budgets) are excluded from the per-commit
+# CI gate to keep feedback fast (Sept-23 Kaizen K04). They must still pass nightly
+# and before any release candidate.
+
+on:
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    name: benchmarks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore OgmaLibrary.sln --locked-mode
+
+      - name: Build
+        run: dotnet build OgmaLibrary.sln --configuration Release --no-restore
+
+      - name: Benchmark tests
+        timeout-minutes: 60
+        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1 --filter "Category=Benchmark"

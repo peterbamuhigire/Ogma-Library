@@ -31,6 +31,7 @@ public sealed class Phase15SmartShelfPerformanceTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public void Phase15SmartShelfMigration_AddsCompositeIndexes()
     {
         Assert.True(IndexExists("IX_Books_Status_Year"));
@@ -39,6 +40,7 @@ public sealed class Phase15SmartShelfPerformanceTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public void SmartShelf_QueryPlans_UsePhase15Indexes()
     {
         SeedSmartShelfCorpus();
@@ -92,6 +94,7 @@ public sealed class Phase15SmartShelfPerformanceTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public async Task SmartShelf_QueryBenchmark_2000Books()
     {
         SeedSmartShelfCorpus();

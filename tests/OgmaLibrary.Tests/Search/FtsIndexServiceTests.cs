@@ -191,6 +191,7 @@ public sealed class FtsIndexServiceTests : IDisposable
     }
 
     [Fact]
+    [Trait("Category", "Benchmark")]
     public async Task PerfBenchmark_FtsSearch_P95_LessThan500ms()
     {
         const int bookCount = 50_000;

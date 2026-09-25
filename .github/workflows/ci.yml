@@ -90,11 +90,12 @@ jobs:
           }
           "No high-confidence secret patterns found."
 
-      - name: Test (unit + architecture + UI render)
+      - name: Test (unit + architecture + UI render, excluding benchmarks)
         # Run test projects sequentially so latency budgets are not distorted by
         # competing architecture/UI test hosts on shared CI runners.
+        # Category=Benchmark runs nightly (.github/workflows/nightly-benchmarks.yml).
         timeout-minutes: 20
-        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1
+        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1 --filter "Category!=Benchmark"
 
       - name: Upload skeleton screenshots
         if: always()
