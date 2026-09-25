@@ -67,7 +67,8 @@ public sealed class CitationService : ICitationService
 #pragma warning disable CA1031 // Catalogue lookup failure should not block citation capture.
         catch (Exception)
         {
-            // Catalogue metadata unavailable — cite with available data.
+            // Intentionally ignored: catalogue metadata unavailable; cite with available data.
+            // The Reader library has no logging dependency (the reader engine is Phase 04).
         }
 #pragma warning restore CA1031
 
@@ -130,7 +131,7 @@ public sealed class CitationService : ICitationService
 #pragma warning disable CA1031 // Export can still use the stable book id when metadata is unavailable.
         catch (Exception)
         {
-            // Fall back to the stable book id below.
+            // Intentionally ignored: fall back to the stable book id below.
         }
 #pragma warning restore CA1031
 

@@ -138,6 +138,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
         }
         catch
         {
+            // Intentionally ignored: runs inside the isolated PDF worker, which has no logger.
             // A page-level geometry failure degrades to a bounded fallback so a
             // malformed optional page attribute cannot blank the whole document.
         }
@@ -166,7 +167,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
         }
         catch
         {
-            // XMP is optional and malformed XML must not hide Info metadata.
+            // Intentionally ignored: XMP is optional and malformed XML must not hide Info metadata.
         }
 
         return new PdfDocumentMetadata(
@@ -316,7 +317,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
             }
             catch
             {
-                // Disposal must not hide the original malformed-PDF failure.
+                // Intentionally ignored: disposal must not hide the original malformed-PDF failure.
             }
         }
 
@@ -499,7 +500,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
         }
         catch (Exception)
         {
-            // Embedded art is an optional source. A malformed or unsupported
+            // Intentionally ignored: embedded art is an optional source. A malformed or unsupported
             // image must fall through to generated first-page art.
         }
 

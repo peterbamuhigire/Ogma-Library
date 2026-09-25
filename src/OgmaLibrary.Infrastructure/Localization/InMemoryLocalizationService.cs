@@ -425,6 +425,10 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.PdfPicker.Unavailable"] = "PDF picker is unavailable in this window.",
         ["MainWindow.PdfPicker.NotConfigured"] = "Direct PDF opening is not configured.",
         ["MainWindow.PdfPicker.FailedFormat"] = "PDF open failed: {0}",
+        ["MainWindow.FolderPicker.Failed"] = "The library folder could not be set. Your PDF files were not changed. Choose the folder again.",
+        ["MainWindow.FolderPicker.ScanFailed"] = "The library scan stopped before it finished. Your PDF files were not changed. Choose the folder again to resume.",
+        ["MainWindow.PdfPicker.Failed"] = "That PDF could not be opened. The file was not changed. Check that it still exists, then try again.",
+        ["Catalogue.RefreshAfterConnectFailed"] = "Connected, but the catalogue could not be refreshed. Try again from the library.",
         ["MainWindow.PdfPicker.PdfFiles"] = "PDF documents",
         ["MainWindow.Status.Ready"] = "Ready — choose a library folder to begin",
 
@@ -1252,6 +1256,10 @@ public sealed class InMemoryLocalizationService : ILocalizationService
         ["MainWindow.PdfPicker.Unavailable"] = "Le selecteur PDF n'est pas disponible dans cette fenetre.",
         ["MainWindow.PdfPicker.NotConfigured"] = "L'ouverture directe de PDF n'est pas configuree.",
         ["MainWindow.PdfPicker.FailedFormat"] = "Echec de l'ouverture PDF : {0}",
+        ["MainWindow.FolderPicker.Failed"] = "Le dossier de bibliothèque n'a pas pu être défini. Vos fichiers PDF n'ont pas été modifiés. Choisissez à nouveau le dossier.",
+        ["MainWindow.FolderPicker.ScanFailed"] = "L'analyse de la bibliothèque s'est arrêtée avant la fin. Vos fichiers PDF n'ont pas été modifiés. Choisissez à nouveau le dossier pour reprendre.",
+        ["MainWindow.PdfPicker.Failed"] = "Ce PDF n'a pas pu être ouvert. Le fichier n'a pas été modifié. Vérifiez qu'il existe toujours, puis réessayez.",
+        ["Catalogue.RefreshAfterConnectFailed"] = "Connecté, mais le catalogue n'a pas pu être actualisé. Réessayez depuis la bibliothèque.",
         ["MainWindow.PdfPicker.PdfFiles"] = "Documents PDF",
         ["MainWindow.Status.Ready"] = "Prêt — choisissez un dossier de bibliothèque pour commencer",
 
