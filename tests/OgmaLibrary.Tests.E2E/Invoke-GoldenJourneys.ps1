@@ -133,11 +133,15 @@ Get-Process OgmaLibrary.App, OgmaLibrary.Workers -ErrorAction SilentlyContinue |
 if (-not $NoBuild) {
     Push-Location $repo
     try {
+        # Restore in locked mode once; the builds below never restore, so no lock file is rewritten
+        # (an implicit Release-only restore would drop Debug-only packages from the App lock file).
+        & dotnet restore OgmaLibrary.sln --locked-mode
+        if ($LASTEXITCODE -ne 0) { Fail 'Locked-mode restore failed.' }
         if ($Exe -eq [IO.Path]::GetFullPath((Join-Path $appOut 'OgmaLibrary.App.exe'))) {
-            & dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj --configuration Release -p:OgmaE2EHooks=true -o $appOut
+            & dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj --configuration Release -p:OgmaE2EHooks=true --no-restore -o $appOut
             if ($LASTEXITCODE -ne 0) { Fail 'The E2E app build failed.' }
         }
-        & dotnet build $project --configuration Release
+        & dotnet build $project --configuration Release --no-restore
         if ($LASTEXITCODE -ne 0) { Fail 'The E2E test project build failed.' }
     }
     finally {
