@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.App.Infrastructure;
+using OgmaLibrary.App.Navigation;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
@@ -45,6 +46,18 @@ public enum ShellView
 
     /// <summary>The capability-gated native 3D bookshelf route.</summary>
     Bookshelf3D = 7,
+
+    /// <summary>The Search destination (Sept-23 Phase 07).</summary>
+    Search = 8,
+
+    /// <summary>The Collections destination (Sept-23 Phase 07).</summary>
+    Collections = 9,
+
+    /// <summary>The Activity destination (Sept-23 Phase 07).</summary>
+    Activity = 10,
+
+    /// <summary>The Settings destination (Sept-23 Phase 07; content arrives in Phase 08).</summary>
+    Settings = 11,
 }
 
 /// <summary>
@@ -59,7 +72,11 @@ public interface IShellNavigationTarget :
 }
 
 /// <summary>A bounded, searchable shell command exposed by the command palette.</summary>
-public sealed record CommandPaletteItem(string Id, string Label, string Hint);
+public sealed record CommandPaletteItem(string Id, string Label, string Hint)
+{
+    /// <summary>The accessible name: the label and, when present, its shortcut.</summary>
+    public string AutomationName => Hint.Length == 0 ? Label : $"{Label} ({Hint})";
+}
 
 /// <summary>
 /// The shell view model for Phase 06. Owns the three-pane layout (sidebar /
@@ -68,7 +85,7 @@ public sealed record CommandPaletteItem(string Id, string Label, string Hint);
 /// <see cref="IReaderNavigationService"/> so no view holds a cross-view reference.
 /// It is the only window view model (the legacy MainWindow was removed in Sept-23 Phase 05).
 /// </summary>
-public sealed class MainShellViewModel :
+public sealed partial class MainShellViewModel :
     INotifyPropertyChanged,
     IShellNavigationTarget,
     IDisposable
@@ -86,7 +103,6 @@ public sealed class MainShellViewModel :
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
     private readonly string _studentSmartSearchIconPath = IconCatalog.GetAvaresPath("ic_ai_advisor") ?? string.Empty;
-    private readonly string _studentSmartSearchLabel = "AI Smart Search";
     private readonly string _classroomOfflineIconPath = IconCatalog.GetAvaresPath("ic_status_unavailable") ?? string.Empty;
 
     private ScanPhase _scanPhase = ScanPhase.Idle;
@@ -98,11 +114,6 @@ public sealed class MainShellViewModel :
     private ProcessingSnapshot _processing = ProcessingSnapshot.Idle;
     private DateTimeOffset _lastProgressiveRefreshUtc = DateTimeOffset.MinValue;
     private bool _progressiveRefreshPending;
-    private bool _isSidebarOpen = true;
-    private bool _isFilterPanelOpen;
-    private bool _isSearchPanelOpen;
-    private bool _isIndexManagerOpen;
-    private bool _isReconciliationReviewPanelOpen;
     private bool _isCommandPaletteOpen;
     private string _commandPaletteQuery = string.Empty;
     private UserPreferences _userPreferences = new();
@@ -110,7 +121,6 @@ public sealed class MainShellViewModel :
     private string? _looseBookFolder;
     private ScanSummary? _lastScanSummary;
     private string? _readerPlaceholderMessage;
-    private ShellView _activeView = ShellView.Catalogue;
     private bool _isClassroomClientMode;
     private ClassroomConnectivityStatus _classroomConnectivityStatus = new(
         IsOnline: false,
@@ -145,6 +155,7 @@ public sealed class MainShellViewModel :
     /// <param name="logger">Optional logger (Sept-23 Phase 02).</param>
     /// <param name="libraryFolders">The Library folders panel and scan monitor (Sept-23 Phase 05).</param>
     /// <param name="processingProgress">Background task progress, kept apart from scan files (Sept-23 Phase 06).</param>
+    /// <param name="capabilities">The capability state (Sept-23 Phase 07); defaults to standalone.</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -169,7 +180,8 @@ public sealed class MainShellViewModel :
         ReconciliationReviewPanelViewModel? reconciliationReviews = null,
         ILogger<MainShellViewModel>? logger = null,
         LibraryFoldersViewModel? libraryFolders = null,
-        IProcessingProgressService? processingProgress = null)
+        IProcessingProgressService? processingProgress = null,
+        ICapabilityState? capabilities = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -233,6 +245,8 @@ public sealed class MainShellViewModel :
                 new ConnectivityObserver(OnClassroomConnectivityChanged));
             _ = RefreshClassroomConnectivityAsync();
         }
+
+        InitializeNavigation(capabilities);
     }
 
     /// <summary>
@@ -344,12 +358,6 @@ public sealed class MainShellViewModel :
     /// <summary>The Phase 16 Host sharing control strip view model.</summary>
     public HostSharingViewModel? HostSharing { get; }
 
-    /// <summary>True when the Host sharing control strip is available.</summary>
-    public bool IsHostSharingVisible => HostSharing is not null;
-
-    /// <summary>True when the student smart-search route is available.</summary>
-    public bool IsStudentSmartSearchVisible => StudentSmartSearch is not null;
-
     /// <summary>True when Client mode is disconnected and the shell should show the offline chip.</summary>
     public bool IsClassroomOfflineVisible => _isClassroomClientMode && !_classroomConnectivityStatus.IsOnline;
 
@@ -364,126 +372,6 @@ public sealed class MainShellViewModel :
     public string ClassroomOfflineIconPath => _classroomOfflineIconPath;
 
     // ── Layout state ──────────────────────────────────────────────────────────
-
-    /// <summary>The currently active content area in the shell.</summary>
-    public ShellView ActiveView
-    {
-        get => _activeView;
-        set
-        {
-            if (_activeView != value)
-            {
-                _activeView = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(IsCatalogueActive));
-                OnPropertyChanged(nameof(IsPagerVisible));
-                OnPropertyChanged(nameof(IsReaderActive));
-                OnPropertyChanged(nameof(IsSplitViewActive));
-                OnPropertyChanged(nameof(IsSharingSettingsActive));
-                OnPropertyChanged(nameof(IsStudentSmartSearchActive));
-                OnPropertyChanged(nameof(IsAdvisorActive));
-                OnPropertyChanged(nameof(IsReadingPlanActive));
-                OnPropertyChanged(nameof(IsBookshelf3DActive));
-            }
-        }
-    }
-
-    /// <summary>True when the catalogue view is the active content area.</summary>
-    public bool IsCatalogueActive => _activeView == ShellView.Catalogue;
-
-    /// <summary>Whether the catalogue pager is shown: only on the catalogue route with more than one page.</summary>
-    public bool IsPagerVisible => IsCatalogueActive && Catalogue.TotalPages > 1;
-
-    /// <summary>True when the reader view is the active content area.</summary>
-    public bool IsReaderActive => _activeView == ShellView.Reader;
-
-    /// <summary>True when the split reader is the active content area.</summary>
-    public bool IsSplitViewActive => _activeView == ShellView.SplitView;
-
-    /// <summary>True when the Sharing settings surface is the active content area.</summary>
-    public bool IsSharingSettingsActive => _activeView == ShellView.SharingSettings;
-
-    /// <summary>True when the student AI smart-search surface is the active content area.</summary>
-    public bool IsStudentSmartSearchActive => _activeView == ShellView.StudentSmartSearch;
-
-    /// <summary>True when the recommendation advisor route is active.</summary>
-    public bool IsAdvisorActive => _activeView == ShellView.Advisor;
-
-    /// <summary>True when the reading-plan route is active.</summary>
-    public bool IsReadingPlanActive => _activeView == ShellView.ReadingPlan;
-
-    /// <summary>True when the 3D bookshelf route is active.</summary>
-    public bool IsBookshelf3DActive => _activeView == ShellView.Bookshelf3D;
-
-    /// <summary>Whether the left sidebar (shelves) is open.</summary>
-    public bool IsSidebarOpen
-    {
-        get => _isSidebarOpen;
-        set
-        {
-            if (_isSidebarOpen != value)
-            {
-                _isSidebarOpen = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    /// <summary>Whether the filter panel flyout is open.</summary>
-    public bool IsFilterPanelOpen
-    {
-        get => _isFilterPanelOpen;
-        set
-        {
-            if (_isFilterPanelOpen != value)
-            {
-                _isFilterPanelOpen = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    /// <summary>Whether the search panel is open.</summary>
-    public bool IsSearchPanelOpen
-    {
-        get => _isSearchPanelOpen;
-        set
-        {
-            if (_isSearchPanelOpen != value)
-            {
-                _isSearchPanelOpen = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    /// <summary>Whether the Index Manager panel is open.</summary>
-    public bool IsIndexManagerOpen
-    {
-        get => _isIndexManagerOpen;
-        set
-        {
-            if (_isIndexManagerOpen != value)
-            {
-                _isIndexManagerOpen = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    /// <summary>Whether the relocation-review panel is visible.</summary>
-    public bool IsReconciliationReviewPanelOpen
-    {
-        get => _isReconciliationReviewPanelOpen;
-        private set
-        {
-            if (_isReconciliationReviewPanelOpen != value)
-            {
-                _isReconciliationReviewPanelOpen = value;
-                OnPropertyChanged();
-            }
-        }
-    }
 
     /// <summary>An optional reader status message shown in the shell.</summary>
     public string? ReaderPlaceholderMessage
@@ -647,7 +535,7 @@ public sealed class MainShellViewModel :
     public string SharingSettingsLabel => _localization["SharingSettings.Title"];
 
     /// <summary>Student smart-search route label.</summary>
-    public string StudentSmartSearchLabel => _studentSmartSearchLabel;
+    public string StudentSmartSearchLabel => _localization["Classroom.Tab.SmartSearch"];
 
     /// <summary>Recommendation advisor route label.</summary>
     public string AdvisorLabel => _localization["Navigation.Advisor"];
@@ -657,9 +545,6 @@ public sealed class MainShellViewModel :
 
     /// <summary>3D bookshelf route label.</summary>
     public string Bookshelf3DLabel => _localization["Shelf3D.Title"];
-
-    /// <summary>Whether the 3D bookshelf route has a registered host capability.</summary>
-    public bool IsShelf3DAvailable => Bookshelf3D is not null;
 
     /// <summary>Search panel toggle icon path.</summary>
     public string SearchIconPath => _searchIconPath;
@@ -724,60 +609,6 @@ public sealed class MainShellViewModel :
         UserPreferencesChanged?.Invoke(this, _userPreferences);
     }
 
-    /// <summary>Opens the command palette and clears the previous query.</summary>
-    public void OpenCommandPalette()
-    {
-        CommandPaletteQuery = string.Empty;
-        IsCommandPaletteOpen = true;
-    }
-
-    /// <summary>Closes the command palette and clears transient query text.</summary>
-    public void CloseCommandPalette()
-    {
-        IsCommandPaletteOpen = false;
-        CommandPaletteQuery = string.Empty;
-    }
-
-    /// <summary>Executes a palette command and closes the palette on success.</summary>
-    public async Task ExecuteCommandAsync(
-        string commandId,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(commandId);
-        switch (commandId)
-        {
-            case "library":
-                await ReturnToLibraryAsync(cancellationToken).ConfigureAwait(true);
-                break;
-            case "search":
-                IsSearchPanelOpen = true;
-                break;
-            case "split-view":
-                OpenSplitView();
-                break;
-            case "advisor":
-                OpenAdvisor();
-                break;
-            case "reading-plan":
-                OpenReadingPlan();
-                break;
-            case "toggle-theme":
-                await ToggleThemeAsync(cancellationToken).ConfigureAwait(true);
-                break;
-            case "toggle-density":
-                await ToggleDensityAsync(cancellationToken).ConfigureAwait(true);
-                break;
-            case "rescan":
-                CloseCommandPalette();
-                await RescanLibraryAsync().ConfigureAwait(true);
-                return;
-            default:
-                throw new ArgumentException("The selected command is not supported.", nameof(commandId));
-        }
-
-        CloseCommandPalette();
-    }
-
     /// <summary>Cycles Light, Dark, and System theme choices.</summary>
     public Task ToggleThemeAsync(CancellationToken cancellationToken = default) =>
         SavePreferencesAsync(_userPreferences with
@@ -814,31 +645,27 @@ public sealed class MainShellViewModel :
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
 
+        void Show()
+        {
+            NavigateTo(NavigationRoute.Reader(bookId, pageHint));
+            BookDetail.IsVisible = false;
+            OnPropertyChanged(nameof(IsReaderContentVisible));
+            OnPropertyChanged(nameof(IsReadingEmptyVisible));
+        }
+
         if (Reader is not null)
         {
             // Switch immediately so the user gets reader feedback while the
             // isolated worker opens and warms the selected PDF.
-            ActiveView = ShellView.Reader;
-            ReaderPlaceholderMessage = null;
-            BookDetail.IsVisible = false;
-            OnPropertyChanged(nameof(IsReaderActive));
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+            {
+                Show();
+            }
+
             await Reader.OpenAsync(bookId, pageHint, cancellationToken).ConfigureAwait(false);
         }
 
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            ActiveView = ShellView.Reader;
-            ReaderPlaceholderMessage = null;
-            BookDetail.IsVisible = false;
-            OnPropertyChanged(nameof(IsReaderActive));
-        });
-    }
-
-    /// <summary>Returns to the catalogue browsing surface.</summary>
-    public void OpenCatalogue()
-    {
-        ActiveView = ShellView.Catalogue;
-        ReaderPlaceholderMessage = null;
+        Avalonia.Threading.Dispatcher.UIThread.Post(Show);
     }
 
     /// <summary>
@@ -853,69 +680,6 @@ public sealed class MainShellViewModel :
         }
 
         OpenCatalogue();
-    }
-
-    /// <summary>Opens the Phase 21 two-session split-reader route.</summary>
-    public void OpenSplitView()
-    {
-        ActiveView = ShellView.SplitView;
-        ReaderPlaceholderMessage = null;
-        BookDetail.IsVisible = false;
-    }
-
-    /// <summary>Compatibility alias for callers using the former route name.</summary>
-    public void OpenSplitViewScaffold() => OpenSplitView();
-
-    /// <summary>Opens the Phase 16 Sharing settings surface.</summary>
-    public async Task OpenSharingSettingsAsync(CancellationToken cancellationToken = default)
-    {
-        if (HostSharing is not null)
-        {
-            await HostSharing.RefreshAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        ActiveView = ShellView.SharingSettings;
-        ReaderPlaceholderMessage = null;
-        BookDetail.IsVisible = false;
-    }
-
-    // ── Scan / folder actions ─────────────────────────────────────────────────
-
-    /// <summary>Opens the Phase 18 classroom student smart-search route.</summary>
-    public void OpenStudentSmartSearch()
-    {
-        ActiveView = ShellView.StudentSmartSearch;
-        ReaderPlaceholderMessage = null;
-        BookDetail.IsVisible = false;
-    }
-
-    /// <summary>Opens the local recommendation advisor route.</summary>
-    public void OpenAdvisor()
-    {
-        ActiveView = ShellView.Advisor;
-        ReaderPlaceholderMessage = null;
-        BookDetail.IsVisible = false;
-    }
-
-    /// <summary>Opens the reading-plan route.</summary>
-    public void OpenReadingPlan()
-    {
-        ActiveView = ShellView.ReadingPlan;
-        ReaderPlaceholderMessage = null;
-        BookDetail.IsVisible = false;
-    }
-
-    /// <summary>Opens the 3D bookshelf route when its capability is registered.</summary>
-    public void OpenBookshelf3D()
-    {
-        if (Bookshelf3D is null)
-        {
-            return;
-        }
-
-        ActiveView = ShellView.Bookshelf3D;
-        ReaderPlaceholderMessage = null;
-        BookDetail.IsVisible = false;
     }
 
     /// <summary>
@@ -1235,38 +999,6 @@ public sealed class MainShellViewModel :
         _scanCts.Cancel();
     }
 
-    /// <summary>Toggles the sidebar open/closed.</summary>
-    public void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
-
-    /// <summary>Toggles the filter panel open/closed.</summary>
-    public void ToggleFilterPanel() => IsFilterPanelOpen = !IsFilterPanelOpen;
-
-    /// <summary>Toggles the search panel open/closed.</summary>
-    public void ToggleSearchPanel() => IsSearchPanelOpen = !IsSearchPanelOpen;
-
-    /// <summary>Toggles the Index Manager panel open/closed.</summary>
-    public async Task ToggleIndexManagerAsync(CancellationToken cancellationToken = default)
-    {
-        IsIndexManagerOpen = !IsIndexManagerOpen;
-        if (IsIndexManagerOpen && IndexManager is not null)
-        {
-            await IndexManager.LoadAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>Loads and toggles the operator relocation-review panel.</summary>
-    public async Task ToggleReconciliationReviewsAsync(CancellationToken cancellationToken = default)
-    {
-        IsReconciliationReviewPanelOpen = !IsReconciliationReviewPanelOpen;
-        if (IsReconciliationReviewPanelOpen && ReconciliationReviews is not null)
-        {
-            await ReconciliationReviews.LoadAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>Closes the operator relocation-review panel.</summary>
-    public void CloseReconciliationReviews() => IsReconciliationReviewPanelOpen = false;
-
     /// <inheritdoc />
     public void Dispose()
     {
@@ -1274,6 +1006,16 @@ public sealed class MainShellViewModel :
         if (_processingProgress is not null)
         {
             _processingProgress.ProgressChanged -= OnProcessingProgressChanged;
+        }
+
+        Catalogue.PropertyChanged -= OnCatalogueViewChanged;
+        Catalogue.Filter.PropertyChanged -= OnFilterChanged;
+        ShelfSidebar.PropertyChanged -= OnShelfSidebarChanged;
+        _navigation.Changed -= OnNavigationChanged;
+        _capabilities.Changed -= OnCapabilitiesChanged;
+        if (Reader is not null)
+        {
+            Reader.PropertyChanged -= OnReaderPropertyChanged;
         }
 
         _classroomConnectivitySubscription?.Dispose();
@@ -1319,20 +1061,6 @@ public sealed class MainShellViewModel :
         }
     }
 
-    /// <summary>Whether the keyboard command palette is visible.</summary>
-    public bool IsCommandPaletteOpen
-    {
-        get => _isCommandPaletteOpen;
-        set
-        {
-            if (_isCommandPaletteOpen != value)
-            {
-                _isCommandPaletteOpen = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
     /// <summary>Search text entered in the command palette.</summary>
     public string CommandPaletteQuery
     {
@@ -1351,17 +1079,17 @@ public sealed class MainShellViewModel :
         }
     }
 
-    /// <summary>Commands matching the current palette query.</summary>
-    public IReadOnlyList<CommandPaletteItem> CommandPaletteItems
+    /// <summary>Whether the keyboard command palette is visible.</summary>
+    public bool IsCommandPaletteOpen
     {
-        get
+        get => _isCommandPaletteOpen;
+        set
         {
-            string query = CommandPaletteQuery.Trim();
-            return AllCommandPaletteItems()
-                .Where(item => query.Length == 0 ||
-                               item.Label.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
-                               item.Hint.Contains(query, StringComparison.CurrentCultureIgnoreCase))
-                .ToList();
+            if (_isCommandPaletteOpen != value)
+            {
+                _isCommandPaletteOpen = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -1556,7 +1284,7 @@ public sealed class MainShellViewModel :
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            ActiveView = ShellView.Catalogue;
+            NavigateTo(NavigationRoute.Library);
             ReaderPlaceholderMessage = null;
             BookDetail.Close();
         });
@@ -1583,6 +1311,7 @@ public sealed class MainShellViewModel :
     {
         _isClassroomClientMode = isClientMode;
         _classroomConnectivityStatus = status;
+        (_capabilities as RuntimeCapabilityState)?.SetClassroomClientConnected(isClientMode && status.IsOnline);
         OnPropertyChanged(nameof(IsClassroomOfflineVisible));
         OnPropertyChanged(nameof(ClassroomOfflineText));
         OnPropertyChanged(nameof(ClassroomOfflineAutomationName));
@@ -1607,18 +1336,6 @@ public sealed class MainShellViewModel :
         _statusOverride = value;
         OnPropertyChanged(nameof(StatusText));
     }
-
-    private IReadOnlyList<CommandPaletteItem> AllCommandPaletteItems() =>
-    [
-        new("library", _localization["CommandPalette.Library"], "L"),
-        new("search", _localization["CommandPalette.Search"], "Ctrl+F"),
-        new("split-view", _localization["CommandPalette.SplitView"], ""),
-        new("advisor", _localization["CommandPalette.Advisor"], ""),
-        new("reading-plan", _localization["CommandPalette.ReadingPlan"], ""),
-        new("toggle-theme", _localization["CommandPalette.ToggleTheme"], Theme.ToString()),
-        new("toggle-density", _localization["CommandPalette.ToggleDensity"], Density.ToString()),
-        new("rescan", _localization["CommandPalette.Rescan"], "F5"),
-    ];
 
     private async Task SavePreferencesAsync(
         UserPreferences preferences,

@@ -63,7 +63,7 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 04 | Reader engine stability and page rendering | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-04-completion.md) |
 | 05 | Library roots, scanning and file validity | B | **IMPLEMENTED** 2026-09-25 (E2E journeys G2/G6 pending Phase 01) | [record](../../implementation/execution/phase-sept23-05-completion.md) |
 | 06 | Processing pipeline, jobs and identity promotion | B | **IMPLEMENTED** 2026-09-25 (E2E G2 processing journeys pending re-run) | [record](../../implementation/execution/phase-sept23-06-completion.md) |
-| 07 | Navigation and information architecture | B | IN PROGRESS (worktree lane) | — |
+| 07 | Navigation and information architecture | B | **IMPLEMENTED** 2026-09-25 (owner walkthrough pending) | [record](../../implementation/execution/phase-sept23-07-completion.md) |
 | 08 | Settings and capability centre | B | NOT STARTED | — |
 | 09 | Design system and visual identity | C | NOT STARTED (needs D-07) | — |
 | 10 | Catalogue experience | C | NOT STARTED | — |
@@ -73,7 +73,7 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 14 | Local semantic capability and embeddings | D | NOT STARTED (needs D-05) | — |
 | 15 | AI gateway, providers and Privacy Center | D | NOT STARTED (needs D-06) | — |
 | 16 | Reading Advisor, grounded answers and reading plans | D | NOT STARTED | — |
-| 17 | OCR and extraction quality | D | NOT STARTED | — |
+| 17 | OCR and extraction quality | D | IN PROGRESS (worktree lane) | — |
 | 18 | 3D bookshelf | E | NOT STARTED | — |
 | 19 | Classroom Host and school administration | E | NOT STARTED | — |
 | 20 | Classroom client, offline cache and sync | E | NOT STARTED (needs D-09, D-11) | — |

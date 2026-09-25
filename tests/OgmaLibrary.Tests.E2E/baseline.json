@@ -46,16 +46,6 @@
       "messagePattern": "\\[K21\\]"
     },
     {
-      "journey": "G7",
-      "test": "G7_Advisor_UnconfiguredShowsRouteToSettings",
-      "defects": [
-        "G7"
-      ],
-      "owner": "Phases 15-16",
-      "reason": "With AI unconfigured the Advisor offers no route to Settings (dead end).",
-      "messagePattern": "\\[G7,"
-    },
-    {
       "journey": "G8",
       "test": "G8_WorkerKilledDuringReading_AppSurvivesAndLogs",
       "defects": [

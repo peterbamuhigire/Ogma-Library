@@ -32,6 +32,8 @@ public sealed partial class ShellReaderNavigationTests
         await shell.LibraryFolders!.LoadAsync();
         Dispatcher.UIThread.RunJobs();
 
+        // Sept-23 Phase 07: the folders panel is a Library drawer, opened from the toolbar.
+        shell.IsFoldersDrawerOpen = true;
         (Window window, CatalogueShellView view) = ShowShell(shell, width, height);
 
         string[] names = [.. view.GetVisualDescendants()

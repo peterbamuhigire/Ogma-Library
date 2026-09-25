@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OgmaLibrary.App.Configuration;
+using OgmaLibrary.App.Navigation;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Catalogue;
@@ -133,8 +134,9 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IProfileService>(),
             services.GetRequiredService<IStudentPrivateRepository>(),
             localization);
+        var aiAdvisor = services.GetRequiredService<IAiAdvisorService>();
         var advisor = new RecommendationPanelViewModel(
-            services.GetRequiredService<IAiAdvisorService>(),
+            aiAdvisor,
             navigation,
             localization,
             services.GetService<IAdvisorFeedbackService>(),
@@ -203,7 +205,12 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             {
                 ConfiguredRoot = options.ConfiguredLibraryRoot,
             },
-            services.GetService<IProcessingProgressService>());
+            services.GetService<IProcessingProgressService>(),
+            new RuntimeCapabilityState(
+                classroomHostEnabled: options.EnableClassroomHost,
+                shelf3DAvailable: options.EnableThreeDimensionalShelf,
+                metadataProvidersEnabled: options.EnableExternalMetadataProviders,
+                isAiConfigured: () => aiAdvisor.IsEnabled));
 
         return shell;
     }

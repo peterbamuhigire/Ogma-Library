@@ -93,6 +93,9 @@ public sealed class App : Avalonia.Application, IDisposable
                 (_, preferences) => ApplyUserPreferences(preferences);
             if (runtime.StartupShell.MainShell is { } mainShell)
             {
+                // Sept-23 Phase 07 (T07.7): the palette offers the same export as the toasts.
+                mainShell.ExportDiagnostics = () =>
+                    DiagnosticsExport.ExportAsync(notifications, cancellationToken: cancellationToken);
                 await mainShell.InitializePreferencesAsync(cancellationToken).ConfigureAwait(true);
             }
             window.DataContext = runtime.StartupShell;
