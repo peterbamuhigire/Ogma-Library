@@ -32,6 +32,7 @@ public sealed partial class DesktopShellWindow : Window
         _commandPaletteList = this.FindControl<ItemsControl>("CommandPaletteList");
         _shortcutsCloseButton = this.FindControl<Button>("ShortcutsCloseButton");
         _toastHost = this.FindControl<ItemsControl>("ToastHost");
+        Themes.MotionPreference.Apply(this);
         DataContextChanged += OnDataContextChanged;
     }
 

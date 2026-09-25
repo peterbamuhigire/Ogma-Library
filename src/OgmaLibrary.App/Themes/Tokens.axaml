@@ -2,121 +2,325 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
   <!--
-    Ogma Library Design Tokens — Phase 03
-    Flat full-color palette (D-001), style locked for the calm-control aesthetic.
-    All UI code references these keys via DynamicResource; never use raw hex values.
-    ThemeDictionaries swaps Light/Dark automatically via RequestedThemeVariant.
+    Ogma Library design tokens (Sept-23 Kaizen Phase 09): "The Lamplit Library".
+    Light is a warm cream reading room with jewel-toned accents; Dark ("Night Library") is deep
+    indigo with parchment text and gold accents, never a grey inversion. See docs/adrs/0019-lamplit-visual-identity.md.
+
+    Three tiers:
+      1. Primitives: the six accent families (Oak, Ink, Sage, Clay, Plum, Slate) and the warm
+         parchment/walnut surfaces. Kept for compatibility; views should prefer the roles.
+      2. Semantic roles: Surface.*, Text.*, Control.*, Accent.Primary/Text/OnAccent, Link,
+         Selection.*, Status.*, Focus, Cover.*. Every text/fill pair is checked against
+         WCAG 2.2 AA in both themes by Sept23Phase09DesignTokenTests (contrast matrix).
+      3. Component styles live in Themes/Controls.axaml and reference roles only.
+
+    Views reference these keys via DynamicResource; hex values belong in this file only
+    (enforced by scripts/Test-DesignTokens.ps1 and the design-token guard test).
+
+    Typeface decision: Spectral (display: titles, headings, generated cover titles),
+    Public Sans (body, controls, data), JetBrains Mono (paths, hashes, code). All three are
+    SIL OFL 1.1 and bundled; no banned AI-slop font is used.
   -->
 
   <ResourceDictionary.ThemeDictionaries>
 
-    <!-- ═══════════════════════════════ LIGHT ═══════════════════════════════ -->
+    <!-- ═════════════════════ LIGHT: "Lamplit Library" ═════════════════════ -->
     <ResourceDictionary x:Key="Light">
 
-      <!-- Accent families (functional color areas) -->
-      <!-- Oak — primary actions, library identity -->
-      <Color x:Key="Color.Accent.Oak">#9E6519</Color>
+      <!-- Jewel accent primitives (legacy names: Oak=amber, Ink=lapis, Sage=malachite,
+           Clay=garnet). Every fill carries a white label at >= 4.5:1. -->
+      <Color x:Key="Color.Accent.Oak">#A35C0A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
-
-      <!-- Text and icons drawn on accent fills (white-label contrast) -->
-      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="#FFFFFF" />
-
-      <!-- Ink — reading, navigation -->
-      <Color x:Key="Color.Accent.Ink">#2B4A7A</Color>
+      <Color x:Key="Color.Accent.Ink">#2552A0</Color>
       <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
-
-      <!-- Sage — success, available, health-OK -->
-      <Color x:Key="Color.Accent.Sage">#4A7A5A</Color>
+      <Color x:Key="Color.Accent.Sage">#1B7350</Color>
       <SolidColorBrush x:Key="Brush.Accent.Sage" Color="{DynamicResource Color.Accent.Sage}" />
-
-      <!-- Clay — warnings, needs attention -->
-      <Color x:Key="Color.Accent.Clay">#B64F31</Color>
+      <Color x:Key="Color.Accent.Clay">#A3303D</Color>
       <SolidColorBrush x:Key="Brush.Accent.Clay" Color="{DynamicResource Color.Accent.Clay}" />
-
-      <!-- Plum — AI / intelligence surfaces -->
-      <Color x:Key="Color.Accent.Plum">#6A3A7A</Color>
+      <Color x:Key="Color.Accent.Plum">#7A3A8C</Color>
       <SolidColorBrush x:Key="Brush.Accent.Plum" Color="{DynamicResource Color.Accent.Plum}" />
-
-      <!-- Slate — settings, secondary actions -->
-      <Color x:Key="Color.Accent.Slate">#5A6A7A</Color>
+      <Color x:Key="Color.Accent.Slate">#4E6072</Color>
       <SolidColorBrush x:Key="Brush.Accent.Slate" Color="{DynamicResource Color.Accent.Slate}" />
+      <Color x:Key="Color.Accent.Saffron">#8C6200</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Saffron" Color="{DynamicResource Color.Accent.Saffron}" />
+      <Color x:Key="Color.Accent.Teal">#1F6E7C</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Teal" Color="{DynamicResource Color.Accent.Teal}" />
 
-      <!-- Surface tokens -->
-      <!-- Parchment — light theme base, warm off-white -->
-      <Color x:Key="Color.Surface.Parchment">#FAF7F2</Color>
+      <!-- Primary action fill (amber). White label >= 4.5:1. -->
+      <Color x:Key="Color.Accent.Primary">#A35C0A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Primary" Color="{DynamicResource Color.Accent.Primary}" />
+      <Color x:Key="Color.Accent.PrimaryHover">#8C4E07</Color>
+      <SolidColorBrush x:Key="Brush.Accent.PrimaryHover" Color="{DynamicResource Color.Accent.PrimaryHover}" />
+      <Color x:Key="Color.Accent.PrimaryPressed">#733F05</Color>
+      <SolidColorBrush x:Key="Brush.Accent.PrimaryPressed" Color="{DynamicResource Color.Accent.PrimaryPressed}" />
+      <!-- Text and icons drawn on any accent, status or cover fill. -->
+      <Color x:Key="Color.Accent.OnAccent">#FFFFFF</Color>
+      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="{DynamicResource Color.Accent.OnAccent}" />
+      <!-- Accent used as text on surfaces (amber by day, gold by night). -->
+      <Color x:Key="Color.Accent.Text">#8A5712</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Text" Color="{DynamicResource Color.Accent.Text}" />
+      <!-- Selection glow and hover-lift halo. -->
+      <Color x:Key="Color.Accent.Glow">#F2B544</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Glow" Color="{DynamicResource Color.Accent.Glow}" />
+      <Color x:Key="Color.Link">#2552A0</Color>
+      <SolidColorBrush x:Key="Brush.Link" Color="{DynamicResource Color.Link}" />
+      <!-- Legacy name of Surface.Base. -->
+      <Color x:Key="Color.Surface.Parchment">#FBF5EA</Color>
       <SolidColorBrush x:Key="Brush.Surface.Parchment" Color="{DynamicResource Color.Surface.Parchment}" />
-
-      <!-- Foreground on parchment — deep warm near-black -->
-      <Color x:Key="Color.Surface.OnParchment">#1E1A17</Color>
+      <!-- Legacy name of Text.Primary. -->
+      <Color x:Key="Color.Surface.OnParchment">#1F1A14</Color>
       <SolidColorBrush x:Key="Brush.Surface.OnParchment" Color="{DynamicResource Color.Surface.OnParchment}" />
-
-      <!-- Secondary text on parchment — warm mid-brown -->
-      <Color x:Key="Color.Surface.OnParchmentMuted">#6B5744</Color>
+      <!-- Legacy name of Text.Secondary. -->
+      <Color x:Key="Color.Surface.OnParchmentMuted">#6A5640</Color>
       <SolidColorBrush x:Key="Brush.Surface.OnParchmentMuted" Color="{DynamicResource Color.Surface.OnParchmentMuted}" />
-
-      <!-- Card/panel surface — slightly warmer white -->
-      <Color x:Key="Color.Surface.Card">#FFFFFF</Color>
+      <!-- Legacy name of Surface.Raised. -->
+      <Color x:Key="Color.Surface.Card">#FFFDF8</Color>
       <SolidColorBrush x:Key="Brush.Surface.Card" Color="{DynamicResource Color.Surface.Card}" />
-
-      <!-- Card border — very subtle warm gray -->
-      <Color x:Key="Color.Surface.CardBorder">#E8E0D6</Color>
+      <!-- Legacy name of Surface.Divider. -->
+      <Color x:Key="Color.Surface.CardBorder">#E9DDC8</Color>
       <SolidColorBrush x:Key="Brush.Surface.CardBorder" Color="{DynamicResource Color.Surface.CardBorder}" />
-
-      <!-- Status bar / footer — very light warm overlay -->
-      <Color x:Key="Color.Surface.Footer">#F0EBE3</Color>
+      <!-- Legacy name of Surface.Sunken. -->
+      <Color x:Key="Color.Surface.Footer">#F3EBDC</Color>
       <SolidColorBrush x:Key="Brush.Surface.Footer" Color="{DynamicResource Color.Surface.Footer}" />
-
-      <!-- Keyboard focus ring; distinct from semantic status colors. -->
+      <!-- Canvas: warm cream by day, deep indigo by night. -->
+      <Color x:Key="Color.Surface.Base">#FBF5EA</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Base" Color="{DynamicResource Color.Surface.Base}" />
+      <!-- Cards, panels, inspector. -->
+      <Color x:Key="Color.Surface.Raised">#FFFDF8</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Raised" Color="{DynamicResource Color.Surface.Raised}" />
+      <!-- Wells, status bar, segmented tracks. -->
+      <Color x:Key="Color.Surface.Sunken">#F3EBDC</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Sunken" Color="{DynamicResource Color.Surface.Sunken}" />
+      <Color x:Key="Color.Surface.Divider">#E9DDC8</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Divider" Color="{DynamicResource Color.Surface.Divider}" />
+      <!-- Reader page canvas: PDFs are authored for paper. -->
+      <Color x:Key="Color.Surface.Page">#FFFFFF</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Page" Color="{DynamicResource Color.Surface.Page}" />
+      <!-- Paper-grain speck colour (alpha). -->
+      <Color x:Key="Color.Surface.Grain">#0F8A5712</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Grain" Color="{DynamicResource Color.Surface.Grain}" />
+      <!-- Library home header band: a lamplit wash from warm amber into the canvas. -->
+      <LinearGradientBrush x:Key="Brush.Hero.Background" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Offset="0" Color="#F9E4BF" />
+        <GradientStop Offset="0.55" Color="#FBF0DC" />
+        <GradientStop Offset="1" Color="#FBF5EA" />
+      </LinearGradientBrush>
+      <!-- Canvas: the base colour with a very faint deterministic paper grain (96 px tile). -->
+      <DrawingBrush x:Key="Brush.Surface.Canvas" TileMode="Tile" Stretch="None" DestinationRect="0,0,96,96">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{DynamicResource Brush.Surface.Base}" Geometry="M0,0h96v96h-96z" />
+            <GeometryDrawing Brush="{DynamicResource Brush.Surface.Grain}" Geometry="M59,78h1v1h-1z M34,17h1v1h-1z M86,0h1v1h-1z M64,59h1v1h-1z M42,70h1v1h-1z M93,48h1v1h-1z M90,57h2v1h-2z M20,21h1v1h-1z M6,14h1v1h-1z M64,75h1v1h-1z M88,49h1v1h-1z M37,26h1v1h-1z M92,53h1v1h-1z M34,26h2v1h-2z M35,43h1v1h-1z M25,90h1v1h-1z M52,7h2v1h-2z M62,17h1v1h-1z M30,54h1v1h-1z M76,0h1v1h-1z M74,25h1v1h-1z M42,1h1v1h-1z M17,69h1v1h-1z M64,10h2v1h-2z M68,25h2v1h-2z M8,50h1v1h-1z M81,11h1v1h-1z M22,77h1v1h-1z M6,34h1v1h-1z M34,94h1v1h-1z M15,90h2v1h-2z M30,20h1v1h-1z M94,46h1v1h-1z M44,14h1v1h-1z M57,26h2v1h-2z M25,73h1v1h-1z M48,77h1v1h-1z M0,55h1v1h-1z M27,28h2v1h-2z M34,41h1v1h-1z M39,80h1v1h-1z M13,66h1v1h-1z M3,48h2v1h-2z M63,44h1v1h-1z M72,94h1v1h-1z M54,82h1v1h-1z M12,51h1v1h-1z M71,47h1v1h-1z M85,37h1v1h-1z M88,33h1v1h-1z M6,22h1v1h-1z M21,15h1v1h-1z M1,6h1v1h-1z M57,26h2v1h-2z M37,78h1v1h-1z M45,36h1v1h-1z M61,71h1v1h-1z M17,11h1v1h-1z M89,15h1v1h-1z M53,57h1v1h-1z M90,71h2v1h-2z M75,21h1v1h-1z M76,77h2v1h-2z M44,12h1v1h-1z M35,67h1v1h-1z M22,80h1v1h-1z M20,28h1v1h-1z M25,22h2v1h-2z M58,75h2v1h-2z M10,22h2v1h-2z" />
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+      <!-- Navigation rail: deep midnight ink in both themes. -->
+      <Color x:Key="Color.Rail.Background">#1E2A4A</Color>
+      <SolidColorBrush x:Key="Brush.Rail.Background" Color="{DynamicResource Color.Rail.Background}" />
+      <Color x:Key="Color.Rail.Foreground">#F3EAD8</Color>
+      <SolidColorBrush x:Key="Brush.Rail.Foreground" Color="{DynamicResource Color.Rail.Foreground}" />
+      <Color x:Key="Color.Rail.ForegroundMuted">#B9C3DA</Color>
+      <SolidColorBrush x:Key="Brush.Rail.ForegroundMuted" Color="{DynamicResource Color.Rail.ForegroundMuted}" />
+      <Color x:Key="Color.Rail.ItemHover">#2A3860</Color>
+      <SolidColorBrush x:Key="Brush.Rail.ItemHover" Color="{DynamicResource Color.Rail.ItemHover}" />
+      <Color x:Key="Color.Rail.ItemSelected">#33436F</Color>
+      <SolidColorBrush x:Key="Brush.Rail.ItemSelected" Color="{DynamicResource Color.Rail.ItemSelected}" />
+      <!-- Focus ring on the rail (>= 3:1 on the rail fill). -->
+      <Color x:Key="Color.Rail.Focus">#8CB8FF</Color>
+      <SolidColorBrush x:Key="Brush.Rail.Focus" Color="{DynamicResource Color.Rail.Focus}" />
+      <Color x:Key="Color.Text.Primary">#1F1A14</Color>
+      <SolidColorBrush x:Key="Brush.Text.Primary" Color="{DynamicResource Color.Text.Primary}" />
+      <Color x:Key="Color.Text.Secondary">#6A5640</Color>
+      <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{DynamicResource Color.Text.Secondary}" />
+      <Color x:Key="Color.Text.Disabled">#857565</Color>
+      <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{DynamicResource Color.Text.Disabled}" />
+      <Color x:Key="Color.Control.Background">#FFFDF8</Color>
+      <SolidColorBrush x:Key="Brush.Control.Background" Color="{DynamicResource Color.Control.Background}" />
+      <Color x:Key="Color.Control.BackgroundHover">#F6EDDD</Color>
+      <SolidColorBrush x:Key="Brush.Control.BackgroundHover" Color="{DynamicResource Color.Control.BackgroundHover}" />
+      <Color x:Key="Color.Control.BackgroundPressed">#EEE1CB</Color>
+      <SolidColorBrush x:Key="Brush.Control.BackgroundPressed" Color="{DynamicResource Color.Control.BackgroundPressed}" />
+      <Color x:Key="Color.Control.BackgroundDisabled">#F3EBDC</Color>
+      <SolidColorBrush x:Key="Brush.Control.BackgroundDisabled" Color="{DynamicResource Color.Control.BackgroundDisabled}" />
+      <!-- Input and secondary-button boundary: >= 3:1 on Base and Raised. -->
+      <Color x:Key="Color.Control.Border">#938574</Color>
+      <SolidColorBrush x:Key="Brush.Control.Border" Color="{DynamicResource Color.Control.Border}" />
+      <!-- Selection: amber glow tint plus a 2 px amber border. -->
+      <Color x:Key="Color.Selection.Background">#FBE7C6</Color>
+      <SolidColorBrush x:Key="Brush.Selection.Background" Color="{DynamicResource Color.Selection.Background}" />
+      <Color x:Key="Color.Selection.BackgroundHover">#F8DDB0</Color>
+      <SolidColorBrush x:Key="Brush.Selection.BackgroundHover" Color="{DynamicResource Color.Selection.BackgroundHover}" />
+      <Color x:Key="Color.Selection.Border">#A35C0A</Color>
+      <SolidColorBrush x:Key="Brush.Selection.Border" Color="{DynamicResource Color.Selection.Border}" />
+      <Color x:Key="Color.Selection.Foreground">#1F1A14</Color>
+      <SolidColorBrush x:Key="Brush.Selection.Foreground" Color="{DynamicResource Color.Selection.Foreground}" />
+      <!-- Status fills; labels use Accent.OnAccent; always paired with text. -->
+      <Color x:Key="Color.Status.Success">#1B7350</Color>
+      <SolidColorBrush x:Key="Brush.Status.Success" Color="{DynamicResource Color.Status.Success}" />
+      <Color x:Key="Color.Status.Warning">#8C6200</Color>
+      <SolidColorBrush x:Key="Brush.Status.Warning" Color="{DynamicResource Color.Status.Warning}" />
+      <Color x:Key="Color.Status.Danger">#A3303D</Color>
+      <SolidColorBrush x:Key="Brush.Status.Danger" Color="{DynamicResource Color.Status.Danger}" />
+      <Color x:Key="Color.Status.DangerHover">#8A2733</Color>
+      <SolidColorBrush x:Key="Brush.Status.DangerHover" Color="{DynamicResource Color.Status.DangerHover}" />
+      <Color x:Key="Color.Status.DangerPressed">#72202A</Color>
+      <SolidColorBrush x:Key="Brush.Status.DangerPressed" Color="{DynamicResource Color.Status.DangerPressed}" />
+      <Color x:Key="Color.Status.Info">#2552A0</Color>
+      <SolidColorBrush x:Key="Brush.Status.Info" Color="{DynamicResource Color.Status.Info}" />
+      <Color x:Key="Color.Status.Neutral">#4E6072</Color>
+      <SolidColorBrush x:Key="Brush.Status.Neutral" Color="{DynamicResource Color.Status.Neutral}" />
+      <!-- Keyboard focus ring; distinct from status colours. -->
       <Color x:Key="Color.Focus">#1C64D1</Color>
       <SolidColorBrush x:Key="Brush.Focus" Color="{DynamicResource Color.Focus}" />
 
     </ResourceDictionary>
 
-    <!-- ═══════════════════════════════ DARK ════════════════════════════════ -->
+    <!-- ═════════════════════ DARK: "Night Library" ═════════════════════════ -->
     <ResourceDictionary x:Key="Dark">
 
-      <!-- Accent families — deepened for white-label contrast on dark backgrounds -->
-      <Color x:Key="Color.Accent.Oak">#9E6519</Color>
+      <!-- Jewel accent primitives (legacy names: Oak=amber, Ink=lapis, Sage=malachite,
+           Clay=garnet). Every fill carries a white label at >= 4.5:1. -->
+      <Color x:Key="Color.Accent.Oak">#A35C0A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
-
-      <!-- Text and icons drawn on accent fills (white-label contrast) -->
-      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="#FFFFFF" />
-
-      <Color x:Key="Color.Accent.Ink">#2B4A7A</Color>
+      <Color x:Key="Color.Accent.Ink">#2552A0</Color>
       <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
-
-      <Color x:Key="Color.Accent.Sage">#4A7A5A</Color>
+      <Color x:Key="Color.Accent.Sage">#1B7350</Color>
       <SolidColorBrush x:Key="Brush.Accent.Sage" Color="{DynamicResource Color.Accent.Sage}" />
-
-      <Color x:Key="Color.Accent.Clay">#B64F31</Color>
+      <Color x:Key="Color.Accent.Clay">#A3303D</Color>
       <SolidColorBrush x:Key="Brush.Accent.Clay" Color="{DynamicResource Color.Accent.Clay}" />
-
-      <Color x:Key="Color.Accent.Plum">#6A3A7A</Color>
+      <Color x:Key="Color.Accent.Plum">#7A3A8C</Color>
       <SolidColorBrush x:Key="Brush.Accent.Plum" Color="{DynamicResource Color.Accent.Plum}" />
-
-      <Color x:Key="Color.Accent.Slate">#5A6A7A</Color>
+      <Color x:Key="Color.Accent.Slate">#4E6072</Color>
       <SolidColorBrush x:Key="Brush.Accent.Slate" Color="{DynamicResource Color.Accent.Slate}" />
+      <Color x:Key="Color.Accent.Saffron">#8C6200</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Saffron" Color="{DynamicResource Color.Accent.Saffron}" />
+      <Color x:Key="Color.Accent.Teal">#1F6E7C</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Teal" Color="{DynamicResource Color.Accent.Teal}" />
 
-      <!-- Surface tokens for dark theme -->
-      <!-- Walnut — dark warm brown base -->
-      <Color x:Key="Color.Surface.Parchment">#1E1A17</Color>
+      <!-- Primary action fill (amber). White label >= 4.5:1. -->
+      <Color x:Key="Color.Accent.Primary">#A35C0A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Primary" Color="{DynamicResource Color.Accent.Primary}" />
+      <Color x:Key="Color.Accent.PrimaryHover">#8C4E07</Color>
+      <SolidColorBrush x:Key="Brush.Accent.PrimaryHover" Color="{DynamicResource Color.Accent.PrimaryHover}" />
+      <Color x:Key="Color.Accent.PrimaryPressed">#733F05</Color>
+      <SolidColorBrush x:Key="Brush.Accent.PrimaryPressed" Color="{DynamicResource Color.Accent.PrimaryPressed}" />
+      <!-- Text and icons drawn on any accent, status or cover fill. -->
+      <Color x:Key="Color.Accent.OnAccent">#FFFFFF</Color>
+      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="{DynamicResource Color.Accent.OnAccent}" />
+      <!-- Accent used as text on surfaces (amber by day, gold by night). -->
+      <Color x:Key="Color.Accent.Text">#E8B45A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Text" Color="{DynamicResource Color.Accent.Text}" />
+      <!-- Selection glow and hover-lift halo. -->
+      <Color x:Key="Color.Accent.Glow">#E8B45A</Color>
+      <SolidColorBrush x:Key="Brush.Accent.Glow" Color="{DynamicResource Color.Accent.Glow}" />
+      <Color x:Key="Color.Link">#9FBFF2</Color>
+      <SolidColorBrush x:Key="Brush.Link" Color="{DynamicResource Color.Link}" />
+      <!-- Legacy name of Surface.Base. -->
+      <Color x:Key="Color.Surface.Parchment">#121A2E</Color>
       <SolidColorBrush x:Key="Brush.Surface.Parchment" Color="{DynamicResource Color.Surface.Parchment}" />
-
-      <Color x:Key="Color.Surface.OnParchment">#F5EFE6</Color>
+      <!-- Legacy name of Text.Primary. -->
+      <Color x:Key="Color.Surface.OnParchment">#F3EAD8</Color>
       <SolidColorBrush x:Key="Brush.Surface.OnParchment" Color="{DynamicResource Color.Surface.OnParchment}" />
-
-      <Color x:Key="Color.Surface.OnParchmentMuted">#B8A898</Color>
+      <!-- Legacy name of Text.Secondary. -->
+      <Color x:Key="Color.Surface.OnParchmentMuted">#B8AE9C</Color>
       <SolidColorBrush x:Key="Brush.Surface.OnParchmentMuted" Color="{DynamicResource Color.Surface.OnParchmentMuted}" />
-
-      <Color x:Key="Color.Surface.Card">#2A2420</Color>
+      <!-- Legacy name of Surface.Raised. -->
+      <Color x:Key="Color.Surface.Card">#1B2440</Color>
       <SolidColorBrush x:Key="Brush.Surface.Card" Color="{DynamicResource Color.Surface.Card}" />
-
-      <Color x:Key="Color.Surface.CardBorder">#3A3028</Color>
+      <!-- Legacy name of Surface.Divider. -->
+      <Color x:Key="Color.Surface.CardBorder">#2A3556</Color>
       <SolidColorBrush x:Key="Brush.Surface.CardBorder" Color="{DynamicResource Color.Surface.CardBorder}" />
-
-      <Color x:Key="Color.Surface.Footer">#161210</Color>
+      <!-- Legacy name of Surface.Sunken. -->
+      <Color x:Key="Color.Surface.Footer">#0E1424</Color>
       <SolidColorBrush x:Key="Brush.Surface.Footer" Color="{DynamicResource Color.Surface.Footer}" />
-
+      <!-- Canvas: warm cream by day, deep indigo by night. -->
+      <Color x:Key="Color.Surface.Base">#121A2E</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Base" Color="{DynamicResource Color.Surface.Base}" />
+      <!-- Cards, panels, inspector. -->
+      <Color x:Key="Color.Surface.Raised">#1B2440</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Raised" Color="{DynamicResource Color.Surface.Raised}" />
+      <!-- Wells, status bar, segmented tracks. -->
+      <Color x:Key="Color.Surface.Sunken">#0E1424</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Sunken" Color="{DynamicResource Color.Surface.Sunken}" />
+      <Color x:Key="Color.Surface.Divider">#2A3556</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Divider" Color="{DynamicResource Color.Surface.Divider}" />
+      <!-- Reader page canvas: PDFs are authored for paper. -->
+      <Color x:Key="Color.Surface.Page">#F3EAD8</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Page" Color="{DynamicResource Color.Surface.Page}" />
+      <!-- Paper-grain speck colour (alpha). -->
+      <Color x:Key="Color.Surface.Grain">#0AE8B45A</Color>
+      <SolidColorBrush x:Key="Brush.Surface.Grain" Color="{DynamicResource Color.Surface.Grain}" />
+      <!-- Library home header band: lamplight pooling on the night canvas. -->
+      <LinearGradientBrush x:Key="Brush.Hero.Background" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Offset="0" Color="#3A2E1E" />
+        <GradientStop Offset="0.5" Color="#1F2438" />
+        <GradientStop Offset="1" Color="#121A2E" />
+      </LinearGradientBrush>
+      <!-- Canvas: the base colour with a very faint deterministic paper grain (96 px tile). -->
+      <DrawingBrush x:Key="Brush.Surface.Canvas" TileMode="Tile" Stretch="None" DestinationRect="0,0,96,96">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{DynamicResource Brush.Surface.Base}" Geometry="M0,0h96v96h-96z" />
+            <GeometryDrawing Brush="{DynamicResource Brush.Surface.Grain}" Geometry="M59,78h1v1h-1z M34,17h1v1h-1z M86,0h1v1h-1z M64,59h1v1h-1z M42,70h1v1h-1z M93,48h1v1h-1z M90,57h2v1h-2z M20,21h1v1h-1z M6,14h1v1h-1z M64,75h1v1h-1z M88,49h1v1h-1z M37,26h1v1h-1z M92,53h1v1h-1z M34,26h2v1h-2z M35,43h1v1h-1z M25,90h1v1h-1z M52,7h2v1h-2z M62,17h1v1h-1z M30,54h1v1h-1z M76,0h1v1h-1z M74,25h1v1h-1z M42,1h1v1h-1z M17,69h1v1h-1z M64,10h2v1h-2z M68,25h2v1h-2z M8,50h1v1h-1z M81,11h1v1h-1z M22,77h1v1h-1z M6,34h1v1h-1z M34,94h1v1h-1z M15,90h2v1h-2z M30,20h1v1h-1z M94,46h1v1h-1z M44,14h1v1h-1z M57,26h2v1h-2z M25,73h1v1h-1z M48,77h1v1h-1z M0,55h1v1h-1z M27,28h2v1h-2z M34,41h1v1h-1z M39,80h1v1h-1z M13,66h1v1h-1z M3,48h2v1h-2z M63,44h1v1h-1z M72,94h1v1h-1z M54,82h1v1h-1z M12,51h1v1h-1z M71,47h1v1h-1z M85,37h1v1h-1z M88,33h1v1h-1z M6,22h1v1h-1z M21,15h1v1h-1z M1,6h1v1h-1z M57,26h2v1h-2z M37,78h1v1h-1z M45,36h1v1h-1z M61,71h1v1h-1z M17,11h1v1h-1z M89,15h1v1h-1z M53,57h1v1h-1z M90,71h2v1h-2z M75,21h1v1h-1z M76,77h2v1h-2z M44,12h1v1h-1z M35,67h1v1h-1z M22,80h1v1h-1z M20,28h1v1h-1z M25,22h2v1h-2z M58,75h2v1h-2z M10,22h2v1h-2z" />
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+      <!-- Navigation rail: deep midnight ink in both themes. -->
+      <Color x:Key="Color.Rail.Background">#0B1122</Color>
+      <SolidColorBrush x:Key="Brush.Rail.Background" Color="{DynamicResource Color.Rail.Background}" />
+      <Color x:Key="Color.Rail.Foreground">#F3EAD8</Color>
+      <SolidColorBrush x:Key="Brush.Rail.Foreground" Color="{DynamicResource Color.Rail.Foreground}" />
+      <Color x:Key="Color.Rail.ForegroundMuted">#B9C3DA</Color>
+      <SolidColorBrush x:Key="Brush.Rail.ForegroundMuted" Color="{DynamicResource Color.Rail.ForegroundMuted}" />
+      <Color x:Key="Color.Rail.ItemHover">#1A2440</Color>
+      <SolidColorBrush x:Key="Brush.Rail.ItemHover" Color="{DynamicResource Color.Rail.ItemHover}" />
+      <Color x:Key="Color.Rail.ItemSelected">#243056</Color>
+      <SolidColorBrush x:Key="Brush.Rail.ItemSelected" Color="{DynamicResource Color.Rail.ItemSelected}" />
+      <!-- Focus ring on the rail (>= 3:1 on the rail fill). -->
+      <Color x:Key="Color.Rail.Focus">#8CB8FF</Color>
+      <SolidColorBrush x:Key="Brush.Rail.Focus" Color="{DynamicResource Color.Rail.Focus}" />
+      <Color x:Key="Color.Text.Primary">#F3EAD8</Color>
+      <SolidColorBrush x:Key="Brush.Text.Primary" Color="{DynamicResource Color.Text.Primary}" />
+      <Color x:Key="Color.Text.Secondary">#B8AE9C</Color>
+      <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{DynamicResource Color.Text.Secondary}" />
+      <Color x:Key="Color.Text.Disabled">#8089A3</Color>
+      <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{DynamicResource Color.Text.Disabled}" />
+      <Color x:Key="Color.Control.Background">#1B2440</Color>
+      <SolidColorBrush x:Key="Brush.Control.Background" Color="{DynamicResource Color.Control.Background}" />
+      <Color x:Key="Color.Control.BackgroundHover">#243056</Color>
+      <SolidColorBrush x:Key="Brush.Control.BackgroundHover" Color="{DynamicResource Color.Control.BackgroundHover}" />
+      <Color x:Key="Color.Control.BackgroundPressed">#2C3963</Color>
+      <SolidColorBrush x:Key="Brush.Control.BackgroundPressed" Color="{DynamicResource Color.Control.BackgroundPressed}" />
+      <Color x:Key="Color.Control.BackgroundDisabled">#161E34</Color>
+      <SolidColorBrush x:Key="Brush.Control.BackgroundDisabled" Color="{DynamicResource Color.Control.BackgroundDisabled}" />
+      <!-- Input and secondary-button boundary: >= 3:1 on Base and Raised. -->
+      <Color x:Key="Color.Control.Border">#6D7899</Color>
+      <SolidColorBrush x:Key="Brush.Control.Border" Color="{DynamicResource Color.Control.Border}" />
+      <!-- Selection: amber glow tint plus a 2 px amber border. -->
+      <Color x:Key="Color.Selection.Background">#3B3222</Color>
+      <SolidColorBrush x:Key="Brush.Selection.Background" Color="{DynamicResource Color.Selection.Background}" />
+      <Color x:Key="Color.Selection.BackgroundHover">#463B27</Color>
+      <SolidColorBrush x:Key="Brush.Selection.BackgroundHover" Color="{DynamicResource Color.Selection.BackgroundHover}" />
+      <Color x:Key="Color.Selection.Border">#E8B45A</Color>
+      <SolidColorBrush x:Key="Brush.Selection.Border" Color="{DynamicResource Color.Selection.Border}" />
+      <Color x:Key="Color.Selection.Foreground">#F3EAD8</Color>
+      <SolidColorBrush x:Key="Brush.Selection.Foreground" Color="{DynamicResource Color.Selection.Foreground}" />
+      <!-- Status fills; labels use Accent.OnAccent; always paired with text. -->
+      <Color x:Key="Color.Status.Success">#1B7350</Color>
+      <SolidColorBrush x:Key="Brush.Status.Success" Color="{DynamicResource Color.Status.Success}" />
+      <Color x:Key="Color.Status.Warning">#8C6200</Color>
+      <SolidColorBrush x:Key="Brush.Status.Warning" Color="{DynamicResource Color.Status.Warning}" />
+      <Color x:Key="Color.Status.Danger">#A3303D</Color>
+      <SolidColorBrush x:Key="Brush.Status.Danger" Color="{DynamicResource Color.Status.Danger}" />
+      <Color x:Key="Color.Status.DangerHover">#8A2733</Color>
+      <SolidColorBrush x:Key="Brush.Status.DangerHover" Color="{DynamicResource Color.Status.DangerHover}" />
+      <Color x:Key="Color.Status.DangerPressed">#72202A</Color>
+      <SolidColorBrush x:Key="Brush.Status.DangerPressed" Color="{DynamicResource Color.Status.DangerPressed}" />
+      <Color x:Key="Color.Status.Info">#2552A0</Color>
+      <SolidColorBrush x:Key="Brush.Status.Info" Color="{DynamicResource Color.Status.Info}" />
+      <Color x:Key="Color.Status.Neutral">#4E6072</Color>
+      <SolidColorBrush x:Key="Brush.Status.Neutral" Color="{DynamicResource Color.Status.Neutral}" />
+      <!-- Keyboard focus ring; distinct from status colours. -->
       <Color x:Key="Color.Focus">#8CB8FF</Color>
       <SolidColorBrush x:Key="Brush.Focus" Color="{DynamicResource Color.Focus}" />
 
@@ -125,23 +329,61 @@
   </ResourceDictionary.ThemeDictionaries>
 
   <!-- ═══════════════════ THEME-INDEPENDENT TOKENS ════════════════════════ -->
-  <!-- These values do not vary between Light and Dark. -->
 
-  <!-- Typography scale — font sizes in device-independent pixels -->
-  <x:Double x:Key="Type.Size.Caption">11</x:Double>
-  <x:Double x:Key="Type.Size.Small">12</x:Double>
+  <!-- Icon and destination hues: >= 3:1 on cream, raised card, ink rail and the Night canvas
+       (meaningful graphics, WCAG 2.2 SC 1.4.11). Mirrored in scripts/icons/New-DuotoneIcons.py. -->
+  <Color x:Key="Color.Hue.Amber">#B87414</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Amber" Color="{DynamicResource Color.Hue.Amber}" />
+  <Color x:Key="Color.Hue.Lapis">#4A7CDC</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Lapis" Color="{DynamicResource Color.Hue.Lapis}" />
+  <Color x:Key="Color.Hue.Malachite">#1E9468</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Malachite" Color="{DynamicResource Color.Hue.Malachite}" />
+  <Color x:Key="Color.Hue.Plum">#A55DC0</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Plum" Color="{DynamicResource Color.Hue.Plum}" />
+  <Color x:Key="Color.Hue.Saffron">#A8870A</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Saffron" Color="{DynamicResource Color.Hue.Saffron}" />
+  <Color x:Key="Color.Hue.Garnet">#D14D5B</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Garnet" Color="{DynamicResource Color.Hue.Garnet}" />
+  <Color x:Key="Color.Hue.Teal">#3B8FA0</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Teal" Color="{DynamicResource Color.Hue.Teal}" />
+  <Color x:Key="Color.Hue.Slate">#6F86A0</Color>
+  <SolidColorBrush x:Key="Brush.Hue.Slate" Color="{DynamicResource Color.Hue.Slate}" />
+  <!-- Each rail destination owns a hue for its icon, active indicator and header accent. -->
+  <SolidColorBrush x:Key="Brush.Dest.Library" Color="{DynamicResource Color.Hue.Amber}" />
+  <SolidColorBrush x:Key="Brush.Dest.Search" Color="{DynamicResource Color.Hue.Lapis}" />
+  <SolidColorBrush x:Key="Brush.Dest.Reading" Color="{DynamicResource Color.Hue.Malachite}" />
+  <SolidColorBrush x:Key="Brush.Dest.Advisor" Color="{DynamicResource Color.Hue.Plum}" />
+  <SolidColorBrush x:Key="Brush.Dest.Collections" Color="{DynamicResource Color.Hue.Saffron}" />
+  <SolidColorBrush x:Key="Brush.Dest.Activity" Color="{DynamicResource Color.Hue.Garnet}" />
+  <SolidColorBrush x:Key="Brush.Dest.Classroom" Color="{DynamicResource Color.Hue.Teal}" />
+  <SolidColorBrush x:Key="Brush.Dest.Settings" Color="{DynamicResource Color.Hue.Slate}" />
+
+
+  <!--
+    Type scale (device-independent px). Hierarchy steps use a ratio >= 1.2, and >= 1.25 at the
+    display end: Body 14 → Subtitle 17 (1.21) → Title 21 (1.24) → Headline 27 (1.29) →
+    Display 34 (1.26). Caption 12 is the 12 px floor (floor-clamped, 14/12 = 1.17).
+    Small 13 (dense data) and BodyLarge 16 (reading prose) are density helpers, not hierarchy
+    steps. BodyMedium is a legacy alias of BodyLarge. No size below 12 px exists.
+  -->
+  <x:Double x:Key="Type.Size.Caption">12</x:Double>
+  <x:Double x:Key="Type.Size.Small">13</x:Double>
   <x:Double x:Key="Type.Size.Body">14</x:Double>
-  <x:Double x:Key="Type.Size.BodyMedium">15</x:Double>
-  <x:Double x:Key="Type.Size.Subtitle">16</x:Double>
-  <x:Double x:Key="Type.Size.Title">20</x:Double>
-  <x:Double x:Key="Type.Size.Display">30</x:Double>
+  <x:Double x:Key="Type.Size.BodyLarge">16</x:Double>
+  <x:Double x:Key="Type.Size.BodyMedium">16</x:Double>
+  <x:Double x:Key="Type.Size.Subtitle">17</x:Double>
+  <x:Double x:Key="Type.Size.Title">21</x:Double>
+  <x:Double x:Key="Type.Size.Headline">27</x:Double>
+  <x:Double x:Key="Type.Size.Display">34</x:Double>
+  <!-- Glyph-as-icon size for toolbar symbols (+, −, ✕) until each has a licensed icon. -->
+  <x:Double x:Key="Type.Size.Glyph">16</x:Double>
 
   <!-- Bundled OFL font roles. Platform fonts are explicit fallback only. -->
   <FontFamily x:Key="Type.FontFamily.Body">avares://OgmaLibrary.App/Assets/Fonts/PublicSans#Public Sans, Segoe UI, sans-serif</FontFamily>
   <FontFamily x:Key="Type.FontFamily.Display">avares://OgmaLibrary.App/Assets/Fonts/Spectral#Spectral, Georgia, serif</FontFamily>
   <FontFamily x:Key="Type.FontFamily.Mono">avares://OgmaLibrary.App/Assets/Fonts/JetBrainsMono#JetBrains Mono, Consolas, Menlo, monospace</FontFamily>
 
-  <!-- Spacing scale — in device-independent pixels (4-pt grid) -->
+  <!-- Spacing scale (4-pt grid) -->
   <x:Double x:Key="Spacing.XXS">4</x:Double>
   <x:Double x:Key="Spacing.XS">8</x:Double>
   <x:Double x:Key="Spacing.S">12</x:Double>
@@ -150,16 +392,30 @@
   <x:Double x:Key="Spacing.XL">32</x:Double>
 
   <!-- Corner radii -->
+  <CornerRadius x:Key="Radius.XS">4</CornerRadius>
   <CornerRadius x:Key="Radius.S">8</CornerRadius>
   <CornerRadius x:Key="Radius.M">12</CornerRadius>
   <CornerRadius x:Key="Radius.L">14</CornerRadius>
 
-  <!-- Motion durations — in milliseconds (used in Avalonia Transition Duration) -->
-  <!-- Fast: button hover, icon swap -->
+  <!-- Elevation (soft warm shadows; the only shadow values in the app) -->
+  <BoxShadows x:Key="Elevation.0">0 0 0 0 #00000000</BoxShadows>
+  <BoxShadows x:Key="Elevation.1">0 1 3 0 #242A1A05, 0 2 8 0 #142A1A05</BoxShadows>
+  <BoxShadows x:Key="Elevation.2">0 6 16 0 #332A1A05, 0 2 4 0 #1F2A1A05</BoxShadows>
+  <BoxShadows x:Key="Elevation.3">0 14 34 0 #402A1A05</BoxShadows>
+  <!-- Selection glow: an amber halo around the selected book card. -->
+  <BoxShadows x:Key="Elevation.Glow">0 0 0 3 #B3F2B544, 0 6 18 0 #402A1A05</BoxShadows>
+
+  <!-- QR codes are always dark modules on a light quiet zone, whatever the theme. -->
+  <SolidColorBrush x:Key="Brush.Qr.Module" Color="#1E1A17" />
+  <SolidColorBrush x:Key="Brush.Qr.Background" Color="#FFFFFF" />
+
+  <!-- Generated covers: gilt title/author ink, >= 4.5:1 on every cloth (Color.Accent.*). -->
+  <Color x:Key="Color.Cover.Gilt">#FCF1D6</Color>
+  <SolidColorBrush x:Key="Brush.Cover.Gilt" Color="{StaticResource Color.Cover.Gilt}" />
+
+  <!-- Motion durations (ms) -->
   <x:Double x:Key="Motion.Duration.Fast">120</x:Double>
-  <!-- Base: panel open/close, state changes -->
   <x:Double x:Key="Motion.Duration.Base">200</x:Double>
-  <!-- Slow: page transitions, empty-state reveals -->
   <x:Double x:Key="Motion.Duration.Slow">320</x:Double>
 
 </ResourceDictionary>

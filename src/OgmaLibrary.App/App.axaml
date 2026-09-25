@@ -4,7 +4,17 @@
              RequestedThemeVariant="Light">
 
   <Application.Styles>
-    <FluentTheme />
+    <!--
+      Sept-23 Phase 09 (K15): pin the Fluent accent to the Ogma palette so the OS accent colour
+      (the "salmon" selection) never leaks into lists, toggles, checkboxes or sliders.
+      Values mirror Color.Accent.Primary / Color.Surface.Base in Themes/Tokens.axaml.
+    -->
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light" Accent="#9E6519" RegionColor="#FAF7F2" />
+        <ColorPaletteResources x:Key="Dark" Accent="#9E6519" RegionColor="#1E1A17" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
     <StyleInclude Source="avares://OgmaLibrary.App/Themes/Controls.axaml" />
   </Application.Styles>
 
