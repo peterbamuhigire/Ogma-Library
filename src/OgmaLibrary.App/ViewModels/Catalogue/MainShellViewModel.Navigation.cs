@@ -407,6 +407,28 @@ public sealed partial class MainShellViewModel
     /// <summary>Whether the chip row is shown (Library catalogue with at least one active filter).</summary>
     public bool HasActiveFilterChips => IsCatalogueActive && Catalogue.Filter.HasActiveFilters;
 
+    /// <summary>
+    /// Whether files were set aside instead of being added as books (Sept-23 K21). Shown on the
+    /// Library destination so a skipped file is never invisible.
+    /// </summary>
+    public bool HasNeedsAttention => IsCatalogueActive && LibraryFolders?.HasNeedsAttention == true;
+
+    /// <summary>The needs-attention notice text, for example "3 files need attention".</summary>
+    public string NeedsAttentionNoticeText => LibraryFolders?.NeedsAttentionButtonText ?? string.Empty;
+
+    /// <summary>Whether the notice row under the toolbar is shown (filter chips or files needing attention).</summary>
+    public bool IsLibraryNoticeRowVisible => HasActiveFilterChips || HasNeedsAttention;
+
+    /// <summary>Opens the Folders drawer at the needs-attention list.</summary>
+    public void ShowNeedsAttention()
+    {
+        IsFoldersDrawerOpen = true;
+        if (LibraryFolders is not null)
+        {
+            LibraryFolders.IsNeedsAttentionOpen = true;
+        }
+    }
+
     /// <summary>Removes one filter dimension.</summary>
     /// <param name="chipId">The chip identifier.</param>
     public void RemoveFilter(string chipId)
@@ -1057,6 +1079,18 @@ public sealed partial class MainShellViewModel
     {
         OnPropertyChanged(nameof(ActiveFilterChips));
         OnPropertyChanged(nameof(HasActiveFilterChips));
+        OnPropertyChanged(nameof(IsLibraryNoticeRowVisible));
+    }
+
+    private void OnLibraryFoldersPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(LibraryFoldersViewModel.HasNeedsAttention)
+            or nameof(LibraryFoldersViewModel.NeedsAttentionButtonText))
+        {
+            OnPropertyChanged(nameof(HasNeedsAttention));
+            OnPropertyChanged(nameof(NeedsAttentionNoticeText));
+            OnPropertyChanged(nameof(IsLibraryNoticeRowVisible));
+        }
     }
 
     private void OnShelfSidebarChanged(object? sender, PropertyChangedEventArgs e)
@@ -1164,6 +1198,7 @@ public sealed partial class MainShellViewModel
                      nameof(IsClassroomActive), nameof(IsAdvisorActive), nameof(IsReadingPlanActive), nameof(IsAdvisorDestination),
                      nameof(IsBookshelf3DActive), nameof(IsSearchActive), nameof(IsSearchPanelOpen), nameof(IsCollectionsActive),
                      nameof(IsActivityActive), nameof(IsIndexManagerOpen), nameof(IsSettingsActive), nameof(HasActiveFilterChips),
+                     nameof(HasNeedsAttention), nameof(IsLibraryNoticeRowVisible),
                      nameof(IsGridViewSelected), nameof(IsListViewSelected), nameof(IsDirectoryViewSelected),
                      nameof(IsClassroomTabsVisible),
                  })

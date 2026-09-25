@@ -51,9 +51,33 @@ public sealed class G02AddLibraryTests
             context.Record("covers.share", coverShare);
             context.Dump("scanned");
 
+            // Flagged cards (for example a Locked, password-protected PDF) are honest placeholders,
+            // not valid works; G6 checks them. Count only unflagged cards against the oracle.
+            // The catalogue refreshes progressively (Phase 06), so re-read the cards until one
+            // consistent snapshot can be inspected without stale UIA elements.
+            int flagged = 0;
+            int valid = 0;
+            Uia.Poll(
+                () =>
+                {
+                    try
+                    {
+                        AutomationElement[] snapshot = Shell.CatalogueItems(context);
+                        flagged = snapshot.Count(Shell.IsFlaggedCard);
+                        valid = snapshot.Length - flagged;
+                        return valid == oracle.CatalogueCount;
+                    }
+                    catch (System.Runtime.InteropServices.COMException)
+                    {
+                        return false;
+                    }
+                },
+                TimeSpan.FromSeconds(30),
+                intervalMs: 1000);
+            context.Record("catalogue.flaggedCount", flagged);
             Assert.True(
-                items.Length == oracle.CatalogueCount,
-                $"The catalogue shows {items.Length} books; expected.json lists {oracle.CatalogueCount} valid works " +
+                valid == oracle.CatalogueCount,
+                $"The catalogue shows {valid} unflagged books ({flagged} flagged); expected.json lists {oracle.CatalogueCount} valid works " +
                 $"({oracle.Invalid.Count} invalid files and 1 duplicate must not add cards) [K21].");
             Assert.True(coverShare >= 0.8, $"Only {coverShare:P0} of the cards show a cover image (target 80 %) [K20].");
         });

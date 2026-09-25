@@ -180,6 +180,13 @@ public static class Shell
         return new PageTurn(before, CurrentPage(context) ?? before, clock.Elapsed.TotalMilliseconds, presses - 1, false);
     }
 
+    /// <summary>Whether a catalogue card carries a Locked or needs-attention badge.</summary>
+    public static bool IsFlaggedCard(AutomationElement item) =>
+        FlagBadgeIds.Any(id => item.FindFirstDescendant(cf => cf.ByAutomationId(id)) is not null);
+
+    private static readonly string[] FlagBadgeIds =
+        ["Catalogue.Item.Badge.Locked", "Catalogue.Item.Badge.IndexFailed", "Catalogue.Item.Badge.Unavailable", "Catalogue.Item.Attention"];
+
     /// <summary>The reader's current page number, or null.</summary>
     public static int? CurrentPage(JourneyContext context)
     {

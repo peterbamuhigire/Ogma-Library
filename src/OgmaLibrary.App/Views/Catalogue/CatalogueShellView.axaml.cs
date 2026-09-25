@@ -315,6 +315,8 @@ public partial class CatalogueShellView : UserControl
 
     private void FoldersToggle_Click(object? sender, RoutedEventArgs e) => ViewModel?.ToggleFoldersDrawer();
 
+    private void NeedsAttention_Click(object? sender, RoutedEventArgs e) => ViewModel?.ShowNeedsAttention();
+
     private void CloseDrawer_Click(object? sender, RoutedEventArgs e) => ViewModel?.CloseDrawer();
 
     private void Rescan_Click(object? sender, RoutedEventArgs e) =>

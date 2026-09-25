@@ -389,14 +389,30 @@
         </Grid>
       </Border>
 
-      <!-- Active-filter chips (K12): a filter can never apply out of sight. -->
+      <!-- Notice row: files needing attention (K21) and active-filter chips (K12). Nothing that
+           changes what the catalogue shows may happen out of sight. -->
       <Border Grid.Row="1"
               Padding="16,6"
-              IsVisible="{Binding HasActiveFilterChips}"
+              IsVisible="{Binding IsLibraryNoticeRowVisible}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
         <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+          <Button Classes="tool"
+                  MinHeight="30"
+                  Padding="10,2"
+                  IsVisible="{Binding HasNeedsAttention}"
+                  BorderBrush="{DynamicResource Brush.Accent.Clay}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.M}"
+                  AutomationProperties.AutomationId="Catalogue.NeedsAttention"
+                  AutomationProperties.Name="{Binding NeedsAttentionNoticeText}"
+                  Click="NeedsAttention_Click">
+            <TextBlock Text="{Binding NeedsAttentionNoticeText}"
+                       FontSize="{DynamicResource Type.Size.Small}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </Button>
           <ItemsControl ItemsSource="{Binding ActiveFilterChips}"
+                        IsVisible="{Binding HasActiveFilterChips}"
                         AutomationProperties.AutomationId="Catalogue.FilterChips"
                         AutomationProperties.Name="{Binding FilterChipsLabel}">
             <ItemsControl.ItemsPanel>
@@ -436,6 +452,7 @@
           <Button Classes="tool"
                   MinHeight="30"
                   Padding="8,2"
+                  IsVisible="{Binding HasActiveFilterChips}"
                   AutomationProperties.AutomationId="Catalogue.Filter.Clear"
                   AutomationProperties.Name="{Binding ClearFiltersText}"
                   Click="ClearFilters_Click">

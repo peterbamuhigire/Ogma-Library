@@ -138,6 +138,7 @@
                         Padding="4,1"
                         AutomationProperties.Name="{Binding $parent[UserControl].DataContext.LockedBadgeText}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.LockedBadgeText}"
+                             AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked"
                              FontSize="{DynamicResource Type.Size.Caption}"
                              Foreground="{DynamicResource Brush.Accent.OnAccent}" />
                 </Border>

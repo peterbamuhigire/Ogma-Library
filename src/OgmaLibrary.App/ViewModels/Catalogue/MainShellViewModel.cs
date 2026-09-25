@@ -231,6 +231,7 @@ public sealed partial class MainShellViewModel :
         if (LibraryFolders is not null)
         {
             LibraryFolders.CatalogueChanged += OnLibraryFoldersChanged;
+            LibraryFolders.PropertyChanged += OnLibraryFoldersPropertyChanged;
             LibraryFolders.Monitor.ScanCompleted += OnScanCompleted;
         }
 
@@ -1022,6 +1023,7 @@ public sealed partial class MainShellViewModel :
         if (LibraryFolders is not null)
         {
             LibraryFolders.CatalogueChanged -= OnLibraryFoldersChanged;
+            LibraryFolders.PropertyChanged -= OnLibraryFoldersPropertyChanged;
             LibraryFolders.Monitor.ScanCompleted -= OnScanCompleted;
         }
 

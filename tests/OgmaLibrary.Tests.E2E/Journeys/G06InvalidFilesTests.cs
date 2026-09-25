@@ -8,7 +8,9 @@ namespace OgmaLibrary.Tests.E2E.Journeys;
 public sealed class G06InvalidFilesTests
 {
     private static readonly string[] AttentionBadges =
-        ["Catalogue.Item.Badge.IndexFailed", "Catalogue.Item.Badge.Unavailable", "Catalogue.Item.Attention"];
+        ["Catalogue.Item.Badge.IndexFailed", "Catalogue.Item.Badge.Unavailable", "Catalogue.Item.Attention",
+         // A password-protected PDF is a book shown with a Locked badge (ADR-0018, Phase 05).
+         "Catalogue.Item.Badge.Locked"];
 
     /// <summary>
     /// Oracle: no invalid file appears as a normal indexed book. A card that is shown must carry a
