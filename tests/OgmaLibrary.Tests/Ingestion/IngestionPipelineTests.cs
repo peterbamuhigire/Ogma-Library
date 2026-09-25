@@ -93,7 +93,7 @@ public sealed class IngestionPipelineTests : IDisposable
     }
 
     [Fact]
-    public async Task IngestionPipeline_SameHashAtUnregisteredPresentPath_RegistersNewBook()
+    public async Task IngestionPipeline_SameHashAtUnregisteredPresentPath_AttachesOccurrenceToSameBook()
     {
         await _fx.Orchestrator.ScanAsync();
 
@@ -117,8 +117,16 @@ public sealed class IngestionPipelineTests : IDisposable
             .AsNoTracking()
             .SingleAsync(f => f.RelativePath == duplicateRelativePath);
 
-        Assert.Equal(countBefore + 1, countAfter);
-        Assert.NotEqual(originalFile.BookId, duplicateFile.BookId);
+        // Sept-23 Phase 06 (T06.9, K23): a byte-identical copy is a second occurrence of the
+        // same book, not a second book. Before this phase it was registered separately.
+        Assert.Equal(countBefore, countAfter);
+        Assert.Equal(originalFile.BookId, duplicateFile.BookId);
+        Assert.Equal(0, duplicateFile.FileStatus);
+
+        // A rescan leaves both occurrences alone (no re-identification churn).
+        await _fx.Orchestrator.ScanAsync();
+        Assert.Equal(countBefore, await _fx.Context.Books.CountAsync());
+        Assert.Equal(2, await _fx.Context.BookFiles.CountAsync(f => f.BookId == originalFile.BookId && f.FileStatus == 0));
         Assert.Contains(await _fx.Context.BookFiles.AsNoTracking().ToListAsync(), f =>
             f.BookId == originalFile.BookId &&
             f.RelativePath == originalFile.RelativePath &&

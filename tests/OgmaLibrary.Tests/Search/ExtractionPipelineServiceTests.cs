@@ -142,12 +142,13 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
             page.BookId == bookId &&
             page.PageNumber == 1 &&
             page.ExtractionQuality == (int)SearchExtractionQuality.Failed);
-        Assert.Contains(_context.Jobs, job =>
-            job.BookId == bookId &&
-            job.JobType == "ExtractionFailed" &&
-            job.Status == 3 &&
-            job.Payload != null &&
-            job.Payload.Contains("\"pageIndex\":1", StringComparison.Ordinal));
+        // Sept-23 Phase 06 (T06.4): the failure is an extraction issue, never a job row.
+        Assert.Contains(_context.ExtractionIssues, issue =>
+            issue.BookId == bookId &&
+            issue.PageIndex == 1 &&
+            issue.Code == "search_page_extraction_failed" &&
+            issue.Occurrences == 1);
+        Assert.DoesNotContain(_context.Jobs, job => job.JobType == "ExtractionFailed");
         Assert.Equal(1, CountFtsMatches("healthy"));
     }
 

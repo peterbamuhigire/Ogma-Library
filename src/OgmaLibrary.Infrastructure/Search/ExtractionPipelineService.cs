@@ -20,7 +20,6 @@ namespace OgmaLibrary.Infrastructure.Search;
 public sealed class ExtractionPipelineService : IExtractionPipelineService, IStagedExtractionPipelineService
 {
     private const int ActiveBookStatus = 0;
-    private const int JobFailed = 3;
     private const string ExtractorVersion = "pdf-text-v1";
     private const string IndexVersion = "fts5-v1";
 
@@ -35,6 +34,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
     private readonly IIsbnDetectionService _isbnDetection;
     private readonly IIsbnEvidenceStore _isbnEvidenceStore;
     private readonly ITocExtractionService _tocExtraction;
+    private readonly IsbnPromotionService _isbnPromotion;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ExtractionPipelineService"/>.
@@ -73,6 +73,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         _isbnDetection = isbnDetection;
         _isbnEvidenceStore = isbnEvidenceStore;
         _tocExtraction = tocExtraction;
+        _isbnPromotion = new IsbnPromotionService(contextFactory);
     }
 
     /// <summary>
@@ -110,6 +111,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         _isbnDetection = isbnDetection ?? new IsbnDetectionService();
         _isbnEvidenceStore = isbnEvidenceStore ?? new IsbnEvidenceStore(context);
         _tocExtraction = tocExtraction ?? new PdfTableOfContentsService(rendererFactory);
+        _isbnPromotion = new IsbnPromotionService(context);
     }
 
     /// <inheritdoc />
@@ -189,7 +191,17 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             .ConfigureAwait(false);
         if (book is null)
         {
-            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, "Book was not found.");
+            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, "Book was not found.", IsPermanent: true);
+        }
+
+        if (book.IsPasswordProtected)
+        {
+            // Sept-23 Phase 06: a locked PDF cannot be indexed until it is unlocked (Phase 12);
+            // retrying only burns attempts and re-launches the worker. The terminal index status
+            // keeps the compatibility poll from picking the book up again.
+            await SetBookStatusAsync(bookId, SearchBookIndexStatus.Failed, cancellationToken)
+                .ConfigureAwait(false);
+            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, "The PDF is password-protected.", IsPermanent: true);
         }
 
         await SetBookStatusAsync(bookId, SearchBookIndexStatus.Extracting, cancellationToken)
@@ -224,6 +236,9 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message);
         }
 
+        // Sept-23 Phase 06 (T06.10): pages, ISBN evidence and the outline share one isolated
+        // worker session and one sandbox copy for this book.
+        using IDisposable documentBatch = PdfDocumentBatch.Begin(filePath);
         ExtractPagesResult extracted;
         try
         {
@@ -252,10 +267,12 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             {
                 await _artifactService.FailAsync(artifact.Id, CancellationToken.None).ConfigureAwait(false);
             }
-            const string message = "Search page extraction failed.";
+
+            bool locked = ex is PdfPasswordRequiredException or PdfPasswordIncorrectException;
+            string message = locked ? "The PDF is password-protected." : "Search page extraction failed.";
             await RecordBookFailureAsync(bookId, book.ContentHash, message, cancellationToken)
                 .ConfigureAwait(false);
-            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message);
+            return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, message, IsPermanent: locked);
         }
 
         IsbnDetectionResult isbnEvidence = await _isbnDetection
@@ -264,6 +281,10 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         await _isbnEvidenceStore
             .ReplaceAsync(bookId, artifact.Id, isbnEvidence.AllCandidates, cancellationToken)
             .ConfigureAwait(false);
+
+        // Sept-23 Phase 06 (T06.8, T06.9): the best valid ISBN becomes canonical metadata
+        // (unless the user overrode it) and same-ISBN books are grouped as one edition.
+        await _isbnPromotion.PromoteAsync(bookId, cancellationToken).ConfigureAwait(false);
 
         TocExtractionResult toc = await _tocExtraction
             .ExtractAsync(filePath, cancellationToken)
@@ -638,7 +659,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         return await context.Books
             .AsNoTracking()
             .Where(book => book.BookId == bookId && book.Status == ActiveBookStatus)
-            .Select(book => new BookIndexSnapshot(book.BookId, book.Sha256Hash))
+            .Select(book => new BookIndexSnapshot(book.BookId, book.Sha256Hash, book.IsPasswordProtected))
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -669,7 +690,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         string message,
         CancellationToken cancellationToken)
     {
-        await UpsertFailureJobAsync(
+        await UpsertIssueAsync(
                 bookId,
                 contentHash,
                 pageIndex: null,
@@ -686,9 +707,14 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         int pageIndex,
         string message,
         CancellationToken cancellationToken) =>
-        UpsertFailureJobAsync(bookId, contentHash, pageIndex, message, cancellationToken);
+        UpsertIssueAsync(bookId, contentHash, pageIndex, message, cancellationToken);
 
-    private async Task UpsertFailureJobAsync(
+    /// <summary>
+    /// Records an extraction problem in <c>ExtractionIssues</c> (Sept-23 Phase 06, T06.4).
+    /// Issues are not jobs: before this phase they were <c>ExtractionFailed</c> job rows whose
+    /// retry count grew per failed page and inflated the Activity Centre attempt totals.
+    /// </summary>
+    private async Task UpsertIssueAsync(
         string bookId,
         string? contentHash,
         int? pageIndex,
@@ -697,34 +723,34 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
-        string key = ComputeIdempotencyKey(bookId, contentHash, pageIndex);
-        JobRow? job = await context.Jobs
-            .FirstOrDefaultAsync(j => j.IdempotencyKey == key, cancellationToken)
+        string hash = contentHash ?? string.Empty;
+        ExtractionIssueRow? issue = await context.ExtractionIssues
+            .FirstOrDefaultAsync(
+                row => row.BookId == bookId && row.ContentHash == hash && row.PageIndex == pageIndex,
+                cancellationToken)
             .ConfigureAwait(false);
-        string payload = pageIndex is null
-            ? "{\"source\":\"search-extraction\"}"
-            : $"{{\"source\":\"search-extraction\",\"pageIndex\":{pageIndex.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}}}";
-
-        if (job is null)
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        string code = pageIndex is null ? "search_book_extraction_failed" : "search_page_extraction_failed";
+        if (issue is null)
         {
-            context.Jobs.Add(new JobRow
+            context.ExtractionIssues.Add(new ExtractionIssueRow
             {
-                JobType = "ExtractionFailed",
-                IdempotencyKey = key,
-                Status = JobFailed,
                 BookId = bookId,
-                Payload = payload,
-                ErrorMessage = TrimError(message),
-                CompletedUtc = DateTimeOffset.UtcNow,
+                ContentHash = hash,
+                PageIndex = pageIndex,
+                Code = code,
+                Occurrences = 1,
+                LastMessage = TrimError(message),
+                FirstSeenUtc = now,
+                LastSeenUtc = now,
             });
         }
         else
         {
-            job.Status = JobFailed;
-            job.Payload = payload;
-            job.ErrorMessage = TrimError(message);
-            job.CompletedUtc = DateTimeOffset.UtcNow;
-            job.RetryCount += 1;
+            issue.Occurrences += 1;
+            issue.Code = code;
+            issue.LastMessage = TrimError(message);
+            issue.LastSeenUtc = now;
         }
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -798,13 +824,6 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
     private static string TrimError(string message) =>
         message.Length <= 4096 ? message : message[..4096];
 
-    private static string ComputeIdempotencyKey(string bookId, string? contentHash, int? pageIndex)
-    {
-        byte[] data = Encoding.UTF8.GetBytes(
-            $"{bookId}|ExtractionFailed|{contentHash ?? string.Empty}|{pageIndex?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "book"}");
-        return Convert.ToHexStringLower(SHA256.HashData(data))[..32];
-    }
-
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)
     {
         if (_contextFactory is null)
@@ -823,7 +842,7 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
         int PagesSkipped,
         int FailedPages);
 
-    private sealed record BookIndexSnapshot(string BookId, string? ContentHash);
+    private sealed record BookIndexSnapshot(string BookId, string? ContentHash, bool IsPasswordProtected);
 
     private readonly struct ContextLease : IDisposable
     {

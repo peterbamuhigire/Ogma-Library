@@ -36,6 +36,17 @@ public interface IStagedExtractionPipelineService
 }
 
 /// <summary>Result of indexing one book.</summary>
+/// <param name="BookId">The book.</param>
+/// <param name="Succeeded">Whether indexing completed.</param>
+/// <param name="PagesProcessed">Pages extracted in this run.</param>
+/// <param name="PagesSkipped">Pages reused from an earlier run.</param>
+/// <param name="FailedPages">Pages that failed extraction.</param>
+/// <param name="ChunksWritten">Search chunks written.</param>
+/// <param name="ErrorMessage">A redacted error message.</param>
+/// <param name="IsPermanent">
+/// True when retrying cannot help (for example the PDF is password-protected or the book was
+/// removed), so the job runtime must not retry it (Sept-23 Phase 06, T06.1).
+/// </param>
 public sealed record ExtractionBookResult(
     string BookId,
     bool Succeeded,
@@ -43,7 +54,8 @@ public sealed record ExtractionBookResult(
     int PagesSkipped,
     int FailedPages,
     int ChunksWritten,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool IsPermanent = false);
 
 /// <summary>Result of one pending-book indexing batch.</summary>
 public sealed record ExtractionBatchResult(
