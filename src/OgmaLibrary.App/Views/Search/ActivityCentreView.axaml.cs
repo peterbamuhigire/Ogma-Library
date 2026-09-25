@@ -49,6 +49,17 @@ public partial class ActivityCentreView : UserControl
         }
     }
 
+    private void MakeSearchable_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => MakeSearchable_ClickAsync(), "search.make_searchable_click");
+
+    private async Task MakeSearchable_ClickAsync()
+    {
+        if (DataContext is ActivityCentreViewModel viewModel)
+        {
+            await viewModel.MakeScannedBooksSearchableAsync().ConfigureAwait(true);
+        }
+    }
+
     private void Cancel_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => Cancel_ClickAsync(sender, e), "search.cancel_click");
 

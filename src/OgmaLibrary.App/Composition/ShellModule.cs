@@ -123,7 +123,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IEmbeddingErasureService>(),
             localization,
             jobRuntime: services.GetRequiredService<IJobRuntimeService>(),
-            logger: services.GetRequiredService<ILogger<IndexManagerViewModel>>());
+            logger: services.GetRequiredService<ILogger<IndexManagerViewModel>>(),
+            ocrJobs: services.GetRequiredService<IOcrJobQueueService>());
         var reconciliationReviews = new ReconciliationReviewPanelViewModel(
             services.GetRequiredService<IReconciliationReviewService>(),
             localization);

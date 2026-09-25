@@ -50,7 +50,8 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         ILocalizationService localization,
         TimeSpan? erasureConfirmationDelay = null,
         IJobRuntimeService? jobRuntime = null,
-        ILogger<IndexManagerViewModel>? logger = null)
+        ILogger<IndexManagerViewModel>? logger = null,
+        OgmaLibrary.Application.Ocr.IOcrJobQueueService? ocrJobs = null)
     {
         ArgumentNullException.ThrowIfNull(indexManager);
         _logger = logger ?? (ILogger)NullLogger.Instance;
@@ -62,7 +63,7 @@ public sealed class IndexManagerViewModel : INotifyPropertyChanged, IObserver<In
         _localization = localization;
         _erasureConfirmationDelay = erasureConfirmationDelay ?? TimeSpan.FromSeconds(3);
         _statusText = _localization["IndexManager.Status.Ready"];
-        ActivityCentre = jobRuntime is null ? null : new ActivityCentreViewModel(jobRuntime, localization);
+        ActivityCentre = jobRuntime is null ? null : new ActivityCentreViewModel(jobRuntime, localization, ocrJobs);
         _subscription = _indexManager.Events.Subscribe(this);
         _localization.CultureChanged += OnCultureChanged;
     }
