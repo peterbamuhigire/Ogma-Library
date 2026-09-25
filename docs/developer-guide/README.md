@@ -44,6 +44,10 @@ Three test projects:
   screenshots under `artifacts/screenshots/` and verifies the en↔fr culture
   switch.
 
+- `OgmaLibrary.Tests.E2E` — real-window golden journeys that drive the built
+  app through Windows UI Automation (`Category=E2E`, excluded from the fast
+  suite). See [e2e-harness.md](e2e-harness.md).
+
 Search indexing details are in [search-index.md](search-index.md), including
 the Phase 10 FTS5 external-content table and trigger maintenance rules.
 
@@ -59,7 +63,7 @@ src/
   OgmaLibrary.Workers         background jobs
   OgmaLibrary.App             Avalonia shell + the single composition root
 tests/
-  OgmaLibrary.Tests, .Tests.Architecture, .Tests.Ui
+  OgmaLibrary.Tests, .Tests.Architecture, .Tests.Ui, .Tests.E2E
 spikes/                       throwaway Phase 01 proofs (excluded from the product)
 docs/                         adrs, governance, developer-guide, plans/grand-plan
 ```
