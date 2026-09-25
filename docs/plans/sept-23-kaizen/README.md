@@ -13,6 +13,7 @@ foundations are strong, so this is an integration and verification failure, not 
 
 | # | Document | What it gives you |
 |---|---|---|
+| ★ | [MILESTONES.md](MILESTONES.md) | **What has changed so far, measured**: milestones, journey status, open issues |
 | 1 | [01-audit-report.md](01-audit-report.md) | Verdict, score, method, root-cause analysis of the drift |
 | 2 | [03-defect-register.md](03-defect-register.md) | Every finding (K01–K92) with severity, evidence class, location and phase |
 | 3 | [08-master-plan.md](08-master-plan.md) | 29 phases in 7 waves, dependency graph, owner decisions D-01..D-12, score trajectory, Definition of Done |
