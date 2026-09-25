@@ -225,8 +225,17 @@ public sealed class ArchitectureTests
             LibraryRoot = Path.GetTempPath(),
         });
 
-        Assert.DoesNotContain(services, descriptor =>
-            descriptor.ServiceType == typeof(IMetadataProvider));
+        // Sept-23 Phase 08 (8.3, K16): provider adapters are registered so the user's Settings
+        // choice applies live, and external traffic stays disabled by default through the
+        // call-time IMetadataProviderPolicy, which resolves to "off" with no preference and no
+        // OGMA_ENABLE_METADATA_PROVIDERS override.
+        Assert.Contains(services, descriptor =>
+            descriptor.ServiceType == typeof(IMetadataProviderPolicy));
+        using (ServiceProvider provider = services.BuildServiceProvider())
+        {
+            Assert.False(provider.GetRequiredService<IMetadataProviderPolicy>().AreOnlineProvidersEnabled);
+        }
+
         Assert.Contains(services, descriptor =>
             descriptor.ServiceType == typeof(IAiProvider) &&
             descriptor.ImplementationType == typeof(AiDisabledProvider));

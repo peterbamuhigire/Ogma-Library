@@ -17,6 +17,7 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly IMetadataProviderHealth _health;
+    private readonly IMetadataProviderPolicy? _policy;
 
     /// <summary>Test constructor using an existing context.</summary>
     internal MetadataProviderGateway(
@@ -30,12 +31,21 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
     }
 
     /// <summary>DI constructor using independent contexts per operation.</summary>
+    /// <param name="providers">The registered provider adapters.</param>
+    /// <param name="contextFactory">Factory for catalogue contexts.</param>
+    /// <param name="health">Provider health tracking.</param>
+    /// <param name="policy">
+    /// Optional runtime gate (Sept-23 Phase 08). When it denies online lookups the gateway
+    /// returns no results and makes no network call.
+    /// </param>
     [ActivatorUtilitiesConstructor]
     public MetadataProviderGateway(
         IEnumerable<IMetadataProvider> providers,
         IDbContextFactory<CatalogueDbContext> contextFactory,
-        IMetadataProviderHealth health)
+        IMetadataProviderHealth health,
+        IMetadataProviderPolicy? policy = null)
     {
+        _policy = policy;
         _providers = providers?.ToList() ?? throw new ArgumentNullException(nameof(providers));
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         _health = health ?? throw new ArgumentNullException(nameof(health));
@@ -47,7 +57,8 @@ public sealed class MetadataProviderGateway : IMetadataProviderGateway
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!request.HasAnySearchKey || _providers.Count == 0)
+        if (!request.HasAnySearchKey || _providers.Count == 0 ||
+            _policy is { AreOnlineProvidersEnabled: false })
         {
             return [];
         }

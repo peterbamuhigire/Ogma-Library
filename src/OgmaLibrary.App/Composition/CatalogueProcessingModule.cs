@@ -28,9 +28,11 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
             WorkerPath = options.PdfWorkerPath,
         }));
         services.AddIngestionPipeline(options.DataDirectory, options.LibraryRoot);
-        services.AddMetadataEnrichment(
-            options.LibraryRoot,
-            options.EnableExternalMetadataProviders);
+        // Sept-23 Phase 08 (8.3): provider adapters are always registered; every lookup is
+        // gated at call time by IMetadataProviderPolicy (the user's Settings choice, or the
+        // OGMA_ENABLE_METADATA_PROVIDERS override), so the choice applies without a restart
+        // and the network stays off until the user opts in.
+        services.AddMetadataEnrichment(options.LibraryRoot, enableExternalProviders: true);
         services.AddSingleton<IAiProviderHealthStore>(_ => new JsonAiProviderHealthStore(
             Path.Combine(options.DataDirectory, "ai-provider-health.json")));
         services.AddSingleton<IAiUsageBudgetStore>(_ => new JsonAiUsageBudgetStore(

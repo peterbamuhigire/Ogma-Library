@@ -26,7 +26,10 @@ public sealed class Phase02CompositionTests
                 LibraryRoot = directory,
             });
 
-            Assert.DoesNotContain(descriptors, item => item.ServiceType == typeof(IMetadataProvider));
+            // Sept-23 Phase 08 (8.3): provider adapters are always registered so the Settings
+            // switch applies without a restart; the default is still "no external provider
+            // traffic", now enforced by the call-time policy instead of by registration.
+            Assert.Equal(2, descriptors.Count(item => item.ServiceType == typeof(IMetadataProvider)));
             Assert.Contains(descriptors, item =>
                 item.ServiceType == typeof(IAiProvider) &&
                 item.ImplementationType == typeof(AiDisabledProvider));
@@ -35,6 +38,7 @@ public sealed class Phase02CompositionTests
 
             using ServiceProvider services = descriptors.BuildServiceProvider(
                 new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+            Assert.False(services.GetRequiredService<IMetadataProviderPolicy>().AreOnlineProvidersEnabled);
             Assert.NotNull(services.GetRequiredService<IApplicationStartupCoordinator>());
             StartupShellViewModel startupShell =
                 services.GetRequiredService<StartupShellViewModel>();
@@ -70,6 +74,7 @@ public sealed class Phase02CompositionTests
             using ServiceProvider services = descriptors.BuildServiceProvider(
                 new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
             Assert.Equal(2, services.GetServices<IMetadataProvider>().Count());
+            Assert.True(services.GetRequiredService<IMetadataProviderPolicy>().AreOnlineProvidersEnabled);
             Assert.True(services
                 .GetRequiredService<StartupShellViewModel>()
                 .MainShell?

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using OgmaLibrary.App.Configuration;
+using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Workers;
@@ -163,12 +163,12 @@ internal sealed class HostedServicesStartupTask : IApplicationStartupTask, IAppl
 
 internal sealed class StartupCapabilityProbe : IStartupCapabilityProbe
 {
-    private readonly OgmaRuntimeOptions _options;
+    private readonly ICapabilitySettings _capabilities;
     private readonly PdfWorkerClient _pdfWorker;
 
-    public StartupCapabilityProbe(OgmaRuntimeOptions options, PdfWorkerClient pdfWorker)
+    public StartupCapabilityProbe(ICapabilitySettings capabilities, PdfWorkerClient pdfWorker)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
         _pdfWorker = pdfWorker ?? throw new ArgumentNullException(nameof(pdfWorker));
     }
 
@@ -177,22 +177,27 @@ internal sealed class StartupCapabilityProbe : IStartupCapabilityProbe
         cancellationToken.ThrowIfCancellationRequested();
         PdfWorkerAvailability worker = _pdfWorker.GetAvailability();
 
+        // Sept-23 Phase 08 (8.9): the probe reports the effective Settings value (environment
+        // override, then the user's choice) in plain words, with stable machine codes.
+        bool metadata = _capabilities.IsEnabled(UserCapability.MetadataProviders);
+        bool shelf = _capabilities.IsEnabled(UserCapability.ThreeDimensionalShelf);
+        bool host = _capabilities.IsEnabled(UserCapability.ClassroomHost);
         IReadOnlyList<CapabilityHealth> result =
         [
             new CapabilityHealth(
                 "metadata.external",
-                _options.EnableExternalMetadataProviders
-                    ? CapabilityAvailability.Available
-                    : CapabilityAvailability.Disabled,
-                _options.EnableExternalMetadataProviders ? "configured" : "disabled_by_default",
-                _options.EnableExternalMetadataProviders
-                    ? "External bibliographic providers are configured; live health is checked only when used."
-                    : "External bibliographic providers are disabled."),
+                metadata ? CapabilityAvailability.Available : CapabilityAvailability.Disabled,
+                metadata ? Source(UserCapability.MetadataProviders) : "off_until_enabled_in_settings",
+                metadata
+                    ? "Online book-detail lookups are on; provider health is checked only when used."
+                    : "Online book-detail lookups are off. Nothing is sent to book-detail services."),
             new CapabilityHealth(
                 "ai.external",
-                CapabilityAvailability.Disabled,
-                "phase_27_required",
-                "External AI remains disabled until the privacy gateway is completed."),
+                _capabilities.IsAiConfigured ? CapabilityAvailability.Available : CapabilityAvailability.Disabled,
+                _capabilities.IsAiConfigured ? "configured" : "not_configured",
+                _capabilities.IsAiConfigured
+                    ? "An AI provider is configured."
+                    : "No AI provider is configured, so AI features are off and nothing is sent to an AI service."),
             new CapabilityHealth(
                 "search.index",
                 CapabilityAvailability.DetectionPending,
@@ -200,22 +205,18 @@ internal sealed class StartupCapabilityProbe : IStartupCapabilityProbe
                 "Search index readiness is checked after the catalogue opens."),
             new CapabilityHealth(
                 "bookshelf.3d",
-                _options.EnableThreeDimensionalShelf
-                    ? CapabilityAvailability.DetectionPending
-                    : CapabilityAvailability.Disabled,
-                _options.EnableThreeDimensionalShelf ? "runtime_detection_required" : "disabled_by_default",
-                _options.EnableThreeDimensionalShelf
-                    ? "3D assets are registered; WebGL and native-host capability require runtime detection."
-                    : "The 3D shelf is disabled."),
+                shelf ? CapabilityAvailability.DetectionPending : CapabilityAvailability.Disabled,
+                shelf ? Source(UserCapability.ThreeDimensionalShelf) : "off_until_enabled_in_settings",
+                shelf
+                    ? "The 3D bookshelf preview is on; the graphics support it needs is checked when it opens."
+                    : "The 3D bookshelf preview is off."),
             new CapabilityHealth(
                 "classroom.host",
-                _options.EnableClassroomHost
-                    ? CapabilityAvailability.Available
-                    : CapabilityAvailability.Disabled,
-                _options.EnableClassroomHost ? "configured" : "disabled_by_default",
-                _options.EnableClassroomHost
-                    ? "Classroom Host controls are configured; no listener starts automatically."
-                    : "Classroom Host is disabled."),
+                host ? CapabilityAvailability.Available : CapabilityAvailability.Disabled,
+                host ? Source(UserCapability.ClassroomHost) : "off_until_enabled_in_settings",
+                host
+                    ? "Classroom Host controls are on; no listener starts until a teacher starts it."
+                    : "Classroom Host is off."),
             new CapabilityHealth(
                 "pdf.worker",
                 worker.IsAvailable ? CapabilityAvailability.Available : CapabilityAvailability.Unavailable,
@@ -227,4 +228,7 @@ internal sealed class StartupCapabilityProbe : IStartupCapabilityProbe
 
         return Task.FromResult(result);
     }
+
+    private string Source(UserCapability flag) =>
+        _capabilities.IsManagedByEnvironment(flag) ? "on_by_environment" : "on_in_settings";
 }

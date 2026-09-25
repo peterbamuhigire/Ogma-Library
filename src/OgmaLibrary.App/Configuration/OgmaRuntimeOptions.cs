@@ -24,14 +24,23 @@ public sealed record OgmaRuntimeOptions
     /// </summary>
     public string? ConfiguredLibraryRoot { get; init; }
 
-    /// <summary>Whether external bibliographic provider adapters may be activated.</summary>
-    public bool EnableExternalMetadataProviders { get; init; }
+    /// <summary>
+    /// Administrator/test override for online metadata providers (<c>OGMA_ENABLE_METADATA_PROVIDERS</c>).
+    /// Null when unset: the user's Settings choice decides (Sept-23 Phase 08, K16).
+    /// </summary>
+    public bool? EnableExternalMetadataProviders { get; init; }
 
-    /// <summary>Whether the pre-release 3D shelf surface may be offered for capability detection.</summary>
-    public bool EnableThreeDimensionalShelf { get; init; }
+    /// <summary>
+    /// Administrator/test override for the 3D shelf preview (<c>OGMA_ENABLE_3D_SHELF</c>).
+    /// Null when unset: the user's Settings choice decides.
+    /// </summary>
+    public bool? EnableThreeDimensionalShelf { get; init; }
 
-    /// <summary>Whether the opt-in classroom Host capability may be offered.</summary>
-    public bool EnableClassroomHost { get; init; }
+    /// <summary>
+    /// Administrator/test override for the classroom Host (<c>OGMA_ENABLE_CLASSROOM_HOST</c>).
+    /// Null when unset: the user's Settings choice decides.
+    /// </summary>
+    public bool? EnableClassroomHost { get; init; }
 
     /// <summary>Optional explicit PDF worker executable or assembly path.</summary>
     public string? PdfWorkerPath { get; init; }
@@ -122,12 +131,12 @@ public sealed record OgmaRuntimeOptions
         }
     }
 
-    private static bool ReadBoolean(Func<string, string?> reader, string key)
+    private static bool? ReadBoolean(Func<string, string?> reader, string key)
     {
         string? value = reader(key);
         if (string.IsNullOrWhiteSpace(value))
         {
-            return false;
+            return null;
         }
 
         if (bool.TryParse(value, out bool result))

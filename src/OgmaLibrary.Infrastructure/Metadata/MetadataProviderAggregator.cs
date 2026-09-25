@@ -20,6 +20,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
     private readonly CatalogueDbContext? _context;
     private readonly IMetadataConflictDetector _conflictDetector;
     private readonly IMetadataProviderGateway? _gateway;
+    private readonly IMetadataProviderPolicy? _policy;
 
     /// <summary>
     /// Initializes a new instance of <see cref="MetadataProviderAggregator"/>.
@@ -49,12 +50,18 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
     /// <param name="contextFactory">Factory for catalogue DB contexts.</param>
     /// <param name="conflictDetector">Optional field-level conflict detector.</param>
     /// <param name="gateway">Optional cached provider gateway used by runtime composition.</param>
+    /// <param name="policy">
+    /// Optional runtime gate (Sept-23 Phase 08): when it denies online lookups no provider is
+    /// called and no lookup row is written.
+    /// </param>
     public MetadataProviderAggregator(
         IEnumerable<IMetadataProvider> providers,
         IDbContextFactory<CatalogueDbContext> contextFactory,
         IMetadataConflictDetector? conflictDetector = null,
-        IMetadataProviderGateway? gateway = null)
+        IMetadataProviderGateway? gateway = null,
+        IMetadataProviderPolicy? policy = null)
     {
+        _policy = policy;
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(contextFactory);
         _providers = providers.ToList();
@@ -86,7 +93,7 @@ public sealed class MetadataProviderAggregator : IMetadataProviderAggregator
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!request.HasAnySearchKey)
+        if (!request.HasAnySearchKey || _policy is { AreOnlineProvidersEnabled: false })
         {
             return [];
         }

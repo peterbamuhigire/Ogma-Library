@@ -6,9 +6,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Icons;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.Navigation;
+using OgmaLibrary.App.Settings;
 using OgmaLibrary.App.ViewModels.Ai;
 using OgmaLibrary.App.ViewModels.Reader;
 using OgmaLibrary.App.ViewModels.Search;
+using OgmaLibrary.App.ViewModels.Settings;
 using OgmaLibrary.App.ViewModels.Shelf3D;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
@@ -99,6 +101,8 @@ public sealed partial class MainShellViewModel :
     private readonly IDirectPdfOpenService? _directPdfOpenService;
     private readonly IClassroomModeService? _classroomModeService;
     private readonly IUserPreferencesService? _userPreferencesService;
+    private UserPreferencesController _preferences = null!;
+    private bool _ownsPreferences;
     private readonly ILogger _logger;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _indexManagerIconPath = IconCatalog.GetAvaresPath("ic_index_manager") ?? string.Empty;
@@ -116,7 +120,6 @@ public sealed partial class MainShellViewModel :
     private bool _progressiveRefreshPending;
     private bool _isCommandPaletteOpen;
     private string _commandPaletteQuery = string.Empty;
-    private UserPreferences _userPreferences = new();
     private string? _statusOverride;
     private string? _looseBookFolder;
     private ScanSummary? _lastScanSummary;
@@ -156,6 +159,8 @@ public sealed partial class MainShellViewModel :
     /// <param name="libraryFolders">The Library folders panel and scan monitor (Sept-23 Phase 05).</param>
     /// <param name="processingProgress">Background task progress, kept apart from scan files (Sept-23 Phase 06).</param>
     /// <param name="capabilities">The capability state (Sept-23 Phase 07); defaults to standalone.</param>
+    /// <param name="preferences">The shared preference controller (Sept-23 Phase 08); built from the store when null.</param>
+    /// <param name="settings">The Settings destination view model (Sept-23 Phase 08).</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -181,7 +186,9 @@ public sealed partial class MainShellViewModel :
         ILogger<MainShellViewModel>? logger = null,
         LibraryFoldersViewModel? libraryFolders = null,
         IProcessingProgressService? processingProgress = null,
-        ICapabilityState? capabilities = null)
+        ICapabilityState? capabilities = null,
+        UserPreferencesController? preferences = null,
+        SettingsViewModel? settings = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -247,6 +254,16 @@ public sealed partial class MainShellViewModel :
         }
 
         InitializeNavigation(capabilities);
+
+        // Sept-23 Phase 08 (8.7): one preference controller backs Settings, the palette and
+        // start-up; changes re-resolve capabilities and switch the language live.
+        _ownsPreferences = preferences is null;
+        _preferences = preferences ?? new UserPreferencesController(
+            _userPreferencesService,
+            _capabilities as ICapabilitySettings,
+            _localization);
+        _preferences.Changed += OnPreferencesChanged;
+        Settings = settings;
     }
 
     /// <summary>
@@ -589,46 +606,45 @@ public sealed partial class MainShellViewModel :
     public string CommandPaletteWatermark => _localization["CommandPalette.Watermark"];
 
     /// <summary>Current persisted theme choice.</summary>
-    public UserTheme Theme => _userPreferences.Theme;
+    public UserTheme Theme => _preferences.Current.Theme;
 
     /// <summary>Current persisted density choice.</summary>
-    public UserDensity Density => _userPreferences.Density;
+    public UserDensity Density => _preferences.Current.Density;
 
-    /// <summary>Loads appearance preferences before the ready shell is shown.</summary>
-    public async Task InitializePreferencesAsync(CancellationToken cancellationToken = default)
-    {
-        if (_userPreferencesService is null)
-        {
-            return;
-        }
+    /// <summary>The preference controller shared with Settings (Sept-23 Phase 08).</summary>
+    public UserPreferencesController Preferences => _preferences;
 
-        _userPreferences = await _userPreferencesService.GetAsync(cancellationToken)
-            .ConfigureAwait(true);
-        OnPropertyChanged(nameof(Theme));
-        OnPropertyChanged(nameof(Density));
-        UserPreferencesChanged?.Invoke(this, _userPreferences);
-    }
+    /// <summary>The Settings destination's view model, when composed (Sept-23 Phase 08).</summary>
+    public SettingsViewModel? Settings { get; }
+
+    /// <summary>Loads preferences (theme, density, language, capabilities) before the ready shell is shown.</summary>
+    public Task InitializePreferencesAsync(CancellationToken cancellationToken = default) =>
+        _preferences.LoadAsync(cancellationToken);
 
     /// <summary>Cycles Light, Dark, and System theme choices.</summary>
     public Task ToggleThemeAsync(CancellationToken cancellationToken = default) =>
-        SavePreferencesAsync(_userPreferences with
-        {
-            Theme = _userPreferences.Theme switch
+        _preferences.UpdateAsync(
+            current => current with
             {
-                UserTheme.Light => UserTheme.Dark,
-                UserTheme.Dark => UserTheme.System,
-                _ => UserTheme.Light,
+                Theme = current.Theme switch
+                {
+                    UserTheme.Light => UserTheme.Dark,
+                    UserTheme.Dark => UserTheme.System,
+                    _ => UserTheme.Light,
+                },
             },
-        }, cancellationToken);
+            cancellationToken);
 
     /// <summary>Toggles between comfortable and compact density.</summary>
     public Task ToggleDensityAsync(CancellationToken cancellationToken = default) =>
-        SavePreferencesAsync(_userPreferences with
-        {
-            Density = _userPreferences.Density == UserDensity.Comfortable
-                ? UserDensity.Compact
-                : UserDensity.Comfortable,
-        }, cancellationToken);
+        _preferences.UpdateAsync(
+            current => current with
+            {
+                Density = current.Density == UserDensity.Comfortable
+                    ? UserDensity.Compact
+                    : UserDensity.Comfortable,
+            },
+            cancellationToken);
 
     // ── Navigation service implementations ────────────────────────────────────
 
@@ -1013,6 +1029,13 @@ public sealed partial class MainShellViewModel :
         ShelfSidebar.PropertyChanged -= OnShelfSidebarChanged;
         _navigation.Changed -= OnNavigationChanged;
         _capabilities.Changed -= OnCapabilitiesChanged;
+        _preferences.Changed -= OnPreferencesChanged;
+        if (_ownsPreferences)
+        {
+            _preferences.Dispose();
+        }
+
+        Settings?.Dispose();
         if (Reader is not null)
         {
             Reader.PropertyChanged -= OnReaderPropertyChanged;
@@ -1337,22 +1360,12 @@ public sealed partial class MainShellViewModel :
         OnPropertyChanged(nameof(StatusText));
     }
 
-    private async Task SavePreferencesAsync(
-        UserPreferences preferences,
-        CancellationToken cancellationToken)
+    private void OnPreferencesChanged(object? sender, UserPreferences preferences)
     {
-        if (_userPreferencesService is null)
-        {
-            return;
-        }
-
-        await _userPreferencesService.SaveAsync(preferences, cancellationToken)
-            .ConfigureAwait(true);
-        _userPreferences = preferences;
         OnPropertyChanged(nameof(Theme));
         OnPropertyChanged(nameof(Density));
         OnPropertyChanged(nameof(CommandPaletteItems));
-        UserPreferencesChanged?.Invoke(this, _userPreferences);
+        UserPreferencesChanged?.Invoke(this, preferences);
     }
 
     private void RaiseAllChanged()
