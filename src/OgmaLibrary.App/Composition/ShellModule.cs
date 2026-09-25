@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.ViewModels;
 using OgmaLibrary.App.ViewModels.Ai;
@@ -99,7 +100,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             localization,
             services.GetRequiredService<ITextLayerService>(),
             services.GetRequiredService<IPageRenderCache>(),
-            services.GetRequiredService<IReaderPortabilityService>());
+            services.GetRequiredService<IReaderPortabilityService>(),
+            services.GetRequiredService<ILogger<ReaderViewModel>>());
         var reader = CreateReader();
         var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(
@@ -115,7 +117,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),
             localization,
-            jobRuntime: services.GetRequiredService<IJobRuntimeService>());
+            jobRuntime: services.GetRequiredService<IJobRuntimeService>(),
+            logger: services.GetRequiredService<ILogger<IndexManagerViewModel>>());
         var reconciliationReviews = new ReconciliationReviewPanelViewModel(
             services.GetRequiredService<IReconciliationReviewService>(),
             localization);

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Search;
 
 namespace OgmaLibrary.App.Views.Search;
@@ -13,7 +14,10 @@ public partial class IndexManagerPanelView : UserControl
         InitializeComponent();
     }
 
-    private async void Rebuild_Click(object? sender, RoutedEventArgs e)
+    private void Rebuild_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Rebuild_ClickAsync(sender, e), "search.rebuild_click");
+
+    private async Task Rebuild_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm)
         {
@@ -22,7 +26,10 @@ public partial class IndexManagerPanelView : UserControl
         }
     }
 
-    private async void ConfirmRebuild_Click(object? sender, RoutedEventArgs e)
+    private void ConfirmRebuild_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConfirmRebuild_ClickAsync(sender, e), "search.confirm_rebuild_click");
+
+    private async Task ConfirmRebuild_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm)
         {
@@ -46,7 +53,10 @@ public partial class IndexManagerPanelView : UserControl
         }
     }
 
-    private async void ConfirmEmbeddingErasure_Click(object? sender, RoutedEventArgs e)
+    private void ConfirmEmbeddingErasure_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ConfirmEmbeddingErasure_ClickAsync(sender, e), "search.confirm_embedding_erasure_click");
+
+    private async Task ConfirmEmbeddingErasure_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm)
         {
@@ -70,7 +80,10 @@ public partial class IndexManagerPanelView : UserControl
         }
     }
 
-    private async void PauseOcr_Click(object? sender, RoutedEventArgs e)
+    private void PauseOcr_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => PauseOcr_ClickAsync(sender, e), "search.pause_ocr_click");
+
+    private async Task PauseOcr_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm &&
             sender is Control { DataContext: OcrJobStatusDisplayItem job })
@@ -79,7 +92,10 @@ public partial class IndexManagerPanelView : UserControl
         }
     }
 
-    private async void CancelOcr_Click(object? sender, RoutedEventArgs e)
+    private void CancelOcr_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => CancelOcr_ClickAsync(sender, e), "search.cancel_ocr_click");
+
+    private async Task CancelOcr_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm &&
             sender is Control { DataContext: OcrJobStatusDisplayItem job })
@@ -88,7 +104,10 @@ public partial class IndexManagerPanelView : UserControl
         }
     }
 
-    private async void RetryOcr_Click(object? sender, RoutedEventArgs e)
+    private void RetryOcr_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => RetryOcr_ClickAsync(sender, e), "search.retry_ocr_click");
+
+    private async Task RetryOcr_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is IndexManagerViewModel vm &&
             sender is Control { DataContext: OcrJobStatusDisplayItem job })

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Search;
 
 namespace OgmaLibrary.App.Views.Search;
@@ -14,7 +15,10 @@ public partial class ActivityCentreView : UserControl
         InitializeComponent();
     }
 
-    private async void Refresh_Click(object? sender, RoutedEventArgs e)
+    private void Refresh_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Refresh_ClickAsync(sender, e), "search.refresh_click");
+
+    private async Task Refresh_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ActivityCentreViewModel viewModel)
         {
@@ -22,7 +26,10 @@ public partial class ActivityCentreView : UserControl
         }
     }
 
-    private async void Retry_Click(object? sender, RoutedEventArgs e)
+    private void Retry_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Retry_ClickAsync(sender, e), "search.retry_click");
+
+    private async Task Retry_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ActivityCentreViewModel viewModel &&
             sender is Control { DataContext: ActivityJobDisplayItem job })
@@ -31,7 +38,10 @@ public partial class ActivityCentreView : UserControl
         }
     }
 
-    private async void Cancel_Click(object? sender, RoutedEventArgs e)
+    private void Cancel_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Cancel_ClickAsync(sender, e), "search.cancel_click");
+
+    private async Task Cancel_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ActivityCentreViewModel viewModel &&
             sender is Control { DataContext: ActivityJobDisplayItem job })
@@ -40,7 +50,10 @@ public partial class ActivityCentreView : UserControl
         }
     }
 
-    private async void Export_Click(object? sender, RoutedEventArgs e)
+    private void Export_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Export_ClickAsync(sender, e), "search.export_click");
+
+    private async Task Export_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ActivityCentreViewModel viewModel ||
             TopLevel.GetTopLevel(this)?.StorageProvider.CanSave != true)

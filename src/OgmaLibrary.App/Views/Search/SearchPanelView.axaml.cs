@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Search;
 
 namespace OgmaLibrary.App.Views.Search;
@@ -19,7 +20,10 @@ public partial class SearchPanelView : UserControl
     public void FocusSearchBox() =>
         Dispatcher.UIThread.Post(() => SearchBox.Focus());
 
-    private async void SearchPanel_KeyDown(object? sender, KeyEventArgs e)
+    private void SearchPanel_KeyDown(object? sender, KeyEventArgs e) =>
+        UiActions.Run(() => SearchPanel_KeyDownAsync(sender, e), "search.search_panel_key_down");
+
+    private async Task SearchPanel_KeyDownAsync(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || DataContext is not SearchViewModel vm)
         {
@@ -30,7 +34,10 @@ public partial class SearchPanelView : UserControl
         e.Handled = true;
     }
 
-    private async void OpenSelected_Click(object? sender, RoutedEventArgs e)
+    private void OpenSelected_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => OpenSelected_ClickAsync(sender, e), "search.open_selected_click");
+
+    private async Task OpenSelected_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is SearchViewModel vm)
         {
