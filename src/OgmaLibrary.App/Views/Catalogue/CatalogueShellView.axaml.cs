@@ -46,6 +46,17 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void AddLooseFolder_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            async () =>
+            {
+                if (DataContext is MainShellViewModel vm)
+                {
+                    await vm.AddLooseFolderAsync().ConfigureAwait(true);
+                }
+            },
+            "catalogue.add_loose_folder_click");
+
     private void IndexManagerToggle_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => IndexManagerToggle_ClickAsync(sender, e), "catalogue.index_manager_toggle_click");
 
@@ -61,6 +72,14 @@ public partial class CatalogueShellView : UserControl
     {
         if (DataContext is not MainShellViewModel vm)
         {
+            return;
+        }
+
+        if (e.Key == Key.F5)
+        {
+            // Sept-23 Phase 05 (T05.8): keyboard access to Rescan library.
+            UiActions.Run(vm.RescanLibraryAsync, "catalogue.rescan_key");
+            e.Handled = true;
             return;
         }
 

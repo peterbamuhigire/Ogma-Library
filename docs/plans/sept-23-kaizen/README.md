@@ -61,8 +61,8 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 02 | Crash safety, logging and threading foundation | A | **IMPLEMENTED** 2026-09-25 (G3/G8 journey proof pending Phase 01) | [record](../../implementation/execution/phase-sept23-02-completion.md) |
 | 03 | Shell emergency fixes: visible catalogue and truthful status | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-03-completion.md) |
 | 04 | Reader engine stability and page rendering | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-04-completion.md) |
-| 05 | Library roots, scanning and file validity | B | NOT STARTED (needs D-03, D-04) | — |
-| 06 | Processing pipeline, jobs and identity promotion | B | NOT STARTED | — |
+| 05 | Library roots, scanning and file validity | B | **IMPLEMENTED** 2026-09-25 (E2E journeys G2/G6 pending Phase 01) | [record](../../implementation/execution/phase-sept23-05-completion.md) |
+| 06 | Processing pipeline, jobs and identity promotion | B | IN PROGRESS (worktree lane) | — |
 | 07 | Navigation and information architecture | B | NOT STARTED | — |
 | 08 | Settings and capability centre | B | NOT STARTED | — |
 | 09 | Design system and visual identity | C | NOT STARTED (needs D-07) | — |

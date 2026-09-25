@@ -77,6 +77,11 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
         var stack = new Stack<string>();
         stack.Push(normalizedRoot);
 
+        // Sept-23 Phase 05: a junction or symlink that points back into the tree
+        // (a loop) is walked once; canonical directories are never revisited.
+        var visited = new HashSet<string>(
+            OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
         while (stack.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -107,6 +112,11 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
                 // file path would repeatedly walk the same parent segments on a
                 // large library and defeats bounded scan throughput.
                 canonicalDirectory = PathGuard.EnsureWithinRoot(dir, normalizedRoot);
+                if (!visited.Add(canonicalDirectory))
+                {
+                    continue;
+                }
+
                 relativeDirectory = ComputeRelativeDirectory(canonicalDirectory, normalizedRoot);
             }
             catch (PathTraversalException)
@@ -297,6 +307,13 @@ public sealed class PdfDiscoveryService : IPdfDiscoveryService
         string normalizedRoot,
         IReadOnlyList<string> excludedFolders)
     {
+        // Ogma's own legacy sidecar folder never holds library books (its write-back
+        // backups are PDFs and must not be catalogued as duplicates).
+        if (string.Equals(dirName, ".ogma", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         foreach (string excluded in excludedFolders)
         {
             if (string.IsNullOrWhiteSpace(excluded))

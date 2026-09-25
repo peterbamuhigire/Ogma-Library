@@ -66,7 +66,7 @@ public sealed record CommandPaletteItem(string Id, string Label, string Hint);
 /// content / status bar), the view-toggle state, and is the concrete
 /// implementation of <see cref="IBookDetailNavigationService"/> and
 /// <see cref="IReaderNavigationService"/> so no view holds a cross-view reference.
-/// It replaces <see cref="MainWindowViewModel"/> once books are available.
+/// It is the only window view model (the legacy MainWindow was removed in Sept-23 Phase 05).
 /// </summary>
 public sealed class MainShellViewModel :
     INotifyPropertyChanged,
@@ -103,6 +103,8 @@ public sealed class MainShellViewModel :
     private string _commandPaletteQuery = string.Empty;
     private UserPreferences _userPreferences = new();
     private string? _statusOverride;
+    private string? _looseBookFolder;
+    private ScanSummary? _lastScanSummary;
     private string? _readerPlaceholderMessage;
     private ShellView _activeView = ShellView.Catalogue;
     private bool _isClassroomClientMode;
@@ -137,6 +139,7 @@ public sealed class MainShellViewModel :
     /// <param name="userPreferencesService">The persisted desktop appearance preference service.</param>
     /// <param name="reconciliationReviews">The operator relocation-review workflow.</param>
     /// <param name="logger">Optional logger (Sept-23 Phase 02).</param>
+    /// <param name="libraryFolders">The Library folders panel and scan monitor (Sept-23 Phase 05).</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -159,7 +162,8 @@ public sealed class MainShellViewModel :
         ILibraryRootService? libraryRootService = null,
         IUserPreferencesService? userPreferencesService = null,
         ReconciliationReviewPanelViewModel? reconciliationReviews = null,
-        ILogger<MainShellViewModel>? logger = null)
+        ILogger<MainShellViewModel>? logger = null,
+        LibraryFoldersViewModel? libraryFolders = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -180,6 +184,7 @@ public sealed class MainShellViewModel :
         ReadingPlan = readingPlan;
         Bookshelf3D = bookshelf3D;
         ReconciliationReviews = reconciliationReviews;
+        LibraryFolders = libraryFolders;
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _libraryRootService = libraryRootService;
@@ -195,6 +200,12 @@ public sealed class MainShellViewModel :
         if (_scanProgress is not null)
         {
             _scanProgress.ProgressChanged += OnProgressChanged;
+        }
+
+        if (LibraryFolders is not null)
+        {
+            LibraryFolders.CatalogueChanged += OnLibraryFoldersChanged;
+            LibraryFolders.Monitor.ScanCompleted += OnScanCompleted;
         }
 
         if (HostSharing is not null)
@@ -222,6 +233,12 @@ public sealed class MainShellViewModel :
             // and the shelf sidebar's state is bound (Sept-23 Phase 02, K72).
             await Catalogue.LoadAsync(cancellationToken).ConfigureAwait(true);
             await ShelfSidebar.LoadAsync(cancellationToken).ConfigureAwait(true);
+            if (LibraryFolders is not null)
+            {
+                // Sept-23 Phase 05 (T05.8): folders load now; the incremental startup
+                // scan and the watchers start after the first frames, off the UI thread.
+                await LibraryFolders.StartAsync(LibraryStartupDelay, cancellationToken).ConfigureAwait(true);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException &&
                                    !OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
@@ -276,6 +293,39 @@ public sealed class MainShellViewModel :
 
     /// <summary>The operator workflow for ambiguous filesystem relocations.</summary>
     public ReconciliationReviewPanelViewModel? ReconciliationReviews { get; }
+
+    /// <summary>The Library folders panel (Sept-23 Phase 05, D-03).</summary>
+    public LibraryFoldersViewModel? LibraryFolders { get; }
+
+    /// <summary>Whether the Library folders panel is available.</summary>
+    public bool IsLibraryFoldersVisible => LibraryFolders is not null;
+
+    /// <summary>Delay before the startup scan, so the first window paints first.</summary>
+    public TimeSpan LibraryStartupDelay { get; init; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>The folder of the last loose book opened with Open PDF, offered for adding.</summary>
+    public string? LooseBookFolder
+    {
+        get => _looseBookFolder;
+        private set
+        {
+            if (_looseBookFolder != value)
+            {
+                _looseBookFolder = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsAddLooseFolderVisible));
+            }
+        }
+    }
+
+    /// <summary>Whether to offer "Add this folder to your library" after opening a loose book.</summary>
+    public bool IsAddLooseFolderVisible => LibraryFolders is not null && !string.IsNullOrWhiteSpace(_looseBookFolder);
+
+    /// <summary>Label of the add-loose-folder action.</summary>
+    public string AddLooseFolderText => _localization["MainWindow.PdfPicker.AddFolder"];
+
+    /// <summary>Label of the rescan action.</summary>
+    public string RescanLibraryText => _localization["Library.Folders.RescanAll"];
 
     /// <summary>The Phase 16 Host sharing control strip view model.</summary>
     public HostSharingViewModel? HostSharing { get; }
@@ -480,9 +530,21 @@ public sealed class MainShellViewModel :
                 return _localization["Scan.Progress.PreparingBooks"];
             }
 
+            if (_scanPhase == ScanPhase.Cancelled)
+            {
+                return _localization["Scan.Status.Cancelled"];
+            }
+
+            if (_scanPhase == ScanPhase.Failed)
+            {
+                return _localization["Scan.Status.Failed"];
+            }
+
             if (_scanPhase == ScanPhase.PartialFailure)
             {
-                return _localization["Scan.Phase.PartialFailure"];
+                return _lastScanSummary is { } issues && LibraryFolders is not null
+                    ? LibraryFolders.FormatSummary(issues)
+                    : _localization["Scan.Phase.PartialFailure"];
             }
 
             if (bookCount > 0)
@@ -678,6 +740,10 @@ public sealed class MainShellViewModel :
             case "toggle-density":
                 await ToggleDensityAsync(cancellationToken).ConfigureAwait(true);
                 break;
+            case "rescan":
+                CloseCommandPalette();
+                await RescanLibraryAsync().ConfigureAwait(true);
+                return;
             default:
                 throw new ArgumentException("The selected command is not supported.", nameof(commandId));
         }
@@ -846,8 +912,6 @@ public sealed class MainShellViewModel :
             return;
         }
 
-        string? previousRoot = await _settingsService.GetLibraryRootAsync().ConfigureAwait(true);
-
         if (topLevel is Avalonia.Controls.Window window)
         {
             window.Activate();
@@ -879,6 +943,44 @@ public sealed class MainShellViewModel :
         }
 
         string path = folders[0].Path.LocalPath;
+        await AddLibraryFolderAsync(path).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Adds a folder to the library and scans it (Sept-23 Phase 05, T05.3). Choosing a
+    /// folder never relinks or hides an existing folder; moving a folder is the
+    /// separate, explicit relink action in the Library folders panel.
+    /// </summary>
+    /// <param name="path">The absolute folder path.</param>
+    public async Task AddLibraryFolderAsync(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (LibraryFolders is not null)
+        {
+            try
+            {
+                SetStatusOverride(_localization["MainWindow.FolderPicker.ScanStarting"]);
+                await LibraryFolders.AddFolderAsync(path).ConfigureAwait(true);
+                if (LibraryFolders.StatusText is { Length: > 0 } status)
+                {
+                    SetStatusOverride(status);
+                }
+            }
+            catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
+            {
+                AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "catalogue.add_folder");
+                SetStatusOverride(_localization["MainWindow.FolderPicker.Failed"]);
+            }
+
+            return;
+        }
+
+        if (_settingsService is null || _orchestrator is null)
+        {
+            SetStatusOverride(_localization["MainWindow.FolderPicker.NotConfigured"]);
+            return;
+        }
+
         try
         {
             if (_libraryRootService is not null)
@@ -886,21 +988,15 @@ public sealed class MainShellViewModel :
                 IReadOnlyList<LibraryRootDescriptor> roots = await _libraryRootService
                     .ListAsync()
                     .ConfigureAwait(true);
-                LibraryRootDescriptor? currentRoot = roots.FirstOrDefault(root =>
-                    SameRootPath(root.CanonicalLocator, previousRoot));
-                if (currentRoot is not null)
+                if (!roots.Any(root => SameRootPath(root.CanonicalLocator, path)))
                 {
-                    await _libraryRootService.RelinkAsync(currentRoot.Id, path)
-                        .ConfigureAwait(true);
-                }
-                else
-                {
-                    await _libraryRootService.EnsureForLegacyPathAsync(path)
-                        .ConfigureAwait(true);
+                    await _libraryRootService.AddAsync(path).ConfigureAwait(true);
                 }
             }
-
-            await _settingsService.SetLibraryRootAsync(path).ConfigureAwait(true);
+            else
+            {
+                await _settingsService.SetLibraryRootAsync(path).ConfigureAwait(true);
+            }
         }
         catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
@@ -1023,12 +1119,51 @@ public sealed class MainShellViewModel :
             await Catalogue.LoadAsync(cancellationToken).ConfigureAwait(true);
             await ShelfSidebar.LoadAsync(cancellationToken).ConfigureAwait(true);
             await OpenReaderAsync(bookId, pageHint: null, cancellationToken).ConfigureAwait(true);
-            SetStatusOverride(_localization["MainWindow.PdfPicker.OpenedWithMetadata"]);
+            bool isLoose = await IsLooseFileAsync(path, cancellationToken).ConfigureAwait(true);
+            LooseBookFolder = isLoose ? Path.GetDirectoryName(Path.GetFullPath(path)) : null;
+            SetStatusOverride(isLoose
+                ? _localization["MainWindow.PdfPicker.OpenedLoose"]
+                : _localization["MainWindow.PdfPicker.OpenedWithMetadata"]);
+        }
+        catch (InvalidPdfFileException invalid)
+        {
+            SetStatusOverride(invalid.Validity == FileValidity.Empty
+                ? _localization["MainWindow.PdfPicker.InvalidEmpty"]
+                : _localization["MainWindow.PdfPicker.InvalidNotPdf"]);
         }
         catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
             AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "catalogue.open_pdf");
             SetStatusOverride(_localization["MainWindow.PdfPicker.Failed"]);
+        }
+    }
+
+    /// <summary>Adds the folder of the last loose book to the library (T05.11).</summary>
+    public async Task AddLooseFolderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_looseBookFolder))
+        {
+            return;
+        }
+
+        string folder = _looseBookFolder;
+        LooseBookFolder = null;
+        await AddLibraryFolderAsync(folder).ConfigureAwait(true);
+    }
+
+    /// <summary>Rescans every enabled library folder (T05.8).</summary>
+    public async Task RescanLibraryAsync()
+    {
+        if (LibraryFolders is not null)
+        {
+            SetStatusOverride(null);
+            await LibraryFolders.RescanAsync().ConfigureAwait(true);
+            return;
+        }
+
+        if (_orchestrator is not null)
+        {
+            await _orchestrator.ScanRootsAsync(null).ConfigureAwait(true);
         }
     }
 
@@ -1041,7 +1176,11 @@ public sealed class MainShellViewModel :
         SetStatusOverride(_localization["MainWindow.PdfPicker.Unavailable"]);
 
     /// <summary>Cancels the currently running scan, if any.</summary>
-    public void CancelScan() => _scanCts.Cancel();
+    public void CancelScan()
+    {
+        LibraryFolders?.Monitor.CancelScan();
+        _scanCts.Cancel();
+    }
 
     /// <summary>Toggles the sidebar open/closed.</summary>
     public void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
@@ -1080,6 +1219,11 @@ public sealed class MainShellViewModel :
     {
         Catalogue.PropertyChanged -= Catalogue_PropertyChanged;
         _classroomConnectivitySubscription?.Dispose();
+        if (LibraryFolders is not null)
+        {
+            LibraryFolders.CatalogueChanged -= OnLibraryFoldersChanged;
+            LibraryFolders.Monitor.ScanCompleted -= OnScanCompleted;
+        }
 
         if (HostSharing is not null)
         {
@@ -1189,11 +1333,53 @@ public sealed class MainShellViewModel :
             _filesFailed = snapshot.FilesFailed;
             RaiseAllChanged();
 
-            if (snapshot.Phase == ScanPhase.Complete)
+            if (snapshot.Phase is ScanPhase.Complete or ScanPhase.PartialFailure or ScanPhase.Cancelled)
             {
                 ScheduleCatalogueRefresh();
             }
         });
+    }
+
+    private void OnScanCompleted(object? sender, ScanSummary summary)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _lastScanSummary = summary;
+            _statusOverride = null;
+            // The monitor's outcome is authoritative even if no progress event arrived
+            // (for example a scan cancelled while it waited for another scan).
+            _scanPhase = summary.Outcome switch
+            {
+                ScanOutcome.Cancelled => ScanPhase.Cancelled,
+                ScanOutcome.Failed => ScanPhase.Failed,
+                ScanOutcome.CompletedWithIssues => ScanPhase.PartialFailure,
+                _ => _scanPhase is ScanPhase.GeneratingAssets ? _scanPhase : ScanPhase.Complete,
+            };
+            RaiseAllChanged();
+            ScheduleCatalogueRefresh();
+        });
+    }
+
+    private void OnLibraryFoldersChanged(object? sender, EventArgs e) =>
+        Avalonia.Threading.Dispatcher.UIThread.Post(ScheduleCatalogueRefresh);
+
+    private async Task<bool> IsLooseFileAsync(string path, CancellationToken cancellationToken)
+    {
+        if (_libraryRootService is null)
+        {
+            return false;
+        }
+
+        IReadOnlyList<LibraryRootDescriptor> roots = await _libraryRootService
+            .ListAsync(cancellationToken)
+            .ConfigureAwait(true);
+        string full = Path.GetFullPath(path);
+        return !roots.Any(root =>
+            root.IsEnabled &&
+            !string.IsNullOrWhiteSpace(root.CanonicalLocator) &&
+            full.StartsWith(
+                Path.TrimEndingDirectorySeparator(root.CanonicalLocator) + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase));
     }
 
     private void ScheduleCatalogueRefresh()
@@ -1326,6 +1512,7 @@ public sealed class MainShellViewModel :
         new("reading-plan", _localization["CommandPalette.ReadingPlan"], ""),
         new("toggle-theme", _localization["CommandPalette.ToggleTheme"], Theme.ToString()),
         new("toggle-density", _localization["CommandPalette.ToggleDensity"], Density.ToString()),
+        new("rescan", _localization["CommandPalette.Rescan"], "F5"),
     ];
 
     private async Task SavePreferencesAsync(
@@ -1396,6 +1583,8 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(Density));
         OnPropertyChanged(nameof(CommandPaletteTitle));
         OnPropertyChanged(nameof(CommandPaletteWatermark));
+        OnPropertyChanged(nameof(AddLooseFolderText));
+        OnPropertyChanged(nameof(RescanLibraryText));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)

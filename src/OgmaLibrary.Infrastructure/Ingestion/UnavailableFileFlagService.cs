@@ -36,9 +36,25 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
     }
 
     /// <inheritdoc />
-    public async Task<int> FlagMissingFilesAsync(
+    public Task<int> FlagMissingFilesAsync(
         string libraryRoot,
+        CancellationToken cancellationToken = default) =>
+        FlagMissingFilesCoreAsync(libraryRoot, libraryRootId: null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> FlagMissingFilesAsync(
+        string libraryRoot,
+        string libraryRootId,
         CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(libraryRootId);
+        return FlagMissingFilesCoreAsync(libraryRoot, libraryRootId, cancellationToken);
+    }
+
+    private async Task<int> FlagMissingFilesCoreAsync(
+        string libraryRoot,
+        string? libraryRootId,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryRoot);
 
@@ -47,9 +63,25 @@ public sealed class UnavailableFileFlagService : IUnavailableFileFlagService
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        // Load all Present book files (FileStatus=0).
-        List<BookFileRow> presentFiles = await context.BookFiles
-            .Where(f => f.FileStatus == 0)
+        // Load the Present book files (FileStatus=0) of this root only (Sept-23 Phase 05):
+        // other roots' files, and loose files, are never judged against this folder.
+        if (libraryRootId is null)
+        {
+            // Legacy path-only callers: scope to the root registered for this folder.
+            string canonical = OgmaLibrary.Infrastructure.Pathing.PathGuard.CanonicalizeRoot(libraryRoot);
+            libraryRootId = await context.LibraryRoots
+                .AsNoTracking()
+                .Where(root => root.CanonicalLocator == canonical)
+                .Select(root => root.LibraryRootId)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        IQueryable<BookFileRow> scope = context.BookFiles.Where(f => f.FileStatus == 0);
+        scope = libraryRootId is null
+            ? scope.Where(f => f.LibraryRootId == null)
+            : scope.Where(f => f.LibraryRootId == libraryRootId);
+        List<BookFileRow> presentFiles = await scope
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

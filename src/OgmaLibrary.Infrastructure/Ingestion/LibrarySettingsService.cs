@@ -1,5 +1,8 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Infrastructure.Diagnostics;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -7,11 +10,17 @@ namespace OgmaLibrary.Infrastructure.Ingestion;
 /// Persists library root and excluded-folder settings to a JSON file in the
 /// application data directory (FR-LIB-001). Thread-safe via a
 /// <see cref="SemaphoreSlim"/> so concurrent read/write from background tasks is safe.
+/// Sept-23 Phase 05 (K28): writes go to a temporary file that is flushed to disk and
+/// atomically swapped in with a <c>.bak</c> copy of the previous version; a torn or
+/// corrupt file is recovered from that copy instead of failing the caller.
 /// </summary>
 public sealed class LibrarySettingsService : ILibrarySettingsService, IDisposable
 {
     private readonly string _settingsPath;
+    private readonly string _backupPath;
+    private readonly string _temporaryPath;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly ILogger _logger;
 
     // Serialization DTO — internal only, not part of the public contract.
     private sealed class SettingsDto
@@ -27,11 +36,15 @@ public sealed class LibrarySettingsService : ILibrarySettingsService, IDisposabl
     /// The directory under which <c>library-settings.json</c> is stored.
     /// The directory is created if it does not exist.
     /// </param>
-    public LibrarySettingsService(string dataDirectory)
+    /// <param name="logger">Optional logger for recovery events.</param>
+    public LibrarySettingsService(string dataDirectory, ILogger<LibrarySettingsService>? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         Directory.CreateDirectory(dataDirectory);
         _settingsPath = Path.Combine(dataDirectory, "library-settings.json");
+        _backupPath = _settingsPath + ".bak";
+        _temporaryPath = _settingsPath + ".tmp";
+        _logger = logger ?? (ILogger)NullLogger.Instance;
     }
 
     /// <inheritdoc />
@@ -104,10 +117,36 @@ public sealed class LibrarySettingsService : ILibrarySettingsService, IDisposabl
     {
         if (!File.Exists(_settingsPath))
         {
-            return new SettingsDto();
+            // A crash between the swap steps can leave only the backup behind.
+            return File.Exists(_backupPath)
+                ? await TryReadAsync(_backupPath, cancellationToken).ConfigureAwait(false) ?? new SettingsDto()
+                : new SettingsDto();
         }
 
-        var stream = File.OpenRead(_settingsPath);
+        try
+        {
+            return await ReadAsync(_settingsPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            SettingsDto? recovered = File.Exists(_backupPath)
+                ? await TryReadAsync(_backupPath, cancellationToken).ConfigureAwait(false)
+                : null;
+            InfrastructureLog.SettingsRecovered(_logger, ex, recovered is not null);
+            if (recovered is not null)
+            {
+                // Put the last good copy back so the next read is clean.
+                await SaveLockedAsync(recovered, cancellationToken, keepBackup: false).ConfigureAwait(false);
+                return recovered;
+            }
+
+            return new SettingsDto();
+        }
+    }
+
+    private static async Task<SettingsDto> ReadAsync(string path, CancellationToken cancellationToken)
+    {
+        var stream = File.OpenRead(path);
         await using (stream.ConfigureAwait(false))
         {
             return await JsonSerializer
@@ -116,14 +155,49 @@ public sealed class LibrarySettingsService : ILibrarySettingsService, IDisposabl
         }
     }
 
-    private async Task SaveLockedAsync(SettingsDto dto, CancellationToken cancellationToken)
+    private async Task<SettingsDto?> TryReadAsync(string path, CancellationToken cancellationToken)
     {
-        var stream = File.Open(_settingsPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        try
+        {
+            return await ReadAsync(path, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            InfrastructureLog.BestEffortStepFailed(_logger, ex, nameof(LibrarySettingsService), "settings.read_backup");
+            return null;
+        }
+    }
+
+    private async Task SaveLockedAsync(
+        SettingsDto dto,
+        CancellationToken cancellationToken,
+        bool keepBackup = true)
+    {
+        // 1. Write the complete document to a temporary file and flush it to disk.
+        var stream = new FileStream(
+            _temporaryPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.Asynchronous);
         await using (stream.ConfigureAwait(false))
         {
             await JsonSerializer
                 .SerializeAsync(stream, dto, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
+            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            stream.Flush(flushToDisk: true);
+        }
+
+        // 2. Swap it in atomically, keeping the previous version as the backup.
+        if (File.Exists(_settingsPath) && keepBackup)
+        {
+            File.Replace(_temporaryPath, _settingsPath, _backupPath, ignoreMetadataErrors: true);
+        }
+        else
+        {
+            File.Move(_temporaryPath, _settingsPath, overwrite: true);
         }
     }
 }

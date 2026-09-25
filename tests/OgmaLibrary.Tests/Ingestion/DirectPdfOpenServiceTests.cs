@@ -32,7 +32,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DirectPdfOpen_RegistersSelectedPdf_AndSetsContainingFolderAsRoot()
+    public async Task DirectPdfOpen_RegistersSelectedPdf_AsLooseBookWithoutChangingRoots()
     {
         string pdfPath = Path.Combine(_tempRoot, "single.pdf");
         await File.WriteAllBytesAsync(pdfPath, "%PDF-1.4\n% direct open test\n"u8.ToArray());
@@ -46,14 +46,17 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         string bookId = await service.OpenAsync(pdfPath);
 
         Assert.False(string.IsNullOrWhiteSpace(bookId));
-        Assert.Equal(_tempRoot, await settings.GetLibraryRootAsync());
+        // Sept-23 Phase 05 (K28): Open PDF never sets or changes library roots.
+        Assert.Null(await settings.GetLibraryRootAsync());
+        Assert.Empty(context.LibraryRoots);
 
         var book = context.Books.Single(b => b.BookId == bookId);
         Assert.Equal(0, book.Status);
         Assert.NotNull(book.Sha256Hash);
 
         var file = context.BookFiles.Single(f => f.BookId == bookId);
-        Assert.Equal("single.pdf", file.RelativePath);
+        Assert.Equal(pdfPath.Replace(Path.DirectorySeparatorChar, '/'), file.RelativePath);
+        Assert.Null(file.LibraryRootId);
         Assert.Equal(0, file.FileStatus);
         Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "MetadataExtraction");
         Assert.Contains(context.Jobs, j => j.BookId == bookId && j.JobType == "ThumbnailGeneration");
@@ -267,7 +270,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DirectPdfOpen_SameHashAtUnregisteredPath_RegistersSelectedPdfAsNewBook()
+    public async Task DirectPdfOpen_SameContentFromAnotherLocation_IsOneBookWithTwoOccurrences()
     {
         string libraryRoot = Path.Combine(_tempRoot, "library");
         string externalRoot = Path.Combine(_tempRoot, "external");
@@ -308,12 +311,16 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
         string bookId = await service.OpenAsync(selectedPath);
 
-        Assert.NotEqual("EXISTING-HASH", bookId);
-        Assert.Equal(2, context.Books.Count());
-        Assert.Equal("already-known.pdf", context.BookFiles.Single(f => f.BookId == "EXISTING-HASH").RelativePath);
-        Assert.Equal(
-            selectedPath.Replace(Path.DirectorySeparatorChar, '/'),
-            context.BookFiles.Single(f => f.BookId == bookId).RelativePath);
+        // Sept-23 Phase 05 (T05.11): deduplicated by content hash.
+        Assert.Equal("EXISTING-HASH", bookId);
+        Assert.Equal(1, context.Books.Count());
+        List<string> occurrences = [.. context.BookFiles
+            .Where(f => f.BookId == "EXISTING-HASH")
+            .Select(f => f.RelativePath)
+            .OrderBy(path => path)];
+        Assert.Equal(2, occurrences.Count);
+        Assert.Contains("already-known.pdf", occurrences);
+        Assert.Contains(selectedPath.Replace(Path.DirectorySeparatorChar, '/'), occurrences);
     }
 
     [Fact]
@@ -424,7 +431,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
         string bookId = await service.OpenAsync(pdfPath);
 
         Assert.Equal(1, await context.BookFiles.CountAsync(f => f.BookId == bookId));
-        Assert.Equal("repair-open.pdf", await context.BookFiles
+        Assert.Equal(pdfPath.Replace(Path.DirectorySeparatorChar, '/'), await context.BookFiles
             .Where(f => f.BookId == bookId)
             .Select(f => f.RelativePath)
             .SingleAsync());
@@ -458,7 +465,7 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
 
         await using var verification = services.GetRequiredService<CatalogueDbContext>();
         Assert.Equal(1, await verification.BookFiles.CountAsync(f => f.BookId == bookId));
-        Assert.Equal("production-repair-open.pdf", await verification.BookFiles
+        Assert.Equal(pdfPath.Replace(Path.DirectorySeparatorChar, '/'), await verification.BookFiles
             .Where(f => f.BookId == bookId)
             .Select(f => f.RelativePath)
             .SingleAsync());
@@ -483,6 +490,55 @@ public sealed class DirectPdfOpenServiceTests : IDisposable
             context: context);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.OpenAsync(textPath));
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_EmptyOrHtmlPdf_IsRejectedWithItsReason()
+    {
+        string emptyPath = Path.Combine(_tempRoot, "empty.pdf");
+        string htmlPath = Path.Combine(_tempRoot, "not-really-a.pdf");
+        await File.WriteAllBytesAsync(emptyPath, []);
+        await File.WriteAllTextAsync(htmlPath, "<html>not a pdf</html>");
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        var service = new DirectPdfOpenService(
+            new LibrarySettingsService(_tempRoot),
+            new BookIdentityService(context),
+            new BookRegistrationService(context),
+            context: context);
+
+        InvalidPdfFileException empty = await Assert.ThrowsAsync<InvalidPdfFileException>(() => service.OpenAsync(emptyPath));
+        InvalidPdfFileException html = await Assert.ThrowsAsync<InvalidPdfFileException>(() => service.OpenAsync(htmlPath));
+        Assert.Equal(FileValidity.Empty, empty.Validity);
+        Assert.Equal(FileValidity.NotAPdf, html.Validity);
+        Assert.Empty(context.Books);
+    }
+
+    [Fact]
+    public async Task DirectPdfOpen_FileInsideAnEnabledRoot_IsRecordedAgainstThatRoot()
+    {
+        string libraryRoot = Path.Combine(_tempRoot, "library");
+        Directory.CreateDirectory(Path.Combine(libraryRoot, "Science"));
+        string pdfPath = Path.Combine(libraryRoot, "Science", "inside.pdf");
+        await File.WriteAllBytesAsync(pdfPath, "%PDF-1.4\n% inside root\n%%EOF\n"u8.ToArray());
+
+        using var context = CatalogueTestHelper.CreateInMemoryContext();
+        var roots = new LibraryRootService(context, new FileSystemLibraryRootPlatformAdapter());
+        LibraryRootDescriptor root = await roots.AddAsync(libraryRoot);
+        var settings = new LibrarySettingsService(Path.Combine(_tempRoot, "data"));
+        var service = new DirectPdfOpenService(
+            settings,
+            new BookIdentityService(context),
+            new BookRegistrationService(context),
+            context: context);
+
+        string bookId = await service.OpenAsync(pdfPath);
+
+        var file = context.BookFiles.Single(f => f.BookId == bookId);
+        Assert.Equal(root.Id.Value, file.LibraryRootId);
+        Assert.Equal("Science/inside.pdf", file.RelativePath);
+        Assert.Null(await settings.GetLibraryRootAsync());
+        Assert.Equal(pdfPath, await new BookFileLocator(context, settings).LocateAsync(bookId, CancellationToken.None));
     }
 
     public void Dispose()

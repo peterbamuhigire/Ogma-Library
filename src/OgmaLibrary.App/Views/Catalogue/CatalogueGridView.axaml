@@ -118,6 +118,15 @@
                              FontSize="{DynamicResource Type.Size.Caption}"
                              Foreground="White" />
                 </Border>
+                <Border IsVisible="{Binding IsLocked}"
+                        Background="{DynamicResource Brush.Accent.Slate}"
+                        CornerRadius="{DynamicResource Radius.S}"
+                        Padding="4,1"
+                        AutomationProperties.Name="{Binding $parent[UserControl].DataContext.LockedBadgeText}">
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.LockedBadgeText}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                </Border>
               </WrapPanel>
             </StackPanel>
           </StackPanel>

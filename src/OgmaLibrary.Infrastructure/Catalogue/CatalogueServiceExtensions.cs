@@ -118,8 +118,10 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISearchReadModel>(sp => sp.GetRequiredService<IndexManagerService>());
         services.AddHttpClient<IOllamaEmbeddingProvider, OllamaEmbeddingAdapter>();
 
-        // Sidecar service.
-        services.AddSingleton<ISidecarService>(_ => new SidecarService(libraryRoot));
+        // Derived assets live in the app-data store, never in a library folder
+        // (Sept-23 Phase 05, D-04, ADR-0018; K27).
+        services.AddSingleton<IAssetLocator>(_ => new AssetLocator(dataDirectory));
+        services.AddSingleton<ISidecarService>(_ => new SidecarService(dataDirectory));
 
         // Identity service.
         services.AddSingleton<IBookIdentityService, BookIdentityService>();

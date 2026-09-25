@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OgmaLibrary.Infrastructure.Catalogue;
+using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Pathing;
 
 namespace OgmaLibrary.Infrastructure.LanHost;
@@ -26,40 +27,36 @@ internal sealed class LanBookFileResolver : ILanBookFileResolver
             .CreateDbContextAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        string? relativePath = await context.BookFiles
+        List<Catalogue.Entities.BookFileRow> files = await context.BookFiles
             .AsNoTracking()
             .Where(file => file.BookId == bookId && file.FileStatus == 0)
             .OrderBy(file => file.RelativePath)
-            .Select(file => file.RelativePath)
-            .FirstOrDefaultAsync(cancellationToken)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-
-        if (string.IsNullOrWhiteSpace(relativePath))
+        if (files.Count == 0)
         {
             return null;
         }
 
-        string platformPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        if (Path.IsPathRooted(platformPath))
+        IReadOnlyDictionary<string, LibraryRootLocation> roots = await LibraryRootPaths
+            .LoadAsync(context, cancellationToken)
+            .ConfigureAwait(false);
+        foreach (Catalogue.Entities.BookFileRow file in files)
         {
-            return null;
+            // LAN streaming serves only files inside a configured library root:
+            // loose (absolute) files are never exposed to classroom clients.
+            if (Path.IsPathRooted(file.RelativePath.Replace('/', Path.DirectorySeparatorChar)))
+            {
+                continue;
+            }
+
+            string? fullPath = LibraryRootPaths.Resolve(roots, file, _libraryRoot);
+            if (fullPath is not null && File.Exists(fullPath))
+            {
+                return fullPath;
+            }
         }
 
-        string fullPath;
-        try
-        {
-            fullPath = PathGuard.EnsureWithinRoot(Path.Combine(_libraryRoot, platformPath), _libraryRoot);
-        }
-        catch (PathTraversalException)
-        {
-            return null;
-        }
-
-        if (!File.Exists(fullPath))
-        {
-            return null;
-        }
-
-        return fullPath;
+        return null;
     }
 }

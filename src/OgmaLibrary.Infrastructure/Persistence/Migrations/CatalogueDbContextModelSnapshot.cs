@@ -548,7 +548,16 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("FileValidity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTimeOffset>("LastSeenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LibraryRootId")
+                        .HasMaxLength(26)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RelativePath")
@@ -563,6 +572,9 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BookId", "FileStatus")
                         .HasDatabaseName("IX_BookFiles_BookId_FileStatus");
+
+                    b.HasIndex("LibraryRootId", "RelativePath")
+                        .HasDatabaseName("IX_BookFiles_LibraryRootId_RelativePath");
 
                     b.ToTable("BookFiles", (string)null);
                 });
@@ -1450,6 +1462,53 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.FileIssueRow", b =>
+                {
+                    b.Property<long>("FileIssueId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("DetectedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsIgnored")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset>("LastCheckedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LibraryRootId")
+                        .HasMaxLength(26)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("MtimeTicks")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("FileIssueId");
+
+                    b.HasIndex("LibraryRootId", "RelativePath")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FileIssues_LibraryRootId_RelativePath");
+
+                    b.ToTable("FileIssues", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FileIssues_Reason", "Reason BETWEEN 1 AND 3");
+                        });
+                });
+
             modelBuilder.Entity("OgmaLibrary.Infrastructure.Catalogue.Entities.FileOccurrenceRow", b =>
                 {
                     b.Property<string>("FileOccurrenceId")
@@ -1956,6 +2015,9 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("PermissionStatus")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("RemovedUtc")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("RootStatus")
                         .HasColumnType("INTEGER");

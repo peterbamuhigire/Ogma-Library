@@ -1,0 +1,6 @@
+﻿2026-09-25T09:26:36.2453094+00:00 library.scan.finished Library scan finished CompletedWithIssues: added=14 updated=0 needsAttention=3 missing=0 restored=0 roots=1 elapsedMs=1019
+2026-09-25T09:34:32.8755538+00:00 library.scan.finished Library scan finished Completed: added=2 updated=0 needsAttention=0 missing=0 restored=0 roots=1 elapsedMs=403
+2026-09-25T09:36:19.3378023+00:00 library.scan.finished Library scan finished CompletedWithIssues: added=1 updated=0 needsAttention=3 missing=0 restored=0 roots=1 elapsedMs=638
+2026-09-25T09:36:21.2740651+00:00 library.scan.finished Library scan finished CompletedWithIssues: added=0 updated=0 needsAttention=3 missing=0 restored=0 roots=1 elapsedMs=315
+2026-09-25T09:37:54.0204520+00:00 library.scan.finished Library scan finished CompletedWithIssues: added=0 updated=0 needsAttention=3 missing=3 restored=0 roots=1 elapsedMs=115
+2026-09-25T09:38:12.2344488+00:00 library.scan.finished Library scan finished CompletedWithIssues: added=0 updated=0 needsAttention=3 missing=0 restored=3 roots=1 elapsedMs=461

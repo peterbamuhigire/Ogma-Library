@@ -41,6 +41,7 @@ internal static class CanonicalIdentityConfiguration
         builder.Property(row => row.CreatedUtc);
         builder.Property(row => row.LastHealthCheckUtc);
         builder.Property(row => row.LastSuccessfulScanUtc);
+        builder.Property(row => row.RemovedUtc);
         builder.HasIndex(row => row.CanonicalLocator)
             .IsUnique()
             .HasDatabaseName("UX_LibraryRoots_CanonicalLocator");

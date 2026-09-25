@@ -4,7 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Catalogue;
-using OgmaLibrary.Infrastructure.Pathing;
+using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
 
@@ -74,50 +75,39 @@ public sealed class BookFileLocator : IBookFileLocator
 
     private async Task<string?> LocateCoreAsync(string bookId, CancellationToken ct)
     {
-        string? libraryRoot = await _settings.GetLibraryRootAsync(ct).ConfigureAwait(false);
-        if (libraryRoot is null)
-        {
-            return null;
-        }
+        string? legacyRoot = await _settings.GetLibraryRootAsync(ct).ConfigureAwait(false);
 
         using ContextLease lease = await CreateLeaseAsync(ct).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        string? relativePath = await context.BookFiles
+        List<BookFileRow> files = await context.BookFiles
             .AsNoTracking()
             .Where(f => f.BookId == bookId)
-            .OrderBy(f => f.RelativePath)
-            .Select(f => f.RelativePath)
-            .FirstOrDefaultAsync(ct)
+            .OrderBy(f => f.FileStatus)
+            .ThenBy(f => f.RelativePath)
+            .ToListAsync(ct)
             .ConfigureAwait(false);
-
-        if (relativePath is null)
+        if (files.Count == 0)
         {
             return null;
         }
 
-        string storedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        if (Path.IsPathFullyQualified(storedPath))
+        // Sept-23 Phase 05: each file resolves through its own library root. Loose
+        // (directly opened) files are exact absolute paths; relative paths stay
+        // bounded to their root by PathGuard.
+        IReadOnlyDictionary<string, LibraryRootLocation> roots = await LibraryRootPaths
+            .LoadAsync(context, ct)
+            .ConfigureAwait(false);
+        foreach (BookFileRow file in files)
         {
-            // Direct-open may intentionally register one exact external file.
-            // Relative paths remain bounded to the configured library root.
-            string externalPath = Path.GetFullPath(storedPath);
-            return File.Exists(externalPath) ? externalPath : null;
+            string? fullPath = LibraryRootPaths.Resolve(roots, file, legacyRoot);
+            if (fullPath is not null && File.Exists(fullPath))
+            {
+                return fullPath;
+            }
         }
 
-        string fullPath;
-        try
-        {
-            fullPath = PathGuard.EnsureWithinRoot(
-                Path.IsPathRooted(storedPath) ? storedPath : Path.Combine(libraryRoot, storedPath),
-                libraryRoot);
-        }
-        catch (PathTraversalException)
-        {
-            return null;
-        }
-
-        return File.Exists(fullPath) ? fullPath : null;
+        return null;
     }
 
     private static bool IsMissingSqliteTable(Exception exception)

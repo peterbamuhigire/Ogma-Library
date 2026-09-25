@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
+using OgmaLibrary.Infrastructure.Ingestion;
 
 namespace OgmaLibrary.Infrastructure.Ocr;
 
@@ -73,7 +74,10 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
             return new OcrQueueResult(false, true, existing.JobId, null);
         }
 
-        string? filePath = ResolveFilePath(book);
+        IReadOnlyDictionary<string, LibraryRootLocation> roots = await LibraryRootPaths
+            .LoadAsync(context, cancellationToken)
+            .ConfigureAwait(false);
+        string? filePath = ResolveFilePath(book, roots);
         if (string.IsNullOrWhiteSpace(filePath))
         {
             return new OcrQueueResult(false, false, null, "No available PDF file was found for OCR.");
@@ -112,39 +116,28 @@ public sealed class OcrJobQueueService : IOcrJobQueueService
         return new OcrQueueResult(true, false, job.JobId, null);
     }
 
-    private string? ResolveFilePath(BookRow book)
+    private string? ResolveFilePath(BookRow book, IReadOnlyDictionary<string, LibraryRootLocation> roots)
     {
-        string? relativePath = book.BookFiles
-            .Where(file => file.FileStatus == 0)
-            .OrderBy(file => file.BookFileId)
-            .Select(file => file.RelativePath)
-            .FirstOrDefault();
-        relativePath ??= book.RelativePath;
+        // Sept-23 Phase 05: each file resolves through its own root (bounded by
+        // PathGuard); the configured root is only the fallback for legacy rows.
+        foreach (BookFileRow file in book.BookFiles
+                     .Where(file => file.FileStatus == 0)
+                     .OrderBy(file => file.BookFileId))
+        {
+            string? path = LibraryRootPaths.Resolve(roots, file, _libraryRoot);
+            if (path is not null && File.Exists(path))
+            {
+                return path;
+            }
+        }
 
-        if (string.IsNullOrWhiteSpace(relativePath))
+        if (string.IsNullOrWhiteSpace(book.RelativePath))
         {
             return null;
         }
 
-        string normalized = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        string fullPath = Path.IsPathRooted(normalized)
-            ? Path.GetFullPath(normalized)
-            : Path.GetFullPath(Path.Combine(_libraryRoot, normalized));
-
-        if (!IsUnderLibraryRoot(fullPath) || !File.Exists(fullPath))
-        {
-            return null;
-        }
-
-        return fullPath;
-    }
-
-    private bool IsUnderLibraryRoot(string fullPath)
-    {
-        string root = _libraryRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? _libraryRoot
-            : _libraryRoot + Path.DirectorySeparatorChar;
-        return fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        string? legacyPath = LibraryRootPaths.Resolve(roots, null, book.RelativePath, _libraryRoot);
+        return legacyPath is not null && File.Exists(legacyPath) ? legacyPath : null;
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)

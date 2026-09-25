@@ -7,10 +7,14 @@ namespace OgmaLibrary.Tests.Catalogue;
 /// <summary>Fails CI when the frozen beta migration sequence changes implicitly.</summary>
 public sealed class Phase38ReleaseSchemaFreezeTests
 {
-    private const int FrozenMigrationCount = 41;
-    private const string FrozenLatestMigration = "20260906060000_Phase17PausedJobStatus";
+    // Deliberately advanced by Sept-23 Phase 05 (ADR-0018): per-root BookFiles,
+    // FileValidity and FileIssues, with a verified backup and restore rehearsal
+    // (LibraryRootMigrationRehearsalTests). Previous freeze: 41 migrations ending at
+    // 20260906060000_Phase17PausedJobStatus (8135fad4...37dd5).
+    private const int FrozenMigrationCount = 42;
+    private const string FrozenLatestMigration = "20260925082519_Sept23Phase05LibraryRootsAndValidity";
     private const string FrozenSequenceSha256 =
-        "8135fad43778f705b48c9d667d8e56d36b8d4445b8be3a5d2b985b1e42637dd5";
+        "fb90055d64a0e039800d5f2d7782e93d2b28064267dbe08fa1bd11e3604b4edb";
 
     [Fact]
     public void ReleaseSchema_BetaV1MigrationSequence_IsFrozen()

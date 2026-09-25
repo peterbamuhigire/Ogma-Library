@@ -38,6 +38,12 @@ public sealed class LibraryRootRow
 
     /// <summary>UTC time of the latest successful scan.</summary>
     public DateTimeOffset? LastSuccessfulScanUtc { get; set; }
+
+    /// <summary>
+    /// UTC time the user removed this root from the library (Sept-23 Phase 05). A removed
+    /// root keeps its identity and catalogue rows so re-adding the folder restores its books.
+    /// </summary>
+    public DateTimeOffset? RemovedUtc { get; set; }
 }
 
 /// <summary>Persistence row for one exact source-file byte identity.</summary>

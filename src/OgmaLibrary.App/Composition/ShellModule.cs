@@ -31,7 +31,6 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
 
     public void Register(IServiceCollection services, OgmaRuntimeOptions options)
     {
-        services.AddTransient<MainWindowViewModel>();
         services.AddTransient<Bookshelf3DViewModel>();
         services.AddTransient<SplitViewViewModel>();
         services.AddTransient<PasswordUnlockViewModel>();
@@ -55,12 +54,15 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
 
         MainShellViewModel? shell = null;
         var navigation = new NavigationServiceProxy(() => shell!);
+        // Covers and spines resolve against the app-data asset store, never the
+        // startup library root (Sept-23 Phase 05, K20, D-04).
+        string assetRoot = services.GetRequiredService<IAssetLocator>().AssetStoreRoot;
         var catalogue = new CatalogueViewModel(
             readModel,
             navigation,
             localization,
             services.GetRequiredService<ILibrarySettingsService>(),
-            options.LibraryRoot,
+            assetRoot,
             services.GetRequiredService<ICatalogueViewStateStore>(),
             services.GetRequiredService<IUiDispatcher>(),
             services.GetRequiredService<ILogger<CatalogueViewModel>>());
@@ -73,7 +75,7 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IOcrJobQueueService>(),
             services.GetRequiredService<IPasswordProvider>(),
             services.GetRequiredService<IBookCurationService>(),
-            options.LibraryRoot,
+            assetRoot,
             writeService,
             services.GetRequiredService<IMetadataReviewService>(),
             services.GetRequiredService<IBookFileLocator>(),
@@ -190,7 +192,17 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<ILibraryRootService>(),
             services.GetRequiredService<IUserPreferencesService>(),
             reconciliationReviews,
-            services.GetRequiredService<ILogger<MainShellViewModel>>());
+            services.GetRequiredService<ILogger<MainShellViewModel>>(),
+            new LibraryFoldersViewModel(
+                services.GetRequiredService<ILibraryRootService>(),
+                services.GetRequiredService<ILibraryMonitor>(),
+                services.GetRequiredService<ILibraryAttentionService>(),
+                localization,
+                services.GetRequiredService<IUiDispatcher>(),
+                services.GetRequiredService<ILogger<LibraryFoldersViewModel>>())
+            {
+                ConfiguredRoot = options.ConfiguredLibraryRoot,
+            });
 
         return shell;
     }

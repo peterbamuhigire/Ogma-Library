@@ -31,7 +31,7 @@
             Background="{DynamicResource Brush.Surface.Footer}"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,*">
+      <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- Sidebar header -->
         <Border Grid.Row="0" Padding="12,10">
@@ -93,6 +93,14 @@
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
+
+        <!-- Sept-23 Phase 05: library folders and files that need attention. -->
+        <ScrollViewer Grid.Row="2"
+                      MaxHeight="440"
+                      VerticalScrollBarVisibility="Auto"
+                      IsVisible="{Binding IsLibraryFoldersVisible}">
+          <cat:LibraryFoldersPanelView DataContext="{Binding LibraryFolders}" />
+        </ScrollViewer>
       </Grid>
     </Border>
 
@@ -708,7 +716,17 @@
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,1,0,0"
             Padding="12,6">
-      <Grid ColumnDefinitions="*,Auto,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+        <!-- Sept-23 Phase 05 (T05.11): offer to add a loose book's folder. -->
+        <Button Grid.Column="3"
+                Padding="8,3"
+                Margin="10,0,0,0"
+                IsVisible="{Binding IsAddLooseFolderVisible}"
+                AutomationProperties.Name="{Binding AddLooseFolderText}"
+                Click="AddLooseFolder_Click">
+          <TextBlock Text="{Binding AddLooseFolderText}"
+                     FontSize="{DynamicResource Type.Size.Caption}" />
+        </Button>
         <TextBlock Grid.Column="0"
                    Text="{Binding StatusText}"
                    FontSize="{DynamicResource Type.Size.Caption}"

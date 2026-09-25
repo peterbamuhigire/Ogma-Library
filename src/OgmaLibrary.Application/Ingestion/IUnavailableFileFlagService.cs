@@ -15,4 +15,18 @@ public interface IUnavailableFileFlagService
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The number of files flagged as unavailable.</returns>
     Task<int> FlagMissingFilesAsync(string libraryRoot, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Flags missing files that belong to one library root only (Sept-23 Phase 05):
+    /// scanning one folder never marks another folder's books missing.
+    /// </summary>
+    /// <param name="libraryRoot">The absolute path to the library root.</param>
+    /// <param name="libraryRootId">The root id whose files are checked.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The number of files flagged as unavailable.</returns>
+    Task<int> FlagMissingFilesAsync(
+        string libraryRoot,
+        string libraryRootId,
+        CancellationToken cancellationToken = default) =>
+        FlagMissingFilesAsync(libraryRoot, cancellationToken);
 }

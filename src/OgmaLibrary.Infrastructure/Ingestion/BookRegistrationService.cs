@@ -65,13 +65,16 @@ public sealed class BookRegistrationService : IBookRegistrationService
             SizeBytes = discovered.SizeBytes,
             MtimeTicks = discovered.MtimeTicks,
             Status = 0, // Active
+            IsPasswordProtected = discovered.Validity == FileValidity.Locked,
         });
 
         context.BookFiles.Add(new BookFileRow
         {
             BookId = bookId,
+            LibraryRootId = discovered.LibraryRootId,
             RelativePath = discovered.RelativePath,
             FileStatus = 0, // Present
+            FileValidity = (int)discovered.Validity,
             LastSeenUtc = DateTimeOffset.UtcNow,
         });
 
@@ -109,14 +112,27 @@ public sealed class BookRegistrationService : IBookRegistrationService
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        BookFileRow? fileRow = await context.BookFiles
-            .FirstOrDefaultAsync(f => f.BookId == bookId, cancellationToken)
+        List<BookFileRow> fileRows = await context.BookFiles
+            .Where(f => f.BookId == bookId)
+            .OrderBy(f => f.BookFileId)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        // Sept-23 Phase 05: prefer the row already at this root and path, then a row
+        // whose file went missing (a move), and only then the book's first row.
+        BookFileRow? fileRow =
+            fileRows.FirstOrDefault(f =>
+                f.LibraryRootId == discovered.LibraryRootId &&
+                string.Equals(f.RelativePath, discovered.RelativePath, StringComparison.Ordinal)) ??
+            fileRows.FirstOrDefault(f => f.FileStatus != 0) ??
+            fileRows.FirstOrDefault();
 
         if (fileRow is not null)
         {
+            fileRow.LibraryRootId = discovered.LibraryRootId;
             fileRow.RelativePath = discovered.RelativePath;
             fileRow.FileStatus = 0; // Present
+            fileRow.FileValidity = (int)discovered.Validity;
             fileRow.LastSeenUtc = DateTimeOffset.UtcNow;
         }
         else
@@ -124,8 +140,10 @@ public sealed class BookRegistrationService : IBookRegistrationService
             context.BookFiles.Add(new BookFileRow
             {
                 BookId = bookId,
+                LibraryRootId = discovered.LibraryRootId,
                 RelativePath = discovered.RelativePath,
                 FileStatus = 0,
+                FileValidity = (int)discovered.Validity,
                 LastSeenUtc = DateTimeOffset.UtcNow,
             });
         }
@@ -140,6 +158,11 @@ public sealed class BookRegistrationService : IBookRegistrationService
             if (book.Status == 1) // Unavailable
             {
                 book.Status = 0; // Active
+            }
+
+            if (discovered.Validity == FileValidity.Locked)
+            {
+                book.IsPasswordProtected = true;
             }
 
             // Update identity attributes.

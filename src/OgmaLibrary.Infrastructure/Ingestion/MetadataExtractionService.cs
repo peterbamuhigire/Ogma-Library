@@ -71,8 +71,16 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
                 .ConfigureAwait(false);
             CatalogueDbContext context = lease.Context;
 
-            var fields = await Task.Run(() => ExtractFields(absoluteFilePath), cancellationToken)
+            (List<(string FieldName, string Value)> fields, bool passwordRequired) = await Task
+                .Run(() => ExtractFields(absoluteFilePath), cancellationToken)
                 .ConfigureAwait(false);
+
+            if (passwordRequired)
+            {
+                // Sept-23 Phase 05: an encrypted PDF the byte check missed (for example an
+                // xref-stream trailer) is a valid, Locked book, not an indexing failure.
+                await MarkLockedAsync(context, bookId, cancellationToken).ConfigureAwait(false);
+            }
 
             foreach ((string fieldName, string value) in fields)
             {
@@ -112,7 +120,29 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
         }
     }
 
-    private List<(string FieldName, string Value)> ExtractFields(string filePath)
+    private static async Task MarkLockedAsync(
+        CatalogueDbContext context,
+        string bookId,
+        CancellationToken cancellationToken)
+    {
+        BookRow? book = await context.Books
+            .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
+            .ConfigureAwait(false);
+        if (book is not null)
+        {
+            book.IsPasswordProtected = true;
+        }
+
+        foreach (BookFileRow file in await context.BookFiles
+                     .Where(f => f.BookId == bookId && f.FileValidity == 0)
+                     .ToListAsync(cancellationToken)
+                     .ConfigureAwait(false))
+        {
+            file.FileValidity = (int)FileValidity.Locked;
+        }
+    }
+
+    private (List<(string FieldName, string Value)> Fields, bool PasswordRequired) ExtractFields(string filePath)
     {
         var result = new List<(string, string)>();
 
@@ -141,13 +171,17 @@ public sealed class MetadataExtractionService : IMetadataExtractionService
                 result.Add(("Creator", metadata.Creator.Trim()));
             }
         }
+        catch (PdfPasswordRequiredException)
+        {
+            return (result, true);
+        }
         catch (Exception exception)
         {
             // Intentionally ignored: lenient extraction; bad or encrypted PDFs return an empty list, never throw.
             InfrastructureLog.BestEffortStepFailed(_logger, exception, nameof(MetadataExtractionService), "ingestion.extract_fields");
         }
 
-        return result;
+        return (result, false);
     }
 
     private async ValueTask<ContextLease> CreateLeaseAsync(CancellationToken cancellationToken)

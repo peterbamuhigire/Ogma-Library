@@ -61,6 +61,14 @@ public interface ILibraryRootService
         bool isEnabled,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Removes a root from the library without deleting catalogue data. Its books
+    /// are hidden and it is no longer scanned; adding the same folder again restores them.
+    /// </summary>
+    Task RemoveAsync(
+        LibraryRootId rootId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Refreshes health and permission state for one root.</summary>
     Task<LibraryRootDescriptor> RefreshHealthAsync(
         LibraryRootId rootId,

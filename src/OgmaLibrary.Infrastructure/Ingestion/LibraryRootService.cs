@@ -45,6 +45,7 @@ public sealed class LibraryRootService : ILibraryRootService
         CatalogueDbContext context = lease.Context;
         List<LibraryRootRow> rows = await context.LibraryRoots
             .AsNoTracking()
+            .Where(row => row.RemovedUtc == null)
             .OrderBy(row => row.DisplayName)
             .ThenBy(row => row.LibraryRootId)
             .ToListAsync(cancellationToken)
@@ -63,11 +64,43 @@ public sealed class LibraryRootService : ILibraryRootService
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        if (await context.LibraryRoots.AnyAsync(
-                row => row.CanonicalLocator == canonical,
-                cancellationToken).ConfigureAwait(false))
+        LibraryRootRow? existing = await context.LibraryRoots
+            .FirstOrDefaultAsync(row => row.CanonicalLocator == canonical, cancellationToken)
+            .ConfigureAwait(false);
+        if (existing is not null)
         {
-            throw new InvalidOperationException("The selected library root is already configured.");
+            if (existing.RemovedUtc is null)
+            {
+                throw new InvalidOperationException("The selected library root is already configured.");
+            }
+
+            // Re-adding a removed folder restores its identity, so its books return
+            // with their reading progress and annotations (Sept-23 Phase 05).
+            existing.RemovedUtc = null;
+            existing.IsEnabled = true;
+            existing.VolumeIdentity = probe.VolumeIdentity;
+            existing.RootStatus = (int)probe.Status;
+            existing.PermissionStatus = (int)probe.PermissionStatus;
+            existing.LastHealthCheckUtc = DateTimeOffset.UtcNow;
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                existing.DisplayName = displayName.Trim();
+            }
+
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return Map(existing);
+        }
+
+        // Sept-23 Phase 05: roots never nest, so a file belongs to exactly one root.
+        List<string> activeLocators = await context.LibraryRoots
+            .AsNoTracking()
+            .Where(candidate => candidate.RemovedUtc == null && candidate.CanonicalLocator != null)
+            .Select(candidate => candidate.CanonicalLocator!)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (activeLocators.Any(locator => Overlaps(locator, canonical)))
+        {
+            throw new InvalidOperationException("The selected folder overlaps a configured library root.");
         }
 
         var row = new LibraryRootRow
@@ -167,6 +200,33 @@ public sealed class LibraryRootService : ILibraryRootService
     }
 
     /// <inheritdoc />
+    public async Task RemoveAsync(
+        LibraryRootId rootId,
+        CancellationToken cancellationToken = default)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        LibraryRootRow row = await FindAsync(context, rootId, cancellationToken).ConfigureAwait(false);
+        if (row.RemovedUtc is not null)
+        {
+            return;
+        }
+
+        // Soft removal: occurrences, books, progress and annotations are kept (R1 reversibility).
+        row.RemovedUtc = DateTimeOffset.UtcNow;
+        row.IsEnabled = false;
+        context.AuditEvents.Add(new AuditEventRow
+        {
+            EventType = "LibraryRootRemoved",
+            EntityId = row.LibraryRootId,
+            EntityType = "LibraryRoot",
+            Timestamp = DateTimeOffset.UtcNow,
+            IsLocalOnly = true,
+        });
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task<LibraryRootDescriptor> RefreshHealthAsync(
         LibraryRootId rootId,
         CancellationToken cancellationToken = default)
@@ -240,6 +300,16 @@ public sealed class LibraryRootService : ILibraryRootService
         row.CreatedUtc,
         row.LastHealthCheckUtc,
         row.LastSuccessfulScanUtc);
+
+    private static bool Overlaps(string existing, string candidate)
+    {
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        string left = Path.TrimEndingDirectorySeparator(existing) + Path.DirectorySeparatorChar;
+        string right = Path.TrimEndingDirectorySeparator(candidate) + Path.DirectorySeparatorChar;
+        return left.StartsWith(right, comparison) || right.StartsWith(left, comparison);
+    }
 
     private static string NormalizeDisplayName(string? displayName, string canonical)
     {

@@ -5,11 +5,15 @@ namespace OgmaLibrary.Application.Ingestion;
 /// <param name="RelativePath">The forward-slash path relative to the library root.</param>
 /// <param name="SizeBytes">The file size in bytes.</param>
 /// <param name="MtimeTicks">The last-modified timestamp as UTC ticks.</param>
+/// <param name="LibraryRootId">The owning library root, or null for a loose (directly opened) file.</param>
+/// <param name="Validity">The discovery-time validity classification.</param>
 public sealed record DiscoveredFile(
     string AbsolutePath,
     string RelativePath,
     long SizeBytes,
-    long MtimeTicks);
+    long MtimeTicks,
+    string? LibraryRootId = null,
+    FileValidity Validity = FileValidity.Valid);
 
 /// <summary>Scan phase labels for scan progress reporting (FR-LIB-001, NFR-PROD-005).</summary>
 public enum ScanPhase
@@ -34,6 +38,9 @@ public enum ScanPhase
 
     /// <summary>Scan was cancelled by the user.</summary>
     Cancelled = 6,
+
+    /// <summary>Scan stopped because of an unexpected error (Sept-23 Phase 05).</summary>
+    Failed = 7,
 }
 
 /// <summary>A snapshot of scan progress for UI binding (NFR-PROD-005).</summary>

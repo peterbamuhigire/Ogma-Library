@@ -18,8 +18,10 @@ public sealed class BookFileConfiguration : IEntityTypeConfiguration<BookFileRow
         builder.HasKey(f => f.BookFileId);
         builder.Property(f => f.BookFileId).ValueGeneratedOnAdd();
         builder.Property(f => f.BookId).IsRequired().HasMaxLength(26);
+        builder.Property(f => f.LibraryRootId).HasMaxLength(26);
         builder.Property(f => f.RelativePath).IsRequired().HasMaxLength(4096);
         builder.Property(f => f.FileStatus).HasDefaultValue(0);
+        builder.Property(f => f.FileValidity).HasDefaultValue(0);
         builder.Property(f => f.LastSeenUtc);
 
         // Index for quick presence queries per book.
@@ -28,5 +30,9 @@ public sealed class BookFileConfiguration : IEntityTypeConfiguration<BookFileRow
         // Index for path-based lookup.
         builder.HasIndex(f => f.RelativePath)
             .HasDatabaseName("IX_BookFiles_RelativePath");
+        // Per-root path lookup (Sept-23 Phase 05). Not unique: legacy catalogues can
+        // hold two rows for one path, and merging them is identity work (Phase 10).
+        builder.HasIndex(f => new { f.LibraryRootId, f.RelativePath })
+            .HasDatabaseName("IX_BookFiles_LibraryRootId_RelativePath");
     }
 }

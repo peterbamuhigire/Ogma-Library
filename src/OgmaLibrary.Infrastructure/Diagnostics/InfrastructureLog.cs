@@ -43,4 +43,58 @@ public static partial class InfrastructureLog
     [LoggerMessage(EventId = 5004, EventName = "job.retry.scheduled", Level = LogLevel.Warning,
         Message = "{Worker} iteration failed; retrying after a delay")]
     public static partial void WorkerRetryScheduled(ILogger logger, Exception exception, string worker);
+
+    /// <summary>A library scan reached a terminal state (Sept-23 Phase 05).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="outcome">The terminal outcome.</param>
+    /// <param name="added">Books added.</param>
+    /// <param name="updated">Books updated.</param>
+    /// <param name="needsAttention">Files that need attention.</param>
+    /// <param name="missing">Files flagged missing.</param>
+    /// <param name="restored">Files restored.</param>
+    /// <param name="roots">Roots scanned.</param>
+    /// <param name="elapsedMs">Elapsed milliseconds.</param>
+    [LoggerMessage(EventId = 5010, EventName = "library.scan.finished", Level = LogLevel.Information,
+        Message = "Library scan finished {Outcome}: added={Added} updated={Updated} needsAttention={NeedsAttention} missing={Missing} restored={Restored} roots={Roots} elapsedMs={ElapsedMs}")]
+    public static partial void LibraryScanFinished(
+        ILogger logger,
+        OgmaLibrary.Application.Ingestion.ScanOutcome outcome,
+        int added,
+        int updated,
+        int needsAttention,
+        int missing,
+        int restored,
+        int roots,
+        long elapsedMs);
+
+    /// <summary>A library scan failed with an unexpected error (Sept-23 Phase 05).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The failure.</param>
+    [LoggerMessage(EventId = 5011, EventName = "library.scan.failed", Level = LogLevel.Error,
+        Message = "Library scan failed")]
+    public static partial void LibraryScanFailed(ILogger logger, Exception exception);
+
+    /// <summary>A file watcher overflowed or failed and fell back to a scan (Sept-23 Phase 05).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The watcher error.</param>
+    [LoggerMessage(EventId = 5012, EventName = "library.watcher.fallback", Level = LogLevel.Warning,
+        Message = "Library folder watcher failed or overflowed; falling back to an incremental scan")]
+    public static partial void LibraryWatcherFallback(ILogger logger, Exception exception);
+
+    /// <summary>Legacy in-library asset folders were migrated to app data (Sept-23 Phase 05).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="copied">Files copied and verified.</param>
+    /// <param name="removed">Source files removed after verification.</param>
+    /// <param name="kept">Files left in place (unknown or unverifiable).</param>
+    [LoggerMessage(EventId = 5013, EventName = "library.assets.migrated", Level = LogLevel.Information,
+        Message = "Legacy library asset folders migrated: copied={Copied} removed={Removed} kept={Kept}")]
+    public static partial void LegacyAssetsMigrated(ILogger logger, int copied, int removed, int kept);
+
+    /// <summary>A settings file was corrupt and was recovered from its backup (Sept-23 Phase 05).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The parse failure.</param>
+    /// <param name="recoveredFromBackup">Whether the backup copy was usable.</param>
+    [LoggerMessage(EventId = 5014, EventName = "settings.recovered", Level = LogLevel.Warning,
+        Message = "A settings file could not be read; recoveredFromBackup={RecoveredFromBackup}")]
+    public static partial void SettingsRecovered(ILogger logger, Exception exception, bool recoveredFromBackup);
 }
