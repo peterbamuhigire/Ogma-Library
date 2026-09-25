@@ -24,6 +24,10 @@ public sealed class App : Avalonia.Application, IDisposable
 {
     private readonly CancellationTokenSource _applicationLifetimeCancellation = new();
     private readonly ILogger _logger = AppDiagnostics.CreateLogger<App>();
+
+    private static readonly TimeSpan ShutdownBudget = TimeSpan.FromSeconds(4);
+
+    private static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(1);
     private NotificationCenterViewModel? _notifications;
     private ServiceProvider? _services;
     private bool _disposed;
@@ -94,6 +98,7 @@ public sealed class App : Avalonia.Application, IDisposable
             window.DataContext = runtime.StartupShell;
             StartupShellViewModel startupShell = runtime.StartupShell;
             await startupShell.StartAsync(cancellationToken).ConfigureAwait(true);
+            ShowSettingsRecoveryNotice(runtime.Services, notifications);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -160,6 +165,20 @@ public sealed class App : Avalonia.Application, IDisposable
             AppDiagnostics.LoggerFactory.CreateLogger(typeof(UiThreadGuard).FullName!));
         GlobalExceptionHandlers.InstallDispatcherHandler(Dispatcher.UIThread, notifications);
         return notifications;
+    }
+
+    private static void ShowSettingsRecoveryNotice(IServiceProvider services, NotificationCenterViewModel notifications)
+    {
+        // A damaged library-settings.json must never be reset silently (Sept-23 K95, journey G8).
+        if (services.GetService<ILibrarySettingsService>()?.LastRecovery is not { } recovery)
+        {
+            return;
+        }
+
+        notifications.Notify(new UserNotification(
+            recovery.RestoredFromBackup ? "Notification.SettingsRestoredFromBackup" : "Notification.SettingsReset",
+            UserNotificationSeverity.Warning,
+            UserNotificationActionKind.ExportDiagnostics));
     }
 
     private static void ShowCrashRecoveryNotice(NotificationCenterViewModel notifications)
@@ -344,7 +363,19 @@ public sealed class App : Avalonia.Application, IDisposable
 
         try
         {
-            ApplicationStartup.StopAsync(_services).GetAwaiter().GetResult();
+            // Bounded shutdown (Sept-23 K71): background services get a cancellation budget and
+            // the UI thread never waits indefinitely, so closing the window always exits.
+            using var stopBudget = new CancellationTokenSource(ShutdownBudget);
+            IServiceProvider services = _services;
+            Task stopping = Task.Run(() => ApplicationStartup.StopAsync(services, stopBudget.Token));
+            if (!stopping.Wait(ShutdownBudget + ShutdownGrace))
+            {
+                AppLog.ShutdownBudgetExceeded(_logger, (int)(ShutdownBudget + ShutdownGrace).TotalMilliseconds);
+            }
+        }
+        catch (Exception exception) when (exception is AggregateException or OperationCanceledException)
+        {
+            AppLog.ShutdownStopFailed(_logger, exception);
         }
         finally
         {

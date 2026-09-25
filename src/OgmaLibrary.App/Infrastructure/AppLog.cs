@@ -69,6 +69,16 @@ public static partial class AppLog
         Message = "Ogma exited")]
     public static partial void AppExited(ILogger logger);
 
+    /// <summary>Background services did not stop within the shutdown budget; exit continues.</summary>
+    [LoggerMessage(EventId = 1303, EventName = "app.exit.budget_exceeded", Level = LogLevel.Warning,
+        Message = "Background services did not stop within {BudgetMs} ms; exiting anyway")]
+    public static partial void ShutdownBudgetExceeded(ILogger logger, int budgetMs);
+
+    /// <summary>Stopping background services failed; exit continues.</summary>
+    [LoggerMessage(EventId = 1304, EventName = "app.exit.stop_failed", Level = LogLevel.Warning,
+        Message = "Stopping background services failed; exiting anyway")]
+    public static partial void ShutdownStopFailed(ILogger logger, Exception exception);
+
     /// <summary>Composition failed.</summary>
     [LoggerMessage(EventId = 1401, EventName = "app.composition.failed", Level = LogLevel.Error,
         Message = "Application composition failed ({FailureCode})")]
@@ -148,6 +158,11 @@ public static partial class AppLog
     [LoggerMessage(EventId = 4003, EventName = "reader.close.failed", Level = LogLevel.Warning,
         Message = "Closing the reader session did not finish cleanly")]
     public static partial void ReaderCloseFailed(ILogger logger, Exception exception);
+
+    /// <summary>The reader's PDF engine was lost and transparently restarted.</summary>
+    [LoggerMessage(EventId = 4004, EventName = "reader.engine.recovered", Level = LogLevel.Warning,
+        Message = "The reader's PDF engine stopped ({Reason}) and was restarted in {ElapsedMs} ms (restart {RespawnCount})")]
+    public static partial void ReaderEngineRecovered(ILogger logger, string reason, long elapsedMs, int respawnCount);
 
     /// <summary>A view-model operation failed and was turned into a visible error state.</summary>
     [LoggerMessage(EventId = 3003, EventName = "viewmodel.operation.failed", Level = LogLevel.Error,

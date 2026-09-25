@@ -98,6 +98,9 @@ public sealed class LibrarySettingsService : ILibrarySettingsService, IDisposabl
     }
 
     /// <inheritdoc />
+    public LibrarySettingsRecovery? LastRecovery { get; private set; }
+
+    /// <inheritdoc />
     public void Dispose() => _lock.Dispose();
 
     private async Task<SettingsDto> LoadAsync(CancellationToken cancellationToken)
@@ -133,14 +136,37 @@ public sealed class LibrarySettingsService : ILibrarySettingsService, IDisposabl
                 ? await TryReadAsync(_backupPath, cancellationToken).ConfigureAwait(false)
                 : null;
             InfrastructureLog.SettingsRecovered(_logger, ex, recovered is not null);
-            if (recovered is not null)
+            if (ex is not JsonException)
             {
-                // Put the last good copy back so the next read is clean.
-                await SaveLockedAsync(recovered, cancellationToken, keepBackup: false).ConfigureAwait(false);
-                return recovered;
+                // A transient I/O failure (for example a file briefly locked by antivirus) must
+                // never overwrite a valid settings file; use the backup for this read only.
+                return recovered ?? new SettingsDto();
             }
 
-            return new SettingsDto();
+            string? quarantined = QuarantineDamagedFile();
+            LastRecovery = new LibrarySettingsRecovery(recovered is not null, quarantined);
+            SettingsDto replacement = recovered ?? new SettingsDto();
+
+            // Put the last good copy (or clean defaults) back so the next read is clean and
+            // the recovery is reported once, not on every read.
+            await SaveLockedAsync(replacement, cancellationToken, keepBackup: false).ConfigureAwait(false);
+            return replacement;
+        }
+    }
+
+    /// <summary>Keeps the damaged file for support under a timestamped name; returns its file name.</summary>
+    private string? QuarantineDamagedFile()
+    {
+        string target = _settingsPath + ".corrupt-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        try
+        {
+            File.Move(_settingsPath, target, overwrite: true);
+            return Path.GetFileName(target);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            InfrastructureLog.BestEffortStepFailed(_logger, ex, nameof(LibrarySettingsService), "settings.quarantine");
+            return null;
         }
     }
 

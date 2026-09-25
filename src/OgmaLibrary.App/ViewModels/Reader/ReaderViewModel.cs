@@ -123,6 +123,12 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _portability = portability;
         _logger = logger ?? (ILogger)NullLogger.Instance;
 
+        if (_sessions is IReaderSessionReadModel sessionEvents)
+        {
+            // Worker loss is recovered transparently (Phase 04); record it so support can see it (G8).
+            sessionEvents.Events.Subscribe(new ReaderEventLogger(_logger));
+        }
+
         if (_renderCache is not null)
         {
             // A background render (full-res after a low-res preview, or a prefetch
@@ -2609,6 +2615,31 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     {
         UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    /// <summary>Logs reader engine events that support needs to see.</summary>
+    private sealed class ReaderEventLogger(ILogger logger) : IObserver<ReaderEvent>
+    {
+        public void OnNext(ReaderEvent value)
+        {
+            if (value is ReaderEvent.EngineRecovered recovered)
+            {
+                AppLog.ReaderEngineRecovered(
+                    logger,
+                    recovered.Reason,
+                    (long)recovered.Elapsed.TotalMilliseconds,
+                    recovered.RespawnCount);
+            }
+        }
+
+        public void OnError(Exception error)
+        {
+            // Intentionally ignored: the session stream never faults; render errors surface per page.
+        }
+
+        public void OnCompleted()
+        {
+        }
     }
 }
 

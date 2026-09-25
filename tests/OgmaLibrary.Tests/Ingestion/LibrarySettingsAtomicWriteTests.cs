@@ -63,4 +63,45 @@ public sealed class LibrarySettingsAtomicWriteTests : IDisposable
         await settings.SetLibraryRootAsync(@"C:\fresh");
         Assert.Equal(@"C:\fresh", await settings.GetLibraryRootAsync());
     }
+
+    [Fact]
+    public async Task LibrarySettings_CorruptFileWithoutBackup_ReportsResetAndKeepsDamagedCopy()
+    {
+        Directory.CreateDirectory(_dataDir);
+        await File.WriteAllTextAsync(SettingsPath, "not json at all");
+
+        using var settings = new LibrarySettingsService(_dataDir);
+        Assert.Null(settings.LastRecovery);
+        _ = await settings.GetLibraryRootAsync();
+
+        // K95: a reset must be reportable, and the damaged file kept for support.
+        Assert.NotNull(settings.LastRecovery);
+        Assert.False(settings.LastRecovery!.RestoredFromBackup);
+        Assert.NotNull(settings.LastRecovery.QuarantinedFileName);
+        string quarantined = Path.Combine(_dataDir, settings.LastRecovery.QuarantinedFileName!);
+        Assert.Equal("not json at all", await File.ReadAllTextAsync(quarantined));
+
+        // The replacement is clean, so a second read does not re-trigger recovery.
+        using var reread = new LibrarySettingsService(_dataDir);
+        _ = await reread.GetLibraryRootAsync();
+        Assert.Null(reread.LastRecovery);
+    }
+
+    [Fact]
+    public async Task LibrarySettings_TornFileWithBackup_ReportsRestore()
+    {
+        using (var writer = new LibrarySettingsService(_dataDir))
+        {
+            await writer.SetLibraryRootAsync(@"C:\good");
+            await writer.SetExcludedFoldersAsync(["private"]);
+        }
+
+        await File.WriteAllTextAsync(SettingsPath, "{\"LibraryRoot\":");
+
+        using var settings = new LibrarySettingsService(_dataDir);
+        _ = await settings.GetLibraryRootAsync();
+
+        Assert.NotNull(settings.LastRecovery);
+        Assert.True(settings.LastRecovery!.RestoredFromBackup);
+    }
 }
