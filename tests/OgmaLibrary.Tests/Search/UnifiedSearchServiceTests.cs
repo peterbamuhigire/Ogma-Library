@@ -91,6 +91,23 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     }
 
     [Fact]
+    public async Task CachedSnapshot_SeesMetadataEditsOnTheNextSearch()
+    {
+        using SyntheticCorpusCatalogue corpus = SyntheticCorpusCatalogue.Create();
+        var service = new UnifiedSearchService(corpus.Context, new FtsIndexService(corpus.Context));
+        Assert.Empty((await service.SearchAsync("Kilimanjaro", 30, CancellationToken.None)).Results);
+
+        OgmaLibrary.Infrastructure.Catalogue.Entities.BookMetadataFieldRow title = corpus.Context.BookMetadataFields
+            .Single(field => field.BookId == SyntheticCorpusCatalogue.LanternKeeperId && field.FieldName == "Title");
+        title.Value = "Kilimanjaro Lantern";
+        title.IsOverridden = true;
+        corpus.Context.SaveChanges();
+
+        UnifiedSearchResponse after = await service.SearchAsync("Kilimanjaro", 30, CancellationToken.None);
+        Assert.Equal("Kilimanjaro Lantern", Assert.Single(after.Results).Title);
+    }
+
+    [Fact]
     public async Task Coverage_CountsSearchableAndScannedBooks()
     {
         SearchIndexCoverage coverage = await Service().GetCoverageAsync(CancellationToken.None);

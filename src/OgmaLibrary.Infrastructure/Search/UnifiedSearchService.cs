@@ -24,7 +24,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
     private static readonly TimeSpan ProbeTtl = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan ProbeBudget = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan SnapshotMaxAge = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan SnapshotMaxAge = TimeSpan.FromSeconds(20);
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
@@ -356,8 +356,8 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         using DbCommand command = connection.CreateCommand();
         command.CommandText = """
             SELECT
-                (SELECT COUNT(*) || '.' || IFNULL(SUM(Status + 3 * TextStatus + 17 * IndexStatus + 31 * IsPasswordProtected + LENGTH(IFNULL(Title, '')) + LENGTH(IFNULL(IsbnNormalized, '')) + IFNULL(Year, 0)), 0) FROM Books)
-                || '|' || (SELECT COUNT(*) || '.' || IFNULL(MAX(FieldId), 0) || '.' || IFNULL(SUM(LENGTH(IFNULL(Value, '')) + IsOverridden), 0) FROM BookMetadataFields)
+                (SELECT COUNT(*) || '.' || IFNULL(SUM(Status + 3 * TextStatus + 17 * IndexStatus + 31 * IsPasswordProtected + LENGTH(IFNULL(Title, '')) * 31 + IFNULL(unicode(substr(Title, LENGTH(Title) / 2 + 1)), 0) + LENGTH(IFNULL(IsbnNormalized, '')) + IFNULL(Year, 0)), 0) FROM Books)
+                || '|' || (SELECT COUNT(*) || '.' || IFNULL(MAX(FieldId), 0) || '.' || IFNULL(SUM(LENGTH(IFNULL(Value, '')) * 31 + IFNULL(unicode(Value), 0) + 7 * IFNULL(unicode(substr(Value, LENGTH(Value) / 2 + 1)), 0) + IsOverridden), 0) FROM BookMetadataFields)
                 || '|' || (SELECT COUNT(*) || '.' || IFNULL(SUM(AuthorId + DisplayOrder), 0) FROM BookAuthors)
                 || '|' || (SELECT COUNT(*) || '.' || IFNULL(SUM(FileStatus + 7 * FileValidity), 0) FROM BookFiles)
                 || '|' || (SELECT COUNT(*) FROM ShelfBooks)
