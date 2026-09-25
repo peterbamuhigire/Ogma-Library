@@ -1,0 +1,19 @@
+{
+  "Edge Cases/Locked Ledger (password secret).pdf": "379a71bcab44e2b09ba61e13977b16d8e9f7e30fb8326dce570e49327be0c857",
+  "Edge Cases/Scanned Handout (golden).pdf": "6a5c6d00bc1da08f17f9b81f8c458edba9c0816c42f060355136c7fece561ad9",
+  "Edge Cases/Scanned Pamphlet (image only).pdf": "f5bc0376f04933117cfd64b3b75ce649f42a2a15e3f11a24a66b7e5692104fcd",
+  "Edge Cases/The Lantern Keeper (copy).pdf": "c0c328cfa633bf0a7a644fdf8242c6ed3bbf3d7ba4cde9df0e3cb6d77ac6580a",
+  "Edge Cases/Truncated Download.pdf": "ecb78546e05c42700201df5ebd03eca138c521ebaa9e341ba024c0487b109658",
+  "Edge Cases/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccc/Deeply Nested.pdf": "7f1b73ade39497d8d296dea439189bd571e2f6947f3a7c71659e76bf164b0adc",
+  "Edge Cases/empty.pdf": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "Edge Cases/not-really-a.pdf": "a1644a2d975d46ae50564b90f41dc79dc0bbc5848d52e01820878afcfd978913",
+  "Edge Cases/untitled_scan_0042.pdf": "1297813f1f69fdec044e1164bf88ee9053fdb866090d41ebba6657f184e1254a",
+  "Fiction/Ngũgĩ-style Stories — Unicode Title.pdf": "b3d197ab4499249d687b037889891e5ca693a94e8cb80f5c82b7a66fc0bbba9a",
+  "Fiction/The Lantern Keeper.pdf": "c0c328cfa633bf0a7a644fdf8242c6ed3bbf3d7ba4cde9df0e3cb6d77ac6580a",
+  "History/A Short History of the Great Lakes Kingdoms.pdf": "e3246cd55b89c1c1e225d5d7bf8e1898895766716720810b782eb4705f303e0d",
+  "History/Trade Routes of East Africa.pdf": "4aa4dd17c766f57d0f5ef5c115e3f50293254b2e7c2a79ff375f3333cbcb7688",
+  "Science/Algorithms Explained.pdf": "8447e50213b4c47797517a98948c17af61753260e28aef1c794c1705b5b1f69c",
+  "Science/Big Reference Handbook.pdf": "02eaa04ac696ed42b2ec9814fbbdae6ac6c6f61a915616e68d4b536518ded542",
+  "Science/Introduction to Tropical Ecology.pdf": "cd003796f331aa6e5a4a5f9a1e8778846ae4ef1b40d10a959e3c8b7e8b557995",
+  "Science/The Physics of Everyday Light.pdf": "bfe85ddab2fbed0224f11070fa098d79840d44b4a9e35686d03baacabc4e1e55"
+}
