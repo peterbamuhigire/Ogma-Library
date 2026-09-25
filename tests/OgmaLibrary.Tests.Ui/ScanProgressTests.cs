@@ -13,7 +13,7 @@ namespace OgmaLibrary.Tests.Ui;
 /// Headless UI test for scan progress: simulates a completed scan and asserts
 /// the status text shows the scanned count. Captures a screenshot to
 /// <c>artifacts/screenshots/scan-en.png</c> and copies to
-/// <c>docs/developer-guide/images/scan-en.png</c>.
+/// <c>docs/developer-guide/images/scan-en.png</c> when OGMA_UPDATE_DOC_SCREENSHOTS=1.
 /// </summary>
 public sealed class ScanProgressTests
 {
@@ -22,16 +22,6 @@ public sealed class ScanProgressTests
         get
         {
             string dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "screenshots");
-            Directory.CreateDirectory(dir);
-            return Path.GetFullPath(dir);
-        }
-    }
-
-    private static string DocsImagesDir
-    {
-        get
-        {
-            string dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "docs", "developer-guide", "images");
             Directory.CreateDirectory(dir);
             return Path.GetFullPath(dir);
         }
@@ -72,9 +62,7 @@ public sealed class ScanProgressTests
         string screenshotPath = Path.Combine(ArtifactsDir, "scan-en.png");
         frame!.Save(screenshotPath);
 
-        // Copy to docs/developer-guide/images/.
-        string docsPath = Path.Combine(DocsImagesDir, "scan-en.png");
-        File.Copy(screenshotPath, docsPath, overwrite: true);
+        DocScreenshots.Publish(screenshotPath, "scan-en.png");
 
         viewModel.Dispose();
     }

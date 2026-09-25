@@ -23,7 +23,6 @@ namespace OgmaLibrary.Tests.Ui;
 public sealed class CatalogueGridTests
 {
     private static readonly string ArtifactsDir;
-    private static readonly string DocsImagesDir;
 
     static CatalogueGridTests()
     {
@@ -32,11 +31,6 @@ public sealed class CatalogueGridTests
             AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "screenshots");
         Directory.CreateDirectory(baseDir);
         ArtifactsDir = Path.GetFullPath(baseDir);
-
-        string docsDir = Path.Combine(
-            AppContext.BaseDirectory, "..", "..", "..", "..", "..", "docs", "developer-guide", "images");
-        Directory.CreateDirectory(docsDir);
-        DocsImagesDir = Path.GetFullPath(docsDir);
     }
 
     private const int SeedCount = 24;
@@ -107,9 +101,7 @@ public sealed class CatalogueGridTests
         string screenshotPath = Path.Combine(ArtifactsDir, "catalogue-grid-en.png");
         frame!.Save(screenshotPath);
 
-        // Also copy to docs.
-        string docsPath = Path.Combine(DocsImagesDir, "catalogue-grid-en.png");
-        frame.Save(docsPath);
+        DocScreenshots.Publish(screenshotPath, "catalogue-grid-en.png");
     }
 
     /// <summary>

@@ -75,11 +75,7 @@ public sealed class ReaderViewRenderTests
         string screenshotPath = Path.Combine(ArtifactsDir, "reader-en.png");
         frame!.Save(screenshotPath);
 
-        string devGuideDir = Path.Combine(
-            AppContext.BaseDirectory, "..", "..", "..", "..", "..",
-            "docs", "developer-guide", "images");
-        Directory.CreateDirectory(devGuideDir);
-        File.Copy(screenshotPath, Path.Combine(devGuideDir, "reader-en.png"), overwrite: true);
+        DocScreenshots.Publish(screenshotPath, "reader-en.png");
 
         Assert.True(frame.Size.Width > 100, "Rendered frame width should be > 100px");
         Assert.True(frame.Size.Height > 100, "Rendered frame height should be > 100px");

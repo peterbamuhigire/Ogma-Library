@@ -53,11 +53,7 @@ public sealed class HealthDashboardRenderTests
         string screenshotPath = Path.Combine(ArtifactsDir, "health-en.png");
         frame!.Save(screenshotPath);
 
-        // Also copy to developer guide images.
-        string devGuideDir = Path.Combine(
-            AppContext.BaseDirectory, "..", "..", "..", "..", "..", "docs", "developer-guide", "images");
-        Directory.CreateDirectory(devGuideDir);
-        File.Copy(screenshotPath, Path.Combine(devGuideDir, "health-en.png"), overwrite: true);
+        DocScreenshots.Publish(screenshotPath, "health-en.png");
 
         Assert.True(File.Exists(screenshotPath), $"Screenshot not saved to {screenshotPath}");
     }
