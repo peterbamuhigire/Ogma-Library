@@ -152,7 +152,10 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    /// <summary>Configured sidecar root used only for local cover image loading.</summary>
+    /// <summary>
+    /// The derived-asset store root used only for local cover image loading (the
+    /// app-data folder; Sept-23 Phase 05). The name is kept for existing bindings.
+    /// </summary>
     public string? LibraryRootPath
     {
         get => _libraryRootPath;
@@ -221,6 +224,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Localized unavailable badge label.</summary>
     public string UnavailableBadgeText => _localization["Catalogue.Badge.Unavailable"];
+
+    /// <summary>Localized badge for a password-protected book (Sept-23 Phase 05).</summary>
+    public string LockedBadgeText => _localization["Catalogue.Badge.Locked"];
 
     /// <summary>Localized favourite badge label.</summary>
     public string FavouriteBadgeText => _localization["Catalogue.Badge.Favourite"];
@@ -318,15 +324,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
                 await _ui.InvokeAsync(() => ApplyViewState(viewState), token).ConfigureAwait(false);
             }
 
-            string? libraryRoot = LibraryRootPath;
-            if (!string.IsNullOrWhiteSpace(_assetRootPath))
-            {
-                libraryRoot = _assetRootPath;
-            }
-            else if (_settings is not null)
-            {
-                libraryRoot = await _settings.GetLibraryRootAsync(token).ConfigureAwait(false);
-            }
+            // Sept-23 Phase 05 (K20): covers live in the app-data asset store, whatever
+            // library folder the book came from; the chosen folder is never the asset root.
+            string? libraryRoot = _assetRootPath ?? LibraryRootPath;
 
             // Build the new list off the UI thread, then swap it in on the UI thread.
             var items = new List<BookSummaryProjection>();
@@ -607,6 +607,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(EmbeddingFailedBadgeText));
         OnPropertyChanged(nameof(OcrBadgeText));
         OnPropertyChanged(nameof(UnavailableBadgeText));
+        OnPropertyChanged(nameof(LockedBadgeText));
         OnPropertyChanged(nameof(FavouriteBadgeText));
         OnPropertyChanged(nameof(QualityBadgeFormat));
         OnPropertyChanged(nameof(DirectoryPathUnavailableText));

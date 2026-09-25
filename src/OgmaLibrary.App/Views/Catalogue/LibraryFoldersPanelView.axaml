@@ -1,0 +1,167 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Catalogue.LibraryFoldersPanelView"
+             x:DataType="vm:LibraryFoldersViewModel">
+
+  <!--
+    Sept-23 Phase 05 (D-03, K21, K22): the Library folders panel. Add, show/hide,
+    rescan and remove folders, and review files that were not added as books.
+    Typography comes from the theme (Public Sans body, Spectral headings); colours
+    are design-system tokens only. Phase 08 moves this panel into Settings.
+  -->
+  <StackPanel Spacing="6" Margin="12,8,12,12">
+    <TextBlock Text="{Binding Title}"
+               FontSize="{DynamicResource Type.Size.Subtitle}"
+               FontWeight="SemiBold"
+               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+
+    <TextBlock Text="{Binding EmptyText}"
+               IsVisible="{Binding HasNoFolders}"
+               TextWrapping="Wrap"
+               FontSize="{DynamicResource Type.Size.Caption}"
+               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+
+    <ItemsControl ItemsSource="{Binding Folders}"
+                  AutomationProperties.Name="{Binding Title}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Spacing="6" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:LibraryFolderItem">
+          <Border Padding="8,6"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  ToolTip.Tip="{Binding Location}"
+                  AutomationProperties.Name="{Binding AutomationName}">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding DisplayName}"
+                         FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock Text="{Binding StatusText}"
+                         TextWrapping="Wrap"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <CheckBox IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                        Click="IncludeFolder_Click"
+                        AutomationProperties.Name="{Binding IncludeAutomationName}">
+                <TextBlock Text="{Binding IncludeText}"
+                           FontSize="{DynamicResource Type.Size.Caption}" />
+              </CheckBox>
+              <WrapPanel Orientation="Horizontal">
+                <Button Margin="0,0,4,0"
+                        Click="RescanFolder_Click"
+                        AutomationProperties.Name="{Binding RescanAutomationName}">
+                  <TextBlock Text="{Binding RescanText}"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+                <Button Click="RemoveFolder_Click"
+                        AutomationProperties.Name="{Binding RemoveAutomationName}">
+                  <TextBlock Text="{Binding RemoveText}"
+                             FontSize="{DynamicResource Type.Size.Caption}" />
+                </Button>
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <WrapPanel Orientation="Horizontal">
+      <Button Margin="0,0,4,4"
+              Click="AddFolder_Click"
+              AutomationProperties.Name="{Binding AddFolderAutomationName}">
+        <TextBlock Text="{Binding AddFolderText}" />
+      </Button>
+      <Button Margin="0,0,4,4"
+              Click="RescanAll_Click"
+              AutomationProperties.Name="{Binding RescanAllText}">
+        <TextBlock Text="{Binding RescanAllText}" />
+      </Button>
+    </WrapPanel>
+
+    <TextBlock Text="{Binding LastSummaryText}"
+               IsVisible="{Binding HasLastSummary}"
+               TextWrapping="Wrap"
+               FontSize="{DynamicResource Type.Size.Caption}"
+               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+    <TextBlock Text="{Binding StatusText}"
+               IsVisible="{Binding HasStatus}"
+               TextWrapping="Wrap"
+               FontSize="{DynamicResource Type.Size.Caption}"
+               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+
+    <!-- Needs attention: files that were not added as books (never silently dropped). -->
+    <ToggleButton IsVisible="{Binding HasNeedsAttention}"
+                  IsChecked="{Binding IsNeedsAttentionOpen, Mode=TwoWay}"
+                  HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="{Binding NeedsAttentionButtonText}">
+      <TextBlock Text="{Binding NeedsAttentionButtonText}"
+                 FontWeight="SemiBold" />
+    </ToggleButton>
+
+    <StackPanel Spacing="6" IsVisible="{Binding IsNeedsAttentionOpen}">
+      <TextBlock Text="{Binding NeedsAttentionHint}"
+                 TextWrapping="Wrap"
+                 FontSize="{DynamicResource Type.Size.Caption}"
+                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+      <ItemsControl ItemsSource="{Binding NeedsAttention}"
+                    AutomationProperties.Name="{Binding NeedsAttentionTitle}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="6" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:NeedsAttentionEntry">
+            <Border Padding="8,6"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    BorderBrush="{DynamicResource Brush.Accent.Clay}"
+                    BorderThickness="1"
+                    AutomationProperties.Name="{Binding AutomationName}">
+              <StackPanel Spacing="3">
+                <TextBlock Text="{Binding FileName}"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           FontSize="{DynamicResource Type.Size.Small}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBlock Text="{Binding ReasonText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Accent.Clay}" />
+                <TextBlock Text="{Binding FolderName}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <WrapPanel Orientation="Horizontal">
+                  <Button Margin="0,0,4,4"
+                          Click="RetryIssue_Click"
+                          AutomationProperties.Name="{Binding RetryAutomationName}">
+                    <TextBlock Text="{Binding RetryText}"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                  </Button>
+                  <Button Margin="0,0,4,4"
+                          Click="ShowIssue_Click"
+                          AutomationProperties.Name="{Binding ShowAutomationName}">
+                    <TextBlock Text="{Binding ShowText}"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                  </Button>
+                  <Button Margin="0,0,4,4"
+                          Click="IgnoreIssue_Click"
+                          AutomationProperties.Name="{Binding IgnoreAutomationName}">
+                    <TextBlock Text="{Binding IgnoreText}"
+                               FontSize="{DynamicResource Type.Size.Caption}" />
+                  </Button>
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -12,10 +12,17 @@ public sealed record OgmaRuntimeOptions
     public string DataDirectory { get; init; } = CatalogueServiceExtensions.GetDefaultDataDirectory();
 
     /// <summary>
-    /// Compatibility root used by the current single-root implementation. Phase 5
-    /// replaces this with the canonical multi-root model.
+    /// Compatibility root for services that still take one root (OCR fallback, metadata
+    /// write-back). Sept-23 Phase 05: library folders are the canonical multi-root model
+    /// (<c>LibraryRoots</c>) and derived assets always live in <see cref="DataDirectory"/>.
     /// </summary>
     public string LibraryRoot { get; init; } = CatalogueServiceExtensions.GetDefaultDataDirectory();
+
+    /// <summary>
+    /// The folder named by <c>OGMA_LIBRARY_ROOT</c>, or null when the variable is unset.
+    /// When set, it is added as a library folder at startup and scanned (K22).
+    /// </summary>
+    public string? ConfiguredLibraryRoot { get; init; }
 
     /// <summary>Whether external bibliographic provider adapters may be activated.</summary>
     public bool EnableExternalMetadataProviders { get; init; }
@@ -50,6 +57,7 @@ public sealed record OgmaRuntimeOptions
         {
             DataDirectory = dataDirectory,
             LibraryRoot = libraryRoot,
+            ConfiguredLibraryRoot = ReadOptionalPath(readEnvironmentVariable, "OGMA_LIBRARY_ROOT"),
             EnableExternalMetadataProviders = ReadBoolean(
                 readEnvironmentVariable,
                 "OGMA_ENABLE_METADATA_PROVIDERS"),

@@ -221,10 +221,24 @@ public sealed class App : Avalonia.Application, IDisposable
     {
         try
         {
+            var roots = new List<string>();
             if (services.GetService<ILibrarySettingsService>() is { } settings &&
                 await settings.GetLibraryRootAsync(cancellationToken).ConfigureAwait(false) is { } root)
             {
-                AppDiagnostics.Redactor.SetLibraryRoots([root]);
+                roots.Add(root);
+            }
+
+            // Sept-23 Phase 05: every library folder's prefix is collapsed in logs.
+            if (services.GetService<ILibraryRootService>() is { } libraryRoots)
+            {
+                roots.AddRange((await libraryRoots.ListAsync(cancellationToken).ConfigureAwait(false))
+                    .Select(descriptor => descriptor.CanonicalLocator)
+                    .OfType<string>());
+            }
+
+            if (roots.Count > 0)
+            {
+                AppDiagnostics.Redactor.SetLibraryRoots([.. roots.Distinct(StringComparer.OrdinalIgnoreCase)]);
             }
         }
         catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
