@@ -26,6 +26,34 @@ public sealed class PdfiumAdapterPasswordTests
         Assert.True(result.PngBytes.Length > 0);
     }
 
+    /// <summary>
+    /// Sept-23 stabilisation: the isolated worker's password error used to be re-wrapped with the
+    /// worker's message as the "path": "The PDF file 'A password is required to open the PDF.'
+    /// requires a password."
+    /// </summary>
+    [Fact]
+    public async Task WorkerSession_PasswordPdf_ThrowsTypedExceptionNamingTheFile()
+    {
+        string sandbox = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ogma-password-worker-{Guid.NewGuid():N}");
+        try
+        {
+            var worker = new PdfWorkerClient(new PdfWorkerOptions { SandboxRoot = sandbox });
+
+            PdfPasswordRequiredException exception = await Assert.ThrowsAsync<PdfPasswordRequiredException>(
+                () => Task.Run(() => worker.OpenSession(PasswordProtectedPdfFixture.Path).Dispose()));
+
+            Assert.Equal(PasswordProtectedPdfFixture.Path, exception.FilePath);
+            Assert.DoesNotContain("A password is required", exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(sandbox))
+            {
+                Directory.Delete(sandbox, recursive: true);
+            }
+        }
+    }
+
     private static class PasswordProtectedPdfFixture
     {
         private static readonly Lazy<string> LazyPath = new(Create, isThreadSafe: true);

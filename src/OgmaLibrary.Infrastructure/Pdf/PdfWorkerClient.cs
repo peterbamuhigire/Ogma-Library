@@ -543,7 +543,7 @@ public sealed class PdfWorkerClient
             string stderr = await stderrTask.ConfigureAwait(false);
             if (process.ExitCode != 0)
             {
-                ThrowWorkerFailure(stdout, stderr);
+                ThrowWorkerFailure(stdout, stderr, InputPath(args));
             }
 
             WorkerEnvelope<T>? envelope = JsonSerializer.Deserialize<WorkerEnvelope<T>>(stdout, JsonOptions);
@@ -554,7 +554,7 @@ public sealed class PdfWorkerClient
 
             if (!string.Equals(envelope.Status, "ok", StringComparison.OrdinalIgnoreCase))
             {
-                ThrowWorkerFailure(envelope);
+                ThrowWorkerFailure(envelope, InputPath(args));
             }
 
             return envelope;
@@ -767,14 +767,14 @@ public sealed class PdfWorkerClient
         }
     }
 
-    private static void ThrowWorkerFailure(string stdout, string stderr)
+    private static void ThrowWorkerFailure(string stdout, string stderr, string? inputPath)
     {
         try
         {
             WorkerEnvelope<JsonElement>? error = JsonSerializer.Deserialize<WorkerEnvelope<JsonElement>>(stdout, JsonOptions);
             if (error is not null)
             {
-                ThrowWorkerFailure(error);
+                ThrowWorkerFailure(error, inputPath);
             }
         }
         catch (JsonException)
@@ -785,18 +785,38 @@ public sealed class PdfWorkerClient
         throw new InvalidOperationException("The PDF worker process failed.");
     }
 
-    private static void ThrowWorkerFailure<T>(WorkerEnvelope<T> envelope)
+    private static void ThrowWorkerFailure<T>(WorkerEnvelope<T> envelope, string? inputPath)
     {
         string message = string.IsNullOrWhiteSpace(envelope.Error)
             ? "The PDF worker process failed."
             : envelope.Error;
-        throw envelope.ErrorType switch
+        throw MapWorkerError(envelope.ErrorType, message, inputPath);
+    }
+
+    /// <summary>
+    /// Maps a worker error to the typed exception. Password exceptions take the PDF path, never
+    /// the worker's message text (which once produced "The PDF file 'A password is required to
+    /// open the PDF.' requires a password.").
+    /// </summary>
+    internal static Exception MapWorkerError(string? errorType, string message, string? filePath) => errorType switch
+    {
+        nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(filePath ?? string.Empty),
+        nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(filePath ?? string.Empty),
+        nameof(PdfEmbeddedCoverNotFoundException) => new PdfEmbeddedCoverNotFoundException(message),
+        _ => new InvalidOperationException(message),
+    };
+
+    private static string? InputPath(IReadOnlyList<string> args)
+    {
+        for (int index = 0; index < args.Count - 1; index++)
         {
-            nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(message),
-            nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(message),
-            nameof(PdfEmbeddedCoverNotFoundException) => new PdfEmbeddedCoverNotFoundException(message),
-            _ => new InvalidOperationException(message),
-        };
+            if (string.Equals(args[index], "--input", StringComparison.Ordinal))
+            {
+                return args[index + 1];
+            }
+        }
+
+        return null;
     }
 
     private string SandboxRoot => string.IsNullOrWhiteSpace(_options.SandboxRoot)
@@ -979,6 +999,7 @@ public sealed class PdfWorkerClient
         private readonly Queue<string> _diagnosticLines = new();
         private readonly Lock _diagnosticSync = new();
         private readonly char[]? _password;
+        private readonly string _filePath;
         private long _stderrLineCount;
         private long _lastActivityTicks;
         private int _activeRequests;
@@ -990,6 +1011,7 @@ public sealed class PdfWorkerClient
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _limits = client._options.Session;
             _password = password?.ToArray();
+            _filePath = filePath;
             _sandbox = client.CreateSandbox();
             Touch();
 
@@ -1043,7 +1065,7 @@ public sealed class PdfWorkerClient
                     .WaitAsync(_limits.StartupTimeout)
                     .GetAwaiter()
                     .GetResult();
-                ThrowIfError(ready);
+                ThrowIfError(ready, filePath);
                 PageCount = ready.PageCount;
                 _ = Task.Run(ReadLoopAsync);
             }
@@ -1361,7 +1383,7 @@ public sealed class PdfWorkerClient
                         throw new PdfWorkerSessionLostException("request_timeout", exception);
                     }
 
-                    ThrowIfError(response);
+                    ThrowIfError(response, _filePath);
                     return response;
                 }
                 finally
@@ -1515,7 +1537,7 @@ public sealed class PdfWorkerClient
             }
         }
 
-        private static void ThrowIfError(ServerResponse response)
+        private static void ThrowIfError(ServerResponse response, string filePath)
         {
             if (string.Equals(response.Status, "ok", StringComparison.OrdinalIgnoreCase))
             {
@@ -1525,13 +1547,7 @@ public sealed class PdfWorkerClient
             string message = string.IsNullOrWhiteSpace(response.Error)
                 ? "The PDF worker session failed."
                 : response.Error;
-            throw response.ErrorType switch
-            {
-                nameof(PdfPasswordRequiredException) => new PdfPasswordRequiredException(message),
-                nameof(PdfPasswordIncorrectException) => new PdfPasswordIncorrectException(message),
-                nameof(PdfEmbeddedCoverNotFoundException) => new PdfEmbeddedCoverNotFoundException(message),
-                _ => new InvalidOperationException(message),
-            };
+            throw MapWorkerError(response.ErrorType, message, filePath);
         }
 
         private sealed record ServerRequest(
