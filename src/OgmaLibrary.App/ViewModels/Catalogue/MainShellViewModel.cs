@@ -858,12 +858,7 @@ public sealed class MainShellViewModel :
         IReadOnlyList<IStorageFolder> folders;
         try
         {
-            folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
-                new FolderPickerOpenOptions
-                {
-                    Title = ChooseFolderText,
-                    AllowMultiple = false,
-                }).ConfigureAwait(true);
+            folders = await PickLibraryFoldersAsync(topLevel.StorageProvider).ConfigureAwait(true);
         }
         catch (Exception ex) when (!OgmaLibrary.Application.Diagnostics.ExceptionClassification.IsFatal(ex))
         {
@@ -936,6 +931,37 @@ public sealed class MainShellViewModel :
             }
         });
     }
+
+    private Task<IReadOnlyList<IStorageFolder>> PickLibraryFoldersAsync(IStorageProvider storageProvider)
+    {
+#if OGMA_E2E
+        // Sept-23 T01.5 test hook. Compiled only into E2E builds (-p:OgmaE2EHooks=true), never into
+        // shipped configurations (guarded by an architecture test). The native folder dialog exposes
+        // no Select Folder button to UI Automation, so journeys may pass the folder through
+        // OGMA_E2E_PICK_FOLDER; everything after the picker runs the production path unchanged.
+        string? seededFolder = Environment.GetEnvironmentVariable("OGMA_E2E_PICK_FOLDER");
+        if (!string.IsNullOrWhiteSpace(seededFolder))
+        {
+            return PickSeededFolderForE2EAsync(storageProvider, seededFolder);
+        }
+#endif
+        return storageProvider.OpenFolderPickerAsync(
+            new FolderPickerOpenOptions
+            {
+                Title = ChooseFolderText,
+                AllowMultiple = false,
+            });
+    }
+
+#if OGMA_E2E
+    private static async Task<IReadOnlyList<IStorageFolder>> PickSeededFolderForE2EAsync(
+        IStorageProvider storageProvider,
+        string path)
+    {
+        IStorageFolder? folder = await storageProvider.TryGetFolderFromPathAsync(path).ConfigureAwait(true);
+        return folder is null ? [] : [folder];
+    }
+#endif
 
     /// <summary>
     /// Registers a user-selected PDF and opens it in the reader immediately.

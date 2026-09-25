@@ -10,6 +10,13 @@
     <AvaloniaVersion>11.3.17</AvaloniaVersion>
   </PropertyGroup>
 
+  <!-- Sept-23 T01.5: real-window E2E builds only (dotnet build -p:OgmaE2EHooks=true, used by
+       tests/OgmaLibrary.Tests.E2E/Invoke-GoldenJourneys.ps1 and the e2e-windows CI job) compile the
+       OGMA_E2E test hooks. Shipped configurations never set it; an architecture test guards this. -->
+  <PropertyGroup Condition="'$(OgmaE2EHooks)' == 'true'">
+    <DefineConstants>$(DefineConstants);OGMA_E2E</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\OgmaLibrary.Domain\OgmaLibrary.Domain.csproj" />
     <ProjectReference Include="..\OgmaLibrary.Application\OgmaLibrary.Application.csproj" />
