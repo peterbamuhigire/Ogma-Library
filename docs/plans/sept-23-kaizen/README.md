@@ -58,7 +58,7 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 |---:|---|:---:|---|---|
 | 00 | Ground truth, repository and toolchain recovery | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-00-completion.md) |
 | 01 | Real-window acceptance harness and golden journeys | A | NOT STARTED | — |
-| 02 | Crash safety, logging and threading foundation | A | NOT STARTED | — |
+| 02 | Crash safety, logging and threading foundation | A | IMPLEMENTED 2026-09-25 (G3/G8 journey proof pending Phase 01) | [record](../../implementation/execution/phase-sept23-02-completion.md) |
 | 03 | Shell emergency fixes: visible catalogue and truthful status | A | NOT STARTED (fix verified in scratch) | — |
 | 04 | Reader engine stability and page rendering | A | NOT STARTED | — |
 | 05 | Library roots, scanning and file validity | B | NOT STARTED (needs D-03, D-04) | — |
