@@ -64,6 +64,21 @@ document can focus on its own work.
       it to a phase; do not silently expand scope.
     - If a phase premise is wrong, stop and record it rather than forcing the plan.
 
+## Parallel lanes: desktop lock
+
+Real-window runs need the foreground, the folder dialog and a topmost window. Two parallel lanes
+must never run them at the same time. Wrap every real-window run, whether E2E journeys or UIA
+driving, in the machine-wide desktop lock, called from PowerShell:
+
+```powershell
+& ./scripts/Use-DesktopLock.ps1 -Owner 'phase-NN' -ScriptBlock {
+    ./tests/OgmaLibrary.Tests.E2E/Invoke-GoldenJourneys.ps1 -Journey G2 -Sizes 1280x800
+}
+```
+
+Only stop `OgmaLibrary.App` or `OgmaLibrary.Workers` processes whose executable path is under
+your own worktree. Never stop them by name across the machine.
+
 ## Standard gate commands
 
 ```powershell
