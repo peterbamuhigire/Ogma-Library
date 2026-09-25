@@ -95,7 +95,7 @@ jobs:
         # competing architecture/UI test hosts on shared CI runners.
         # Category=Benchmark runs nightly (.github/workflows/nightly-benchmarks.yml).
         timeout-minutes: 20
-        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1 --filter "Category!=Benchmark"
+        run: dotnet test OgmaLibrary.sln --configuration Release --no-build --verbosity normal -m:1 --filter "Category!=Benchmark&Category!=E2E"
 
       - name: Upload skeleton screenshots
         if: always()
@@ -104,6 +104,55 @@ jobs:
           name: skeleton-screenshots-${{ matrix.os }}
           path: artifacts/screenshots/*.png
           if-no-files-found: ignore
+
+  # Sept-23 Phase 01 (T01.10): real-window golden journeys against the E2E hook build of the app
+  # (built by the runner script; never used for shipped builds, see ADR-0017). NOT YET REQUIRED:
+  # continue-on-error stays on until the owner-visible journeys (G1, G2) are green on the hosted
+  # runner and the known failures in tests/OgmaLibrary.Tests.E2E/baseline.json are fixed by their
+  # owning phases. Pixel thresholds may need tuning for hosted-runner DPI (a failure there is a
+  # harness defect, not a pass). Evidence is uploaded as the e2e-evidence artefact.
+  e2e-windows:
+    name: real-window journeys (windows, informational)
+    runs-on: windows-latest
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Set up Python (synthetic corpus generator)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install corpus generator dependencies
+        run: python -m pip install pymupdf pypdf
+
+      - name: Restore
+        run: dotnet restore OgmaLibrary.sln --locked-mode
+
+      - name: Generate the synthetic corpus
+        shell: pwsh
+        run: |
+          $corpus = Join-Path $env:RUNNER_TEMP 'ogma-corpus'
+          python tests/fixtures/corpus/New-SyntheticCorpus.py $corpus
+          "OGMA_E2E_CORPUS=$corpus" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Run golden journeys at 1280x800
+        shell: pwsh
+        run: ./tests/OgmaLibrary.Tests.E2E/Invoke-GoldenJourneys.ps1 -All -Sizes 1280x800 -RunId ci-${{ github.run_id }}
+
+      - name: Upload E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence
+          path: artifacts/e2e/
+          if-no-files-found: warn
 
   # The hybrid validation gate (python -m engine validate Ogma-Library) runs where
   # the SDLC engine is available. It is tracked as TRACK-P00-GATE until wired here;
