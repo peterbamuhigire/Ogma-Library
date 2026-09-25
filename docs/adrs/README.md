@@ -22,6 +22,7 @@ ADRs are written in [MADR](https://adr.github.io/madr/) style.
 | [0013](0013-school-managed-ai-host-gateway.md) | School-Managed AI Through the Host Gateway | Accepted | 2026-06-02 |
 | [0014](0014-ef-core-10-on-net10-runtime.md) | Align EF Core and Microsoft Extensions Packages to .NET 10 | Accepted | 2026-07-07 |
 | [0015](0015-documentation-baseline-v2.md) | Documentation Baseline v2.0 Supersedes the v1.0 Baseline | Accepted | 2026-07-07 |
+| [0017](0017-real-window-e2e-harness.md) | Drive the Real Window with FlaUI UIA3 for End-to-End Journeys | Accepted | 2026-09-25 |
 
 ## MADR Conventions
 
