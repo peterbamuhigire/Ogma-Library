@@ -36,3 +36,6 @@ These decisions were taken under that authority. Each is the recommended option 
 
 - **2026-09-25** — Audit and plan committed (`d9585a2`) and pushed. Temporary files cleaned.
 - **2026-09-25** — Phase 00 started. T00.1: tests restored (D-01); the solution builds in Release with 0 errors and 0 warnings.
+- **2026-09-25** — Phase 00 COMPLETE (commits `b11bd14`..`e2606bc`). Fast suite 1,149 tests in 4.5 min; format gate green; OCR 10/10; no temp or docs pollution. See `docs/implementation/execution/phase-sept23-00-completion.md`.
+- **2026-09-25** — Phase 03 in progress in the main tree. Done: pager relocated (T03.1), layout and status tests written (T03.2, T03.4), filtered-empty state (T03.3), wrap-panel toolbar stopgap with a More menu (T03.5), `Brush.Accent.OnAccent` token. Next: build, run UI tests, real-window verification, commit.
+- **Execution strategy:** the machine has 4 cores, so at most two parallel lanes (worktree agents) plus the coordinator. Wave A lanes after Phase 03: {02 crash safety, 04 reader engine} then {01 harness}.

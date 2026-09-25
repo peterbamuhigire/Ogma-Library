@@ -56,7 +56,7 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 
 | Phase | Title | Wave | Status | Completion record |
 |---:|---|:---:|---|---|
-| 00 | Ground truth, repository and toolchain recovery | A | NOT STARTED (needs D-01, D-02) | — |
+| 00 | Ground truth, repository and toolchain recovery | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-00-completion.md) |
 | 01 | Real-window acceptance harness and golden journeys | A | NOT STARTED | — |
 | 02 | Crash safety, logging and threading foundation | A | NOT STARTED | — |
 | 03 | Shell emergency fixes: visible catalogue and truthful status | A | NOT STARTED (fix verified in scratch) | — |
