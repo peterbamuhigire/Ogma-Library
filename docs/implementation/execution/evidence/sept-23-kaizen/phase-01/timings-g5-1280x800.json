@@ -1,0 +1,36 @@
+{
+  "journey": "G5",
+  "test": "G5_Resume_SamePageAfterRelaunch",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\Ogma-Library\\.claude\\worktrees\\agent-a88fae4c2798e7386\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Light",
+  "launch.timeToWindowMs": 4546,
+  "shell.readyMs": 50212,
+  "library.chooseFolderPressedMs": 11896,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 14999,
+  "catalogue.firstItemMs": 15446,
+  "catalogue.settledMs": 53340,
+  "catalogue.count": 17,
+  "detail.readEnabledMs": 54791,
+  "reader.openedMs": 55338,
+  "relaunch.previousClose": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 1835,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  },
+  "relaunch.timeToWindowMs": 3739,
+  "resume.elapsedSeconds": 20.9454262,
+  "resume.restoredPage": 7,
+  "status": "PASS",
+  "totalMs": 58813,
+  "log.warningsOrAbove": 32,
+  "log.uiThreadViolations": 24,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 899,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

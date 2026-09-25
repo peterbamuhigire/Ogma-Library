@@ -1,0 +1,43 @@
+{
+  "journey": "G8",
+  "test": "G8_WorkerKilledDuringReading_AppSurvivesAndLogs",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\Ogma-Library\\.claude\\worktrees\\agent-a88fae4c2798e7386\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Light",
+  "launch.timeToWindowMs": 6761,
+  "shell.readyMs": 18179,
+  "library.chooseFolderPressedMs": 18877,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 30813,
+  "catalogue.firstItemMs": 38781,
+  "catalogue.settledMs": 51703,
+  "catalogue.count": 17,
+  "detail.readEnabledMs": 79339,
+  "reader.openedMs": 79756,
+  "visibility.page before the worker is killed": "Image id=\u0027Reader.Page\u0027 name=\u0027\u0027 bounds={X=249,Y=305,Width=682,Height=964} client={X=8,Y=31,Width=1264,Height=761} offscreen=False hits=[590,548: own; 385,402: own; 795,402: own; 385,695: own; 795,695: own] painted=0.7% PASS",
+  "workers.killed": [
+    27456,
+    37060,
+    32148
+  ],
+  "worker.killedMs": 85965,
+  "turnAfterKill": {
+    "From": 1,
+    "To": 1,
+    "Milliseconds": 21248.7622,
+    "IgnoredPresses": 9,
+    "Advanced": false
+  },
+  "recovered": false,
+  "logged": true,
+  "status": "FAIL",
+  "totalMs": 128292,
+  "log.warningsOrAbove": 31,
+  "log.uiThreadViolations": 16,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 8368,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}
