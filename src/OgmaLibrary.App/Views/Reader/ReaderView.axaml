@@ -109,16 +109,14 @@
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                FontWeight="Bold"
-                               FontSize="10"
-                               Foreground="White" />
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Accent.OnAccent}" />
                   </Grid>
                 </Button>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Padding="12,6"
-                  Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="White"
+          <Button Classes="primary" Padding="12,6"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CreateHighlightLabel}"
                   Click="CreateHighlightButton_Click">
@@ -129,9 +127,7 @@
               <TextBlock Text="{Binding CreateHighlightLabel}" />
             </StackPanel>
           </Button>
-          <Button Padding="12,6"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
+          <Button Classes="danger" Padding="12,6"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CreateNoteLabel}"
                   Click="CreateNoteButton_Click">
@@ -142,9 +138,7 @@
               <TextBlock Text="{Binding CreateNoteLabel}" />
             </StackPanel>
           </Button>
-          <Button Padding="12,6"
-                  Background="{DynamicResource Brush.Accent.Ink}"
-                  Foreground="White"
+          <Button Classes="primary" Padding="12,6"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding AddBookmarkLabel}"
                   Click="AddBookmarkButton_Click">
@@ -234,7 +228,7 @@
                 AutomationProperties.Name="{Binding ZoomOutLabel}"
                 ToolTip.Tip="{Binding ZoomOutLabel}"
                 Click="ZoomOutButton_Click">
-          <TextBlock Text="−" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="−" FontSize="{DynamicResource Type.Size.Glyph}" FontWeight="SemiBold" />
         </Button>
         <TextBlock Text="{Binding ZoomPercentLabel}"
                    MinWidth="52"
@@ -247,19 +241,19 @@
                 AutomationProperties.Name="{Binding ZoomInLabel}"
                 ToolTip.Tip="{Binding ZoomInLabel}"
                 Click="ZoomInButton_Click">
-          <TextBlock Text="+" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="+" FontSize="{DynamicResource Type.Size.Glyph}" FontWeight="SemiBold" />
         </Button>
         <Button Padding="10,5"
                 AutomationProperties.Name="{Binding FitWidthLabel}"
                 ToolTip.Tip="{Binding FitWidthLabel}"
                 Click="FitWidthButton_Click">
-          <TextBlock Text="↔" FontSize="16" />
+          <TextBlock Text="↔" FontSize="{DynamicResource Type.Size.Glyph}" />
         </Button>
         <Button Padding="10,5"
                 AutomationProperties.Name="{Binding FitPageLabel}"
                 ToolTip.Tip="{Binding FitPageLabel}"
                 Click="FitPageButton_Click">
-          <TextBlock Text="⛶" FontSize="16" />
+          <TextBlock Text="⛶" FontSize="{DynamicResource Type.Size.Glyph}" />
         </Button>
       </StackPanel>
     </Border>
@@ -283,7 +277,7 @@
                 BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                 BorderThickness="1"
                 CornerRadius="{DynamicResource Radius.S}"
-                Background="White"
+                Background="{DynamicResource Brush.Surface.Page}"
                 PointerPressed="PageSurface_PointerPressed"
                 PointerMoved="PageSurface_PointerMoved"
                 PointerReleased="PageSurface_PointerReleased">
@@ -343,13 +337,12 @@
                           CornerRadius="3"
                           IsHitTestVisible="False"
                           AutomationProperties.Name="{Binding AccessibleLabel}" />
-                  <Button Width="24"
+                  <Button Classes="tool" Width="24"
                           Height="24"
                           Padding="3"
                           Margin="{Binding NoteAnchorMargin}"
                           HorizontalAlignment="Left"
                           VerticalAlignment="Top"
-                          Background="Transparent"
                           BorderThickness="0"
                           IsVisible="{Binding IsNote}"
                           AutomationProperties.Name="{Binding NoteAnchorAccessibleLabel}"
@@ -489,9 +482,7 @@
                     <TextBlock Text="{Binding CopyCitationLabel}" />
                   </StackPanel>
                 </Button>
-                <Button Padding="10,6"
-                        Background="{DynamicResource Brush.Accent.Ink}"
-                        Foreground="White"
+                <Button Classes="primary" Padding="10,6"
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding ExportCitationLabel}"
                         Click="ExportCitationButton_Click">
@@ -617,9 +608,7 @@
                             Click="CancelDeleteAnnotationButton_Click">
                       <TextBlock Text="{Binding CancelDeleteAnnotationLabel}" />
                     </Button>
-                    <Button Padding="8,4"
-                            Background="{DynamicResource Brush.Accent.Clay}"
-                            Foreground="White"
+                    <Button Classes="danger" Padding="8,4"
                             CornerRadius="{DynamicResource Radius.S}"
                             AutomationProperties.Name="{Binding ConfirmDeleteAnnotationLabel}"
                             Click="ConfirmDeleteAnnotationButton_Click">
@@ -801,7 +790,7 @@
                               AutomationProperties.Name="{Binding ActiveAutomationLabel}">
                         <TextBlock Text="{Binding ActiveLabel}"
                                    FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="White" />
+                                   Foreground="{DynamicResource Brush.Accent.OnAccent}" />
                       </Border>
                       <CheckBox Grid.Column="3"
                                 IsChecked="{Binding IsVisible, Mode=OneWay}"
@@ -896,10 +885,8 @@
                          AutomationProperties.Name="{Binding DispositionLabel}"
                          LostFocus="ReadingMemoryField_LostFocus" />
 
-                <Button Padding="12,8"
+                <Button Classes="primary" Padding="12,8"
                         HorizontalAlignment="Left"
-                        Background="{DynamicResource Brush.Accent.Ink}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding SaveReadingMemoryLabel}"
                         Click="SaveMemoryButton_Click">

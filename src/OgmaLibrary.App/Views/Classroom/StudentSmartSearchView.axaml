@@ -48,11 +48,9 @@
                AcceptsReturn="True"
                TextWrapping="Wrap"
                AutomationProperties.Name="{Binding QueryAccessibleLabel}" />
-      <Button Grid.Column="1"
+      <Button Classes="primary" Grid.Column="1"
               MinWidth="120"
               Padding="14,8"
-              Background="{DynamicResource Brush.Accent.Oak}"
-              Foreground="White"
               CornerRadius="{DynamicResource Radius.S}"
               IsEnabled="{Binding CanRequestPreview}"
               Click="PreviewButton_Click"
@@ -96,9 +94,8 @@
                          FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
             </Grid>
-            <Button Padding="10,6"
+            <Button Classes="tool" Padding="10,6"
                     HorizontalAlignment="Left"
-                    Background="Transparent"
                     BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                     BorderThickness="1"
                     CornerRadius="{DynamicResource Radius.S}"
@@ -149,8 +146,7 @@
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="8">
-              <Button Padding="10,6"
-                      Background="Transparent"
+              <Button Classes="tool" Padding="10,6"
                       BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                       BorderThickness="1"
                       CornerRadius="{DynamicResource Radius.S}"
@@ -159,9 +155,7 @@
                       AutomationProperties.Name="{Binding CancelPreviewLabel}">
                 <TextBlock Text="{Binding CancelPreviewLabel}" />
               </Button>
-              <Button Padding="12,6"
-                      Background="{DynamicResource Brush.Accent.Sage}"
-                      Foreground="White"
+              <Button Classes="primary" Padding="12,6"
                       CornerRadius="{DynamicResource Radius.S}"
                       IsEnabled="{Binding CanConfirmSearch}"
                       Click="ConfirmSearchButton_Click"
@@ -187,9 +181,8 @@
                        FontSize="{DynamicResource Type.Size.Subtitle}"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            <Button Grid.Column="1"
+            <Button Classes="tool" Grid.Column="1"
                     Padding="8,4"
-                    Background="Transparent"
                     BorderThickness="0"
                     Click="ClearAnswerButton_Click"
                     AutomationProperties.Name="{Binding ClearAnswerAccessibleLabel}">

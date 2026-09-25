@@ -66,17 +66,13 @@
       </StackPanel>
 
       <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
-        <Button Padding="10,5"
-                Background="{DynamicResource Brush.Accent.Sage}"
-                Foreground="White"
+        <Button Classes="primary" Padding="10,5"
                 IsEnabled="{Binding CanAccept}"
                 AutomationProperties.Name="{Binding AcceptLabel}"
                 Click="Accept_Click">
           <TextBlock Text="{Binding AcceptLabel}" />
         </Button>
-        <Button Padding="10,5"
-                Background="{DynamicResource Brush.Accent.Clay}"
-                Foreground="White"
+        <Button Classes="danger" Padding="10,5"
                 IsEnabled="{Binding CanReject}"
                 AutomationProperties.Name="{Binding RejectLabel}"
                 Click="Reject_Click">

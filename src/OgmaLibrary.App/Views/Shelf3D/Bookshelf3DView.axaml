@@ -12,7 +12,7 @@
                  Height="20"
                  Path="{Binding ToggleIconPath}" />
         <TextBlock Text="{Binding Title}"
-                   FontSize="18"
+                   FontSize="{DynamicResource Type.Size.Subtitle}"
                    FontWeight="SemiBold"
                    VerticalAlignment="Center" />
       </StackPanel>

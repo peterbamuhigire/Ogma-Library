@@ -24,9 +24,7 @@
         <Button Grid.Column="1"
                 Margin="8,0,0,0"
                 Padding="10,5"
-                Background="{DynamicResource Brush.Surface.Card}"
-                BorderBrush="{DynamicResource Brush.Accent.Clay}"
-                Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                Classes="danger"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanEraseEmbeddings}"
                 AutomationProperties.Name="{Binding EraseEmbeddingsLabel}"
@@ -39,11 +37,9 @@
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </StackPanel>
         </Button>
-        <Button Grid.Column="2"
+        <Button Classes="danger" Grid.Column="2"
                 Margin="8,0,0,0"
                 Padding="10,5"
-                Background="{DynamicResource Brush.Accent.Clay}"
-                Foreground="White"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanRebuild}"
                 AutomationProperties.Name="{Binding RebuildLabel}"
@@ -85,11 +81,9 @@
                      TextWrapping="Wrap"
                      VerticalAlignment="Center"
                      Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          <Button Grid.Column="1"
+          <Button Classes="danger" Grid.Column="1"
                   Margin="8,0,0,0"
                   Padding="10,5"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
                   AutomationProperties.Name="{Binding ConfirmRebuildLabel}"
                   Click="ConfirmRebuild_Click">
             <TextBlock Text="{Binding ConfirmRebuildLabel}" />
@@ -123,12 +117,10 @@
                      FontSize="{DynamicResource Type.Size.Caption}"
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                      AutomationProperties.Name="{Binding EmbeddingErasureCountdownText}" />
-          <Button Grid.Column="1"
+          <Button Classes="danger" Grid.Column="1"
                   Grid.RowSpan="2"
                   Margin="8,0,0,0"
                   Padding="10,5"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
                   IsEnabled="{Binding CanConfirmEmbeddingErasure}"
                   AutomationProperties.Name="{Binding ConfirmEmbeddingErasureLabel}"
                   Click="ConfirmEmbeddingErasure_Click">

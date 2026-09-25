@@ -51,7 +51,7 @@
               Margin="8,0,0,0"
               Padding="10,5"
               Background="{DynamicResource Brush.Accent.Oak}"
-              Foreground="White"
+              Foreground="{DynamicResource Brush.Accent.OnAccent}"
               CornerRadius="{DynamicResource Radius.S}"
               IsEnabled="{Binding CanOpenSelected}"
               AutomationProperties.AutomationId="Search.OpenSelected"

@@ -287,6 +287,12 @@
   </Style>
 
   <!-- ═══════════════════ List rows: selection and focus ═══════════════════ -->
+  <!-- Lists sit on the raised surface (Fluent's neutral grey chrome is replaced). -->
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.Divider}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
+  </Style>
   <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="BorderBrush" Value="Transparent" />

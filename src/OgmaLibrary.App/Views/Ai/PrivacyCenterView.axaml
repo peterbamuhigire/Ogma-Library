@@ -7,7 +7,7 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" Margin="16">
     <StackPanel Orientation="Horizontal" Spacing="8">
       <svg:Svg Width="22" Height="22" Path="{Binding PrivacyIconPath}" />
-      <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Type.Size.Title}" FontWeight="SemiBold" />
     </StackPanel>
 
     <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">

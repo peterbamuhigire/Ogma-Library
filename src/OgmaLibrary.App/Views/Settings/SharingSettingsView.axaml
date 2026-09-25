@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:OgmaLibrary.App.Views.Settings"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              x:Class="OgmaLibrary.App.Views.Settings.SharingSettingsView"
              x:DataType="vm:HostSharingViewModel">
@@ -64,9 +65,7 @@
                     Orientation="Horizontal"
                     Spacing="8"
                     VerticalAlignment="Top">
-          <Button Padding="12,7"
-                  Background="{DynamicResource Brush.Accent.Sage}"
-                  Foreground="White"
+          <Button Classes="primary" Padding="12,7"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding CanStart}"
                   AutomationProperties.Name="{Binding ConfirmStartText}"
@@ -74,9 +73,7 @@
             <TextBlock Text="Start"
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
-          <Button Padding="12,7"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
+          <Button Classes="danger" Padding="12,7"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding CanStop}"
                   AutomationProperties.Name="Stop Library Host"
@@ -107,8 +104,7 @@
             <StackPanel Grid.Column="1"
                         Orientation="Horizontal"
                         Spacing="8">
-              <Button Padding="10,6"
-                      Background="Transparent"
+              <Button Classes="tool" Padding="10,6"
                       BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                       BorderThickness="1"
                       CornerRadius="{DynamicResource Radius.S}"
@@ -117,9 +113,7 @@
                 <TextBlock Text="{Binding CancelConfirmationText}"
                            FontSize="{DynamicResource Type.Size.Caption}" />
               </Button>
-              <Button Padding="10,6"
-                      Background="{DynamicResource Brush.Accent.Sage}"
-                      Foreground="White"
+              <Button Classes="primary" Padding="10,6"
                       CornerRadius="{DynamicResource Radius.S}"
                       AutomationProperties.Name="{Binding ConfirmStartText}"
                       Click="ConfirmStartButton_Click">
@@ -165,8 +159,6 @@
           </ComboBox>
           <Button Grid.Column="1"
                   Padding="12,7"
-                  Background="{DynamicResource Brush.Accent.Slate}"
-                  Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding CanDiscoverHosts}"
                   AutomationProperties.Name="{Binding RefreshHostsText}"
@@ -221,10 +213,8 @@
                    FontSize="{DynamicResource Type.Size.Caption}"
                    TextWrapping="NoWrap"
                    AutomationProperties.Name="{Binding ProfileDisplayNameLabel}" />
-          <Button Grid.Column="2"
+          <Button Classes="primary" Grid.Column="2"
                   Padding="12,7"
-                  Background="{DynamicResource Brush.Accent.Sage}"
-                  Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding CanConnectToHost}"
                   AutomationProperties.Name="{Binding ConnectToHostText}"
@@ -281,10 +271,8 @@
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                      TextWrapping="Wrap"
                      VerticalAlignment="Center" />
-          <Button Grid.Column="1"
+          <Button Classes="primary" Grid.Column="1"
                   Padding="12,7"
-                  Background="{DynamicResource Brush.Accent.Ink}"
-                  Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding CanSyncNow}"
                   AutomationProperties.Name="{Binding SyncNowText}"
@@ -319,10 +307,8 @@
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Grid.Column="1"
+            <Button Classes="primary" Grid.Column="1"
                     Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Sage}"
-                    Foreground="White"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanResolveAnnotationConflict}"
                     AutomationProperties.Name="{Binding KeepLocalText}"
@@ -332,8 +318,6 @@
             </Button>
             <Button Grid.Column="2"
                     Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Slate}"
-                    Foreground="White"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanResolveAnnotationConflict}"
                     AutomationProperties.Name="{Binding KeepServerText}"
@@ -374,8 +358,6 @@
             </StackPanel>
             <Button Grid.Column="1"
                     Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Slate}"
-                    Foreground="White"
                     CornerRadius="{DynamicResource Radius.S}"
                     AutomationProperties.Name="Refresh school administration"
                     Click="RefreshSchoolAdminButton_Click">
@@ -409,10 +391,8 @@
                          Watermark="Birth year"
                          AutomationProperties.Name="Enrollment birth year"
                          FontSize="{DynamicResource Type.Size.Caption}" />
-                <Button Grid.Column="3"
+                <Button Classes="primary" Grid.Column="3"
                         Padding="12,7"
-                        Background="{DynamicResource Brush.Accent.Sage}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanEnrollProfile}"
                         AutomationProperties.Name="Enroll managed profile"
@@ -454,10 +434,8 @@
                     </DataTemplate>
                   </ListBox.ItemTemplate>
                 </ListBox>
-                <Button Grid.Column="1"
+                <Button Classes="danger" Grid.Column="1"
                         Padding="12,7"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanRevokeSelectedProfile}"
                         AutomationProperties.Name="Revoke managed profile"
@@ -486,10 +464,8 @@
                          Watermark="Provider key"
                          AutomationProperties.Name="School AI key"
                          FontSize="{DynamicResource Type.Size.Caption}" />
-                <Button Grid.Column="2"
+                <Button Classes="primary" Grid.Column="2"
                         Padding="12,7"
-                        Background="{DynamicResource Brush.Accent.Sage}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanSaveSchoolAiKey}"
                         AutomationProperties.Name="Save school AI key"
@@ -499,8 +475,6 @@
                 </Button>
                 <Button Grid.Column="3"
                         Padding="12,7"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanTestSchoolAiKey}"
                         AutomationProperties.Name="Test school AI key"
@@ -508,10 +482,8 @@
                   <TextBlock Text="Test key"
                              FontSize="{DynamicResource Type.Size.Caption}" />
                 </Button>
-                <Button Grid.Column="4"
+                <Button Classes="danger" Grid.Column="4"
                         Padding="12,7"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanDeleteSchoolAiKey}"
                         AutomationProperties.Name="Delete school AI key"
@@ -550,8 +522,6 @@
                                FontSize="{DynamicResource Type.Size.Caption}" />
                 <Button Grid.Column="3"
                         Padding="12,7"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanSaveSchoolAiPolicy}"
                         AutomationProperties.Name="Save school AI policy"
@@ -614,8 +584,6 @@
                          FontSize="{DynamicResource Type.Size.Caption}" />
                 <Button Grid.Column="1"
                         Padding="10,6"
-                        Background="{DynamicResource Brush.Accent.Slate}"
-                        Foreground="White"
                         CornerRadius="{DynamicResource Radius.S}"
                         IsEnabled="{Binding CanExportSchoolAuditCsv}"
                         AutomationProperties.Name="Export school audit CSV"
@@ -658,10 +626,8 @@
                      Watermark="Type PURGE AI HISTORY to clear student AI history and usage ledger"
                      AutomationProperties.Name="AI history purge confirmation"
                      FontSize="{DynamicResource Type.Size.Caption}" />
-            <Button Grid.Column="1"
+            <Button Classes="danger" Grid.Column="1"
                     Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Clay}"
-                    Foreground="White"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanPurgeAiHistory}"
                     AutomationProperties.Name="Purge school AI history"
@@ -677,17 +643,16 @@
             ColumnDefinitions="Auto,*"
             ColumnSpacing="20"
             IsVisible="{Binding CanShare}">
+        <!-- Sept-23 Phase 09 (9.9): a real QR bitmap with a 4-module quiet zone. -->
         <Border Grid.Column="0"
-                Background="White"
-                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                BorderBrush="{DynamicResource Brush.Surface.Divider}"
                 BorderThickness="1"
-                Padding="10"
+                CornerRadius="{DynamicResource Radius.S}"
+                ClipToBounds="True"
                 VerticalAlignment="Top">
-          <TextBlock Text="{Binding QrCodeText}"
-                     FontFamily="Consolas, Menlo, monospace"
-                     FontSize="4"
-                     LineHeight="4"
-                     Foreground="Black" />
+          <settings:QrCodeView Payload="{Binding ManualJoinUri}"
+                               AutomationProperties.AutomationId="Sharing.QrCode"
+                               AutomationProperties.Name="{Binding SharePanelSubtitle}" />
         </Border>
 
         <StackPanel Grid.Column="1" Spacing="10">
@@ -716,17 +681,13 @@
                      TextWrapping="Wrap" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Slate}"
-                    Foreground="White"
                     CornerRadius="{DynamicResource Radius.S}"
                     AutomationProperties.Name="{Binding CopyJoinLinkText}"
                     Click="CopyJoinLinkButton_Click">
               <TextBlock Text="{Binding CopyJoinLinkText}"
                          FontSize="{DynamicResource Type.Size.Caption}" />
             </Button>
-            <Button Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Oak}"
-                    Foreground="White"
+            <Button Classes="primary" Padding="12,7"
                     CornerRadius="{DynamicResource Radius.S}"
                     AutomationProperties.Name="{Binding CopyFingerprintText}"
                     Click="CopyFingerprintButton_Click">
@@ -760,8 +721,6 @@
                      AutomationProperties.LiveSetting="Polite" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Slate}"
-                    Foreground="White"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanExportOfflineCache}"
                     AutomationProperties.Name="{Binding OfflineCacheExportText}"
@@ -769,9 +728,7 @@
               <TextBlock Text="{Binding OfflineCacheExportText}"
                          FontSize="{DynamicResource Type.Size.Caption}" />
             </Button>
-            <Button Padding="12,7"
-                    Background="{DynamicResource Brush.Accent.Clay}"
-                    Foreground="White"
+            <Button Classes="danger" Padding="12,7"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanClearOfflineCache}"
                     AutomationProperties.Name="{Binding OfflineCacheClearText}"
@@ -800,9 +757,7 @@
                   <TextBlock Text="{Binding OfflineCacheCancelClearText}"
                              FontSize="{DynamicResource Type.Size.Caption}" />
                 </Button>
-                <Button Padding="10,6"
-                        Background="{DynamicResource Brush.Accent.Clay}"
-                        Foreground="White"
+                <Button Classes="danger" Padding="10,6"
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding OfflineCacheConfirmClearText}"
                         Click="ConfirmOfflineCacheClearButton_Click">

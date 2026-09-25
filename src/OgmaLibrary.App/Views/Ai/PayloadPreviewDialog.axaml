@@ -15,7 +15,7 @@
     <StackPanel Orientation="Horizontal" Spacing="10">
       <svg:Svg Width="28" Height="28" Path="{Binding PrivacyIconPath}" />
       <StackPanel>
-        <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Type.Size.Title}" FontWeight="SemiBold" />
         <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" MaxWidth="620" Opacity="0.84" />
       </StackPanel>
     </StackPanel>

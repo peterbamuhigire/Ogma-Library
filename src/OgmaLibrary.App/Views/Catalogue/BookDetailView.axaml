@@ -32,26 +32,23 @@
                    TextWrapping="Wrap"
                    MaxLines="2"
                    VerticalAlignment="Center" />
-        <Button Grid.Column="1"
+        <Button Classes="primary" Grid.Column="1"
                 Padding="12,6"
                 Margin="8,0,4,0"
-                Background="{DynamicResource Brush.Accent.Ink}"
-                Foreground="White"
                 IsEnabled="{Binding CanOpenReader}"
                 AutomationProperties.AutomationId="Detail.Action.Read"
                 AutomationProperties.Name="{Binding ReadText}"
                 Click="ReadButton_Click">
           <TextBlock Text="{Binding ReadText}" FontSize="{DynamicResource Type.Size.Caption}" />
         </Button>
-        <Button Grid.Column="2"
-                Background="Transparent"
+        <Button Classes="tool" Grid.Column="2"
                 BorderThickness="0"
                 Padding="6"
                 VerticalAlignment="Center"
                 AutomationProperties.AutomationId="Detail.Action.Close"
                 AutomationProperties.Name="{Binding CloseButtonText}"
                 Click="CloseButton_Click">
-          <TextBlock Text="✕" FontSize="14" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          <TextBlock Text="✕" FontSize="{DynamicResource Type.Size.Body}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
         </Button>
       </Grid>
 
@@ -60,11 +57,14 @@
         <StackPanel Spacing="0" Margin="16,0,16,16">
 
           <!-- Cover placeholder -->
-            <cat:CoverImageView Height="140"
+          <cat:CoverImageView Width="140"
+                              Height="200"
                               Margin="0,0,0,16"
+                              HorizontalAlignment="Center"
                               RelativePath="{Binding Book.CoverRelativePath}"
                               RootPath="{Binding AssetRootPath}"
-                              Label="{Binding Title}" />
+                              Label="{Binding Title}"
+                              Subtitle="{Binding AuthorsDisplay}" />
 
           <!-- Authors -->
           <TextBlock Text="{Binding AuthorsDisplay}"
@@ -463,9 +463,8 @@
                   <ItemsControl ItemsSource="{Binding ProviderAttributionLinks}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:ProviderAttributionLink">
-                        <Button HorizontalAlignment="Left"
+                        <Button Classes="tool" HorizontalAlignment="Left"
                                 Padding="4,2"
-                                Background="Transparent"
                                 BorderThickness="0"
                                 AutomationProperties.Name="{Binding AccessibleName}"
                                 Click="OpenProviderAttributionButton_Click">
@@ -618,11 +617,9 @@
                      Foreground="{DynamicResource Brush.Surface.OnParchment}"
                      TextWrapping="Wrap" />
 
-          <Button Padding="10,6"
+          <Button Classes="danger" Padding="10,6"
                   Margin="0,10,0,0"
                   HorizontalAlignment="Left"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsVisible="{Binding IsPasswordProtected}"
                   IsEnabled="{Binding CanForgetPassword}"
@@ -650,9 +647,7 @@
                   HorizontalAlignment="Center">
 
         <!-- Read button -->
-        <Button Padding="16,8"
-                Background="{DynamicResource Brush.Accent.Ink}"
-                Foreground="White"
+        <Button Classes="primary" Padding="16,8"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanOpenReader}"
                 AutomationProperties.Name="{Binding ReadText}"
@@ -661,9 +656,7 @@
         </Button>
 
         <!-- Enrich button -->
-        <Button Padding="16,8"
-                Background="{DynamicResource Brush.Accent.Plum}"
-                Foreground="White"
+        <Button Classes="primary" Padding="16,8"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanEnrich}"
                 AutomationProperties.Name="{Binding EnrichText}"
@@ -673,9 +666,7 @@
         </Button>
 
         <!-- OCR button -->
-        <Button Padding="12,8"
-                Background="{DynamicResource Brush.Accent.Sage}"
-                Foreground="White"
+        <Button Classes="primary" Padding="12,8"
                 CornerRadius="{DynamicResource Radius.S}"
                 IsEnabled="{Binding CanRunOcr}"
                 AutomationProperties.Name="{Binding RunOcrText}"

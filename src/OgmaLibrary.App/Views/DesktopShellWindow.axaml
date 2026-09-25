@@ -10,7 +10,7 @@
         Icon="/Assets/app.png"
         Width="1180" Height="760"
         MinWidth="860" MinHeight="560"
-        Background="{DynamicResource Brush.Surface.Parchment}">
+        Background="{DynamicResource Brush.Surface.Canvas}">
 
   <Grid>
     <Grid x:Name="LibrarySurface" IsVisible="{Binding IsLibraryVisible}">
@@ -71,9 +71,8 @@
                         KeyDown="CommandPaletteList_KeyDown">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="cat:CommandPaletteItem">
-                <Button HorizontalAlignment="Stretch"
+                <Button Classes="tool" HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Stretch"
-                        Background="Transparent"
                         BorderThickness="0"
                         Padding="10,8"
                         AutomationProperties.Name="{Binding AutomationName}"
@@ -246,11 +245,9 @@
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                      AutomationProperties.LiveSetting="Polite" />
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button x:Name="RetryButton"
+            <Button Classes="primary" x:Name="RetryButton"
                     MinWidth="130"
                     MinHeight="40"
-                    Background="{DynamicResource Brush.Accent.Oak}"
-                    Foreground="{DynamicResource Brush.Accent.OnAccent}"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanRetry}"
                     Content="{Binding RetryText}"
@@ -259,10 +256,6 @@
                     Click="RetryButton_Click" />
             <Button MinWidth="150"
                     MinHeight="40"
-                    Background="Transparent"
-                    Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                    BorderBrush="{DynamicResource Brush.Accent.Slate}"
-                    BorderThickness="1"
                     CornerRadius="{DynamicResource Radius.S}"
                     IsEnabled="{Binding CanExportDiagnostics}"
                     Content="{Binding ExportDiagnosticsText}"
