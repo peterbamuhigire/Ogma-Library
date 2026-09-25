@@ -15,7 +15,16 @@
            SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
            SelectionMode="Single"
            Background="Transparent"
-           BorderThickness="0">
+           BorderThickness="0"
+           AutomationProperties.AutomationId="Catalogue.List">
+    <ListBox.Styles>
+      <!-- Sept-23 K14: the readable accessible name and a stable automation id belong on the
+           ListBoxItem container; otherwise UI Automation announces the record's ToString(). -->
+      <Style Selector="ListBoxItem" x:DataType="app:BookSummaryProjection">
+        <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+        <Setter Property="AutomationProperties.AutomationId" Value="{Binding BookId, StringFormat='Catalogue.Item.{0}'}" />
+      </Style>
+    </ListBox.Styles>
     <ListBox.ItemsPanel>
       <ItemsPanelTemplate>
         <VirtualizingStackPanel />

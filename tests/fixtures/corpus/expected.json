@@ -1,0 +1,40 @@
+{
+  "schema": "ogma-e2e-corpus/1",
+  "generator": "tests/fixtures/corpus/New-SyntheticCorpus.py",
+  "manifest": "tests/fixtures/corpus/MANIFEST.sha256.json",
+  "notes": "Journey oracle for the synthetic corpus. 'catalogue' lists the distinct valid works the library should show (the byte-identical copy is a second location of The Lantern Keeper, per ADR-0016 canonical identity). 'invalid' files must not appear as normal indexed books (G6).",
+  "fileCount": 17,
+  "catalogueCount": 12,
+  "catalogue": [
+    { "file": "Science/The Physics of Everyday Light.pdf", "title": "The Physics of Everyday Light", "author": "Amara Okello", "isbn": "978-0-306-40615-7", "isbnValid": true, "pages": 40 },
+    { "file": "Science/Introduction to Tropical Ecology.pdf", "title": "Introduction to Tropical Ecology", "author": "Joseph Mugisha", "isbn": "978-1-86197-876-9", "isbnValid": true, "pages": 60 },
+    { "file": "Science/Algorithms Explained.pdf", "title": "Algorithms Explained", "author": "Grace Namutebi", "isbn": "978-0-13-110362-7", "isbnValid": true, "pages": 120 },
+    { "file": "History/A Short History of the Great Lakes Kingdoms.pdf", "title": "A Short History of the Great Lakes Kingdoms", "author": "Peter Byaruhanga", "isbn": "978-9970-02-123-4", "isbnValid": false, "pages": 80 },
+    { "file": "History/Trade Routes of East Africa.pdf", "title": "Trade Routes of East Africa", "author": "Sarah Achieng", "isbn": null, "isbnValid": false, "pages": 30 },
+    { "file": "Fiction/The Lantern Keeper.pdf", "title": "The Lantern Keeper", "author": "Daniel Ssempa", "isbn": "978-3-16-148410-0", "isbnValid": true, "pages": 25, "duplicates": ["Edge Cases/The Lantern Keeper (copy).pdf"] },
+    { "file": "Fiction/Ngũgĩ-style Stories — Unicode Title.pdf", "title": "Hadithi za Jioni: Évening Tales", "author": "Wanjirũ Kamau", "isbn": null, "isbnValid": false, "pages": 12 },
+    { "file": "Science/Big Reference Handbook.pdf", "title": "Big Reference Handbook", "author": "Various", "isbn": "978-0-19-852663-6", "isbnValid": true, "pages": 900 },
+    { "file": "Edge Cases/untitled_scan_0042.pdf", "title": null, "author": null, "isbn": null, "isbnValid": false, "pages": 5, "kind": "untitled" },
+    { "file": "Edge Cases/Scanned Pamphlet (image only).pdf", "title": null, "author": null, "isbn": null, "isbnValid": false, "pages": 1, "kind": "image-only" },
+    { "file": "Edge Cases/Scanned Handout (golden).pdf", "title": null, "author": null, "isbn": null, "isbnValid": false, "pages": 1, "kind": "image-only" },
+    { "file": "Edge Cases/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccc/Deeply Nested.pdf", "title": "Deeply Nested", "author": "Nester", "isbn": null, "isbnValid": false, "pages": 3, "kind": "deep-path" }
+  ],
+  "invalid": [
+    { "file": "Edge Cases/Locked Ledger (password secret).pdf", "displayHint": "Locked Ledger", "reason": "password-protected" },
+    { "file": "Edge Cases/Truncated Download.pdf", "displayHint": "Truncated Download", "reason": "truncated" },
+    { "file": "Edge Cases/not-really-a.pdf", "displayHint": "not-really-a", "reason": "not-a-pdf" },
+    { "file": "Edge Cases/empty.pdf", "displayHint": "empty", "reason": "zero-byte" }
+  ],
+  "pageWords": [
+    { "title": "Algorithms Explained", "page": 57, "phrase": "Page 57 line 3" },
+    { "title": "The Physics of Everyday Light", "page": 12, "phrase": "Page 12 line 0" }
+  ],
+  "searches": [
+    { "kind": "title", "query": "Tropical Ecology", "expectTitle": "Introduction to Tropical Ecology" },
+    { "kind": "author", "query": "Grace Namutebi", "expectTitle": "Algorithms Explained" },
+    { "kind": "body", "query": "Zanzibar monsoon", "expectTitle": "Trade Routes of East Africa" },
+    { "kind": "typo", "query": "Algoritms Explaned", "expectTitle": "Algorithms Explained" },
+    { "kind": "unicode", "query": "Wanjirũ", "expectTitle": "Hadithi za Jioni: Évening Tales" }
+  ],
+  "reader": { "title": "Algorithms Explained", "pages": 120, "resumePage": 7 }
+}

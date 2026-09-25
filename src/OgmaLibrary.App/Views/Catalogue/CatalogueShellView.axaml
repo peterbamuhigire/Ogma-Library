@@ -122,6 +122,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="6"
+                  AutomationProperties.AutomationId="Shell.Action.Sidebar"
                   AutomationProperties.Name="{Binding SidebarToggleLabel}"
                   Click="SidebarToggle_Click">
             <TextBlock Text="{Binding SidebarToggleLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
@@ -134,6 +135,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   Padding="10,5"
                   Margin="8,0,4,0"
+                  AutomationProperties.AutomationId="Shell.Nav.Library"
                   AutomationProperties.Name="{Binding LibraryLabel}"
                   Click="LibraryButton_Click">
             <TextBlock Text="{Binding LibraryLabel}"
@@ -147,6 +149,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   Padding="10,5"
                   Margin="8,0,0,0"
+                  AutomationProperties.AutomationId="Shell.Action.ChooseFolder"
                   AutomationProperties.Name="{Binding ChooseFolderText}"
                   Click="ChooseFolderButton_Click">
             <TextBlock Text="{Binding ChooseFolderText}"
@@ -159,6 +162,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   Padding="10,5"
                   Margin="8,0,0,0"
+                  AutomationProperties.AutomationId="Shell.Action.OpenPdf"
                   AutomationProperties.Name="{Binding OpenPdfText}"
                   Click="OpenPdfButton_Click">
             <TextBlock Text="{Binding OpenPdfText}"
@@ -175,6 +179,7 @@
             <Button Background="Transparent"
                     BorderThickness="0"
                     Padding="8,4"
+                    AutomationProperties.AutomationId="Catalogue.View.Grid"
                     AutomationProperties.Name="{Binding GridViewLabel}"
                     Click="GridViewButton_Click">
               <TextBlock Text="{Binding GridViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Accent.Oak}" />
@@ -183,6 +188,7 @@
             <Button Background="Transparent"
                     BorderThickness="0"
                     Padding="8,4"
+                    AutomationProperties.AutomationId="Catalogue.View.List"
                     AutomationProperties.Name="{Binding ListViewLabel}"
                     Click="ListViewButton_Click">
               <TextBlock Text="{Binding ListViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
@@ -191,6 +197,7 @@
             <Button Background="Transparent"
                     BorderThickness="0"
                     Padding="8,4"
+                    AutomationProperties.AutomationId="Catalogue.View.Directory"
                     AutomationProperties.Name="{Binding DirectoryViewLabel}"
                     Click="DirectoryViewButton_Click">
               <TextBlock Text="{Binding DirectoryViewLabel}" FontSize="{DynamicResource Type.Size.Caption}" />
@@ -199,6 +206,7 @@
             <Button Background="Transparent"
                     BorderThickness="0"
                     Padding="8,4"
+                    AutomationProperties.AutomationId="Catalogue.View.Shelf3D"
                     AutomationProperties.Name="{Binding Shelf3DViewLabel}"
                     ToolTip.Tip="{Binding Shelf3DViewLabel}"
                     IsEnabled="{Binding IsShelf3DAvailable}"
@@ -213,6 +221,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
+                  AutomationProperties.AutomationId="Shell.Nav.Search"
                   AutomationProperties.Name="{Binding SearchLabel}"
                   Click="SearchToggle_Click">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -229,6 +238,7 @@
                   BorderThickness="0"
                   Padding="8,4"
                   IsVisible="{Binding IsStudentSmartSearchVisible}"
+                  AutomationProperties.AutomationId="Shell.Nav.StudentSearch"
                   AutomationProperties.Name="{Binding StudentSmartSearchLabel}"
                   Click="StudentSmartSearchButton_Click">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -245,6 +255,7 @@
                   BorderThickness="0"
                   Padding="10,5"
                   Margin="8,0,0,0"
+                  AutomationProperties.AutomationId="Shell.Nav.Advisor"
                   AutomationProperties.Name="{Binding AdvisorLabel}"
                   Click="AdvisorButton_Click">
             <TextBlock Text="{Binding AdvisorLabel}"
@@ -258,6 +269,7 @@
                   CornerRadius="{DynamicResource Radius.S}"
                   Padding="10,5"
                   Margin="8,0,0,0"
+                  AutomationProperties.AutomationId="Shell.Nav.ReadingPlan"
                   AutomationProperties.Name="{Binding ReadingPlanLabel}"
                   Click="ReadingPlanButton_Click">
             <TextBlock Text="{Binding ReadingPlanLabel}"
@@ -270,6 +282,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
+                  AutomationProperties.AutomationId="Shell.Action.Filter"
                   AutomationProperties.Name="{Binding FilterLabel}"
                   Click="FilterToggle_Click">
             <TextBlock Text="{Binding FilterLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
@@ -280,6 +293,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
+                  AutomationProperties.AutomationId="Shell.Nav.IndexManager"
                   AutomationProperties.Name="{Binding IndexManagerLabel}"
                   Click="IndexManagerToggle_Click">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -294,6 +308,7 @@
           <DropDownButton Background="Transparent"
                           BorderThickness="0"
                           Padding="8,4"
+                          AutomationProperties.AutomationId="Shell.Action.More"
                           AutomationProperties.Name="{Binding MoreActionsLabel}">
             <TextBlock Text="{Binding MoreActionsLabel}"
                        FontSize="{DynamicResource Type.Size.Caption}"
@@ -301,12 +316,15 @@
             <DropDownButton.Flyout>
               <MenuFlyout>
                 <MenuItem Header="{Binding SplitViewLabel}"
+                          AutomationProperties.AutomationId="Shell.More.SplitView"
                           AutomationProperties.Name="{Binding SplitViewLabel}"
                           Click="SplitViewButton_Click" />
                 <MenuItem Header="{Binding SharingSettingsLabel}"
+                          AutomationProperties.AutomationId="Shell.More.Sharing"
                           AutomationProperties.Name="{Binding SharingSettingsLabel}"
                           Click="SharingSettingsButton_Click" />
                 <MenuItem Header="{Binding ReconciliationReviewLabel}"
+                          AutomationProperties.AutomationId="Shell.More.Reconciliation"
                           AutomationProperties.Name="{Binding ReconciliationReviewLabel}"
                           Click="ReconciliationReviewToggle_Click" />
               </MenuFlyout>
@@ -351,20 +369,24 @@
           <TextBox Width="150"
                    Text="{Binding Catalogue.Filter.TitleSearch, Mode=TwoWay}"
                    Watermark="{Binding FilterTitleWatermark}"
+                   AutomationProperties.AutomationId="Catalogue.Filter.Title"
                    AutomationProperties.Name="{Binding FilterTitleWatermark}" />
           <TextBox Width="150"
                    Text="{Binding Catalogue.Filter.AuthorSearch, Mode=TwoWay}"
                    Watermark="{Binding FilterAuthorWatermark}"
+                   AutomationProperties.AutomationId="Catalogue.Filter.Author"
                    AutomationProperties.Name="{Binding FilterAuthorWatermark}" />
           <ComboBox Width="120"
                     ItemsSource="{Binding Catalogue.Filter.SortOptions}"
                     SelectedItem="{Binding Catalogue.Filter.SortField, Mode=TwoWay}"
+                    AutomationProperties.AutomationId="Catalogue.Filter.Sort"
                     AutomationProperties.Name="{Binding SortLabel}" />
           <Button Padding="8,4"
                   Background="Transparent"
                   BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                   BorderThickness="1"
                   CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.AutomationId="Catalogue.Filter.SortDirection"
                   AutomationProperties.Name="{Binding Catalogue.Filter.SortDirectionText}"
                   Click="ToggleSortDirection_Click">
             <TextBlock Text="{Binding Catalogue.Filter.SortDirectionText}"
@@ -374,6 +396,7 @@
                   Background="{DynamicResource Brush.Accent.Clay}"
                   Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
+                  AutomationProperties.AutomationId="Catalogue.Filter.Clear"
                   AutomationProperties.Name="{Binding ClearFiltersText}"
                   Click="ClearFilters_Click">
             <TextBlock Text="{Binding ClearFiltersText}"
@@ -407,6 +430,7 @@
                       HorizontalAlignment="Center"
                       Spacing="8">
             <TextBlock Text="{Binding FilteredEmptyHeading}"
+                       AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Heading"
                        FontSize="{DynamicResource Type.Size.Title}"
                        FontWeight="SemiBold"
                        TextAlignment="Center"
@@ -416,6 +440,7 @@
                     Background="{DynamicResource Brush.Accent.Oak}"
                     Foreground="{DynamicResource Brush.Accent.OnAccent}"
                     CornerRadius="{DynamicResource Radius.S}"
+                    AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Clear"
                     AutomationProperties.Name="{Binding ClearFiltersText}"
                     Click="ClearFilters_Click">
               <TextBlock Text="{Binding ClearFiltersText}" />
@@ -424,10 +449,12 @@
 
           <!-- Empty state -->
           <Border IsVisible="{Binding Catalogue.IsEmpty}"
+                  AutomationProperties.AutomationId="Catalogue.EmptyState"
                   VerticalAlignment="Center"
                   HorizontalAlignment="Center">
             <StackPanel Spacing="8" MaxWidth="400">
               <TextBlock Text="{Binding EmptyStateHeading}"
+                         AutomationProperties.AutomationId="Catalogue.EmptyState.Heading"
                          FontSize="{DynamicResource Type.Size.Title}"
                          FontWeight="SemiBold"
                          TextAlignment="Center"
@@ -445,6 +472,7 @@
                         Background="{DynamicResource Brush.Accent.Oak}"
                         Foreground="{DynamicResource Brush.Accent.OnAccent}"
                         CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.AutomationId="Catalogue.EmptyState.ChooseFolder"
                         AutomationProperties.Name="{Binding ChooseFolderText}"
                         Click="ChooseFolderButton_Click">
                   <TextBlock Text="{Binding ChooseFolderText}" />
@@ -453,6 +481,7 @@
                         Background="{DynamicResource Brush.Accent.Clay}"
                         Foreground="{DynamicResource Brush.Accent.OnAccent}"
                         CornerRadius="{DynamicResource Radius.S}"
+                        AutomationProperties.AutomationId="Catalogue.EmptyState.OpenPdf"
                         AutomationProperties.Name="{Binding OpenPdfText}"
                         Click="OpenPdfButton_Click">
                   <TextBlock Text="{Binding OpenPdfText}" />
@@ -486,6 +515,7 @@
                       Background="{DynamicResource Brush.Accent.Oak}"
                       Foreground="{DynamicResource Brush.Accent.OnAccent}"
                       CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.AutomationId="Reader.BackToLibrary"
                       AutomationProperties.Name="{Binding BackToLibraryLabel}"
                       Click="LibraryButton_Click">
                 <TextBlock Text="{Binding BackToLibraryLabel}"
@@ -535,6 +565,7 @@
           <Button Grid.Column="0"
                   Padding="10,5"
                   IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
+                  AutomationProperties.AutomationId="Catalogue.Pager.Previous"
                   AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
                   Click="PreviousPage_Click">
             <TextBlock Text="{Binding Catalogue.PreviousPageText}"
@@ -549,6 +580,7 @@
           <Button Grid.Column="2"
                   Padding="10,5"
                   IsEnabled="{Binding Catalogue.CanGoToNextPage}"
+                  AutomationProperties.AutomationId="Catalogue.Pager.Next"
                   AutomationProperties.Name="{Binding Catalogue.NextPageText}"
                   Click="NextPage_Click">
             <TextBlock Text="{Binding Catalogue.NextPageText}"
@@ -705,6 +737,7 @@
     </Border>
 
     <cat:BookDetailView Grid.Row="0"
+                        AutomationProperties.AutomationId="Detail.Panel"
                         Grid.Column="2"
                         DataContext="{Binding BookDetail}"
                         IsVisible="{Binding IsVisible}"
@@ -728,6 +761,7 @@
                      FontSize="{DynamicResource Type.Size.Caption}" />
         </Button>
         <TextBlock Grid.Column="0"
+                   AutomationProperties.AutomationId="Shell.Status"
                    Text="{Binding StatusText}"
                    FontSize="{DynamicResource Type.Size.Caption}"
                    Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
