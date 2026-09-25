@@ -209,13 +209,17 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 
         CloseStream();
         Directory.CreateDirectory(_options.DirectoryPath);
-        string path = dailyPath;
-        for (int index = 1; File.Exists(path) && new FileInfo(path).Length + nextLength > _options.MaxFileSizeBytes; index++)
+        string day = now.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        int latestIndex = Directory.EnumerateFiles(_options.DirectoryPath, FilePrefix + day + "*.log")
+            .Select(file => RollKey(Path.GetFileName(file)))
+            .Where(key => key.Day == day)
+            .Select(key => key.Index)
+            .DefaultIfEmpty(0)
+            .Max();
+        string path = PathFor(day, latestIndex);
+        if (File.Exists(path) && new FileInfo(path).Length + nextLength > _options.MaxFileSizeBytes)
         {
-            path = Path.Combine(
-                _options.DirectoryPath,
-                FilePrefix + now.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + "." +
-                index.ToString(CultureInfo.InvariantCulture) + ".log");
+            path = PathFor(day, latestIndex + 1);
         }
 
         _stream = new FileStream(
@@ -230,10 +234,13 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 
     private void EnforceRetention(string activePath)
     {
+        // Newest first by (day, roll index): ogma-YYYYMMDD.log precedes ogma-YYYYMMDD.1.log.
         FileInfo[] files = new DirectoryInfo(_options.DirectoryPath)
             .GetFiles(FilePrefix + "*.log")
-            .OrderByDescending(file => file.LastWriteTimeUtc)
-            .ThenByDescending(file => file.Name, StringComparer.Ordinal)
+            .Select(file => (File: file, Key: RollKey(file.Name)))
+            .OrderByDescending(item => item.Key.Day, StringComparer.Ordinal)
+            .ThenByDescending(item => item.Key.Index)
+            .Select(item => item.File)
             .ToArray();
         foreach (FileInfo file in files.Skip(_options.MaxRetainedFiles))
         {
@@ -252,6 +259,22 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
                 Trace.WriteLine("ogma log retention skipped a file: " + exception.GetType().Name);
             }
         }
+    }
+
+    private string PathFor(string day, int index) => Path.Combine(
+        _options.DirectoryPath,
+        index == 0
+            ? FilePrefix + day + ".log"
+            : FilePrefix + day + "." + index.ToString(CultureInfo.InvariantCulture) + ".log");
+
+    private static (string Day, int Index) RollKey(string fileName)
+    {
+        // ogma-YYYYMMDD.log or ogma-YYYYMMDD.N.log
+        string[] parts = fileName[FilePrefix.Length..].Split('.');
+        int index = parts.Length == 3 && int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int parsed)
+            ? parsed
+            : 0;
+        return (parts[0], index);
     }
 
     private void CloseStream()
