@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using OgmaLibrary.Application.Reader;
 
 namespace OgmaLibrary.Infrastructure.Pdf;
@@ -31,68 +32,130 @@ public sealed class IsolatedPdfRendererFactory : IPdfRendererFactory
     }
 }
 
-internal sealed class IsolatedPdfRenderer : IPdfRenderer
+/// <summary>
+/// Reader adapter over a supervised persistent worker session. All worker IPC runs on
+/// the thread pool and is awaited; page geometry (and therefore rotation) is cached per
+/// document because it never changes while the document is open.
+/// </summary>
+internal sealed class IsolatedPdfRenderer : IPdfRenderer, IPdfRendererHealth
 {
-    private readonly PdfWorkerClient.PdfWorkerSession _session;
-    private bool _disposed;
+    private readonly ReaderSessionSupervisor _supervisor;
+    private readonly ConcurrentDictionary<int, PdfPageGeometry> _geometry = new();
+    private int _disposed;
 
     public IsolatedPdfRenderer(PdfWorkerClient client, string filePath, char[]? password)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        _session = client.OpenSession(filePath, password);
-        PageCount = _session.PageCount;
+        _supervisor = new ReaderSessionSupervisor(
+            sessionPassword => client.OpenSession(filePath, sessionPassword),
+            password,
+            client.SessionLimits);
+        _supervisor.Recovered += OnSupervisorRecovered;
+        PageCount = _supervisor.PageCount;
     }
+
+    public event EventHandler<PdfRendererRecoveredEventArgs>? Recovered;
 
     public int PageCount { get; }
 
+    /// <summary>Gets the supervisor, for diagnostics and tests.</summary>
+    internal ReaderSessionSupervisor Supervisor => _supervisor;
+
     public Task<RenderResult> RenderPageAsync(int pageIndex, RenderRequest request, CancellationToken ct)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _session.RenderPageAsync(pageIndex, request, ct);
+        ThrowIfInvalidPage(pageIndex);
+        ArgumentNullException.ThrowIfNull(request);
+        return RunAsync((session, token) => session.RenderPageAsync(pageIndex, request, token), ct);
     }
 
-    public int GetPageRotationDegrees(int pageIndex)
+    public async Task<int> GetPageRotationDegreesAsync(int pageIndex, CancellationToken ct) =>
+        (await GetPageGeometryAsync(pageIndex, ct).ConfigureAwait(false)).RotationDegrees;
+
+    public async Task<PdfPageGeometry> GetPageGeometryAsync(int pageIndex, CancellationToken ct)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _session.GetPageRotationDegrees(pageIndex);
+        ThrowIfInvalidPage(pageIndex);
+        if (_geometry.TryGetValue(pageIndex, out PdfPageGeometry? cached))
+        {
+            return cached;
+        }
+
+        PdfPageGeometry geometry = await RunAsync(
+                (session, token) => session.GetPageGeometryAsync(pageIndex, token),
+                ct)
+            .ConfigureAwait(false);
+        return _geometry.GetOrAdd(pageIndex, geometry);
     }
 
-    public PdfPageGeometry GetPageGeometry(int pageIndex)
+    public Task<PdfDocumentMetadata> ReadDocumentMetadataAsync(CancellationToken ct)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _session.GetPageGeometry(pageIndex);
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        return RunAsync((session, token) => session.ReadDocumentMetadataAsync(token), ct);
     }
 
-    public PdfDocumentMetadata ReadDocumentMetadata()
+    public Task<IReadOnlyList<PdfOutlineEntry>> ReadOutlineAsync(CancellationToken ct)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        return _session.ReadDocumentMetadata();
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        return RunAsync((session, token) => session.ReadOutlineAsync(token), ct);
     }
 
-    public IReadOnlyList<PdfOutlineEntry> ReadOutline()
+    public Task<TextLayer> ExtractTextLayerAsync(int pageIndex, CancellationToken ct)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        return _session.ReadOutline();
+        ThrowIfInvalidPage(pageIndex);
+        return RunAsync((session, token) => session.ExtractTextLayerAsync(pageIndex, token), ct);
     }
 
-    public TextLayer ExtractTextLayer(int pageIndex)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
-        return _session.ExtractTextLayer(pageIndex);
-    }
+    // Synchronous members remain for background ingestion callers (metadata, ISBN,
+    // search extraction, OCR). They block the calling thread, so reader and UI code must
+    // use the asynchronous members; an architecture test enforces that in Reader and App.
+    public int GetPageRotationDegrees(int pageIndex) =>
+        GetPageRotationDegreesAsync(pageIndex, CancellationToken.None).GetAwaiter().GetResult();
+
+    public PdfPageGeometry GetPageGeometry(int pageIndex) =>
+        GetPageGeometryAsync(pageIndex, CancellationToken.None).GetAwaiter().GetResult();
+
+    public PdfDocumentMetadata ReadDocumentMetadata() =>
+        ReadDocumentMetadataAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public IReadOnlyList<PdfOutlineEntry> ReadOutline() =>
+        ReadOutlineAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public TextLayer ExtractTextLayer(int pageIndex) =>
+        ExtractTextLayerAsync(pageIndex, CancellationToken.None).GetAwaiter().GetResult();
+
+    public PdfRendererHealthSnapshot GetHealthSnapshot() => _supervisor.GetHealthSnapshot();
 
     public void Dispose()
     {
-        _disposed = true;
-        _session.Dispose();
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        _supervisor.Recovered -= OnSupervisorRecovered;
+        _supervisor.Dispose();
     }
+
+    private bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+
+    private Task<T> RunAsync<T>(
+        Func<PdfWorkerClient.PdfWorkerSession, CancellationToken, Task<T>> operation,
+        CancellationToken ct)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        // Hop to the thread pool before touching the pipe or the supervisor so a caller
+        // on the UI thread never performs worker IPC, respawn or disposal synchronously.
+        return Task.Run(() => _supervisor.ExecuteAsync(operation, ct), ct);
+    }
+
+    private void ThrowIfInvalidPage(int pageIndex)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount);
+    }
+
+    private void OnSupervisorRecovered(object? sender, PdfRendererRecoveredEventArgs e) =>
+        Recovered?.Invoke(this, e);
 }

@@ -14,6 +14,9 @@ internal static class PdfWorkerCommand
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>Session protocol version; must match the client's expected version.</summary>
+    private const int SessionProtocolVersion = PdfWorkerClient.PdfWorkerSession.ProtocolVersion;
+
     public static async Task<int> RunAsync(string[] args)
     {
         try
@@ -149,14 +152,18 @@ internal static class PdfWorkerCommand
     private static async Task RunServerAsync(ParsedArgs parsed, string sandbox)
     {
         using PdfiumAdapter renderer = GetRenderer(parsed);
-        WriteServerResponse(new ServerResponse("ok", PageCount: renderer.PageCount));
+        WriteServerResponse(
+            requestId: 0,
+            new ServerResponse("ok", PageCount: renderer.PageCount, ProtocolVersion: SessionProtocolVersion));
 
         while (await Console.In.ReadLineAsync().ConfigureAwait(false) is { } line)
         {
+            long requestId = 0;
             try
             {
                 ServerRequest request = JsonSerializer.Deserialize<ServerRequest>(line, JsonOptions)
                     ?? throw new ArgumentException("The worker request was empty.");
+                requestId = request.RequestId;
 
                 switch (request.Command)
                 {
@@ -182,33 +189,33 @@ internal static class PdfWorkerCommand
                             .ConfigureAwait(false);
                         await File.WriteAllBytesAsync(outputPath, result.PngBytes)
                             .ConfigureAwait(false);
-                        WriteServerResponse(new ServerResponse(
+                        WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             PageWidthPoints: result.PageWidthPoints,
                             PageHeightPoints: result.PageHeightPoints));
                         break;
                     case "rotation":
-                        WriteServerResponse(new ServerResponse(
+                        WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             RotationDegrees: renderer.GetPageRotationDegrees(request.PageIndex)));
                         break;
                     case "geometry":
-                        WriteServerResponse(new ServerResponse(
+                        WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             PageGeometry: renderer.GetPageGeometry(request.PageIndex)));
                         break;
                     case "metadata":
-                        WriteServerResponse(new ServerResponse(
+                        WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             DocumentMetadata: renderer.ReadDocumentMetadata()));
                         break;
                     case "outline":
-                        WriteServerResponse(new ServerResponse(
+                        WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             Outline: renderer.ReadOutline()));
                         break;
                     case "text-layer":
-                        WriteServerResponse(new ServerResponse(
+                        WriteServerResponse(requestId, new ServerResponse(
                             "ok",
                             TextLayer: renderer.ExtractTextLayer(request.PageIndex)));
                         break;
@@ -218,7 +225,7 @@ internal static class PdfWorkerCommand
             }
             catch (Exception ex)
             {
-                WriteServerResponse(new ServerResponse(
+                WriteServerResponse(requestId, new ServerResponse(
                     "error",
                     ErrorType: ex.GetType().Name,
                     Error: "PDF worker operation failed."));
@@ -486,9 +493,13 @@ internal static class PdfWorkerCommand
             JsonOptions));
     }
 
-    private static void WriteServerResponse(ServerResponse response)
+    /// <summary>
+    /// Writes one session response. Every response echoes the request id so the client
+    /// can discard a late reply to a request it already abandoned (protocol v2).
+    /// </summary>
+    private static void WriteServerResponse(long requestId, ServerResponse response)
     {
-        Console.Out.WriteLine(JsonSerializer.Serialize(response, JsonOptions));
+        Console.Out.WriteLine(JsonSerializer.Serialize(response with { RequestId = requestId }, JsonOptions));
         Console.Out.Flush();
     }
 
@@ -512,7 +523,8 @@ internal static class PdfWorkerCommand
         PdfAnnotationRenderMode AnnotationMode = PdfAnnotationRenderMode.Exclude,
         bool IncludeFormValues = false,
         PdfOptionalContentMode OptionalContentMode = PdfOptionalContentMode.Default,
-        int? RotationDegrees = null);
+        int? RotationDegrees = null,
+        long RequestId = 0);
 
     private sealed record ServerResponse(
         string Status,
@@ -525,7 +537,9 @@ internal static class PdfWorkerCommand
         TextLayer? TextLayer = null,
         PdfPageGeometry? PageGeometry = null,
         PdfDocumentMetadata? DocumentMetadata = null,
-        IReadOnlyList<PdfOutlineEntry>? Outline = null);
+        IReadOnlyList<PdfOutlineEntry>? Outline = null,
+        long RequestId = 0,
+        int ProtocolVersion = 0);
 
     private sealed class ParsedArgs
     {

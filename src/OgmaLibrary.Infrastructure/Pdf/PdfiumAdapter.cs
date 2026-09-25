@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using OgmaLibrary.Application.Reader;
 using PDFtoImage;
 using PDFtoImage.Exceptions;
@@ -30,7 +31,7 @@ public sealed class PdfiumAdapter : IPdfRenderer
     private readonly string _filePath;
     private readonly byte[] _fileBytes;
     private readonly char[]? _password;
-    private readonly Lazy<IReadOnlyList<PageInfo>> _pageInfo;
+    private readonly ConcurrentDictionary<int, PageInfo> _pageInfo = new();
     private readonly Lazy<PdfDocument> _textDocument;
     private readonly object _textExtractionGate = new();
     private bool _disposed;
@@ -60,9 +61,6 @@ public sealed class PdfiumAdapter : IPdfRenderer
         _filePath = filePath;
         _fileBytes = File.ReadAllBytes(filePath);
         _password = password is null ? null : copyPassword ? password.ToArray() : password;
-        _pageInfo = new Lazy<IReadOnlyList<PageInfo>>(
-            ReadPageInfo,
-            LazyThreadSafetyMode.ExecutionAndPublication);
         _textDocument = new Lazy<PdfDocument>(
             OpenPdfPigDocument,
             LazyThreadSafetyMode.ExecutionAndPublication);
@@ -125,10 +123,8 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         try
         {
-            IReadOnlyList<PageInfo> pages = _pageInfo.Value;
-            if (pageIndex < pages.Count)
+            if (TryGetPageInfo(pageIndex) is { } page)
             {
-                PageInfo page = pages[pageIndex];
                 return new PdfPageGeometry(
                     pageIndex,
                     Math.Max(1, page.Width),
@@ -367,6 +363,21 @@ public sealed class PdfiumAdapter : IPdfRenderer
 
         ct.ThrowIfCancellationRequested();
 
+        // PNG encoding dominated page-turn CPU (about 200 ms of a 250 ms render at 1440 px).
+        // Fast zlib without row filters measured about 40 % faster and smaller output for
+        // rendered text pages (Sept-23 Kaizen Phase 04, K32). Lossless either way.
+        using (SKPixmap? pixmap = bitmap.PeekPixels())
+        {
+            if (pixmap is not null)
+            {
+                using SKData? fast = pixmap.Encode(new SKPngEncoderOptions(SKPngEncoderFilterFlags.NoFilters, 1));
+                if (fast is not null)
+                {
+                    return fast.ToArray();
+                }
+            }
+        }
+
         using var pngStream = new MemoryStream();
         bitmap.Encode(pngStream, SKEncodedImageFormat.Png, 100);
         return pngStream.ToArray();
@@ -398,14 +409,9 @@ public sealed class PdfiumAdapter : IPdfRenderer
     {
         try
         {
-            IReadOnlyList<PageInfo> pages = _pageInfo.Value;
-            if (pageIndex >= pages.Count)
-            {
-                return (595, 842); // A4 fallback
-            }
-
-            PageInfo page = pages[pageIndex];
-            return (page.Width, page.Height);
+            return TryGetPageInfo(pageIndex) is { } page
+                ? (page.Width, page.Height)
+                : (595, 842); // A4 fallback
         }
         catch
         {
@@ -416,21 +422,34 @@ public sealed class PdfiumAdapter : IPdfRenderer
     private static int NormalizeRotation(int rotation) =>
         ((rotation % 360) + 360) % 360;
 
-    private List<PageInfo> ReadPageInfo()
+    /// <summary>
+    /// Resolves one page's geometry on demand from the already-open document and
+    /// caches it. Materialising every page (the previous approach) parsed the whole
+    /// document on the first geometry or render request, which took longer than the
+    /// reader's per-request wall clock on large books (Sept-23 Kaizen Phase 04).
+    /// </summary>
+    private PageInfo? TryGetPageInfo(int pageIndex)
     {
+        if (_pageInfo.TryGetValue(pageIndex, out PageInfo cached))
+        {
+            return cached;
+        }
+
         try
         {
-            using var doc = OpenPdfPigDocument();
-            return doc.GetPages()
-                .Select(page => new PageInfo(
-                    page.Width,
-                    page.Height,
-                    NormalizeRotation(page.Rotation.Value)))
-                .ToList();
+            PageInfo info;
+            lock (_textExtractionGate)
+            {
+                Page page = _textDocument.Value.GetPage(pageIndex + 1);
+                info = new PageInfo(page.Width, page.Height, NormalizeRotation(page.Rotation.Value));
+            }
+
+            return _pageInfo.GetOrAdd(pageIndex, info);
         }
-        catch
+        catch (Exception)
         {
-            return [];
+            // A malformed page degrades to the bounded fallback geometry.
+            return null;
         }
     }
 
