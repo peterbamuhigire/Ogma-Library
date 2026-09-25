@@ -81,7 +81,7 @@ public static partial class AppLog
 
     /// <summary>The E2E fault injection fired.</summary>
     [LoggerMessage(EventId = 1403, EventName = "app.e2e.fault_injected", Level = LogLevel.Warning,
-        Message = "Injecting a UI-thread fault for the resilience journey")]
+        Message = "Injecting an E2E fault for the resilience journey")]
     public static partial void FaultInjected(ILogger logger);
 
     /// <summary>The library root could not be added to redaction.</summary>

@@ -176,29 +176,45 @@ public sealed class App : Avalonia.Application, IDisposable
     }
 
     /// <summary>
-    /// The hidden E2E test command of T02.1: with <c>OGMA_E2E=1</c> and
-    /// <c>OGMA_E2E_INJECT_UI_FAULT=1</c>, throw once on the UI thread after startup to prove the
-    /// dispatcher safety net keeps the app alive and logs the failure.
+    /// The hidden E2E test commands of T02.1, active only with <c>OGMA_E2E=1</c>:
+    /// <c>OGMA_E2E_INJECT_UI_FAULT=1</c> throws once on the UI thread after startup to prove the
+    /// dispatcher safety net keeps the app alive and logs the failure;
+    /// <c>OGMA_E2E_INJECT_CRASH=1</c> throws on a background thread to prove a terminating
+    /// failure is logged and leaves <c>last-crash.json</c> for the next launch's notice.
     /// </summary>
     private void ScheduleInjectedFaultForE2E()
     {
-        if (!string.Equals(Environment.GetEnvironmentVariable("OGMA_E2E"), "1", StringComparison.Ordinal) ||
-            !string.Equals(Environment.GetEnvironmentVariable("OGMA_E2E_INJECT_UI_FAULT"), "1", StringComparison.Ordinal))
+        if (!IsSet("OGMA_E2E"))
         {
             return;
         }
 
-        _ = InjectFaultAsync();
+        if (IsSet("OGMA_E2E_INJECT_UI_FAULT"))
+        {
+            _ = InjectFaultAsync(crash: false);
+        }
+
+        if (IsSet("OGMA_E2E_INJECT_CRASH"))
+        {
+            _ = InjectFaultAsync(crash: true);
+        }
+
+        static bool IsSet(string name) =>
+            string.Equals(Environment.GetEnvironmentVariable(name), "1", StringComparison.Ordinal);
     }
 
-    private async Task InjectFaultAsync()
+    private async Task InjectFaultAsync(bool crash)
     {
         await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
-        Dispatcher.UIThread.Post(() =>
+        AppLog.FaultInjected(_logger);
+        if (crash)
         {
-            AppLog.FaultInjected(_logger);
-            throw new InvalidOperationException("OGMA_E2E injected UI-thread fault.");
-        });
+            new Thread(() => throw new InvalidOperationException("OGMA_E2E injected crash.")) { IsBackground = true }
+                .Start();
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() => throw new InvalidOperationException("OGMA_E2E injected UI-thread fault."));
     }
 
     private async Task UpdateRedactionRootsAsync(IServiceProvider services, CancellationToken cancellationToken)
