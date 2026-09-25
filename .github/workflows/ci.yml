@@ -40,6 +40,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-RequirementAccountability.ps1
 
+      - name: Design-token lint (Sept-23 Phase 09)
+        shell: pwsh
+        run: ./scripts/Test-DesignTokens.ps1
+
       - name: Restore
         run: dotnet restore OgmaLibrary.sln --locked-mode
 
