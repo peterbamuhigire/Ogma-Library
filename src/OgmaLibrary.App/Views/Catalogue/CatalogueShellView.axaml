@@ -87,7 +87,7 @@
                         Padding="6,1">
                   <TextBlock Text="{Binding BookCount}"
                              FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="White" />
+                             Foreground="{DynamicResource Brush.Accent.OnAccent}" />
                 </Border>
               </StackPanel>
             </DataTemplate>
@@ -106,13 +106,11 @@
               Padding="12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
-        <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Hidden"
-                      HorizontalContentAlignment="Stretch">
-        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <!-- Stopgap (Sept-23 K11): wraps instead of scrolling so every action stays reachable. -->
+        <WrapPanel Orientation="Horizontal" ItemSpacing="2" LineSpacing="4">
 
           <!-- Sidebar toggle -->
-          <Button Grid.Column="0"
+          <Button
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="6"
@@ -121,7 +119,7 @@
             <TextBlock Text="{Binding SidebarToggleLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
-          <Button Grid.Column="1"
+          <Button
                   Background="{DynamicResource Brush.Surface.Footer}"
                   BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                   BorderThickness="1"
@@ -135,8 +133,32 @@
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
+          <Button
+                  Background="{DynamicResource Brush.Accent.Oak}"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Padding="10,5"
+                  Margin="8,0,0,0"
+                  AutomationProperties.Name="{Binding ChooseFolderText}"
+                  Click="ChooseFolderButton_Click">
+            <TextBlock Text="{Binding ChooseFolderText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+
+          <Button
+                  Background="{DynamicResource Brush.Accent.Clay}"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
+                  CornerRadius="{DynamicResource Radius.S}"
+                  Padding="10,5"
+                  Margin="8,0,0,0"
+                  AutomationProperties.Name="{Binding OpenPdfText}"
+                  Click="OpenPdfButton_Click">
+            <TextBlock Text="{Binding OpenPdfText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+
           <!-- View toggle buttons -->
-          <StackPanel Grid.Column="2"
+          <StackPanel
                       Orientation="Horizontal"
                       Spacing="2"
                       VerticalAlignment="Center"
@@ -179,7 +201,7 @@
           </StackPanel>
 
           <!-- Search panel toggle -->
-          <Button Grid.Column="3"
+          <Button
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -194,7 +216,7 @@
           </Button>
 
           <!-- Student smart-search route -->
-          <Button Grid.Column="4"
+          <Button
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -209,9 +231,9 @@
             </StackPanel>
           </Button>
 
-          <Button Grid.Column="12"
+          <Button
                   Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   BorderThickness="0"
                   Padding="10,5"
                   Margin="8,0,0,0"
@@ -221,7 +243,7 @@
                        FontSize="{DynamicResource Type.Size.Caption}" />
           </Button>
 
-          <Button Grid.Column="13"
+          <Button
                   Background="{DynamicResource Brush.Surface.Footer}"
                   BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
                   BorderThickness="1"
@@ -235,8 +257,18 @@
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
           </Button>
 
+          <!-- Filter panel toggle -->
+          <Button
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  AutomationProperties.Name="{Binding FilterLabel}"
+                  Click="FilterToggle_Click">
+            <TextBlock Text="{Binding FilterLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </Button>
+
           <!-- Index Manager panel toggle -->
-          <Button Grid.Column="5"
+          <Button
                   Background="Transparent"
                   BorderThickness="0"
                   Padding="8,4"
@@ -250,76 +282,31 @@
             </StackPanel>
           </Button>
 
-          <!-- Split-view scaffold route -->
-          <Button Grid.Column="6"
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="8,4"
-                  AutomationProperties.Name="{Binding SplitViewLabel}"
-                  Click="SplitViewButton_Click">
-            <TextBlock Text="||"
-                       FontSize="16"
-                       FontWeight="SemiBold"
+          <!-- Stopgap (Sept-23 K11): rarely used routes live in an overflow menu until Phase 07. -->
+          <DropDownButton Background="Transparent"
+                          BorderThickness="0"
+                          Padding="8,4"
+                          AutomationProperties.Name="{Binding MoreActionsLabel}">
+            <TextBlock Text="{Binding MoreActionsLabel}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-          </Button>
-
-          <!-- Filter panel toggle -->
-          <Button Grid.Column="7"
-                  Background="Transparent"
-                  BorderThickness="0"
-                  Padding="8,4"
-                  AutomationProperties.Name="{Binding FilterLabel}"
-                  Click="FilterToggle_Click">
-            <TextBlock Text="{Binding FilterLabel}" FontSize="{DynamicResource Type.Size.Caption}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          </Button>
-
-          <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="4">
-            <Button Background="Transparent"
-                    BorderThickness="0"
-                    Padding="8,4"
-                    AutomationProperties.Name="{Binding SharingSettingsLabel}"
-                    Click="SharingSettingsButton_Click">
-              <TextBlock Text="{Binding SharingSettingsLabel}"
-                         FontSize="{DynamicResource Type.Size.Caption}"
-                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-            </Button>
-            <Button Background="Transparent"
-                    BorderThickness="0"
-                    Padding="8,4"
-                    AutomationProperties.Name="{Binding ReconciliationReviewLabel}"
-                    Click="ReconciliationReviewToggle_Click">
-              <TextBlock Text="{Binding ReconciliationReviewLabel}"
-                         FontSize="{DynamicResource Type.Size.Caption}"
-                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-            </Button>
-          </StackPanel>
-
-          <Button Grid.Column="9"
-                  Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="White"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  Padding="10,5"
-                  Margin="8,0,0,0"
-                  AutomationProperties.Name="{Binding ChooseFolderText}"
-                  Click="ChooseFolderButton_Click">
-            <TextBlock Text="{Binding ChooseFolderText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-
-          <Button Grid.Column="10"
-                  Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  Padding="10,5"
-                  Margin="8,0,0,0"
-                  AutomationProperties.Name="{Binding OpenPdfText}"
-                  Click="OpenPdfButton_Click">
-            <TextBlock Text="{Binding OpenPdfText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
+            <DropDownButton.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="{Binding SplitViewLabel}"
+                          AutomationProperties.Name="{Binding SplitViewLabel}"
+                          Click="SplitViewButton_Click" />
+                <MenuItem Header="{Binding SharingSettingsLabel}"
+                          AutomationProperties.Name="{Binding SharingSettingsLabel}"
+                          Click="SharingSettingsButton_Click" />
+                <MenuItem Header="{Binding ReconciliationReviewLabel}"
+                          AutomationProperties.Name="{Binding ReconciliationReviewLabel}"
+                          Click="ReconciliationReviewToggle_Click" />
+              </MenuFlyout>
+            </DropDownButton.Flyout>
+          </DropDownButton>
 
           <!-- Count badge -->
-          <TextBlock Grid.Column="11"
+          <TextBlock
                      VerticalAlignment="Center"
                      Margin="8,0,4,0"
                      FontSize="{DynamicResource Type.Size.Caption}"
@@ -329,8 +316,7 @@
             </TextBlock.Text>
           </TextBlock>
 
-        </Grid>
-        </ScrollViewer>
+        </WrapPanel>
       </Border>
 
       <Panel Grid.Row="1"
@@ -378,7 +364,7 @@
           </Button>
           <Button Padding="8,4"
                   Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding ClearFiltersText}"
                   Click="ClearFilters_Click">
@@ -407,6 +393,27 @@
             <cat:CatalogueDirectoryView DataContext="{Binding Catalogue}" />
           </Panel>
 
+          <!-- Filtered-empty state (Sept-23 K12/K13): filters hide every book. -->
+          <StackPanel IsVisible="{Binding Catalogue.IsFilteredEmpty}"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      Spacing="8">
+            <TextBlock Text="{Binding FilteredEmptyHeading}"
+                       FontSize="{DynamicResource Type.Size.Title}"
+                       FontWeight="SemiBold"
+                       TextAlignment="Center"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+            <Button HorizontalAlignment="Center"
+                    Padding="16,8"
+                    Background="{DynamicResource Brush.Accent.Oak}"
+                    Foreground="{DynamicResource Brush.Accent.OnAccent}"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    AutomationProperties.Name="{Binding ClearFiltersText}"
+                    Click="ClearFilters_Click">
+              <TextBlock Text="{Binding ClearFiltersText}" />
+            </Button>
+          </StackPanel>
+
           <!-- Empty state -->
           <Border IsVisible="{Binding Catalogue.IsEmpty}"
                   VerticalAlignment="Center"
@@ -428,7 +435,7 @@
                           Margin="0,8,0,0">
                 <Button Padding="16,8"
                         Background="{DynamicResource Brush.Accent.Oak}"
-                        Foreground="White"
+                        Foreground="{DynamicResource Brush.Accent.OnAccent}"
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding ChooseFolderText}"
                         Click="ChooseFolderButton_Click">
@@ -436,7 +443,7 @@
                 </Button>
                 <Button Padding="16,8"
                         Background="{DynamicResource Brush.Accent.Clay}"
-                        Foreground="White"
+                        Foreground="{DynamicResource Brush.Accent.OnAccent}"
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding OpenPdfText}"
                         Click="OpenPdfButton_Click">
@@ -447,39 +454,6 @@
           </Border>
       </Grid>
 
-      <!-- Bounded catalogue paging keeps large result sets responsive while
-           retaining the same virtualized grid/list/directory surfaces. -->
-      <Border Grid.Row="5"
-              IsVisible="{Binding IsCatalogueActive}"
-              Background="{DynamicResource Brush.Surface.Footer}"
-              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-              BorderThickness="0,1,0,0"
-              Padding="12,6">
-        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-          <Button Grid.Column="0"
-                  Padding="10,5"
-                  IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
-                  AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
-                  Click="PreviousPage_Click">
-            <TextBlock Text="{Binding Catalogue.PreviousPageText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-          <TextBlock Grid.Column="1"
-                     Text="{Binding Catalogue.PageSummaryText}"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-          <Button Grid.Column="2"
-                  Padding="10,5"
-                  IsEnabled="{Binding Catalogue.CanGoToNextPage}"
-                  AutomationProperties.Name="{Binding Catalogue.NextPageText}"
-                  Click="NextPage_Click">
-            <TextBlock Text="{Binding Catalogue.NextPageText}"
-                       FontSize="{DynamicResource Type.Size.Caption}" />
-          </Button>
-        </Grid>
-      </Border>
 
       <Border Grid.Row="3"
               Grid.RowSpan="3"
@@ -502,7 +476,7 @@
               <Button Padding="12,6"
                       HorizontalAlignment="Left"
                       Background="{DynamicResource Brush.Accent.Oak}"
-                      Foreground="White"
+                      Foreground="{DynamicResource Brush.Accent.OnAccent}"
                       CornerRadius="{DynamicResource Radius.S}"
                       AutomationProperties.Name="{Binding BackToLibraryLabel}"
                       Click="LibraryButton_Click">
@@ -540,6 +514,40 @@
         </Panel>
 
       </Grid>
+
+      <!-- Bounded catalogue paging keeps large result sets responsive while
+           retaining the same virtualized grid/list/directory surfaces. -->
+      <Border Grid.Row="5"
+              IsVisible="{Binding IsPagerVisible}"
+              Background="{DynamicResource Brush.Surface.Footer}"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              BorderThickness="0,1,0,0"
+              Padding="12,6">
+        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+          <Button Grid.Column="0"
+                  Padding="10,5"
+                  IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
+                  AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
+                  Click="PreviousPage_Click">
+            <TextBlock Text="{Binding Catalogue.PreviousPageText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+          <TextBlock Grid.Column="1"
+                     Text="{Binding Catalogue.PageSummaryText}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          <Button Grid.Column="2"
+                  Padding="10,5"
+                  IsEnabled="{Binding Catalogue.CanGoToNextPage}"
+                  AutomationProperties.Name="{Binding Catalogue.NextPageText}"
+                  Click="NextPage_Click">
+            <TextBlock Text="{Binding Catalogue.NextPageText}"
+                       FontSize="{DynamicResource Type.Size.Caption}" />
+          </Button>
+        </Grid>
+      </Border>
     </Grid>
 
     <!-- ─── Book detail panel ─────────────────────────────────────── -->
@@ -623,7 +631,7 @@
                     Spacing="8">
           <Button Padding="10,5"
                   Background="{DynamicResource Brush.Accent.Slate}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CopyJoinLinkText}"
                   Click="HostCopyJoinLinkButton_Click">
@@ -632,7 +640,7 @@
           </Button>
           <Button Padding="10,5"
                   Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding CopyFingerprintText}"
                   Click="HostCopyFingerprintButton_Click">
@@ -677,7 +685,7 @@
           </Button>
           <Button Padding="10,5"
                   Background="{DynamicResource Brush.Accent.Sage}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   AutomationProperties.Name="{Binding ConfirmStartText}"
                   Click="HostConfirmStartButton_Click">
@@ -723,7 +731,7 @@
             <TextBlock Text="{Binding ClassroomOfflineText}"
                        FontSize="{DynamicResource Type.Size.Caption}"
                        FontWeight="SemiBold"
-                       Foreground="White" />
+                       Foreground="{DynamicResource Brush.Accent.OnAccent}" />
           </StackPanel>
         </Border>
 
@@ -751,7 +759,7 @@
                      VerticalAlignment="Center" />
           <Button Padding="8,3"
                   Background="{DynamicResource Brush.Accent.Oak}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding HostSharing.CanShare}"
                   AutomationProperties.Name="{Binding HostSharing.ShareButtonText}"
@@ -761,7 +769,7 @@
           </Button>
           <Button Padding="8,3"
                   Background="{DynamicResource Brush.Accent.Sage}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding HostSharing.CanStart}"
                   AutomationProperties.Name="Start Library Host"
@@ -771,7 +779,7 @@
           </Button>
           <Button Padding="8,3"
                   Background="{DynamicResource Brush.Accent.Clay}"
-                  Foreground="White"
+                  Foreground="{DynamicResource Brush.Accent.OnAccent}"
                   CornerRadius="{DynamicResource Radius.S}"
                   IsEnabled="{Binding HostSharing.CanStop}"
                   AutomationProperties.Name="Stop Library Host"

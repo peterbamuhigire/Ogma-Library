@@ -9,15 +9,20 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes,System.Drawing
-if (-not ('OgmaWin' -as [type])) {
+if (-not ('OgmaWin2' -as [type])) {
 Add-Type @'
 using System; using System.Runtime.InteropServices;
-public static class OgmaWin {
+public static class OgmaWin2 {
  [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left,Top,Right,Bottom; }
  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out Rect r);
  [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int w,int hgt,uint flags);
  [DllImport("user32.dll")] public static extern IntPtr PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+ [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+ [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+ [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+ [DllImport("user32.dll")] public static extern void mouse_event(uint f, int x, int y, uint d, UIntPtr e);
+ [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
 }
 '@ }
 $S = if ($env:OGMA_UIA_OUT) { $env:OGMA_UIA_OUT } else { Join-Path $env:TEMP 'ogma-uia' }
@@ -41,9 +46,9 @@ function Find-ByName([string]$n, [string]$t) {
 }
 function Capture([string]$name) {
   $p = Get-Proc
-  $r = [OgmaWin+Rect]::new(); [void][OgmaWin]::GetWindowRect($p.MainWindowHandle, [ref]$r)
+  $r = [OgmaWin2+Rect]::new(); [void][OgmaWin2]::GetWindowRect($p.MainWindowHandle, [ref]$r)
   $bmp = [Drawing.Bitmap]::new($r.Right-$r.Left, $r.Bottom-$r.Top); $g = [Drawing.Graphics]::FromImage($bmp); $dc = $g.GetHdc()
-  try { [void][OgmaWin]::PrintWindow($p.MainWindowHandle, $dc, 2) } finally { $g.ReleaseHdc($dc) }
+  try { [void][OgmaWin2]::PrintWindow($p.MainWindowHandle, $dc, 2) } finally { $g.ReleaseHdc($dc) }
   $path = Join-Path $S "shots\$name.png"; New-Item -ItemType Directory -Force (Join-Path $S 'shots') | Out-Null
   $bmp.Save($path); $g.Dispose(); $bmp.Dispose(); $path
 }
@@ -71,7 +76,7 @@ switch ($Action) {
     "pid=$($proc.Id) window_ms=$($sw.ElapsedMilliseconds) exited=$($proc.HasExited)"
     if ($proc.HasExited) { "exit=$($proc.ExitCode)"; $proc.StandardError.ReadToEnd(); $proc.StandardOutput.ReadToEnd() }
   }
-  'size'    { $p = Get-Proc; [void][OgmaWin]::SetWindowPos($p.MainWindowHandle,[IntPtr]::Zero,0,0,$Width,$Height,6); Start-Sleep -Milliseconds 600; 'ok' }
+  'size'    { $p = Get-Proc; [void][OgmaWin2]::SetWindowPos($p.MainWindowHandle,[IntPtr]::Zero,0,0,$Width,$Height,6); Start-Sleep -Milliseconds 600; 'ok' }
   'dump'    { Dump $Out }
   'shot'    { Capture $Out }
   'invoke'  { $e = Find-ByName $Name $Type
@@ -82,22 +87,28 @@ switch ($Action) {
   'expand'  { $e = Find-ByName $Name $Type; $e.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern).Expand(); Start-Sleep -Milliseconds 700; "expanded $Name" }
   'set'     { $e = Find-ByName $Name $Type; $e.SetFocus(); $e.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($Value); Start-Sleep -Milliseconds 900; "set $Name" }
   'patterns'{ $e = Find-ByName $Name $Type; $e.GetSupportedPatterns() | ForEach-Object { $_.ProgrammaticName } }
-  'close'   { $p = Get-Proc; [void][OgmaWin]::PostMessage($p.MainWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero); Start-Sleep 3; $still = Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue; "remaining=" + (($still | ForEach-Object { $_.ProcessName }) -join ',') }
-  'pick'    { # drive a native common file/folder dialog owned by the app: type $Value into the name box, press the default button
+  'close'   { $p = Get-Proc; [void][OgmaWin2]::PostMessage($p.MainWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero); Start-Sleep 3; $still = Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue; "remaining=" + (($still | ForEach-Object { $_.ProcessName }) -join ',') }
+  'pick'    { # Drive the native folder dialog owned by the app. The Windows folder picker exposes no
+              # UIA "Select Folder" button, so: focus the dialog (Alt-key foreground trick), Alt+D, type
+              # the path, Enter to navigate, then click "Select Folder" at its standard bottom-right offset.
+              Add-Type -AssemblyName System.Windows.Forms
               $w = Get-Win; $dlg = $null
-              for ($i=0; $i -lt 20 -and -not $dlg; $i++) { $dlg = $w.FindFirst($TS::Children, [Windows.Automation.PropertyCondition]::new($AE::ClassNameProperty,'#32770')); if (-not $dlg) { Start-Sleep -Milliseconds 500 } }
+              for ($i=0; $i -lt 30 -and -not $dlg; $i++) { $dlg = $w.FindFirst($TS::Children, [Windows.Automation.PropertyCondition]::new($AE::ClassNameProperty,'#32770')); if (-not $dlg) { Start-Sleep -Milliseconds 500 } }
               if (-not $dlg) { throw 'No dialog' }
-              $edits = @($dlg.FindAll($TS::Descendants, [Windows.Automation.PropertyCondition]::new($AE::ControlTypeProperty,[Windows.Automation.ControlType]::Edit)))
-              $edits | ForEach-Object { "EDIT '$($_.Current.Name)' id=$($_.Current.AutomationId)" }
-              $box = $edits | Where-Object { $_.Current.AutomationId -eq '1152' } | Select-Object -First 1; if (-not $box) { $box = $edits[-1] }
-              $box.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($Value)
-              $btns = @($dlg.FindAll($TS::Descendants, [Windows.Automation.PropertyCondition]::new($AE::ControlTypeProperty,[Windows.Automation.ControlType]::Button)))
-              $btns | ForEach-Object { "BTN '$($_.Current.Name)' id=$($_.Current.AutomationId)" }
-              $ok = $btns | Where-Object { $_.Current.AutomationId -eq '1' } | Select-Object -First 1
-              $ok.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke(); Start-Sleep 2
-              # folder dialogs may navigate into the folder on first press; press again if still open
+              $h = [IntPtr]$dlg.Current.NativeWindowHandle
+              [OgmaWin2]::keybd_event(0x12,0,0,[UIntPtr]::Zero); [void][OgmaWin2]::SetForegroundWindow($h); [OgmaWin2]::keybd_event(0x12,0,2,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 500
+              if ([OgmaWin2]::GetForegroundWindow() -ne $h) { throw 'Could not focus the folder dialog' }
+              [System.Windows.Forms.SendKeys]::SendWait('%d'); Start-Sleep -Milliseconds 400
+              [System.Windows.Forms.SendKeys]::SendWait(($Value -replace '([+^%~(){}\[\]])','{$1}')); [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+              Start-Sleep -Milliseconds 1500
+              $r = [OgmaWin2+Rect]::new(); [void][OgmaWin2]::GetWindowRect($h, [ref]$r)
+              [void][OgmaWin2]::SetForegroundWindow($h)
+              [void][OgmaWin2]::SetCursorPos($r.Right - 179, $r.Bottom - 39)
+              [OgmaWin2]::mouse_event(2,0,0,0,[UIntPtr]::Zero); [OgmaWin2]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep 2
               $still = $w.FindFirst($TS::Children, [Windows.Automation.PropertyCondition]::new($AE::ClassNameProperty,'#32770'))
-              if ($still) { $ok2 = $still.FindFirst($TS::Descendants, [Windows.Automation.PropertyCondition]::new($AE::AutomationIdProperty,'1')); if ($ok2) { $ok2.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke(); 'pressed again' } }
+              if ($still) { throw 'Folder dialog is still open' }
               'picked' }
   'kill'    { Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue | Stop-Process -Force; 'killed' }
 }

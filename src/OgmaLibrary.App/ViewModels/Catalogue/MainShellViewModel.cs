@@ -300,6 +300,7 @@ public sealed class MainShellViewModel :
                 _activeView = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsCatalogueActive));
+                OnPropertyChanged(nameof(IsPagerVisible));
                 OnPropertyChanged(nameof(IsReaderActive));
                 OnPropertyChanged(nameof(IsSplitViewActive));
                 OnPropertyChanged(nameof(IsSharingSettingsActive));
@@ -313,6 +314,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>True when the catalogue view is the active content area.</summary>
     public bool IsCatalogueActive => _activeView == ShellView.Catalogue;
+
+    /// <summary>Whether the catalogue pager is shown: only on the catalogue route with more than one page.</summary>
+    public bool IsPagerVisible => IsCatalogueActive && Catalogue.TotalPages > 1;
 
     /// <summary>True when the reader view is the active content area.</summary>
     public bool IsReaderActive => _activeView == ShellView.Reader;
@@ -447,26 +451,31 @@ public sealed class MainShellViewModel :
                 return _statusOverride;
             }
 
-            if (_scanPhase == ScanPhase.Complete)
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            int bookCount = Catalogue.TotalCount;
+
+            if (_scanPhase is ScanPhase.Discovering or ScanPhase.Processing)
             {
-                return string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Scan.Status.Scanned"],
-                    _filesCompleted);
+                // Clamp so the status can never claim more processed files than discovered (K13).
+                int discovered = Math.Max(_filesDiscovered, 0);
+                int processed = Math.Clamp(_filesCompleted, 0, discovered);
+                return string.Format(culture, _localization["Scan.Progress.ScanningFormat"], processed, discovered);
             }
 
-            if (_scanPhase is ScanPhase.Discovering or ScanPhase.Processing or ScanPhase.GeneratingAssets)
+            if (_scanPhase == ScanPhase.GeneratingAssets)
             {
-                return string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Scan.Progress.Files"],
-                    _filesCompleted,
-                    _filesDiscovered);
+                // Asset jobs share the file counters until Phase 06 separates them; show no counts.
+                return _localization["Scan.Progress.PreparingBooks"];
             }
 
             if (_scanPhase == ScanPhase.PartialFailure)
             {
                 return _localization["Scan.Phase.PartialFailure"];
+            }
+
+            if (bookCount > 0)
+            {
+                return string.Format(culture, _localization["MainWindow.Status.LibraryReadyFormat"], bookCount);
             }
 
             return _localization["MainWindow.Status.Ready"];
@@ -530,6 +539,9 @@ public sealed class MainShellViewModel :
     /// <summary>Split-reader route label.</summary>
     public string SplitViewLabel => _localization["SplitView.Title"];
 
+    /// <summary>Label of the overflow menu holding rarely used routes (interim, Phase 07 replaces it).</summary>
+    public string MoreActionsLabel => _localization["MainWindow.Action.More"];
+
     /// <summary>Sharing settings route label.</summary>
     public string SharingSettingsLabel => _localization["SharingSettings.Title"];
 
@@ -574,6 +586,9 @@ public sealed class MainShellViewModel :
 
     /// <summary>Localized clear-filter action.</summary>
     public string ClearFiltersText => _localization["Catalogue.Filter.ClearAll"];
+
+    /// <summary>Heading shown when filters hide every book.</summary>
+    public string FilteredEmptyHeading => _localization["Catalogue.FilteredEmpty.Heading"];
 
     /// <summary>Localized count of all items matching the active filter.</summary>
     public string CatalogueCountText => string.Format(
@@ -1148,9 +1163,16 @@ public sealed class MainShellViewModel :
 
     private void Catalogue_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(CatalogueViewModel.TotalFilteredCount) or nameof(CatalogueViewModel.FilteredCount))
+        if (e.PropertyName is nameof(CatalogueViewModel.TotalFilteredCount) or nameof(CatalogueViewModel.FilteredCount)
+            or nameof(CatalogueViewModel.TotalCount))
         {
             OnPropertyChanged(nameof(CatalogueCountText));
+            OnPropertyChanged(nameof(StatusText));
+        }
+
+        if (e.PropertyName is nameof(CatalogueViewModel.TotalPages))
+        {
+            OnPropertyChanged(nameof(IsPagerVisible));
         }
     }
 
@@ -1345,6 +1367,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(IndexManagerLabel));
         OnPropertyChanged(nameof(ReconciliationReviewLabel));
         OnPropertyChanged(nameof(SplitViewLabel));
+        OnPropertyChanged(nameof(MoreActionsLabel));
         OnPropertyChanged(nameof(SharingSettingsLabel));
         OnPropertyChanged(nameof(StudentSmartSearchLabel));
         OnPropertyChanged(nameof(AdvisorLabel));
@@ -1363,6 +1386,7 @@ public sealed class MainShellViewModel :
         OnPropertyChanged(nameof(FilterTitleWatermark));
         OnPropertyChanged(nameof(FilterAuthorWatermark));
         OnPropertyChanged(nameof(ClearFiltersText));
+        OnPropertyChanged(nameof(FilteredEmptyHeading));
         OnPropertyChanged(nameof(CatalogueCountText));
         OnPropertyChanged(nameof(CommandPaletteItems));
         OnPropertyChanged(nameof(Theme));

@@ -252,6 +252,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>True when the catalogue has no books at all.</summary>
     public bool IsEmpty => _allItems.Count == 0 && !_isLoading;
 
+    /// <summary>True when the library has books but the active filter hides all of them.</summary>
+    public bool IsFilteredEmpty => _allItems.Count > 0 && _totalFilteredCount == 0 && !_isLoading;
+
     /// <summary>
     /// Loads all books from the read model into the in-memory collection,
     /// then applies the current filter and sort.
@@ -417,6 +420,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(CanGoToNextPage));
             OnPropertyChanged(nameof(PageSummaryText));
             OnPropertyChanged(nameof(IsEmpty));
+            OnPropertyChanged(nameof(IsFilteredEmpty));
         }
 
         if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())

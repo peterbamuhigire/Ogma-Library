@@ -33,7 +33,7 @@ namespace OgmaLibrary.Tests.Ui;
 /// <summary>
 /// Tests the production shell path from book detail navigation into the reader.
 /// </summary>
-public sealed class ShellReaderNavigationTests
+public sealed partial class ShellReaderNavigationTests
 {
     [AvaloniaFact]
     public async Task MainShell_OpenReaderAsync_OpensReaderAndHidesDetail()

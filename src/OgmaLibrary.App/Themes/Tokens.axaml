@@ -18,6 +18,9 @@
       <Color x:Key="Color.Accent.Oak">#9E6519</Color>
       <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
 
+      <!-- Text and icons drawn on accent fills (white-label contrast) -->
+      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="#FFFFFF" />
+
       <!-- Ink — reading, navigation -->
       <Color x:Key="Color.Accent.Ink">#2B4A7A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
@@ -75,6 +78,9 @@
       <!-- Accent families — deepened for white-label contrast on dark backgrounds -->
       <Color x:Key="Color.Accent.Oak">#9E6519</Color>
       <SolidColorBrush x:Key="Brush.Accent.Oak" Color="{DynamicResource Color.Accent.Oak}" />
+
+      <!-- Text and icons drawn on accent fills (white-label contrast) -->
+      <SolidColorBrush x:Key="Brush.Accent.OnAccent" Color="#FFFFFF" />
 
       <Color x:Key="Color.Accent.Ink">#2B4A7A</Color>
       <SolidColorBrush x:Key="Brush.Accent.Ink" Color="{DynamicResource Color.Accent.Ink}" />
