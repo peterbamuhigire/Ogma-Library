@@ -1,6 +1,6 @@
 # Kaizen 2026-09-25 prototype: drives the real Ogma window through Windows UI Automation (no focus needed).
 # Actions: launch|size|dump|shot|invoke|select|expand|set|patterns|pick|close|kill. Output goes to $env:OGMA_UIA_OUT (default %TEMP%\ogma-uia).
-# Prototype only — Phase 01 replaces it with a maintained E2E harness.
+# Prototype only — superseded by tests/OgmaLibrary.Tests.E2E (Phase 01). Kills only processes started from -Exe.
 param(
   [Parameter(Mandatory=$true)][string]$Action,
   [string]$Name, [string]$Value, [string]$Out, [string]$Type, [int]$Index = 0,
@@ -29,7 +29,10 @@ $S = if ($env:OGMA_UIA_OUT) { $env:OGMA_UIA_OUT } else { Join-Path $env:TEMP 'og
 $AE = [Windows.Automation.AutomationElement]
 $TS = [Windows.Automation.TreeScope]
 
-function Get-Proc { Get-Process OgmaLibrary.App -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1 }
+# Only ever target processes started from the exe under test (never another lane's or the owner's app).
+$ExeDir = Split-Path -Parent ([IO.Path]::GetFullPath($Exe))
+function Get-OwnProcs { Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue | Where-Object { $_.Path -and ((Split-Path -Parent $_.Path) -eq $ExeDir) } }
+function Get-Proc { Get-OwnProcs | Where-Object { $_.ProcessName -eq 'OgmaLibrary.App' -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1 }
 function Get-Win { $p = Get-Proc; if (-not $p) { throw 'App window not found' }; $AE::FromHandle($p.MainWindowHandle) }
 function Find-All($root) { $root.FindAll($TS::Descendants, [Windows.Automation.Condition]::TrueCondition) }
 function Find-ByName([string]$n, [string]$t) {
@@ -64,7 +67,7 @@ function Dump([string]$name) {
 
 switch ($Action) {
   'launch' {
-    Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-OwnProcs | Stop-Process -Force
     $psi = [Diagnostics.ProcessStartInfo]::new($Exe); $psi.UseShellExecute = $false
     $psi.WorkingDirectory = Split-Path $Exe
     if ($DataDir) { $psi.Environment['OGMA_LIBRARY_DATA_DIR'] = $DataDir }
@@ -87,7 +90,7 @@ switch ($Action) {
   'expand'  { $e = Find-ByName $Name $Type; $e.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern).Expand(); Start-Sleep -Milliseconds 700; "expanded $Name" }
   'set'     { $e = Find-ByName $Name $Type; $e.SetFocus(); $e.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($Value); Start-Sleep -Milliseconds 900; "set $Name" }
   'patterns'{ $e = Find-ByName $Name $Type; $e.GetSupportedPatterns() | ForEach-Object { $_.ProgrammaticName } }
-  'close'   { $p = Get-Proc; [void][OgmaWin2]::PostMessage($p.MainWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero); Start-Sleep 3; $still = Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue; "remaining=" + (($still | ForEach-Object { $_.ProcessName }) -join ',') }
+  'close'   { $p = Get-Proc; [void][OgmaWin2]::PostMessage($p.MainWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero); Start-Sleep 3; $still = Get-OwnProcs; "remaining=" + (($still | ForEach-Object { $_.ProcessName }) -join ',') }
   'pick'    { # Drive the native folder dialog owned by the app. The Windows folder picker exposes no
               # UIA "Select Folder" button, so: focus the dialog (Alt-key foreground trick), Alt+D, type
               # the path, Enter to navigate, then click "Select Folder" at its standard bottom-right offset.
@@ -110,5 +113,5 @@ switch ($Action) {
               $still = $w.FindFirst($TS::Children, [Windows.Automation.PropertyCondition]::new($AE::ClassNameProperty,'#32770'))
               if ($still) { throw 'Folder dialog is still open' }
               'picked' }
-  'kill'    { Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue | Stop-Process -Force; 'killed' }
+  'kill'    { Get-OwnProcs | Stop-Process -Force; 'killed' }
 }
