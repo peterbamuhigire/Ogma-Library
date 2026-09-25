@@ -30,6 +30,7 @@ public sealed class ProcessingProgressService : IProcessingProgressService, IDis
     private int _terminalAtBatchStart = -1;
     private int _failedAtBatchStart;
     private int _refreshScheduled;
+    private int _disposeCount;
 
     /// <summary>Initializes a new instance of the <see cref="ProcessingProgressService"/> class.</summary>
     /// <param name="contextFactory">The catalogue context factory.</param>
@@ -112,6 +113,12 @@ public sealed class ProcessingProgressService : IProcessingProgressService, IDis
     /// <inheritdoc />
     public void Dispose()
     {
+        // Registered under two service types, so the container may dispose it twice.
+        if (Interlocked.Exchange(ref _disposeCount, 1) != 0)
+        {
+            return;
+        }
+
         _disposed.Cancel();
         _disposed.Dispose();
         _refreshGate.Dispose();
