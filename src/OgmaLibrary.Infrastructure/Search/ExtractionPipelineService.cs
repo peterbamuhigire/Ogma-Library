@@ -201,6 +201,9 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             // keeps the compatibility poll from picking the book up again.
             await SetBookStatusAsync(bookId, SearchBookIndexStatus.Failed, cancellationToken)
                 .ConfigureAwait(false);
+
+            // Every catalogued book still belongs to an edition (CAT-007, T06.9).
+            await _isbnPromotion.PromoteAsync(bookId, cancellationToken).ConfigureAwait(false);
             return new ExtractionBookResult(bookId, false, 0, 0, 0, 0, "The PDF is password-protected.", IsPermanent: true);
         }
 
