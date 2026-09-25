@@ -30,16 +30,32 @@ public sealed class G08ResilienceTests
             AutomationElement page = Uia.WaitFor(window, "Reader.Page");
             G03ReadTests.AssertPagePainted(context, page, "page before the worker is killed");
 
-            IReadOnlyList<int> workers = context.RequireApp.WorkerProcessIds();
-            context.Record("workers.killed", workers);
-            Assert.True(workers.Count > 0, "No PDF worker process was running while a book was open.");
+            // Workers can be short-lived: retry until at least one running worker was killed.
             int warningsBefore = WorkerWarnings(context);
-            foreach (int id in workers)
-            {
-                using Process worker = Process.GetProcessById(id);
-                worker.Kill();
-            }
+            var killed = new List<int>();
+            Uia.Poll(
+                () =>
+                {
+                    foreach (int id in context.RequireApp.WorkerProcessIds())
+                    {
+                        try
+                        {
+                            using Process worker = Process.GetProcessById(id);
+                            worker.Kill();
+                            killed.Add(id);
+                        }
+                        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+                        {
+                            // The worker exited on its own before it could be killed.
+                        }
+                    }
 
+                    return killed.Count > 0;
+                },
+                TimeSpan.FromSeconds(10),
+                intervalMs: 100);
+            context.Record("workers.killed", killed);
+            Assert.True(killed.Count > 0, "No running PDF worker process could be killed while a book was open.");
             context.Mark("worker.killed");
             PageTurn turn = Shell.TurnPage(context, TimeSpan.FromSeconds(20));
             context.Record("turnAfterKill", turn);
