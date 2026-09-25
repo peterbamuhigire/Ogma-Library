@@ -38,6 +38,17 @@ public partial class ActivityCentreView : UserControl
         }
     }
 
+    private void RetryAll_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => RetryAll_ClickAsync(), "search.retry_all_click");
+
+    private async Task RetryAll_ClickAsync()
+    {
+        if (DataContext is ActivityCentreViewModel viewModel)
+        {
+            await viewModel.RetryAllAsync().ConfigureAwait(true);
+        }
+    }
+
     private void Cancel_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => Cancel_ClickAsync(sender, e), "search.cancel_click");
 

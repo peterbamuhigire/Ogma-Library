@@ -85,6 +85,12 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
     /// <summary>Localized cancel label.</summary>
     public string CancelLabel => _localization["ActivityCentre.Cancel"];
 
+    /// <summary>Localized "Retry all" label (Sept-23 Phase 06, T06.11).</summary>
+    public string RetryAllLabel => _localization["ActivityCentre.RetryAll"];
+
+    /// <summary>Whether terminal failed jobs exist that "Retry all" can queue again.</summary>
+    public bool HasFailedJobs { get; private set; }
+
     /// <summary>Localized queue totals.</summary>
     public string QueueSummary { get; private set; } = string.Empty;
 
@@ -134,6 +140,26 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
             StatusText = _localization["ActivityCentre.Status.RetryQueued"]);
     }
 
+    /// <summary>Queues every terminal failed job in the snapshot again (T06.11).</summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that completes when the jobs are queued and the snapshot refreshed.</returns>
+    public async Task RetryAllAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        foreach (JobRuntimeDiagnostic job in _diagnostics.Where(job => job.Status == JobRuntimeStatus.Failed).ToArray())
+        {
+            await _runtime.RetryFailedAsync(job.JobId, cancellationToken).ConfigureAwait(false);
+        }
+
+        await LoadAsync(cancellationToken).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+            StatusText = _localization["ActivityCentre.Status.RetryAllQueued"]);
+    }
+
     /// <summary>Cancels one pending job, then refreshes the snapshot.</summary>
     public async Task CancelAsync(ActivityJobDisplayItem job, CancellationToken cancellationToken = default)
     {
@@ -173,19 +199,34 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         }
 
         JobRuntimeMetrics metrics = snapshot.Metrics;
+        System.Globalization.CultureInfo culture = System.Globalization.CultureInfo.CurrentCulture;
         QueueSummary = string.Format(
-            System.Globalization.CultureInfo.CurrentCulture,
-            _localization["ActivityCentre.Queue.Format"],
+            culture,
+            _localization["ActivityCentre.Queue.ActiveFormat"],
             metrics.PendingCount,
-            metrics.RunningCount,
-            metrics.PausedCount);
-        FailureSummary = string.Format(
-            System.Globalization.CultureInfo.CurrentCulture,
-            _localization["ActivityCentre.Failures.Format"],
-            metrics.FailedCount,
-            metrics.DeadLetterCount,
-            metrics.TotalAttempts);
+            metrics.RunningCount);
+
+        // Sept-23 Phase 06 (T06.11, K25): waiting-for-setup, needs-attention and failed are
+        // distinct; raw attempt totals are never a headline.
+        var parts = new List<string>();
+        if (metrics.WaitingForCapabilityCount > 0)
+        {
+            parts.Add(string.Format(
+                culture,
+                _localization["ActivityCentre.Waiting.SemanticFormat"],
+                metrics.WaitingForCapabilityCount));
+        }
+
+        if (metrics.DeadLetterCount > 0)
+        {
+            parts.Add(string.Format(culture, _localization["ActivityCentre.NeedsAttentionFormat"], metrics.DeadLetterCount));
+        }
+
+        parts.Add(string.Format(culture, _localization["ActivityCentre.FailedFormat"], metrics.FailedCount));
+        FailureSummary = string.Join(" · ", parts);
+        HasFailedJobs = metrics.FailedCount > 0;
         StatusText = _localization["ActivityCentre.Status.Loaded"];
+        OnPropertyChanged(nameof(HasFailedJobs));
         OnPropertyChanged(nameof(HasJobs));
         OnPropertyChanged(nameof(QueueSummary));
         OnPropertyChanged(nameof(FailureSummary));
@@ -215,6 +256,7 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         OnPropertyChanged(nameof(ExportLabel));
         OnPropertyChanged(nameof(RetryLabel));
         OnPropertyChanged(nameof(CancelLabel));
+        OnPropertyChanged(nameof(RetryAllLabel));
         OnPropertyChanged(nameof(HasJobs));
     }
 
