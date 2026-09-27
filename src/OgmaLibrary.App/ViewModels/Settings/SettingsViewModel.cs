@@ -285,6 +285,17 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Exports the redacted diagnostics bundle (bound by the application).</summary>
     public Func<Task>? ExportDiagnostics { get; set; }
 
+    /// <summary>Shows the About Ogma Library dialog over the given window (bound by the application).</summary>
+    public Func<Avalonia.Controls.TopLevel?, Task>? ShowAbout { get; set; }
+
+    /// <summary>The "About Ogma Library" button label (also its accessible name).</summary>
+    public string AboutText => _localization["About.Title"];
+
+    /// <summary>Opens the About dialog.</summary>
+    /// <param name="owner">The window that owns the dialog.</param>
+    /// <returns>A task that completes when the dialog closes.</returns>
+    public Task ShowAboutAsync(Avalonia.Controls.TopLevel? owner) => ShowAbout?.Invoke(owner) ?? Task.CompletedTask;
+
     /// <summary>Opens a folder in the platform file manager (substituted by tests).</summary>
     public Func<string, bool> OpenFolder { get; set; } = FolderLauncher.TryOpen;
 

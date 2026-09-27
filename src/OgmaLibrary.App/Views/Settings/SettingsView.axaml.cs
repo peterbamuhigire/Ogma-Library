@@ -18,6 +18,13 @@ public sealed partial class SettingsView : UserControl
 
     private void OpenLogs_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenLogsFolder();
 
+    private void About_Click(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        TopLevel? owner = TopLevel.GetTopLevel(this);
+        UiActions.Run(() => ViewModel?.ShowAboutAsync(owner) ?? Task.CompletedTask, "settings.about");
+    }
+
     private void Export_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(
             () => ViewModel?.ExportDiagnosticsAsync() ?? Task.CompletedTask,

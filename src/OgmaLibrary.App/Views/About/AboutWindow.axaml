@@ -1,0 +1,338 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:about="using:OgmaLibrary.App.ViewModels.About"
+        xmlns:credits="using:OgmaLibrary.App.About"
+        x:Class="OgmaLibrary.App.Views.About.AboutWindow"
+        x:DataType="about:AboutViewModel"
+        Width="580"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="0"
+        Background="{DynamicResource About.Brush.Canvas}"
+        Title="{Binding Title}"
+        AutomationProperties.AutomationId="About.Dialog"
+        AutomationProperties.Name="{Binding Title}">
+
+  <!--
+    About Ogma Library: a showcase in the "Lamplit Library" direction (D-14).
+    Typeface decision: Spectral (display) for the product name, tagline and the lead developer's
+    name; Public Sans (body) for labels, contacts and the licence line; JetBrains Mono for the
+    version. Every colour, size and radius is a token (Themes/About.axaml, Themes/Tokens.axaml).
+    The window draws its own frame: a midnight-to-lapis hero inside a gilt hairline, a parchment
+    card with jewel-tone contact chips, a gilt ornament and a quiet footer.
+  -->
+  <Window.Styles>
+    <Style Selector="TextBlock.about-eyebrow">
+      <Setter Property="FontSize" Value="{DynamicResource About.Type.Eyebrow}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="LetterSpacing" Value="1.8" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.Eyebrow}" />
+    </Style>
+    <Style Selector="TextBlock.about-link-label">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.TextMuted}" />
+    </Style>
+    <Style Selector="TextBlock.about-link-value">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.BodyMedium}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.Text}" />
+    </Style>
+    <Style Selector="TextBlock.about-footer">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.TextMuted}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- Contact chips: a jewel disc with a stroked parchment glyph. -->
+    <Style Selector="Border.about-chip">
+      <Setter Property="Width" Value="40" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.about-chip > Path">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Stroke" Value="{DynamicResource About.Brush.ChipGlyph}" />
+      <Setter Property="StrokeThickness" Value="1.7" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- The small "opens outside Ogma" arrow at the end of each link row. -->
+    <Style Selector="Path.about-external">
+      <Setter Property="Width" Value="12" />
+      <Setter Property="Height" Value="12" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Stroke" Value="{DynamicResource About.Brush.TextMuted}" />
+      <Setter Property="StrokeThickness" Value="1.6" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Opacity" Value="0.7" />
+    </Style>
+    <Style Selector="Button.about-link:pointerover Path.about-external, Button.about-link:focus-visible Path.about-external">
+      <Setter Property="Stroke" Value="{DynamicResource About.Brush.Eyebrow}" />
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+
+    <!-- Link rows: quiet at rest, a warm wash on hover, deeper when pressed, focus ring always. -->
+    <Style Selector="Button.about-link">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.about-link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource About.Brush.LinkHover}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.about-link:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource About.Brush.LinkPressed}" />
+    </Style>
+    <Style Selector="Button.about-link:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+    </Style>
+
+    <!-- The one primary action. -->
+    <Style Selector="Button.about-primary">
+      <Setter Property="Background" Value="{DynamicResource About.Brush.Button}" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.ButtonText}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="22,9" />
+      <Setter Property="MinWidth" Value="112" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.about-primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource About.Brush.ButtonHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.ButtonText}" />
+    </Style>
+    <Style Selector="Button.about-primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource About.Brush.Button}" />
+      <Setter Property="Foreground" Value="{DynamicResource About.Brush.ButtonText}" />
+    </Style>
+    <Style Selector="Button.about-primary:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+    </Style>
+  </Window.Styles>
+
+  <Border x:Name="Root" ClipToBounds="True">
+    <Border.RenderTransform>
+      <TranslateTransform />
+    </Border.RenderTransform>
+    <Grid RowDefinitions="Auto,Auto,Auto">
+
+      <!-- Hero: midnight ink to lapis, framed by a gilt hairline like a bookplate. -->
+      <Border x:Name="Hero"
+              Grid.Row="0"
+              Background="{DynamicResource About.Brush.Hero}"
+              PointerPressed="Hero_PointerPressed"
+              Padding="12,12,12,40">
+        <Border BorderBrush="{DynamicResource About.Brush.GiltSoft}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.M}"
+                Padding="24,24,24,22">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="20">
+            <Border Width="84" Height="84"
+                    CornerRadius="42"
+                    BorderBrush="{DynamicResource About.Brush.Gilt}"
+                    BorderThickness="1.5"
+                    Background="{DynamicResource About.Brush.HeroText}"
+                    VerticalAlignment="Center"
+                    ClipToBounds="True">
+              <Image Source="avares://OgmaLibrary.App/Assets/app.png"
+                     Width="60" Height="60"
+                     RenderOptions.BitmapInterpolationMode="HighQuality"
+                     AutomationProperties.AccessibilityView="Raw" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+              <TextBlock Classes="ogma-display"
+                         Text="{x:Static credits:AppCredits.ProductName}"
+                         FontSize="{DynamicResource About.Type.Hero}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource About.Brush.HeroText}"
+                         AutomationProperties.AutomationId="About.ProductName" />
+              <TextBlock Classes="ogma-display"
+                         Text="{Binding Tagline}"
+                         FontSize="{DynamicResource About.Type.Tagline}"
+                         FontStyle="Italic"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource About.Brush.HeroTagline}"
+                         AutomationProperties.AutomationId="About.Tagline" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Border>
+
+      <!-- Parchment card, lifted over the hero's lower edge. -->
+      <Border Grid.Row="1"
+              Margin="24,-28,24,20"
+              Padding="20,22,20,16"
+              Background="{DynamicResource About.Brush.Card}"
+              BorderBrush="{DynamicResource About.Brush.CardBorder}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.L}"
+              BoxShadow="{DynamicResource About.Shadow.Card}">
+        <StackPanel Spacing="4">
+          <StackPanel Margin="10,0,10,8"
+                      Spacing="2"
+                      AutomationProperties.AutomationId="About.LeadDeveloper"
+                      AutomationProperties.Name="{Binding LeadDeveloperAccessibleName}">
+            <TextBlock Classes="about-eyebrow" Text="{Binding LeadDeveloperEyebrow}" />
+            <TextBlock Classes="ogma-display"
+                       Text="{x:Static credits:AppCredits.LeadDeveloperName}"
+                       FontSize="{DynamicResource About.Type.Name}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource About.Brush.Text}" />
+          </StackPanel>
+
+          <Button Classes="about-link"
+                  DataContext="{Binding Website}"
+                  x:DataType="about:AboutLink"
+                  Click="Link_Click"
+                  AutomationProperties.AutomationId="{Binding AutomationId}"
+                  AutomationProperties.Name="{Binding AccessibleName}"
+                  AutomationProperties.HelpText="{Binding HelpText}"
+                  ToolTip.Tip="{Binding HelpText}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+              <Border Classes="about-chip" Background="{DynamicResource About.Brush.Chip.Lapis}">
+                <Path Data="{StaticResource About.Icon.Globe}" />
+              </Border>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="about-link-label" Text="{Binding Label}" />
+                <TextBlock Classes="about-link-value" Text="{Binding Display}" />
+              </StackPanel>
+              <Path Grid.Column="2" Classes="about-external" Data="{StaticResource About.Icon.External}" />
+            </Grid>
+          </Button>
+
+          <Button Classes="about-link"
+                  DataContext="{Binding Email}"
+                  x:DataType="about:AboutLink"
+                  Click="Link_Click"
+                  AutomationProperties.AutomationId="{Binding AutomationId}"
+                  AutomationProperties.Name="{Binding AccessibleName}"
+                  AutomationProperties.HelpText="{Binding HelpText}"
+                  ToolTip.Tip="{Binding HelpText}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+              <Border Classes="about-chip" Background="{DynamicResource About.Brush.Chip.Garnet}">
+                <Path Data="{StaticResource About.Icon.Mail}" />
+              </Border>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="about-link-label" Text="{Binding Label}" />
+                <TextBlock Classes="about-link-value" Text="{Binding Display}" />
+              </StackPanel>
+              <Path Grid.Column="2" Classes="about-external" Data="{StaticResource About.Icon.External}" />
+            </Grid>
+          </Button>
+
+          <Button Classes="about-link"
+                  DataContext="{Binding Phone}"
+                  x:DataType="about:AboutLink"
+                  Click="Link_Click"
+                  AutomationProperties.AutomationId="{Binding AutomationId}"
+                  AutomationProperties.Name="{Binding AccessibleName}"
+                  AutomationProperties.HelpText="{Binding HelpText}"
+                  ToolTip.Tip="{Binding HelpText}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+              <Border Classes="about-chip" Background="{DynamicResource About.Brush.Chip.Malachite}">
+                <Path Data="{StaticResource About.Icon.Phone}" />
+              </Border>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="about-link-label" Text="{Binding Label}" />
+                <TextBlock Classes="about-link-value" Text="{Binding Display}" />
+              </StackPanel>
+              <Path Grid.Column="2" Classes="about-external" Data="{StaticResource About.Icon.External}" />
+            </Grid>
+          </Button>
+
+          <!-- Gilt ornament: rule, lozenge, rule. -->
+          <Grid ColumnDefinitions="*,Auto,*" Margin="10,12,10,10" AutomationProperties.AccessibilityView="Raw">
+            <Rectangle Height="1" VerticalAlignment="Center" Fill="{DynamicResource About.Brush.GiltSoft}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="12,0">
+              <Ellipse Width="3" Height="3" VerticalAlignment="Center" Fill="{DynamicResource About.Brush.Gilt}" />
+              <Path Width="10" Height="10" Stretch="Uniform"
+                    Data="{StaticResource About.Ornament.Lozenge}"
+                    Fill="{DynamicResource About.Brush.Gilt}" />
+              <Ellipse Width="3" Height="3" VerticalAlignment="Center" Fill="{DynamicResource About.Brush.Gilt}" />
+            </StackPanel>
+            <Rectangle Grid.Column="2" Height="1" VerticalAlignment="Center" Fill="{DynamicResource About.Brush.GiltSoft}" />
+          </Grid>
+
+          <TextBlock Classes="about-eyebrow" Margin="10,0,10,2" Text="{Binding OnlineEyebrow}" />
+          <Button Classes="about-link"
+                  DataContext="{Binding OgmaSite}"
+                  x:DataType="about:AboutLink"
+                  Click="Link_Click"
+                  AutomationProperties.AutomationId="{Binding AutomationId}"
+                  AutomationProperties.Name="{Binding AccessibleName}"
+                  AutomationProperties.HelpText="{Binding HelpText}"
+                  ToolTip.Tip="{Binding HelpText}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+              <Border Classes="about-chip" Background="{DynamicResource About.Brush.Chip.Amber}">
+                <Path Data="{StaticResource About.Icon.Book}" />
+              </Border>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="about-link-label" Text="{Binding Label}" />
+                <TextBlock Classes="about-link-value" Text="{Binding Display}" />
+              </StackPanel>
+              <Path Grid.Column="2" Classes="about-external" Data="{StaticResource About.Icon.External}" />
+            </Grid>
+          </Button>
+
+          <TextBlock Margin="10,6,10,0"
+                     Classes="about-footer"
+                     Foreground="{DynamicResource About.Brush.Eyebrow}"
+                     IsVisible="{Binding HasStatusMessage}"
+                     Text="{Binding StatusMessage}"
+                     AutomationProperties.AutomationId="About.Status"
+                     AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+      </Border>
+
+      <!-- Quiet footer: version, copyright, licences and the one action. -->
+      <Border Grid.Row="2"
+              Background="{DynamicResource About.Brush.Footer}"
+              BorderBrush="{DynamicResource About.Brush.GiltSoft}"
+              BorderThickness="0,1,0,0"
+              Padding="28,16,24,18">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+          <StackPanel Spacing="3" VerticalAlignment="Center">
+            <TextBlock Classes="about-footer ogma-mono"
+                       Text="{Binding VersionText}"
+                       AutomationProperties.AutomationId="About.Version" />
+            <TextBlock Classes="about-footer"
+                       Text="{Binding CopyrightText}"
+                       AutomationProperties.AutomationId="About.Copyright" />
+            <TextBlock Classes="about-footer"
+                       Text="{Binding LicencesText}"
+                       AutomationProperties.AutomationId="About.Licences" />
+          </StackPanel>
+          <Button x:Name="CloseButton"
+                  Grid.Column="1"
+                  Classes="about-primary"
+                  Content="{Binding CloseText}"
+                  Click="Close_Click"
+                  IsCancel="True"
+                  AutomationProperties.AutomationId="About.Close"
+                  AutomationProperties.Name="{Binding CloseText}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</Window>

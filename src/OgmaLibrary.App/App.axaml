@@ -18,6 +18,8 @@
           RequestedThemeVariant (Light / Dark).
         -->
         <ResourceInclude Source="avares://OgmaLibrary.App/Themes/Tokens.axaml" />
+        <!-- About dialog showcase tokens (About.* namespace, Lamplit D-14). -->
+        <ResourceInclude Source="avares://OgmaLibrary.App/Themes/About.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

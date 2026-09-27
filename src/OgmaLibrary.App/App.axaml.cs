@@ -5,10 +5,12 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OgmaLibrary.App.About;
 using OgmaLibrary.App.Ai;
 using OgmaLibrary.App.Configuration;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels;
+using OgmaLibrary.App.ViewModels.About;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.Views;
 using OgmaLibrary.Application;
@@ -97,10 +99,15 @@ public sealed class App : Avalonia.Application, IDisposable
                 // Sept-23 Phase 07 (T07.7): the palette offers the same export as the toasts.
                 mainShell.ExportDiagnostics = () =>
                     DiagnosticsExport.ExportAsync(notifications, cancellationToken: cancellationToken);
+                // About Ogma Library: one dialog, reached from the palette and from Settings.
+                ILocalizationService aboutLocalization = runtime.Services.GetRequiredService<ILocalizationService>();
+                mainShell.ShowAbout = owner =>
+                    AboutDialog.ShowAsync(owner, aboutLocalization, AppDiagnostics.CreateLogger<AboutViewModel>());
                 if (mainShell.Settings is { } settings)
                 {
                     // Sept-23 Phase 08 (8.9): Settings offers the same redacted export.
                     settings.ExportDiagnostics = mainShell.ExportDiagnostics;
+                    settings.ShowAbout = mainShell.ShowAbout;
                 }
 
                 await mainShell.InitializePreferencesAsync(cancellationToken).ConfigureAwait(true);

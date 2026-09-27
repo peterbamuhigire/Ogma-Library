@@ -148,6 +148,9 @@ public sealed partial class MainShellViewModel
     /// <summary>Optional diagnostics export, supplied by the startup shell.</summary>
     public Func<Task>? ExportDiagnostics { get; set; }
 
+    /// <summary>Shows the About Ogma Library dialog over the given window (bound by the application).</summary>
+    public Func<TopLevel?, Task>? ShowAbout { get; set; }
+
     // ── Route-derived state ───────────────────────────────────────────────────
 
     /// <summary>The currently active content area, derived from the route.</summary>
@@ -999,7 +1002,9 @@ public sealed partial class MainShellViewModel
             .Add(new ShellCommand("app.shortcuts", "Command.App.Shortcuts", CommandGroup.App,
                 _ => Run(() => IsShortcutSheetOpen = true), null, Primary(Key.OemQuestion)))
             .Add(new ShellCommand("app.export-diagnostics", "Command.App.ExportDiagnostics", CommandGroup.App,
-                _ => ExportDiagnostics?.Invoke() ?? Task.CompletedTask, () => ExportDiagnostics is not null));
+                _ => ExportDiagnostics?.Invoke() ?? Task.CompletedTask, () => ExportDiagnostics is not null))
+            .Add(new ShellCommand("app.about", "Command.App.About", CommandGroup.App,
+                topLevel => ShowAbout?.Invoke(topLevel) ?? Task.CompletedTask, () => ShowAbout is not null));
         return registry;
     }
 
