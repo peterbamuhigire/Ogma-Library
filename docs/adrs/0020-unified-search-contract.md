@@ -1,4 +1,4 @@
-# ADR 0019: Unified search contract for the Search destination
+# ADR 0020: Unified search contract for the Search destination
 
 ## Status
 

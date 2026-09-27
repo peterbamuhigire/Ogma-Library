@@ -10,7 +10,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 namespace OgmaLibrary.Infrastructure.Search;
 
 /// <summary>
-/// The search destination's pipeline (Sept-23 Phase 13, ADR-0019): parser → structured
+/// The search destination's pipeline (Sept-23 Phase 13, ADR-0020): parser → structured
 /// filters → metadata (exact, prefix, typo-tolerant fallback) → FTS5 (all words, any
 /// order) → semantic results only when a provider answers → reciprocal rank fusion into
 /// one result per catalogue book, with display titles resolved like the catalogue.

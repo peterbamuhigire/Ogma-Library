@@ -1,7 +1,7 @@
 namespace OgmaLibrary.Application.Search;
 
 /// <summary>
-/// The search destination's single pipeline (Sept-23 Phase 13, ADR-0019): query parser →
+/// The search destination's single pipeline (Sept-23 Phase 13, ADR-0020): query parser →
 /// structured field filters → metadata (exact, prefix and typo-tolerant) → FTS5 full text
 /// (all terms, any order; quoted phrases stay phrases) → semantic results only when a
 /// provider is available → reciprocal rank fusion, one result per catalogue book.
