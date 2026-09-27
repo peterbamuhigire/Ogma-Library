@@ -13,6 +13,7 @@ foundations are strong, so this is an integration and verification failure, not 
 
 | # | Document | What it gives you |
 |---|---|---|
+| ★ | [MILESTONES.md](MILESTONES.md) | **What has changed so far, measured**: milestones, journey status, open issues |
 | 1 | [01-audit-report.md](01-audit-report.md) | Verdict, score, method, root-cause analysis of the drift |
 | 2 | [03-defect-register.md](03-defect-register.md) | Every finding (K01–K92) with severity, evidence class, location and phase |
 | 3 | [08-master-plan.md](08-master-plan.md) | 29 phases in 7 waves, dependency graph, owner decisions D-01..D-12, score trajectory, Definition of Done |
@@ -64,16 +65,16 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 05 | Library roots, scanning and file validity | B | **IMPLEMENTED** 2026-09-25 (E2E journeys G2/G6 pending Phase 01) | [record](../../implementation/execution/phase-sept23-05-completion.md) |
 | 06 | Processing pipeline, jobs and identity promotion | B | **IMPLEMENTED** 2026-09-25 (E2E G2 processing journeys pending re-run) | [record](../../implementation/execution/phase-sept23-06-completion.md) |
 | 07 | Navigation and information architecture | B | **IMPLEMENTED** 2026-09-25 (owner walkthrough pending) | [record](../../implementation/execution/phase-sept23-07-completion.md) |
-| 08 | Settings and capability centre | B | NOT STARTED | — |
-| 09 | Design system and visual identity | C | NOT STARTED (needs D-07) | — |
+| 08 | Settings and capability centre | B | **IMPLEMENTED** 2026-09-25 (Settings journey PASS both sizes) | [record](../../implementation/execution/phase-sept23-08-completion.md) |
+| 09 | Design system and visual identity | C | IN PROGRESS (lane: verification and merge) | — |
 | 10 | Catalogue experience | C | NOT STARTED | — |
 | 11 | Book detail inspector overhaul | C | NOT STARTED | — |
 | 12 | Reader experience | C | NOT STARTED | — |
-| 13 | Unified, trustworthy search | D | NOT STARTED | — |
+| 13 | Unified, trustworthy search | D | IN PROGRESS (lane: finishing) | — |
 | 14 | Local semantic capability and embeddings | D | NOT STARTED (needs D-05) | — |
 | 15 | AI gateway, providers and Privacy Center | D | NOT STARTED (needs D-06) | — |
 | 16 | Reading Advisor, grounded answers and reading plans | D | NOT STARTED | — |
-| 17 | OCR and extraction quality | D | IN PROGRESS (worktree lane) | — |
+| 17 | OCR and extraction quality | D | **IMPLEMENTED** 2026-09-25 (ScanOcrSearch journey pending) | [record](../../implementation/execution/phase-sept23-17-completion.md) |
 | 18 | 3D bookshelf | E | NOT STARTED | — |
 | 19 | Classroom Host and school administration | E | NOT STARTED | — |
 | 20 | Classroom client, offline cache and sync | E | NOT STARTED (needs D-09, D-11) | — |
