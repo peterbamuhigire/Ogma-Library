@@ -29,6 +29,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
 
     private const int MaxResults = 30;
     private static readonly TimeSpan LiveRefreshLimit = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan LiveRefreshWindow = TimeSpan.FromSeconds(90);
 
     private readonly IUnifiedSearchService _searchService;
     private readonly IReaderNavigationService _navigation;
@@ -38,6 +39,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _resultBookIconPath = IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty;
     private CancellationTokenSource? _requestCts;
+    private Task _activeRequest = Task.CompletedTask;
     private int _requestVersion;
     private string? _query;
     private SearchResultItem? _selectedResult;
@@ -211,6 +213,9 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     public Task SearchNowAsync(CancellationToken cancellationToken = default) =>
         StartRequest(debounce: false, cancellationToken);
 
+    /// <summary>The running request, including its live refresh (for tests and diagnostics).</summary>
+    internal Task ActiveRequest => _activeRequest;
+
     /// <summary>Retries the current query after an error.</summary>
     public Task RetryAsync() => StartRequest(debounce: false);
 
@@ -269,10 +274,36 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
             ? CancellationTokenSource.CreateLinkedTokenSource(externalToken)
             : new CancellationTokenSource();
         int version = ++_requestVersion;
-        return RunRequestAsync(version, Query?.Trim() ?? string.Empty, debounce, _requestCts.Token);
+        var firstApplied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // The request task handles and logs all of its own exceptions; callers await the
+        // first applied response, while the task keeps an open query live (see below).
+        _activeRequest = RunRequestAsync(version, Query?.Trim() ?? string.Empty, debounce, firstApplied, _requestCts.Token);
+        return firstApplied.Task;
     }
 
-    private async Task RunRequestAsync(int version, string query, bool debounce, CancellationToken cancellationToken)
+    private async Task RunRequestAsync(
+        int version,
+        string query,
+        bool debounce,
+        TaskCompletionSource firstApplied,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await RunRequestCoreAsync(version, query, debounce, firstApplied, cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            firstApplied.TrySetResult();
+        }
+    }
+
+    private async Task RunRequestCoreAsync(
+        int version,
+        string query,
+        bool debounce,
+        TaskCompletionSource firstApplied,
+        CancellationToken cancellationToken)
     {
         if (query.Length == 0)
         {
@@ -307,10 +338,14 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
                 }
 
                 Apply(response);
+                firstApplied.TrySetResult();
 
-                // While books are still being read, re-run the same query so results appear
-                // as the library finishes processing, instead of a stale empty list (K41).
-                if (response.Coverage.PendingBooks == 0 || DateTimeOffset.UtcNow - started > LiveRefreshLimit)
+                // While books are still being read (text, or metadata that is not part of
+                // text coverage, shortly after a scan), re-run the same query so results
+                // appear as the library finishes processing, instead of a stale list (K41).
+                TimeSpan open = DateTimeOffset.UtcNow - started;
+                bool stillPreparing = response.Coverage.PendingBooks > 0 && open < LiveRefreshLimit;
+                if (!stillPreparing && open >= LiveRefreshWindow)
                 {
                     break;
                 }
