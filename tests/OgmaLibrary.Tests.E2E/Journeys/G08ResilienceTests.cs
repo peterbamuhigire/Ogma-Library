@@ -63,7 +63,7 @@ public sealed class G08ResilienceTests
                 () => (turn.Advanced &&
                        Uia.TryFind(window, "Reader.Page") is { } rendered &&
                        Visibility.Measure(context.Window, rendered, G03ReadTests.ReaderPageMinimumPainted, allowScrolledPartially: true).Passed) ||
-                      Uia.TryFind(window, "Shell.Toast") is not null,
+                      Shell.FindToast(window) is not null,
                 TimeSpan.FromSeconds(20),
                 intervalMs: 500);
             bool logged = Uia.Poll(() => WorkerWarnings(context) > warningsBefore, TimeSpan.FromSeconds(10), intervalMs: 500);
@@ -93,7 +93,7 @@ public sealed class G08ResilienceTests
             AutomationElement window = context.RequireApp.MainWindow;
             AutomationElement? message = null;
             Uia.Poll(
-                () => (message = Uia.TryFind(window, "Shell.Degraded") ?? Uia.TryFind(window, "Shell.Toast")) is not null,
+                () => (message = Uia.TryFind(window, "Shell.Degraded") ?? Shell.FindToast(window)) is not null,
                 TimeSpan.FromSeconds(20));
             bool logged = context.LogLines().Any(line =>
                 IsWarningOrAbove(line) && line.Contains("setting", StringComparison.OrdinalIgnoreCase));
