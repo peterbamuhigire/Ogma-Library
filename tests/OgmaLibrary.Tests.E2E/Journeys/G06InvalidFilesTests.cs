@@ -35,7 +35,19 @@ public sealed class G06InvalidFilesTests
             Uia.Poll(
                 () =>
                 {
-                    failures = Evaluate(context, window);
+                    // Cards are re-read on every poll; a card replaced by a progressive refresh
+                    // between the lookup and the badge query surfaces as a stale-element COM
+                    // error, which only means "not settled yet" (same policy as G2).
+                    try
+                    {
+                        failures = Evaluate(context, window);
+                    }
+                    catch (Exception exception) when (exception is System.Runtime.InteropServices.COMException or
+                                                      FlaUI.Core.Exceptions.ElementNotAvailableException)
+                    {
+                        failures = [$"catalogue changed while it was read ({exception.GetType().Name})"];
+                    }
+
                     return failures.Count == 0;
                 },
                 TimeSpan.FromSeconds(90),

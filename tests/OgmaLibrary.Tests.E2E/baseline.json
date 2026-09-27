@@ -25,25 +25,15 @@
       "messagePattern": "^TrueException: Search misses"
     },
     {
-      "journey": "G8",
-      "test": "G8_WorkerKilledDuringReading_AppSurvivesAndLogs",
+      "journey": "ScanOcrSearch",
+      "test": "ScanOcrSearch_ScannedBooksBecomeSearchableFromOcrText",
       "defects": [
-        "K30"
+        "K97",
+        "K40"
       ],
-      "owner": "Phase 04",
-      "reason": "After the PDF worker is killed the reader never renders another page and shows no recoverable message (no respawn yet).",
-      "messagePattern": "neither rendered nor produced a recoverable message"
-    },
-    {
-      "journey": "G8",
-      "test": "G8_CorruptLibrarySettings_AppStartsWithRecoverableMessage",
-      "defects": [
-        "K95",
-        "K28"
-      ],
-      "owner": "Phase 05",
-      "reason": "A corrupt library-settings.json is logged but the user sees no message.",
-      "messagePattern": "No recoverable message"
+      "owner": "Phase 13",
+      "reason": "OCR succeeds and both scanned cards show the OCR text badge, but search misses the multi-word phrase (K40) and lists the OCR hit as 'Untitled' instead of the catalogue title (K97). Only search misses are baselined; an OCR badge failure is still FAIL.",
+      "messagePattern": "^TrueException: Scanned-book OCR journey: search '[^']*' did not list '[^']*' in the top three \\[K21\\](; search '[^']*' did not list '[^']*' in the top three \\[K21\\])*$"
     },
     {
       "journey": "A11yNames",

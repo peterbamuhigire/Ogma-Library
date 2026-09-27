@@ -29,7 +29,7 @@ from pypdf.generic import ByteStringObject
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
-GOLDEN_SCAN = os.path.join(REPO, "tests", "golden-corpus", "ocr-pipeline", "scanned-image-only.pdf")
+GOLDEN_WORDS = os.path.join(REPO, "tests", "golden-corpus", "ocr-pipeline", "expected-words.txt")
 FIXED_DATE = "D:20260925000000Z"
 
 BOOKS = [
@@ -119,7 +119,7 @@ def generate(root):
     with open(os.path.join(root, "Edge Cases", "not-really-a.pdf"), "wb") as fh:
         fh.write(b"<html>this is not a pdf</html>")
     open(os.path.join(root, "Edge Cases", "empty.pdf"), "wb").close()
-    # Image-only PDFs: one generated here, one copied from the OCR golden corpus.
+    # Image-only PDFs, both rendered here as pictures of text with no text layer.
     pix_doc = fitz.open()
     pg = pix_doc.new_page()
     pg.insert_text((72, 200), "Scanned image only page: amber library lantern", fontsize=20)
@@ -128,7 +128,19 @@ def generate(root):
     p2 = scan.new_page()
     p2.insert_image(p2.rect, pixmap=img)
     save(scan, os.path.join(root, "Edge Cases", "Scanned Pamphlet (image only).pdf"))
-    shutil.copyfile(GOLDEN_SCAN, os.path.join(root, "Edge Cases", "Scanned Handout (golden).pdf"))
+    # The second scan carries the OCR golden words. The golden-corpus PDF itself is a blank page
+    # meant for the fake renderer, so real OCR correctly found no text in it; render the words
+    # into an image-only page instead so the real-window OCR journey has something to recognise.
+    with open(GOLDEN_WORDS, encoding="utf-8") as fh:
+        golden_words = " ".join(line.strip() for line in fh if line.strip())
+    words_doc = fitz.open()
+    wp = words_doc.new_page()
+    wp.insert_text((72, 200), "Scanned handout: " + golden_words, fontsize=18)
+    words_img = wp.get_pixmap(dpi=150)
+    handout = fitz.open()
+    hp = handout.new_page()
+    hp.insert_image(hp.rect, pixmap=words_img)
+    save(handout, os.path.join(root, "Edge Cases", "Scanned Handout (golden).pdf"))
     make(root, "Science", "Big Reference Handbook.pdf", "Big Reference Handbook", "Various",
          "978-0-19-852663-6", "reference handbook tables constants units appendix", 900)
     deep = os.path.join("Edge Cases", "a" * 40, "b" * 40, "c" * 40)
