@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
@@ -183,6 +184,15 @@ public partial class CoverImageView : UserControl, INotifyPropertyChanged
 
     private void RaiseImageStateChanged()
     {
+        if (this.FindControl<Border>("CoverSurface") is { } surface)
+        {
+            // Top-anchored fill: first-page covers keep their title band visible when the card
+            // frame is wider than the page.
+            surface.Background = _image is null
+                ? null
+                : new ImageBrush(_image) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Top };
+        }
+
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Image)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsPlaceholder)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsImageVisible)));

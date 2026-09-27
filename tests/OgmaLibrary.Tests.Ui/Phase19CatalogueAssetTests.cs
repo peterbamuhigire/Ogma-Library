@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using OgmaLibrary.App.Views.Catalogue;
@@ -38,6 +39,13 @@ public sealed class Phase19CatalogueAssetTests
 
             Assert.True(cover.IsImageVisible);
             Assert.False(cover.IsPlaceholder);
+
+            // Sept-23 Phase 09: the cover fills its frame anchored to the top, so a first-page
+            // cover keeps its title band instead of losing it to a centred crop.
+            var surface = cover.FindControl<Border>("CoverSurface");
+            Avalonia.Media.ImageBrush brush = Assert.IsType<Avalonia.Media.ImageBrush>(surface?.Background);
+            Assert.Equal(Avalonia.Media.Stretch.UniformToFill, brush.Stretch);
+            Assert.Equal(Avalonia.Media.AlignmentY.Top, brush.AlignmentY);
             window.Close();
         }
         finally
