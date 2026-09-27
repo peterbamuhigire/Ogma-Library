@@ -233,12 +233,32 @@
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
-  <Style Selector="ToggleButton">
+  <!-- ToggleButton and DropDownButton are not matched by the Button selector; without these
+       rules they fell back to Fluent's off-palette grey fill (seen in the real window). -->
+  <Style Selector="ToggleButton, DropDownButton">
     <Setter Property="MinHeight" Value="36" />
     <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
-  <Style Selector="ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="ToggleButton:pointerover /template/ ContentPresenter#PART_ContentPresenter, DropDownButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Control.BackgroundHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+  </Style>
+  <Style Selector="ToggleButton:pressed /template/ ContentPresenter#PART_ContentPresenter, DropDownButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Control.BackgroundPressed}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+  </Style>
+  <Style Selector="DropDownButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.Selection.Background}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Selection.Border}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Selection.Foreground}" />

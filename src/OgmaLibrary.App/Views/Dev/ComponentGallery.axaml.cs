@@ -30,7 +30,9 @@ public partial class ComponentGallery : UserControl
             Title = model.Title,
             Width = 1180,
             Height = 860,
-            RequestedThemeVariant = owner.ActualThemeVariant,
+            // Follow the user's theme preference (applied at application level); the owner
+            // window's ActualThemeVariant opened a Dark gallery over a Light window in the real window.
+            RequestedThemeVariant = Avalonia.Application.Current?.ActualThemeVariant ?? owner.ActualThemeVariant,
             Content = new ComponentGallery { DataContext = model },
         };
         Themes.MotionPreference.Apply(window);

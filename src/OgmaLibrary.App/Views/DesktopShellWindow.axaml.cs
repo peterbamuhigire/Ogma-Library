@@ -34,6 +34,9 @@ public sealed partial class DesktopShellWindow : Window
         _toastHost = this.FindControl<ItemsControl>("ToastHost");
         Themes.MotionPreference.Apply(this);
         DataContextChanged += OnDataContextChanged;
+
+        // Tunnel so a focused list or text box cannot swallow the hidden QA gesture first.
+        AddHandler(KeyDownEvent, GalleryGesture_KeyDown, RoutingStrategies.Tunnel);
     }
 
     /// <summary>Binds the process notification surface (T02.7) independently of the window's DataContext.</summary>
@@ -273,15 +276,21 @@ public sealed partial class DesktopShellWindow : Window
             shell.IsShortcutSheetOpen = false;
             e.Handled = true;
         }
-        else if (e.Key == Key.G && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt))
-        {
-            // Hidden QA command (Sept-23 Phase 09): the living component gallery.
-            Dev.ComponentGallery.Show(this, shell.Localization);
-            e.Handled = true;
-        }
         else if (shell.TryExecuteGesture(e.Key, e.KeyModifiers, this))
         {
             // Gestures pressed outside the library surface (for example with the palette open).
+            e.Handled = true;
+        }
+    }
+
+    private void GalleryGesture_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.G
+            && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt)
+            && DataContext is StartupShellViewModel { MainShell: { } shell })
+        {
+            // Hidden QA command (Sept-23 Phase 09): the living component gallery.
+            Dev.ComponentGallery.Show(this, shell.Localization);
             e.Handled = true;
         }
     }
