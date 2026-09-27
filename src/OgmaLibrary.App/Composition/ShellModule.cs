@@ -137,14 +137,22 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         var reader = CreateReader();
         var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(
-            services.GetRequiredService<ISemanticSearchService>(),
+            services.GetRequiredService<IUnifiedSearchService>(),
             navigation,
             localization,
             (bookId, cancellationToken) => FocusShelfBookAsync(
                 bookId,
                 cancellationToken,
                 shell,
-                bookshelf3D));
+                bookshelf3D),
+            services.GetRequiredService<ILogger<SearchViewModel>>(),
+            reviewCoverage: () =>
+            {
+                if (shell is not null)
+                {
+                    shell.IsIndexManagerOpen = true;
+                }
+            });
         var indexManager = new IndexManagerViewModel(
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),

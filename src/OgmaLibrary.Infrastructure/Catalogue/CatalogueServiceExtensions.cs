@@ -108,6 +108,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IFtsIndexService, FtsIndexService>();
         services.AddSingleton<ICombinedSearchService, CombinedSearchService>();
         services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
+        services.AddSingleton<IUnifiedSearchService, UnifiedSearchService>();
         services.AddSingleton<IHybridRankingService, HybridRankingService>();
         services.AddSingleton<IMatchLocationService, MatchLocationService>();
         services.AddSingleton<ISearchEvaluationStore>(_ => new JsonSearchEvaluationStore(

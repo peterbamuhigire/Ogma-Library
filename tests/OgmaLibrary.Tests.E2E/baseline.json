@@ -14,17 +14,6 @@
       "messagePattern": "\\[K32"
     },
     {
-      "journey": "G4",
-      "test": "G4_Search_ExpectedBookInTopThree",
-      "defects": [
-        "K40",
-        "K41"
-      ],
-      "owner": "Phase 13",
-      "reason": "Search returns no or wrong results for title, author, phrase, typo and Unicode probes.",
-      "messagePattern": "^TrueException: Search misses"
-    },
-    {
       "journey": "ScanOcrSearch",
       "test": "ScanOcrSearch_ScannedBooksBecomeSearchableFromOcrText",
       "defects": [
@@ -34,17 +23,6 @@
       "owner": "Phase 13",
       "reason": "OCR succeeds and both scanned cards show the OCR text badge, but search misses the multi-word phrase (K40) and lists the OCR hit as 'Untitled' instead of the catalogue title (K97). Only search misses are baselined; an OCR badge failure is still FAIL.",
       "messagePattern": "^TrueException: Scanned-book OCR journey: search '[^']*' did not list '[^']*' in the top three \\[K21\\](; search '[^']*' did not list '[^']*' in the top three \\[K21\\])*$"
-    },
-    {
-      "journey": "A11yNames",
-      "test": "SearchResults_HaveReadableAccessibleNames",
-      "defects": [
-        "K40",
-        "K41"
-      ],
-      "owner": "Phase 13",
-      "reason": "Search returns no result items to audit, so search-result names cannot be checked.",
-      "messagePattern": "\\[K40, K41\\]"
     }
   ]
 }

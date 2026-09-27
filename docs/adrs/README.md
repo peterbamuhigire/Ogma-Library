@@ -24,6 +24,7 @@ ADRs are written in [MADR](https://adr.github.io/madr/) style.
 | [0015](0015-documentation-baseline-v2.md) | Documentation Baseline v2.0 Supersedes the v1.0 Baseline | Accepted | 2026-07-07 |
 | [0017](0017-real-window-e2e-harness.md) | Drive the Real Window with FlaUI UIA3 for End-to-End Journeys | Accepted | 2026-09-25 |
 | [0018](0018-library-roots-and-derived-assets.md) | Multiple Library Roots and App-Data Derived Assets | Accepted | 2026-09-25 |
+| [0020](0020-unified-search-contract.md) | Unified Search Contract for the Search Destination | Accepted | 2026-09-25 |
 
 ## MADR Conventions
 
