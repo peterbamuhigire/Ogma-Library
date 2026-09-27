@@ -87,6 +87,50 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task SearchViewModel_CoverageGap_OffersLinkToFixBooks()
+    {
+        // Sept-23 Phase 13 (13.8): books without searchable text link to where they are fixed.
+        int reviews = 0;
+        using var vm = new SearchViewModel(
+            new StubUnifiedSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService(),
+            reviewCoverage: () => reviews++);
+
+        Assert.False(vm.CanReviewCoverage);
+        await vm.RefreshCoverageAsync();
+
+        Assert.True(vm.CanReviewCoverage);
+        Assert.Equal("Show books without searchable text", vm.ReviewCoverageLabel);
+        vm.ReviewCoverage();
+        Assert.Equal(1, reviews);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_ReviewLink_RequiresAGapAndATarget()
+    {
+        using var vm = new SearchViewModel(
+            new PreparingUnifiedSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService(),
+            reviewCoverage: () => { });
+
+        await vm.RefreshCoverageAsync();
+
+        // 13 books: 8 searchable, 3 still being read, 2 need OCR: the link is offered for the 2.
+        Assert.True(vm.CanReviewCoverage);
+
+        using var complete = new SearchViewModel(
+            new StubUnifiedSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService());
+        await complete.RefreshCoverageAsync();
+
+        // No navigation target wired: no link, even with a gap.
+        Assert.False(complete.CanReviewCoverage);
+    }
+
+    [AvaloniaFact]
     public async Task SearchViewModel_NoMatches_ShowsEmptyStateWithSuggestions()
     {
         using var vm = new SearchViewModel(

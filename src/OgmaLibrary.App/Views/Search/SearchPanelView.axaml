@@ -66,14 +66,26 @@
                    FontSize="{DynamicResource Type.Size.Caption}" />
       </Button>
 
-      <TextBlock Grid.Row="1"
-                 Grid.ColumnSpan="4"
-                 Margin="0,6,0,0"
-                 Text="{Binding CoverageText}"
-                 IsVisible="{Binding HasCoverage}"
-                 FontSize="{DynamicResource Type.Size.Caption}"
-                 AutomationProperties.AutomationId="Search.Coverage"
-                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+      <Grid Grid.Row="1" Grid.ColumnSpan="4" Margin="0,6,0,0" ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding CoverageText}"
+                   IsVisible="{Binding HasCoverage}"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   AutomationProperties.AutomationId="Search.Coverage"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <!-- Sept-23 Phase 13 (13.8): books without searchable text are fixed in Activity. -->
+        <Button Grid.Column="1"
+                Margin="8,0,0,0"
+                Padding="10,4"
+                IsVisible="{Binding CanReviewCoverage}"
+                AutomationProperties.AutomationId="Search.Coverage.Review"
+                AutomationProperties.Name="{Binding ReviewCoverageLabel}"
+                Click="ReviewCoverage_Click">
+          <TextBlock Text="{Binding ReviewCoverageLabel}"
+                     FontSize="{DynamicResource Type.Size.Caption}" />
+        </Button>
+      </Grid>
 
       <Grid Grid.Row="2" Grid.ColumnSpan="4" Margin="0,6,0,0" ColumnDefinitions="*,Auto">
         <TextBlock Text="{Binding StatusText}"

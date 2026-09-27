@@ -140,7 +140,14 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                 cancellationToken,
                 shell,
                 bookshelf3D),
-            services.GetRequiredService<ILogger<SearchViewModel>>());
+            services.GetRequiredService<ILogger<SearchViewModel>>(),
+            reviewCoverage: () =>
+            {
+                if (shell is not null)
+                {
+                    shell.IsIndexManagerOpen = true;
+                }
+            });
         var indexManager = new IndexManagerViewModel(
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),

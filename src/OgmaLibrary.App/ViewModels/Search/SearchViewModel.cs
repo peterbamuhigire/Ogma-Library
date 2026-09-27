@@ -35,6 +35,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     private readonly IReaderNavigationService _navigation;
     private readonly ILocalizationService _localization;
     private readonly Func<string, CancellationToken, Task>? _focusBook;
+    private readonly Action? _reviewCoverage;
     private readonly ILogger _logger;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
     private readonly string _resultBookIconPath = IconCatalog.GetAvaresPath("ic_search_result_book") ?? string.Empty;
@@ -57,7 +58,8 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         IReaderNavigationService navigation,
         ILocalizationService localization,
         Func<string, CancellationToken, Task>? focusBook = null,
-        ILogger<SearchViewModel>? logger = null)
+        ILogger<SearchViewModel>? logger = null,
+        Action? reviewCoverage = null)
     {
         ArgumentNullException.ThrowIfNull(searchService);
         ArgumentNullException.ThrowIfNull(navigation);
@@ -67,6 +69,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         _navigation = navigation;
         _localization = localization;
         _focusBook = focusBook;
+        _reviewCoverage = reviewCoverage;
         _logger = logger ?? (ILogger)NullLogger.Instance;
         _statusText = _localization["Search.Status.Ready"];
         _localization.CultureChanged += OnCultureChanged;
@@ -164,6 +167,17 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Whether coverage is known.</summary>
     public bool HasCoverage => _coverage is { TotalBooks: > 0 };
 
+    /// <summary>
+    /// Whether some books have no searchable text (they need OCR or their extraction failed),
+    /// so the header offers a link to the Activity destination where they can be fixed (13.8).
+    /// </summary>
+    public bool CanReviewCoverage => _reviewCoverage is not null
+        && _coverage is { TotalBooks: > 0 } coverage
+        && coverage.TotalBooks > coverage.SearchableBooks + coverage.PendingBooks;
+
+    /// <summary>Localized label for the coverage review link.</summary>
+    public string ReviewCoverageLabel => _localization["Search.Coverage.Review"];
+
     /// <summary>Whether the selected result can be opened.</summary>
     public bool CanOpenSelected => SelectedResult is not null;
 
@@ -218,6 +232,15 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Retries the current query after an error.</summary>
     public Task RetryAsync() => StartRequest(debounce: false);
+
+    /// <summary>Opens the place where books without searchable text can be fixed (OCR, re-extraction).</summary>
+    public void ReviewCoverage()
+    {
+        if (CanReviewCoverage)
+        {
+            _reviewCoverage?.Invoke();
+        }
+    }
 
     /// <summary>Loads index coverage for the header (called when the destination opens).</summary>
     public async Task RefreshCoverageAsync(CancellationToken cancellationToken = default)
@@ -416,6 +439,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         _coverage = coverage;
         OnPropertyChanged(nameof(CoverageText));
         OnPropertyChanged(nameof(HasCoverage));
+        OnPropertyChanged(nameof(CanReviewCoverage));
     }
 
     private string FormatStatus(UnifiedSearchResponse response)
@@ -563,6 +587,7 @@ public sealed class SearchViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(PanelLabel));
         OnPropertyChanged(nameof(OpenSelectedLabel));
         OnPropertyChanged(nameof(RetryLabel));
+        OnPropertyChanged(nameof(ReviewCoverageLabel));
         OnPropertyChanged(nameof(SearchModeText));
         OnPropertyChanged(nameof(SearchModeToolTip));
         OnPropertyChanged(nameof(SearchModeIconPath));

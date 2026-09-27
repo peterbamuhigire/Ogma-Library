@@ -117,6 +117,14 @@ public partial class SearchPanelView : UserControl
         }
     }
 
+    private void ReviewCoverage_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SearchViewModel vm)
+        {
+            vm.ReviewCoverage();
+        }
+    }
+
     private void OpenSelected_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => OpenSelected_ClickAsync(), "search.open_selected_click");
 
