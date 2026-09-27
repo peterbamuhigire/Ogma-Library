@@ -170,6 +170,27 @@ public sealed partial class Sept23Phase09DesignSystemTests
         Assert.True(Size(app, "Type.Size.Display") / Size(app, "Type.Size.Headline") >= 1.25);
     }
 
+    /// <summary>
+    /// The bundled Public Sans must resolve to real weight instances. Avalonia does not apply
+    /// variable-font axes, and the variable file's default instance is Thin (100), which rendered
+    /// every body label as faint grey hairlines in the real window.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(400)]
+    [InlineData(500)]
+    [InlineData(600)]
+    [InlineData(700)]
+    public void BodyFont_ResolvesToTheRequestedWeightNotTheThinDefault(int weight)
+    {
+        OgmaApp app = NewApp();
+        FontFamily body = Assert.IsType<FontFamily>(app.FindResource("Type.FontFamily.Body"));
+        var typeface = new Typeface(body, FontStyle.Normal, (FontWeight)weight);
+
+        Assert.True(FontManager.Current.TryGetGlyphTypeface(typeface, out IGlyphTypeface? glyphs), "Public Sans did not load.");
+        Assert.Equal("Public Sans", glyphs!.FamilyName);
+        Assert.Equal((FontWeight)weight, glyphs.Weight);
+    }
+
     [Fact]
     public void Views_HaveNoHardCodedFontSizesOrColours()
     {
