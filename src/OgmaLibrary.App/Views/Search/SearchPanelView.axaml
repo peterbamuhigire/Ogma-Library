@@ -111,7 +111,6 @@
                Grid.Row="3"
                Grid.ColumnSpan="4"
                Margin="0,10,0,0"
-               MaxHeight="220"
                ItemsSource="{Binding Results}"
                SelectedItem="{Binding SelectedResult, Mode=TwoWay}"
                KeyDown="SearchResults_KeyDown"
