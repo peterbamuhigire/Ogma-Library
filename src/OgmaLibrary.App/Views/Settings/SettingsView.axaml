@@ -80,23 +80,37 @@
   </UserControl.DataTemplates>
 
   <Grid ColumnDefinitions="220,*">
-    <ListBox Grid.Column="0"
-             Classes="settings-sections"
-             Margin="8,8,0,8"
-             ItemsSource="{Binding Sections}"
-             SelectedItem="{Binding SelectedSection}"
-             Background="Transparent"
-             AutomationProperties.AutomationId="Settings.Sections"
-             AutomationProperties.Name="{Binding SectionsLabel}">
-      <ListBox.ItemTemplate>
-        <DataTemplate x:DataType="vm:SettingsSectionItem">
-          <TextBlock Text="{Binding Label}"
-                     TextWrapping="Wrap"
-                     FontSize="{DynamicResource Type.Size.Body}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
+    <!-- The section list, with About Ogma Library always reachable at its foot. -->
+    <Grid Grid.Column="0" RowDefinitions="*,Auto">
+      <ListBox Grid.Row="0"
+               Classes="settings-sections"
+               Margin="8,8,0,8"
+               ItemsSource="{Binding Sections}"
+               SelectedItem="{Binding SelectedSection}"
+               Background="Transparent"
+               AutomationProperties.AutomationId="Settings.Sections"
+               AutomationProperties.Name="{Binding SectionsLabel}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SettingsSectionItem">
+            <TextBlock Text="{Binding Label}"
+                       TextWrapping="Wrap"
+                       FontSize="{DynamicResource Type.Size.Body}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <Button Grid.Row="1"
+              Margin="8,4,0,12"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Left"
+              Background="Transparent"
+              Foreground="{DynamicResource Brush.Surface.OnParchment}"
+              FontSize="{DynamicResource Type.Size.Body}"
+              Content="{Binding AboutText}"
+              Click="About_Click"
+              AutomationProperties.AutomationId="Settings.About"
+              AutomationProperties.Name="{Binding AboutText}" />
+    </Grid>
 
     <ScrollViewer Grid.Column="1"
                   VerticalScrollBarVisibility="Auto"

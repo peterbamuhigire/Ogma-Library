@@ -1,0 +1,41 @@
+﻿[about] waiting for the desktop lock...
+[about] holds the desktop lock.
+pid=25816 window_ms=6735 exited=False
+ok
+invoked Shell.Nav.Settings
+invoked Settings.About
+dialog: 376,76,580,699
+About.ProductName | Ogma Library | ControlType.Text | focus=False
+About.Tagline | Your personal library of PDFs, kept by lamplight. | ControlType.Text | focus=False
+About.Link.Website | Website: www.techguypeter.com | ControlType.Button | focus=False
+About.Link.Email | Email: peter@techguypeter.com | ControlType.Button | focus=False
+About.Link.Phone | Phone: +256 784 464178 | ControlType.Button | focus=False
+About.Link.OgmaSite | Ogma website: ogma.techguypeter.com | ControlType.Button | focus=False
+About.Version | Version 1.0.0 | ControlType.Text | focus=False
+About.Copyright | © 2026 Chwezi Core Systems | ControlType.Text | focus=False
+About.Licences | Open source under the MIT licence. Typefaces Spectral, Public Sans, JetBrains Mono are used under the SIL Open Font License 1.1. | ControlType.Text | focus=False
+About.Close | Close | ControlType.Button | focus=True
+saved C:\wamp64\www\Ogma-Library\.claude\worktrees\agent-a35b066a98648ef67\docs\implementation\execution\evidence\sept-23-kaizen\about\about-dialog-light.png (1280x800)
+dialog open after Close: False
+focus after close: Settings.About / About Ogma Library
+killed
+pid=24192 window_ms=5526 exited=False
+ok
+invoked Shell.Nav.Settings
+invoked Settings.About
+dialog: 454,154,580,699
+About.ProductName | Ogma Library | ControlType.Text | focus=False
+About.Tagline | Your personal library of PDFs, kept by lamplight. | ControlType.Text | focus=False
+About.Link.Website | Website: www.techguypeter.com | ControlType.Button | focus=False
+About.Link.Email | Email: peter@techguypeter.com | ControlType.Button | focus=False
+About.Link.Phone | Phone: +256 784 464178 | ControlType.Button | focus=False
+About.Link.OgmaSite | Ogma website: ogma.techguypeter.com | ControlType.Button | focus=False
+About.Version | Version 1.0.0 | ControlType.Text | focus=False
+About.Copyright | © 2026 Chwezi Core Systems | ControlType.Text | focus=False
+About.Licences | Open source under the MIT licence. Typefaces Spectral, Public Sans, JetBrains Mono are used under the SIL Open Font License 1.1. | ControlType.Text | focus=False
+About.Close | Close | ControlType.Button | focus=True
+saved C:\wamp64\www\Ogma-Library\.claude\worktrees\agent-a35b066a98648ef67\docs\implementation\execution\evidence\sept-23-kaizen\about\about-dialog-dark.png (1280x800)
+dialog open after Close: False
+focus after close: Settings.About / About Ogma Library
+killed
+[about] released the desktop lock.
