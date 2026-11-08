@@ -98,3 +98,17 @@ claims are valid only when their completion record and executable evidence
 exist under `docs/implementation/execution/`, and behaviour changes need
 real-window proof (`docs/plans/sept-23-kaizen/AGENT_BRIEF.md`). Consult
 `00-execution-status.md` before making or repeating work.
+
+## Design standard (binding)
+
+- **Standard:** Chwezi Product Excellence Standard. Adopted by Lead Developer Peter Bamuhigire and the Chwezi Core Systems design team, effective 01 November 2026 until further communication. It applies to all UI work in this repository (every screen, flow, component and release) and supersedes conflicting design guidance here from 01 November 2026.
+- **Read first** (resolve engine locations through the global engine-routing table; do not hard-code paths):
+  - design engine `chwezi-design-engine`: `doctrine/product-excellence-standard.md` (binding text) and the skill `chwezi-product-excellence-standard` (`skills/00-cross-cutting-ops-qa-a11y/`: rules catalogue, product profiles, screen blueprints, scorecard); visual tokens from `chwezi-business-app-house-style`.
+  - dev engine `chwezi-dev-engine`: `frontend-architecture/references/product-excellence-engineering-gates.md`.
+- **Product profile:** **Education/LMS** (personal PDF library with classroom Host/Client modes), adapted to desktop.
+- **Most relevant screen blueprints:** S14 education course and exam hub; S11 document and contract management; S01 role-aware business dashboard.
+- **Release gate:** 13 hard gates (PX-GATE-01 to PX-GATE-13). PASS needs every applicable gate clear with MEASURED evidence, a weighted score >= 85/100 and no dimension below 2. An applicable gate left NOT_ASSESSED counts as open (BLOCKED); 70-84 with owned, dated remediation is CONDITIONAL (pilot only).
+- **Evidence required:** screenshots at compact and expanded widths, light and dark, 200% text, Arabic RTL and the longest declared language; a screen-reader and keyboard accessibility walkthrough; profiling on the declared reference hardware (`docs/governance/REFERENCE-HARDWARE.md`); Android and Core Web Vitals gates are N/A for this desktop product. An independent verifier signs every release; a human domain reviewer signs licensing or payment changes.
+- **Money:** stored as integer minor units (or exact decimal strings), never floats; displayed decimals follow the currency's ISO 4217 minor unit, so UGX and RWF show 0 decimals (`USh 45,000`, never `USh 45,000.00`).
+- **Document numbers (hard gate PX-GATE-13, rule PX-DATA-013):** contiguous per tenant per document type, allocated at issue inside the save transaction, sent as strings, provisional while offline, voided never deleted.
+- **Existing guidance in conflict:** The approved Ogma design system stays the visual layer; the standard supersedes it where it conflicts.
