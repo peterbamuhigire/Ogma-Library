@@ -75,7 +75,7 @@ public sealed class AnthropicProvider : IAiProvider
 
     public string Name => "Anthropic";
 
-    public AnthropicProvider(string apiKey, string model = "claude-3-haiku-20240307")
+    public AnthropicProvider(string apiKey, string model = "claude-haiku-5-5")
     {
         _model = model;
         _http = new HttpClient { BaseAddress = new Uri("https://api.anthropic.com") };
