@@ -357,6 +357,7 @@ publish() {
   fi
   dirty_streak=0
   sync_main || return 1
+  [ "$RESOLVE_MODE" -eq 1 ] && return 0   # a conflict is waiting for the resolve session; push after it
   local count good
   count="$(git rev-list --count origin/main..HEAD)"
   [ "$count" -eq 0 ] && return 0

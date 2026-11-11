@@ -123,3 +123,9 @@ real-window proof (`docs/plans/sept-23-kaizen/AGENT_BRIEF.md`). Consult
 - **Money:** stored as integer minor units (or exact decimal strings), never floats; displayed decimals follow the currency's ISO 4217 minor unit, so UGX and RWF show 0 decimals (`USh 45,000`, never `USh 45,000.00`).
 - **Document numbers (hard gate PX-GATE-13, rule PX-DATA-013):** contiguous per tenant per document type, allocated at issue inside the save transaction, sent as strings, provisional while offline, voided never deleted.
 - **Existing guidance in conflict:** The approved Ogma design system stays the visual layer; the standard supersedes it where it conflicts.
+
+<!-- autorun-docs:begin -->
+## Autorun (unattended driver)
+
+Plans under `docs/plans` are executed by `scripts/autorun/run_plan.sh`: one phase per session, ledger `docs/plans/AUTORUN.md`, the driver pushes. A new plan goes in its own folder with a `PLAN.md` and `RESUME.md` (see `scripts/autorun/PLAN-TEMPLATE.md`): small phases, testable acceptance lines, explicit dependencies, a default for each open decision. Do not hand-edit the ledger while a run is active. Repo-specific driver rules live in `scripts/autorun/autorun.conf`.
+<!-- autorun-docs:end -->
