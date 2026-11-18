@@ -100,6 +100,8 @@ The architecture tests fail the build if this is violated.
 - No secrets in the repo; provider keys live in the OS credential store.
 - No hard-coded user-facing strings — resolve through `ILocalizationService`
   (en/fr at MVP; es/it/de at final).
+- Visual design uses tokens only. The typeface decision, type scale, buttons, colour roles,
+  icons, component gallery and token lint are in [design-system.md](design-system.md).
 - Full rules: `docs/references` Development Standards; Avalonia rules:
   `docs/plans/grand-plan/_reference/AVALONIA-STANDARDS.md` and the
   `avalonia-desktop-development` skill.
