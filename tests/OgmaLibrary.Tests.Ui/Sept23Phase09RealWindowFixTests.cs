@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -22,7 +22,7 @@ public sealed class Sept23Phase09RealWindowFixTests
     {
         ThemeVariant theme = variant == "Dark" ? ThemeVariant.Dark : ThemeVariant.Light;
         OgmaApp app = NewApp();
-        var field = new TextBox { Text = "Wanjiru"};
+        var field = new TextBox { Text = "Wanjiru" };
         var window = new Window { Width = 400, Height = 120, RequestedThemeVariant = theme, Content = field };
         window.Show();
         Dispatcher.UIThread.RunJobs();
