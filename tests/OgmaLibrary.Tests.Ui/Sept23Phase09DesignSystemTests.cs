@@ -172,6 +172,102 @@ public sealed partial class Sept23Phase09DesignSystemTests
     }
 
     /// <summary>
+    /// Leading follows the inverse rule: body text breathes (about 1.5) and display text sits
+    /// tight (about 1.2), and the ratio never grows as the size climbs the hierarchy.
+    /// </summary>
+    [AvaloniaFact]
+    public void LineHeightTokens_AreTighterForDisplayThanBody()
+    {
+        OgmaApp app = NewApp();
+        string[] hierarchy = ["Body", "Subtitle", "Title", "Headline", "Display"];
+        string[] all = ["Caption", "Small", "Body", "BodyLarge", "Subtitle", "Title", "Headline", "Display"];
+        foreach (string step in all)
+        {
+            Assert.True(
+                Size(app, $"Type.LineHeight.{step}") > Size(app, $"Type.Size.{step}"),
+                $"Type.LineHeight.{step} must exceed its font size.");
+        }
+
+        double Ratio(string step) => Size(app, $"Type.LineHeight.{step}") / Size(app, $"Type.Size.{step}");
+        Assert.True(Ratio("Body") >= 1.4, "Body leading must be at least 1.4.");
+        Assert.True(Ratio("Display") <= 1.25, "Display leading must be at most 1.25.");
+        Assert.True(Ratio("Display") < Ratio("Body"));
+        for (int i = 1; i < hierarchy.Length; i++)
+        {
+            Assert.True(
+                Ratio(hierarchy[i]) <= Ratio(hierarchy[i - 1]),
+                $"{hierarchy[i]} leading must not exceed {hierarchy[i - 1]} leading.");
+        }
+    }
+
+    [AvaloniaFact]
+    public void IconSizeTokens_AreSixteenTwentyAndTwentyFour()
+    {
+        OgmaApp app = NewApp();
+        Assert.Equal(16, Size(app, "Icon.Size.Small"));
+        Assert.Equal(20, Size(app, "Icon.Size.Medium"));
+        Assert.Equal(24, Size(app, "Icon.Size.Large"));
+    }
+
+    [AvaloniaFact]
+    public void TextAndIconStyles_ApplyLineHeightAndIconSizeTokens()
+    {
+        OgmaApp app = NewApp();
+        var heading = new TextBlock { Text = "Heading" };
+        heading.Classes.Add("heading");
+        var caption = new TextBlock { Text = "Caption" };
+        caption.Classes.Add("caption");
+        var small = new Avalonia.Svg.Skia.Svg(new Uri("avares://OgmaLibrary.App/"));
+        small.Classes.Add("icon-small");
+        var medium = new Avalonia.Svg.Skia.Svg(new Uri("avares://OgmaLibrary.App/"));
+        medium.Classes.Add("icon-medium");
+        var large = new Avalonia.Svg.Skia.Svg(new Uri("avares://OgmaLibrary.App/"));
+        large.Classes.Add("icon-large");
+        var window = new Window
+        {
+            Width = 400,
+            Height = 300,
+            Content = new StackPanel { Children = { heading, caption, small, medium, large } },
+        };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(Size(app, "Type.LineHeight.Title"), heading.LineHeight);
+        Assert.Equal(Size(app, "Type.LineHeight.Caption"), caption.LineHeight);
+        Assert.Equal(Size(app, "Icon.Size.Small"), small.Width);
+        Assert.Equal(Size(app, "Icon.Size.Small"), small.Height);
+        Assert.Equal(Size(app, "Icon.Size.Medium"), medium.Width);
+        Assert.Equal(Size(app, "Icon.Size.Large"), large.Height);
+        window.Close();
+    }
+
+    /// <summary>
+    /// Changing a preference must not replace the D-14 scale with a stale copy: comfortable
+    /// density reproduces the tokens exactly, compact scales them but keeps the 12 px floor,
+    /// and switching back restores the tokens.
+    /// </summary>
+    [AvaloniaFact]
+    public void DensityScaling_KeepsTokenScaleAndTwelvePixelFloor()
+    {
+        OgmaApp app = NewApp();
+        OgmaLibrary.App.Themes.DensityTokens.Apply(app.Resources, 1.0);
+        Assert.Equal(12, Size(app, "Type.Size.Caption"));
+        Assert.Equal(21, Size(app, "Type.Size.Title"));
+        Assert.Equal(34, Size(app, "Type.Size.Display"));
+        double bodyLeading = Size(app, "Type.LineHeight.Body");
+
+        OgmaLibrary.App.Themes.DensityTokens.Apply(app.Resources, 0.9);
+        Assert.Equal(12, Size(app, "Type.Size.Caption"));
+        Assert.Equal(14 * 0.9, Size(app, "Type.Size.Body"), 6);
+        Assert.Equal(bodyLeading * 0.9, Size(app, "Type.LineHeight.Body"), 6);
+        Assert.Equal(16 * 0.9, Size(app, "Spacing.M"), 6);
+
+        OgmaLibrary.App.Themes.DensityTokens.Apply(app.Resources, 1.0);
+        Assert.Equal(14, Size(app, "Type.Size.Body"));
+        Assert.Equal(bodyLeading, Size(app, "Type.LineHeight.Body"));
+    }
+
+    /// <summary>
     /// The bundled Public Sans must resolve to real weight instances. Avalonia does not apply
     /// variable-font axes, and the variable file's default instance is Thin (100), which rendered
     /// every body label as faint grey hairlines in the real window.

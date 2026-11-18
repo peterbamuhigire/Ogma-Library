@@ -137,7 +137,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="x:String">
-                <svg:Svg Width="24" Height="24" Path="{Binding}" />
+                <svg:Svg Classes="icon-large" Path="{Binding}" />
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

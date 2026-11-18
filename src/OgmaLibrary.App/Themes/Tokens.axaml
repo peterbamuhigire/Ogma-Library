@@ -378,6 +378,26 @@
   <!-- Glyph-as-icon size for toolbar symbols (+, −, ✕) until each has a licensed icon. -->
   <x:Double x:Key="Type.Size.Glyph">16</x:Double>
 
+  <!--
+    Line heights (absolute px; Avalonia TextBlock.LineHeight is not a multiplier). Inverse rule:
+    body text breathes and display text sits tight, and the ratio never grows up the hierarchy:
+    Body 21/14 = 1.50 → Subtitle 24/17 = 1.41 → Title 28/21 = 1.33 → Headline 34/27 = 1.26 →
+    Display 40/34 = 1.18. Caption 16/12 = 1.33, Small 18/13 = 1.38, BodyLarge 24/16 = 1.50.
+  -->
+  <x:Double x:Key="Type.LineHeight.Caption">16</x:Double>
+  <x:Double x:Key="Type.LineHeight.Small">18</x:Double>
+  <x:Double x:Key="Type.LineHeight.Body">21</x:Double>
+  <x:Double x:Key="Type.LineHeight.BodyLarge">24</x:Double>
+  <x:Double x:Key="Type.LineHeight.Subtitle">24</x:Double>
+  <x:Double x:Key="Type.LineHeight.Title">28</x:Double>
+  <x:Double x:Key="Type.LineHeight.Headline">34</x:Double>
+  <x:Double x:Key="Type.LineHeight.Display">40</x:Double>
+
+  <!-- Icon sizes (Lucide duotone, 24 px grid): inline 16, toolbar 20, header and empty state 24. -->
+  <x:Double x:Key="Icon.Size.Small">16</x:Double>
+  <x:Double x:Key="Icon.Size.Medium">20</x:Double>
+  <x:Double x:Key="Icon.Size.Large">24</x:Double>
+
   <!-- Bundled OFL font roles. Platform fonts are explicit fallback only. -->
   <FontFamily x:Key="Type.FontFamily.Body">avares://OgmaLibrary.App/Assets/Fonts/PublicSans#Public Sans, Segoe UI, sans-serif</FontFamily>
   <FontFamily x:Key="Type.FontFamily.Display">avares://OgmaLibrary.App/Assets/Fonts/Spectral#Spectral, Georgia, serif</FontFamily>

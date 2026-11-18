@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia">
 
   <!--
     Ogma component styles (Sept-23 Kaizen Phase 09). Every value is a design token from
@@ -40,13 +41,29 @@
   <Style Selector="TextBlock.heading">
     <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Display}" />
     <Setter Property="FontSize" Value="{DynamicResource Type.Size.Title}" />
+    <Setter Property="LineHeight" Value="{DynamicResource Type.LineHeight.Title}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
   </Style>
 
   <Style Selector="TextBlock.caption">
     <Setter Property="FontSize" Value="{DynamicResource Type.Size.Caption}" />
+    <Setter Property="LineHeight" Value="{DynamicResource Type.LineHeight.Caption}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+
+  <!-- Icon sizes: put one class on an svg:Svg icon instead of a literal Width/Height. -->
+  <Style Selector="svg|Svg.icon-small">
+    <Setter Property="Width" Value="{DynamicResource Icon.Size.Small}" />
+    <Setter Property="Height" Value="{DynamicResource Icon.Size.Small}" />
+  </Style>
+  <Style Selector="svg|Svg.icon-medium">
+    <Setter Property="Width" Value="{DynamicResource Icon.Size.Medium}" />
+    <Setter Property="Height" Value="{DynamicResource Icon.Size.Medium}" />
+  </Style>
+  <Style Selector="svg|Svg.icon-large">
+    <Setter Property="Width" Value="{DynamicResource Icon.Size.Large}" />
+    <Setter Property="Height" Value="{DynamicResource Icon.Size.Large}" />
   </Style>
 
   <!-- Glyph used as an icon inside a button (+, −, ✕) until a licensed icon replaces it. -->
@@ -485,11 +502,13 @@
   <Style Selector="TextBlock.home-greeting">
     <Setter Property="FontFamily" Value="{DynamicResource Type.FontFamily.Display}" />
     <Setter Property="FontSize" Value="{DynamicResource Type.Size.Headline}" />
+    <Setter Property="LineHeight" Value="{DynamicResource Type.LineHeight.Headline}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
   </Style>
   <Style Selector="TextBlock.home-strip-title">
     <Setter Property="FontSize" Value="{DynamicResource Type.Size.Small}" />
+    <Setter Property="LineHeight" Value="{DynamicResource Type.LineHeight.Small}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Text}" />
   </Style>

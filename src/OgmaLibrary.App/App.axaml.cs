@@ -335,25 +335,9 @@ public sealed class App : Avalonia.Application, IDisposable
             return;
         }
 
-        foreach ((string key, double value) in new Dictionary<string, double>
-        {
-            ["Type.Size.Caption"] = 11,
-            ["Type.Size.Small"] = 12,
-            ["Type.Size.Body"] = 14,
-            ["Type.Size.BodyMedium"] = 15,
-            ["Type.Size.Subtitle"] = 16,
-            ["Type.Size.Title"] = 20,
-            ["Type.Size.Display"] = 30,
-            ["Spacing.XXS"] = 4,
-            ["Spacing.XS"] = 8,
-            ["Spacing.S"] = 12,
-            ["Spacing.M"] = 16,
-            ["Spacing.L"] = 24,
-            ["Spacing.XL"] = 32,
-        })
-        {
-            Resources[key] = value * scale;
-        }
+        // Baselines come from Themes/Tokens.axaml, never from a copy here (a stale copy once
+        // replaced the D-14 scale with 11/20/30 on every preference change).
+        Themes.DensityTokens.Apply(Resources, scale);
     }
 
     private static ComposedRuntime ComposeRuntime(
