@@ -1,0 +1,41 @@
+{
+  "work_root": "../_autorun/Ogma-Library/kaizen",
+  "plan_dir": "docs/plans/sept-23-kaizen",
+  "corpus_label": "Ogma-Library/kaizen-runner",
+  "pc_label": "pc1",
+  "paper_data_dir": "H:/My Drive/Papers/Technology/AI Development/01-token-economy-agentic-delivery/working/data/ogma-kaizen-runner",
+  "publish": true,
+  "remote": "origin",
+  "main_branch": "main",
+  "max_hours": 168,
+  "max_reworks": 3,
+  "max_slices": 8,
+  "max_error_streak": 4,
+  "roles": {
+    "plan":    { "model": "fable", "effort": "medium", "timeout_min": 45 },
+    "review":  { "model": "fable", "effort": "medium", "timeout_min": 60 },
+    "execute": { "model": "opus",  "effort": "medium", "timeout_min": 180 },
+    "rework":  { "model": "opus",  "effort": "medium", "timeout_min": 120 },
+    "resolve": { "model": "opus",  "effort": "medium", "timeout_min": 60 }
+  },
+  "allowed_tools": ["Read", "Glob", "Grep", "Edit", "Write", "Bash", "PowerShell", "Skill", "WebFetch", "WebSearch"],
+  "disallowed_tools": [
+    "Agent",
+    "Bash(git push:*)", "Bash(git switch:*)", "Bash(git checkout main:*)", "Bash(git stash:*)",
+    "Bash(git reset --hard:*)", "Bash(git clean:*)", "Bash(git rebase:*)", "Bash(git merge:*)",
+    "PowerShell(git push:*)", "PowerShell(git switch:*)", "PowerShell(git checkout main:*)", "PowerShell(git stash:*)",
+    "PowerShell(git reset --hard:*)", "PowerShell(git clean:*)", "PowerShell(git rebase:*)", "PowerShell(git merge:*)"
+  ],
+  "extra_prompt": ".NET 10 and Avalonia solution (OgmaLibrary.sln, global.json). Before rebuilding, stop OgmaLibrary.App and OgmaLibrary.Workers processes running from this worktree; they lock the output files.",
+  "pre_gate_cmd": "Get-Process OgmaLibrary.App,OgmaLibrary.Workers -ErrorAction SilentlyContinue | Where-Object { $_.Path -like '{wt}*' } | Stop-Process -Force",
+  "gates": [
+    { "name": "accountability", "cmd": "./scripts/Test-RequirementAccountability.ps1; exit $LASTEXITCODE", "timeout_min": 10 },
+    { "name": "restore", "cmd": "dotnet restore OgmaLibrary.sln --locked-mode --nologo -v q; exit $LASTEXITCODE", "timeout_min": 30 },
+    { "name": "format", "cmd": "dotnet format OgmaLibrary.sln --verify-no-changes --no-restore; exit $LASTEXITCODE", "timeout_min": 30 },
+    { "name": "build", "cmd": "dotnet build OgmaLibrary.sln --configuration Release --no-restore --nologo -v q; exit $LASTEXITCODE", "timeout_min": 45 },
+    { "name": "vulnerable", "cmd": "dotnet list OgmaLibrary.sln package --vulnerable --include-transitive; exit $LASTEXITCODE", "timeout_min": 15, "fail_if_output": "has the following vulnerable packages" },
+    { "name": "analyzers", "cmd": "dotnet format analyzers OgmaLibrary.sln --verify-no-changes --no-restore --severity warn --verbosity minimal; exit $LASTEXITCODE", "timeout_min": 45 },
+    { "name": "tests", "cmd": "dotnet test OgmaLibrary.sln --configuration Release --no-build --nologo -m:1 --filter 'Category!=Benchmark&Category!=E2E&Category!=Performance'; exit $LASTEXITCODE", "timeout_min": 60 },
+    { "name": "shelf3d", "cmd": "npm ci; if ($LASTEXITCODE) { exit 1 }; npm run typecheck; if ($LASTEXITCODE) { exit 1 }; npm run build; if ($LASTEXITCODE) { exit 1 }; npm run perf:budget; exit $LASTEXITCODE", "cwd": "src/shelf3d", "when_changed": "src/shelf3d/", "timeout_min": 30 }
+  ]
+}
