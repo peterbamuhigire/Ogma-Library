@@ -38,8 +38,13 @@ public sealed class ProgressRing : Control
             return;
         }
 
-        IBrush track = Resolve("Brush.Rail.Background");
-        IBrush arc = Resolve("Brush.Accent.Glow");
+        IBrush? track = Resolve("Brush.Rail.Background");
+        IBrush? arc = Resolve("Brush.Accent.Glow");
+        if (track is null || arc is null)
+        {
+            return;
+        }
+
         const double stroke = 3;
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
         double radius = (size - stroke) / 2;
@@ -71,8 +76,9 @@ public sealed class ProgressRing : Control
         return new Point(centre.X + (radius * Math.Cos(radians)), centre.Y + (radius * Math.Sin(radians)));
     }
 
-    private IBrush Resolve(string key) =>
+    // Tokens only: a missing token draws nothing rather than an off-palette fallback.
+    private IBrush? Resolve(string key) =>
         this.TryFindResource(key, ActualThemeVariant, out object? value) && value is IBrush brush
             ? brush
-            : Brushes.Gray;
+            : null;
 }

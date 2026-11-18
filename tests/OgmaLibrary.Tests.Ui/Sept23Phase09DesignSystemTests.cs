@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -211,6 +212,90 @@ public sealed partial class Sept23Phase09DesignSystemTests
         Assert.True(violations.Count == 0, "Hard-coded styling in views:\n" + string.Join('\n', violations));
     }
 
+    /// <summary>
+    /// Code-behind files under Views may not paint with literal colours; the only exceptions are
+    /// the documented allow-list, which mirrors the one in <c>scripts/Test-DesignTokens.ps1</c>.
+    /// </summary>
+    [Fact]
+    public void ViewCodeBehind_HasNoColourLiteralsOutsideAllowList()
+    {
+        string views = Path.Combine(RepoRoot(), "src", "OgmaLibrary.App", "Views");
+        var violations = new List<string>();
+        foreach (string file in Directory.EnumerateFiles(views, "*.cs", SearchOption.AllDirectories))
+        {
+            if (CodeBehindColourAllowList.Contains(Path.GetFileName(file)))
+            {
+                continue;
+            }
+
+            string[] lines = File.ReadAllLines(file);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (CodeBehindColour().IsMatch(lines[i]))
+                {
+                    violations.Add($"{Path.GetFileName(file)}:{i + 1}: {lines[i].Trim()}");
+                }
+            }
+        }
+
+        Assert.True(violations.Count == 0, "Colour literals in view code-behind:\n" + string.Join('\n', violations));
+    }
+
+    /// <summary>Buttons take their fills from variant styles, never from local Background/Foreground.</summary>
+    [Fact]
+    public void ViewButtons_HaveNoLocalBackgroundOrForeground()
+    {
+        string views = Path.Combine(RepoRoot(), "src", "OgmaLibrary.App", "Views");
+        var violations = new List<string>();
+        foreach (string file in Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories))
+        {
+            foreach (Match match in ButtonLocalBrush().Matches(File.ReadAllText(file)))
+            {
+                violations.Add($"{Path.GetFileName(file)}: {match.Value.Split('\n')[0].Trim()}");
+            }
+        }
+
+        Assert.True(violations.Count == 0, "Buttons with local brushes:\n" + string.Join('\n', violations));
+    }
+
+    /// <summary>
+    /// The Fluent palette pinned in App.axaml cannot reference tokens, so it must equal the canvas
+    /// (<c>Color.Surface.Base</c>) and primary amber (<c>Color.Accent.Primary</c>) of each theme.
+    /// </summary>
+    [AvaloniaFact]
+    public void AppPalette_MatchesCanvasAndAccentTokensInEachTheme()
+    {
+        OgmaApp app = NewApp();
+        XDocument doc = XDocument.Load(Path.Combine(RepoRoot(), "src", "OgmaLibrary.App", "App.axaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var palettes = doc.Descendants().Where(e => e.Name.LocalName == "ColorPaletteResources").ToList();
+        foreach (ThemeVariant theme in Themes)
+        {
+            XElement palette = Assert.Single(palettes, e => (string?)e.Attribute(x + "Key") == theme.Key.ToString());
+            Assert.Equal(Resolve(app, "Color.Surface.Base", theme), Color.Parse((string)palette.Attribute("RegionColor")!));
+            Assert.Equal(Resolve(app, "Color.Accent.Primary", theme), Color.Parse((string)palette.Attribute("Accent")!));
+        }
+    }
+
+    /// <summary>The progress ring paints its track with <c>Brush.Rail.Background</c> in both themes.</summary>
+    [AvaloniaFact]
+    public void ProgressRing_TrackResolvesFromTokenInBothThemes()
+    {
+        OgmaApp app = NewApp();
+        foreach (ThemeVariant theme in Themes)
+        {
+            var ring = new ProgressRing { Percent = 25, Width = 40, Height = 40 };
+            var window = new Window { Width = 40, Height = 40, RequestedThemeVariant = theme, Content = ring };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            using var frame = window.CaptureRenderedFrame();
+            Assert.NotNull(frame);
+            Color centre = PixelAt(frame!, 20, 20);
+            Assert.Equal(Resolve(app, "Color.Rail.Background", theme), centre);
+            window.Close();
+        }
+    }
+
     [Fact]
     public void IconSet_EveryAssetIsRegisteredDuotoneAndLicensed()
     {
@@ -396,6 +481,37 @@ public sealed partial class Sept23Phase09DesignSystemTests
         double lb = Luminance(b);
         return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
     }
+
+    private static Color PixelAt(Avalonia.Media.Imaging.Bitmap bitmap, int px, int py)
+    {
+        var buffer = new byte[4];
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(buffer, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(new Avalonia.PixelRect(px, py, 1, 1), handle.AddrOfPinnedObject(), 4, 4);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        return bitmap.Format == Avalonia.Platform.PixelFormats.Rgba8888
+            ? Color.FromArgb(buffer[3], buffer[0], buffer[1], buffer[2])
+            : Color.FromArgb(buffer[3], buffer[2], buffer[1], buffer[0]);
+    }
+
+    /// <summary>Mirrors the code-behind allow-list in scripts/Test-DesignTokens.ps1.</summary>
+    private static readonly HashSet<string> CodeBehindColourAllowList = new(StringComparer.Ordinal)
+    {
+        "GeneratedCover.cs", // overlay/shade maths and a last-resort cloth/gilt fallback
+        "QrCodeView.cs", // scanner-safe white/black fallback if the Qr tokens are missing
+    };
+
+    [GeneratedRegex(@"\b(?:Brushes|Colors)\.[A-Z]\w*|\bColor\.(?:FromRgb|FromArgb|Parse)\b")]
+    private static partial Regex CodeBehindColour();
+
+    [GeneratedRegex(@"<(?:Button|ToggleButton|DropDownButton|RepeatButton)\b[^>]*?\s(?:Background|Foreground)=""[^""]*""|<(?:Button|ToggleButton|DropDownButton|RepeatButton)\.(?:Background|Foreground)>")]
+    private static partial Regex ButtonLocalBrush();
 
     private static string RepoRoot() =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));

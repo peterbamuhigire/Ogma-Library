@@ -9,7 +9,11 @@
       - a literal colour on Foreground/Background/BorderBrush/Fill/Stroke/Color
         (hex such as #FFFFFF, or a named colour such as White/Black; Transparent is allowed)
       - a SolidColorBrush with a literal Color
-    and when an icon file under Assets/icons is not registered in Icons/IconCatalog.cs or the
+      - a Button/ToggleButton/DropDownButton/RepeatButton with a local Background or Foreground
+      - Brushes.X, Colors.X or Color.FromRgb/FromArgb/Parse in view code-behind (*.cs), outside
+        the allow-list below
+    The same literal-value rules apply to the app root (src/OgmaLibrary.App/*.axaml), except the
+    Fluent ColorPaletteResources. It also fails an icon file under Assets/icons is not registered in Icons/IconCatalog.cs or the
     icon set is missing its licence file.
     Exit code 0 = clean, 1 = violations (listed as path:line: message).
 .EXAMPLE
@@ -38,17 +42,59 @@ $rules = @(
 )
 
 $violations = New-Object System.Collections.Generic.List[string]
-foreach ($file in Get-ChildItem -Path $views -Recurse -Filter '*.axaml') {
+function Get-RelativePath([string]$Path) { $Path.Substring($Root.Length).TrimStart('\', '/') }
+
+function Test-LineRules([IO.FileInfo]$File, [string]$SkipPattern) {
     $lineNumber = 0
-    foreach ($line in [IO.File]::ReadAllLines($file.FullName)) {
+    foreach ($line in [IO.File]::ReadAllLines($File.FullName)) {
         $lineNumber++
+        if ($SkipPattern -and $line -match $SkipPattern) { continue }
         foreach ($rule in $rules) {
             if ($line -match $rule.Pattern) {
-                $relative = $file.FullName.Substring($Root.Length).TrimStart('\', '/')
-                $violations.Add("${relative}:${lineNumber}: $($rule.Message) -> $($Matches[0])")
+                $violations.Add("$(Get-RelativePath $File.FullName):${lineNumber}: $($rule.Message) -> $($Matches[0])")
             }
         }
     }
+}
+
+foreach ($file in Get-ChildItem -Path $views -Recurse -Filter '*.axaml') {
+    Test-LineRules $file $null
+}
+
+# Rule (a): buttons take fills from variant styles (Classes="primary|danger|quiet|tool|link|segment"),
+# never from a local Background/Foreground attribute or property element. Start tags may span lines.
+$buttonTags = 'Button|ToggleButton|DropDownButton|RepeatButton'
+$buttonRule = "<(?:$buttonTags)\b[^>]*?\s(?:Background|Foreground)=""[^""]*""|<(?:$buttonTags)\.(?:Background|Foreground)>"
+foreach ($file in Get-ChildItem -Path $views -Recurse -Filter '*.axaml') {
+    $text = [IO.File]::ReadAllText($file.FullName)
+    foreach ($m in [regex]::Matches($text, $buttonRule)) {
+        $lineNumber = ([regex]::Matches($text.Substring(0, $m.Index), "`n")).Count + 1
+        $violations.Add("$(Get-RelativePath $file.FullName):${lineNumber}: button with a local Background/Foreground; use a variant class -> $($m.Value.Split("`n")[0].Trim())")
+    }
+}
+
+# Rule (b): view code-behind paints with tokens, not Brushes.X / Colors.X / Color.FromRgb|FromArgb|Parse.
+# Allow-list (file name -> reason); mirrored in tests/OgmaLibrary.Tests.Ui/Sept23Phase09DesignSystemTests.cs.
+$codeBehindAllowList = @{
+    'GeneratedCover.cs' = 'overlay/shade maths (alpha white/black) and a last-resort cloth/gilt fallback'
+    'QrCodeView.cs'     = 'scanner-safe white/black fallback when the Brush.Qr.* tokens are missing'
+}
+$codeBehindRule = '\b(?:Brushes|Colors)\.[A-Z]\w*|\bColor\.(?:FromRgb|FromArgb|Parse)\b'
+foreach ($file in Get-ChildItem -Path $views -Recurse -Filter '*.cs') {
+    if ($codeBehindAllowList.ContainsKey($file.Name)) { continue }
+    $lineNumber = 0
+    foreach ($line in [IO.File]::ReadAllLines($file.FullName)) {
+        $lineNumber++
+        if ($line -match $codeBehindRule) {
+            $violations.Add("$(Get-RelativePath $file.FullName):${lineNumber}: colour literal in view code-behind; resolve a Brush.*/Color.* token -> $($Matches[0])")
+        }
+    }
+}
+
+# Rule (c): the app root (App.axaml and siblings) follows the view rules, except the Fluent
+# ColorPaletteResources, which cannot take resource references (their values are test-guarded).
+foreach ($file in Get-ChildItem -Path (Join-Path $Root 'src\OgmaLibrary.App') -Filter '*.axaml') {
+    Test-LineRules $file 'ColorPaletteResources'
 }
 
 # Icons: every shipped SVG is registered in IconCatalog and the set carries its licence.

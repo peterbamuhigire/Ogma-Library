@@ -53,6 +53,11 @@
       <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
       <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
     </Style>
+    <!-- The About entry sits on the parchment section pane: a quiet button in parchment ink. -->
+    <Style Selector="Button.quiet.settings-about">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
+    </Style>
   </UserControl.Styles>
 
   <UserControl.DataTemplates>
@@ -103,9 +108,7 @@
               Margin="8,4,0,12"
               HorizontalAlignment="Stretch"
               HorizontalContentAlignment="Left"
-              Background="Transparent"
-              Foreground="{DynamicResource Brush.Surface.OnParchment}"
-              FontSize="{DynamicResource Type.Size.Body}"
+              Classes="quiet settings-about"
               Content="{Binding AboutText}"
               Click="About_Click"
               AutomationProperties.AutomationId="Settings.About"
