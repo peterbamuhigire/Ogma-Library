@@ -54,6 +54,55 @@ public sealed class ApplicationStartupTests
         }
     }
 
+    /// <summary>
+    /// Sept-23 stabilisation: on a fresh data folder the processing-progress refresh (scheduled
+    /// when the shell is composed) used to query <c>Jobs</c> before the migration created it
+    /// (<c>no such table: Jobs</c>). It must wait for the migration instead.
+    /// </summary>
+    [Fact]
+    public async Task ProcessingProgress_BeforeMigration_WaitsInsteadOfQueryingMissingTables()
+    {
+        string dataDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"ogma-startup-race-{Guid.NewGuid():N}");
+
+        try
+        {
+            await using ServiceProvider services = new ServiceCollection()
+                .AddOgmaLibrary(new OgmaRuntimeOptions
+                {
+                    DataDirectory = dataDirectory,
+                    LibraryRoot = dataDirectory,
+                })
+                .AddSingleton<IHostedService>(new RecordingHostedService())
+                .BuildServiceProvider();
+            var readiness = services.GetRequiredService<OgmaLibrary.Application.Catalogue.ICatalogueReadiness>();
+            var progress = services.GetRequiredService<OgmaLibrary.Application.Ingestion.IProcessingProgressService>();
+
+            Task<OgmaLibrary.Application.Ingestion.ProcessingSnapshot> early = progress.RefreshAsync();
+            await Task.Delay(TimeSpan.FromMilliseconds(300));
+            Assert.False(readiness.IsReady);
+            Assert.False(early.IsCompleted, "The progress query ran before the catalogue migration.");
+
+            ApplicationStartupReport report = await ApplicationStartup.InitializeAsync(services);
+
+            Assert.True(report.CanOpenCatalogue);
+            Assert.True(readiness.IsReady);
+            OgmaLibrary.Application.Ingestion.ProcessingSnapshot snapshot =
+                await early.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.False(snapshot.IsActive);
+            await ApplicationStartup.StopAsync(services);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(dataDirectory))
+            {
+                Directory.Delete(dataDirectory, recursive: true);
+            }
+        }
+    }
+
     [Fact]
     public void CatalogueContext_ResolvesDistinctInstances_ForForegroundAndWorkerSafety()
     {

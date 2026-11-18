@@ -1,5 +1,16 @@
 # CLAUDE.md
 
+<!-- MODEL-ROUTING-BLOCK v2 2026-11-10 -->
+## Model classes and token discipline (Claude Code, Codex and any runner; mandatory)
+Name a class here, never a model version. The owner's routing file maps classes to current models (Knowledge Bank, Development, Anthropic Models: `model-routing.json`; handoff AM-01), so a model upgrade needs no edit in this repository.
+- **Classes:** **M Mundane** (fastest and cheapest; mechanical work with a clear right answer); **N Normal** (default; executes an approved plan); **X Expert** (strongest standard class; plans, judges, hard debugging, final review); **S Special occasion** (premium class above X; rare; only through the seven-test gate, AM-01 s5, including approved billing). A new model is classified by relative price and vendor positioning (AM-01 s1.1). With no S class available, X is the ceiling.
+- **Escalate one class, on a trigger only:** two failed acceptance checks; an undecidable choice; unreviewed money, tenant, security or legal work. Drop back after the hard step.
+- **Tokens, both runners:** start-up files at most 8,000 tokens and `AGENTS.md` at most 32 KiB (Codex stops at its byte cap); one task per session, clear or new thread between tasks, compact near 80%; plan to a file, execute in a fresh session (resume a plan from its small `RESUME.md` only); read the router section then one `SKILL.md`, search instead of loading; consult only the engine whose domain matches the task; subagents and tools return summaries, cap tool output (`tool_output_token_limit`), disable unused MCP tools; stable prefix first, no instruction edits mid-session; parallel agents only with a written budget; non-interactive runs for bulk (Batch API only with an approved API budget); effort medium by default, high needs a reason, the maximum needs approval.
+- **Class S case for this repository (A-12, AM-02):** none; X decides architecture, N builds. Everything else: X plans, N executes, M for mechanical work.
+- **Monthly Kaizen, first step:** Anthropic currency check (AM-01 s8) and the token-budget lint; record `Anthropic currency check YYYY-MM-DD: no change|changed`.
+<!-- /MODEL-ROUTING-BLOCK -->
+
+
 Guidance for AI coding agents working in this repository.
 
 ## Product and release scope
@@ -98,3 +109,23 @@ claims are valid only when their completion record and executable evidence
 exist under `docs/implementation/execution/`, and behaviour changes need
 real-window proof (`docs/plans/sept-23-kaizen/AGENT_BRIEF.md`). Consult
 `00-execution-status.md` before making or repeating work.
+
+## Design standard (binding)
+
+- **Standard:** Chwezi Product Excellence Standard. Adopted by Lead Developer Peter Bamuhigire and the Chwezi Core Systems design team, effective 01 November 2026 until further communication. It applies to all UI work in this repository (every screen, flow, component and release) and supersedes conflicting design guidance here from 01 November 2026.
+- **Read first** (resolve engine locations through the global engine-routing table; do not hard-code paths):
+  - design engine `chwezi-design-engine`: `doctrine/product-excellence-standard.md` (binding text) and the skill `chwezi-product-excellence-standard` (`skills/00-cross-cutting-ops-qa-a11y/`: rules catalogue, product profiles, screen blueprints, scorecard); visual tokens from `chwezi-business-app-house-style`.
+  - dev engine `chwezi-dev-engine`: `frontend-architecture/references/product-excellence-engineering-gates.md`.
+- **Product profile:** **Education/LMS** (personal PDF library with classroom Host/Client modes), adapted to desktop.
+- **Most relevant screen blueprints:** S14 education course and exam hub; S11 document and contract management; S01 role-aware business dashboard.
+- **Release gate:** 13 hard gates (PX-GATE-01 to PX-GATE-13). PASS needs every applicable gate clear with MEASURED evidence, a weighted score >= 85/100 and no dimension below 2. An applicable gate left NOT_ASSESSED counts as open (BLOCKED); 70-84 with owned, dated remediation is CONDITIONAL (pilot only).
+- **Evidence required:** screenshots at compact and expanded widths, light and dark, 200% text, Arabic RTL and the longest declared language; a screen-reader and keyboard accessibility walkthrough; profiling on the declared reference hardware (`docs/governance/REFERENCE-HARDWARE.md`); Android and Core Web Vitals gates are N/A for this desktop product. An independent verifier signs every release; a human domain reviewer signs licensing or payment changes.
+- **Money:** stored as integer minor units (or exact decimal strings), never floats; displayed decimals follow the currency's ISO 4217 minor unit, so UGX and RWF show 0 decimals (`USh 45,000`, never `USh 45,000.00`).
+- **Document numbers (hard gate PX-GATE-13, rule PX-DATA-013):** contiguous per tenant per document type, allocated at issue inside the save transaction, sent as strings, provisional while offline, voided never deleted.
+- **Existing guidance in conflict:** The approved Ogma design system stays the visual layer; the standard supersedes it where it conflicts.
+
+<!-- autorun-docs:begin -->
+## Autorun (unattended driver)
+
+Plans under `docs/plans` are executed by `scripts/autorun/run_plan.sh`: one phase per session, ledger `docs/plans/AUTORUN.md`, the driver pushes. A new plan goes in its own folder with a `PLAN.md` and `RESUME.md` (see `scripts/autorun/PLAN-TEMPLATE.md`): small phases, testable acceptance lines, explicit dependencies, a default for each open decision. Do not hand-edit the ledger while a run is active. Repo-specific driver rules live in `scripts/autorun/autorun.conf`.
+<!-- autorun-docs:end -->

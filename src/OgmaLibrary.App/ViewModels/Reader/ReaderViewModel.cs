@@ -1016,6 +1016,13 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         {
             throw;
         }
+        catch (Exception exception) when (exception is PdfPasswordRequiredException or PdfPasswordIncorrectException)
+        {
+            // A locked book is a normal state, not a failure; unlocking is Phase 12's flow.
+            AppLog.ReaderOpenPasswordRequired(_logger);
+            StatusMessage = _localization["Reader.Error.PasswordProtected"];
+            return false;
+        }
         catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
         {
             AppLog.ReaderOpenFailed(_logger, exception);

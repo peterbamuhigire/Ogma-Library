@@ -21,6 +21,22 @@ public sealed class G04SearchTests
             Shell.WaitReady(context);
             Shell.AddCorpusLibrary(context);
             Shell.WaitForCatalogue(context, minimum: 1);
+            // Precondition (Sept-23 Phase 13): search a library whose PDF metadata has been
+            // read. The Unicode probe can only match the author from PDF metadata (the page
+            // glyph is outside the corpus font), so wait until the catalogue shows a
+            // metadata-derived title. Probes and assertions are unchanged.
+            bool metadataRead = Uia.Poll(
+                () => Shell.FindCatalogueItem(context, "Hadithi za Jioni") is not null,
+                TimeSpan.FromSeconds(180),
+                intervalMs: 1000);
+            if (metadataRead)
+            {
+                context.Mark("catalogue.metadataRead");
+            }
+            else
+            {
+                context.Record("catalogue.metadataReadMs", -1);
+            }
             AutomationElement window = context.RequireApp.MainWindow;
             Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Search"));
             AutomationElement box = Uia.WaitFor(window, "Search.Box");

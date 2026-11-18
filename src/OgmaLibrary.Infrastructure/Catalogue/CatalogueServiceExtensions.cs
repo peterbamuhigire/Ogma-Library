@@ -64,6 +64,9 @@ public static class CatalogueServiceExtensions
 
         // Migrator — runs once at startup via explicit call.
         services.AddSingleton<CatalogueMigrator>();
+        services.AddSingleton<CatalogueReadinessGate>();
+        services.AddSingleton<OgmaLibrary.Application.Catalogue.ICatalogueReadiness>(sp =>
+            sp.GetRequiredService<CatalogueReadinessGate>());
 
         // Repository implementations.
         services.AddSingleton<ILegacyCatalogueRepository, LegacyCatalogueRepository>();
@@ -105,6 +108,7 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IFtsIndexService, FtsIndexService>();
         services.AddSingleton<ICombinedSearchService, CombinedSearchService>();
         services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
+        services.AddSingleton<IUnifiedSearchService, UnifiedSearchService>();
         services.AddSingleton<IHybridRankingService, HybridRankingService>();
         services.AddSingleton<IMatchLocationService, MatchLocationService>();
         services.AddSingleton<ISearchEvaluationStore>(_ => new JsonSearchEvaluationStore(

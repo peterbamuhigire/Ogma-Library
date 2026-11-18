@@ -415,3 +415,9 @@ Built by **[Peter Bamuhigire](https://techguypeter.com)**
 [MIT License](LICENSE) · [Report a bug](https://github.com/peterbamuhigire/ogma-library/issues) · [Request a feature](https://github.com/peterbamuhigire/ogma-library/discussions)
 
 </div>
+
+<!-- autorun-docs:begin -->
+## Unattended plan driver
+
+`scripts/autorun/` runs this repository's plans in `docs/plans` with Claude Code or Codex, one phase per session, and pushes validated commits to `main`. Start: `scripts/autorun/run_plan.sh claude`; progress: `scripts/autorun/status.sh claude`; settings: `scripts/autorun/autorun.conf`; how to write plans it can execute: `scripts/autorun/PLAN-TEMPLATE.md`; full guide: `scripts/autorun/README.md`.
+<!-- autorun-docs:end -->

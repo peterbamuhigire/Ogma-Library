@@ -280,7 +280,14 @@ public sealed class StartupShellViewModel : INotifyPropertyChanged
         MigrationProgress = 0;
 
         Task loadingDelay = RevealLoadingAfterDelayAsync(cancellationToken);
-        ApplicationStartupReport report = await _coordinator.InitializeAsync(cancellationToken)
+
+        // Migration, backfill and job recovery use SQLite, whose "async" calls complete
+        // synchronously. Run them on the thread pool so the UI thread keeps pumping: a close
+        // during startup must be processed at once and cancel this work (Sept-23 K71).
+        IApplicationStartupCoordinator coordinator = _coordinator;
+        ApplicationStartupReport report = await Task.Run(
+                () => coordinator.InitializeAsync(cancellationToken),
+                cancellationToken)
             .ConfigureAwait(true);
         _report = report;
 

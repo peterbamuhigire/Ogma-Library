@@ -42,6 +42,7 @@ public sealed class CatalogueMigrator
     private readonly ILogger _logger = NullLogger.Instance;
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
+    private readonly CatalogueReadinessGate? _readiness;
 
     /// <summary>Latest redacted preflight report, when migration has run.</summary>
     public IdentityMigrationPreflightReport? LastPreflightReport { get; private set; }
@@ -76,6 +77,7 @@ public sealed class CatalogueMigrator
         ArgumentNullException.ThrowIfNull(serviceProvider);
         _contextFactory = contextFactory;
         _logger = serviceProvider.GetService<ILogger<CatalogueMigrator>>() ?? (ILogger)NullLogger.Instance;
+        _readiness = serviceProvider.GetService<CatalogueReadinessGate>();
     }
 
     /// <summary>
@@ -87,6 +89,14 @@ public sealed class CatalogueMigrator
     /// Thrown when the database path cannot be determined from the connection string.
     /// </exception>
     public async Task ApplyAsync(CancellationToken cancellationToken = default)
+    {
+        await ApplyCoreAsync(cancellationToken).ConfigureAwait(false);
+
+        // Early background consumers wait for this before their first query.
+        _readiness?.MarkReady();
+    }
+
+    private async Task ApplyCoreAsync(CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken)
             .ConfigureAwait(false);

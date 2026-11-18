@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Diagnostics;
@@ -24,6 +25,7 @@ public sealed class ProcessingProgressService : IProcessingProgressService, IDis
 
     private readonly IDbContextFactory<CatalogueDbContext> _contextFactory;
     private readonly ILogger _logger;
+    private readonly ICatalogueReadiness? _readiness;
     private readonly CancellationTokenSource _disposed = new();
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private ProcessingSnapshot _snapshot = ProcessingSnapshot.Idle;
@@ -35,12 +37,18 @@ public sealed class ProcessingProgressService : IProcessingProgressService, IDis
     /// <summary>Initializes a new instance of the <see cref="ProcessingProgressService"/> class.</summary>
     /// <param name="contextFactory">The catalogue context factory.</param>
     /// <param name="logger">Optional logger.</param>
+    /// <param name="readiness">
+    /// Optional catalogue readiness; when present no query runs before the startup migration
+    /// has created the job table.
+    /// </param>
     public ProcessingProgressService(
         IDbContextFactory<CatalogueDbContext> contextFactory,
-        ILogger<ProcessingProgressService>? logger = null)
+        ILogger<ProcessingProgressService>? logger = null,
+        ICatalogueReadiness? readiness = null)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         _logger = logger ?? (ILogger)NullLogger.Instance;
+        _readiness = readiness;
     }
 
     /// <inheritdoc />
@@ -55,6 +63,11 @@ public sealed class ProcessingProgressService : IProcessingProgressService, IDis
     /// <inheritdoc />
     public async Task<ProcessingSnapshot> RefreshAsync(CancellationToken cancellationToken = default)
     {
+        if (_readiness is { IsReady: false })
+        {
+            await _readiness.WaitUntilReadyAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         await _refreshGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         ProcessingSnapshot next;
         bool changed;

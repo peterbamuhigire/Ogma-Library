@@ -2915,8 +2915,37 @@ public sealed class ReaderViewRenderTests
         Assert.Equal("Final draft", saved.KeyInsight);
     }
 
+    /// <summary>
+    /// Sept-23 stabilisation: a password-protected book shows a localized locked state, not the
+    /// generic "file could not be found" failure, and never the worker's raw message.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("en", "This book is password-protected.")]
+    [InlineData("fr", "Ce livre est protégé par un mot de passe.")]
+    public async Task OpenAsync_PasswordProtectedBook_ShowsLocalizedLockedState(string culture, string expectedStart)
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture(culture);
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService { OpenFailure = new PdfPasswordRequiredException("C:/fixtures/locked.pdf") },
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+
+        bool opened = await viewModel.OpenAsync("book-locked", null, CancellationToken.None);
+
+        Assert.False(opened);
+        Assert.False(viewModel.IsOpen);
+        Assert.StartsWith(expectedStart, viewModel.StatusMessage, StringComparison.Ordinal);
+    }
+
     private sealed class FakeReaderSessionService : IReaderSessionService
     {
+        public Exception? OpenFailure { get; init; }
+
         public ZoomMode ZoomMode { get; init; } = ZoomMode.FitWidth;
 
         public double ZoomPercent { get; init; } = 100;
@@ -2931,6 +2960,11 @@ public sealed class ReaderViewRenderTests
 
         public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct)
         {
+            if (OpenFailure is not null)
+            {
+                return Task.FromException<ReaderSession>(OpenFailure);
+            }
+
             CurrentSession = new ReaderSession(
                 bookId,
                 "C:/fixtures/book.pdf",

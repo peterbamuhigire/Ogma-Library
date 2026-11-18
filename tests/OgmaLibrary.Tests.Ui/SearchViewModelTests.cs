@@ -30,9 +30,9 @@ public sealed class SearchViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task SearchViewModel_QueryDebouncesAndOpenSelectedNavigates()
+    public async Task SearchViewModel_QueryDebouncesAndOpenSelectedNavigatesToPage()
     {
-        var search = new StubSemanticSearchService();
+        var search = new StubUnifiedSearchService();
         var navigation = new RecordingReaderNavigation();
         List<string> focusedBooks = [];
         using var vm = new SearchViewModel(
@@ -45,75 +45,212 @@ public sealed class SearchViewModelTests
                 return Task.CompletedTask;
             });
 
+        Assert.Equal("Searching titles, authors and full text", vm.SearchModeText);
+        vm.Query = "o";
+        vm.Query = "og";
         vm.Query = "ogma";
         await WaitForAsync(() => vm.Results.Count == 1);
         await vm.OpenSelectedAsync();
 
-        Assert.Equal("ogma", search.LastQuery);
-        Assert.Contains("Semantic", vm.Results[0].MatchLocations, StringComparison.Ordinal);
-        Assert.Contains("High", vm.Results[0].Subtitle, StringComparison.Ordinal);
-        Assert.Equal("Semantic search active", vm.SearchModeText);
-        Assert.Contains("ic_ai_advisor", vm.SearchModeIconPath, StringComparison.Ordinal);
-        Assert.True(vm.Results[0].HasConfidence);
-        Assert.Contains("ic_status_available", vm.Results[0].ConfidenceIconPath, StringComparison.Ordinal);
-        Assert.Contains(vm.Results[0].MatchBadges, badge => badge.AutomationLabel == "Match location: Semantic");
-        Assert.All(vm.Results[0].MatchBadges, badge => Assert.False(string.IsNullOrWhiteSpace(badge.IconPath)));
+        Assert.Equal(["ogma"], search.Queries);
+        SearchResultItem item = vm.Results[0];
+        Assert.Equal("Ogma Search, by Ada Author, matched on page 4", item.AutomationName);
+        Assert.Equal("Ogma Search, by Ada Author, matched on page 4", item.ToString());
+        Assert.Equal("by Ada Author", item.Subtitle);
+        Assert.Contains("Page 4", item.MatchLocations, StringComparison.Ordinal);
+        Assert.Contains(item.MatchBadges, badge => badge.AutomationLabel == "Match location: Title");
+        Assert.All(item.MatchBadges, badge => Assert.False(string.IsNullOrWhiteSpace(badge.IconPath)));
+        Assert.Equal("Titles, authors, full text and meaning", vm.SearchModeText);
+        Assert.Equal("Open at page 4", vm.OpenSelectedLabel);
+        Assert.Equal("1 book found", vm.StatusText);
+        Assert.Equal("16 of 17 books have searchable text; 1 need OCR", vm.CoverageText);
         Assert.Equal("BOOKSEARCH00000000000001", navigation.OpenedBookId);
         Assert.Equal(3, navigation.OpenedPageHint);
         Assert.Equal(["BOOKSEARCH00000000000001"], focusedBooks);
     }
 
     [AvaloniaFact]
-    public async Task SearchViewModel_ProviderUnavailable_ShowsExactFallbackMode()
+    public async Task SearchViewModel_ProviderUnavailable_ShowsHonestKeywordMode()
     {
-        var navigation = new RecordingReaderNavigation();
         using var vm = new SearchViewModel(
-            new UnavailableSemanticSearchService(),
-            navigation,
+            new StubUnifiedSearchService { Semantic = SemanticSearchState.Unavailable },
+            new RecordingReaderNavigation(),
             new InMemoryLocalizationService());
 
         vm.Query = "offline";
         await WaitForAsync(() => vm.Results.Count == 1);
 
         Assert.True(vm.IsSemanticDegraded);
-        Assert.Equal("Exact search fallback", vm.SearchModeText);
-        Assert.Contains("ic_status_unavailable", vm.SearchModeIconPath, StringComparison.Ordinal);
-        Assert.Equal("Exact match", vm.Results[0].MatchLocations);
+        Assert.Equal("Titles, authors and full text · Semantic search off", vm.SearchModeText);
+        Assert.Contains("Settings", vm.SearchModeToolTip, StringComparison.Ordinal);
+        Assert.DoesNotContain("active", vm.SearchModeText, StringComparison.OrdinalIgnoreCase);
     }
 
     [AvaloniaFact]
-    public async Task SearchViewModel_NoIndex_ShowsActionableStatus()
+    public async Task SearchViewModel_CoverageGap_OffersLinkToFixBooks()
+    {
+        // Sept-23 Phase 13 (13.8): books without searchable text link to where they are fixed.
+        int reviews = 0;
+        using var vm = new SearchViewModel(
+            new StubUnifiedSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService(),
+            reviewCoverage: () => reviews++);
+
+        Assert.False(vm.CanReviewCoverage);
+        await vm.RefreshCoverageAsync();
+
+        Assert.True(vm.CanReviewCoverage);
+        Assert.Equal("Show books without searchable text", vm.ReviewCoverageLabel);
+        vm.ReviewCoverage();
+        Assert.Equal(1, reviews);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_ReviewLink_RequiresAGapAndATarget()
     {
         using var vm = new SearchViewModel(
-            new NoIndexSemanticSearchService(),
+            new PreparingUnifiedSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService(),
+            reviewCoverage: () => { });
+
+        await vm.RefreshCoverageAsync();
+
+        // 13 books: 8 searchable, 3 still being read, 2 need OCR: the link is offered for the 2.
+        Assert.True(vm.CanReviewCoverage);
+
+        using var complete = new SearchViewModel(
+            new StubUnifiedSearchService(),
+            new RecordingReaderNavigation(),
+            new InMemoryLocalizationService());
+        await complete.RefreshCoverageAsync();
+
+        // No navigation target wired: no link, even with a gap.
+        Assert.False(complete.CanReviewCoverage);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_NoMatches_ShowsEmptyStateWithSuggestions()
+    {
+        using var vm = new SearchViewModel(
+            new StubUnifiedSearchService { Empty = true },
             new RecordingReaderNavigation(),
             new InMemoryLocalizationService());
 
-        vm.Query = "unindexed";
-        await WaitForAsync(() => vm.StatusText?.Contains("not ready", StringComparison.Ordinal) == true);
+        vm.Query = "zzqxnotaword";
+        await WaitForAsync(() => vm.IsEmptyState);
 
-        Assert.Contains("exact matches", vm.StatusText, StringComparison.Ordinal);
         Assert.Empty(vm.Results);
+        Assert.Contains("zzqxnotaword", vm.StatusText, StringComparison.Ordinal);
+        Assert.Contains("Check the spelling", vm.StatusText, StringComparison.Ordinal);
+        Assert.False(vm.HasError);
     }
 
     [AvaloniaFact]
     public async Task SearchViewModel_StaleResults_DoNotOverwriteLatestQuery()
     {
-        var search = new OutOfOrderSemanticSearchService();
-        var navigation = new RecordingReaderNavigation();
-        using var vm = new SearchViewModel(search, navigation, new InMemoryLocalizationService());
+        var search = new StubUnifiedSearchService { SlowQuery = "slow" };
+        using var vm = new SearchViewModel(search, new RecordingReaderNavigation(), new InMemoryLocalizationService());
 
         vm.Query = "slow";
         await WaitForAsync(() => search.Queries.Contains("slow"));
 
         vm.Query = "fast";
-        await WaitForAsync(() => vm.Results.Count == 1 && vm.Results[0].Title == "Fast Result");
+        await WaitForAsync(() => vm.Results.Count == 1 && vm.Results[0].Title == "Result for fast");
 
-        await Task.Delay(350);
+        await Task.Delay(400);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal("fast", vm.Query);
-        Assert.Equal("Fast Result", vm.Results[0].Title);
+        Assert.Equal("Result for fast", vm.Results[0].Title);
+        Assert.False(vm.IsSearching);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_Failure_ShowsErrorAndRetryRecovers()
+    {
+        var search = new StubUnifiedSearchService { Fail = true };
+        using var vm = new SearchViewModel(search, new RecordingReaderNavigation(), new InMemoryLocalizationService());
+
+        vm.Query = "broken";
+        await WaitForAsync(() => vm.HasError);
+
+        Assert.Equal("Search could not run. Try again; if it keeps failing, the diagnostics log has the details.", vm.StatusText);
+        Assert.False(vm.IsSearching);
+        Assert.Empty(vm.Results);
+
+        search.Fail = false;
+        await vm.RetryAsync();
+
+        Assert.False(vm.HasError);
+        Assert.Single(vm.Results);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_QueryImmediatelyAfterOpen_ReturnsResults_50Times()
+    {
+        // Sept-23 K41 regression: the first query after opening the destination returned 0.
+        for (int attempt = 0; attempt < 50; attempt++)
+        {
+            using var vm = new SearchViewModel(
+                new StubUnifiedSearchService(),
+                new RecordingReaderNavigation(),
+                new InMemoryLocalizationService());
+            vm.Query = "Lantern";
+            await vm.SearchNowAsync();
+
+            Assert.Single(vm.Results);
+            Assert.False(vm.IsSearching);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task SearchViewModel_RefreshesOpenQueryWhileBooksArePrepared()
+    {
+        var search = new PreparingUnifiedSearchService();
+        using var vm = new SearchViewModel(search, new RecordingReaderNavigation(), new InMemoryLocalizationService());
+
+        vm.Query = "Namutebi";
+        await WaitForAsync(() => vm.IsEmptyState);
+        Assert.Contains("still being prepared", vm.CoverageText, StringComparison.Ordinal);
+
+        await WaitForAsync(() => vm.Results.Count == 1);
+        Assert.Equal("Algorithms Explained", vm.Results[0].Title);
+        Assert.False(vm.IsEmptyState);
+        Assert.Equal(2, search.Calls);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchPanel_KeyboardMovesIntoResultsAndEnterOpensAtPage()
+    {
+        var navigation = new RecordingReaderNavigation();
+        using var vm = new SearchViewModel(new StubUnifiedSearchService(), navigation, new InMemoryLocalizationService());
+        var view = new SearchPanelView { DataContext = vm };
+        var window = new Window { Width = 1000, Height = 500, Content = view };
+        window.Show();
+        vm.Query = "ogma";
+        await WaitForAsync(() => vm.Results.Count == 1);
+        Dispatcher.UIThread.RunJobs();
+
+        TextBox box = view.FindControl<TextBox>("SearchBox") ?? throw new InvalidOperationException("SearchBox");
+        ListBox list = view.FindControl<ListBox>("SearchResults") ?? throw new InvalidOperationException("SearchResults");
+        box.Focus();
+        window.KeyPressQwerty(PhysicalKey.ArrowDown, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        var container = (ListBoxItem)list.ContainerFromIndex(0)!;
+        Assert.True(container.IsKeyboardFocusWithin);
+        Assert.Equal("Ogma Search, by Ada Author, matched on page 4", Avalonia.Automation.AutomationProperties.GetName(container));
+
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        await WaitForAsync(() => navigation.OpenedBookId is not null);
+        Assert.Equal(3, navigation.OpenedPageHint);
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(box.IsKeyboardFocusWithin);
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -211,7 +348,7 @@ public sealed class SearchViewModelTests
             writeService,
             localization,
             new CatalogueFilterViewModel());
-        using var search = new SearchViewModel(new StubSemanticSearchService(), navigation, localization);
+        using var search = new SearchViewModel(new StubUnifiedSearchService(), navigation, localization);
         using var shell = new MainShellViewModel(
             localization,
             catalogue,
@@ -353,7 +490,7 @@ public sealed class SearchViewModelTests
         var localization = new InMemoryLocalizationService();
         localization.SetCulture("qps-ploc");
         var navigation = new RecordingReaderNavigation();
-        using var searchVm = new SearchViewModel(new StubSemanticSearchService(), navigation, localization);
+        using var searchVm = new SearchViewModel(new StubUnifiedSearchService(), navigation, localization);
         using var indexVm = new IndexManagerViewModel(
             new StubIndexManagerService(),
             new StubEmbeddingErasureService(),
@@ -404,98 +541,84 @@ public sealed class SearchViewModelTests
         }
     }
 
-    private sealed class StubSemanticSearchService : ISemanticSearchService
-    {
-        public string? LastQuery { get; private set; }
-
-        public Task<SemanticSearchResponse> SearchAsync(
-            string queryText,
-            int maxResults,
-            CancellationToken cancellationToken)
-        {
-            LastQuery = queryText;
-            var response = new SemanticSearchResponse(
-                ProviderUnavailable: false,
-                UsedExactFallback: false,
-                [
-                    new SemanticSearchResult(
-                    "BOOKSEARCH00000000000001",
-                    "Ogma Search",
-                    12,
-                    SearchChunkSource.Page,
-                    "<b>ogma</b> search",
-                    0.9f,
-                    ExactFallback: false,
-                    HybridScore: 0.92,
-                    MatchLocations: [MatchLocation.Title, MatchLocation.TextPage, MatchLocation.Semantic],
-                    ConfidenceLabel: ConfidenceLabel.High,
-                    PageIndex: 3),
-                ]);
-            return Task.FromResult(response);
-        }
-    }
-
-    private sealed class OutOfOrderSemanticSearchService : ISemanticSearchService
+    private sealed class StubUnifiedSearchService : IUnifiedSearchService
     {
         public List<string> Queries { get; } = [];
 
-        public async Task<SemanticSearchResponse> SearchAsync(
-            string queryText,
-            int maxResults,
-            CancellationToken cancellationToken)
+        public SemanticSearchState Semantic { get; init; } = SemanticSearchState.Active;
+
+        public bool Empty { get; init; }
+
+        public bool Fail { get; set; }
+
+        public string? SlowQuery { get; init; }
+
+        public async Task<UnifiedSearchResponse> SearchAsync(string? queryText, int maxResults, CancellationToken cancellationToken)
         {
-            Queries.Add(queryText);
-            await Task.Delay(queryText == "slow" ? 250 : 10, CancellationToken.None).ConfigureAwait(false);
-            string title = queryText == "slow" ? "Slow Result" : "Fast Result";
-            return new SemanticSearchResponse(
-                ProviderUnavailable: false,
-                UsedExactFallback: false,
-                [
-                    new SemanticSearchResult(
-                        $"BOOK-{queryText}",
-                        title,
-                        ChunkId: null,
-                        Source: null,
-                        Snippet: string.Empty,
-                        SemanticScore: null,
-                        ExactFallback: true,
-                        MatchLocations: [MatchLocation.Title]),
-                ]);
+            string query = queryText ?? string.Empty;
+            Queries.Add(query);
+            if (query == SlowQuery)
+            {
+                // Ignores cancellation on purpose: a late response must not be applied.
+                await Task.Delay(250, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            if (Fail)
+            {
+                throw new InvalidOperationException("index unavailable");
+            }
+
+            var coverage = new SearchIndexCoverage(17, 16, 1, 0);
+            ParsedSearchQuery parsed = SearchQueryParser.Parse(query);
+            if (Empty)
+            {
+                return new UnifiedSearchResponse(parsed, [], Semantic, false, coverage, TimeSpan.Zero);
+            }
+
+            string title = SlowQuery is null ? "Ogma Search" : "Result for " + query;
+            UnifiedSearchResult result = new(
+                "BOOKSEARCH00000000000001",
+                title,
+                "Ada Author",
+                0.05,
+                [new UnifiedMatch(UnifiedMatchKind.Page, 3), new UnifiedMatch(UnifiedMatchKind.Title)],
+                new SearchSnippet("ogma search", [new SearchSnippetSpan(0, 4)]),
+                new SearchPageJumpTarget("BOOKSEARCH00000000000001", 12, 3));
+            return new UnifiedSearchResponse(parsed, [result], Semantic, false, coverage, TimeSpan.Zero);
         }
+
+        public Task<SearchIndexCoverage> GetCoverageAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new SearchIndexCoverage(17, 16, 1, 0));
     }
 
-    private sealed class UnavailableSemanticSearchService : ISemanticSearchService
+    private sealed class PreparingUnifiedSearchService : IUnifiedSearchService
     {
-        public Task<SemanticSearchResponse> SearchAsync(
-            string queryText,
-            int maxResults,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new SemanticSearchResponse(
-                ProviderUnavailable: true,
-                UsedExactFallback: true,
-                [
-                    new SemanticSearchResult(
-                        "BOOK-OFFLINE",
-                        "Offline Result",
-                        ChunkId: null,
-                        Source: null,
-                        Snippet: string.Empty,
-                        SemanticScore: null,
-                        ExactFallback: true),
-                ]));
-    }
+        public int Calls { get; private set; }
 
-    private sealed class NoIndexSemanticSearchService : ISemanticSearchService
-    {
-        public Task<SemanticSearchResponse> SearchAsync(
-            string queryText,
-            int maxResults,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new SemanticSearchResponse(
-                ProviderUnavailable: false,
-                UsedExactFallback: true,
-                Results: [],
-                Availability: SemanticSearchAvailability.NoIndex));
+        public Task<UnifiedSearchResponse> SearchAsync(string? queryText, int maxResults, CancellationToken cancellationToken)
+        {
+            Calls++;
+            ParsedSearchQuery parsed = SearchQueryParser.Parse(queryText);
+            if (Calls == 1)
+            {
+                return Task.FromResult(new UnifiedSearchResponse(
+                    parsed, [], SemanticSearchState.Unavailable, false, new SearchIndexCoverage(13, 8, 2, 3), TimeSpan.Zero));
+            }
+
+            UnifiedSearchResult result = new(
+                "BOOKALGO0000000000000001",
+                "Algorithms Explained",
+                "Grace Namutebi",
+                0.03,
+                [new UnifiedMatch(UnifiedMatchKind.Author)],
+                null,
+                null);
+            return Task.FromResult(new UnifiedSearchResponse(
+                parsed, [result], SemanticSearchState.Unavailable, false, new SearchIndexCoverage(13, 11, 2, 0), TimeSpan.Zero));
+        }
+
+        public Task<SearchIndexCoverage> GetCoverageAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new SearchIndexCoverage(13, 8, 2, 3));
     }
 
     private sealed class RecordingReaderNavigation : IReaderNavigationService, IBookDetailNavigationService

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Diagnostics;
 
 namespace OgmaLibrary.App.ViewModels.Catalogue;
 
@@ -11,6 +12,8 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// View model for the shelf sidebar (FR-CAT-003). Loads shelf projections,
 /// exposes commands to create / rename / delete shelves, and integrates with
 /// <see cref="CatalogueFilterViewModel"/> to filter the catalogue to the selected shelf.
+/// Bound state is only changed through <see cref="IUiDispatcher"/>, because loads run after
+/// scans on thread-pool threads (Sept-23 K93).
 /// </summary>
 public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
 {
@@ -18,6 +21,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
     private readonly ICatalogueWriteService _writeService;
     private readonly ILocalizationService _localization;
     private readonly CatalogueFilterViewModel _filter;
+    private readonly IUiDispatcher _ui;
 
     private ShelfProjection? _selectedShelf;
     private bool _isLoading;
@@ -31,11 +35,13 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
     /// <param name="writeService">The catalogue write service.</param>
     /// <param name="localization">The localization service.</param>
     /// <param name="filter">The shared filter view model to update on shelf selection.</param>
+    /// <param name="uiDispatcher">Marshals bound state onto the UI thread (inline when absent).</param>
     public ShelfSidebarViewModel(
         ICatalogueReadModel readModel,
         ICatalogueWriteService writeService,
         ILocalizationService localization,
-        CatalogueFilterViewModel filter)
+        CatalogueFilterViewModel filter,
+        IUiDispatcher? uiDispatcher = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(writeService);
@@ -46,6 +52,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         _writeService = writeService;
         _localization = localization;
         _filter = filter;
+        _ui = uiDispatcher ?? InlineUiDispatcher.Instance;
     }
 
     /// <inheritdoc />
@@ -150,28 +157,37 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
-        IsLoading = true;
+        await _ui.InvokeAsync(() => IsLoading = true, cancellationToken).ConfigureAwait(false);
 
+        List<ShelfProjection>? shelves = null;
         try
         {
-            var shelves = new List<ShelfProjection>();
+            var loaded = new List<ShelfProjection>();
             await foreach (var shelf in _readModel.GetShelvesAsync(cancellationToken).ConfigureAwait(false))
             {
-                shelves.Add(shelf);
+                loaded.Add(shelf);
             }
 
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                Shelves.Clear();
-                foreach (var shelf in shelves)
-                {
-                    Shelves.Add(shelf);
-                }
-            });
+            shelves = loaded;
         }
         finally
         {
-            IsLoading = false;
+            // Publish on the UI thread even when the load was cancelled, so IsLoading never sticks.
+            await _ui.InvokeAsync(
+                () =>
+                {
+                    if (shelves is not null)
+                    {
+                        Shelves.Clear();
+                        foreach (var shelf in shelves)
+                        {
+                            Shelves.Add(shelf);
+                        }
+                    }
+
+                    IsLoading = false;
+                },
+                CancellationToken.None).ConfigureAwait(false);
         }
     }
 
@@ -198,7 +214,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         try
         {
             await CreateShelfAsync(NewShelfName.Trim(), cancellationToken).ConfigureAwait(false);
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            _ui.Post(() =>
             {
                 NewShelfName = string.Empty;
                 StatusText = _localization["Catalogue.Shelves.Created"];
@@ -206,10 +222,7 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            StatusText = string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["Catalogue.Shelves.FailedFormat"],
-                ex.Message);
+            PostFailure(ex);
         }
     }
 
@@ -234,10 +247,15 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         await _writeService.DeleteShelfAsync(shelfId, cancellationToken).ConfigureAwait(false);
 
         // If the deleted shelf was selected, clear the selection.
-        if (_selectedShelf?.ShelfId == shelfId)
-        {
-            SelectedShelf = null;
-        }
+        await _ui.InvokeAsync(
+            () =>
+            {
+                if (_selectedShelf?.ShelfId == shelfId)
+                {
+                    SelectedShelf = null;
+                }
+            },
+            CancellationToken.None).ConfigureAwait(false);
 
         await LoadAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -255,14 +273,11 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         try
         {
             await DeleteShelfAsync(shelf.ShelfId, cancellationToken).ConfigureAwait(false);
-            StatusText = _localization["Catalogue.Shelves.Deleted"];
+            _ui.Post(() => StatusText = _localization["Catalogue.Shelves.Deleted"]);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            StatusText = string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["Catalogue.Shelves.FailedFormat"],
-                ex.Message);
+            PostFailure(ex);
         }
     }
 
@@ -286,16 +301,19 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         {
             await RenameShelfAsync(shelf.ShelfId, NewShelfName.Trim(), cancellationToken)
                 .ConfigureAwait(false);
-            StatusText = _localization["Catalogue.Shelves.Renamed"];
+            _ui.Post(() => StatusText = _localization["Catalogue.Shelves.Renamed"]);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            StatusText = string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["Catalogue.Shelves.FailedFormat"],
-                ex.Message);
+            PostFailure(ex);
         }
     }
+
+    private void PostFailure(Exception exception) =>
+        _ui.Post(() => StatusText = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            _localization["Catalogue.Shelves.FailedFormat"],
+            exception.Message));
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)
     {

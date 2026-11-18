@@ -27,6 +27,26 @@ public static class Shell
         context.Mark("shell.ready");
     }
 
+    /// <summary>
+    /// A visible toast with readable text, or <see langword="null"/>. The toast card is a
+    /// <c>Border</c>, which Avalonia keeps out of the UIA tree, so its <c>Shell.Toast</c> id is not
+    /// reachable; the <c>Shell.Toasts</c> list is (it is only visible while a toast is shown) and
+    /// its message is a named Text child.
+    /// </summary>
+    public static AutomationElement? FindToast(AutomationElement window)
+    {
+        if (Uia.TryFind(window, "Shell.Toast") is { } toast)
+        {
+            return toast;
+        }
+
+        AutomationElement? region = Uia.TryFind(window, "Shell.Toasts");
+        return region?.FindFirstDescendant(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text)) is { } text &&
+               !string.IsNullOrWhiteSpace(text.Properties.Name.ValueOrDefault)
+            ? region
+            : null;
+    }
+
     /// <summary>Launch environment that seeds the library folder through the hook when allowed.</summary>
     public static Dictionary<string, string> SeedEnvironment(JourneyContext context, bool allowHook = true) =>
         allowHook && !string.Equals(E2ESettings.SeedMode, "dialog", StringComparison.OrdinalIgnoreCase)
