@@ -300,7 +300,13 @@
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
+  <!-- Fluent paints the hovered/focused field pure white (Light) or pure black (Dark); keep it on
+       the Lamplit raised surface so the search box does not punch a black hole in Night. -->
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Raised}" />
+  </Style>
   <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Raised}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
