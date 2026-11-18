@@ -37,6 +37,7 @@ public sealed class App : Avalonia.Application, IDisposable
     private volatile bool _startupRunning;
     private volatile string _phase = "bootstrap";
     private UiResponsivenessProbe? _responsivenessProbe;
+    private ILocalizationService? _styleLocalization;
 
     /// <inheritdoc />
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -47,6 +48,7 @@ public sealed class App : Avalonia.Application, IDisposable
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var localization = new InMemoryLocalizationService();
+            UseStyleStrings(localization);
             NotificationCenterViewModel notifications = InstallSafetyNet(localization);
             StartupShellViewModel startupShell = StartupShellViewModel.CreateBootstrap(localization);
             var window = new DesktopShellWindow { DataContext = startupShell };
@@ -98,6 +100,7 @@ public sealed class App : Avalonia.Application, IDisposable
             _phase = "composed";
             AppLog.CompositionCompleted(_logger);
             notifications.UseLocalization(runtime.Services.GetRequiredService<ILocalizationService>());
+            UseStyleStrings(runtime.Services.GetRequiredService<ILocalizationService>());
             _ = UpdateRedactionRootsAsync(runtime.Services, cancellationToken);
             runtime.StartupShell.MainShell?.UserPreferencesChanged +=
                 (_, preferences) => ApplyUserPreferences(preferences);
@@ -319,6 +322,29 @@ public sealed class App : Avalonia.Application, IDisposable
             AppLog.RedactionRootsFailed(_logger, exception);
         }
     }
+
+    // Control templates have no view model, so their few strings (the tab strip's "More tabs"
+    // name) are app resources that follow the active localization service and its culture.
+    private void UseStyleStrings(ILocalizationService localization)
+    {
+        if (_styleLocalization is not null)
+        {
+            _styleLocalization.CultureChanged -= OnStyleCultureChanged;
+        }
+
+        _styleLocalization = localization;
+        localization.CultureChanged += OnStyleCultureChanged;
+        Themes.StyleStrings.Apply(Resources, localization);
+    }
+
+    private void OnStyleCultureChanged(object? sender, EventArgs e) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_styleLocalization is { } localization)
+            {
+                Themes.StyleStrings.Apply(Resources, localization);
+            }
+        });
 
     private void ApplyUserPreferences(UserPreferences preferences)
     {

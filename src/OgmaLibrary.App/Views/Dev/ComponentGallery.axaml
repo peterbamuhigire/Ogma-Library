@@ -58,6 +58,14 @@
             <Button Classes="danger" IsEnabled="False" Content="{Binding Disabled}" />
             <Button Classes="link" IsEnabled="False" Content="{Binding Disabled}" />
           </WrapPanel>
+          <!-- Busy: every variant, so rest, disabled and busy are all on one card. -->
+          <WrapPanel ItemSpacing="8" LineSpacing="8">
+            <Button Classes="primary busy" Content="{Binding Busy}" />
+            <Button Classes="busy" Content="{Binding Busy}" />
+            <Button Classes="tool busy" Content="{Binding Busy}" />
+            <Button Classes="danger busy" Content="{Binding Busy}" />
+            <Button Classes="link busy" Content="{Binding Busy}" />
+          </WrapPanel>
           <Border Classes="segmented" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal">
               <Button Classes="segment selected" Content="{Binding Grid}" />
@@ -96,6 +104,14 @@
               <TabItem Header="{Binding List}" />
               <TabItem Header="{Binding Directory}" />
               <TabItem Header="{Binding Secondary}" />
+            </TabControl>
+            <!-- Narrow strip: the headers overflow, so the trailing "More tabs" menu appears. -->
+            <TabControl Name="NarrowTabStrip" Width="220" Height="90" HorizontalAlignment="Left">
+              <TabItem Header="{Binding Grid}"><TextBlock Text="{Binding SampleBody}" TextWrapping="Wrap" /></TabItem>
+              <TabItem Header="{Binding List}" />
+              <TabItem Header="{Binding Directory}" />
+              <TabItem Header="{Binding Secondary}" />
+              <TabItem Header="{Binding Primary}" />
             </TabControl>
             <ListBox SelectedIndex="1" Height="130">
               <ListBoxItem Content="{Binding Primary}" />

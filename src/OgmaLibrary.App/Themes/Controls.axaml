@@ -1,6 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia">
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        xmlns:ctl="using:OgmaLibrary.App.Controls">
 
   <!--
     Ogma component styles (Sept-23 Kaizen Phase 09). Every value is a design token from
@@ -16,7 +17,8 @@
                active/selected (toggled tool or segment).
     States covered for every variant: rest, pointerover, pressed, focus-visible, disabled.
 
-    Other components: TabStrip (TabControl/TabItem at Body size, single scrollable row),
+    Other components: TabStrip (TabControl/TabItem at Body size, single scrollable row with a
+    trailing "More tabs" overflow menu, Controls/TabOverflowButton),
     Chip/Badge (Border.badge + status modifiers), TextField (TextBox), Toggle (ToggleSwitch,
     CheckBox), ListRow (ListBoxItem/TreeViewItem selection), Card (Border.card).
   -->
@@ -397,12 +399,29 @@
             <Border DockPanel.Dock="Top"
                     BorderBrush="{DynamicResource Brush.Surface.Divider}"
                     BorderThickness="0,0,0,1">
-              <!-- One row at Body size; overflow scrolls horizontally instead of wrapping. -->
-              <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                            VerticalScrollBarVisibility="Disabled">
-                <ItemsPresenter Name="PART_ItemsPresenter"
-                                ItemsPanel="{TemplateBinding ItemsPanel}" />
-              </ScrollViewer>
+              <!-- One row at Body size. Tabs that do not fit scroll horizontally and are listed
+                   in the trailing "More tabs" menu (keyboard reachable, localized name). -->
+              <DockPanel>
+                <ctl:TabOverflowButton Name="PART_TabOverflow"
+                                       DockPanel.Dock="Right"
+                                       Classes="tool tab-overflow"
+                                       Tabs="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                       Scroller="{Binding #PART_TabScroller}"
+                                       AutomationProperties.Name="{DynamicResource Controls.TabStrip.More}"
+                                       ToolTip.Tip="{DynamicResource Controls.TabStrip.More}">
+                  <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                    <Ellipse Classes="tab-overflow-dot" />
+                    <Ellipse Classes="tab-overflow-dot" />
+                    <Ellipse Classes="tab-overflow-dot" />
+                  </StackPanel>
+                </ctl:TabOverflowButton>
+                <ScrollViewer Name="PART_TabScroller"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled">
+                  <ItemsPresenter Name="PART_ItemsPresenter"
+                                  ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </ScrollViewer>
+              </DockPanel>
             </Border>
             <ContentPresenter Name="PART_SelectedContentHost"
                               Margin="{TemplateBinding Padding}"
@@ -414,6 +433,20 @@
         </Border>
       </ControlTemplate>
     </Setter>
+  </Style>
+  <Style Selector="Button.tab-overflow">
+    <Setter Property="MinWidth" Value="36" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Ellipse.tab-overflow-dot">
+    <Setter Property="Width" Value="4" />
+    <Setter Property="Height" Value="4" />
+    <Setter Property="Fill" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="Button.tab-overflow:pointerover Ellipse.tab-overflow-dot, Button.tab-overflow:focus-visible Ellipse.tab-overflow-dot">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Text.Primary}" />
   </Style>
   <Style Selector="TabItem">
     <Setter Property="FontSize" Value="{DynamicResource Type.Size.Body}" />
