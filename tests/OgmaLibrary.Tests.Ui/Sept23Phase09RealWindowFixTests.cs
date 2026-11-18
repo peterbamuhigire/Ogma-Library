@@ -36,6 +36,29 @@ public sealed class Sept23Phase09RealWindowFixTests
         window.Close();
     }
 
+    [AvaloniaTheory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    public void ScrollBarThumb_UsesWarmSecondaryInkNotFluentGrey(string variant)
+    {
+        ThemeVariant theme = variant == "Dark" ? ThemeVariant.Dark : ThemeVariant.Light;
+        OgmaApp app = NewApp();
+        var scroller = new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            Content = new Border { Width = 1200, Height = 40 },
+        };
+        var window = new Window { Width = 400, Height = 120, RequestedThemeVariant = theme, Content = scroller };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Avalonia.Controls.Primitives.Thumb thumb = scroller.GetVisualDescendants()
+            .OfType<Avalonia.Controls.Primitives.Thumb>().First(t => t.IsEffectivelyVisible);
+        Assert.True(app.TryGetResource("Color.Text.Secondary", theme, out object? raw));
+        Assert.Equal(Assert.IsType<Color>(raw), Assert.IsAssignableFrom<ISolidColorBrush>(thumb.Background).Color);
+        window.Close();
+    }
+
     private static OgmaApp NewApp()
     {
         var app = new OgmaApp();

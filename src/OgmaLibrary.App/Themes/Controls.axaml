@@ -287,6 +287,13 @@
     <Setter Property="BorderThickness" Value="2" />
   </Style>
 
+  <!-- ═══════════════════ Scroll bars ═══════════════════ -->
+  <!-- Fluent's neutral grey thumb (#7A7A7A / #858585) read as foreign on parchment and indigo; the
+       thumb uses the warm secondary ink in both themes. -->
+  <Style Selector="ScrollBar /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+
   <!-- ═══════════════════ Text fields and pickers ═══════════════════ -->
   <Style Selector="TextBox">
     <Setter Property="MinHeight" Value="36" />
