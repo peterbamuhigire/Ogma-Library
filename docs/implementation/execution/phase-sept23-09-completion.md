@@ -45,15 +45,39 @@ themes, the type floor and ratios, no literal size or colour, icons and licences
 determinism, variants, tabs, gallery labels in en and fr, density scaling, and the focus ring
 leaving layout unchanged.
 
+Commits after `5520c82c` on this branch:
+
+- `82f88e23` restored the requirement-to-phase matrix (`docs/plans/aug-39/appendices/`), which
+  resolves K100: the accountability gate passes again (see [Gates](#gates)).
+- `82d25bf1` changed `ReaderSessionSupervisor` to open the replacement PDF worker before the lost
+  one is torn down. The lost session's teardown is now fire-and-forget
+  (`DisposeInBackground` → `_ = Task.Run(session.Dispose)`), so a faulted worker briefly coexists
+  with its replacement. **No test covers a dispose that throws or is interrupted by process
+  exit**; an exception there is unobserved. The commit's test change only isolates the
+  real-worker timing tests in their own collection. Follow-up owner: Phase 24 (worker hardening).
+- Review rework (this record's last revision): headless tests in
+  `tests/OgmaLibrary.Tests.Ui/Sept23Phase09HomeStripTests.cs` for the home strip (in-progress
+  books first and furthest first, capped at `HomeStripSize`, falling back to shelved books by
+  title, hidden when empty; title and count in en and fr), the in-place card sync (an unchanged
+  card keeps its instance, any changed displayed field replaces it, surplus cards are removed,
+  no list reset), `QrCodeView.BuildModules` (null for a null, empty or blank payload; square,
+  light quiet zone, dark modules) and the measured QR size (4 px per module, nothing when empty).
+  A mutation check (ignoring `IsLocked` in `IsSameCard`, and a strip cap of 9) made 3 of the 8
+  tests fail. The component gallery gesture is now compiled into Debug builds only (task 9.4),
+  guarded by `ComponentGalleryGesture_IsCompiledIntoDebugBuildsOnly`.
+
 ## Gates
 
 Windows 11, Release. First run on `135187f3` (the lane head before this slice's fix), logs in
 `artifacts/phase09-gates/`. Re-run on the final code commit `5520c82c` (restore, build,
 vulnerable scan, analyzers, fast suite), logs in `artifacts/phase09-gates/final/` (local).
+The full gate set was not re-run on `82d25bf1` or on the review-rework commit; the driver runs
+it after merging the main line. In the rework session only the accountability script, the
+Phase 09 UI tests (134/134 in Debug and in Release) and `dotnet format` on the changed files ran.
 
 | Gate | Result | Evidence class |
 |---|---|---|
-| `Test-RequirementAccountability.ps1` | **FAIL**: it throws "Requirement-to-phase matrix not found: …docs\plans\aug-39\appendices\01-requirement-phase-matrix.md". Main removed `aug-39` in `3b985c67` (K100). Not caused by Phase 09 | MEASURED |
+| `Test-RequirementAccountability.ps1` | **PASS** after `82f88e23` restored the matrix (K100 resolved): "Requirement accountability verified: 101 FRs, 29 NFRs, 32 controls; all 162 IDs are assigned in the roadmap matrix." Before it, on `5520c82c`, it failed with "Requirement-to-phase matrix not found" because `main` had removed `aug-39` in `3b985c67` | MEASURED |
 | `dotnet restore --locked-mode` | PASS (exit 0 on both commits) | MEASURED |
 | `dotnet format --verify-no-changes` | PASS (exit 0); re-run on `5520c82c`: PASS | MEASURED |
 | Release build | PASS, 0 warnings, 0 errors (both commits) | MEASURED |
@@ -73,6 +97,8 @@ and passes 3/3 after `5520c82c`. Earlier slices: K101 `DensityScaling_*` and `Bo
 ### Golden journeys (desktop lock owner `phase-09`, Light and Dark, 1280x800 and 1920x1080)
 
 Final run `phase09-final2` on `5520c82c` (`artifacts/e2e/phase09-final2/results.md`, local).
+The journeys were **not** re-run on `82d25bf1` (worker teardown change) or on the review-rework
+commit: on those commits every journey is NOT ASSESSED.
 Every assessed test passes in both themes and at both sizes: **78 PASS, 0 FAIL, 16 NOT
 ASSESSED** (39 per theme; the NOT ASSESSED rows are the G9–G12 placeholders). The previous run on `135187f3`
 (`artifacts/e2e/phase09-final`) is shown for comparison.
@@ -148,8 +174,8 @@ deductions: reader toolbar clipping (K104), *Rename* overflow and the literal `|
 | DoD item (08-master-plan §5) | Holds? |
 |---|---|
 | 1 Tasks done or moved with a reason | Yes (deferrals below) |
-| 2 Full gate set passes | **No**: the accountability script fails on K100 (from `main`). Every other gate and every assessed journey passes on the final build; hosted CI is NOT ASSESSED |
-| 3 Tests failed before and pass after | Yes |
+| 2 Full gate set passes | **Partly**: every local gate passed on `5520c82c` except accountability, which now passes after `82f88e23` (K100 resolved). The full set and the journeys are NOT ASSESSED on `82d25bf1` and the rework commit (the driver runs the gates); hosted CI is NOT ASSESSED |
+| 3 Tests failed before and pass after | Yes for the focus ring (red 3/3, then green) and the K101 slices. The home-strip, card-sync and QR tests were added after the code, so they have no red run; a mutation check showed they fail when the behaviour breaks. The background worker dispose has no test |
 | 4 Before and after screenshots at both sizes, seen by the owner | **Partly**: the "after" set is complete; "before" exists only for Light 1280; the owner walkthrough is pending |
 | 5 en/fr strings, tokens, accessible names | Yes (the lint and the A11yNames journeys pass) |
 | 6 Completion record | Yes (this file) |
@@ -157,7 +183,12 @@ deductions: reader toolbar clipping (K104), *Rename* overflow and the literal `|
 
 ## Premise corrections
 
-- The accountability gate cannot pass on this branch: `aug-39` was archived on `main` (K100).
+- The accountability gate could not pass while `aug-39` was archived on `main` (K100);
+  `82f88e23` restored the matrix and the gate passes.
+- Task 9.4 says the component gallery is for debug builds only, but the lane opened it in Release
+  on Ctrl+Shift+Alt+G. The rework gates the gesture with `#if DEBUG` (the gallery types stay
+  compiled so the Release headless tests still render them). Future gallery screenshots need a
+  Debug build.
 - D-15 (TabStrip) was already logged by slice 3, so it was not duplicated.
 - `Invoke-GoldenJourneys.ps1` has `-TextScale` and `-ClippingCheck` switches, but the 200 % and
   clipping checks are not yet implemented (Phases 21/22), so they are NOT ASSESSED.
@@ -178,5 +209,7 @@ deductions: reader toolbar clipping (K104), *Rename* overflow and the literal `|
 | Avalonia engine route (design-engine Avalonia guidance) | Next design slice |
 | Reader toolbar clipping at 1280 (K104); tab overflow adoption in the inspector and reader; *Rename* overflow; literal `||` split control | Phases 11/12 |
 | Fast-suite slowdown (K105) | Phase 24 |
+| Test for a throwing or exit-interrupted background dispose of the lost PDF worker (`82d25bf1`) | Phase 24 |
+| Gates and golden journeys on `82d25bf1` and the rework commit | Driver |
 | App icon provenance (`Assets/app*`) | Owner |
 | Remaining literal margins and paddings in views | Phases 10–12 |

@@ -15,8 +15,10 @@ claims below describe gate evidence, not a working product. Phase progress is tr
 [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
 - **Sept-23 Phase 09** (design system, "Lamplit Library"): **IMPLEMENTED** 2026-11-19 on branch
-  `kaizen/phase-09` (rollback `acb9d36c`). Gates pass except `Test-RequirementAccountability.ps1`,
-  which fails on the archived `aug-39` matrix (K100). The owner walkthrough is pending. See the
+  `kaizen/phase-09` (rollback `acb9d36c`). Gates passed on `5520c82c` except
+  `Test-RequirementAccountability.ps1`, which failed on the archived `aug-39` matrix; `82f88e23`
+  restored the matrix and the gate passes (K100 resolved). Gates and journeys on the final head
+  are NOT ASSESSED (the driver runs them). The owner walkthrough is pending. See the
   [completion record](phase-sept23-09-completion.md).
 
 ## Aug-39 ledger (historical gate evidence)

@@ -35,8 +35,11 @@ public sealed partial class DesktopShellWindow : Window
         Themes.MotionPreference.Apply(this);
         DataContextChanged += OnDataContextChanged;
 
-        // Tunnel so a focused list or text box cannot swallow the hidden QA gesture first.
+#if DEBUG
+        // Phase 09 task 9.4: the component gallery is a debug-build QA tool only; Release builds
+        // do not register the gesture. Tunnel so a focused list or text box cannot swallow it first.
         AddHandler(KeyDownEvent, GalleryGesture_KeyDown, RoutingStrategies.Tunnel);
+#endif
     }
 
     /// <summary>Binds the process notification surface (T02.7) independently of the window's DataContext.</summary>
@@ -283,15 +286,17 @@ public sealed partial class DesktopShellWindow : Window
         }
     }
 
+#if DEBUG
     private void GalleryGesture_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.G
             && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt)
             && DataContext is StartupShellViewModel { MainShell: { } shell })
         {
-            // Hidden QA command (Sept-23 Phase 09): the living component gallery.
+            // Hidden QA command (Sept-23 Phase 09): the living component gallery (debug builds only).
             Dev.ComponentGallery.Show(this, shell.Localization);
             e.Handled = true;
         }
     }
+#endif
 }
