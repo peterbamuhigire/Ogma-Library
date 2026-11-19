@@ -78,3 +78,38 @@ Evidence: `evidence/sept-23-kaizen/phase-10/slice-1/`.
 
 - The criteria controls for quality, missing fields and possible duplicates exist in the view model, but the filter drawer UI does not expose them yet.
 - Unverified observation, not yet a K number: `ShellModule` gives `ShelfSidebarViewModel` a `CatalogueFilterViewModel` instance that differs from `CatalogueViewModel.Filter`. `MainShellViewModel.Navigation` has its own shelf wiring, so check whether selecting a shelf actually filters before logging it.
+
+## Slice 3: filter bar, chips, explained no-results and smart shelves from filters
+
+| Area | Result |
+|---|---|
+| Filter bar | New `CatalogueFilterBarViewModel` over the single `CatalogueFilterViewModel` (no second copy of the criteria). The drawer now offers status, rating, file availability, metadata quality, missing details (author, ISBN, cover, year), needs OCR, possible duplicates and collection. Each control has a `Catalogue.Filter.*` AutomationId and a localised accessible name. The drawer scrolls. |
+| Chips | `ActiveFilterChips` and `RemoveFilter` delegate to the filter bar. There is one chip per active criterion (title, author, collection, status, rating, availability, quality, each missing field, needs OCR, duplicates), and each chip names its value, for example "Rating: 3 or higher". Removing a chip clears only that criterion (CODE: `Sept23Phase10FilterBarTests`). |
+| No results | The filtered-empty state adds `Catalogue.FilteredEmpty.Detail` ("Active filters: ...") next to the existing Clear button. |
+| Smart shelves | "Save as smart shelf" (name box, button, hint, polite status) calls `ShelfSidebarViewModel.CreateSmartShelfAsync`, which serialises `SmartShelfCriteria.ToConditions` and calls `CreateShelfAsync(isSmart: true, query)`. It is disabled with a hint when no filter is active or when a collection filter applies (D-25). Manual shelf creation is unchanged. A failed save is logged through `AppLog` and shows a localised message. |
+| Counts | Collections counts come from `ICatalogueReadModel.CountAsync` for every shelf after each sidebar load, which follows every catalogue load. Smart shelves show the `ic_cat_filter` glyph (existing icon catalogue), named "Smart shelf". |
+| Grid parity | `ShelfProjection` gains `Query` (smart shelves only, D-26). `CatalogueViewModel.SetSmartShelves` lets the in-memory grid evaluate a selected smart shelf by its conditions, so the grid count equals the shelf count (CODE: test `SmartShelf_FromFilter_ShowsTheSameCountAsTheFilteredGrid`). |
+| Status premise (D-24) | The plan says "status (reading state)"; the criteria model's status is the lifecycle status (Active, Unavailable, Excluded). The bar exposes lifecycle status; reading state is not a criterion. |
+| Localisation | Every new string is in English and French (`Filter.Bar.*`, `Filter.Chip.*Format`, `Catalogue.FilteredEmpty.ActiveFormat`, `Collections.SmartShelf`). The generic `Filter.Chip.Status/Rating/Availability` keys were replaced. |
+| Typeface | Unchanged: Public Sans for UI and cards, Spectral for generated covers; no new faces. Only Phase 09 tokens are used. |
+| Skills | `empty-error-and-loading-states` (Development engine) rule 2 was applied to the no-results state. avalonia-desktop-development, accessibility-wcag-2-2-compliance, interaction-design-patterns and product-excellence-standard were not read: NOT_ASSESSED. |
+
+### Gates (slice 3)
+
+| Gate | Result |
+|---|---|
+| `dotnet build OgmaLibrary.sln -c Release --no-restore` | PASS, 0 errors |
+| `dotnet format --verify-no-changes --no-restore` | PASS (after a line-ending fix to the new file) |
+| `scripts/Test-DesignTokens.ps1` | PASS ("clean") |
+| `scripts/Test-Fast.ps1` | **PASS**: 1,771 of 1,771 (Tests 1,323, Ui 396, Architecture 52) |
+| Filter `Sept23Phase10FilterBar` | PASS, 8 of 8 |
+| Related UI tests (Navigation, Catalogue, Shelf, Filter, Localization) | PASS, 99 of 99 |
+| Real-window Navigation journey, 1280x800, under the desktop lock (isolated data folder per session) | Run `p10-s3-nav`: 2 PASS, 1 FAIL. `Navigation_EveryDestinationAndPrimaryActionIsReachable` failed on its first step: "Shell.Nav.Library centre {X=112,Y=63} is covered by ToolBar id='view_1000' name=''". The same failure was recorded before this slice in close-out run `co-all-1`; the covering element is not an Ogma control. Re-run `p10-s3-nav2`: **3 PASS, 0 FAIL**. The intermittent occlusion is pre-existing and not caused by this slice. |
+| Filter drawer, smart-shelf save and Collections glyph in a real window; light and dark, RTL, 200% text, keyboard and screen-reader walkthrough | NOT_ASSESSED in this slice (no journey drives the drawer yet; G10 belongs to slice 4 onward). Evidence is headless (`FilterDrawer_ExposesEveryCriterionWithAnAutomationId`). |
+| `Test-RequirementAccountability.ps1` | NOT_ASSESSED in this slice |
+
+### Open after slice 3
+
+- K115: the Collections sidebar holds its own filter instance (slice 4, task 10.6).
+- Sidebar counts call `CountAsync` once per shelf, which repeats the smart-shelf evaluation already done in `GetShelvesAsync`. This is acceptable at the current scale; server-side counting is Phase 24 (D-20).
+- The intermittent Navigation occlusion by a foreign `ToolBar` (`view_1000`) is still unexplained. If it recurs, the harness should name the owning process.

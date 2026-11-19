@@ -219,6 +219,8 @@ public sealed partial class MainShellViewModel :
         _classroomModeService = classroomModeService;
         _userPreferencesService = userPreferencesService;
         _logger = logger ?? (ILogger)NullLogger.Instance;
+        FilterBar = new CatalogueFilterBarViewModel(catalogue.Filter, shelfSidebar, localization, _logger);
+        Catalogue.SetSmartShelves(ShelfSidebar.Shelves);
 
         _localization.CultureChanged += (_, _) => RaiseAllChanged();
         Catalogue.PropertyChanged += Catalogue_PropertyChanged;
@@ -312,6 +314,9 @@ public sealed partial class MainShellViewModel :
 
     /// <summary>The shelf sidebar view model.</summary>
     public ShelfSidebarViewModel ShelfSidebar { get; }
+
+    /// <summary>The catalogue filter bar: every criterion, its chips and "Save as smart shelf".</summary>
+    public CatalogueFilterBarViewModel FilterBar { get; }
 
     /// <summary>The reader surface view model.</summary>
     public ReaderViewModel? Reader { get; }
@@ -1420,6 +1425,9 @@ public sealed partial class MainShellViewModel :
         OnPropertyChanged(nameof(FilterAuthorWatermark));
         OnPropertyChanged(nameof(ClearFiltersText));
         OnPropertyChanged(nameof(FilteredEmptyHeading));
+        FilterBar.RefreshLocalizedText();
+        OnPropertyChanged(nameof(SmartShelfLabel));
+        OnPropertyChanged(nameof(ActiveFilterChips));
         OnPropertyChanged(nameof(CatalogueCountText));
         OnPropertyChanged(nameof(CommandPaletteItems));
         OnPropertyChanged(nameof(Theme));

@@ -110,6 +110,18 @@ public static class SmartShelfQueryParser
         Converters = { new JsonStringEnumConverter() },
     };
 
+    /// <summary>
+    /// Serialises conditions to the canonical JSON contract (enum names, not numbers), so
+    /// <see cref="TryParse"/> reads back exactly the same conditions.
+    /// </summary>
+    /// <param name="conditions">The conditions to save.</param>
+    /// <returns>The JSON array.</returns>
+    public static string Serialize(IReadOnlyList<SmartShelfCondition> conditions)
+    {
+        ArgumentNullException.ThrowIfNull(conditions);
+        return JsonSerializer.Serialize(conditions, Options);
+    }
+
     /// <summary>Attempts to parse and validate a saved smart-shelf query.</summary>
     public static bool TryParse(
         string? json,

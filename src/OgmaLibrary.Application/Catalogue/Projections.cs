@@ -341,11 +341,21 @@ public sealed record ReadingProgressProjection(
 /// <param name="Name">Display name.</param>
 /// <param name="IsSmart">True if the shelf is query-defined (smart shelf).</param>
 /// <param name="BookCount">Number of books on this shelf.</param>
+/// <param name="Query">
+/// The saved smart-shelf conditions (JSON, validated by <see cref="SmartShelfQueryParser"/>);
+/// <see langword="null"/> for a manual shelf. The catalogue's in-memory twin uses it so a smart
+/// shelf opened in the Library shows the books its count reports (Sept-23 Phase 10).
+/// </param>
 public sealed record ShelfProjection(
     string ShelfId,
     string Name,
     bool IsSmart,
-    int BookCount);
+    int BookCount,
+    string? Query = null)
+{
+    /// <summary>Whether this is a manual (hand-picked) shelf.</summary>
+    public bool IsManual => !IsSmart;
+}
 
 /// <summary>
 /// A durable bookmark (FR-READ-007).

@@ -378,52 +378,7 @@ public sealed partial class MainShellViewModel
     // ── Filter chips (K12) ────────────────────────────────────────────────────
 
     /// <summary>Chips for every active catalogue filter, so a hidden filter can never silently apply.</summary>
-    public IReadOnlyList<FilterChip> ActiveFilterChips
-    {
-        get
-        {
-            var chips = new List<FilterChip>();
-            CatalogueFilterViewModel filter = Catalogue.Filter;
-            CultureInfo culture = CultureInfo.CurrentCulture;
-            void Add(string id, string label) => chips.Add(new FilterChip(
-                id,
-                label,
-                string.Format(culture, _localization["Filter.Chip.RemoveFormat"], label)));
-
-            if (!string.IsNullOrWhiteSpace(filter.TitleSearch))
-            {
-                Add("title", string.Format(culture, _localization["Filter.Chip.TitleFormat"], filter.TitleSearch.Trim()));
-            }
-
-            if (!string.IsNullOrWhiteSpace(filter.AuthorSearch))
-            {
-                Add("author", string.Format(culture, _localization["Filter.Chip.AuthorFormat"], filter.AuthorSearch.Trim()));
-            }
-
-            if (filter.SelectedShelfId is { } shelfId)
-            {
-                string name = ShelfSidebar.Shelves.FirstOrDefault(shelf => shelf.ShelfId == shelfId)?.Name ?? shelfId;
-                Add("shelf", string.Format(culture, _localization["Filter.Chip.CollectionFormat"], name));
-            }
-
-            if (filter.StatusFilter.HasValue)
-            {
-                Add("status", _localization["Filter.Chip.Status"]);
-            }
-
-            if (filter.MinRating.HasValue || filter.MaxRating.HasValue)
-            {
-                Add("rating", _localization["Filter.Chip.Rating"]);
-            }
-
-            if (filter.AvailabilityFilter.HasValue)
-            {
-                Add("availability", _localization["Filter.Chip.Availability"]);
-            }
-
-            return chips;
-        }
-    }
+    public IReadOnlyList<FilterChip> ActiveFilterChips => FilterBar.Chips;
 
     /// <summary>Whether the chip row is shown (Library catalogue with at least one active filter).</summary>
     public bool HasActiveFilterChips => IsCatalogueActive && Catalogue.Filter.HasActiveFilters;
@@ -452,32 +407,7 @@ public sealed partial class MainShellViewModel
 
     /// <summary>Removes one filter dimension.</summary>
     /// <param name="chipId">The chip identifier.</param>
-    public void RemoveFilter(string chipId)
-    {
-        CatalogueFilterViewModel filter = Catalogue.Filter;
-        switch (chipId)
-        {
-            case "title":
-                filter.TitleSearch = null;
-                break;
-            case "author":
-                filter.AuthorSearch = null;
-                break;
-            case "shelf":
-                filter.SelectedShelfId = null;
-                break;
-            case "status":
-                filter.StatusFilter = null;
-                break;
-            case "rating":
-                filter.MinRating = null;
-                filter.MaxRating = null;
-                break;
-            case "availability":
-                filter.AvailabilityFilter = null;
-                break;
-        }
-    }
+    public void RemoveFilter(string chipId) => FilterBar.Remove(chipId);
 
     /// <summary>Shows the books of the selected collection in the Library.</summary>
     public void ShowSelectedCollectionInLibrary()
@@ -541,6 +471,12 @@ public sealed partial class MainShellViewModel
 
     /// <summary>The filter icon.</summary>
     public string FilterIconPath { get; } = IconCatalog.GetAvaresPath("ic_cat_filter") ?? string.Empty;
+
+    /// <summary>The smart-shelf glyph in Collections (a smart shelf is a saved filter, so it reuses the filter icon).</summary>
+    public string SmartShelfIconPath => FilterIconPath;
+
+    /// <summary>The accessible name and tooltip of the smart-shelf glyph.</summary>
+    public string SmartShelfLabel => _localization["Collections.SmartShelf"];
 
     /// <summary>Whether the grid view is the selected Library view.</summary>
     public bool IsGridViewSelected => IsCatalogueActive && Catalogue.IsGridView;
@@ -1146,6 +1082,13 @@ public sealed partial class MainShellViewModel
         if (e.PropertyName is nameof(ShelfSidebarViewModel.SelectedShelf))
         {
             OnPropertyChanged(nameof(CanShowSelectedCollection));
+        }
+        else if (e.PropertyName is nameof(ShelfSidebarViewModel.IsLoading) && !ShelfSidebar.IsLoading)
+        {
+            // Smart shelves have no membership rows; the in-memory grid evaluates their saved
+            // conditions, so it needs the current list after every reload.
+            Catalogue.SetSmartShelves(ShelfSidebar.Shelves);
+            OnPropertyChanged(nameof(ActiveFilterChips));
         }
     }
 

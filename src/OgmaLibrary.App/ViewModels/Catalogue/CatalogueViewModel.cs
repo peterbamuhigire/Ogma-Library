@@ -44,6 +44,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private string? _libraryRootPath;
     private int _currentPage = 1;
     private int _totalFilteredCount;
+    private Dictionary<string, IReadOnlyList<SmartShelfCondition>?> _smartShelves = new(StringComparer.Ordinal);
     private bool _showAll = true;
     private const CatalogueMissingFields AllMissingFields =
         CatalogueMissingFields.Author | CatalogueMissingFields.Isbn |
@@ -490,6 +491,30 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// </summary>
     public void ApplyFilterAndSort() => ApplyFilterAndSort(resetPage: true);
 
+    /// <summary>
+    /// Supplies the smart shelves' saved conditions, so selecting a smart shelf filters the
+    /// in-memory list exactly as the read model counts it. A damaged query shows no books.
+    /// Call on the UI thread.
+    /// </summary>
+    /// <param name="shelves">The current shelves; manual shelves are ignored.</param>
+    public void SetSmartShelves(IEnumerable<ShelfProjection> shelves)
+    {
+        ArgumentNullException.ThrowIfNull(shelves);
+        var next = new Dictionary<string, IReadOnlyList<SmartShelfCondition>?>(StringComparer.Ordinal);
+        foreach (ShelfProjection shelf in shelves.Where(shelf => shelf.IsSmart))
+        {
+            next[shelf.ShelfId] = SmartShelfQueryParser.TryParse(shelf.Query, out var conditions) ? conditions : null;
+        }
+
+        bool affectsCurrent = Filter.SelectedShelfId is { } selected &&
+            (_smartShelves.ContainsKey(selected) || next.ContainsKey(selected));
+        _smartShelves = next;
+        if (affectsCurrent)
+        {
+            ApplyFilterAndSort(resetPage: false);
+        }
+    }
+
     private void ApplyFilterAndSort(bool resetPage)
     {
         if (resetPage)
@@ -498,8 +523,17 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         }
 
         // Sept-23 Phase 10: one criteria model. The read model is authoritative; this is its
-        // in-memory twin, bound to it by Sept23Phase10CriteriaTests.
-        var results = CatalogueCriteriaEvaluator.Apply(_allItems, Filter.ToCriteria()).ToList();
+        // in-memory twin, bound to it by Sept23Phase10CriteriaTests. A smart shelf has no
+        // membership rows, so (like the read model) its saved conditions select the books.
+        CatalogueFilter criteria = Filter.ToCriteria();
+        IEnumerable<BookSummaryProjection> source = _allItems;
+        if (criteria.ShelfId is { } shelfId && _smartShelves.TryGetValue(shelfId, out var conditions))
+        {
+            source = conditions is null ? [] : SmartShelfEvaluator.Evaluate(_allItems, conditions);
+            criteria = criteria with { ShelfId = null };
+        }
+
+        var results = CatalogueCriteriaEvaluator.Apply(source, criteria).ToList();
         _totalFilteredCount = results.Count;
         int totalPages = TotalPages;
         if (_currentPage > totalPages)

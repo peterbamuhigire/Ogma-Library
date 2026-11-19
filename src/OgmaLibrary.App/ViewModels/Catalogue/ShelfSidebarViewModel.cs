@@ -165,7 +165,12 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
             var loaded = new List<ShelfProjection>();
             await foreach (var shelf in _readModel.GetShelvesAsync(cancellationToken).ConfigureAwait(false))
             {
-                loaded.Add(shelf);
+                // Sept-23 Phase 10: the badge counts through the same criteria path the
+                // Library uses, so a shelf (manual or smart) never disagrees with its grid.
+                int count = await _readModel
+                    .CountAsync(new CatalogueFilter(ShelfId: shelf.ShelfId), cancellationToken)
+                    .ConfigureAwait(false);
+                loaded.Add(shelf with { BookCount = count });
             }
 
             shelves = loaded;
@@ -200,6 +205,35 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         await _writeService.CreateShelfAsync(name, isSmart: false, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         await LoadAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Saves <paramref name="criteria"/> as a smart shelf (Sept-23 Phase 10, CAT-006). Only the
+    /// filter criteria are stored; sort, paging and any collection filter are not part of a
+    /// smart shelf, so callers must not offer this while a collection filter applies.
+    /// </summary>
+    /// <param name="name">The display name.</param>
+    /// <param name="criteria">The live catalogue criteria.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The new shelf's identifier.</returns>
+    public async Task<string> CreateSmartShelfAsync(
+        string name,
+        CatalogueFilter criteria,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(criteria);
+        if (criteria.ShelfId is not null)
+        {
+            throw new ArgumentException("A smart shelf cannot include a collection filter.", nameof(criteria));
+        }
+
+        string query = SmartShelfQueryParser.Serialize(SmartShelfCriteria.ToConditions(criteria));
+        string shelfId = await _writeService
+            .CreateShelfAsync(name.Trim(), isSmart: true, query: query, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        await LoadAsync(cancellationToken).ConfigureAwait(false);
+        return shelfId;
     }
 
     /// <summary>Creates the named user collection from the sidebar editor.</summary>

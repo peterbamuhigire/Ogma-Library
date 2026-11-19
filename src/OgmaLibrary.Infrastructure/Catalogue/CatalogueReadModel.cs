@@ -686,7 +686,8 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 ShelfId: shelf.ShelfId,
                 Name: shelf.Name,
                 IsSmart: shelf.ShelfType == 1,
-                BookCount: bookCount));
+                BookCount: bookCount,
+                Query: shelf.ShelfType == 1 ? shelf.Query : null));
         }
 
         return projections;

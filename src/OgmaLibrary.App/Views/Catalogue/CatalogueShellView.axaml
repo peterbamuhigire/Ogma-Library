@@ -513,6 +513,13 @@
                          FontWeight="SemiBold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock Text="{Binding FilterBar.NoResultsText}"
+                         AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Detail"
+                         FontSize="{DynamicResource Type.Size.Body}"
+                         TextWrapping="Wrap"
+                         MaxWidth="520"
+                         TextAlignment="Center"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
               <Button HorizontalAlignment="Center"
                       Classes="tool primary"
                       AutomationProperties.AutomationId="Catalogue.FilteredEmpty.Clear"
@@ -714,10 +721,11 @@
             </Grid>
 
             <!-- Filter drawer -->
-            <StackPanel Grid.Row="1"
-                        Margin="14,4,14,14"
-                        Spacing="10"
-                        IsVisible="{Binding IsFilterPanelOpen}">
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding IsFilterPanelOpen}">
+            <StackPanel Margin="14,4,14,14"
+                        Spacing="10">
               <TextBox Text="{Binding Catalogue.Filter.TitleSearch, Mode=TwoWay}"
                        Watermark="{Binding FilterTitleWatermark}"
                        AutomationProperties.AutomationId="Catalogue.Filter.Title"
@@ -726,13 +734,121 @@
                        Watermark="{Binding FilterAuthorWatermark}"
                        AutomationProperties.AutomationId="Catalogue.Filter.Author"
                        AutomationProperties.Name="{Binding FilterAuthorWatermark}" />
+
+              <TextBlock Text="{Binding FilterBar.StatusLabel}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding FilterBar.StatusOptions}"
+                        SelectedItem="{Binding FilterBar.SelectedStatus, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.Status"
+                        AutomationProperties.Name="{Binding FilterBar.StatusLabel}" />
+
+              <TextBlock Text="{Binding FilterBar.RatingLabel}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding FilterBar.RatingOptions}"
+                        SelectedItem="{Binding FilterBar.SelectedRating, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.Rating"
+                        AutomationProperties.Name="{Binding FilterBar.RatingLabel}" />
+
+              <TextBlock Text="{Binding FilterBar.AvailabilityLabel}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding FilterBar.AvailabilityOptions}"
+                        SelectedItem="{Binding FilterBar.SelectedAvailability, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.Availability"
+                        AutomationProperties.Name="{Binding FilterBar.AvailabilityLabel}" />
+
+              <TextBlock Text="{Binding FilterBar.QualityLabel}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding FilterBar.QualityOptions}"
+                        SelectedItem="{Binding FilterBar.SelectedQuality, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.Quality"
+                        AutomationProperties.Name="{Binding FilterBar.QualityLabel}" />
+
+              <TextBlock Text="{Binding FilterBar.MissingLabel}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <WrapPanel>
+                <CheckBox Margin="0,0,12,0"
+                          IsChecked="{Binding FilterBar.MissingAuthor, Mode=TwoWay}"
+                          Content="{Binding FilterBar.MissingAuthorLabel}"
+                          AutomationProperties.AutomationId="Catalogue.Filter.Missing.Author"
+                          AutomationProperties.Name="{Binding FilterBar.MissingAuthorName}" />
+                <CheckBox Margin="0,0,12,0"
+                          IsChecked="{Binding FilterBar.MissingIsbn, Mode=TwoWay}"
+                          Content="{Binding FilterBar.MissingIsbnLabel}"
+                          AutomationProperties.AutomationId="Catalogue.Filter.Missing.Isbn"
+                          AutomationProperties.Name="{Binding FilterBar.MissingIsbnName}" />
+                <CheckBox Margin="0,0,12,0"
+                          IsChecked="{Binding FilterBar.MissingCover, Mode=TwoWay}"
+                          Content="{Binding FilterBar.MissingCoverLabel}"
+                          AutomationProperties.AutomationId="Catalogue.Filter.Missing.Cover"
+                          AutomationProperties.Name="{Binding FilterBar.MissingCoverName}" />
+                <CheckBox IsChecked="{Binding FilterBar.MissingYear, Mode=TwoWay}"
+                          Content="{Binding FilterBar.MissingYearLabel}"
+                          AutomationProperties.AutomationId="Catalogue.Filter.Missing.Year"
+                          AutomationProperties.Name="{Binding FilterBar.MissingYearName}" />
+              </WrapPanel>
+
+              <CheckBox IsChecked="{Binding Catalogue.Filter.NeedsOcrOnly, Mode=TwoWay}"
+                        Content="{Binding FilterBar.NeedsOcrLabel}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.NeedsOcr"
+                        AutomationProperties.Name="{Binding FilterBar.NeedsOcrLabel}" />
+              <CheckBox IsChecked="{Binding Catalogue.Filter.PossibleDuplicatesOnly, Mode=TwoWay}"
+                        Content="{Binding FilterBar.PossibleDuplicatesLabel}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.PossibleDuplicates"
+                        AutomationProperties.Name="{Binding FilterBar.PossibleDuplicatesLabel}" />
+
+              <TextBlock Text="{Binding FilterBar.ShelfLabel}"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding FilterBar.ShelfOptions}"
+                        SelectedItem="{Binding FilterBar.SelectedShelf, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="Catalogue.Filter.Shelf"
+                        AutomationProperties.Name="{Binding FilterBar.ShelfLabel}" />
+
               <Button Classes="tool"
                       AutomationProperties.AutomationId="Catalogue.Filter.ClearDrawer"
                       AutomationProperties.Name="{Binding ClearFiltersText}"
                       Click="ClearFilters_Click">
                 <TextBlock Text="{Binding ClearFiltersText}" />
               </Button>
+
+              <!-- Save the live filter as a smart shelf (task 10.5). -->
+              <Border Height="1" Background="{DynamicResource Brush.Surface.CardBorder}" />
+              <TextBox Text="{Binding FilterBar.SmartShelfName, Mode=TwoWay}"
+                       Watermark="{Binding FilterBar.SmartShelfNameLabel}"
+                       AutomationProperties.AutomationId="Catalogue.Filter.SmartShelfName"
+                       AutomationProperties.Name="{Binding FilterBar.SmartShelfNameLabel}" />
+              <TextBlock Text="{Binding FilterBar.SmartShelfHint}"
+                         IsVisible="{Binding FilterBar.HasSmartShelfHint}"
+                         AutomationProperties.AutomationId="Catalogue.Filter.SmartShelfHint"
+                         TextWrapping="Wrap"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <Button Classes="tool primary"
+                      IsEnabled="{Binding FilterBar.CanSaveSmartShelf}"
+                      AutomationProperties.AutomationId="Catalogue.Filter.SaveSmartShelf"
+                      AutomationProperties.Name="{Binding FilterBar.SaveSmartShelfLabel}"
+                      Click="SaveSmartShelf_Click">
+                <TextBlock Text="{Binding FilterBar.SaveSmartShelfLabel}" />
+              </Button>
+              <TextBlock Text="{Binding FilterBar.SmartShelfStatus}"
+                         IsVisible="{Binding FilterBar.HasSmartShelfStatus}"
+                         AutomationProperties.AutomationId="Catalogue.Filter.SmartShelfStatus"
+                         AutomationProperties.LiveSetting="Polite"
+                         TextWrapping="Wrap"
+                         FontSize="{DynamicResource Type.Size.Small}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
             </StackPanel>
+            </ScrollViewer>
 
             <!-- Library folders drawer (Phase 08 moves this into Settings) -->
             <ScrollViewer Grid.Row="1"

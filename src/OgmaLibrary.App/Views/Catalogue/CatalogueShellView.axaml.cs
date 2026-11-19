@@ -333,6 +333,9 @@ public partial class CatalogueShellView : UserControl
 
     private void ClearFilters_Click(object? sender, RoutedEventArgs e) => ViewModel?.Catalogue.Filter.ClearAll();
 
+    private void SaveSmartShelf_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ViewModel?.FilterBar.SaveSmartShelfAsync() ?? Task.CompletedTask, "catalogue.smart_shelf_save_click");
+
     private void ToggleSortDirection_Click(object? sender, RoutedEventArgs e) =>
         ViewModel?.Catalogue.Filter.ToggleSortDirection();
 

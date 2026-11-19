@@ -68,3 +68,16 @@ These decisions were taken under that authority. Each is the recommended option 
   - Real-window journey: NOT_ASSESSED.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **2026-11-19** — Phase 10 slice 3 (executor session): full filter bar, chips for every criterion, explained no-results state and smart shelves from filters. New owner-proxy decisions (the plan's recommended or least-surprise options):
+  - **D-24**: the plan's "status (reading state)" is a premise error. The criteria model's status is the lifecycle status (Active, Unavailable, Excluded), and the bar exposes that.
+  - **D-25**: "Save as smart shelf" is disabled, with a hint, when no filter is active or when a collection filter applies, because smart-shelf conditions cannot express shelf membership.
+  - **D-26**: `ShelfProjection` carries a smart shelf's saved `Query`, so the in-memory grid evaluates a selected smart shelf exactly as the read model does.
+
+  Results:
+  - The tests in `Sept23Phase10FilterBarTests` pass, 8 of 8.
+  - The fast suite passes, 1,771 of 1,771.
+  - Build, format and design tokens pass.
+  - Navigation journey at 1280x800: run `p10-s3-nav` had 1 failure, a pre-existing foreign-toolbar occlusion also seen in `co-all-1`. Re-run `p10-s3-nav2` passed 3 of 3.
+  - K115 was logged: the sidebar holds an orphan filter instance.
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).
