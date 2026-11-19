@@ -340,6 +340,67 @@ public sealed partial class Sept23Phase09DesignSystemTests
         Assert.True(violations.Count == 0, "Colour literals in view code-behind:\n" + string.Join('\n', violations));
     }
 
+    /// <summary>
+    /// Phase CO slice 5 (K113): an accent brush used as a view's text <c>Foreground</c> must be
+    /// readable on the card surface it sits on in both themes. Accent fills are not themed text
+    /// colours, so a fill used as text can pass in Light and fail in Dark. <c>OnAccent</c> is
+    /// excluded: it is drawn on accent fills and covered by <see cref="BodyTextPairs"/>.
+    /// </summary>
+    [AvaloniaFact]
+    public void ViewTextForegroundAccents_MeetAaOnCardsInBothThemes()
+    {
+        string views = Path.Combine(RepoRoot(), "src", "OgmaLibrary.App", "Views");
+        var used = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (string file in Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories))
+        {
+            foreach (Match match in AccentTextForeground().Matches(File.ReadAllText(file)))
+            {
+                string entry = $"{match.Groups[1].Value} ({Path.GetFileName(file)})";
+                if (match.Groups[1].Value != "OnAccent" && !AccentTextKnownK113.Contains(entry))
+                {
+                    used.Add(entry);
+                }
+            }
+        }
+
+        OgmaApp app = NewApp();
+        var failures = new List<string>();
+        foreach (string entry in used)
+        {
+            string key = "Color.Accent." + entry[..entry.IndexOf(' ', StringComparison.Ordinal)];
+            foreach (ThemeVariant theme in Themes)
+            {
+                double ratio = Contrast(Resolve(app, key, theme), Resolve(app, "Color.Surface.Card", theme));
+                if (ratio < 4.5)
+                {
+                    failures.Add($"{entry} on Color.Surface.Card in {theme}: {ratio:F2}:1");
+                }
+            }
+        }
+
+        Assert.True(failures.Count == 0, "Accent text below 4.5:1:\n" + string.Join('\n', failures));
+    }
+
+    /// <summary>
+    /// Known accent-as-text usages below 4.5:1 in Dark, registered as K113 for their owning phases.
+    /// Remove an entry when its view is fixed; a new usage is never added here.
+    /// </summary>
+    private static readonly HashSet<string> AccentTextKnownK113 = new(StringComparer.Ordinal)
+    {
+        "Clay (LibraryFoldersPanelView.axaml)",
+        "Oak (CatalogueListView.axaml)",
+        "Plum (BookDetailView.axaml)",
+        "Plum (ReaderView.axaml)",
+        "Sage (SharingSettingsView.axaml)",
+        "Slate (BookDetailView.axaml)",
+        "Slate (DesktopShellWindow.axaml)",
+        "Slate (SharingSettingsView.axaml)",
+        "Slate (StudentSmartSearchView.axaml)",
+    };
+
+    [GeneratedRegex(@"Foreground=""\{DynamicResource Brush\.Accent\.(\w+)\}""")]
+    private static partial Regex AccentTextForeground();
+
     /// <summary>Buttons take their fills from variant styles, never from local Background/Foreground.</summary>
     [Fact]
     public void ViewButtons_HaveNoLocalBackgroundOrForeground()
