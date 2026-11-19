@@ -10,7 +10,9 @@ public sealed record CorpusBook(
     [property: JsonPropertyName("file")] string File,
     [property: JsonPropertyName("title")] string? Title,
     [property: JsonPropertyName("author")] string? Author,
-    [property: JsonPropertyName("pages")] int Pages);
+    [property: JsonPropertyName("pages")] int Pages,
+    [property: JsonPropertyName("isbn")] string? Isbn = null,
+    [property: JsonPropertyName("isbnValid")] bool IsbnValid = false);
 
 /// <summary>An invalid file the catalogue must not present as a normal book.</summary>
 public sealed record CorpusInvalid(
