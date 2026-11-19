@@ -32,6 +32,30 @@ public interface ICatalogueReadModel
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Counts the books that match <paramref name="filter"/>, ignoring its paging values
+    /// (Sept-23 Phase 10). The default enumerates the summaries; implementations may override.
+    /// </summary>
+    /// <param name="filter">The criteria to count.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The number of matching books.</returns>
+    async Task<int> CountAsync(
+        CatalogueFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        int count = 0;
+        await foreach (BookSummaryProjection _ in GetBookSummariesAsync(
+                               filter with { MaxResults = 0, SkipCount = 0, SortField = null },
+                               cancellationToken)
+                           .ConfigureAwait(false))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>
     /// Returns full detail for a single book across all five metadata groups.
     /// </summary>
     /// <param name="bookId">The stable book identity.</param>

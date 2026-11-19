@@ -23,6 +23,33 @@ public enum SmartShelfField
 
     /// <summary>The reading-progress completion percentage [0.0, 100.0].</summary>
     ReadingProgressPct,
+
+    /// <summary>The display title or library path (text; <see cref="SmartShelfOperator.Contains"/> only).</summary>
+    Title,
+
+    /// <summary>Any author display name (text; <see cref="SmartShelfOperator.Contains"/> only).</summary>
+    Author,
+
+    /// <summary>The metadata quality score in [0, 1].</summary>
+    QualityScore,
+
+    /// <summary>Whether an author is recorded (boolean).</summary>
+    HasAuthor,
+
+    /// <summary>Whether an ISBN is recorded (boolean).</summary>
+    HasIsbn,
+
+    /// <summary>Whether an extracted cover exists (boolean).</summary>
+    HasCover,
+
+    /// <summary>Whether a publication year is recorded (boolean).</summary>
+    HasYear,
+
+    /// <summary>Whether OCR would make the book (more) searchable (boolean).</summary>
+    NeedsOcr,
+
+    /// <summary>Whether the book has several copies or editions (boolean).</summary>
+    PossibleDuplicate,
 }
 
 /// <summary>
@@ -48,6 +75,9 @@ public enum SmartShelfOperator
 
     /// <summary>Less-than-or-equal.</summary>
     LessThanOrEqual,
+
+    /// <summary>Case-insensitive substring match; text fields only.</summary>
+    Contains,
 }
 
 /// <summary>
@@ -115,9 +145,29 @@ public static class SmartShelfQueryParser
         }
     }
 
+    /// <summary>Whether <paramref name="field"/> holds text and accepts only <see cref="SmartShelfOperator.Contains"/>.</summary>
+    internal static bool IsTextField(SmartShelfField field) =>
+        field is SmartShelfField.Title or SmartShelfField.Author;
+
+    /// <summary>Whether <paramref name="field"/> holds a boolean value.</summary>
+    internal static bool IsBooleanField(SmartShelfField field) =>
+        field is SmartShelfField.IsAvailable or SmartShelfField.HasAuthor or SmartShelfField.HasIsbn or
+            SmartShelfField.HasCover or SmartShelfField.HasYear or SmartShelfField.NeedsOcr or
+            SmartShelfField.PossibleDuplicate;
+
     private static bool IsSemanticallyValid(SmartShelfCondition condition)
     {
-        if (condition.Field == SmartShelfField.IsAvailable)
+        if (IsTextField(condition.Field))
+        {
+            return condition.Operator == SmartShelfOperator.Contains;
+        }
+
+        if (condition.Operator == SmartShelfOperator.Contains)
+        {
+            return false;
+        }
+
+        if (IsBooleanField(condition.Field))
         {
             return condition.Operator is (SmartShelfOperator.Equals or SmartShelfOperator.NotEquals) &&
                    bool.TryParse(condition.Value, out _);
@@ -178,24 +228,35 @@ public static class SmartShelfEvaluator
 
     private static bool Matches(BookSummaryProjection book, SmartShelfCondition condition)
     {
-        double? fieldValue = GetFieldValue(book, condition.Field);
+        if (SmartShelfQueryParser.IsTextField(condition.Field))
+        {
+            return condition.Operator == SmartShelfOperator.Contains &&
+                   (condition.Field == SmartShelfField.Title
+                       ? CatalogueCriteriaEvaluator.TitleMatches(book, condition.Value)
+                       : CatalogueCriteriaEvaluator.AuthorMatches(book, condition.Value));
+        }
 
+        if (SmartShelfQueryParser.IsBooleanField(condition.Field))
+        {
+            // Boolean values are "true"/"false"; anything else fails closed.
+            if (!bool.TryParse(condition.Value, out bool boolCondition))
+            {
+                return false;
+            }
+
+            bool boolField = GetBooleanValue(book, condition.Field);
+            return condition.Operator switch
+            {
+                SmartShelfOperator.Equals => boolField == boolCondition,
+                SmartShelfOperator.NotEquals => boolField != boolCondition,
+                _ => false,
+            };
+        }
+
+        double? fieldValue = GetFieldValue(book, condition.Field);
         if (!double.TryParse(condition.Value, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out double conditionValue))
         {
-            // For boolean fields the value is "true"/"false"
-            if (condition.Field == SmartShelfField.IsAvailable)
-            {
-                bool boolCondition = condition.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
-                bool boolField = book.IsAvailable;
-                return condition.Operator switch
-                {
-                    SmartShelfOperator.Equals => boolField == boolCondition,
-                    SmartShelfOperator.NotEquals => boolField != boolCondition,
-                    _ => false,
-                };
-            }
-
             return false;
         }
 
@@ -223,8 +284,175 @@ public static class SmartShelfEvaluator
             SmartShelfField.Rating => book.Rating.HasValue ? (double)book.Rating.Value : null,
             SmartShelfField.Status => (double)book.Status,
             SmartShelfField.Year => book.Year.HasValue ? (double)book.Year.Value : null,
-            SmartShelfField.IsAvailable => book.IsAvailable ? 1.0 : 0.0,
             SmartShelfField.ReadingProgressPct => book.ReadingProgressPct,
+            SmartShelfField.QualityScore => CatalogueCriteriaEvaluator.QualityOf(book),
             _ => null,
         };
+
+    private static bool GetBooleanValue(BookSummaryProjection book, SmartShelfField field) =>
+        field switch
+        {
+            SmartShelfField.IsAvailable => book.IsAvailable,
+            SmartShelfField.HasAuthor => CatalogueCriteriaEvaluator.HasAuthor(book),
+            SmartShelfField.HasIsbn => book.HasIsbn,
+            SmartShelfField.HasCover => book.HasExtractedCover,
+            SmartShelfField.HasYear => book.Year.HasValue,
+            SmartShelfField.NeedsOcr => CatalogueCriteriaEvaluator.NeedsOcr(book),
+            SmartShelfField.PossibleDuplicate => book.IsPossibleDuplicate,
+            _ => false,
+        };
+}
+
+/// <summary>
+/// Converts between the catalogue criteria model and saved smart-shelf conditions
+/// (Sept-23 Phase 10), so "Save as smart shelf" stores exactly the live filter and a
+/// saved shelf can be reopened as the same filter. Paging and sort are not criteria.
+/// </summary>
+public static class SmartShelfCriteria
+{
+    private static readonly System.Globalization.CultureInfo Invariant =
+        System.Globalization.CultureInfo.InvariantCulture;
+
+    /// <summary>Builds the conjunctive conditions equivalent to <paramref name="filter"/>.</summary>
+    /// <param name="filter">The live criteria; its shelf, paging and sort are ignored.</param>
+    /// <returns>Zero or more conditions.</returns>
+    public static IReadOnlyList<SmartShelfCondition> ToConditions(CatalogueFilter filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        var conditions = new List<SmartShelfCondition>();
+        if (!string.IsNullOrWhiteSpace(filter.TitleContains))
+        {
+            conditions.Add(new(SmartShelfField.Title, SmartShelfOperator.Contains, filter.TitleContains.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.AuthorContains))
+        {
+            conditions.Add(new(SmartShelfField.Author, SmartShelfOperator.Contains, filter.AuthorContains.Trim()));
+        }
+
+        if (filter.Status is { } status)
+        {
+            conditions.Add(new(SmartShelfField.Status, SmartShelfOperator.Equals, status.ToString(Invariant)));
+        }
+
+        if (filter.MinRating is { } min)
+        {
+            conditions.Add(new(SmartShelfField.Rating, SmartShelfOperator.GreaterThanOrEqual, min.ToString(Invariant)));
+        }
+
+        if (filter.MaxRating is { } max)
+        {
+            conditions.Add(new(SmartShelfField.Rating, SmartShelfOperator.LessThanOrEqual, max.ToString(Invariant)));
+        }
+
+        if (filter.IsAvailable is { } available)
+        {
+            conditions.Add(Flag(SmartShelfField.IsAvailable, available));
+        }
+
+        if (filter.QualityBelow is { } quality)
+        {
+            conditions.Add(new(SmartShelfField.QualityScore, SmartShelfOperator.LessThan, quality.ToString("R", Invariant)));
+        }
+
+        AddMissing(conditions, filter.MissingFields, CatalogueMissingFields.Author, SmartShelfField.HasAuthor);
+        AddMissing(conditions, filter.MissingFields, CatalogueMissingFields.Isbn, SmartShelfField.HasIsbn);
+        AddMissing(conditions, filter.MissingFields, CatalogueMissingFields.Cover, SmartShelfField.HasCover);
+        AddMissing(conditions, filter.MissingFields, CatalogueMissingFields.Year, SmartShelfField.HasYear);
+
+        if (filter.NeedsOcr)
+        {
+            conditions.Add(Flag(SmartShelfField.NeedsOcr, true));
+        }
+
+        if (filter.PossibleDuplicates)
+        {
+            conditions.Add(Flag(SmartShelfField.PossibleDuplicate, true));
+        }
+
+        return conditions;
+    }
+
+    /// <summary>
+    /// Rebuilds the criteria from saved conditions. Conditions the criteria model cannot
+    /// express exactly (for example "year after 2000") return <see langword="false"/>.
+    /// </summary>
+    /// <param name="conditions">Validated conditions.</param>
+    /// <param name="filter">The equivalent criteria when the conversion is exact.</param>
+    /// <returns>Whether every condition maps to a criterion.</returns>
+    public static bool TryToFilter(IReadOnlyList<SmartShelfCondition> conditions, out CatalogueFilter filter)
+    {
+        ArgumentNullException.ThrowIfNull(conditions);
+        filter = new CatalogueFilter();
+        foreach (SmartShelfCondition condition in conditions)
+        {
+            CatalogueFilter? next = Apply(filter, condition);
+            if (next is null)
+            {
+                filter = new CatalogueFilter();
+                return false;
+            }
+
+            filter = next;
+        }
+
+        return true;
+    }
+
+    private static CatalogueFilter? Apply(CatalogueFilter filter, SmartShelfCondition condition)
+    {
+        bool? flag = bool.TryParse(condition.Value, out bool parsedFlag) ? parsedFlag : null;
+        bool isEquals = condition.Operator == SmartShelfOperator.Equals;
+        int? integer = int.TryParse(condition.Value, System.Globalization.NumberStyles.Integer, Invariant, out int parsedInt)
+            ? parsedInt
+            : null;
+
+        return (condition.Field, condition.Operator) switch
+        {
+            (SmartShelfField.Title, SmartShelfOperator.Contains) => filter with { TitleContains = condition.Value },
+            (SmartShelfField.Author, SmartShelfOperator.Contains) => filter with { AuthorContains = condition.Value },
+            (SmartShelfField.Status, SmartShelfOperator.Equals) when integer.HasValue => filter with { Status = integer },
+            (SmartShelfField.Rating, SmartShelfOperator.GreaterThanOrEqual) when integer.HasValue => filter with { MinRating = integer },
+            (SmartShelfField.Rating, SmartShelfOperator.LessThanOrEqual) when integer.HasValue => filter with { MaxRating = integer },
+            (SmartShelfField.IsAvailable, SmartShelfOperator.Equals or SmartShelfOperator.NotEquals) when flag.HasValue =>
+                filter with { IsAvailable = isEquals ? flag.Value : !flag.Value },
+            (SmartShelfField.QualityScore, SmartShelfOperator.LessThan)
+                when double.TryParse(condition.Value, System.Globalization.NumberStyles.Float, Invariant, out double quality) =>
+                filter with { QualityBelow = quality },
+            (SmartShelfField.HasAuthor, _) => Missing(filter, condition, flag, CatalogueMissingFields.Author),
+            (SmartShelfField.HasIsbn, _) => Missing(filter, condition, flag, CatalogueMissingFields.Isbn),
+            (SmartShelfField.HasCover, _) => Missing(filter, condition, flag, CatalogueMissingFields.Cover),
+            (SmartShelfField.HasYear, _) => Missing(filter, condition, flag, CatalogueMissingFields.Year),
+            (SmartShelfField.NeedsOcr, SmartShelfOperator.Equals) when flag == true => filter with { NeedsOcr = true },
+            (SmartShelfField.PossibleDuplicate, SmartShelfOperator.Equals) when flag == true => filter with { PossibleDuplicates = true },
+            _ => null,
+        };
+    }
+
+    private static CatalogueFilter? Missing(
+        CatalogueFilter filter,
+        SmartShelfCondition condition,
+        bool? flag,
+        CatalogueMissingFields field)
+    {
+        // Only "has X = false" (or "has X != true") means "X is missing".
+        bool isMissing = (condition.Operator == SmartShelfOperator.Equals && flag == false) ||
+                         (condition.Operator == SmartShelfOperator.NotEquals && flag == true);
+        return isMissing ? filter with { MissingFields = filter.MissingFields | field } : null;
+    }
+
+    private static SmartShelfCondition Flag(SmartShelfField field, bool value) =>
+        new(field, SmartShelfOperator.Equals, value ? "true" : "false");
+
+    private static void AddMissing(
+        List<SmartShelfCondition> conditions,
+        CatalogueMissingFields missing,
+        CatalogueMissingFields flag,
+        SmartShelfField field)
+    {
+        if (missing.HasFlag(flag))
+        {
+            conditions.Add(Flag(field, false));
+        }
+    }
 }

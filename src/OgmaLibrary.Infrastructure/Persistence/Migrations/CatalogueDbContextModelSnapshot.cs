@@ -631,6 +631,9 @@ namespace OgmaLibrary.Infrastructure.Persistence.Migrations
                         .HasMaxLength(26)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("AddedUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Doi")
                         .HasMaxLength(512)
                         .HasColumnType("TEXT");

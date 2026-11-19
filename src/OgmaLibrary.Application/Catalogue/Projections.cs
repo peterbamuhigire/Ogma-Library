@@ -24,6 +24,13 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="CoverSource">Source of the ready cover asset (embedded, provider, generated, placeholder), or null.</param>
 /// <param name="HasFailedCover">Whether cover generation recorded a failure for this book.</param>
 /// <param name="CopyCount">Number of valid library files (occurrences) for this book; at least one.</param>
+/// <param name="DateAddedUtc">When the book was first registered, or null for books that predate the record.</param>
+/// <param name="LastOpenedUtc">When the book was last read, or null if never opened.</param>
+/// <param name="FileSizeBytes">Size of the book's file in bytes, when known.</param>
+/// <param name="HasIsbn">Whether an ISBN is recorded.</param>
+/// <param name="OccurrenceCount">Number of file occurrences of any state (present, missing or invalid).</param>
+/// <param name="WorkGroupId">Reviewed work group (several editions of one work), or null.</param>
+/// <param name="EditionCount">Number of listed editions in <paramref name="WorkGroupId"/>; one when ungrouped.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -42,8 +49,18 @@ public sealed record BookSummaryProjection(
     bool IsLocked = false,
     string? CoverSource = null,
     bool HasFailedCover = false,
-    int CopyCount = 1)
+    int CopyCount = 1,
+    DateTimeOffset? DateAddedUtc = null,
+    DateTimeOffset? LastOpenedUtc = null,
+    long? FileSizeBytes = null,
+    bool HasIsbn = false,
+    int OccurrenceCount = 1,
+    string? WorkGroupId = null,
+    int EditionCount = 1)
 {
+    /// <summary>Whether the book has several copies or is one of several editions of a work.</summary>
+    public bool IsPossibleDuplicate => CopyCount > 1 || EditionCount > 1;
+
     /// <summary>Whether a ready cover was taken from the book itself or a provider (not generated).</summary>
     public bool HasExtractedCover =>
         !string.IsNullOrWhiteSpace(CoverRelativePath) &&
@@ -369,10 +386,43 @@ public sealed record MetadataFieldProjection(
 /// <param name="Status">Optional lifecycle status filter (null = all statuses).</param>
 /// <param name="MaxResults">Maximum number of results to return (0 = unlimited).</param>
 /// <param name="SkipCount">Number of ordered results to skip before taking the page.</param>
+/// <param name="MinRating">Minimum reader rating (inclusive); unrated books never match.</param>
+/// <param name="MaxRating">Maximum reader rating (inclusive); unrated books never match.</param>
+/// <param name="IsAvailable">Availability filter: true for present files only, false for missing only.</param>
+/// <param name="QualityBelow">Only books whose metadata quality score is below this value in [0, 1].</param>
+/// <param name="MissingFields">Fields that must all be absent.</param>
+/// <param name="NeedsOcr">Only unlocked books that OCR would make (more) searchable.</param>
+/// <param name="PossibleDuplicates">Only books with several copies or several editions of one work.</param>
+/// <param name="SortField">Sort field; null keeps the legacy server title order.</param>
+/// <param name="SortAscending">Sort direction for <paramref name="SortField"/>.</param>
+/// <remarks>
+/// Sept-23 Phase 10 (task 10.4): one criteria model. The read model is authoritative and
+/// <see cref="CatalogueCriteriaEvaluator"/> is its in-memory twin; a parity test binds them.
+/// </remarks>
 public sealed record CatalogueFilter(
     string? TitleContains = null,
     string? AuthorContains = null,
     string? ShelfId = null,
     int? Status = null,
     int MaxResults = 0,
-    int SkipCount = 0);
+    int SkipCount = 0,
+    int? MinRating = null,
+    int? MaxRating = null,
+    bool? IsAvailable = null,
+    double? QualityBelow = null,
+    CatalogueMissingFields MissingFields = CatalogueMissingFields.None,
+    bool NeedsOcr = false,
+    bool PossibleDuplicates = false,
+    CatalogueSortField? SortField = null,
+    bool SortAscending = true)
+{
+    /// <summary>Whether any criterion beyond the legacy title, author, shelf and status is set.</summary>
+    public bool HasExtendedCriteria =>
+        MinRating.HasValue ||
+        MaxRating.HasValue ||
+        IsAvailable.HasValue ||
+        QualityBelow.HasValue ||
+        MissingFields != CatalogueMissingFields.None ||
+        NeedsOcr ||
+        PossibleDuplicates;
+}

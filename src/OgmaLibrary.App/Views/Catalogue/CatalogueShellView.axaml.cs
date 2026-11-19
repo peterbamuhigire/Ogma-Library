@@ -10,6 +10,7 @@ using Avalonia.VisualTree;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.App.Views.Shell;
+using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Navigation;
 
 namespace OgmaLibrary.App.Views.Catalogue;
@@ -300,7 +301,7 @@ public partial class CatalogueShellView : UserControl
         foreach (CatalogueSortField field in vm.Catalogue.Filter.SortOptions)
         {
             CatalogueSortField captured = field;
-            children.Add(Command(field.ToString(), "Shell.More.Sort." + field, () => vm.Catalogue.Filter.SortField = captured));
+            children.Add(Command(vm.Catalogue.Filter.SortFieldLabel(field), "Shell.More.Sort." + field, () => vm.Catalogue.Filter.SortField = captured));
         }
 
         children.Add(Command(vm.Catalogue.Filter.SortDirectionText, "Shell.More.SortDirection", vm.Catalogue.Filter.ToggleSortDirection));

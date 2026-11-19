@@ -7,7 +7,10 @@ namespace OgmaLibrary.Tests.Catalogue;
 /// <summary>Fails CI when the frozen beta migration sequence changes implicitly.</summary>
 public sealed class Phase38ReleaseSchemaFreezeTests
 {
-    // Deliberately advanced by Sept-23 Phase 17: Books.TextStatus, TextQuality and OcrConfidence
+    // Deliberately advanced by Sept-23 Phase 10: nullable Books.AddedUtc for the "date added"
+    // sort, with a backup-and-restore rehearsal (BookAddedUtcMigrationRehearsalTests). Previous
+    // freeze: 44 migrations ending at 20260925132534_Sept23Phase17TextStatus (32588cbf...c21d6f).
+    // Earlier: deliberately advanced by Sept-23 Phase 17: Books.TextStatus, TextQuality and OcrConfidence
     // (honest text status, K21) with a backup-and-restore rehearsal
     // (TextStatusMigrationRehearsalTests). Previous freeze: 43 migrations ending at
     // 20260925105740_Sept23Phase06JobAccountingAndIssues (ac22890a...c63ba3).
@@ -19,10 +22,10 @@ public sealed class Phase38ReleaseSchemaFreezeTests
     // FileValidity and FileIssues, with a verified backup and restore rehearsal
     // (LibraryRootMigrationRehearsalTests). Previous freeze: 41 migrations ending at
     // 20260906060000_Phase17PausedJobStatus (8135fad4...37dd5).
-    private const int FrozenMigrationCount = 44;
-    private const string FrozenLatestMigration = "20260925132534_Sept23Phase17TextStatus";
+    private const int FrozenMigrationCount = 45;
+    private const string FrozenLatestMigration = "20261119102849_Sept23Phase10BookAddedUtc";
     private const string FrozenSequenceSha256 =
-        "32588cbf39147ea0599a994cf1f04e4ac0f4fb674e1010a65e5fec130fc21d6f";
+        "9103bd5bbf80561921b04b6b872057dc97ee45cbf52a1e9f58021ce59818cb31";
 
     [Fact]
     public void ReleaseSchema_BetaV1MigrationSequence_IsFrozen()

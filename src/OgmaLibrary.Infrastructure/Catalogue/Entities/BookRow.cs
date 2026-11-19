@@ -109,4 +109,10 @@ public sealed class BookRow
     /// metadata write. Defaults to 0.0 until the first enrichment pass.
     /// </summary>
     public double QualityScore { get; set; }
+
+    /// <summary>
+    /// UTC time the book was first registered in the catalogue (Sept-23 Phase 10, "Date added"
+    /// sort). Null for books registered before the column existed.
+    /// </summary>
+    public DateTimeOffset? AddedUtc { get; set; }
 }

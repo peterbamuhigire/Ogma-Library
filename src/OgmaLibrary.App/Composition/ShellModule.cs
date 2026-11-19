@@ -71,7 +71,7 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         var localization = services.GetRequiredService<ILocalizationService>();
         var readModel = services.GetRequiredService<ICatalogueReadModel>();
         var writeService = services.GetRequiredService<ICatalogueWriteService>();
-        var filter = new CatalogueFilterViewModel();
+        var filter = new CatalogueFilterViewModel(localization);
         var shelfSidebar = new ShelfSidebarViewModel(
             readModel,
             writeService,

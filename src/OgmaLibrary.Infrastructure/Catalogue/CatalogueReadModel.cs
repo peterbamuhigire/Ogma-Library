@@ -10,7 +10,7 @@ namespace OgmaLibrary.Infrastructure.Catalogue;
 /// <summary>
 /// EF Core implementation of <see cref="ICatalogueReadModel"/>.
 /// Uses server-side LINQ projections to avoid loading entity graphs and to keep
-/// the projected records EF-Core-free (LAN-CLASSROOM-ARCHITECTURE.md §2-3).
+/// the projected records EF-Core-free (LAN-CLASSROOM-ARCHITECTURE.md Â§2-3).
 /// </summary>
 public sealed class CatalogueReadModel : ICatalogueReadModel
 {
@@ -69,6 +69,17 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         }
     }
 
+    /// <inheritdoc />
+    public async Task<int> CountAsync(CatalogueFilter filter, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        CatalogueFilter unpaged = filter with { MaxResults = 0, SkipCount = 0, SortField = null };
+        IReadOnlyList<BookSummaryProjection> summaries = await RunWithSchemaRepairRetryAsync(
+            () => GetBookSummariesCoreAsync(unpaged, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+        return summaries.Count;
+    }
+
     private async Task<IReadOnlyList<BookSummaryProjection>> GetBookSummariesCoreAsync(
         CatalogueFilter filter,
         CancellationToken cancellationToken)
@@ -85,27 +96,29 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         var query = context.Books.AsNoTracking();
         IReadOnlyList<SmartShelfCondition>? smartConditions = null;
 
+        // Sept-23 Phase 10: LIKE is case-insensitive for ASCII in SQLite, matching the
+        // in-memory evaluator's OrdinalIgnoreCase search; wildcards in the term are escaped.
         if (!string.IsNullOrWhiteSpace(filter.TitleContains))
         {
-            string titleContains = filter.TitleContains;
+            string titlePattern = ContainsPattern(filter.TitleContains);
             query = query.Where(b =>
-                (b.Title != null && b.Title.Contains(titleContains)) ||
-                b.BookFiles.Any(f => f.RelativePath.Contains(titleContains)) ||
+                (b.Title != null && EF.Functions.Like(b.Title, titlePattern, LikeEscape)) ||
+                b.BookFiles.Any(f => EF.Functions.Like(f.RelativePath, titlePattern, LikeEscape)) ||
                 b.MetadataFields.Any(f =>
                     f.FieldName == "Title" &&
                     f.Value != null &&
-                    f.Value.Contains(titleContains)));
+                    EF.Functions.Like(f.Value, titlePattern, LikeEscape)));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.AuthorContains))
         {
-            string authorContains = filter.AuthorContains;
+            string authorPattern = ContainsPattern(filter.AuthorContains);
             query = query.Where(b =>
-                b.BookAuthors.Any(ba => ba.Author != null && ba.Author.NormalizedName.Contains(authorContains)) ||
+                b.BookAuthors.Any(ba => ba.Author != null && EF.Functions.Like(ba.Author.NormalizedName, authorPattern, LikeEscape)) ||
                 b.MetadataFields.Any(f =>
                     f.FieldName == "Author" &&
                     f.Value != null &&
-                    f.Value.Contains(authorContains)));
+                    EF.Functions.Like(f.Value, authorPattern, LikeEscape)));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.ShelfId))
@@ -144,6 +157,37 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             query = query.Where(b => b.Status == filter.Status.Value);
         }
 
+        // Sept-23 Phase 10 (task 10.4): narrow on the predicates SQLite can evaluate exactly.
+        // The in-memory pass below re-checks every extended criterion against the projection.
+        if (filter.MinRating is { } minRating)
+        {
+            query = query.Where(b => b.Rating != null && b.Rating >= minRating);
+        }
+
+        if (filter.MaxRating is { } maxRating)
+        {
+            query = query.Where(b => b.Rating != null && b.Rating <= maxRating);
+        }
+
+        if (filter.IsAvailable is { } isAvailable)
+        {
+            query = isAvailable
+                ? query.Where(b => b.BookFiles.Any(f => f.FileStatus == 0))
+                : query.Where(b => !b.BookFiles.Any(f => f.FileStatus == 0));
+        }
+
+        if (filter.MissingFields.HasFlag(CatalogueMissingFields.Year))
+        {
+            query = query.Where(b => b.Year == null);
+        }
+
+        if (filter.MissingFields.HasFlag(CatalogueMissingFields.Isbn))
+        {
+            query = query.Where(b => b.IsbnNormalized == null || b.IsbnNormalized == string.Empty);
+        }
+
+        bool pageInMemory = smartConditions is not null || filter.HasExtendedCriteria || filter.SortField.HasValue;
+
         // Sept-23 Phase 05 (K21, K22): a book is listed only when at least one of its
         // files is a readable PDF (valid or locked) in an enabled library folder, or is
         // a loose file. Empty, non-PDF and damaged files live in "Needs attention", and
@@ -175,6 +219,10 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                 b.OcrConfidence,
                 b.Year,
                 b.Sha256Hash,
+                b.AddedUtc,
+                b.SizeBytes,
+                HasIsbn = b.IsbnNormalized != null && b.IsbnNormalized != string.Empty,
+                OccurrenceCount = b.BookFiles.Count(),
                 IsLocked = b.IsPasswordProtected || b.BookFiles.Any(f => f.FileValidity == 4),
                 Authors = b.BookAuthors
                     .OrderBy(ba => ba.DisplayOrder)
@@ -212,27 +260,36 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .ToList(),
             });
 
-        if (smartConditions is null && filter.SkipCount > 0)
+        if (!pageInMemory && filter.SkipCount > 0)
         {
             projected = projected.Skip(filter.SkipCount);
         }
 
-        if (smartConditions is null && filter.MaxResults > 0)
+        if (!pageInMemory && filter.MaxResults > 0)
         {
             projected = projected.Take(filter.MaxResults);
         }
 
         var results = await projected.ToListAsync(cancellationToken).ConfigureAwait(false);
 
+        Dictionary<string, string> workGroupByBook = new(StringComparer.Ordinal);
         if (_identityGrouping is not null && results.Count > 1)
         {
             IReadOnlyList<IdentityGroupBookMembership> memberships = await _identityGrouping
                 .FindBookMembershipsAsync(
                     results.Select(item => item.BookId).ToArray(),
-                    includeWorkGroups: false,
+                    includeWorkGroups: true,
                     cancellationToken)
                 .ConfigureAwait(false);
+            foreach (IdentityGroupBookMembership membership in memberships
+                         .Where(item => item.Kind == IdentityGroupKind.Work)
+                         .OrderBy(item => item.GroupId, StringComparer.Ordinal))
+            {
+                workGroupByBook.TryAdd(membership.BookId, membership.GroupId);
+            }
+
             HashSet<string> hiddenBookIds = memberships
+                .Where(item => item.Kind == IdentityGroupKind.Edition)
                 .GroupBy(item => item.GroupId, StringComparer.Ordinal)
                 .SelectMany(group => group
                     .OrderBy(item => item.BookId, StringComparer.Ordinal)
@@ -245,9 +302,15 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             }
         }
 
+        Dictionary<string, int> editionCounts = results
+            .Where(item => workGroupByBook.ContainsKey(item.BookId))
+            .GroupBy(item => workGroupByBook[item.BookId], StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+
         var summaries = new List<BookSummaryProjection>(results.Count);
         foreach (var item in results)
         {
+            string? workGroupId = workGroupByBook.GetValueOrDefault(item.BookId);
             var fields = item.MetadataFields
                 .Select(f => new MetadataFieldProjection(f.FieldName, f.Value, f.Source, f.Confidence, f.IsOverridden))
                 .ToList();
@@ -270,6 +333,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                  CoverSource: item.CoverAsset?.Source,
                  HasFailedCover: item.HasFailedCover,
                  CopyCount: Math.Max(1, item.CopyCount),
+                 DateAddedUtc: item.AddedUtc,
+                 LastOpenedUtc: item.Progress?.LastReadUtc,
+                 FileSizeBytes: item.SizeBytes,
+                 HasIsbn: item.HasIsbn,
+                 OccurrenceCount: Math.Max(1, item.OccurrenceCount),
+                 WorkGroupId: workGroupId,
+                 EditionCount: workGroupId is null ? 1 : Math.Max(1, editionCounts.GetValueOrDefault(workGroupId)),
                  Processing: new CatalogueProcessingProjection(
                      LockedAwareIndexStatus(item.IndexStatus, item.IsLocked),
                      (global::OgmaLibrary.Application.Search.SearchEmbeddingStatus)item.EmbeddingStatus,
@@ -282,21 +352,37 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                      item.OcrConfidence)));
         }
 
+        if (!pageInMemory)
+        {
+            return summaries;
+        }
+
         if (smartConditions is not null)
         {
             summaries = SmartShelfEvaluator.Evaluate(summaries, smartConditions).ToList();
-            if (filter.SkipCount > 0)
-            {
-                summaries = summaries.Skip(filter.SkipCount).ToList();
-            }
-
-            if (filter.MaxResults > 0)
-            {
-                summaries = summaries.Take(filter.MaxResults).ToList();
-            }
         }
 
-        return summaries;
+        // Title, author and shelf were applied by the query above; the shared evaluator is
+        // authoritative for status, the extended criteria and the sort (Sept-23 Phase 10).
+        IEnumerable<BookSummaryProjection> matching = filter.HasExtendedCriteria || filter.Status.HasValue
+            ? summaries.Where(summary => CatalogueCriteriaEvaluator.MatchesExtended(summary, filter))
+            : summaries;
+        IReadOnlyList<BookSummaryProjection> ordered = filter.SortField is { } sortField
+            ? CatalogueCriteriaEvaluator.Sort(matching, sortField, filter.SortAscending)
+            : matching.ToList();
+
+        IEnumerable<BookSummaryProjection> page = ordered;
+        if (filter.SkipCount > 0)
+        {
+            page = page.Skip(filter.SkipCount);
+        }
+
+        if (filter.MaxResults > 0)
+        {
+            page = page.Take(filter.MaxResults);
+        }
+
+        return page.ToList();
     }
 
     /// <inheritdoc />
@@ -449,6 +535,17 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
              OcrFailureCode: ocrFailureCode);
     }
 
+    private const string LikeEscape = "\\";
+
+    private static string ContainsPattern(string term)
+    {
+        string escaped = term.Trim()
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
+        return "%" + escaped + "%";
+    }
+
     private static string ResolveTitle(
         string? title,
         IReadOnlyList<MetadataFieldProjection> fields,
@@ -576,9 +673,13 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         var projections = new List<ShelfProjection>(shelves.Count);
         foreach (var shelf in shelves)
         {
+            // Sept-23 Phase 10: a smart shelf counts exactly the books its list shows, so the
+            // count uses the same criteria path (a damaged query still counts zero).
             int bookCount = shelf.ShelfType == 1
-                ? await GetSmartShelfBookCountAsync(context, shelf.Query, cancellationToken)
-                    .ConfigureAwait(false)
+                ? SmartShelfQueryParser.TryParse(shelf.Query, out _)
+                    ? (await GetBookSummariesCoreAsync(new CatalogueFilter(ShelfId: shelf.ShelfId), cancellationToken)
+                        .ConfigureAwait(false)).Count
+                    : 0
                 : shelf.BookCount;
 
             projections.Add(new ShelfProjection(
@@ -591,56 +692,20 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
         return projections;
     }
 
-    private static async Task<int> GetSmartShelfBookCountAsync(
-        CatalogueDbContext context,
-        string? query,
-        CancellationToken cancellationToken)
-    {
-        if (!SmartShelfQueryParser.TryParse(query, out IReadOnlyList<SmartShelfCondition>? conditions))
-        {
-            return 0;
-        }
-
-        var books = context.Books
-            .AsNoTracking();
-
-        books = ApplySmartShelfConditions(books, conditions);
-        var rows = await books
-            .Select(book => new
-            {
-                book.BookId,
-                book.Status,
-                book.Rating,
-                book.Year,
-                HasPresentFile = book.BookFiles.Any(file => file.FileStatus == 0),
-                ProgressPct = book.ReadingProgress == null
-                    ? null
-                    : (double?)book.ReadingProgress.CompletionPct,
-            })
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var summaries = rows.Select(book => new BookSummaryProjection(
-            BookId: book.BookId,
-            Title: null,
-            Authors: [],
-            CoverRelativePath: null,
-            Status: book.Status,
-            Rating: book.Rating,
-            ShelfIds: [],
-            ReadingProgressPct: book.ProgressPct,
-            IsAvailable: book.HasPresentFile,
-            Year: book.Year));
-
-        return SmartShelfEvaluator.Evaluate(summaries, conditions).Count;
-    }
-
     private static IQueryable<BookRow> ApplySmartShelfConditions(
         IQueryable<BookRow> query,
         IReadOnlyList<SmartShelfCondition> conditions)
     {
         foreach (SmartShelfCondition condition in conditions)
         {
+            // Text, derived and boolean projection fields (Sept-23 Phase 10) are evaluated
+            // in memory by SmartShelfEvaluator after projection; SQL only narrows.
+            if (condition.Field is not (SmartShelfField.IsAvailable or SmartShelfField.Rating or
+                SmartShelfField.Status or SmartShelfField.Year or SmartShelfField.ReadingProgressPct))
+            {
+                continue;
+            }
+
             if (condition.Field == SmartShelfField.IsAvailable)
             {
                 bool expected = bool.Parse(condition.Value);

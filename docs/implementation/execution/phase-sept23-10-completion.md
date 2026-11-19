@@ -45,6 +45,36 @@ Evidence: `evidence/sept-23-kaizen/phase-10/slice-1/`.
 
 ### Open for later slices
 
-- `LoadAsync` still re-applies the saved view state on every refresh (task 10.4).
+- ~~`LoadAsync` still re-applies the saved view state on every refresh (task 10.4).~~ Fixed in slice 2.
 - Real-window grid frame timing with `--count 2000`, and the keyboard and screen-reader walkthrough.
 - Exact-hash copies show "N copies" in the name only. The Compare action and merge/split on work groups follow D-21.
+
+## Slice 2: criteria model, read-model predicates, sorts and restore-once
+
+| Area | Result |
+|---|---|
+| Criteria | `CatalogueFilter` gains the minimum and maximum rating, availability, quality below a threshold, missing fields (`[Flags] CatalogueMissingFields`: author, ISBN, cover, year), needs OCR, possible duplicates, and the sort field and direction. Every new parameter has a default, so existing callers still compile. |
+| Read model | `CatalogueReadModel` narrows results in SQL. Title and author use `LIKE` with escaped wildcards. The shared evaluator then applies the extended criteria, the sort and the paging. `CountAsync` is a default interface method that the read model implements. `BookSummaryProjection` gains `DateAddedUtc`, `LastOpenedUtc`, `FileSizeBytes`, `HasIsbn`, `OccurrenceCount`, `WorkGroupId` and `EditionCount`. Only edition groups hide books; work groups only label them. |
+| Evaluator | `CatalogueCriteriaEvaluator` (Application) is the in-memory twin, and `CatalogueViewModel.ApplyFilterAndSort` delegates to it (D-20). Sorting puts unknown values last and breaks ties by title, then BookId. |
+| Sorts | Adds `DateAdded`, `LastOpened`, `FileSize` and `Quality`. The menu labels (`Catalogue.Sort.{field}`) and `SortDirectionText` are localised in English and French. |
+| Date added (D-23) | The premise was corrected: no date added was stored. A nullable `Books.AddedUtc` column was added (migration `20261119102849_Sept23Phase10BookAddedUtc`), and `BookRegistrationService` sets it. Existing books stay null. The schema freeze advanced from 44 to 45 migrations, SHA `9103bd5b...cb31`. A rehearsal migrates a copy with `CatalogueMigrator` and restores the verified backup. |
+| Smart shelves | `SmartShelfCriteria.ToConditions` and `TryToFilter` round-trip every criterion. A damaged or non-expressible query fails closed and returns no books. Smart-shelf counts use the same path. |
+| View state | The saved state is applied once per view-model lifetime, so a refresh no longer overwrites a live filter change (task 10.4). `CatalogueViewState` gains `QualityBelow`, `MissingFields`, `NeedsOcrOnly` and `PossibleDuplicatesOnly`, all defaulted, so old files still load. Damaged values are ignored: a NaN quality, unknown flags and unknown sort names. |
+
+### Gates (slice 2)
+
+| Gate | Result |
+|---|---|
+| `dotnet build OgmaLibrary.sln -c Release --no-restore` | PASS, 0 warnings, 0 errors |
+| `dotnet format --verify-no-changes --no-restore` | PASS |
+| `scripts/Test-DesignTokens.ps1` | PASS ("clean") |
+| `scripts/Test-Fast.ps1` | **PASS**: 1,763 of 1,763 (Tests 1,323, Ui 388, Architecture 52) |
+| Filter `Sept23Phase10Criteria\|CatalogueRefresh` | PASS: 74 in Tests and 2 in Ui (`CatalogueRefreshConcurrencyTests` stays green) |
+| `OgmaLibrary.Tests.Architecture` | PASS, 52 of 52, within Test-Fast |
+| Real-window journey, keyboard, screen reader, RTL, 200% text, light and dark screenshots | NOT_ASSESSED in this slice (no behaviour journey was run; the evidence is headless and in unit tests) |
+| `Test-RequirementAccountability.ps1` | NOT_ASSESSED in this slice |
+
+### Open after slice 2
+
+- The criteria controls for quality, missing fields and possible duplicates exist in the view model, but the filter drawer UI does not expose them yet.
+- Unverified observation, not yet a K number: `ShellModule` gives `ShelfSidebarViewModel` a `CatalogueFilterViewModel` instance that differs from `CatalogueViewModel.Filter`. `MainShellViewModel.Navigation` has its own shelf wiring, so check whether selecting a shelf actually filters before logging it.

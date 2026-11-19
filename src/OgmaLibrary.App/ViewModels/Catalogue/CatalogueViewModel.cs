@@ -45,6 +45,10 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private int _currentPage = 1;
     private int _totalFilteredCount;
     private bool _showAll = true;
+    private const CatalogueMissingFields AllMissingFields =
+        CatalogueMissingFields.Author | CatalogueMissingFields.Isbn |
+        CatalogueMissingFields.Cover | CatalogueMissingFields.Year;
+    private bool _viewStateApplied;
     private CancellationTokenSource? _viewStateSaveCts;
 
     /// <summary>
@@ -82,7 +86,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         _logger = logger ?? (ILogger)NullLogger.Instance;
         _localization.CultureChanged += OnCultureChanged;
 
-        Filter = new CatalogueFilterViewModel();
+        Filter = new CatalogueFilterViewModel(localization);
         Filter.PropertyChanged += (_, _) => ApplyFilterAndSort();
     }
 
@@ -410,12 +414,16 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
             await _ui.InvokeAsync(() => IsLoading = true, token).ConfigureAwait(false);
 
-            CatalogueViewState? viewState = _viewStateStore is null
-                ? null
-                : await _viewStateStore.LoadAsync(token).ConfigureAwait(false);
-            if (viewState is not null)
+            // Sept-23 Phase 10 (task 10.4): the persisted state is restored once per view-model
+            // lifetime, so a refresh never overwrites a live filter change.
+            if (!_viewStateApplied && _viewStateStore is not null)
             {
-                await _ui.InvokeAsync(() => ApplyViewState(viewState), token).ConfigureAwait(false);
+                CatalogueViewState? viewState = await _viewStateStore.LoadAsync(token).ConfigureAwait(false);
+                _viewStateApplied = true;
+                if (viewState is not null)
+                {
+                    await _ui.InvokeAsync(() => ApplyViewState(viewState), token).ConfigureAwait(false);
+                }
             }
 
             // Sept-23 Phase 05 (K20): covers live in the app-data asset store, whatever
@@ -489,82 +497,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             _currentPage = 1;
         }
 
-        var query = _allItems.AsEnumerable();
-
-        // Title substring filter.
-        if (!string.IsNullOrWhiteSpace(Filter.TitleSearch))
-        {
-            string term = Filter.TitleSearch.Trim();
-            query = query.Where(b =>
-                b.Title != null &&
-                b.Title.Contains(term, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // Author substring filter.
-        if (!string.IsNullOrWhiteSpace(Filter.AuthorSearch))
-        {
-            string term = Filter.AuthorSearch.Trim();
-            query = query.Where(b =>
-                b.Authors.Any(a => a.Contains(term, StringComparison.OrdinalIgnoreCase)));
-        }
-
-        // Status filter.
-        if (Filter.StatusFilter.HasValue)
-        {
-            int status = Filter.StatusFilter.Value;
-            query = query.Where(b => b.Status == status);
-        }
-
-        // Sept-23 Phase 17: "Needs OCR" (image only, partly searchable, or OCR failed).
-        if (Filter.NeedsOcrOnly)
-        {
-            query = query.Where(b => b.Processing?.NeedsOcr == true && !b.IsLocked);
-        }
-
-        // Rating range filter.
-        if (Filter.MinRating.HasValue)
-        {
-            int min = Filter.MinRating.Value;
-            query = query.Where(b => b.Rating.HasValue && b.Rating.Value >= min);
-        }
-
-        if (Filter.MaxRating.HasValue)
-        {
-            int max = Filter.MaxRating.Value;
-            query = query.Where(b => b.Rating.HasValue && b.Rating.Value <= max);
-        }
-
-        // Availability filter.
-        if (Filter.AvailabilityFilter.HasValue)
-        {
-            bool avail = Filter.AvailabilityFilter.Value;
-            query = query.Where(b => b.IsAvailable == avail);
-        }
-
-        // Shelf filter.
-        if (Filter.SelectedShelfId is not null)
-        {
-            string shelfId = Filter.SelectedShelfId;
-            query = query.Where(b => b.ShelfIds.Contains(shelfId));
-        }
-
-        // Sort.
-        query = (Filter.SortField, Filter.SortAscending) switch
-        {
-            (CatalogueSortField.Title, true) => query.OrderBy(b => b.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase),
-            (CatalogueSortField.Title, false) => query.OrderByDescending(b => b.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase),
-            (CatalogueSortField.Author, true) => query.OrderBy(b => b.Authors.Count > 0 ? b.Authors[0] : string.Empty, StringComparer.OrdinalIgnoreCase),
-            (CatalogueSortField.Author, false) => query.OrderByDescending(b => b.Authors.Count > 0 ? b.Authors[0] : string.Empty, StringComparer.OrdinalIgnoreCase),
-            (CatalogueSortField.Year, true) => query.OrderBy(b => b.Year ?? 0),
-            (CatalogueSortField.Year, false) => query.OrderByDescending(b => b.Year ?? 0),
-            (CatalogueSortField.Rating, true) => query.OrderBy(b => b.Rating ?? 0),
-            (CatalogueSortField.Rating, false) => query.OrderByDescending(b => b.Rating ?? 0),
-            (CatalogueSortField.Status, true) => query.OrderBy(b => b.Status),
-            (CatalogueSortField.Status, false) => query.OrderByDescending(b => b.Status),
-            _ => query.OrderBy(b => b.Title ?? string.Empty, StringComparer.OrdinalIgnoreCase),
-        };
-
-        var results = query.ToList();
+        // Sept-23 Phase 10: one criteria model. The read model is authoritative; this is its
+        // in-memory twin, bound to it by Sept23Phase10CriteriaTests.
+        var results = CatalogueCriteriaEvaluator.Apply(_allItems, Filter.ToCriteria()).ToList();
         _totalFilteredCount = results.Count;
         int totalPages = TotalPages;
         if (_currentPage > totalPages)
@@ -651,7 +586,16 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         Filter.MaxRating = state.MaxRating;
         Filter.AvailabilityFilter = state.AvailabilityFilter;
         Filter.SelectedShelfId = state.SelectedShelfId;
-        if (Enum.TryParse(state.SortField, ignoreCase: true, out CatalogueSortField sortField))
+        Filter.QualityBelow = state.QualityBelow is { } quality && double.IsFinite(quality) ? quality : null;
+        Filter.MissingFields =
+            Enum.TryParse(state.MissingFields, ignoreCase: true, out CatalogueMissingFields missing) &&
+            (missing & ~AllMissingFields) == 0
+                ? missing
+                : CatalogueMissingFields.None;
+        Filter.NeedsOcrOnly = state.NeedsOcrOnly;
+        Filter.PossibleDuplicatesOnly = state.PossibleDuplicatesOnly;
+        if (Enum.TryParse(state.SortField, ignoreCase: true, out CatalogueSortField sortField) &&
+            Enum.IsDefined(sortField))
         {
             Filter.SortField = sortField;
         }
@@ -697,7 +641,11 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
                     Filter.SortField.ToString(),
                     Filter.SortAscending,
                     _currentPage,
-                    _showAll),
+                    _showAll,
+                    Filter.QualityBelow,
+                    Filter.MissingFields == CatalogueMissingFields.None ? null : Filter.MissingFields.ToString(),
+                    Filter.NeedsOcrOnly,
+                    Filter.PossibleDuplicatesOnly),
                 cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -773,6 +721,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {
+        Filter.RefreshLocalizedText();
         OnPropertyChanged(nameof(HomeGreeting));
         OnPropertyChanged(nameof(HomeStripTitle));
         OnPropertyChanged(nameof(HomeSummaryText));

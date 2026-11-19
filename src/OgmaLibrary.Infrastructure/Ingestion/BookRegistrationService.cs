@@ -66,6 +66,7 @@ public sealed class BookRegistrationService : IBookRegistrationService
             MtimeTicks = discovered.MtimeTicks,
             Status = 0, // Active
             IsPasswordProtected = discovered.Validity == FileValidity.Locked,
+            AddedUtc = DateTimeOffset.UtcNow,
         });
 
         context.BookFiles.Add(new BookFileRow
