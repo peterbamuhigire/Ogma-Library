@@ -658,6 +658,12 @@ public sealed class Sept23Phase10SelectionTests
         public Task RestoreBulkEditSnapshotAsync(IReadOnlyList<BulkEditSnapshot> snapshots, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
+        public Task<MetadataFieldSnapshot?> CaptureMetadataFieldSnapshotAsync(string bookId, string fieldName, CancellationToken cancellationToken = default) =>
+            Task.FromResult<MetadataFieldSnapshot?>(null);
+
+        public Task RestoreMetadataFieldSnapshotAsync(MetadataFieldSnapshot snapshot, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         private void Mutate(string bookId, Func<IReadOnlyList<string>, IReadOnlyList<string>> change)
         {
             int index = readModel.Books.FindIndex(book => book.BookId == bookId);

@@ -340,23 +340,92 @@
           <StackPanel Spacing="6"
                       IsVisible="{Binding IsDetailsSection}"
                       AutomationProperties.AutomationId="Detail.Section.Details.Content">
-            <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-              <TextBlock.Text>
-                <MultiBinding StringFormat="ISBN: {0}">
-                  <Binding Path="Isbn" FallbackValue="—" />
-                </MultiBinding>
-              </TextBlock.Text>
-            </TextBlock>
-            <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-              <TextBlock.Text>
-                <MultiBinding StringFormat="DOI: {0}">
-                  <Binding Path="Doi" FallbackValue="—" />
-                </MultiBinding>
-              </TextBlock.Text>
-            </TextBlock>
-            <ItemsControl ItemsSource="{Binding BiblioFieldDisplayRows}">
+            <!-- Inline-editable fields (Phase 11 slice 3): click or Enter edits, Enter or
+                 leaving the box saves, Esc cancels; the info button opens provenance. -->
+            <ItemsControl ItemsSource="{Binding EditableFields}"
+                          AutomationProperties.AutomationId="Detail.Fields">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="6" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:DetailFieldViewModel">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding LabelText}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                      <Button Grid.Column="0"
+                              Classes="link"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Left"
+                              IsVisible="{Binding IsDisplaying}"
+                              AutomationProperties.AutomationId="{Binding AutomationId}"
+                              AutomationProperties.Name="{Binding EditAccessibleText}"
+                              ToolTip.Tip="{Binding EditAccessibleText}"
+                              Click="FieldDisplayButton_Click">
+                        <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" />
+                      </Button>
+                      <TextBox Grid.Column="0"
+                               IsVisible="{Binding IsEditing}"
+                               IsEnabled="{Binding IsEditorEnabled}"
+                               Text="{Binding EditText, Mode=TwoWay}"
+                               AutomationProperties.AutomationId="{Binding EditorAutomationId}"
+                               AutomationProperties.Name="{Binding LabelText}"
+                               KeyDown="FieldEditor_KeyDown"
+                               LostFocus="FieldEditor_LostFocus" />
+                      <Button Grid.Column="1"
+                              Classes="tool"
+                              Margin="4,0,0,0"
+                              Padding="6,2"
+                              VerticalAlignment="Top"
+                              AutomationProperties.AutomationId="{Binding ProvenanceAutomationId}"
+                              AutomationProperties.Name="{Binding ProvenanceAccessibleText}"
+                              ToolTip.Tip="{Binding ProvenanceAccessibleText}"
+                              Click="FieldProvenanceButton_Click">
+                        <TextBlock Classes="glyph" Text="ⓘ" />
+                        <Button.Flyout>
+                          <Flyout Placement="BottomEdgeAlignedRight">
+                            <TextBlock Text="{Binding ProvenanceText}"
+                                       MaxWidth="280"
+                                       TextWrapping="Wrap"
+                                       FontSize="{DynamicResource Type.Size.Caption}"
+                                       AutomationProperties.LiveSetting="Polite" />
+                          </Flyout>
+                        </Button.Flyout>
+                      </Button>
+                    </Grid>
+                    <TextBlock Text="{Binding ErrorText}"
+                               IsVisible="{Binding HasError}"
+                               AutomationProperties.AutomationId="{Binding ErrorAutomationId}"
+                               AutomationProperties.LiveSetting="Assertive"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal"
+                        Spacing="8"
+                        IsVisible="{Binding HasFieldEditStatus}">
+              <TextBlock Text="{Binding FieldEditStatusText}"
+                         VerticalAlignment="Center"
+                         AutomationProperties.AutomationId="Detail.FieldEditStatus"
+                         AutomationProperties.LiveSetting="Polite"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                         TextWrapping="Wrap" />
+              <Button Classes="link"
+                      Content="{Binding UndoFieldEditText}"
+                      IsVisible="{Binding CanUndoFieldEdit}"
+                      AutomationProperties.AutomationId="Detail.Action.UndoFieldEdit"
+                      AutomationProperties.Name="{Binding UndoFieldEditAccessibleText}"
+                      Click="UndoFieldEditButton_Click" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding OtherBiblioFieldDisplayRows}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding}"

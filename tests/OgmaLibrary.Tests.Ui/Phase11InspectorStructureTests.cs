@@ -113,8 +113,11 @@ public sealed class Phase11InspectorStructureTests
         vm.SelectedSection = InspectorSection.Details;
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Contains(view.GetVisualDescendants().OfType<TextBlock>(), t =>
-            t.IsEffectivelyVisible && t.Text == "ISBN: 9780306406157");
+        // Slice 3 made ISBN an inline-editable field: a label plus a value button that edits it.
+        Button isbn = FindById(view, "Detail.Field.ISBN");
+        Assert.True(isbn.IsEffectivelyVisible);
+        Assert.Contains(isbn.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "9780306406157");
+        Assert.Contains(VisibleTexts(view), t => t.Text == "ISBN");
         window.Close();
     }
 

@@ -332,6 +332,12 @@ public sealed class SkeletonRenderTests
 
         public Task RestoreBulkEditSnapshotAsync(IReadOnlyList<BulkEditSnapshot> snapshots, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        public Task<MetadataFieldSnapshot?> CaptureMetadataFieldSnapshotAsync(string bookId, string fieldName, CancellationToken cancellationToken = default) =>
+            Task.FromResult<MetadataFieldSnapshot?>(null);
+
+        public Task RestoreMetadataFieldSnapshotAsync(MetadataFieldSnapshot snapshot, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class NullNavigation :

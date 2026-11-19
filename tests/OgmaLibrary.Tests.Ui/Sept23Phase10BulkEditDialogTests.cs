@@ -292,5 +292,11 @@ public sealed class Sept23Phase10BulkEditDialogTests
             Restores.Add(snapshots);
             return Task.CompletedTask;
         }
+
+        public Task<MetadataFieldSnapshot?> CaptureMetadataFieldSnapshotAsync(string bookId, string fieldName, CancellationToken cancellationToken = default) =>
+            Task.FromResult<MetadataFieldSnapshot?>(null);
+
+        public Task RestoreMetadataFieldSnapshotAsync(MetadataFieldSnapshot snapshot, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }

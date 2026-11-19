@@ -37,6 +37,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     private readonly IBookFileLocator? _fileLocator;
     private readonly ITocExtractionService? _tocExtraction;
     private readonly IMetadataWriteBackService? _writeBackService;
+    private readonly OgmaLibrary.Application.Commands.ICommandHistory? _commandHistory;
     private const string OpenFileMissingKey = "Catalogue.BookDetail.Open.FileMissing";
     private const string OpenFailedKey = "Catalogue.BookDetail.Open.Failed";
 
@@ -96,6 +97,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     /// <param name="tocExtraction">The bounded PDF table-of-contents extractor.</param>
     /// <param name="writeBackService">The reversible PDF metadata writeback boundary.</param>
     /// <param name="logger">The redacting application logger (Sept-23 Phase 02).</param>
+    /// <param name="commandHistory">The shared undo history that runs inline metadata edits (Sept-23 Phase 11).</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -111,7 +113,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         IBookFileLocator? fileLocator = null,
         ITocExtractionService? tocExtraction = null,
         IMetadataWriteBackService? writeBackService = null,
-        ILogger<BookDetailViewModel>? logger = null)
+        ILogger<BookDetailViewModel>? logger = null,
+        OgmaLibrary.Application.Commands.ICommandHistory? commandHistory = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -132,6 +135,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         _tocExtraction = tocExtraction;
         _writeBackService = writeBackService;
         _logger = logger ?? (ILogger)NullLogger.Instance;
+        _commandHistory = commandHistory;
         _localization.CultureChanged += OnCultureChanged;
     }
 

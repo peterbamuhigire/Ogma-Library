@@ -210,6 +210,92 @@ public partial class BookDetailView : UserControl
         }
     }
 
+    // ── Inline field editing (Sept-23 Phase 11 slice 3) ────────────────────────
+
+    private void FieldDisplayButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: DetailFieldViewModel field } button)
+        {
+            return;
+        }
+
+        field.BeginEdit();
+        if (field.IsEditing && button.Parent is Grid grid && grid.Children.OfType<TextBox>().FirstOrDefault() is { } editor)
+        {
+            // The editor becomes visible on the next layout pass; focus it then.
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                editor.Focus(Avalonia.Input.NavigationMethod.Tab);
+                editor.SelectAll();
+            });
+        }
+    }
+
+    private void FieldEditor_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: DetailFieldViewModel field } editor)
+        {
+            return;
+        }
+
+        if (e.Key == Avalonia.Input.Key.Enter)
+        {
+            e.Handled = true;
+            UiActions.Run(() => CommitFieldAsync(editor, field, refocus: true), "catalogue.field_edit_commit");
+        }
+        else if (e.Key == Avalonia.Input.Key.Escape)
+        {
+            // Handled, so the shell's Esc does not also close the inspector.
+            e.Handled = true;
+            field.CancelEdit();
+            FocusDisplayButton(editor);
+        }
+    }
+
+    private void FieldEditor_LostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox { DataContext: DetailFieldViewModel { State: DetailFieldState.Edit } field } editor)
+        {
+            UiActions.Run(() => CommitFieldAsync(editor, field, refocus: false), "catalogue.field_edit_blur");
+        }
+    }
+
+    private static async Task CommitFieldAsync(TextBox editor, DetailFieldViewModel field, bool refocus)
+    {
+        await field.CommitAsync().ConfigureAwait(true);
+        if (refocus && field.IsDisplaying)
+        {
+            FocusDisplayButton(editor);
+        }
+    }
+
+    private static void FocusDisplayButton(TextBox editor)
+    {
+        if (editor.Parent is Grid grid && grid.Children.OfType<Button>().FirstOrDefault() is { } display)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => display.Focus(Avalonia.Input.NavigationMethod.Tab));
+        }
+    }
+
+    private void FieldProvenanceButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: DetailFieldViewModel { IsProvenanceLoaded: false } field })
+        {
+            field.LoadProvenance();
+        }
+    }
+
+    private void UndoFieldEditButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(UndoFieldEditButton_ClickAsync, "catalogue.field_edit_undo");
+
+    private async Task UndoFieldEditButton_ClickAsync()
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.UndoFieldEditAsync().ConfigureAwait(true);
+        }
+    }
+
     private void OpenProviderAttributionButton_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => OpenProviderAttributionButton_ClickAsync(sender, e), "catalogue.open_provider_attribution_button_click");
 

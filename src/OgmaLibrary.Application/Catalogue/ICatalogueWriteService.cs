@@ -93,7 +93,53 @@ public interface ICatalogueWriteService
     Task RestoreBulkEditSnapshotAsync(
         IReadOnlyList<BulkEditSnapshot> snapshots,
         CancellationToken cancellationToken = default);
+
+    // ── Inline field edit undo (Sept-23 Phase 11, task 11.4) ──────────────────
+
+    /// <summary>
+    /// Captures everything <see cref="UpdateMetadataFieldAsync"/> can change for one field of one
+    /// book: the canonical column (or linked authors) and the user-entered metadata row.
+    /// </summary>
+    /// <param name="bookId">The book.</param>
+    /// <param name="fieldName">The metadata field name.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The snapshot, or <see langword="null"/> when the book does not exist.</returns>
+    Task<MetadataFieldSnapshot?> CaptureMetadataFieldSnapshotAsync(
+        string bookId,
+        string fieldName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Restores one field of one book to a snapshot taken by
+    /// <see cref="CaptureMetadataFieldSnapshotAsync"/> and records an audit event.
+    /// </summary>
+    /// <param name="snapshot">The snapshot to restore.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task RestoreMetadataFieldSnapshotAsync(
+        MetadataFieldSnapshot snapshot,
+        CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// The before-state of one metadata field of one book, for undoing an inline edit
+/// (Sept-23 Phase 11, task 11.4).
+/// </summary>
+/// <param name="BookId">The book.</param>
+/// <param name="FieldName">The metadata field name.</param>
+/// <param name="CanonicalValue">
+/// The canonical column value as invariant text (title, year, normalised ISBN or DOI), or
+/// <see langword="null"/>. Unused for fields without a canonical column.
+/// </param>
+/// <param name="Authors">Linked author names in display order (Author field only).</param>
+/// <param name="HasUserField">Whether a user-entered metadata row existed.</param>
+/// <param name="UserFieldValue">The user-entered metadata value, or <see langword="null"/>.</param>
+public sealed record MetadataFieldSnapshot(
+    string BookId,
+    string FieldName,
+    string? CanonicalValue,
+    IReadOnlyList<string> Authors,
+    bool HasUserField,
+    string? UserFieldValue);
 
 /// <summary>
 /// Specifies a bulk mutation to apply across multiple books (FR-CAT-005, V1).

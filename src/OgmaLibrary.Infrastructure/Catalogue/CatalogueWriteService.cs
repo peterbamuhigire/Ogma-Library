@@ -201,6 +201,12 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
         BulkEditFieldRules.ValidateMetadataField(fieldName, value);
 
+        if (TryGetEditableField(fieldName, out string? editableField))
+        {
+            await UpdateEditableFieldAsync(bookId, editableField, value, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
             .ConfigureAwait(false);
@@ -549,6 +555,214 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
             TimestampUtc = DateTimeOffset.UtcNow,
             Payload = System.Text.Json.JsonSerializer.Serialize(new { BookIds = ids }),
         }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<MetadataFieldSnapshot?> CaptureMetadataFieldSnapshotAsync(
+        string bookId,
+        string fieldName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        string field = TryGetEditableField(fieldName, out string? editable) ? editable : fieldName;
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var row = await context.Books
+            .AsNoTracking()
+            .Where(b => b.BookId == bookId)
+            .Select(b => new
+            {
+                b.Title,
+                b.Year,
+                b.IsbnNormalized,
+                b.Doi,
+                Authors = b.BookAuthors
+                    .OrderBy(ba => ba.DisplayOrder)
+                    .Select(ba => ba.Author!.NormalizedName)
+                    .ToList(),
+                UserFields = b.MetadataFields
+                    .Where(f => f.Source == "User" && f.FieldName == field)
+                    .Select(f => f.Value)
+                    .ToList(),
+            })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (row is null)
+        {
+            return null;
+        }
+
+        string? canonical = field switch
+        {
+            EditableMetadataFields.Title => row.Title,
+            EditableMetadataFields.Year => row.Year?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            EditableMetadataFields.Isbn => row.IsbnNormalized,
+            EditableMetadataFields.Doi => row.Doi,
+            _ => null,
+        };
+
+        return new MetadataFieldSnapshot(
+            bookId,
+            field,
+            canonical,
+            row.Authors,
+            row.UserFields.Count > 0,
+            row.UserFields.FirstOrDefault());
+    }
+
+    /// <inheritdoc />
+    public async Task RestoreMetadataFieldSnapshotAsync(
+        MetadataFieldSnapshot snapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookRow? book = await context.Books
+            .Include(b => b.BookAuthors)
+            .ThenInclude(ba => ba.Author)
+            .FirstOrDefaultAsync(b => b.BookId == snapshot.BookId, cancellationToken)
+            .ConfigureAwait(false);
+        if (book is null)
+        {
+            return;
+        }
+
+        switch (snapshot.FieldName)
+        {
+            case EditableMetadataFields.Title:
+                book.Title = snapshot.CanonicalValue;
+                break;
+            case EditableMetadataFields.Year:
+                book.Year = snapshot.CanonicalValue is null
+                    ? null
+                    : int.Parse(snapshot.CanonicalValue, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            case EditableMetadataFields.Isbn:
+                book.IsbnNormalized = snapshot.CanonicalValue;
+                break;
+            case EditableMetadataFields.Doi:
+                book.Doi = snapshot.CanonicalValue;
+                break;
+            case EditableMetadataFields.Author:
+                await SetAuthorsAsync(context, book, snapshot.Authors, new Dictionary<string, AuthorRow>(StringComparer.Ordinal), cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+        }
+
+        await SetUserFieldAsync(context, book.BookId, snapshot.FieldName, snapshot.HasUserField, snapshot.UserFieldValue, cancellationToken)
+            .ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await _audit.AppendAsync(new AuditEvent
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            EventType = "MetadataEditUndo",
+            EntityId = book.BookId,
+            TimestampUtc = DateTimeOffset.UtcNow,
+            Payload = System.Text.Json.JsonSerializer.Serialize(new { snapshot.FieldName }),
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Writes one inspector-editable field (Sept-23 Phase 11, task 11.4, D-63): the value goes into
+    // the user-entered row only, so provider rows keep their provenance, and is mirrored into the
+    // canonical column the read model shows.
+    private async Task UpdateEditableFieldAsync(
+        string bookId,
+        string fieldName,
+        string? value,
+        CancellationToken cancellationToken)
+    {
+        MetadataFieldEditError error = MetadataFieldEditRules.TryNormalize(fieldName, value, out string? normalized);
+        if (error != MetadataFieldEditError.None)
+        {
+            throw new ArgumentException($"The value is not a valid {fieldName} ({error}).", nameof(value));
+        }
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        BookRow book = await context.Books
+            .Include(b => b.BookAuthors)
+            .ThenInclude(ba => ba.Author)
+            .FirstOrDefaultAsync(b => b.BookId == bookId, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The book no longer exists in the catalogue.");
+
+        string? oldValue = fieldName switch
+        {
+            EditableMetadataFields.Title => book.Title,
+            EditableMetadataFields.Year => book.Year?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            EditableMetadataFields.Isbn => book.IsbnNormalized,
+            EditableMetadataFields.Doi => book.Doi,
+            EditableMetadataFields.Author => BulkEditFieldRules.FormatAuthors(book.BookAuthors
+                .OrderBy(ba => ba.DisplayOrder)
+                .Select(ba => ba.Author?.NormalizedName ?? string.Empty)
+                .ToList()),
+            _ => null,
+        };
+
+        switch (fieldName)
+        {
+            case EditableMetadataFields.Title:
+                book.Title = normalized;
+                break;
+            case EditableMetadataFields.Year:
+                book.Year = normalized is null
+                    ? null
+                    : int.Parse(normalized, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            case EditableMetadataFields.Isbn:
+                book.IsbnNormalized = normalized;
+                break;
+            case EditableMetadataFields.Doi:
+                book.Doi = normalized;
+                break;
+            case EditableMetadataFields.Author:
+                IReadOnlyList<string> authors = [];
+                if (normalized is not null && !BulkEditFieldRules.TryParseAuthors(normalized, out authors))
+                {
+                    throw new ArgumentException("The author list is not valid.", nameof(value));
+                }
+
+                await SetAuthorsAsync(context, book, authors, new Dictionary<string, AuthorRow>(StringComparer.Ordinal), cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+        }
+
+        await SetUserFieldAsync(context, bookId, fieldName, hasValue: true, normalized, cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await _audit.AppendAsync(new AuditEvent
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            EventType = "MetadataEdit",
+            EntityId = bookId,
+            TimestampUtc = DateTimeOffset.UtcNow,
+            Payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                FieldName = fieldName,
+                OldValue = oldValue,
+                NewValue = normalized,
+            }),
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool TryGetEditableField(string fieldName, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? canonical)
+    {
+        canonical = EditableMetadataFields.All.FirstOrDefault(f => string.Equals(f, fieldName, StringComparison.OrdinalIgnoreCase));
+        return canonical is not null;
     }
 
     // Replaces a book's linked authors with `names`, in order. Rows for authors that stay are

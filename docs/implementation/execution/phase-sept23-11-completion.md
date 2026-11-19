@@ -1,10 +1,10 @@
 # Sept-23 Phase 11 completion: book detail inspector
 
-Status: **IN PROGRESS** (2026-11-19). Slices 1 and 2 of 8 are done.
+Status: **IN PROGRESS** (2026-11-19). Slices 1 to 3 of 8 are done.
 Branch: `kaizen/phase-11`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `bde93dac`.
 Plan: [phase-11](../../plans/sept-23-kaizen/phases/phase-11-book-detail-inspector.md).
-Decisions: D-49 to D-62 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Decisions: D-49 to D-66 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
 ## Typeface decision
 
@@ -65,3 +65,26 @@ Gates on the slice-2 tree:
   0 failed) and the targeted Phase11/BookDetail/Sept23Phase09 filter (149 passed).
 - NOT_ASSESSED (not run in this slice): the real-window journey, the G02 E2E run, 200% text,
   Arabic RTL, the screen-reader walkthrough and the keyboard path through the overflow menu.
+
+## Slice 3: inline metadata editing with provenance and undo (11.4)
+
+| Task | Result | Evidence |
+|---|---|---|
+| Field VM | `DetailFieldViewModel` with Display, Edit, Saving and Error states. Validation comes from `MetadataFieldEditRules`, and errors are localised inline (`Detail.Field.{Name}.Error`, assertive live region). An unchanged value is not written | `DetailFieldEditTests` VM cases (MEASURED) |
+| Keys | Enter or blur saves; Esc cancels, is marked handled so the inspector stays open, and returns focus to the field | `Phase11DetailFieldEditTests` Enter/Esc/invalid-year (MEASURED, headless keyboard) |
+| Undoable save | `MetadataFieldEditUndoableCommand` (captures a snapshot, then updates) runs through the `ICommandHistory` bound in `ShellModule`. The panel shows *Undo* (`Detail.Action.UndoFieldEdit`) with the field named (D-64) | SQLite round-trip and undo for Title, Year, ISBN, DOI and Author (MEASURED) |
+| Write path | User row plus canonical column mirror and audit events (D-63). Invalid values throw before any write | `DetailFieldEditTests` SQLite cases |
+| Provenance | Per-field `Flyout` on a named, focusable info button (`Detail.Field.{Name}.Provenance`), loaded on first open. It shows source, confidence and "Edited by you". *Load provenance* remains in Activity as the fallback | Provenance headless test (MEASURED) |
+| Refresh | After a save or undo the detail is re-read and `Book` is set on the UI thread (`ConfigureAwait(false)`, then `UpdateOnUiThread`). Failures are logged with `AppLog.ViewModelOperationFailed` and shown only as localised text | Write-failure test |
+| Strings | `Catalogue.BookDetail.Edit.*` keys in EN and FR | Key parity in the fast suite |
+| Updated test | `IsbnLivesUnderDetails` now finds the ISBN as an editable field under Details (updated, not deleted) | Ui Phase11 filter |
+
+Typeface: there is no new face. Field labels, values, editors and errors use Public Sans through
+existing tokens. The title stays Spectral, and JetBrains Mono stays inside Technical details only.
+
+Gates on the slice-3 tree:
+- MEASURED, passing: the Release build (0 warnings), `dotnet format --verify-no-changes`,
+  `Test-DesignTokens.ps1` (clean), Phase11 filters (Tests 42, Ui 17) and `Test-Fast.ps1`
+  (Architecture 52, Tests 1,380, Ui 435; 0 failed).
+- NOT_ASSESSED (not run in this slice): real-window inline editing at both sizes, the
+  screen-reader walkthrough of the editor and Flyout, 200% text, Arabic RTL and screenshots.
