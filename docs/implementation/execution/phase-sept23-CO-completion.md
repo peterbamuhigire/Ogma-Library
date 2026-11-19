@@ -1,7 +1,10 @@
 # Sept-23 Phase CO completion: close-out of phases 02, 05, 06, 07, 08, 13 and 17
 
-Status: **IN PROGRESS** (2026-11-19). Slices 1 to 4 of 6 are done. This is the canonical record for
-the close-out unit (decision D-16); `phase-sept23-closeout-completion.md` points here.
+Status: **DONE as a close-out unit** (2026-11-19, all 6 slices). Outcome: Phases **05, 08 and 17
+are COMPLETE**. Phases **02, 06, 07 and 13 stay IMPLEMENTED**, and their open items are named in
+[Slice 6](#slice-6-record-and-evidence-final-head). This is the canonical record for the close-out
+unit (decision D-16); `phase-sept23-closeout-completion.md` points here.
+Rollback point for the whole unit: `ebc9bf6e`.
 
 ## Slice 1: harness robustness (K102, K103, K98)
 
@@ -250,4 +253,134 @@ and [`phase-17/co-ocr-journey.md`](evidence/sept-23-kaizen/phase-17/co-ocr-journ
 
 - Nothing for the fast suite: `scripts/Test-Fast.ps1` passed on `dbf79a4f`, exit 0, MEASURED. Architecture 52/52, core 1,248/1,248 (5 min 1 s) and UI 377/377.
 - 200 % text, `fr`, keyboard-only and screen-reader variants of these journeys.
-- J-SET-3's stability: it has 2 consecutive runs (8 rows), not 3 runs.
+- J-SET-3's stability: it has 2 consecutive runs (8 rows), not 3 runs. (Met in slice 6: `co-final` is the third.)
+
+## Slice 6: record and evidence (final head)
+
+Executor session, head `ebb7b718` (slices 1 to 5 on top of `ebc9bf6e`). No product code changed in
+this slice. All results are MEASURED unless marked otherwise.
+
+### Gates on `ebb7b718`
+
+No OgmaLibrary process from this worktree was running before the build (checked).
+
+| Gate | Result |
+|---|---|
+| `scripts/Test-RequirementAccountability.ps1` | PASS: 101 FRs, 29 NFRs, 32 controls; all 162 IDs assigned |
+| `dotnet restore OgmaLibrary.sln --locked-mode` | PASS (exit 0) |
+| `dotnet format OgmaLibrary.sln --verify-no-changes --no-restore` | PASS (exit 0) |
+| `dotnet build OgmaLibrary.sln --configuration Release --no-restore` | PASS: 0 warnings, 0 errors (1 min 20 s) |
+| `dotnet list OgmaLibrary.sln package --vulnerable --include-transitive` | PASS: 11 of 11 projects report no vulnerable packages |
+| `dotnet format analyzers ... --severity warn` | PASS (exit 0) |
+| `scripts/Test-Fast.ps1` (`Category!=Benchmark&Category!=E2E`) | PASS 1,677 of 1,677: Architecture 52 (5 s), core 1,248 (4 min 56 s), UI 377 (43 s) |
+| `src/shelf3d` npm gates | NOT_ASSESSED: `src/shelf3d` did not change in this unit, so the definition of done does not require them |
+| Hosted CI | NOT_ASSESSED: the driver pushes; owner: driver |
+
+### Journey runs
+
+Both runs used `Use-DesktopLock.ps1 -Owner phase-CO`, a fresh temporary data folder per test and
+the synthetic corpus. Theme: Light.
+
+| Run | Command | Rows | PASS | BASELINE-FAIL | FAIL | NOT ASSESSED | Exit |
+|---|---|---|---|---|---|---|---|
+| `co-final` | `Invoke-GoldenJourneys.ps1 -All -Sizes 1280x800,1920x1080 -RunId co-final` | 54 | 44 | 2 (G3, both sizes) | 0 | 8 (G9 to G12 placeholders) | 0 |
+| `co-final-g2` | `Invoke-GoldenJourneys.ps1 -Journey G2 -Sizes 1280x800,1920x1080 -RunId co-final-g2` | 2 | 2 | 0 | 0 | 0 | 0 |
+
+`co-final-g2` was added to test the D-17 stability rule for the extended G2 (`b8bc973a`), which
+had only 2 consecutive passes before it. `log.uiThreadViolations` was 0 in all 42 timings files of
+both runs. Results: [`phase-CO/results-co-final.md`](evidence/sept-23-kaizen/phase-CO/results-co-final.md).
+
+### Journey x size x run matrix (stability under D-17)
+
+Runs in order: `co-all-1..3` (`4f8f19f1`), `co-reader-1..3` (after `fc153ba6`), `co-library-1..2`
+(after `b8bc973a`), `co-nav-1..2` (Light and Dark; `co-nav-2` after `1fc796ea`), `co-final` and
+`co-final-g2` (both on `ebb7b718`). The streak counts consecutive runs that included the journey
+and passed it, ending at the final run. A run that did not include a journey neither breaks nor
+extends its streak.
+
+| Journey | Phase | co-final 1280x800 | co-final 1920x1080 | Streak 1280 / 1920 | D-17 (3 at both sizes) |
+|---|---|---|---|---|---|
+| G1 | 07 | PASS | PASS | 5 / 5 | met |
+| G2 (extended) | 05, 06 | PASS (`co-final-g2` PASS) | PASS (`co-final-g2` PASS) | 3 / 3 | met |
+| G3 | 02 | BASELINE-FAIL (p95 304 ms) | BASELINE-FAIL (stall at page 12) | 0 / 0 | **not met**; the baseline stays |
+| G4 | 13 | PASS | PASS | 6 / 6 | met |
+| G5 | 02 | PASS | PASS | 7 / 7 | met |
+| G6 | 05 | PASS | PASS | 6 / 6 | met |
+| G7 | 07 | PASS | PASS | 5 / 5 | met |
+| G8 (2 tests) | 02 | PASS | PASS | 7 / 7 | met |
+| Navigation (3 tests) | 07 | PASS | PASS | 4 / 5 | met |
+| Settings (4 tests, including J-SET-3 and every section) | 08 | PASS | PASS | 3 / 3 for the two new tests; 6 / 6 for the others | met |
+| A11yNames (2 tests) | 13 | PASS | PASS | 6 / 6 | met |
+| ScanOcrSearch | 17 | PASS | PASS | 5 / 6 | met |
+| LaunchCycles (20 cycles) | 06 | PASS | n/a (single size) | 6 | met |
+| Smoke, Harness | 01 | PASS | n/a | every run | met |
+
+Two of the three J-SET-3 passes (`co-nav-2`, `co-final`) came after `1fc796ea` changed the Settings
+text brushes. That change was colour only, so the streak is counted across it.
+
+### Evidence copied
+
+Screenshots from `co-final` (Light, both sizes) and its `results.md` (as `results-co-final.md`) are
+in each phase's `closeout/` folder. Only PNGs and results summaries were copied; no app log.
+
+| Phase | Folder | Journeys | Files |
+|---|---|---|---|
+| 02 | `phase-02/closeout/` | G3, G8 | 19 PNG + results |
+| 05 | `phase-05/closeout/` | G2, G6 | 14 PNG + 2 results |
+| 06 | `phase-06/closeout/` | G2 processing, LaunchCycles (LaunchCycles has no screenshots; result rows only) | 10 PNG + 2 results |
+| 07 | `phase-07/closeout/` | Navigation, G1, G7 | 24 PNG + results |
+| 08 | `phase-08/closeout/` | Settings | 32 PNG + results |
+| 13 | `phase-13/closeout/` | G4, A11yNames | 14 PNG + results |
+| 17 | `phase-17/closeout/` | ScanOcrSearch | 8 PNG + results |
+
+### Fixes made by this unit
+
+| Commit | What |
+|---|---|
+| `a7e40e6b`, `7d8823e4` | K102 UIA retries; K103 journey script survives redirected output |
+| `34172fdc` | K98 fast-suite filter in AGENT_BRIEF |
+| `fc153ba6` | K94 (partial): OCR and extraction page loops no longer starve the thread pool |
+| `b8bc973a` | G2 asserts the inspector ISBN and the status counts |
+| `ae0b26db` | J-SET-3 and the every-section Settings capture |
+| `912977c6` | ScanOcrSearch baseline removed (K97, K99 resolved) |
+| `1fc796ea` | K113 (partial): Settings text contrast in Dark |
+
+### Phase outcomes against the definition of done (08-master-plan section 5)
+
+| Phase | Status | Basis (runs, on `ebb7b718`) | Open items |
+|---|---|---|---|
+| 02 | IMPLEMENTED | G5 and G8 meet D-17; G3 BASELINE-FAIL in `co-final` | G3 stall and p95 (K32, K94, K108, K109; Phases 04, 12, 24); `Category=SingleInstance` journey (Phase 24) |
+| 05 | **COMPLETE** | G2 3/3 (`co-library-2`, `co-final`, `co-final-g2`) and G6 6/6 at both sizes; gates pass; the remaining rows are owned by Phases 10, 24 and 27, Engineering, or the owner (D-04) | none left in Phase 05 |
+| 06 | IMPLEMENTED | G2 3/3 and LaunchCycles 6/6 | K109 (blocking renderer calls on pool threads; owned by Phases 06 and 24) |
+| 07 | IMPLEMENTED | G1, G7 and Navigation meet D-17 | owner walkthrough of the IA (D-13; Owner) |
+| 08 | **COMPLETE** | the 4 Settings tests meet D-17 (`co-nav-1`, `co-nav-2`, `co-final`); gates pass; the remaining rows are owned by Phases 10, 11, 12, 21, 22, 23, 24 and 27 | none left in Phase 08 |
+| 13 | IMPLEMENTED | G4 6/6 and A11yNames 6/6 | K40: the cause of the one phrase miss in `co-all-1` is NOT_ASSESSED (no recurrence in 15 later ScanOcrSearch rows); the J-SRCH-1 dedicated journey is not written. Both are owned by Phase 13. |
+| 17 | **COMPLETE** | ScanOcrSearch 5/6 consecutive; K97 and K99 resolved; the remaining rows are owned by Phases 26 and 27, Engineering, the owner or the language owner | none left in Phase 17 |
+
+### NOT_ASSESSED (with owners)
+
+| Item | Owner |
+|---|---|
+| Owner walkthrough of the navigation and IA (D-13) and the visual concept (D-14) | Owner |
+| macOS build, rendering and journeys | Phase 27 |
+| Screen-reader runs; 200 % text, `fr` and keyboard-only variants of the journeys | Phase 21 |
+| Code signing and notarisation | Phase 26 |
+| Hosted CI on the pushed head | Driver |
+| `Category=Roots` and Open-PDF loose-book journeys | Phase 10 |
+| `Category=Watcher`, `Category=SingleInstance` and cancel-mid-scan journeys | Phase 24 |
+| J-SET-2 (providers against a mock endpoint) | Phase 11 |
+| G9 to G12 | Phases 11, 10, 19-20 and 18 |
+| Dark theme in `co-final` (Dark ran in `co-nav-1..2` only) | Phase 09 / the next full run |
+
+### Premise corrections
+
+- Slice 2 committed `results-co-all-{1,2,3}.md` to the repository-root `evidence/` folder, but this
+  record linked `docs/implementation/execution/evidence/`. This slice moved them there with `git mv`.
+- The work order asked for the pointer `phase-sept23-closeout-completion.md` to be added. It
+  already existed (slice 1), so it was left unchanged.
+- K98 was already resolved by `34172fdc` (slice 1).
+
+### Typeface
+
+Spectral (display), Public Sans (body) and JetBrains Mono (code and data), unchanged. No UI changed
+in this slice.

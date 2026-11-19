@@ -1,9 +1,10 @@
 # Sept-23 Phase 13 completion: unified, trustworthy search
 
-Status: **IMPLEMENTED; G4 passes in the real window at 1280×800 and 1920×1080** (2026-09-27).
-Unit, integration, headless UI, relevance oracle and performance checks pass. The
-`ScanOcrSearch` journey still fails because OCR output never reaches the text status or index in
-the real app (K99, Phase 17). Conceptual (semantic) queries are NOT ASSESSED (Phase 14).
+Status: **IMPLEMENTED, not COMPLETE** (close-out 2026-11-19; G4 6/6 and A11yNames 6/6 at both
+sizes, ScanOcrSearch passes since K99 was fixed; open in this phase: the K40 phrase miss's cause and
+the J-SRCH-1 journey; see [Close-out 2026-11-19](#close-out-2026-11-19)). First recorded
+2026-09-27. Unit, integration, headless UI, relevance oracle and performance checks pass.
+Conceptual (semantic) queries are NOT ASSESSED (Phase 14).
 Rollback point: `acb9d36` (the Phase 08 merge). No schema migration and no index rebuild
 (ADR 0020, decision 4).
 Plan: [phase-13](../../plans/sept-23-kaizen/phases/phase-13-unified-search.md).
@@ -166,3 +167,24 @@ coverage button reuses the Retry button pattern. Snippet terms are highlighted w
 - The "Grace Namutebi" author-probe flake did not reproduce. Every probe was found in 0.5 to 4.4 s. The `SearchViewModel` request loop was reviewed and needs no change: stale responses are dropped by version, and the live refresh re-runs while books are pending. No fix is claimed.
 - The `ScanOcrSearch` failure in the status line above is superseded. It now passes, and its baseline entry was removed (`912977c6`; K97 and K99 resolved; see Phase 17 evidence).
 - The search-result badge label now uses `Brush.Accent.Text` (K113, `1fc796ea`), so it is readable in Dark.
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey | co-final 1280x800 / 1920x1080 | D-17 streak | Result |
+|---|---|---|---|
+| G4 search (title, author, body phrase, typo, Unicode) | PASS / PASS | 6 / 6 | met |
+| A11yNames (catalogue, search results) | PASS / PASS | 6 / 6 | met |
+| ScanOcrSearch (OCR hits labelled, K99 fixed) | PASS / PASS | 5 / 6 | met |
+
+The NOT ASSESSED rows above for ScanOcrSearch (K99) and the post-fix G4 screenshot are now done.
+Evidence: [`evidence/sept-23-kaizen/phase-13/closeout/`](evidence/sept-23-kaizen/phase-13/closeout/).
+
+**Status: IMPLEMENTED, not COMPLETE.** Open in this phase: (1) K40, the cause of the one
+multi-word phrase miss in `co-all-1` is NOT_ASSESSED; it has not recurred in 15 later ScanOcrSearch
+rows; (2) the J-SRCH-1 dedicated journey is not written. Owner: Phase 13. Rollback point: `ebc9bf6e`.

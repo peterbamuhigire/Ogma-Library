@@ -20,6 +20,13 @@ claims below describe gate evidence, not a working product. Phase progress is tr
   restored the matrix and the gate passes (K100 resolved). Gates and journeys on the final head
   are NOT ASSESSED (the driver runs them). The owner walkthrough is pending. See the
   [completion record](phase-sept23-09-completion.md).
+- **Sept-23 close-out (Phase CO)** of Phases 02, 05, 06, 07, 08, 13 and 17: done 2026-11-19 on
+  branch `kaizen/phase-CO` (head `ebb7b718`, rollback `ebc9bf6e`). The full gate set passes,
+  including the fast suite (1,677 of 1,677). Final journey run `co-final`: 44 PASS, 2
+  BASELINE-FAIL (G3), 0 FAIL, 8 NOT ASSESSED placeholders. **COMPLETE:** 05, 08, 17.
+  **IMPLEMENTED:** 02 (G3), 06 (K109), 07 (owner walkthrough, D-13), 13 (K40 miss cause, J-SRCH-1).
+  The stabilisation lane is done. Hosted CI, macOS, screen reader and signing are NOT ASSESSED.
+  See the [completion record](phase-sept23-CO-completion.md).
 
 ## Aug-39 ledger (historical gate evidence)
 

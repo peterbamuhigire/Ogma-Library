@@ -1,9 +1,9 @@
 # Sept-23 Phase 17 completion: OCR and extraction quality
 
-Status: **IMPLEMENTED; real-window proof pending** (2026-09-25). The code, unit, integration,
-migration, headless UI and real-engine OCR checks below pass. The coordinator put a hold on
-real-window runs while the owner is at the desk (the harness pins the app window topmost), so
-the G2 and G6 runs and the `ScanOcrSearch` journey have not been run yet (see NOT ASSESSED).
+Status: **COMPLETE** (close-out 2026-11-19: ScanOcrSearch passes 5 consecutive runs at 1280x800 and
+6 at 1920x1080, last in `co-final` on `ebb7b718`; G2 and G6 pass; K97 and K99 resolved; see
+[Close-out 2026-11-19](#close-out-2026-11-19)). First recorded IMPLEMENTED 2026-09-25. The code,
+unit, integration, migration, headless UI and real-engine OCR checks below pass.
 Rollback point: `544f7ae` (the Phase 06 merge) plus the migrator's verified
 `catalogue.db.<timestamp>.bak`.
 Plan: [phase-17](../../plans/sept-23-kaizen/phases/phase-17-ocr-and-extraction-quality.md).
@@ -119,3 +119,26 @@ Evidence: [co-ocr-journey.md](evidence/sept-23-kaizen/phase-17/co-ocr-journey.md
 - Both scanned fixtures reach the *OCR text* badge. Both OCR-only phrases find their book in the top three, with the "From OCR text" label and the catalogue title.
 - The baseline entry was removed (`912977c6`), and K97 and K99 are resolved.
 - G2 and G6 were re-run by slice 4 (see Phase 06 evidence). The status decision is left to the close-out's final slice.
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey | Runs | D-17 streak | Result |
+|---|---|---|---|
+| ScanOcrSearch | `co-all-2..3`, `co-nav-1..2` (Light and Dark), `co-final` at 1280x800; also `co-all-1` at 1920x1080 | 5 / 6 | met |
+| G2, G6 | see Phase 05 | 3 / 3 and 6 / 6 | met |
+
+Evidence: [`evidence/sept-23-kaizen/phase-17/closeout/`](evidence/sept-23-kaizen/phase-17/closeout/).
+Both scanned fixtures reach *OCR text*, and both hits read "From OCR text" under their catalogue
+titles. K97 and K99 are resolved (`912977c6`). The G6 Locked-card contract row is done (G6 confirms
+the Locked badge).
+
+Definition of done: the remaining rows are owned (real scanned corpus: Owner; macOS and Linux
+packaging: Phase 27; battery pause: Engineering; extra languages: language owner; third-party
+notice: Phase 26). In-process Tesseract on pool threads is tracked in K109 (Phases 06 and 24).
+**Status: COMPLETE** (run `co-final`; commit `ebb7b718`). Rollback point: `ebc9bf6e`.

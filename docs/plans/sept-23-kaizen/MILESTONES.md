@@ -36,7 +36,7 @@ MEASURED. Completion record: `phase-sept23-00-completion.md`.
 | **The library and first-run screen are visible.** A one-line layout error had hidden them since 4 September. A layout guard test now fails if it ever returns. | MEASURED, Phase 03 |
 | **Reading no longer crashes the app.** 470 page turns in a 900-page book; recovery from a killed PDF engine in under 2 s; UI page-turn p95 dropped from an **11.4 s stall to 6 ms**; pages are about 3× sharper (render at device resolution). | MEASURED, Phase 04 |
 | **Failures are caught and logged.** A process-wide safety net shows a localized message instead of crashing, and writes redacted rolling logs. The next launch shows a crash notice. The single-instance guard hands a second launch to the open window. Crash-prone `async void` handlers went from 126 to 1, and silent `catch` blocks from 21 to 0. | MEASURED, Phase 02 |
-| **Shutdown is bounded; engine recovery is logged; a corrupt settings file is quarantined and reported.** | CODE, `936c587`; re-check in progress (see Open issues) |
+| **Shutdown is bounded; engine recovery is logged; a corrupt settings file is quarantined and reported.** | MEASURED: G8 and LaunchCycles stable in the close-out runs (`co-final`) |
 | **A real-window test harness** (FlaUI UIA3, ADR-0017) drives the actual app through 8 golden journeys at 1280×800 and 1920×1080 on isolated data, with a desktop lock for parallel runs. It no longer pins its window above the owner's desktop. | MEASURED, Phase 01, `7e342a6` |
 
 ## Milestone 3: the library behaves correctly (Wave B: Phases 05–08)
@@ -49,11 +49,12 @@ MEASURED. Completion record: `phase-sept23-00-completion.md`.
 | **Processing is fast and quiet.** Failed jobs **17 → 0**; attempts 269 → 65; all covers in **84 s → 27 s**; all processing **163 s → 64 s**; worker launches 129 → 34; the status counts truthfully to "finished". | MEASURED, Phase 06 |
 | **Metadata and identity.** All **5 ISBNs** reach the books; a byte-identical duplicate is one book with two locations; editions are populated. | MEASURED, Phase 06 |
 | **Navigation you can use.** A left rail (Library, Search, Reading, Advisor, Collections, Activity, Settings) shows one screen at a time, keeps active filters visible as chips, and has a 30-command palette (Ctrl+K). Dead entries are hidden. | MEASURED, Phase 07 |
-| **A real Settings screen.** Library folders, theme and density, **English/French** switched live, online metadata with a disclosure, the 3D and classroom switches, AI and privacy status, text recognition, and diagnostics. Environment variables are now visible admin overrides. | CODE, Phase 08; real-window run in progress |
+| **A real Settings screen.** Library folders, theme and density, **English/French** switched live, online metadata with a disclosure, the 3D and classroom switches, AI and privacy status, text recognition, and diagnostics. Environment variables are now visible admin overrides. | MEASURED, Phase 08 (COMPLETE; Settings journeys stable, `co-final`) |
 
 ## Milestone 4: scanned books become searchable (Phase 17)
 
-CODE (real engines in tests); real-window run in progress.
+MEASURED: the ScanOcrSearch journey passes in the real window at both sizes (`co-final`).
+Phase 17 is COMPLETE.
 
 - Each book shows an honest text status: Searchable, Image only, OCR in progress, OCR text with
   confidence, or Failed.
@@ -63,38 +64,55 @@ CODE (real engines in tests); real-window run in progress.
 - Search hits from recognised text are labelled "From OCR text". A re-index bug that would
   have undone OCR was found and fixed.
 
-## Golden journeys on `main`
+## Milestone 5: close-out of Phases 02, 05–08, 13 and 17 (19 November 2026)
 
-| Journey | Status | Notes |
-|---|---|---|
-| G1 first run | **PASS** | both sizes |
-| G2 add library, covers | **PASS** | both sizes (was failing) |
-| G5 close and resume | **PASS** | |
-| G6 invalid files | **PASS** | both sizes (was failing) |
-| G7 Advisor without AI | **PASS** | routes to Settings instead of a dead end |
-| Navigation | **PASS** | four sizes, 860–2560 px |
-| Settings | **PASS** | both sizes: theme and language persist; env-managed switch shown locked |
-| ScanOcrSearch | failing | OCR runs automatically, but one fixture yields no text and search misses depend on Phase 13 |
-| G3 read 50 pages (p95 ≤ 250 ms from click to page number) | failing | measured 500–632 ms end to end under load; the geometry wait is the known remaining cost |
-| G4 search | failing | Phase 13 in progress |
-| G8 worker killed while reading | **PASS** | both sizes; baseline cleared |
-| G8 corrupt settings file | failing | the notice is not yet visible; stabilisation lane |
-| LaunchCycles (20 launch/close) | **failing** | 3 of 20 closes still needed a kill after 10 s; under investigation |
-| G9–G12 | NOT ASSESSED | owned by Phases 10, 11, 18, 19–20 |
+MEASURED, run `co-final` on `ebb7b718`. [Record](../../implementation/execution/phase-sept23-CO-completion.md).
+
+- **Phases 05, 08 and 17 are COMPLETE.** Their journeys passed at least 3 runs in a row at both
+  sizes (rule D-17), and the full gate set passes.
+- **Phases 02, 06, 07 and 13 stay IMPLEMENTED.** Each has a named open item: G3 (02), K109 (06),
+  the owner walkthrough (07), and the K40 miss cause and J-SRCH-1 (13).
+- **Search finds scanned books.** OCR text reaches the index, and hits are labelled "From OCR text"
+  under the real title (K97, K99).
+- **The Settings screen reads in Dark mode.** Text contrast was 2.0:1 and is now above AA (K113).
+- **A second library folder can be added from Settings.** Proven by journey J-SET-3.
+- **The thread-pool starvation behind most reader stalls is fixed** (`fc153ba6`). G3 still stalls
+  occasionally (K94, K109).
+
+## Golden journeys (close-out head `ebb7b718`, run `co-final`)
+
+"Streak" counts the consecutive passing runs at 1280×800 / 1920×1080.
+
+| Journey | Status | Streak | Notes |
+|---|---|---|---|
+| G1 first run | **PASS** | 5 / 5 | |
+| G2 add library, covers, ISBN, status counts | **PASS** | 3 / 3 | |
+| G3 read 50 pages (p95 ≤ 250 ms) | BASELINE-FAIL | 0 / 0 | p95 304 ms at 1280; a stall at page 12 at 1920 (K32, K94, K109) |
+| G4 search | **PASS** | 6 / 6 | |
+| G5 close and resume | **PASS** | 7 / 7 | |
+| G6 invalid files | **PASS** | 6 / 6 | |
+| G7 Advisor without AI | **PASS** | 5 / 5 | |
+| G8 worker kill, corrupt settings | **PASS** | 7 / 7 | |
+| Navigation (3 tests) | **PASS** | 4 / 5 | |
+| Settings (4 tests, including J-SET-3) | **PASS** | 3 / 3 or more | |
+| A11yNames | **PASS** | 6 / 6 | |
+| ScanOcrSearch | **PASS** | 5 / 6 | baseline removed |
+| LaunchCycles (20 launch/close) | **PASS** | 6 runs | 0 kills; slowest exit 1,072 ms |
+| G9–G12 | NOT ASSESSED | — | owned by Phases 11, 10, 18 and 19–20 |
 
 ## Test and quality totals
 
-| | Audit | Now |
+| | Audit | Now (`ebb7b718`) |
 |---|---:|---:|
-| Automated tests (per commit) | 1,161 (one failing, 18 min) | **1,404 passing** (about 6 min) |
-| Real-window journeys | 0 | 11 journeys × 2 sizes, plus harness tests |
-| CI on `main` | red | **green** (Windows and macOS) |
-| Defects registered | 46 | 51 (K93–K96 found by the new harness and load) |
+| Automated tests (per commit) | 1,161 (one failing, 18 min) | **1,677 passing** (Architecture 52, core 1,248, UI 377; about 6 min) |
+| Real-window journeys | 0 | `co-final`: 54 rows, 44 PASS, 2 BASELINE-FAIL (G3), 0 FAIL, 8 NOT ASSESSED placeholders |
+| CI on `main` | red | NOT ASSESSED for this head (the driver pushes) |
+| Defects registered | 46 | K1–K113 |
 
 ## In progress
 
-- **Phase 09, "The Lamplit Library" (D-14): IMPLEMENTED 2026-11-19 on `kaizen/phase-09`, awaiting
-  merge and the owner walkthrough.** A vivid, jewel-toned visual identity in response to the
+- **Phase 09, "The Lamplit Library" (D-14): IMPLEMENTED 2026-11-19 and merged; awaiting the owner
+  walkthrough.** A vivid, jewel-toned visual identity in response to the
   owner's feedback ("too greyish and boring"): one type scale on Spectral, Public Sans and
   JetBrains Mono with a 12 px floor; Lamplit colour roles and a Night Library dark theme; one
   button-variant set; amber selection; licensed duotone icons; cloth-bound generated covers; a
@@ -103,12 +121,15 @@ CODE (real engines in tests); real-window run in progress.
   [completion record](../../implementation/execution/phase-sept23-09-completion.md). Not COMPLETE:
   the accountability script fails on `main`'s archived `aug-39` matrix (K100), and the owner
   walkthrough is pending.
-- **Phase 13, unified search.** Phrases, typos, Unicode names and field queries; honest status;
-  no race.
+- **Phase 13, unified search: IMPLEMENTED and merged.** Phrases, typos, Unicode names and field
+  queries; honest status; no race. G4 is stable. Open: the K40 miss cause and the J-SRCH-1
+  journey.
 
-## Stabilisation lane (in progress)
+## Stabilisation lane (done, merged `b55b8387`)
 
-The real-window run of 25 September (`artifacts/e2e/20260925-145558`) found integration defects between phases, now owned by a dedicated lane:
+The real-window run of 25 September (`artifacts/e2e/20260925-145558`) found integration defects
+between phases. A dedicated lane fixed all seven, and the `-All` runs `co-all-1..3` and `co-final`
+confirm them (0 UI-thread violations, LaunchCycles 0 kills, G8 and G6 stable, ScanOcrSearch passes):
 
 - the collections sidebar updates state off the UI thread (K93; 194 violations per run);
 - database queries run before the startup migration has created the tables;
@@ -122,8 +143,11 @@ The real-window run of 25 September (`artifacts/e2e/20260925-145558`) found inte
 
 | Issue | Owner |
 |---|---|
-| LaunchCycles: 3/20 closes hang >10 s (suspected startup work blocking the UI thread, K71) | Coordinator, now; Phase 24 |
-| G3 page-turn latency over its 250 ms budget | Phase 06 follow-up / Phase 12 |
-| Load-sensitive timing test (K96) | Phase 24 |
+| G3 reader stall (K94, K108, K109) and p95 over 250 ms (K32) | Phase 04 (stall), Phases 06/24 (K109), Phase 12 (budget) |
+| K40: cause of one phrase miss in `co-all-1`; J-SRCH-1 journey | Phase 13 |
+| K113: nine accent-as-text usages still allow-listed | Phase 09 |
+| K111 hard-coded inspector labels; K112 "Added 0" summary | Phases 11 and 22 |
+| K71 cold start under load; K96 load-sensitive timing; K105 fast-suite time under load; K110 shutdown `TransactionError` | Phase 24 (LaunchCycles close hang not reproduced in 120 cycles) |
+| K107 foreign window hit in a Navigation visibility check | Phase 01 harness |
 | Owner walkthrough of the new navigation (D-13) and visual concept (D-14) | Owner |
-| macOS, screen readers, two-machine classroom, signing | NOT ASSESSED (Phases 21, 26, 27) |
+| macOS, screen readers and accessibility variants, two-machine classroom, signing, hosted CI | NOT ASSESSED (Phases 27, 21, 19–20, 26; driver) |

@@ -1,8 +1,10 @@
 # Sept-23 Phase 05 completion: library roots, scanning and file validity
 
-Status: **IMPLEMENTED; journey proof pending Phase 01** (2026-09-25). Code, unit, migration,
-architecture and real-window checks below pass. G2/G6 and the `Category=Roots|Watcher` E2E
-journeys run once the Phase 01 harness lands (see NOT ASSESSED).
+Status: **COMPLETE** (close-out 2026-11-19: G2 3/3 in `co-library-2`, `co-final` and
+`co-final-g2`, and G6 6/6, at both sizes on `ebb7b718`; see
+[Close-out 2026-11-19](#close-out-2026-11-19)). First recorded IMPLEMENTED 2026-09-25. Code, unit,
+migration, architecture and real-window checks below pass. The `Category=Roots|Watcher` journeys
+are owned by Phases 10 and 24 (see NOT ASSESSED).
 Rollback point: `fd613bf` (the last commit before any Phase 05 change) plus the migrator's
 verified `catalogue.db.<timestamp>.bak`.
 Plan: [phase-05](../../plans/sept-23-kaizen/phases/phase-05-library-roots-scanning-validity.md).
@@ -105,3 +107,25 @@ Typeface: unchanged theme (Public Sans body, Spectral headings); the new panel u
 | Synthetic 2k-book migration | Phase 24 | The 17-book rehearsal ran; scale rehearsal left to performance work |
 | macOS FSEvents watcher | Phase 27 | No Mac |
 | Portable (in-library) asset mode | Owner (D-04) | Deferred by decision |
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey | Runs (both sizes) | D-17 streak | Result |
+|---|---|---|---|
+| G2 add library, covers, ISBN in the inspector, status counts | `co-library-2`, `co-final`, `co-final-g2` all PASS | 3 / 3 | met |
+| G6 invalid files, Locked badge | `co-all-1..3`, `co-library-1..2`, `co-final` all PASS | 6 / 6 | met |
+
+Evidence: [`evidence/sept-23-kaizen/phase-05/closeout/`](evidence/sept-23-kaizen/phase-05/closeout/)
+(14 screenshots, `results-co-final.md`, `results-co-final-g2.md`).
+
+Definition of done (08-master-plan section 5): every task is done or owned by a named later phase
+(Roots and loose-book journeys: Phase 10; Watcher, cancel mid-scan and 2k migration: Phase 24;
+macOS: Phase 27; removable media: Engineering; portable mode: Owner, D-04). The gates and journey
+suite pass on `ebb7b718`; G2 and G6 have before and after screenshots at both sizes.
+**Status: COMPLETE** (runs `co-final`, `co-final-g2`; commit `ebb7b718`). Rollback point: `ebc9bf6e`.

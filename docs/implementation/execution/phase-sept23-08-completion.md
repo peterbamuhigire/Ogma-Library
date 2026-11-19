@@ -1,9 +1,9 @@
 # Sept-23 Phase 08 completion: settings and capability centre
 
-Status: **IMPLEMENTED; real-window proof pending** (2026-09-25). Code, unit, headless UI,
-architecture and gate checks below pass. The real-window journeys were written but not run: the
-coordinator suspended every real-window step while the owner was at the desk (the harness pins
-the app window topmost). They are listed under NOT ASSESSED for re-dispatch.
+Status: **COMPLETE** (close-out 2026-11-19: the four Settings journeys, including J-SET-3, pass at
+both sizes in `co-nav-1`, `co-nav-2` and `co-final`, on `ebb7b718`; see
+[Close-out 2026-11-19](#close-out-2026-11-19)). First recorded IMPLEMENTED 2026-09-25. The rows
+below that said "re-dispatch" were run by Phase CO; every other open row has a named later owner.
 Branch: `worktree-agent-a15a4c9aaf6c62d11` (lane worktree, not pushed), from `8950899`.
 Rollback point: `8950899` (the last commit before any Phase 08 change).
 Plan: [phase-08](../../plans/sept-23-kaizen/phases/phase-08-settings-and-capability-centre.md).
@@ -120,3 +120,27 @@ Evidence: [co-settings-journeys.md](evidence/sept-23-kaizen/phase-08/co-settings
 - J-SET-2 remains NOT ASSESSED and moves to Phase 11 (G9), because there is no mock provider endpoint.
 - K113 was found and partly fixed (`1fc796ea`). The capability status text was 2.03:1 in Dark and now uses `Brush.Link`. The remaining accent-as-text usages are registered for Phase 09.
 - The status decision is left to the close-out's final slice.
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey (Settings) | Runs (both sizes) | D-17 streak | Result |
+|---|---|---|---|
+| Theme, density and language persist | `co-all-1..3`, `co-nav-1..2`, `co-final` | 6 / 6 | met |
+| Environment override shown disabled | same | 6 / 6 | met |
+| J-SET-3 second folder from Settings, then rescan (`ae0b26db`) | `co-nav-1`, `co-nav-2`, `co-final` | 3 / 3 | met |
+| Every section opens and is captured | `co-nav-1`, `co-nav-2`, `co-final` | 3 / 3 | met |
+
+Evidence: [`evidence/sept-23-kaizen/phase-08/closeout/`](evidence/sept-23-kaizen/phase-08/closeout/)
+(Light), plus the slice 5 Light and Dark captures in `phase-08/`. K113 (Settings text contrast in
+Dark) was fixed in `1fc796ea`.
+
+Definition of done: the "re-dispatch" rows above are done. J-SET-2 is owned by Phase 11, the
+editors and defaults by Phases 10 and 12, reduced motion and screen reader by Phase 21, the French
+review by Phase 22, the disclosure dialog by Phase 23, Diagnostics by Phase 24 and macOS by Phase 27.
+**Status: COMPLETE** (run `co-final`; commit `ebb7b718`). Rollback point: `ebc9bf6e`.

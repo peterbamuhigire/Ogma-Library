@@ -1,8 +1,8 @@
 # Sept-23 Phase 06 completion: processing pipeline, jobs and identity promotion
 
-Status: **IMPLEMENTED; journey proof pending the Phase 01 harness** (2026-09-25). Code, unit,
-fault-injection, migration, UI and real-window checks below pass. G2 and `Category=Processing`
-E2E journeys run once this branch is merged next to the Phase 01 harness (see NOT ASSESSED).
+Status: **IMPLEMENTED, not COMPLETE: K109 is open in this phase** (close-out 2026-11-19; G2 3/3
+and LaunchCycles 6/6 on `ebb7b718`; see [Close-out 2026-11-19](#close-out-2026-11-19)). First
+recorded 2026-09-25. Code, unit, fault-injection, migration, UI and real-window checks below pass.
 Rollback point: `f89f483` (the Phase 05 merge) plus the migrator's verified
 `catalogue.db.<timestamp>.bak`.
 Plan: [phase-06](../../plans/sept-23-kaizen/phases/phase-06-processing-pipeline-and-jobs.md).
@@ -120,3 +120,23 @@ failed once under full-suite load (5 s) and passed in isolation and in the final
 | Throughput at 2k/50k books | Phase 24 | Local corpus only |
 | Real embedding provider becoming available (resume) | Phase 14 | No provider on this machine; resume is unit-tested |
 | Online metadata provider timeouts | Phase 08/15 | Providers disabled by default; `HttpClient` timeout is classified as retryable in code |
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey | Runs | D-17 streak | Result |
+|---|---|---|---|
+| G2 processing (status never N > M, reaches the finished summary; ISBN `9780306406157`) | `co-library-2`, `co-final`, `co-final-g2`, both sizes | 3 / 3 | met |
+| LaunchCycles (20 launch/close) | `co-all-1..3`, `co-library-1..2`, `co-final` | 6 | met; `co-final`: slowest exit 1,072 ms, 0 orphaned workers |
+
+Evidence: [`evidence/sept-23-kaizen/phase-06/closeout/`](evidence/sept-23-kaizen/phase-06/closeout/).
+
+**Status: IMPLEMENTED, not COMPLETE.** Open in this phase: K109 (blocking renderer calls and
+in-process Tesseract on thread-pool threads; Phases 06 and 24). Owned elsewhere: processing resume
+within 5 s (Phase 01/24), `Category=Processing` journey (Phase 24), K112 status summary (Phase 22).
+Rollback point: `ebc9bf6e`.

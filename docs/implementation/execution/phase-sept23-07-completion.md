@@ -1,6 +1,8 @@
 # Sept-23 Phase 07 completion: navigation and information architecture
 
-Status: **IMPLEMENTED** (2026-09-25). Routed shell, rail, contextual toolbars, drawers, filter
+Status: **IMPLEMENTED, not COMPLETE: the owner walkthrough (D-13) is NOT ASSESSED** (close-out
+2026-11-19; G1, G7 and Navigation meet D-17 on `ebb7b718`, run `co-final`; see
+[Close-out 2026-11-19](#close-out-2026-11-19)). First recorded 2026-09-25. Routed shell, rail, contextual toolbars, drawers, filter
 chips, capability-gated entries, command registry and shortcuts are in place, with headless and
 real-window proof below. Owner walkthrough: pending (see NOT ASSESSED).
 Branch: `worktree-agent-afcaaea65aa4b9fe6` (lane worktree, not pushed), from `6e84a18`.
@@ -111,3 +113,23 @@ conflicts. `SidebarToggleLabel` is now unused but kept because `RaiseAllChanged`
 
 - Navigation (all 3 tests), G1, G7 and A11yNames passed at 1280x800 and 1920x1080 in Light and Dark in `co-nav-1` (52/52 for the whole run). With slice 2's runs, and counting each theme as one run, Navigation now has 4 consecutive passes at 1280x800 (`co-all-2`, `co-all-3`, and `co-nav-1` Light and Dark) and 5 at 1920x1080. K107 did not recur.
 - The owner walkthrough stays NOT ASSESSED (Owner), under D-02 and D-13.
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey | co-final 1280x800 / 1920x1080 | D-17 streak | Result |
+|---|---|---|---|
+| G1 first run | PASS / PASS | 5 / 5 | met |
+| G7 Advisor without AI | PASS / PASS | 5 / 5 | met |
+| Navigation (3 tests: destinations, drawers, command palette) | PASS / PASS | 4 / 5 | met |
+
+Evidence: [`evidence/sept-23-kaizen/phase-07/closeout/`](evidence/sept-23-kaizen/phase-07/closeout/).
+
+**Status: IMPLEMENTED, not COMPLETE.** The owner walkthrough of the IA (D-13) is NOT ASSESSED;
+owner: Owner. Screen reader and keyboard-only runs: Phase 21. macOS: Phase 27.
+Rollback point: `ebc9bf6e`.

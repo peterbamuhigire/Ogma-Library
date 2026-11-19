@@ -1,7 +1,7 @@
 # Sept-23 Phase 02 completion: crash safety, logging and threading foundation
 
-Status: **IMPLEMENTED; G8 proven, G3 not yet stable** (updated 2026-11-19 by Phase CO slice 3;
-first recorded 2026-09-25). The code, unit, architecture and real-window checks below pass.
+Status: **IMPLEMENTED, not COMPLETE: G3 still fails** (close-out 2026-11-19, run `co-final` on
+`ebb7b718`; see [Close-out 2026-11-19](#close-out-2026-11-19); first recorded 2026-09-25). The code, unit, architecture and real-window checks below pass.
 
 Phase CO update (MEASURED, `evidence/sept-23-kaizen/phase-02/co-reader-journeys.md`):
 - G8 (both tests) passed 6 of 6 rows in co-reader-1 to -3, after 6 of 6 in co-all-1 to -3.
@@ -85,3 +85,25 @@ Architecture 47/47, core 988/988, UI 165/165 (1,200 tests, 0 failures).
 | macOS lock-file single-instance and pipe activation | Engineering (Phase 27) | No Mac available. |
 | WER LocalDumps crash-dump policy | Owner / Engineering | Optional in the plan. |
 | Debug-build guard (Throw mode) against a full interactive session | Phase 01 | Release runs used Log mode. |
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+| Journey | co-final 1280x800 / 1920x1080 | D-17 streak | Result |
+|---|---|---|---|
+| G8 corrupt settings, worker kill | PASS / PASS | 7 / 7 | met |
+| G5 resume | PASS / PASS | 7 / 7 | met |
+| G3 read 50 pages | BASELINE-FAIL / BASELINE-FAIL | 0 / 0 | not met |
+
+G3 in `co-final`: at 1280x800 all 50 turns completed, but p95 was 304 ms (budget 250 ms) with one
+3,725 ms turn; at 1920x1080 the page stalled at page 12 for 10 s after 11 turns, with 4 ignored
+presses (MEASURED, timings JSON). Evidence: [`evidence/sept-23-kaizen/phase-02/closeout/`](evidence/sept-23-kaizen/phase-02/closeout/).
+
+**Status: IMPLEMENTED, not COMPLETE.** Open: G3 stall and p95 (K32, K94, K108, K109; Phases 04,
+12 and 24; the `baseline.json` entry stays); `Category=SingleInstance` journey (Phase 24).
+Rollback point: `ebc9bf6e`.

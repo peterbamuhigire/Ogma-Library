@@ -59,22 +59,22 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 |---:|---|:---:|---|---|
 | 00 | Ground truth, repository and toolchain recovery | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-00-completion.md) |
 | 01 | Real-window acceptance harness and golden journeys | A | **COMPLETE** 2026-09-25 (hosted-runner CI run NOT ASSESSED) | [record](../../implementation/execution/phase-sept23-01-completion.md) |
-| 02 | Crash safety, logging and threading foundation | A | **IMPLEMENTED** 2026-09-25 (G3/G8 journey proof pending Phase 01) | [record](../../implementation/execution/phase-sept23-02-completion.md) |
+| 02 | Crash safety, logging and threading foundation | A | **IMPLEMENTED** 2026-09-25; close-out 2026-11-19: G5 and G8 stable, G3 still BASELINE-FAIL in `co-final` (K32, K94, K109) | [record](../../implementation/execution/phase-sept23-02-completion.md) |
 | 03 | Shell emergency fixes: visible catalogue and truthful status | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-03-completion.md) |
 | 04 | Reader engine stability and page rendering | A | **COMPLETE** 2026-09-25 | [record](../../implementation/execution/phase-sept23-04-completion.md) |
-| 05 | Library roots, scanning and file validity | B | **IMPLEMENTED** 2026-09-25 (E2E journeys G2/G6 pending Phase 01) | [record](../../implementation/execution/phase-sept23-05-completion.md) |
-| 06 | Processing pipeline, jobs and identity promotion | B | **IMPLEMENTED** 2026-09-25 (E2E G2 processing journeys pending re-run) | [record](../../implementation/execution/phase-sept23-06-completion.md) |
-| 07 | Navigation and information architecture | B | **IMPLEMENTED** 2026-09-25 (owner walkthrough pending) | [record](../../implementation/execution/phase-sept23-07-completion.md) |
-| 08 | Settings and capability centre | B | **IMPLEMENTED** 2026-09-25 (Settings journey PASS both sizes) | [record](../../implementation/execution/phase-sept23-08-completion.md) |
+| 05 | Library roots, scanning and file validity | B | **COMPLETE** 2026-11-19 (close-out: G2 3/3 and G6 6/6 at both sizes, runs `co-final`, `co-final-g2`, commit `ebb7b718`) | [record](../../implementation/execution/phase-sept23-05-completion.md) |
+| 06 | Processing pipeline, jobs and identity promotion | B | **IMPLEMENTED** 2026-09-25; close-out 2026-11-19: G2 and LaunchCycles stable; open: K109 | [record](../../implementation/execution/phase-sept23-06-completion.md) |
+| 07 | Navigation and information architecture | B | **IMPLEMENTED** 2026-09-25; close-out 2026-11-19: G1, G7, Navigation stable; open: owner walkthrough (D-13) | [record](../../implementation/execution/phase-sept23-07-completion.md) |
+| 08 | Settings and capability centre | B | **COMPLETE** 2026-11-19 (close-out: 4 Settings journeys incl. J-SET-3 pass 3/3 at both sizes, run `co-final`, commit `ebb7b718`) | [record](../../implementation/execution/phase-sept23-08-completion.md) |
 | 09 | Design system and visual identity | C | **IMPLEMENTED** 2026-11-19 (branch `kaizen/phase-09`; all assessed journeys PASS both themes and sizes; accountability gate passes again after `82f88e23` restored the matrix, K100 resolved; open: owner walkthrough, gates and journeys on the final head) | [record](../../implementation/execution/phase-sept23-09-completion.md) |
 | 10 | Catalogue experience | C | NOT STARTED | — |
 | 11 | Book detail inspector overhaul | C | NOT STARTED | — |
 | 12 | Reader experience | C | NOT STARTED | — |
-| 13 | Unified, trustworthy search | D | IN PROGRESS (lane: finishing) | — |
+| 13 | Unified, trustworthy search | D | **IMPLEMENTED** 2026-09-27; close-out 2026-11-19: G4 and A11yNames stable; open: K40 miss cause, J-SRCH-1 journey | [record](../../implementation/execution/phase-sept23-13-completion.md) |
 | 14 | Local semantic capability and embeddings | D | NOT STARTED (needs D-05) | — |
 | 15 | AI gateway, providers and Privacy Center | D | NOT STARTED (needs D-06) | — |
 | 16 | Reading Advisor, grounded answers and reading plans | D | NOT STARTED | — |
-| 17 | OCR and extraction quality | D | **IMPLEMENTED** 2026-09-25 (ScanOcrSearch journey pending) | [record](../../implementation/execution/phase-sept23-17-completion.md) |
+| 17 | OCR and extraction quality | D | **COMPLETE** 2026-11-19 (close-out: ScanOcrSearch 5/6 consecutive passes, K97 and K99 resolved, run `co-final`, commit `ebb7b718`) | [record](../../implementation/execution/phase-sept23-17-completion.md) |
 | 18 | 3D bookshelf | E | NOT STARTED | — |
 | 19 | Classroom Host and school administration | E | NOT STARTED | — |
 | 20 | Classroom client, offline cache and sync | E | NOT STARTED (needs D-09, D-11) | — |

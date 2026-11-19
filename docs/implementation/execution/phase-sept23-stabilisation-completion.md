@@ -1,7 +1,9 @@
 # Sept-23 stabilisation lane completion
 
-Status: **7 of 7 items done; the full-suite regression run is PENDING** (2026-09-27).
-Branch `worktree-agent-a705173e608609aec`, not merged. Rollback point: `bd76e8c` (the lane's base).
+Status: **DONE: 7 of 7 items, merged (`b55b8387`), and the `-All` regression run is assessed**
+(close-out 2026-11-19, runs `co-all-1..3` and `co-final`; see
+[Close-out 2026-11-19](#close-out-2026-11-19)). First recorded 2026-09-27 on branch
+`worktree-agent-a705173e608609aec`. Rollback point: `bd76e8c` (the lane's base).
 Scope: the seven defects from the real-window run `20260925-145558` on merged `main`. No new
 scope was taken on. The owner stopped work for the day before the `-All` regression run could
 finish, so that run is pending (see *Pending*).
@@ -91,3 +93,25 @@ Evidence: `artifacts/e2e/stab-final-2/` (`results.md`, screenshots, timings).
 | G3 page-turn latency (K32, K94), which stays in the baseline | Phase 04 / 12 |
 | G4 and A11yNames search misses (K40, K41), which stay in the baseline | Phase 13 |
 | Load-sensitive timing tests (K96) | Phase 24 |
+
+## Close-out 2026-11-19
+
+Full record: [phase-sept23-CO-completion.md](phase-sept23-CO-completion.md#slice-6-record-and-evidence-final-head).
+Gates on `ebb7b718`, all PASS (MEASURED): accountability (162 IDs), locked restore, format, Release
+build (0 warnings), vulnerable-package scan (11 of 11 clean), analyzers, and `scripts/Test-Fast.ps1`
+1,677 of 1,677. Journey runs `co-final` (`-All`, both sizes, Light: 44 PASS, 2 BASELINE-FAIL for
+G3, 0 FAIL, 8 NOT ASSESSED placeholders) and `co-final-g2`. Stability rule D-17: 3 consecutive passes
+at both sizes. Typeface unchanged: Spectral, Public Sans and JetBrains Mono.
+The `-All` regression run is assessed. Runs `co-all-1..3` (on `4f8f19f1`) and `co-final` (on
+`ebb7b718`) cover every journey at both sizes.
+
+| Pending item | Result (MEASURED) |
+|---|---|
+| `ui.thread.violation` (K93) | 0 in every timings file of all four runs (42 in `co-final` and `co-final-g2`) |
+| `no such table` before migration | 0 lines in the kept app data of `co-all-1..3` (`co-final` did not keep app data) |
+| LaunchCycles close hang (K71) | PASS in all 6 runs since; `co-final` slowest exit 1,072 ms, 0 kills |
+| Corrupt-settings notice (K95) | G8 PASS both sizes, 7 consecutive runs |
+| OCR fixture with no text | ScanOcrSearch PASS (K99 resolved) |
+| G6 flake | G6 PASS, 6 consecutive runs |
+
+**Status: DONE.** Rollback point: `bd76e8c`.
