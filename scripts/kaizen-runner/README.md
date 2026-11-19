@@ -21,7 +21,7 @@ in `CLAUDE.md` and lasts for this run.
    `src/shelf3d` changed.
 4. **Review** (orchestrator, read-only, independent): `ACCEPT`, `REWORK` or
    `BLOCKED`.
-5. **Rework** (executor): at most three sessions per phase, for a failed gate or
+5. **Rework** (executor): at most six sessions per phase, for a failed gate or
    a rejected review.
 6. **Publish** (the driver): commit guard for secrets and oversized files, then
    a non-forced `git push origin HEAD:main`. Agents cannot push, merge, rebase,
@@ -66,7 +66,7 @@ session the folder is mirrored to the paper's
 
 | File | One row per | Fields |
 |---|---|---|
-| `calls.csv` | model call (deduplicated by message ID) | The paper's `calls.csv` schema (`corpus, mode, session, is_subagent, agent_file, ts_utc, model, family, input, output, cw_5m, cw_1h, cache_read, context, speed, geo`) plus `run_id, phase, role, slice, seq` |
+| `calls.csv` | model call (deduplicated by message ID; final usage read from the session transcript) | The paper's `calls.csv` schema (`corpus, mode, session, is_subagent, agent_file, ts_utc, model, family, input, output, cw_5m, cw_1h, cache_read, context, speed, geo`) plus `run_id, phase, role, slice, seq` |
 | `sessions.jsonl` | session | role, requested model and effort, wall and API time, turns, outcome, token totals, thinking tokens, first and maximum context, CLI cost, per-model usage, commits and lines changed, permission denials |
 | `gates.jsonl` | gate invocation | phase, round, commit, seconds, exit code, pass, test counts |
 | `phases.jsonl` | phase outcome | verdict, sessions, rework sessions, gate rounds, slices, commits, lines, cost |
