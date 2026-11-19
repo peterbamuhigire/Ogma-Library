@@ -72,6 +72,27 @@ public interface ICatalogueWriteService
     /// <param name="command">The bulk edit specification.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     Task BulkEditAsync(BulkEditCommand command, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Captures the fields a bulk edit can change, for every listed book, so the edit can be
+    /// undone (Sept-23 Phase 10, task 10.8). Unknown book identifiers are skipped.
+    /// </summary>
+    /// <param name="bookIds">The books to capture.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>One snapshot per existing book.</returns>
+    Task<IReadOnlyList<BulkEditSnapshot>> CaptureBulkEditSnapshotAsync(
+        IReadOnlyList<string> bookIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Restores books to captured snapshots in one transaction: authors, year, lifecycle status,
+    /// rating, user tags and manual shelf membership. Shelves deleted since the capture are skipped.
+    /// </summary>
+    /// <param name="snapshots">The snapshots taken by <see cref="CaptureBulkEditSnapshotAsync"/>.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task RestoreBulkEditSnapshotAsync(
+        IReadOnlyList<BulkEditSnapshot> snapshots,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -82,13 +103,52 @@ public interface ICatalogueWriteService
 /// <param name="TagsToRemove">Tags to remove from every selected book.</param>
 /// <param name="ShelfIdToAdd">The shelf to add every selected book to, or <see langword="null"/>.</param>
 /// <param name="ShelfIdToRemove">The shelf to remove every selected book from, or <see langword="null"/>.</param>
-/// <param name="NewStatus">Override reading status for every selected book, or <see langword="null"/>.</param>
+/// <param name="NewLifecycleStatus">
+/// Override the catalogue lifecycle status (Active, Unavailable, Excluded) for every selected book,
+/// or <see langword="null"/>. This is not the personal reading status, which goes through
+/// <see cref="IBookCurationService"/> (Sept-23 Phase 10, K116).
+/// </param>
 /// <param name="NewRating">Override rating (1–5) for every selected book, or <see langword="null"/>.</param>
+/// <param name="AuthorToSet">
+/// Replace every selected book's authors, or <see langword="null"/>. Several authors are separated
+/// by semicolons and validated by <see cref="BulkEditFieldRules.TryParseAuthors"/>.
+/// </param>
+/// <param name="YearToSet">
+/// Set every selected book's year, or <see langword="null"/>; validated by
+/// <see cref="BulkEditFieldRules.IsValidYear"/>.
+/// </param>
 public sealed record BulkEditCommand(
     IReadOnlyList<string> BookIds,
     IReadOnlyList<string> TagsToAdd,
     IReadOnlyList<string> TagsToRemove,
     string? ShelfIdToAdd,
     string? ShelfIdToRemove,
-    int? NewStatus,
-    int? NewRating);
+    int? NewLifecycleStatus,
+    int? NewRating,
+    string? AuthorToSet = null,
+    int? YearToSet = null);
+
+/// <summary>
+/// The before-state of one book for undoing a bulk edit (Sept-23 Phase 10, task 10.8).
+/// </summary>
+/// <param name="BookId">The book.</param>
+/// <param name="Authors">Linked author names in display order.</param>
+/// <param name="UserAuthorField">The user-entered Author metadata value, or <see langword="null"/> when there was none.</param>
+/// <param name="HasUserAuthorField">Whether a user-entered Author metadata row existed.</param>
+/// <param name="Year">The year.</param>
+/// <param name="LifecycleStatus">The catalogue lifecycle status.</param>
+/// <param name="Rating">The rating.</param>
+/// <param name="UserTags">The user Tags metadata value, or <see langword="null"/>.</param>
+/// <param name="HasUserTags">Whether a user Tags metadata row existed.</param>
+/// <param name="ManualShelfIds">The manual shelves the book belonged to.</param>
+public sealed record BulkEditSnapshot(
+    string BookId,
+    IReadOnlyList<string> Authors,
+    string? UserAuthorField,
+    bool HasUserAuthorField,
+    int? Year,
+    int LifecycleStatus,
+    int? Rating,
+    string? UserTags,
+    bool HasUserTags,
+    IReadOnlyList<string> ManualShelfIds);

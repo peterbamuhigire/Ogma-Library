@@ -199,6 +199,7 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        BulkEditFieldRules.ValidateMetadataField(fieldName, value);
 
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
@@ -258,6 +259,24 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
         string[] tagsToAdd = NormalizeTags(command.TagsToAdd, nameof(command.TagsToAdd));
         string[] tagsToRemove = NormalizeTags(command.TagsToRemove, nameof(command.TagsToRemove));
 
+        // Sept-23 Phase 10 (10.8): the same rules as single-field edits and the preview.
+        IReadOnlyList<string> authorsToSet = [];
+        if (command.AuthorToSet is not null &&
+            !BulkEditFieldRules.TryParseAuthors(command.AuthorToSet, out authorsToSet))
+        {
+            throw new ArgumentException("Author must hold one to twelve names of at most 256 characters each.", nameof(command));
+        }
+
+        if (command.YearToSet is { } yearToSet && !BulkEditFieldRules.IsValidYear(yearToSet))
+        {
+            throw new ArgumentException("Year must be a whole number from 1 to 9999.", nameof(command));
+        }
+
+        if (command.NewRating is { } newRating && newRating is < 1 or > 5)
+        {
+            throw new ArgumentException("Rating must be from 1 to 5.", nameof(command));
+        }
+
         using CatalogueContextLease lease = await CatalogueContextLease
             .CreateAsync(_contextFactory, _context, cancellationToken)
             .ConfigureAwait(false);
@@ -290,24 +309,39 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
                 cancellationToken).ConfigureAwait(false);
         }
 
-        // Apply status / rating overrides.
-        if (command.NewStatus.HasValue || command.NewRating.HasValue)
+        // Apply lifecycle status, rating, year and author overrides.
+        if (command.NewLifecycleStatus.HasValue || command.NewRating.HasValue ||
+            command.YearToSet.HasValue || command.AuthorToSet is not null)
         {
             var books = await context.Books
+                .Include(b => b.BookAuthors)
                 .Where(b => command.BookIds.Contains(b.BookId))
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
+            var authorCache = new Dictionary<string, AuthorRow>(StringComparer.Ordinal);
 
             foreach (var book in books)
             {
-                if (command.NewStatus.HasValue)
+                if (command.NewLifecycleStatus.HasValue)
                 {
-                    book.Status = command.NewStatus.Value;
+                    book.Status = command.NewLifecycleStatus.Value;
                 }
 
                 if (command.NewRating.HasValue)
                 {
                     book.Rating = command.NewRating.Value;
+                }
+
+                if (command.YearToSet.HasValue)
+                {
+                    book.Year = command.YearToSet.Value;
+                }
+
+                if (command.AuthorToSet is not null)
+                {
+                    await SetAuthorsAsync(context, book, authorsToSet, authorCache, cancellationToken).ConfigureAwait(false);
+                    await SetUserFieldAsync(context, book.BookId, "Author", hasValue: true, string.Join("; ", authorsToSet), cancellationToken)
+                        .ConfigureAwait(false);
                 }
             }
         }
@@ -375,6 +409,234 @@ public sealed class CatalogueWriteService : ICatalogueWriteService
                 After = afterBooks,
             }),
         }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<BulkEditSnapshot>> CaptureBulkEditSnapshotAsync(
+        IReadOnlyList<string> bookIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(bookIds);
+        if (bookIds.Count == 0)
+        {
+            return [];
+        }
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        var rows = await context.Books
+            .AsNoTracking()
+            .Where(b => bookIds.Contains(b.BookId))
+            .Select(b => new
+            {
+                b.BookId,
+                b.Year,
+                b.Status,
+                b.Rating,
+                Authors = b.BookAuthors
+                    .OrderBy(ba => ba.DisplayOrder)
+                    .Select(ba => ba.Author!.NormalizedName)
+                    .ToList(),
+                UserFields = b.MetadataFields
+                    .Where(f => f.Source == "User" && (f.FieldName == "Author" || f.FieldName == "Tags"))
+                    .Select(f => new { f.FieldName, f.Value })
+                    .ToList(),
+                ManualShelfIds = b.ShelfBooks
+                    .Where(sb => sb.Shelf!.ShelfType == 0)
+                    .Select(sb => sb.ShelfId)
+                    .ToList(),
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows
+            .Select(row =>
+            {
+                var author = row.UserFields.FirstOrDefault(f => f.FieldName == "Author");
+                var tags = row.UserFields.FirstOrDefault(f => f.FieldName == "Tags");
+                return new BulkEditSnapshot(
+                    row.BookId,
+                    row.Authors,
+                    author?.Value,
+                    author is not null,
+                    row.Year,
+                    row.Status,
+                    row.Rating,
+                    tags?.Value,
+                    tags is not null,
+                    row.ManualShelfIds);
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task RestoreBulkEditSnapshotAsync(
+        IReadOnlyList<BulkEditSnapshot> snapshots,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshots);
+        if (snapshots.Count == 0)
+        {
+            return;
+        }
+
+        using CatalogueContextLease lease = await CatalogueContextLease
+            .CreateAsync(_contextFactory, _context, cancellationToken)
+            .ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+
+        string[] ids = snapshots.Select(s => s.BookId).Distinct(StringComparer.Ordinal).ToArray();
+        Dictionary<string, BookRow> books = await context.Books
+            .Include(b => b.BookAuthors)
+            .Include(b => b.ShelfBooks)
+            .Where(b => ids.Contains(b.BookId))
+            .ToDictionaryAsync(b => b.BookId, StringComparer.Ordinal, cancellationToken)
+            .ConfigureAwait(false);
+        HashSet<string> manualShelves = (await context.Shelves
+                .Where(s => s.ShelfType == 0)
+                .Select(s => s.ShelfId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false))
+            .ToHashSet(StringComparer.Ordinal);
+        var authorCache = new Dictionary<string, AuthorRow>(StringComparer.Ordinal);
+
+        foreach (BulkEditSnapshot snapshot in snapshots)
+        {
+            if (!books.TryGetValue(snapshot.BookId, out BookRow? book))
+            {
+                continue;
+            }
+
+            book.Year = snapshot.Year;
+            book.Status = snapshot.LifecycleStatus;
+            book.Rating = snapshot.Rating;
+            await SetAuthorsAsync(context, book, snapshot.Authors, authorCache, cancellationToken).ConfigureAwait(false);
+            await SetUserFieldAsync(context, book.BookId, "Author", snapshot.HasUserAuthorField, snapshot.UserAuthorField, cancellationToken)
+                .ConfigureAwait(false);
+            await SetUserFieldAsync(context, book.BookId, "Tags", snapshot.HasUserTags, snapshot.UserTags, cancellationToken)
+                .ConfigureAwait(false);
+
+            HashSet<string> wanted = snapshot.ManualShelfIds
+                .Where(manualShelves.Contains)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (ShelfBookRow membership in book.ShelfBooks
+                         .Where(sb => manualShelves.Contains(sb.ShelfId) && !wanted.Contains(sb.ShelfId))
+                         .ToList())
+            {
+                context.ShelfBooks.Remove(membership);
+            }
+
+            foreach (string shelfId in wanted.Where(id => !book.ShelfBooks.Any(sb => sb.ShelfId == id)))
+            {
+                context.ShelfBooks.Add(new ShelfBookRow
+                {
+                    ShelfId = shelfId,
+                    BookId = book.BookId,
+                    AddedUtc = DateTimeOffset.UtcNow,
+                });
+            }
+        }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await _audit.AppendAsync(new AuditEvent
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            EventType = "BulkEditUndo",
+            TimestampUtc = DateTimeOffset.UtcNow,
+            Payload = System.Text.Json.JsonSerializer.Serialize(new { BookIds = ids }),
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Replaces a book's linked authors with `names`, in order. Rows for authors that stay are
+    // kept (the key is book and author), so no row is deleted and re-inserted in one save.
+    private static async Task SetAuthorsAsync(
+        CatalogueDbContext context,
+        BookRow book,
+        IReadOnlyList<string> names,
+        Dictionary<string, AuthorRow> authorCache,
+        CancellationToken cancellationToken)
+    {
+        var kept = new List<BookAuthorRow>();
+        for (int order = 0; order < names.Count; order++)
+        {
+            string name = names[order];
+            if (!authorCache.TryGetValue(name, out AuthorRow? author))
+            {
+                author = await context.Authors
+                    .FirstOrDefaultAsync(a => a.NormalizedName == name, cancellationToken)
+                    .ConfigureAwait(false);
+                if (author is null)
+                {
+                    author = new AuthorRow { NormalizedName = name, SortName = BuildSortName(name) };
+                    context.Authors.Add(author);
+                }
+
+                authorCache[name] = author;
+            }
+
+            BookAuthorRow? link = book.BookAuthors.FirstOrDefault(ba =>
+                ReferenceEquals(ba.Author, author) || (author.AuthorId != 0 && ba.AuthorId == author.AuthorId));
+            if (link is null)
+            {
+                link = new BookAuthorRow { BookId = book.BookId, Author = author, Role = "Author" };
+                book.BookAuthors.Add(link);
+            }
+
+            link.DisplayOrder = order;
+            kept.Add(link);
+        }
+
+        foreach (BookAuthorRow stale in book.BookAuthors.Where(ba => !kept.Contains(ba)).ToList())
+        {
+            book.BookAuthors.Remove(stale);
+            context.BookAuthors.Remove(stale);
+        }
+    }
+
+    // Upserts or deletes the user-entered metadata row for one field.
+    private static async Task SetUserFieldAsync(
+        CatalogueDbContext context,
+        string bookId,
+        string fieldName,
+        bool hasValue,
+        string? value,
+        CancellationToken cancellationToken)
+    {
+        BookMetadataFieldRow? row = context.BookMetadataFields.Local.FirstOrDefault(f =>
+                f.BookId == bookId && f.FieldName == fieldName && f.Source == "User") ??
+            await context.BookMetadataFields
+                .FirstOrDefaultAsync(f => f.BookId == bookId && f.FieldName == fieldName && f.Source == "User", cancellationToken)
+                .ConfigureAwait(false);
+
+        if (!hasValue)
+        {
+            if (row is not null)
+            {
+                context.BookMetadataFields.Remove(row);
+            }
+
+            return;
+        }
+
+        if (row is null)
+        {
+            row = new BookMetadataFieldRow { BookId = bookId, FieldName = fieldName, Source = "User" };
+            context.BookMetadataFields.Add(row);
+        }
+
+        row.Value = value;
+        row.IsOverridden = true;
+        row.SourceTimestamp = DateTimeOffset.UtcNow;
+    }
+
+    private static string BuildSortName(string name)
+    {
+        int lastSpace = name.LastIndexOf(' ');
+        return lastSpace <= 0 ? name : name[(lastSpace + 1)..] + ", " + name[..lastSpace];
     }
 
     private static async Task ApplyTagsAsync(

@@ -652,6 +652,12 @@ public sealed class Sept23Phase10SelectionTests
         public Task BulkEditAsync(BulkEditCommand command, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
+        public Task<IReadOnlyList<BulkEditSnapshot>> CaptureBulkEditSnapshotAsync(IReadOnlyList<string> bookIds, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<BulkEditSnapshot>>([]);
+
+        public Task RestoreBulkEditSnapshotAsync(IReadOnlyList<BulkEditSnapshot> snapshots, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         private void Mutate(string bookId, Func<IReadOnlyList<string>, IReadOnlyList<string>> change)
         {
             int index = readModel.Books.FindIndex(book => book.BookId == bookId);
