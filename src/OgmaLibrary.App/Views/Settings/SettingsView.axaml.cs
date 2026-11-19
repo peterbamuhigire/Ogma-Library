@@ -18,6 +18,8 @@ public sealed partial class SettingsView : UserControl
 
     private void OpenLogs_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenLogsFolder();
 
+    private void OpenLibraryHealth_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenLibraryHealth?.Invoke();
+
     private void About_Click(object? sender, RoutedEventArgs e)
     {
         e.Handled = true;

@@ -260,6 +260,37 @@ public sealed class Sept23Phase10GridTests
         window.Close();
     }
 
+    [AvaloniaFact]
+    public async Task StatusBadges_ExplainThemselves_InGridAndList()
+    {
+        BookSummaryProjection busy = Book("s", "Status Book", "Ann Author") with
+        {
+            IsLocked = true,
+            IsAvailable = false,
+            Processing = Processing(BookTextStatus.Searchable),
+        };
+        using CatalogueViewModel viewModel = await LoadAsync([busy]);
+
+        foreach (Func<UserControl> create in new Func<UserControl>[] { () => new CatalogueGridView(), () => new CatalogueListView() })
+        {
+            UserControl view = create();
+            view.DataContext = viewModel;
+            Window window = Show(view, 1000, 700);
+
+            List<Border> badges = MainItems(window).Single().GetVisualDescendants().OfType<Border>()
+                .Where(border => border.Classes.Contains("badge") && border.IsEffectivelyVisible)
+                .ToList();
+            Assert.True(badges.Count >= 3, $"{view.GetType().Name}: {badges.Count} visible badges");
+            Assert.All(badges, badge =>
+            {
+                string? tip = ToolTip.GetTip(badge) as string;
+                Assert.False(string.IsNullOrWhiteSpace(tip), $"{view.GetType().Name}: a badge has no tooltip");
+                Assert.DoesNotContain("⟦", tip, StringComparison.Ordinal);
+            });
+            window.Close();
+        }
+    }
+
     [Fact]
     public void VirtualisationSwitch_ZeroSelectsWrapPanel()
     {

@@ -410,6 +410,48 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Localized favourite badge label.</summary>
     public string FavouriteBadgeText => _localization["Catalogue.Badge.Favourite"];
 
+    /// <summary>Tooltip explaining the Indexed badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string IndexedBadgeHelp => _localization["Catalogue.Badge.Indexed.Help"];
+
+    /// <summary>Tooltip explaining the Indexing badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string IndexingBadgeHelp => _localization["Catalogue.Badge.Indexing.Help"];
+
+    /// <summary>Tooltip explaining the IndexFailed badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string IndexFailedBadgeHelp => _localization["Catalogue.Badge.IndexFailed.Help"];
+
+    /// <summary>Tooltip explaining the Embedded badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string EmbeddedBadgeHelp => _localization["Catalogue.Badge.Embedded.Help"];
+
+    /// <summary>Tooltip explaining the Ocr badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string OcrBadgeHelp => _localization["Catalogue.Badge.Ocr.Help"];
+
+    /// <summary>Tooltip explaining the TextSearchable badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextSearchableBadgeHelp => _localization["Catalogue.Badge.TextSearchable.Help"];
+
+    /// <summary>Tooltip explaining the TextPartly badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextPartlyBadgeHelp => _localization["Catalogue.Badge.TextPartly.Help"];
+
+    /// <summary>Tooltip explaining the TextImageOnly badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextImageOnlyBadgeHelp => _localization["Catalogue.Badge.TextImageOnly.Help"];
+
+    /// <summary>Tooltip explaining the TextOcrInProgress badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextOcrInProgressBadgeHelp => _localization["Catalogue.Badge.TextOcrInProgress.Help"];
+
+    /// <summary>Tooltip explaining the TextOcr badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextOcrBadgeHelp => _localization["Catalogue.Badge.TextOcr.Help"];
+
+    /// <summary>Tooltip explaining the TextNone badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextNoneBadgeHelp => _localization["Catalogue.Badge.TextNone.Help"];
+
+    /// <summary>Tooltip explaining the TextOcrFailed badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string TextOcrFailedBadgeHelp => _localization["Catalogue.Badge.TextOcrFailed.Help"];
+
+    /// <summary>Tooltip explaining the Unavailable badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string UnavailableBadgeHelp => _localization["Catalogue.Badge.Unavailable.Help"];
+
+    /// <summary>Tooltip explaining the Locked badge (Sept-23 Phase 10, task 10.12).</summary>
+    public string LockedBadgeHelp => _localization["Catalogue.Badge.Locked.Help"];
+
     /// <summary>Localized quality-score format.</summary>
     public string QualityBadgeFormat => _localization["Catalogue.Badge.QualityFormat"];
 
@@ -922,6 +964,20 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(PageSummaryText));
         OnPropertyChanged(nameof(PreviousPageText));
         OnPropertyChanged(nameof(NextPageText));
+        OnPropertyChanged(nameof(IndexedBadgeHelp));
+        OnPropertyChanged(nameof(IndexingBadgeHelp));
+        OnPropertyChanged(nameof(IndexFailedBadgeHelp));
+        OnPropertyChanged(nameof(EmbeddedBadgeHelp));
+        OnPropertyChanged(nameof(OcrBadgeHelp));
+        OnPropertyChanged(nameof(TextSearchableBadgeHelp));
+        OnPropertyChanged(nameof(TextPartlyBadgeHelp));
+        OnPropertyChanged(nameof(TextImageOnlyBadgeHelp));
+        OnPropertyChanged(nameof(TextOcrInProgressBadgeHelp));
+        OnPropertyChanged(nameof(TextOcrBadgeHelp));
+        OnPropertyChanged(nameof(TextNoneBadgeHelp));
+        OnPropertyChanged(nameof(TextOcrFailedBadgeHelp));
+        OnPropertyChanged(nameof(UnavailableBadgeHelp));
+        OnPropertyChanged(nameof(LockedBadgeHelp));
         OnPropertyChanged(nameof(IndexedBadgeText));
         OnPropertyChanged(nameof(IndexingBadgeText));
         OnPropertyChanged(nameof(IndexFailedBadgeText));

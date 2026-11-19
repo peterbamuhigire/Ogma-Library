@@ -1,17 +1,24 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
-using Avalonia.Layout;
-using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using OgmaLibrary.App.ViewModels.Catalogue;
+using OgmaLibrary.App.Views.Catalogue;
+using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Metadata;
+using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Infrastructure.Localization;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
 
 /// <summary>
-/// Headless UI smoke test: renders the health dashboard data in a minimal Avalonia
-/// panel and captures a screenshot to <c>artifacts/screenshots/health-en.png</c>
-/// (Phase 07 DoD — screenshot captured).
+/// Headless render of the real library health dashboard (Sept-23 Phase 10, META-008). It replaces
+/// the earlier inline fake panel: the shipped <see cref="LibraryHealthView"/> is bound to a
+/// <see cref="LibraryHealthViewModel"/> over fakes, its tiles and actions are checked through their
+/// automation ids, and the frame is captured to <c>artifacts/screenshots/health-en.png</c>.
 /// </summary>
 public sealed class HealthDashboardRenderTests
 {
@@ -25,126 +32,131 @@ public sealed class HealthDashboardRenderTests
         }
     }
 
-    /// <summary>
-    /// Renders a minimal health dashboard panel in the headless Avalonia app and
-    /// saves a screenshot to the artifacts directory.
-    /// </summary>
+    /// <summary>Renders the real dashboard, checks its tiles and captures a screenshot.</summary>
     [AvaloniaFact]
-    public void HealthDashboard_RendersAndCapturesScreenshot_English()
+    public async Task HealthDashboard_RendersTheRealView_AndCapturesScreenshot_English()
     {
-        // Build the health dashboard panel inline using Avalonia primitives.
-        var panel = BuildHealthDashboardPanel("en");
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var health = new LibraryHealthViewModel(
+            new BooksReadModel(),
+            new OneFailedJobService(),
+            new CatalogueFilterViewModel(),
+            localization,
+            new ProvidersOn());
+        await health.LoadAsync();
 
-        var window = new Window
-        {
-            Title = "Ogma Library — Health Dashboard",
-            Width = 800,
-            Height = 600,
-            Background = new SolidColorBrush(Color.Parse("#F8F5F0")),
-            Content = panel,
-        };
-
+        var view = new LibraryHealthView { DataContext = health };
+        var window = new Window { Width = 1100, Height = 760, Content = view };
         window.Show();
         Dispatcher.UIThread.RunJobs();
+
+        health.ActivateTile(LibraryHealthTileKind.FailedJobs);
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+
+        Dictionary<string, Button> tiles = window.GetVisualDescendants().OfType<Button>()
+            .Where(button => AutomationProperties.GetAutomationId(button)?.StartsWith("Health.Tile.", StringComparison.Ordinal) == true)
+            .ToDictionary(button => AutomationProperties.GetAutomationId(button)!);
+        Assert.Equal(8, tiles.Count);
+        Assert.Contains("1", AutomationProperties.GetName(tiles["Health.Tile.MissingAuthor"]), StringComparison.Ordinal);
+        Assert.All(tiles.Values, tile =>
+        {
+            Assert.DoesNotContain("⟦", AutomationProperties.GetName(tile), StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(ToolTip.GetTip(tile) as string));
+        });
+
+        Control failedJobs = window.GetVisualDescendants().OfType<Control>()
+            .Single(control => AutomationProperties.GetAutomationId(control) == "Health.FailedJobs");
+        Assert.True(failedJobs.IsEffectivelyVisible);
+        Control batch = window.GetVisualDescendants().OfType<Control>()
+            .Single(control => AutomationProperties.GetAutomationId(control) == "Health.Batch");
+        Assert.True(batch.IsEffectivelyVisible);
 
         var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
 
         string screenshotPath = Path.Combine(ArtifactsDir, "health-en.png");
         frame!.Save(screenshotPath);
-
         DocScreenshots.Publish(screenshotPath, "health-en.png");
-
         Assert.True(File.Exists(screenshotPath), $"Screenshot not saved to {screenshotPath}");
+        window.Close();
     }
 
-    private static StackPanel BuildHealthDashboardPanel(string culture)
+    private sealed class OneFailedJobService : ILibraryHealthService
     {
-        // Build a minimal but representative health dashboard layout.
-        string header = culture == "fr" ? "Tableau de bord de la bibliothèque" : "Library Health Dashboard";
-        string duplicatesLabel = culture == "fr" ? "Doublons" : "Duplicates";
-        string missingCoversLabel = culture == "fr" ? "Couvertures manquantes" : "Missing Covers";
-        string missingIsbnsLabel = culture == "fr" ? "ISBN manquants" : "Missing ISBNs";
-        string unavailableLabel = culture == "fr" ? "Fichiers non disponibles" : "Unavailable Files";
-        string failedJobsLabel = culture == "fr" ? "Tâches échouées" : "Failed Jobs";
+        public Task<LibraryHealthSnapshot> GetHealthSnapshotAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new LibraryHealthSnapshot(
+                [], [], [], [],
+                [new FailedJobEntry(7, "Enrich", "b", "provider_timeout", DateTimeOffset.UtcNow)],
+                DateTimeOffset.UtcNow,
+                [new BatchEnrichmentRunEntry("batch-1", 4, 2, 0, 1, 1, 0)]));
 
-        var sections = new[]
-        {
-            (duplicatesLabel, "0 books", "#C8856B"),
-            (missingCoversLabel, "3 books", "#8B6914"),
-            (missingIsbnsLabel, "12 books", "#4A6741"),
-            (unavailableLabel, "1 book", "#4A5568"),
-            (failedJobsLabel, "0 jobs", "#6B46C1"),
-        };
+        public Task RetryJobAsync(long jobId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-        var stackPanel = new StackPanel
-        {
-            Spacing = 0,
-            Orientation = Orientation.Vertical,
-        };
+        public Task PauseBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
 
-        // Header bar
-        stackPanel.Children.Add(new Border
+        public Task ResumeBatchEnrichmentAsync(string batchId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<string> ExportFailedJobsCsvAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(string.Empty);
+    }
+
+    /// <summary>Two books; the second has no author, so the missing-author tile shows 1.</summary>
+    private sealed class BooksReadModel : ICatalogueReadModel
+    {
+        private static readonly BookSummaryProjection[] Books =
+        [
+            new("a", "Alpha Atlas", ["Ann Author"], null, 0, null, [], null, true, 2020),
+            new("b", "Bravo Book", [], null, 0, null, [], null, true, 2021),
+        ];
+
+        public async IAsyncEnumerable<BookSummaryProjection> GetBookSummariesAsync(
+            CatalogueFilter filter,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            Background = new SolidColorBrush(Color.Parse("#3D2B1F")),
-            Padding = new Avalonia.Thickness(24, 16),
-            Child = new TextBlock
+            await Task.CompletedTask;
+            foreach (BookSummaryProjection book in Books)
             {
-                Text = header,
-                FontSize = 20,
-                FontWeight = FontWeight.SemiBold,
-                Foreground = new SolidColorBrush(Colors.White),
-            },
-        });
-
-        // Section rows
-        var sectionsPanel = new StackPanel { Spacing = 8, Margin = new Avalonia.Thickness(16) };
-
-        foreach (var (label, count, color) in sections)
-        {
-            var rowBorder = new Border
-            {
-                Background = new SolidColorBrush(Colors.White),
-                CornerRadius = new Avalonia.CornerRadius(8),
-                Padding = new Avalonia.Thickness(16, 12),
-                Child = new DockPanel
+                if (!CatalogueCriteriaEvaluator.Matches(book, filter))
                 {
-                    LastChildFill = false,
-                    Children =
-                    {
-                        new Border
-                        {
-                            Background = new SolidColorBrush(Color.Parse(color)),
-                            Width = 8,
-                            CornerRadius = new Avalonia.CornerRadius(4),
-                            Margin = new Avalonia.Thickness(0, 0, 12, 0),
-                            [DockPanel.DockProperty] = Dock.Left,
-                        },
-                        new TextBlock
-                        {
-                            Text = label,
-                            FontSize = 14,
-                            Foreground = new SolidColorBrush(Color.Parse("#2D3748")),
-                            VerticalAlignment = VerticalAlignment.Center,
-                            [DockPanel.DockProperty] = Dock.Left,
-                        },
-                        new TextBlock
-                        {
-                            Text = count,
-                            FontSize = 12,
-                            Foreground = new SolidColorBrush(Color.Parse("#718096")),
-                            VerticalAlignment = VerticalAlignment.Center,
-                            [DockPanel.DockProperty] = Dock.Right,
-                        },
-                    },
-                },
-            };
+                    continue;
+                }
 
-            sectionsPanel.Children.Add(rowBorder);
+                yield return book;
+            }
         }
 
-        stackPanel.Children.Add(sectionsPanel);
+        public Task<BookDetailProjection?> GetBookDetailAsync(string bookId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<BookDetailProjection?>(null);
 
-        return stackPanel;
+        public async IAsyncEnumerable<ShelfProjection> GetShelvesAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public Task<ReadingProgressProjection?> GetProgressAsync(string bookId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<ReadingProgressProjection?>(null);
+    }
+
+    private sealed class ProvidersOn : ICapabilityState
+    {
+        public event EventHandler? Changed { add { } remove { } }
+
+        public bool AreMetadataProvidersEnabled => true;
+
+        public bool IsAiConfigured => false;
+
+        public bool IsClassroomHostEnabled => false;
+
+        public bool IsClassroomClientConnected => false;
+
+        public bool IsClassroomAvailable => false;
+
+        public bool IsShelf3DAvailable => false;
     }
 }

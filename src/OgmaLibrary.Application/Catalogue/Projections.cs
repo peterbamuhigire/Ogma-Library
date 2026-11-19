@@ -122,10 +122,12 @@ public sealed record BookSummaryProjection(
     /// <summary>Whether a library-relative file path is available for display.</summary>
     public bool HasRelativePath => !string.IsNullOrWhiteSpace(RelativePath);
 
-    /// <summary>Safe display value for cards when bibliographic authors are absent.</summary>
-    public string PrimaryAuthor =>
-        Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim() ??
-        "Unknown author";
+    /// <summary>
+    /// The first recorded author, or <see langword="null"/> when none is recorded; the view layer
+    /// supplies the localised "Unknown author" wording (Sept-23 Phase 10, task 10.12).
+    /// </summary>
+    public string? PrimaryAuthor =>
+        Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim();
 
     /// <summary>
     /// The first real author, or null when none is recorded (generated covers omit the author

@@ -157,14 +157,14 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
 
     /// <summary>Accessible, localised text for the current sort direction.</summary>
     public string SortDirectionText => SortAscending
-        ? Localize("Catalogue.Sort.Ascending", "Ascending")
-        : Localize("Catalogue.Sort.Descending", "Descending");
+        ? Localize("Catalogue.Sort.Ascending")
+        : Localize("Catalogue.Sort.Descending");
 
     /// <summary>The localised menu label for a sort field.</summary>
     /// <param name="field">The sort field.</param>
     /// <returns>The label, for example "Sort by date added".</returns>
     public string SortFieldLabel(CatalogueSortField field) =>
-        Localize("Catalogue.Sort." + field, field.ToString());
+        Localize("Catalogue.Sort." + field);
 
     /// <summary>Toggles the direction of the current stable sort.</summary>
     public void ToggleSortDirection()
@@ -234,18 +234,9 @@ public sealed class CatalogueFilterViewModel : INotifyPropertyChanged
     /// <summary>Raises change notifications for culture-dependent text.</summary>
     public void RefreshLocalizedText() => OnPropertyChanged(nameof(SortDirectionText));
 
-    private string Localize(string key, string fallback)
-    {
-        if (_localization is null)
-        {
-            return fallback;
-        }
-
-        string value = _localization[key];
-        return string.IsNullOrWhiteSpace(value) || string.Equals(value, key, StringComparison.Ordinal)
-            ? fallback
-            : value;
-    }
+    // Sept-23 Phase 10 (task 10.12): no English fallback. Without a service the resource key is
+    // shown, which the key-parity gate guarantees never reaches a localised build.
+    private string Localize(string key) => _localization?[key] ?? key;
 
     private void SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {

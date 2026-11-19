@@ -1,0 +1,200 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+             x:Class="OgmaLibrary.App.Views.Catalogue.LibraryHealthView"
+             x:DataType="vm:LibraryHealthViewModel"
+             AutomationProperties.AutomationId="Health.View">
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="24,20" Spacing="16" MaxWidth="1100" HorizontalAlignment="Stretch">
+
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{Binding Title}"
+                     FontSize="{DynamicResource Type.Size.Headline}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     AutomationProperties.HeadingLevel="1" />
+          <TextBlock Text="{Binding Intro}"
+                     TextWrapping="Wrap"
+                     FontSize="{DynamicResource Type.Size.Body}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          <TextBlock Text="{Binding LoadedText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                     AutomationProperties.AutomationId="Health.Loaded" />
+        </StackPanel>
+        <Button Grid.Column="1"
+                Margin="8,0,0,0"
+                VerticalAlignment="Top"
+                Padding="10,5"
+                CornerRadius="{DynamicResource Radius.S}"
+                IsEnabled="{Binding !IsLoading}"
+                AutomationProperties.AutomationId="Health.Refresh"
+                AutomationProperties.Name="{Binding RefreshText}"
+                Click="Refresh_Click">
+          <TextBlock Text="{Binding RefreshText}" FontSize="{DynamicResource Type.Size.Small}" />
+        </Button>
+        <Button Grid.Column="2"
+                Margin="8,0,0,0"
+                VerticalAlignment="Top"
+                Padding="10,5"
+                CornerRadius="{DynamicResource Radius.S}"
+                AutomationProperties.AutomationId="Health.Back"
+                AutomationProperties.Name="{Binding BackText}"
+                Click="Back_Click">
+          <TextBlock Text="{Binding BackText}" FontSize="{DynamicResource Type.Size.Small}" />
+        </Button>
+      </Grid>
+
+      <Border IsVisible="{Binding HasLoadFailed}"
+              Padding="12,8"
+              CornerRadius="{DynamicResource Radius.S}"
+              BorderThickness="1"
+              BorderBrush="{DynamicResource Brush.Status.Danger}"
+              Background="{DynamicResource Brush.Surface.Card}"
+              AutomationProperties.AutomationId="Health.LoadFailed"
+              AutomationProperties.LiveSetting="Assertive">
+        <TextBlock Text="{Binding LoadFailedText}"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding Tiles}"
+                    AutomationProperties.AutomationId="Health.Tiles"
+                    AutomationProperties.Name="{Binding TilesName}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:LibraryHealthTileViewModel">
+            <Button Classes="tile"
+                    Width="240"
+                    MinHeight="96"
+                    Margin="0,0,12,12"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    AutomationProperties.AutomationId="{Binding AutomationId}"
+                    AutomationProperties.Name="{Binding AccessibleName}"
+                    AutomationProperties.HelpText="{Binding Help}"
+                    ToolTip.Tip="{Binding Help}"
+                    Click="Tile_Click">
+              <Grid ColumnDefinitions="4,*">
+                <Border Width="4"
+                        CornerRadius="{DynamicResource Radius.XS}"
+                        Background="{DynamicResource Brush.Status.Warning}"
+                        IsVisible="{Binding HasIssues}" />
+                <Border Grid.Column="0"
+                        Width="4"
+                        CornerRadius="{DynamicResource Radius.XS}"
+                        Background="{DynamicResource Brush.Status.Success}"
+                        IsVisible="{Binding !HasIssues}" />
+                <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="4">
+                  <TextBlock Text="{Binding Label}"
+                             TextWrapping="Wrap"
+                             FontWeight="SemiBold"
+                             FontSize="{DynamicResource Type.Size.BodyMedium}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <TextBlock Text="{Binding CountText}"
+                             FontSize="{DynamicResource Type.Size.Title}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                </StackPanel>
+              </Grid>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Border IsVisible="{Binding IsFailedJobsExpanded}"
+              Padding="14,12"
+              CornerRadius="{DynamicResource Radius.M}"
+              BorderThickness="1"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              Background="{DynamicResource Brush.Surface.Card}"
+              AutomationProperties.AutomationId="Health.FailedJobs">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding FailedJobsTitle}"
+                     FontWeight="SemiBold"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     AutomationProperties.HeadingLevel="2" />
+          <TextBlock Text="{Binding NoFailedJobsText}"
+                     IsVisible="{Binding !HasFailedJobs}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          <ItemsControl ItemsSource="{Binding FailedJobs}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:LibraryHealthFailedJobRow">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                  <TextBlock Text="{Binding Text}"
+                             TextWrapping="Wrap"
+                             VerticalAlignment="Center"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <Button Grid.Column="1"
+                          Margin="8,0,0,0"
+                          Padding="10,5"
+                          Classes="primary"
+                          CornerRadius="{DynamicResource Radius.S}"
+                          AutomationProperties.Name="{Binding RetryName}"
+                          Click="Retry_Click">
+                    <TextBlock Text="{Binding $parent[UserControl].((vm:LibraryHealthViewModel)DataContext).RetryText}"
+                               FontSize="{DynamicResource Type.Size.Small}" />
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border IsVisible="{Binding IsBatchControlsVisible}"
+              Padding="14,12"
+              CornerRadius="{DynamicResource Radius.M}"
+              BorderThickness="1"
+              BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+              Background="{DynamicResource Brush.Surface.Card}"
+              AutomationProperties.AutomationId="Health.Batch">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding BatchTitle}"
+                     FontWeight="SemiBold"
+                     FontSize="{DynamicResource Type.Size.Subtitle}"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     AutomationProperties.HeadingLevel="2" />
+          <ItemsControl ItemsSource="{Binding BatchRuns}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:LibraryHealthBatchRow">
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,6">
+                  <TextBlock Text="{Binding Text}"
+                             TextWrapping="Wrap"
+                             VerticalAlignment="Center"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <Button Grid.Column="1"
+                          Margin="8,0,0,0"
+                          Padding="10,5"
+                          CornerRadius="{DynamicResource Radius.S}"
+                          IsEnabled="{Binding CanPause}"
+                          AutomationProperties.Name="{Binding PauseName}"
+                          Click="Pause_Click">
+                    <TextBlock Text="{Binding $parent[UserControl].((vm:LibraryHealthViewModel)DataContext).PauseText}"
+                               FontSize="{DynamicResource Type.Size.Small}" />
+                  </Button>
+                  <Button Grid.Column="2"
+                          Margin="8,0,0,0"
+                          Padding="10,5"
+                          CornerRadius="{DynamicResource Radius.S}"
+                          IsEnabled="{Binding CanResume}"
+                          AutomationProperties.Name="{Binding ResumeName}"
+                          Click="Resume_Click">
+                    <TextBlock Text="{Binding $parent[UserControl].((vm:LibraryHealthViewModel)DataContext).ResumeText}"
+                               FontSize="{DynamicResource Type.Size.Small}" />
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

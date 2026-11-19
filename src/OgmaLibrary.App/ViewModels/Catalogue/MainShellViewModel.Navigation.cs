@@ -179,6 +179,7 @@ public sealed partial class MainShellViewModel
         RouteKind.Collections => ShellView.Collections,
         RouteKind.Activity => ShellView.Activity,
         RouteKind.Settings => ShellView.Settings,
+        RouteKind.LibraryHealth => ShellView.LibraryHealth,
         _ => ShellView.Catalogue,
     };
 
@@ -244,6 +245,15 @@ public sealed partial class MainShellViewModel
 
     /// <summary>True when the Settings destination is current.</summary>
     public bool IsSettingsActive => CurrentRoute.Kind == RouteKind.Settings;
+
+    /// <summary>True when the library health dashboard is shown (Sept-23 Phase 10, META-008).</summary>
+    public bool IsLibraryHealthActive => CurrentRoute.Kind == RouteKind.LibraryHealth;
+
+    /// <summary>Whether the library health dashboard is offered.</summary>
+    public bool IsLibraryHealthAvailable => LibraryHealth is not null;
+
+    /// <summary>Label of the status-bar entry to the library health dashboard.</summary>
+    public string LibraryHealthStatusLabel => _localization["Shell.Status.Health"];
 
     /// <summary>Whether the search destination is shown (compatibility name).</summary>
     public bool IsSearchPanelOpen
@@ -744,6 +754,21 @@ public sealed partial class MainShellViewModel
     /// <summary>Opens the reading-plan route.</summary>
     public void OpenReadingPlan() => NavigateTo(new NavigationRoute(RouteKind.ReadingPlan));
 
+    /// <summary>Opens the library health dashboard (Settings, status bar and palette entry points).</summary>
+    public void OpenLibraryHealth()
+    {
+        if (LibraryHealth is null)
+        {
+            return;
+        }
+
+        if (!NavigateTo(new NavigationRoute(RouteKind.LibraryHealth)))
+        {
+            // Already shown: refresh the counts instead.
+            UiActions.Run(() => LibraryHealth.LoadAsync(), "shell.health.refresh");
+        }
+    }
+
     /// <summary>Opens the 3D bookshelf route when its capability is available.</summary>
     public void OpenBookshelf3D() => NavigateTo(new NavigationRoute(RouteKind.Shelf3D));
 
@@ -936,6 +961,8 @@ public sealed partial class MainShellViewModel
                 _ => Run(() => IsFilterPanelOpen = true)))
             .Add(new ShellCommand("library.folders", "Command.Library.Folders", CommandGroup.Library,
                 _ => Run(() => IsFoldersDrawerOpen = true), () => LibraryFolders is not null))
+            .Add(new ShellCommand("library.health", "Command.Library.Health", CommandGroup.Library,
+                _ => Run(OpenLibraryHealth), () => LibraryHealth is not null))
             .Add(new ShellCommand("library.reconciliation", "Command.Library.Reconciliation", CommandGroup.Library,
                 _ => IsReconciliationReviewPanelOpen ? Task.CompletedTask : ToggleReconciliationReviewsAsync(),
                 () => ReconciliationReviews is not null))
@@ -1024,6 +1051,9 @@ public sealed partial class MainShellViewModel
         {
             case RouteKind.Settings when Settings is not null:
                 Settings.SelectSection(e.Current.Section);
+                break;
+            case RouteKind.LibraryHealth when LibraryHealth is not null:
+                UiActions.Run(() => LibraryHealth.LoadAsync(), "shell.route.health");
                 break;
             case RouteKind.Activity when IndexManager is not null:
                 UiActions.Run(() => IndexManager.LoadAsync(), "shell.route.activity");
@@ -1158,7 +1188,7 @@ public sealed partial class MainShellViewModel
                      nameof(SettingsIntro), nameof(SettingsCapabilitiesTitle), nameof(ClassroomSmartSearchLabel),
                      nameof(ShortcutsTitle), nameof(CloseLabel), nameof(CommandPaletteCloseLabel), nameof(ShortcutRows), nameof(ExportDiagnosticsLabel),
                      nameof(CapabilityRows), nameof(ActiveFilterChips), nameof(RailToggleLabel), nameof(RailName),
-                     nameof(DrawerTitle),
+                     nameof(DrawerTitle), nameof(LibraryHealthStatusLabel),
                  })
         {
             OnPropertyChanged(name);
@@ -1195,7 +1225,7 @@ public sealed partial class MainShellViewModel
                      nameof(IsReadingDestination), nameof(IsSharingSettingsActive), nameof(IsStudentSmartSearchActive),
                      nameof(IsClassroomActive), nameof(IsAdvisorActive), nameof(IsReadingPlanActive), nameof(IsAdvisorDestination),
                      nameof(IsBookshelf3DActive), nameof(IsSearchActive), nameof(IsSearchPanelOpen), nameof(IsCollectionsActive),
-                     nameof(IsActivityActive), nameof(IsIndexManagerOpen), nameof(IsSettingsActive), nameof(HasActiveFilterChips),
+                     nameof(IsActivityActive), nameof(IsIndexManagerOpen), nameof(IsSettingsActive), nameof(IsLibraryHealthActive), nameof(HasActiveFilterChips),
                      nameof(HasNeedsAttention), nameof(IsLibraryNoticeRowVisible),
                      nameof(IsGridViewSelected), nameof(IsListViewSelected), nameof(IsDirectoryViewSelected),
                      nameof(IsClassroomTabsVisible),

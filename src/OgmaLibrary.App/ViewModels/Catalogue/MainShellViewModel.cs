@@ -60,6 +60,9 @@ public enum ShellView
 
     /// <summary>The Settings destination (Sept-23 Phase 07; content arrives in Phase 08).</summary>
     Settings = 11,
+
+    /// <summary>The library health dashboard, owned by the Library destination (Sept-23 Phase 10).</summary>
+    LibraryHealth = 12,
 }
 
 /// <summary>
@@ -162,6 +165,7 @@ public sealed partial class MainShellViewModel :
     /// <param name="preferences">The shared preference controller (Sept-23 Phase 08); built from the store when null.</param>
     /// <param name="settings">The Settings destination view model (Sept-23 Phase 08).</param>
     /// <param name="selection">The selection toolbar and shelf membership (Sept-23 Phase 10).</param>
+    /// <param name="libraryHealth">The library health dashboard (Sept-23 Phase 10, META-008).</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -190,7 +194,8 @@ public sealed partial class MainShellViewModel :
         ICapabilityState? capabilities = null,
         UserPreferencesController? preferences = null,
         SettingsViewModel? settings = null,
-        CatalogueSelectionViewModel? selection = null)
+        CatalogueSelectionViewModel? selection = null,
+        LibraryHealthViewModel? libraryHealth = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -212,6 +217,17 @@ public sealed partial class MainShellViewModel :
         Bookshelf3D = bookshelf3D;
         ReconciliationReviews = reconciliationReviews;
         LibraryFolders = libraryFolders;
+        LibraryHealth = libraryHealth;
+        if (LibraryHealth is not null)
+        {
+            LibraryHealth.ShowCatalogueRequested += (_, _) => NavigateTo(NavigationRoute.Library);
+            LibraryHealth.ShowNeedsAttentionRequested += (_, _) =>
+            {
+                NavigateTo(NavigationRoute.Library);
+                ShowNeedsAttention();
+            };
+        }
+
         _settingsService = settingsService;
         _orchestrator = orchestrator;
         _libraryRootService = libraryRootService;
@@ -332,6 +348,9 @@ public sealed partial class MainShellViewModel :
 
     /// <summary>The Index Manager panel view model.</summary>
     public IndexManagerViewModel? IndexManager { get; }
+
+    /// <summary>The library health dashboard (Sept-23 Phase 10, META-008).</summary>
+    public LibraryHealthViewModel? LibraryHealth { get; }
 
     /// <summary>The Phase 18 classroom student smart-search view model.</summary>
     public StudentSmartSearchViewModel? StudentSmartSearch { get; }

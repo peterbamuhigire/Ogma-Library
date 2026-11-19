@@ -55,7 +55,7 @@ public sealed class CatalogueDirectoryViewRenderTests
     [AvaloniaFact]
     public void CatalogueFilter_ShellBindingsApplyTitleAuthorAndSortDirection()
     {
-        var filter = new CatalogueFilterViewModel();
+        var filter = new CatalogueFilterViewModel(new InMemoryLocalizationService());
         filter.TitleSearch = "systems";
         filter.AuthorSearch = "Meadows";
         filter.SortField = CatalogueSortField.Year;

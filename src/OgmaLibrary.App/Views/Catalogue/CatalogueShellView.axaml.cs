@@ -569,6 +569,8 @@ public partial class CatalogueShellView : UserControl
     private void AddLooseFolder_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => ViewModel?.AddLooseFolderAsync() ?? Task.CompletedTask, "catalogue.add_loose_folder_click");
 
+    private void OpenLibraryHealth_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenLibraryHealth();
+
     private void ChooseFolderButton_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => ChooseFolderButton_ClickAsync(sender), "catalogue.choose_folder_button_click");
 

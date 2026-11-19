@@ -324,6 +324,205 @@ public sealed class CatalogueOrganiseTests
             context.Mark("files.untouched");
         });
 
+    /// <summary>
+    /// Oracle (META-008): the status-bar entry opens the health dashboard; the missing-author tile
+    /// shows a non-zero count and opens the catalogue filtered to at most that many cards; the
+    /// Needs attention tile opens the needs-attention list.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(E2ESettings.SizeData), MemberType = typeof(E2ESettings))]
+    [Trait("Category", "E2E")]
+    [Trait("Journey", "J-CAT-5")]
+    [Trait("Tag", "Catalogue")]
+    public void JCat5_HealthDashboard_JumpsToTheAffectedBooks(string size) =>
+        Journey.Run("J-CAT-5", size, JourneySupport.Standard, context =>
+        {
+            context.Launch(Shell.SeedEnvironment(context));
+            Shell.WaitReady(context);
+            Shell.AddCorpusLibrary(context);
+            int all = Shell.WaitForCatalogue(context, minimum: 3, stableFor: TimeSpan.FromSeconds(2)).Length;
+            AutomationElement window = context.RequireApp.MainWindow;
+
+            // 1. Open the dashboard from the status bar.
+            OpenHealth(window);
+            AutomationElement tile = Uia.WaitUntil(
+                () => Uia.TryFind(window, "Health.Tile.MissingAuthor") is { } t && FirstNumber(Name(t)) > 0 ? t : null,
+                TimeSpan.FromSeconds(30),
+                "a missing-author tile with a non-zero count");
+            int missing = FirstNumber(Name(tile));
+            context.Record("health.missingAuthor", missing);
+            context.Mark("health.opened");
+            context.Shot("health-dashboard");
+
+            // 2. The tile replaces the filter and shows the catalogue with only the affected books.
+            Uia.Activate(tile);
+            Assert.True(
+                Uia.Poll(
+                    () => Uia.TryFind(window, "Health.View") is not { IsOffscreen: false } &&
+                          Shell.CatalogueItems(context) is { Length: > 0 } now &&
+                          now.Length <= missing && now.Length < all,
+                    TimeSpan.FromSeconds(15),
+                    intervalMs: 300),
+                $"The missing-author tile did not show at most {missing} filtered cards.");
+            context.Record("catalogue.shown", Shell.CatalogueItems(context).Select(Id).ToArray());
+            context.Mark("tile.filtered");
+            context.Shot("health-missing-author");
+
+            // 3. Needs attention opens the needs-attention list.
+            OpenHealth(window);
+            Uia.Activate(Uia.WaitFor(window, "Health.Tile.NeedsAttention", TimeSpan.FromSeconds(15)));
+            Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.NeedsAttention") is { IsOffscreen: false } list ? list : null,
+                TimeSpan.FromSeconds(15),
+                "the needs-attention list");
+            context.Mark("tile.needsAttention");
+            context.Shot("health-needs-attention");
+        });
+
+    /// <summary>
+    /// G10 (Organise): create a shelf and add a book to it, save a smart shelf from the
+    /// missing-author filter, bulk-set an author and undo it, then merge two books and undo it.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(E2ESettings.SizeData), MemberType = typeof(E2ESettings))]
+    [Trait("Category", "E2E")]
+    [Trait("Journey", "G10")]
+    [Trait("Tag", "Catalogue")]
+    public void G10_Organise(string size) =>
+        Journey.Run("G10", size, JourneySupport.Standard, context =>
+        {
+            context.Launch(Shell.SeedEnvironment(context));
+            Shell.WaitReady(context);
+            Shell.AddCorpusLibrary(context);
+            Shell.WaitForCatalogue(context, minimum: 3, stableFor: TimeSpan.FromSeconds(2));
+            AutomationElement window = context.RequireApp.MainWindow;
+            const string smartName = "Needs an author";
+
+            // 1. Shelf: create it and add one book through the selection toolbar.
+            Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Collections"));
+            Uia.SetText(Uia.WaitFor(window, "Collections.NewName"), CollectionName);
+            Uia.Activate(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Collections.Create") is { } c && c.IsEnabled ? c : null,
+                TimeSpan.FromSeconds(5),
+                "an enabled Create button"));
+            Uia.WaitUntil(() => FindCollectionRow(window), TimeSpan.FromSeconds(10), $"the '{CollectionName}' row");
+            Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Library"));
+            AutomationElement[] items = Shell.WaitForCatalogue(context, minimum: 3, stableFor: TimeSpan.FromSeconds(2));
+            Native.ForceForeground(context.RequireApp.Handle);
+            Click(items[0]);
+            Click(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Selection.AddToShelf") is { } a && a.IsEnabled ? a : null,
+                TimeSpan.FromSeconds(10),
+                "the selection toolbar's Add to collection button"));
+            Click(Uia.WaitUntil(() => FindPopupMenuItem(context, CollectionName), TimeSpan.FromSeconds(5), $"the '{CollectionName}' menu entry"));
+            Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Collections"));
+            Assert.True(
+                Uia.Poll(() => FindCollectionRow(window) is { } row && RowCount(row) == 1, TimeSpan.FromSeconds(10), intervalMs: 300),
+                "The shelf did not count the added book.");
+            context.Mark("shelf.created");
+
+            // 2. Smart shelf: save the missing-author filter under a name; it lists as smart.
+            Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Library"));
+            Uia.Activate(Uia.WaitFor(window, "Shell.Action.Filter"));
+            AutomationElement missingAuthor = Uia.WaitFor(window, "Catalogue.Filter.Missing.Author");
+            missingAuthor.Patterns.Toggle.Pattern.Toggle();
+            Uia.SetText(Uia.WaitFor(window, "Catalogue.Filter.SmartShelfName"), smartName);
+            Uia.Activate(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Filter.SaveSmartShelf") is { } s && s.IsEnabled ? s : null,
+                TimeSpan.FromSeconds(5),
+                "an enabled Save smart shelf button"));
+            Uia.WaitFor(window, "Catalogue.Filter.SmartShelfStatus", TimeSpan.FromSeconds(10));
+            context.Shot("smart-shelf-saved");
+            Uia.Activate(Uia.WaitFor(window, "Shell.Drawer.Close"));
+            AutomationElement[] unauthored = Shell.WaitForCatalogue(context, minimum: 1, stableFor: TimeSpan.FromSeconds(2));
+            Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Collections"));
+            AutomationElement smartRow = Uia.WaitUntil(
+                () => Uia.TryFind(window, "Collections.List") is { } list
+                    ? Uia.ListItems(list).FirstOrDefault(item => Name(item) == smartName)
+                    : null,
+                TimeSpan.FromSeconds(10),
+                $"the '{smartName}' smart shelf row");
+            Assert.NotNull(Uia.TryFind(smartRow, "Collections.SmartShelf"));
+            context.Mark("smartShelf.saved");
+
+            // 3. Bulk edit and undo, on one book still missing an author.
+            Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Library"));
+            unauthored = Shell.WaitForCatalogue(context, minimum: 1, stableFor: TimeSpan.FromSeconds(2));
+            string edited = Id(unauthored[0]);
+            Native.ForceForeground(context.RequireApp.Handle);
+            Click(unauthored[0]);
+            Click(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Selection.Edit") is { } e && e.IsEnabled ? e : null,
+                TimeSpan.FromSeconds(10),
+                "an enabled Edit... button"));
+            AutomationElement dialog = Uia.WaitUntil(() => FindTopLevel(context, "BulkEdit.Dialog"), TimeSpan.FromSeconds(10), "the bulk-edit dialog");
+            Uia.SetText(Uia.WaitFor(dialog, "BulkEdit.Value"), "Journey Author");
+            Uia.Activate(Uia.WaitUntil(
+                () => Uia.TryFind(dialog, "BulkEdit.Apply") is { } a && a.IsEnabled ? a : null,
+                TimeSpan.FromSeconds(5),
+                "an enabled Apply button"));
+            Assert.True(
+                Uia.Poll(() => !Shell.CatalogueItems(context).Select(Id).Contains(edited), TimeSpan.FromSeconds(15), intervalMs: 300),
+                "The edited book still shows under the missing-author filter.");
+            Uia.Activate(Uia.WaitFor(window, "Shell.Toast.Action", TimeSpan.FromSeconds(10)));
+            Assert.True(
+                Uia.Poll(() => Shell.CatalogueItems(context).Select(Id).Contains(edited), TimeSpan.FromSeconds(15), intervalMs: 300),
+                "Undo did not bring the edited book back.");
+            context.Mark("bulkEdit.undone");
+
+            // 4. Merge and undo, on the whole library.
+            Uia.Activate(Uia.WaitFor(window, "Catalogue.Filter.Clear"));
+            items = Shell.WaitForCatalogue(context, minimum: 3, stableFor: TimeSpan.FromSeconds(2));
+            AutomationElement[] plain = items
+                .Where(item => !Name(item).Contains("copies", StringComparison.Ordinal) && !Name(item).Contains("1 work", StringComparison.Ordinal))
+                .Take(2)
+                .ToArray();
+            Assert.Equal(2, plain.Length);
+            string[] picked = plain.Select(Id).ToArray();
+            int before = items.Length;
+            Native.ForceForeground(context.RequireApp.Handle);
+            Click(plain[0]);
+            using (Keyboard.Pressing(VirtualKeyShort.CONTROL))
+            {
+                Click(plain[1]);
+            }
+
+            Click(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Selection.Merge") is { } m && m.IsEnabled ? m : null,
+                TimeSpan.FromSeconds(10),
+                "an enabled Merge button"));
+            Assert.True(
+                Uia.Poll(() => Shell.CatalogueItems(context).Length == before - 1, TimeSpan.FromSeconds(15), intervalMs: 300),
+                "Merging did not show one card in place of two.");
+            Uia.Activate(Uia.WaitFor(window, "Shell.Toast.Action", TimeSpan.FromSeconds(10)));
+            Assert.True(
+                Uia.Poll(
+                    () => Shell.CatalogueItems(context) is { } now && now.Length == before && picked.All(id => now.Select(Id).Contains(id)),
+                    TimeSpan.FromSeconds(15),
+                    intervalMs: 300),
+                "Undo did not bring both merged books back.");
+            context.Mark("merge.undone");
+            context.Shot("g10-done");
+        });
+
+    private static void OpenHealth(AutomationElement window)
+    {
+        Uia.Activate(Uia.WaitUntil(
+            () => Uia.TryFind(window, "Shell.Status.LibraryHealth") is { } h && h.IsEnabled ? h : null,
+            TimeSpan.FromSeconds(10),
+            "the status bar's Library health button"));
+        Uia.WaitUntil(
+            () => Uia.TryFind(window, "Health.View") is { IsOffscreen: false } view ? view : null,
+            TimeSpan.FromSeconds(10),
+            "the library health dashboard");
+    }
+
+    private static int FirstNumber(string text)
+    {
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(text, "[0-9]+");
+        return match.Success ? int.Parse(match.Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+    }
+
     private static int CompareColumns(AutomationElement dialog) =>
         dialog.FindAllDescendants()
             .Count(element => element.Properties.AutomationId.ValueOrDefault?.StartsWith("Compare.Column.", StringComparison.Ordinal) == true);

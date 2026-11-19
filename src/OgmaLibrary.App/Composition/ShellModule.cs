@@ -299,7 +299,17 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             capabilities,
             preferences,
             settings,
-            selection);
+            selection,
+            new LibraryHealthViewModel(
+                readModel,
+                services.GetRequiredService<ILibraryHealthService>(),
+                catalogue.Filter,
+                localization,
+                capabilities,
+                services.GetRequiredService<ILibraryAttentionService>(),
+                notifier,
+                services.GetRequiredService<ILogger<LibraryHealthViewModel>>()));
+        settings.OpenLibraryHealth = shell.OpenLibraryHealth;
 
         return shell;
     }

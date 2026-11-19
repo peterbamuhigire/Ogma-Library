@@ -82,40 +82,40 @@
               </TextBlock>
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
                 <Border IsVisible="{Binding Processing.IsIndexed}"
-                        Classes="badge success">
+                        Classes="badge success" ToolTip.Tip="{Binding $parent[UserControl].DataContext.IndexedBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexedBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsIndexing}"
-                        Classes="badge warning">
+                        Classes="badge warning" ToolTip.Tip="{Binding $parent[UserControl].DataContext.IndexingBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexingBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsIndexFailed}"
-                        Classes="badge danger">
+                        Classes="badge danger" ToolTip.Tip="{Binding $parent[UserControl].DataContext.IndexFailedBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.IndexFailedBadgeText}" />
                 </Border>
                 <!-- Sept-23 Phase 17 (K21): honest text status, derived from pages and OCR. -->
                 <Border IsVisible="{Binding Processing.IsTextSearchable}"
-                        Classes="badge success">
+                        Classes="badge success" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextSearchableBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextSearchableBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.Searchable" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsPartlySearchable}"
-                        Classes="badge warning">
+                        Classes="badge warning" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextPartlyBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextPartlyBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.PartlySearchable" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsImageOnly}"
-                        Classes="badge">
+                        Classes="badge" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextImageOnlyBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextImageOnlyBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.ImageOnly" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrInProgress}"
-                        Classes="badge warning">
+                        Classes="badge warning" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextOcrInProgressBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrInProgressBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrInProgress" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrText}"
-                        Classes="badge">
+                        Classes="badge" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextOcrBadgeHelp}">
                   <StackPanel Orientation="Horizontal" Spacing="3">
                     <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrBadgeText}"
                                AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrText" />
@@ -124,21 +124,21 @@
                   </StackPanel>
                 </Border>
                 <Border IsVisible="{Binding Processing.IsNoText}"
-                        Classes="badge danger">
+                        Classes="badge danger" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextNoneBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextNoneBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.NoText" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsOcrFailed}"
-                        Classes="badge danger">
+                        Classes="badge danger" ToolTip.Tip="{Binding $parent[UserControl].DataContext.TextOcrFailedBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.TextOcrFailedBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.OcrFailed" />
                 </Border>
                 <Border IsVisible="{Binding Processing.IsEmbedded}"
-                        Classes="badge info">
+                        Classes="badge info" ToolTip.Tip="{Binding $parent[UserControl].DataContext.EmbeddedBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.EmbeddedBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.ShowLegacyOcrBadge}"
-                        Classes="badge">
+                        Classes="badge" ToolTip.Tip="{Binding $parent[UserControl].DataContext.OcrBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.OcrBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding Processing.HasQualityScore}"
@@ -146,11 +146,11 @@
                   <TextBlock Text="{Binding Processing.QualityScore, StringFormat={}{0:P0}}" />
                 </Border>
                 <Border IsVisible="{Binding !IsAvailable}"
-                        Classes="badge danger">
+                        Classes="badge danger" ToolTip.Tip="{Binding $parent[UserControl].DataContext.UnavailableBadgeHelp}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.UnavailableBadgeText}" />
                 </Border>
                 <Border IsVisible="{Binding IsLocked}"
-                        Classes="badge"
+                        Classes="badge" ToolTip.Tip="{Binding $parent[UserControl].DataContext.LockedBadgeHelp}"
                         AutomationProperties.Name="{Binding $parent[UserControl].DataContext.LockedBadgeText}">
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.LockedBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked" />

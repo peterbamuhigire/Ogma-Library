@@ -36,7 +36,7 @@ public sealed class CatalogueGridTests
     private const int SeedCount = 24;
 
     [Fact]
-    public void BookSummaryProjection_UsesSafePrimaryAuthorFallback()
+    public void BookSummaryProjection_LeavesTheUnknownAuthorWordingToTheView()
     {
         var summary = new BookSummaryProjection(
             "book-empty-author",
@@ -50,7 +50,7 @@ public sealed class CatalogueGridTests
             true,
             null);
 
-        Assert.Equal("Unknown author", summary.PrimaryAuthor);
+        Assert.Null(summary.PrimaryAuthor);
     }
 
     /// <summary>

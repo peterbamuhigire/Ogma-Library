@@ -38,6 +38,9 @@ public enum RouteKind
 
     /// <summary>The 3D bookshelf view of the library.</summary>
     Shelf3D = 10,
+
+    /// <summary>The library health dashboard, owned by the Library destination.</summary>
+    LibraryHealth = 11,
 }
 
 /// <summary>The top-level destinations shown in the navigation rail.</summary>
@@ -85,7 +88,7 @@ public sealed record NavigationRoute(
     /// <summary>The rail destination that owns this route.</summary>
     public ShellDestination Destination => Kind switch
     {
-        RouteKind.Library or RouteKind.Shelf3D => ShellDestination.Library,
+        RouteKind.Library or RouteKind.Shelf3D or RouteKind.LibraryHealth => ShellDestination.Library,
         RouteKind.Search => ShellDestination.Search,
         RouteKind.Reader or RouteKind.SplitView => ShellDestination.Reading,
         RouteKind.Advisor or RouteKind.ReadingPlan => ShellDestination.Advisor,

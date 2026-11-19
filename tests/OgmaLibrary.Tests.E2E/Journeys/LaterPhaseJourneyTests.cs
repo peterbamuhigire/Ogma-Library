@@ -3,8 +3,9 @@ using OgmaLibrary.Tests.E2E.Harness;
 namespace OgmaLibrary.Tests.E2E.Journeys;
 
 /// <summary>
-/// G9–G12 are registered by Phase 01 (T01.12) and implemented by their owning phases. Until then
-/// they report NOT ASSESSED — the test fails in the raw runner and is never a pass.
+/// G9, G11 and G12 are registered by Phase 01 (T01.12) and implemented by their owning phases. Until
+/// then they report NOT ASSESSED — the test fails in the raw runner and is never a pass. G10 is real
+/// since Sept-23 Phase 10 and lives with the catalogue journeys in <see cref="CatalogueOrganiseTests"/>.
 /// </summary>
 [Collection(RealWindowTests.Name)]
 public sealed class LaterPhaseJourneyTests
@@ -15,13 +16,6 @@ public sealed class LaterPhaseJourneyTests
     [Trait("Journey", "G9")]
     [Trait("Tag", "Detail")]
     public void G9_Metadata_Placeholder() => Journey.Placeholder("G9", "Phase 11");
-
-    /// <summary>G10: shelves, smart shelf, bulk edit with undo, duplicates.</summary>
-    [Fact]
-    [Trait("Category", "E2E")]
-    [Trait("Journey", "G10")]
-    [Trait("Tag", "Catalogue")]
-    public void G10_Organise_Placeholder() => Journey.Placeholder("G10", "Phase 10");
 
     /// <summary>G11: classroom host, client join, browse, read, search, revoke.</summary>
     [Fact]

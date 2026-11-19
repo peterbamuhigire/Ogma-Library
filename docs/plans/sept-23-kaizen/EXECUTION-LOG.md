@@ -122,3 +122,17 @@ These decisions were taken under that authority. Each is the recommended option 
   - The stale card after a merge (`IsSameCard` ignored the identity fields) and the journey runner's rejection of hyphenated journey names were fixed in this slice.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **2026-11-19** — Phase 10 slice 7 (executor session): library health dashboard, localisation key parity and a real G10 (META-008). New owner-proxy decisions:
+  - **D-42**: the dashboard is a route owned by the Library destination (`RouteKind.LibraryHealth`), reached from Settings → Library, the status bar and the command palette (`library.health`).
+  - **D-43**: each book tile counts with `CountAsync` over exactly the criteria it applies, and activating it replaces the whole filter (`ClearAll`) before showing the catalogue. Back returns without changing the filter.
+  - **D-44**: Failed jobs opens an in-dashboard list with Retry; Needs attention opens the existing needs-attention list; batch Pause and Resume show only when metadata providers are enabled. Low quality means a quality score below 0.5.
+  - **D-45**: no English fallbacks in view models. Without a localisation service the key is shown; `BookSummaryProjection.PrimaryAuthor` is null when no author is stored, and the view supplies "Unknown author".
+  - **D-46**: every status badge explains itself through a `Catalogue.Badge.{X}.Help` tooltip, in grid and list.
+  - **D-47**: G10 lives with the catalogue journeys in `CatalogueOrganiseTests` (shared helpers); the placeholder is removed from `LaterPhaseJourneyTests`. Dashboard tiles use a new theme variant `Button.tile`.
+  - K119 was logged and fixed: five French values were mis-encoded (mojibake, for example "IndexÃ©"); `LocalizationKeyParityTests.NoValueIsMisEncoded` guards it.
+
+  Results:
+  - Build (0 warnings), format, design tokens and requirement accountability pass. The fast suite passes (Tests 1,350, Ui 417, Architecture 52); the slice filter passes 17 of 17.
+  - G10 and J-CAT-5 at 1280x800 are **NOT_ASSESSED**. Run `20261119-155855` failed at launch ("main window did not appear"), while the owner's interactive desktop was running a full-screen game. A diagnostic launch showed the visible "Ogma Library" window, but `Process.MainWindowHandle` stayed 0. Real input was not injected again over a desktop in use.
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).

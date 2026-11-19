@@ -137,6 +137,20 @@
           <TextBlock Classes="settings-help"
                      IsVisible="{Binding !HasLibraryFolders}"
                      Text="{Binding LibraryUnavailableText}" />
+          <!-- Sept-23 Phase 10 (META-008): entry point to the library health dashboard. -->
+          <Border Classes="settings-card" IsVisible="{Binding HasLibraryHealth}">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="settings-help" Text="{Binding LibraryHealthHelp}" />
+              <Button HorizontalAlignment="Left"
+                      Padding="10,5"
+                      CornerRadius="{DynamicResource Radius.S}"
+                      AutomationProperties.AutomationId="Settings.Library.Health"
+                      AutomationProperties.Name="{Binding LibraryHealthLabel}"
+                      Click="OpenLibraryHealth_Click">
+                <TextBlock Text="{Binding LibraryHealthLabel}" />
+              </Button>
+            </StackPanel>
+          </Border>
         </StackPanel>
 
         <!-- Appearance -->

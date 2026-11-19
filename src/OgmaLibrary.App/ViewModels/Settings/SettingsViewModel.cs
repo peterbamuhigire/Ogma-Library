@@ -203,6 +203,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     private SettingsSectionItem _selectedSection;
     private string? _diagnosticsStatus;
     private object? _textRecognitionOptions;
+    private Action? _openLibraryHealth;
 
     /// <summary>Initializes a new instance of the <see cref="SettingsViewModel"/> class.</summary>
     /// <param name="localization">The localization service.</param>
@@ -364,6 +365,27 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>Shown when the folder panel is not available.</summary>
     public string LibraryUnavailableText => _localization["Settings.Library.Unavailable"];
+
+    /// <summary>Opens the library health dashboard (bound by the application; Sept-23 Phase 10, META-008).</summary>
+    public Action? OpenLibraryHealth
+    {
+        get => _openLibraryHealth;
+        set
+        {
+            _openLibraryHealth = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasLibraryHealth));
+        }
+    }
+
+    /// <summary>Whether the library health entry point is shown.</summary>
+    public bool HasLibraryHealth => _openLibraryHealth is not null;
+
+    /// <summary>The library health button label (also its accessible name).</summary>
+    public string LibraryHealthLabel => _localization["Settings.Library.Health"];
+
+    /// <summary>The library health explanation.</summary>
+    public string LibraryHealthHelp => _localization["Settings.Library.HealthHelp"];
 
     // ── Appearance ─────────────────────────────────────────────────────────────
 

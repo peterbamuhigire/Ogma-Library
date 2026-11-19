@@ -248,7 +248,8 @@ public sealed class Sept23Phase10CriteriaTests
         return ids;
     }
 
-    private static async Task<CatalogueDbContext> SeedAsync()
+    /// <summary>Seeds the nine-book criteria catalogue (shared with the library health tests).</summary>
+    internal static async Task<CatalogueDbContext> SeedAsync()
     {
         CatalogueDbContext context = CatalogueTestHelper.CreateInMemoryContext();
         DateTimeOffset seen = new(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);

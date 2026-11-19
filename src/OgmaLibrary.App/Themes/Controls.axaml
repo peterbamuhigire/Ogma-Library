@@ -188,6 +188,24 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.Link}" />
   </Style>
 
+  <!-- Tile: a card-surface button, for example the library health dashboard tiles. -->
+  <Style Selector="Button.tile">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.CardBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.M}" />
+    <Setter Property="Padding" Value="14,12" />
+  </Style>
+  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Control.BackgroundHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Selection.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+  </Style>
+  <Style Selector="Button.tile:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Control.BackgroundPressed}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+  </Style>
+
   <!-- Modifiers -->
   <Style Selector="Button.icon">
     <Setter Property="MinWidth" Value="36" />

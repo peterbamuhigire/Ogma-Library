@@ -233,3 +233,37 @@ Premise corrections:
 - At 1280x800, with the inspector open, the selection toolbar wraps onto a second line ("Clear selection"); everything stays reachable. This was observed, not measured against a budget.
 - Undo's version check is optimistic, not atomic (D-39).
 - When a work collapses, a page can be short (D-37).
+
+## Slice 7: library health dashboard, localisation parity and G10 (META-008)
+
+Commit: `feat(catalogue): library health dashboard and key parity (META-008)`.
+
+| Area | Result |
+|---|---|
+| Dashboard | `LibraryHealthView` and `LibraryHealthViewModel` (`Health.View`). There are eight tiles (`Health.Tile.{Kind}`): missing author, ISBN, cover and year, failed jobs, unavailable files, possible duplicates and low quality, plus Needs attention when that service is present. Each tile has a count in its accessible name and a help tooltip. Book counts come from `CountAsync` over the tile's own criteria; job, file and duplicate counts come from `GetHealthSnapshotAsync` (D-43). |
+| Actions | A book tile replaces the filter and shows the catalogue. Failed jobs lists each job with Retry. Needs attention opens the existing list. Batch Pause and Resume show only when providers are enabled (D-44). Refresh and Back are available, and failures give a localised message and an `AppLog` entry. |
+| Entry points (D-42) | Settings → Library (`Settings.Library.Health`), the status bar (`Shell.Status.LibraryHealth`) and the palette command `library.health`. |
+| Strings | `LocalizationKeyParityTests`: English and French have the same keys, no value is empty and no value is mis-encoded. K119 (five French values were mojibake) is fixed. `SortDirectionText` and `PrimaryAuthor` no longer hard-code English (D-45). The 14 status badges have localised tooltips in grid and list (D-46). |
+| Render test | `HealthDashboardRenderTests` renders the shipped view, not an inline fake, and publishes `health-en.png`. |
+| Journeys | The real G10 (shelf, smart shelf, bulk edit and undo, merge and undo) and J-CAT-5 (dashboard → missing-author tile → filtered catalogue; Needs attention tile → list) are in `CatalogueOrganiseTests` (D-47). |
+| Design | Phase 09 tokens only. The tiles use the new theme variant `Button.tile` (the design-token lint rejected local brushes on a button). |
+
+### Gates (slice 7)
+
+| Gate | Result |
+|---|---|
+| `dotnet build OgmaLibrary.sln -c Release --no-restore` | PASS, 0 warnings, 0 errors |
+| `dotnet format --verify-no-changes --no-restore` | PASS, after line endings were normalised |
+| `scripts/Test-DesignTokens.ps1` | PASS ("clean"), after `Button.tile` |
+| `scripts/Test-Fast.ps1` | PASS: Tests 1,350, Ui 417, Architecture 52 |
+| `scripts/Test-RequirementAccountability.ps1` | PASS (162 IDs assigned) |
+| Filter `LibraryHealth` or `LocalizationKeyParity` | PASS, 17 of 17 |
+| G10 and J-CAT-5 at 1280x800 under the desktop lock | **NOT_ASSESSED**. Run `20261119-155855` failed at launch: `TimeoutException`, "main window did not appear within 30 s". At the time, the owner's interactive desktop was running a full-screen game. A diagnostic launch found the visible "Ogma Library" top-level window after 15 s, but `Process.MainWindowHandle` stayed 0. This is a harness and desktop condition, not an assertion failure. Real input was not injected again over a desktop in use. [Evidence](evidence/sept-23-kaizen/phase-10/slice-7/). |
+| 1024x768, dark theme, RTL, 200% text, screen reader | NOT_ASSESSED in this slice |
+| Skills | Development engine skills were not read this slice: NOT_ASSESSED |
+
+### Open after slice 7
+
+- Re-run G10 and J-CAT-5 on an idle desktop. Their oracles have never executed.
+- Failed-job rows show the stable job type and failure codes (for example "Enrich · provider_timeout"), not localised text.
+- K118 (Keep separate) and the open items from slice 6.

@@ -766,6 +766,11 @@
           <!-- Collections -->
           <shell:CollectionsView IsVisible="{Binding IsCollectionsActive}" />
 
+          <!-- Library health dashboard (Sept-23 Phase 10, META-008) -->
+          <Panel IsVisible="{Binding IsLibraryHealthActive}">
+            <cat:LibraryHealthView DataContext="{Binding LibraryHealth}" />
+          </Panel>
+
           <!-- Activity: index and background jobs -->
           <Panel IsVisible="{Binding IsActivityActive}">
             <search:IndexManagerPanelView DataContext="{Binding IndexManager}" />
@@ -1025,7 +1030,7 @@
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
             BorderThickness="0,1,0,0"
             Padding="12,6">
-      <Grid ColumnDefinitions="*,Auto,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <TextBlock Grid.Column="0"
                    AutomationProperties.AutomationId="Shell.Status"
                    AutomationProperties.LiveSetting="Polite"
@@ -1065,6 +1070,21 @@
                 AutomationProperties.Name="{Binding AddLooseFolderText}"
                 Click="AddLooseFolder_Click">
           <TextBlock Text="{Binding AddLooseFolderText}"
+                     FontSize="{DynamicResource Type.Size.Small}" />
+        </Button>
+
+        <!-- Sept-23 Phase 10 (META-008): status-bar entry to the library health dashboard. -->
+        <Button Grid.Column="3"
+                Classes="tool"
+                MinHeight="28"
+                Padding="8,3"
+                Margin="10,0,0,0"
+                IsVisible="{Binding IsLibraryHealthAvailable}"
+                AutomationProperties.AutomationId="Shell.Status.LibraryHealth"
+                AutomationProperties.Name="{Binding LibraryHealthStatusLabel}"
+                ToolTip.Tip="{Binding LibraryHealthStatusLabel}"
+                Click="OpenLibraryHealth_Click">
+          <TextBlock Text="{Binding LibraryHealthStatusLabel}"
                      FontSize="{DynamicResource Type.Size.Small}" />
         </Button>
       </Grid>
