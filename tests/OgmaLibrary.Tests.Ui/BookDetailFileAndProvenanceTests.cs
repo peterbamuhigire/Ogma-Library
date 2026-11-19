@@ -109,24 +109,25 @@ public sealed class BookDetailFileAndProvenanceTests
         Assert.Contains("New title", Assert.Single(vm.WriteBackDiffRows));
         Assert.Contains("confirm", vm.WriteBackStatusText, StringComparison.OrdinalIgnoreCase);
 
-        var view = new BookDetailView { DataContext = vm };
-        var window = new Window
-        {
-            Width = 420,
-            Height = 700,
-            Content = view,
-        };
-        window.Show();
+        // Sept-23 Phase 11 slice 5: consent moved from an inline File-tab block into the
+        // two-step WriteBackDialog; the confirm button lives there now.
+        var dialog = new WriteBackDialog { DataContext = vm.CreateWriteBackDialog() };
+        dialog.Show();
         Dispatcher.UIThread.RunJobs();
-        Assert.Contains(view.GetVisualDescendants().OfType<Button>(), button =>
-            button.Content is TextBlock text && text.Text == "Confirm and write to PDF");
-        window.Close();
+        ((WriteBackDialogViewModel)dialog.DataContext!).Continue();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(dialog.GetVisualDescendants().OfType<Button>(), button =>
+            button.IsEffectivelyVisible && button.Content is TextBlock text && text.Text == "Write to PDF");
+        Assert.Equal(0, writeBack.WriteCalls);
 
         await vm.ConfirmWriteBackAsync();
+        Dispatcher.UIThread.RunJobs();
+        dialog.Close();
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(1, writeBack.WriteCalls);
         Assert.False(vm.HasPreparedWriteBack);
+        Assert.True(vm.HasWriteBackRestorePoint);
         Assert.Contains("successfully", vm.WriteBackStatusText, StringComparison.OrdinalIgnoreCase);
     }
 

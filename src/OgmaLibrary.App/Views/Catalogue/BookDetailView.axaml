@@ -487,47 +487,6 @@
                        FontSize="{DynamicResource Type.Size.Caption}"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-
-            <!-- Write-back preview, opened from "Write metadata to PDF…" -->
-            <StackPanel Spacing="5"
-                        Margin="0,8,0,0"
-                        IsVisible="{Binding HasPreparedWriteBack}">
-              <TextBlock Text="{Binding WriteBackHeadingText}"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-              <ItemsControl ItemsSource="{Binding WriteBackDiffRows}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <TextBlock Text="{Binding}"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                               TextWrapping="Wrap" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <WrapPanel Orientation="Horizontal" ItemSpacing="5" LineSpacing="5">
-                <Button IsEnabled="{Binding CanConfirmWriteBack}"
-                        AutomationProperties.Name="{Binding ConfirmWriteBackLabel}"
-                        Click="ConfirmWriteBackButton_Click">
-                  <TextBlock Text="{Binding ConfirmWriteBackLabel}" />
-                </Button>
-                <Button IsEnabled="{Binding CanRestoreWriteBack}"
-                        AutomationProperties.Name="{Binding RestoreWriteBackLabel}"
-                        Click="RestoreWriteBackButton_Click">
-                  <TextBlock Text="{Binding RestoreWriteBackLabel}" />
-                </Button>
-                <Button IsEnabled="{Binding CanRestoreWriteBack}"
-                        AutomationProperties.Name="{Binding CancelWriteBackLabel}"
-                        Click="CancelWriteBackButton_Click">
-                  <TextBlock Text="{Binding CancelWriteBackLabel}" />
-                </Button>
-              </WrapPanel>
-            </StackPanel>
-            <TextBlock Text="{Binding WriteBackStatusText}"
-                       IsVisible="{Binding HasWriteBackStatus}"
-                       FontSize="{DynamicResource Type.Size.Caption}"
-                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                       TextWrapping="Wrap" />
             <TextBlock Text="{Binding PasswordStatusText}"
                        IsVisible="{Binding HasPasswordStatus}"
                        FontSize="{DynamicResource Type.Size.Caption}"
@@ -628,6 +587,39 @@
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Surface.OnParchment}"
                        TextWrapping="Wrap" />
+
+            <!-- Write-back outcome and restore point (Phase 11 slice 5); the consent itself
+                 happens in WriteBackDialog, opened from "Write metadata to PDF…". -->
+            <TextBlock Text="{Binding WriteBackStatusText}"
+                       IsVisible="{Binding HasWriteBackStatus}"
+                       AutomationProperties.AutomationId="Detail.WriteBack.Status"
+                       AutomationProperties.LiveSetting="Polite"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+            <Border Background="{DynamicResource Brush.Surface.Footer}"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    Padding="8"
+                    IsVisible="{Binding HasWriteBackRestorePoint}"
+                    AutomationProperties.AutomationId="Detail.WriteBack.Card"
+                    AutomationProperties.Name="{Binding WriteBackRestoreCardText}">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Text="{Binding WriteBackRestoreCardText}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <Button Grid.Column="1"
+                        IsEnabled="{Binding CanRestoreWriteBack}"
+                        AutomationProperties.AutomationId="Detail.WriteBack.Restore"
+                        AutomationProperties.Name="{Binding RestoreOriginalText}"
+                        Click="RestoreWriteBackButton_Click">
+                  <TextBlock Text="{Binding RestoreOriginalText}" />
+                </Button>
+              </Grid>
+            </Border>
 
             <!-- Reading history -->
             <StackPanel Spacing="5" IsVisible="{Binding CanLoadReadingHistory}">

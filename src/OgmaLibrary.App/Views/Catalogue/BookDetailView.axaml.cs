@@ -165,21 +165,27 @@ public partial class BookDetailView : UserControl
 
     private async Task PrepareWriteBackButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is BookDetailViewModel vm)
+        if (DataContext is not BookDetailViewModel vm)
         {
-            vm.SelectedSection = InspectorSection.Details;
-            await vm.PrepareWriteBackAsync().ConfigureAwait(true);
+            return;
         }
-    }
 
-    private void ConfirmWriteBackButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => ConfirmWriteBackButton_ClickAsync(sender, e), "catalogue.confirm_write_back_button_click");
-
-    private async Task ConfirmWriteBackButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is BookDetailViewModel vm)
+        // Outcomes that need no consent (no changes, missing file, failure) show under Activity.
+        vm.SelectedSection = InspectorSection.Activity;
+        await vm.PrepareWriteBackAsync().ConfigureAwait(true);
+        if (!vm.HasPreparedWriteBack)
         {
-            await vm.ConfirmWriteBackAsync().ConfigureAwait(true);
+            return;
+        }
+
+        WriteBackDialogViewModel dialog = vm.CreateWriteBackDialog();
+        if (TopLevel.GetTopLevel(this) is Window owner)
+        {
+            await new WriteBackDialog { DataContext = dialog }.ShowDialog(owner).ConfigureAwait(true);
+        }
+        else
+        {
+            dialog.HandleClosed();
         }
     }
 
@@ -191,14 +197,6 @@ public partial class BookDetailView : UserControl
         if (DataContext is BookDetailViewModel vm)
         {
             await vm.RestoreWriteBackAsync().ConfigureAwait(true);
-        }
-    }
-
-    private void CancelWriteBackButton_Click(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is BookDetailViewModel vm)
-        {
-            vm.CancelWriteBack();
         }
     }
 

@@ -148,5 +148,6 @@ public sealed partial class BookDetailViewModel
         OnPropertyChanged(nameof(SizeDisplayText));
         OnFieldsCultureChanged();
         OnReviewCultureChanged();
+        OnWriteBackCultureChanged();
     }
 }

@@ -496,10 +496,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     /// <summary>True when a safe preview can be requested for the loaded PDF.</summary>
     public bool CanPrepareWriteBack => _book?.IsAvailable == true &&
         _fileLocator is not null && _writeBackService is not null &&
-        !IsPreparingWriteBack && _writeBackToken is null;
+        !IsPreparingWriteBack && (_writeBackToken is null || _writeBackWritten);
 
     /// <summary>True when the user has a preview that can be explicitly confirmed.</summary>
-    public bool CanConfirmWriteBack => _writeBackToken is not null &&
+    public bool CanConfirmWriteBack => _writeBackToken is not null && !_writeBackWritten &&
         _writeBackProposals.Count > 0 && !IsWritingWriteBack;
 
     /// <summary>True when the prepared PDF can be restored from its retained backup.</summary>
@@ -509,7 +509,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     public bool HasWriteBackDiff => WriteBackDiffRows.Count > 0;
 
     /// <summary>True when the current book has a prepared writeback awaiting consent.</summary>
-    public bool HasPreparedWriteBack => _writeBackToken is not null;
+    public bool HasPreparedWriteBack => _writeBackToken is not null && !_writeBackWritten;
 
     /// <summary>Current user-facing writeback status.</summary>
     public string? WriteBackStatusText
@@ -804,6 +804,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 ProvenanceRows.Clear();
                 _writeBackToken = null;
                 _writeBackProposals = [];
+                _writeBackWritten = false;
+                IsWriteBackError = false;
                 WriteBackDiffRows.Clear();
                 WriteBackStatusText = null;
                 SetOpenError(null);
@@ -814,11 +816,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 OnPropertyChanged(nameof(HasNoToc));
                 OnPropertyChanged(nameof(ShowLoadTocButton));
                 OnPropertyChanged(nameof(ShowLoadProvenanceButton));
-                OnPropertyChanged(nameof(HasPreparedWriteBack));
-                OnPropertyChanged(nameof(HasWriteBackDiff));
-                OnPropertyChanged(nameof(CanPrepareWriteBack));
-                OnPropertyChanged(nameof(CanConfirmWriteBack));
-                OnPropertyChanged(nameof(CanRestoreWriteBack));
+                NotifyWriteBackStateChanged();
             }
             _tagsText = FormatTags(value);
             OnPropertyChanged();
@@ -1328,6 +1326,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
 
         IsPreparingWriteBack = true;
+        IsWriteBackError = false;
         WriteBackStatusText = null;
         try
         {
@@ -1368,8 +1367,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                     return;
                 }
 
+                // A new preview replaces any earlier restore point (its backup file stays on disk).
                 _writeBackToken = token;
                 _writeBackProposals = proposals;
+                _writeBackWritten = false;
+                IsWriteBackError = false;
                 WriteBackDiffRows.Clear();
                 foreach (string row in rows)
                 {
@@ -1378,11 +1380,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
 
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Prepared"];
                 IsPreparingWriteBack = false;
-                OnPropertyChanged(nameof(HasPreparedWriteBack));
-                OnPropertyChanged(nameof(HasWriteBackDiff));
-                OnPropertyChanged(nameof(CanPrepareWriteBack));
-                OnPropertyChanged(nameof(CanConfirmWriteBack));
-                OnPropertyChanged(nameof(CanRestoreWriteBack));
+                NotifyWriteBackStateChanged();
             });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1393,6 +1391,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 // or provider detail. Diagnostics remain available through the redacted
                 // application diagnostics channel.
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Failed"];
+                IsWriteBackError = true;
                 IsPreparingWriteBack = false;
             });
         }
@@ -1420,12 +1419,16 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 WriteBackStatusText = written
                     ? _localization["Catalogue.BookDetail.WriteBack.Complete"]
                     : _localization["Catalogue.BookDetail.WriteBack.Failed"];
-                if (written)
+                IsWriteBackError = !written;
+                if (written && ReferenceEquals(_writeBackToken, token))
                 {
-                    ClearWriteBackState();
+                    // Keep the token: it is the restore point offered under Activity.
+                    _writeBackWritten = true;
+                    _writeBackProposals = [];
                 }
 
                 IsWritingWriteBack = false;
+                NotifyWriteBackStateChanged();
             });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1434,15 +1437,19 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             UpdateOnUiThread(() =>
             {
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.FailedFormat"];
+                IsWriteBackError = true;
                 IsWritingWriteBack = false;
             });
         }
     }
 
-    /// <summary>Cancels pending consent without mutating the PDF.</summary>
+    /// <summary>
+    /// Cancels pending consent without mutating the PDF. A completed write keeps its restore
+    /// point, so cancelling after the write is a no-op.
+    /// </summary>
     public void CancelWriteBack()
     {
-        if (_writeBackToken is null)
+        if (_writeBackToken is null || _writeBackWritten)
         {
             return;
         }
@@ -1470,6 +1477,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 WriteBackStatusText = restored
                     ? _localization["Catalogue.BookDetail.WriteBack.Restored"]
                     : _localization["Catalogue.BookDetail.WriteBack.RestoreFailed"];
+                IsWriteBackError = !restored;
                 if (restored)
                 {
                     ClearWriteBackState();
@@ -1484,6 +1492,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             UpdateOnUiThread(() =>
             {
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.RestoreFailed"];
+                IsWriteBackError = true;
                 IsWritingWriteBack = false;
             });
         }
@@ -2378,12 +2387,9 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     {
         _writeBackToken = null;
         _writeBackProposals = [];
+        _writeBackWritten = false;
         WriteBackDiffRows.Clear();
-        OnPropertyChanged(nameof(HasPreparedWriteBack));
-        OnPropertyChanged(nameof(HasWriteBackDiff));
-        OnPropertyChanged(nameof(CanPrepareWriteBack));
-        OnPropertyChanged(nameof(CanConfirmWriteBack));
-        OnPropertyChanged(nameof(CanRestoreWriteBack));
+        NotifyWriteBackStateChanged();
     }
 
     private List<AcceptedFieldProposal> BuildWriteBackProposals(
@@ -2407,8 +2413,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         System.Globalization.CultureInfo.CurrentCulture,
         _localization["Catalogue.BookDetail.WriteBack.DiffFormat"],
         diff.FieldName,
-        Truncate(diff.OldValue, 160) ?? "-",
-        Truncate(diff.NewValue, 160) ?? "-");
+        Truncate(diff.OldValue, 160) ?? _localization["Catalogue.BookDetail.WriteBack.EmptyValue"],
+        Truncate(diff.NewValue, 160) ?? _localization["Catalogue.BookDetail.WriteBack.EmptyValue"]);
 
     private string FormatProvenance(MetadataFieldProjection field)
     {

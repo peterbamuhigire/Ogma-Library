@@ -1,0 +1,154 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+        x:Class="OgmaLibrary.App.Views.Catalogue.WriteBackDialog"
+        x:DataType="vm:WriteBackDialogViewModel"
+        Width="560"
+        Height="460"
+        MinWidth="420"
+        MinHeight="360"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Brush.Surface.Page}"
+        Title="{Binding Title}"
+        KeyboardNavigation.TabNavigation="Cycle"
+        AutomationProperties.AutomationId="WriteBack.Dialog"
+        AutomationProperties.Name="{Binding Title}">
+  <!-- Sept-23 Phase 11 slice 5 (task 11.6): two-step consent for writing metadata into a PDF.
+       Step 1 reviews the diff and the backup location; Cancel takes the initial focus.
+       Step 2 asks for an explicit confirmation; no button is the default, so Enter never writes.
+       Escape cancels at every step. Nothing is written before "Write to PDF". -->
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12" Margin="20">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding StepIndicatorText}"
+                 IsVisible="{Binding !IsResultStep}"
+                 AutomationProperties.AutomationId="WriteBack.StepIndicator"
+                 FontSize="{DynamicResource Type.Size.Small}"
+                 Foreground="{DynamicResource Brush.Text.Secondary}" />
+      <TextBlock Classes="heading"
+                 Text="{Binding StepTitle}"
+                 AutomationProperties.AutomationId="WriteBack.StepTitle"
+                 AutomationProperties.LiveSetting="Polite"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Text.Primary}" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="10">
+        <!-- Step 1: review -->
+        <StackPanel Spacing="10" IsVisible="{Binding IsReviewStep}">
+          <TextBlock Text="{Binding ReviewIntroText}"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource Brush.Text.Primary}" />
+          <Border BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Radius.M}"
+                  Background="{DynamicResource Brush.Surface.Card}"
+                  Padding="12">
+            <ItemsControl ItemsSource="{Binding DiffRows}"
+                          AutomationProperties.AutomationId="WriteBack.Diff"
+                          AutomationProperties.Name="{Binding ReviewStepTitle}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}"
+                             AutomationProperties.Name="{Binding}"
+                             Margin="0,2"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource Brush.Text.Primary}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+          <StackPanel Spacing="2">
+            <TextBlock Text="{Binding BackupLabelText}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource Brush.Text.Primary}" />
+            <SelectableTextBlock Text="{Binding BackupPath}"
+                                 AutomationProperties.AutomationId="WriteBack.BackupPath"
+                                 AutomationProperties.Name="{Binding BackupLabelText}"
+                                 TextWrapping="Wrap"
+                                 FontSize="{DynamicResource Type.Size.Small}"
+                                 Foreground="{DynamicResource Brush.Text.Secondary}" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Step 2: confirm -->
+        <TextBlock Text="{Binding ConfirmIntroText}"
+                   IsVisible="{Binding IsConfirmStep}"
+                   AutomationProperties.AutomationId="WriteBack.ConfirmIntro"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource Brush.Text.Primary}" />
+
+        <!-- Result -->
+        <TextBlock Text="{Binding StatusText}"
+                   IsVisible="{Binding IsResultStep}"
+                   Classes.error="{Binding IsError}"
+                   AutomationProperties.AutomationId="WriteBack.Status"
+                   AutomationProperties.LiveSetting="Assertive"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource Brush.Text.Primary}">
+          <TextBlock.Styles>
+            <Style Selector="TextBlock.error">
+              <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Danger}" />
+              <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+          </TextBlock.Styles>
+        </TextBlock>
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="CancelButton"
+              MinHeight="36"
+              IsVisible="{Binding !IsResultStep}"
+              Click="Cancel_Click"
+              AutomationProperties.AutomationId="WriteBack.Cancel"
+              AutomationProperties.Name="{Binding CancelText}">
+        <TextBlock Text="{Binding CancelText}" />
+      </Button>
+      <Button x:Name="BackButton"
+              MinHeight="36"
+              IsVisible="{Binding IsConfirmStep}"
+              IsEnabled="{Binding !IsBusy}"
+              Click="Back_Click"
+              AutomationProperties.AutomationId="WriteBack.Back"
+              AutomationProperties.Name="{Binding BackText}">
+        <TextBlock Text="{Binding BackText}" />
+      </Button>
+      <Button MinHeight="36"
+              IsVisible="{Binding IsReviewStep}"
+              Click="Continue_Click"
+              AutomationProperties.AutomationId="WriteBack.Continue"
+              AutomationProperties.Name="{Binding ContinueText}">
+        <TextBlock Text="{Binding ContinueText}" />
+      </Button>
+      <Button Classes="primary"
+              MinHeight="36"
+              IsVisible="{Binding IsConfirmStep}"
+              IsEnabled="{Binding CanConfirm}"
+              Click="Confirm_Click"
+              AutomationProperties.AutomationId="WriteBack.Confirm"
+              AutomationProperties.Name="{Binding ConfirmText}">
+        <TextBlock Text="{Binding ConfirmText}" />
+      </Button>
+      <Button MinHeight="36"
+              IsVisible="{Binding CanRestore}"
+              Click="Restore_Click"
+              AutomationProperties.AutomationId="WriteBack.Restore"
+              AutomationProperties.Name="{Binding RestoreText}">
+        <TextBlock Text="{Binding RestoreText}" />
+      </Button>
+      <Button x:Name="CloseButton"
+              MinHeight="36"
+              IsVisible="{Binding IsResultStep}"
+              IsEnabled="{Binding !IsBusy}"
+              Click="Close_Click"
+              AutomationProperties.AutomationId="WriteBack.Close"
+              AutomationProperties.Name="{Binding CloseText}">
+        <TextBlock Text="{Binding CloseText}" />
+      </Button>
+    </StackPanel>
+  </Grid>
+</Window>

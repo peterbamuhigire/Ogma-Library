@@ -116,3 +116,32 @@ Gates on the slice-4 tree:
   (Architecture 52, Tests 1,380, Ui 459; 0 failed).
 - NOT_ASSESSED (not run in this slice): the real-window review journey at both sizes,
   screenshots, 200% text, Arabic RTL, and the screen-reader and keyboard walkthrough of the card.
+
+## Slice 5: two-step write-back consent with backup and restore (11.6)
+
+| Task | Result | Evidence |
+|---|---|---|
+| Dialog | `WriteBackDialog` (`WriteBack.Dialog`) opens from *Write metadata to PDF…* after `PrepareWriteBackAsync` succeeds. Step 1, "Review changes", shows the plain-language diff (`WriteBack.Diff`) and the backup path (`WriteBack.BackupPath`); *Cancel* (`WriteBack.Cancel`) takes the focus. Step 2, "Confirm", shows *Back* (focused) and *Write to PDF* (`WriteBack.Confirm`); neither is a default button. The result step shows a live status (`WriteBack.Status`), *Restore original* and *Close* | `Phase11WriteBack_DialogStepsAreNamedAndCancelHasInitialFocus` (MEASURED, headless) |
+| No write before consent | `WriteAsync` runs only from the step-2 confirm | `Phase11WriteBack_NoWriteBeforeStepTwoConfirm` (MEASURED) |
+| Cancel and Esc | *Cancel*, Esc and closing from the title bar all discard an unconfirmed token without writing (D-73) | `…CancelDiscardsTokenWithoutWriting`, `…ClosingBeforeConfirmDiscardsToken`, `…EscapeCancelsAndDiscardsToken` (MEASURED) |
+| Restore after close | The token survives a successful write. The Activity card (`Detail.WriteBack.Card`, `Detail.WriteBack.Restore`, "Restore original") calls `RestoreBackupAsync` with the same token (D-72) | `…RestoreAfterDialogClosesCallsRestoreBackup`, `…InspectorHasNoInlineBlockAndShowsRestoreUnderActivity` (MEASURED) |
+| Failures | A write that returns false shows `WriteBack.Failed`; a throw shows `WriteBack.FailedFormat`. Both use error styling, and no raw text appears | `…WriteReturningFalseSurfacesLocalisedError`, `…WriteThrowingShowsNoRawExceptionText` (MEASURED) |
+| Integration | The real `PdfWriteBackService` writes a fixture copy and restores it; the SHA-256 matches the original. With the file set read-only, the write returns false and the bytes do not change | `Phase11WriteBackIntegrationTests` (2, MEASURED) |
+| Inline block removed | The Details write-back preview and its three buttons are gone; the status line moved to Activity (`Detail.WriteBack.Status`) | Headless test above |
+| Strings | 15 new `Catalogue.BookDetail.WriteBack.*` keys, plus reworded `Confirm` and `DiffFormat`, in EN and FR | `…FrenchStringsAreLocalised`; key parity in the fast suite |
+
+Typeface: there is no new face. The dialog's step title uses `TextBlock.heading` (Spectral).
+The body and the backup path use Public Sans. JetBrains Mono is not used. Colours, sizes and
+radii come from tokens (`Brush.Text.*`, `Brush.Status.Danger`, `Brush.Surface.*`,
+`Type.Size.Small`/`Caption`, `Radius.S`/`M`).
+
+New defect: K124. The restore point is not reloaded from the durable `WriteBackPlan` after a
+book switch or a restart. It is targeted at Phase 11 or 15.
+
+Gates on the slice-5 tree:
+- MEASURED, passing: the Release build (0 warnings), `dotnet format --verify-no-changes`,
+  `Test-DesignTokens.ps1` (clean), Phase11 and write-back filters (Tests 58, Ui 54) and
+  `Test-Fast.ps1` (Architecture 52, Tests 1,382, Ui 469; 0 failed).
+- NOT_ASSESSED (not run in this slice): the real-window write-back journey on a synthetic
+  fixture copy, screenshots at both widths, light and dark, 200% text, Arabic RTL, and the
+  screen-reader and keyboard walkthrough of the dialog.
