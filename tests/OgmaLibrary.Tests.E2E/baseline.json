@@ -13,17 +13,6 @@
       "owner": "Phase 04 (stall, K109 via Phase 06/24); Phase 12 (p95 budget)",
       "reason": "Turns take about 150-250 ms. Phase CO slice 3 fixed the main starvation of the app's thread pool (K94: the 15 s worker request_timeout once automatic OCR starts). In co-reader-1 to -3 one 10 s stall without an engine restart remained (1 of 6 rows; probable cause K109), and the p95 went over the 250 ms budget in 2 of 6 rows (252 and 422 ms).",
       "messagePattern": "\\[K32"
-    },
-    {
-      "journey": "ScanOcrSearch",
-      "test": "ScanOcrSearch_ScannedBooksBecomeSearchableFromOcrText",
-      "defects": [
-        "K97",
-        "K40"
-      ],
-      "owner": "Phase 13",
-      "reason": "OCR succeeds and both scanned cards show the OCR text badge, but search misses the multi-word phrase (K40) and lists the OCR hit as 'Untitled' instead of the catalogue title (K97). Only search misses are baselined; an OCR badge failure is still FAIL.",
-      "messagePattern": "^TrueException: Scanned-book OCR journey: search '[^']*' did not list '[^']*' in the top three \\[K21\\](; search '[^']*' did not list '[^']*' in the top three \\[K21\\])*$"
     }
   ]
 }
