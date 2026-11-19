@@ -180,15 +180,12 @@ internal sealed class ReaderSessionSupervisor : IDisposable
             PdfWorkerClient.PdfWorkerSession replacement;
             try
             {
-                // Tear down and start workers off the caller's thread: disposal waits for
-                // the old process to exit and opening copies and hashes the document.
-                replacement = await Task.Run(
-                        () =>
-                        {
-                            lost?.Dispose();
-                            return _openSession(_password);
-                        },
-                        CancellationToken.None)
+                // The lost session is already faulted and serves no request, so its
+                // teardown (bounded process-tree wait, sandbox-delete retries) runs in the
+                // background instead of delaying the replacement on the page-turn path.
+                // Opening copies and hashes the document, so it also runs off the caller's thread.
+                DisposeInBackground(lost);
+                replacement = await Task.Run(() => _openSession(_password), CancellationToken.None)
                     .ConfigureAwait(false);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)

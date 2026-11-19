@@ -17,7 +17,10 @@ namespace OgmaLibrary.Tests.Pdf;
 /// Sept-23 Kaizen Phase 04 (K30/K32): the persistent reader worker session must
 /// survive long reading sessions, keep its protocol correlated, recover from worker
 /// loss and keep its containment limits. These tests drive the real isolated worker.
+/// They run without competing collections so the wall-clock recovery budget (G8)
+/// measures the worker, not unrelated tests saturating the CPU.
 /// </summary>
+[Collection(PdfWorkerTimingTestGroup.Name)]
 public sealed class PdfWorkerSessionStabilityTests : IDisposable
 {
     private const string Password = "ogma-session-password";
@@ -572,4 +575,12 @@ internal static class StabilityPdfFixture
         }).GeneratePdf(path);
         return path;
     }
+}
+
+/// <summary>Runs real-worker wall-clock tests without competing test collections.</summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class PdfWorkerTimingTestGroup
+{
+    /// <summary>The collection name.</summary>
+    public const string Name = "PDF worker timing";
 }
