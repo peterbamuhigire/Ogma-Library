@@ -7,10 +7,11 @@
       "test": "G3_Read_TurnFiftyPagesAndReturn",
       "defects": [
         "K32",
-        "K94"
+        "K94",
+        "K109"
       ],
-      "owner": "Phase 04",
-      "reason": "Page turns take about 0.5-0.8 s each, Next presses are ignored while a turn is in flight, and the reader stalls before 50 turns.",
+      "owner": "Phase 04 (stall, K109 via Phase 06/24); Phase 12 (p95 budget)",
+      "reason": "Turns take about 150-250 ms. Phase CO slice 3 fixed the main starvation of the app's thread pool (K94: the 15 s worker request_timeout once automatic OCR starts). In co-reader-1 to -3 one 10 s stall without an engine restart remained (1 of 6 rows; probable cause K109), and the p95 went over the 250 ms budget in 2 of 6 rows (252 and 422 ms).",
       "messagePattern": "\\[K32"
     },
     {

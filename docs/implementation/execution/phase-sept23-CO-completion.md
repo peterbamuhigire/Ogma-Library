@@ -146,3 +146,38 @@ BASELINE-FAIL, and PASS\* means PASS (baseline cleared).
 - G9 to G12 (placeholders; later phases).
 - Dark theme, 200% text, `fr`/`qps-ploc`, keyboard-only: not part of this slice's command.
 - K105's root cause: one fast run is not enough evidence.
+
+## Slice 3: reader journeys (Phase 02 proof: G3, G5, G8)
+
+Evidence: [`evidence/sept-23-kaizen/phase-02/co-reader-journeys.md`](evidence/sept-23-kaizen/phase-02/co-reader-journeys.md)
+and the `results-co-*.md` summaries beside it. All values MEASURED, inside `Use-DesktopLock.ps1`.
+
+- **Premise corrected.** The work order assumed presses were dropped in flight. They were not:
+  turns take about 150 ms, and every stall began about 30 s after launch, when automatic OCR was
+  queued, and ended in a 15 s worker `request_timeout`. In co-diag-1 the PDF workers sat idle
+  while the app used about 1.6 cores. In co-diag-2, raising the thread-pool minimum (diagnostic
+  only) passed G3 at both sizes with 0 re-presses. Root cause: the OCR and extraction page loops
+  ran sync-over-async `ExtractTextLayer` on pool threads and starved the pool (K94).
+- **Fix `fc153ba6`.** Both loops now await `ExtractTextLayerAsync`. Two new unit tests use
+  renderers whose sync call throws; both were red before the fix. OCR, extraction, Phase 17 and
+  OCR golden tests 46/46; `dotnet test tests/OgmaLibrary.Tests.UI -c Release --filter
+  "FullyQualifiedName~Reader"` 137/137.
+- **Journeys co-reader-1 to -3.** G5 and G8 (both tests) passed 6 of 6 rows. G3 passed 3 of 6:
+  1 stall without an engine restart (co-reader-2, 1920x1080) and 2 rows over the 250 ms p95 budget
+  alone (252 and 422 ms). There was no `request_timeout` in any run. The stability rule is not
+  met, so the G3 baseline stays, with K109 added and the reason corrected. The p95 budget was not
+  changed; it stays under K32 with Phase 12.
+- **No VM change for presses.** `ReaderViewModel.GoNextAsync` computes its target from a page
+  number that may be stale while a load is in flight (K108, not reproduced). Changing it together
+  with the harness's re-press would make the journey overshoot, so it goes to Phase 04.
+- **Phase 02 extras.** T02.3: 0 synthetic titles and 0 corpus folder names in 24 kept logs,
+  0 unhandled or Critical lines, 0 `ui.thread.violation`. `Category=SingleInstance` E2E does not
+  exist: NOT_ASSESSED, to Phase 24 (LaunchCycles and Smoke are partial evidence only).
+- **New defects.** K108 (stale page target, Phase 04); K109 (remaining blocking renderer calls
+  and in-process Tesseract on pool threads, Phases 06/24); K110 (EF `TransactionError` at
+  shutdown in G8 1920x1080, Phase 24).
+
+### NOT ASSESSED
+
+- Fast suite and full journey suite after `fc153ba6` (only the targeted tests and G3/G5/G8 ran).
+- Dark theme, 200% text, `fr`, keyboard-only for the reader journeys.

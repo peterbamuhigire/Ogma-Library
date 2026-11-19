@@ -1,8 +1,18 @@
 # Sept-23 Phase 02 completion: crash safety, logging and threading foundation
 
-Status: **IMPLEMENTED; journey proof pending Phase 01** (2026-09-25). The code, unit,
-architecture and real-window checks below pass. G3 and G8 cannot run until the Phase 01 journey
-harness exists, so the Definition of Done is not yet met (see NOT ASSESSED).
+Status: **IMPLEMENTED; G8 proven, G3 not yet stable** (updated 2026-11-19 by Phase CO slice 3;
+first recorded 2026-09-25). The code, unit, architecture and real-window checks below pass.
+
+Phase CO update (MEASURED, `evidence/sept-23-kaizen/phase-02/co-reader-journeys.md`):
+- G8 (both tests) passed 6 of 6 rows in co-reader-1 to -3, after 6 of 6 in co-all-1 to -3.
+- G5 passed 6 of 6.
+- G3's stall had a root cause: the app's thread pool was starved by blocking text-layer calls in
+  the OCR and extraction loops (K94). It was fixed in `fc153ba6`.
+- After the fix, G3 passed 3 of 6 rows: 1 stall (K109) and 2 failures on the p95 budget alone
+  (Phase 12).
+- T02.3 passed: 0 corpus titles in 24 kept logs.
+- The Definition of Done is still not met because G3 is not stable.
+
 Rollback point: `81f178f` (the last commit before any Phase 02 change).
 Plan: [phase-02](../../plans/sept-23-kaizen/phases/phase-02-crash-safety-logging-threading.md).
 Defects: K07, K30 (safety-net half; the reader fix is Phase 04), K31, K70, K72; K81 in part.
@@ -70,8 +80,8 @@ Architecture 47/47, core 988/988, UI 165/165 (1,200 tests, 0 failures).
 
 | Item | Owner | Why |
 |---|---|---|
-| G3 and G8 journeys; E2E suite with the guard on; `Category=SingleInstance` E2E | Phase 01 harness | The journey harness does not exist yet. The prototype UIA driver could not drive the Windows file and folder pickers on this machine, so scan, reader page turns and the corpus-title grep (T02.3 acceptance) were not run. The unit redaction tests cover titles in paths. |
-| Killing the PDF worker mid-read (G8) | Phase 01 / Phase 04 | Needs an open book (see above). |
+| G3 stability (3 consecutive passes at both sizes) | Phase 04 (stall, K109 via 06/24); Phase 12 (p95 budget) | Still failing after `fc153ba6`: in co-reader-1 to -3, 1 stall row and 2 rows over the p95 budget, out of 6. The baseline entry stays. G8, G5 and the T02.3 title grep are now MEASURED passes (Phase CO update above). |
+| `Category=SingleInstance` E2E | Phase 24 | No such journey exists; none was built in close-out. LaunchCycles (20 cycles) and Smoke passed in co-all-1 to -3, which is partial evidence only. The E2E app ran with the guard in Log mode (`app.start.completed ... guard Log`), with 0 `ui.thread.violation` lines. |
 | macOS lock-file single-instance and pipe activation | Engineering (Phase 27) | No Mac available. |
 | WER LocalDumps crash-dump policy | Owner / Engineering | Optional in the plan. |
 | Debug-build guard (Throw mode) against a full interactive session | Phase 01 | Release runs used Log mode. |
