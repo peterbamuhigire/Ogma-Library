@@ -1,8 +1,11 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -475,6 +478,51 @@ public sealed partial class Sept23Phase09DesignSystemTests
         secondary.Focus();
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(Resolve(app, "Color.Focus", ThemeVariant.Light), ((ISolidColorBrush)secondary.BorderBrush!).Color);
+        window.Close();
+    }
+
+    /// <summary>
+    /// Phase 09 slice 5 (K106): a focus ring must not change layout. A 2 px focus border on the
+    /// button itself grew focused toolbar buttons by 2 px, which pushed "Folders" into the
+    /// priority toolbar's overflow at 1280 px while the More menu still listed it as visible.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(NavigationMethod.Tab)]
+    [InlineData(NavigationMethod.Pointer)]
+    [InlineData(NavigationMethod.Unspecified)]
+    public void FocusRing_DoesNotChangeControlSize(NavigationMethod method)
+    {
+        NewApp();
+        Control[] controls =
+        [
+            new Button { Content = "Open", Classes = { "primary" } },
+            new Button { Content = "Remove", Classes = { "danger" } },
+            new Button { Content = "Cancel" },
+            new Button { Content = "Filter", Classes = { "tool" } },
+            new Button { Content = "Details", Classes = { "link" } },
+            new ToggleButton { Content = "Needs attention" },
+            new DropDownButton { Content = "More" },
+            new ComboBox { ItemsSource = new[] { "Title", "Author" }, SelectedIndex = 0 },
+        ];
+        var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6 };
+        foreach (Control control in controls)
+        {
+            panel.Children.Add(control);
+        }
+
+        var window = new Window { Width = 900, Height = 120, Content = panel };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        foreach (Control control in controls)
+        {
+            Size before = control.Bounds.Size;
+            Assert.True(control.Focus(method), $"{control.GetType().Name} did not take focus.");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(before, control.Bounds.Size);
+            Assert.NotNull(control.FocusAdorner);
+        }
+
         window.Close();
     }
 

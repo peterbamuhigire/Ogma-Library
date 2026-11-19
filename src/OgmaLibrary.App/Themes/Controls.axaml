@@ -242,14 +242,25 @@
     <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
 
-  <!-- Focus ring: 2 px Focus colour on every button variant (>= 3:1 on every surface). -->
+  <!-- Focus ring: 2 px Focus colour (>= 3:1 on every surface) drawn by a focus adorner just
+       outside the control, so focusing never changes layout (K106: a 2 px border grew focused
+       toolbar buttons by 2 px and pushed "Folders" into overflow at 1280 px). The adorner shows
+       for keyboard focus; any focus also turns the existing 1 px border to the Focus colour. -->
+  <Style Selector="Button, ToggleButton, DropDownButton, ComboBox">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border Margin="-2"
+                BorderThickness="2"
+                BorderBrush="{DynamicResource Brush.Focus}"
+                CornerRadius="{DynamicResource Radius.S}" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
   <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
-    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="Button:focus">
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
-    <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <!-- ToggleButton and DropDownButton are not matched by the Button selector; without these
@@ -275,7 +286,6 @@
   </Style>
   <Style Selector="DropDownButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
-    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.Selection.Background}" />
@@ -284,7 +294,6 @@
   </Style>
   <Style Selector="ToggleButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
-    <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <!-- ═══════════════════ Scroll bars ═══════════════════ -->
@@ -326,7 +335,6 @@
   </Style>
   <Style Selector="ComboBox:focus-visible /template/ Border#Background">
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
-    <Setter Property="BorderThickness" Value="2" />
   </Style>
 
   <!-- ═══════════════════ Toggles ═══════════════════ -->
