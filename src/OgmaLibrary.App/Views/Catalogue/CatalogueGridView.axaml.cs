@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -18,7 +19,23 @@ public partial class CatalogueGridView : UserControl
     public CatalogueGridView()
     {
         InitializeComponent();
+        if (!IsVirtualizationEnabled(Environment.GetEnvironmentVariable(VirtualizationVariable)))
+        {
+            BookGrid.ItemsPanel = new FuncTemplate<Panel?>(() => new WrapPanel { Orientation = Avalonia.Layout.Orientation.Horizontal });
+        }
     }
+
+    /// <summary>The administrator/test override that turns grid virtualisation off when set to <c>0</c>.</summary>
+    public const string VirtualizationVariable = "OGMA_CATALOGUE_VIRTUALIZE";
+
+    /// <summary>
+    /// Whether the grid uses <see cref="VirtualizingUniformGridPanel"/>: on unless the override is <c>0</c>,
+    /// which restores the former <see cref="WrapPanel"/> (Sept-23 Phase 10, D-decision).
+    /// </summary>
+    /// <param name="value">The value of <see cref="VirtualizationVariable"/>, or <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> unless the value is <c>0</c>.</returns>
+    public static bool IsVirtualizationEnabled(string? value) =>
+        !string.Equals(value?.Trim(), "0", StringComparison.Ordinal);
 
     private void BookCard_PointerPressed(object? sender, PointerPressedEventArgs e) =>
         UiActions.Run(() => BookCard_PointerPressedAsync(sender, e), "catalogue.book_card_pointer_pressed");

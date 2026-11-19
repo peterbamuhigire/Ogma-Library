@@ -753,16 +753,25 @@
         </Border>
       </Grid>
 
-      <!-- Bounded catalogue paging keeps large result sets responsive. -->
+      <!-- Sept-23 Phase 10: the virtualised grid lists the whole result ("Show all", default);
+           the bounded pager remains as an option for large result sets. -->
       <Border Grid.Row="3"
-              IsVisible="{Binding IsPagerVisible}"
+              IsVisible="{Binding IsPagingFooterVisible}"
               Background="{DynamicResource Brush.Surface.Footer}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,1,0,0"
               Padding="12,6">
-        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+          <CheckBox Grid.Column="3"
+                    IsChecked="{Binding Catalogue.ShowAll, Mode=TwoWay}"
+                    AutomationProperties.AutomationId="Catalogue.Pager.ShowAll"
+                    AutomationProperties.Name="{Binding Catalogue.ShowAllText}">
+            <TextBlock Text="{Binding Catalogue.ShowAllText}"
+                       FontSize="{DynamicResource Type.Size.Small}" />
+          </CheckBox>
           <Button Grid.Column="0"
                   Classes="tool"
+                  IsVisible="{Binding IsPagerVisible}"
                   IsEnabled="{Binding Catalogue.CanGoToPreviousPage}"
                   AutomationProperties.AutomationId="Catalogue.Pager.Previous"
                   AutomationProperties.Name="{Binding Catalogue.PreviousPageText}"
@@ -771,6 +780,7 @@
                        FontSize="{DynamicResource Type.Size.Small}" />
           </Button>
           <TextBlock Grid.Column="1"
+                     IsVisible="{Binding IsPagerVisible}"
                      Text="{Binding Catalogue.PageSummaryText}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"
@@ -778,6 +788,7 @@
                      Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
           <Button Grid.Column="2"
                   Classes="tool"
+                  IsVisible="{Binding IsPagerVisible}"
                   IsEnabled="{Binding Catalogue.CanGoToNextPage}"
                   AutomationProperties.AutomationId="Catalogue.Pager.Next"
                   AutomationProperties.Name="{Binding Catalogue.NextPageText}"

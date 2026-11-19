@@ -189,7 +189,13 @@ public sealed partial class MainShellViewModel
     public bool IsLibraryDestination => CurrentDestination == ShellDestination.Library;
 
     /// <summary>Whether the catalogue pager is shown: only on the catalogue route with more than one page.</summary>
-    public bool IsPagerVisible => IsCatalogueActive && Catalogue.TotalPages > 1;
+    public bool IsPagerVisible => IsCatalogueActive && Catalogue.IsPaged;
+
+    /// <summary>
+    /// Whether the catalogue footer (the "Show all" choice and, when paged, the pager) is shown:
+    /// only when the result exceeds one page (Sept-23 Phase 10).
+    /// </summary>
+    public bool IsPagingFooterVisible => IsCatalogueActive && Catalogue.CanChoosePaging;
 
     /// <summary>True when the reader view is the active content area.</summary>
     public bool IsReaderActive => CurrentRoute.Kind == RouteKind.Reader;
@@ -1241,7 +1247,7 @@ public sealed partial class MainShellViewModel
         foreach (string name in new[]
                  {
                      nameof(CurrentRoute), nameof(CurrentDestination), nameof(CurrentDestinationHueKey), nameof(ActiveView), nameof(DestinationHeading),
-                     nameof(IsCatalogueActive), nameof(IsLibraryDestination), nameof(IsPagerVisible), nameof(IsReaderActive),
+                     nameof(IsCatalogueActive), nameof(IsLibraryDestination), nameof(IsPagerVisible), nameof(IsPagingFooterVisible), nameof(IsReaderActive),
                      nameof(IsReaderContentVisible), nameof(IsReadingEmptyVisible), nameof(IsSplitViewActive),
                      nameof(IsReadingDestination), nameof(IsSharingSettingsActive), nameof(IsStudentSmartSearchActive),
                      nameof(IsClassroomActive), nameof(IsAdvisorActive), nameof(IsReadingPlanActive), nameof(IsAdvisorDestination),

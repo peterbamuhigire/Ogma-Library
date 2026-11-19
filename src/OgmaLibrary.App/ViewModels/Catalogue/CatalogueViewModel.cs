@@ -44,6 +44,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private string? _libraryRootPath;
     private int _currentPage = 1;
     private int _totalFilteredCount;
+    private bool _showAll = true;
     private CancellationTokenSource? _viewStateSaveCts;
 
     /// <summary>
@@ -90,6 +91,43 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>The filter and sort state.</summary>
     public CatalogueFilterViewModel Filter { get; }
+
+    /// <summary>
+    /// The localisation service, exposed so item templates can compose localised accessible names
+    /// (Sept-23 Phase 10). Raised again on culture change so bound names refresh.
+    /// </summary>
+    public ILocalizationService Localization => _localization;
+
+    /// <summary>
+    /// Whether the whole filtered result is listed (virtualised) rather than paged. On by default
+    /// and persisted with the view state (Sept-23 Phase 10).
+    /// </summary>
+    public bool ShowAll
+    {
+        get => _showAll;
+        set
+        {
+            if (_showAll != value)
+            {
+                _showAll = value;
+                OnPropertyChanged();
+                ApplyFilterAndSort(resetPage: true);
+                OnPropertyChanged(nameof(IsPaged));
+            }
+        }
+    }
+
+    /// <summary>Whether the pager is in use: "Show all" is off and there is more than one page.</summary>
+    public bool IsPaged => !_showAll && TotalPages > 1;
+
+    /// <summary>Whether the result is large enough for the "Show all" choice to matter.</summary>
+    public bool CanChoosePaging => _totalFilteredCount > PageSize;
+
+    /// <summary>Localised label for the "Show all" toggle.</summary>
+    public string ShowAllText => _localization["Catalogue.Paging.ShowAll"];
+
+    /// <summary>Localised "cover unavailable" badge text.</summary>
+    public string CoverUnavailableBadgeText => _localization["Catalogue.Badge.CoverUnavailable"];
 
     /// <summary>The filtered, sorted list of book summaries for binding.</summary>
     public ObservableCollection<BookSummaryProjection> FilteredItems => _filteredItems;
@@ -183,10 +221,10 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     public int TotalPages => Math.Max(1, (int)Math.Ceiling(_totalFilteredCount / (double)PageSize));
 
     /// <summary>Whether a previous catalogue page is available.</summary>
-    public bool CanGoToPreviousPage => _currentPage > 1;
+    public bool CanGoToPreviousPage => !_showAll && _currentPage > 1;
 
     /// <summary>Whether a next catalogue page is available.</summary>
-    public bool CanGoToNextPage => _currentPage < TotalPages;
+    public bool CanGoToNextPage => !_showAll && _currentPage < TotalPages;
 
     /// <summary>Localized page summary for the catalogue footer.</summary>
     public string PageSummaryText => string.Format(
@@ -534,10 +572,13 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             _currentPage = totalPages;
         }
 
-        results = results
-            .Skip((_currentPage - 1) * PageSize)
-            .Take(PageSize)
-            .ToList();
+        if (!_showAll)
+        {
+            results = results
+                .Skip((_currentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToList();
+        }
 
         List<BookSummaryProjection> strip = BuildHomeStrip();
 
@@ -561,6 +602,8 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(CanGoToPreviousPage));
             OnPropertyChanged(nameof(CanGoToNextPage));
             OnPropertyChanged(nameof(PageSummaryText));
+            OnPropertyChanged(nameof(IsPaged));
+            OnPropertyChanged(nameof(CanChoosePaging));
             OnPropertyChanged(nameof(IsEmpty));
             OnPropertyChanged(nameof(IsFilteredEmpty));
         }
@@ -615,6 +658,11 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
         Filter.SortAscending = state.SortAscending;
         _currentPage = Math.Max(1, state.CurrentPage);
+        if (_showAll != state.ShowAll)
+        {
+            _showAll = state.ShowAll;
+            OnPropertyChanged(nameof(ShowAll));
+        }
     }
 
     private void ScheduleViewStateSave()
@@ -648,7 +696,8 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
                     Filter.SelectedShelfId,
                     Filter.SortField.ToString(),
                     Filter.SortAscending,
-                    _currentPage),
+                    _currentPage,
+                    _showAll),
                 cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -695,6 +744,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
          a.Year == b.Year &&
          a.IsFavourite == b.IsFavourite &&
          a.IsLocked == b.IsLocked &&
+         a.CoverSource == b.CoverSource &&
+         a.HasFailedCover == b.HasFailedCover &&
+         a.CopyCount == b.CopyCount &&
          a.RelativePath == b.RelativePath &&
          Equals(a.Processing, b.Processing) &&
          a.Authors.SequenceEqual(b.Authors) &&
@@ -747,6 +799,9 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(QualityBadgeFormat));
         OnPropertyChanged(nameof(DirectoryPathUnavailableText));
         OnPropertyChanged(nameof(DirectoryUntitledText));
+        OnPropertyChanged(nameof(ShowAllText));
+        OnPropertyChanged(nameof(CoverUnavailableBadgeText));
+        OnPropertyChanged(nameof(Localization));
     }
 }
 

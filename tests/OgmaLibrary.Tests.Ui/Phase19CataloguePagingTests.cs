@@ -27,7 +27,8 @@ public sealed class Phase19CataloguePagingTests
                 SelectedShelfId: null,
                 SortField: nameof(CatalogueSortField.Year),
                 SortAscending: false,
-                CurrentPage: 2),
+                CurrentPage: 2,
+                ShowAll: false),
         };
         var viewModel = new CatalogueViewModel(
             new SeededReadModel(CreateBooks(205)),

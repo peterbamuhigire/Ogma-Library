@@ -136,19 +136,18 @@ public static class Shell
         throw new TimeoutException($"The catalogue did not settle with at least {minimum} items within {limit.TotalSeconds:0} s (last count {lastCount}).");
     }
 
-    /// <summary>Finds a catalogue item whose accessible name or descendant text contains <paramref name="title"/>.</summary>
+    /// <summary>
+    /// Finds a catalogue item whose accessible name or descendant text contains <paramref name="title"/>,
+    /// scrolling the virtualised grid until the item is realised (Sept-23 Phase 10).
+    /// </summary>
     public static AutomationElement? FindCatalogueItem(JourneyContext context, string title)
     {
-        foreach (AutomationElement item in CatalogueItems(context))
-        {
-            if (Contains(item.Properties.Name.ValueOrDefault, title) ||
-                item.FindFirstDescendant(cf => cf.ByName(title)) is not null)
-            {
-                return item;
-            }
-        }
-
-        return null;
+        AutomationElement? grid = Uia.TryFind(context.RequireApp.MainWindow, "Catalogue.Grid");
+        return grid is null
+            ? null
+            : Uia.FindListItem(grid, item =>
+                Contains(item.Properties.Name.ValueOrDefault, title) ||
+                item.FindFirstDescendant(cf => cf.ByName(title)) is not null);
     }
 
     /// <summary>Selects a book, waits for the detail inspector, presses Read and waits for page 1.</summary>

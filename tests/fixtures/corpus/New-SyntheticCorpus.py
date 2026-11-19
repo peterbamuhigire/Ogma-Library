@@ -1,7 +1,7 @@
 """Deterministic synthetic PDF corpus for the Ogma Library real-window journeys (Sept-23 T01.4).
 
 Usage:
-    python tests/fixtures/corpus/New-SyntheticCorpus.py <output_dir> [--manifest <file>]
+    python tests/fixtures/corpus/New-SyntheticCorpus.py <output_dir> [--manifest <file>] [--count N]
 
 Requires pymupdf and pypdf (pip install pymupdf pypdf). All content is original synthetic text;
 no real book content is ever generated or committed. The output is byte-for-byte reproducible:
@@ -14,6 +14,10 @@ The corpus (17 files) matches the Sept-23 audit corpus:
   1 password-protected file; 1 truncated file; 1 non-PDF with a .pdf extension; 1 zero-byte
   file; 2 image-only PDFs; 1 deeply nested file.
 The journey oracle is tests/fixtures/corpus/expected.json. Keep the two in step.
+
+--count N (Sept-23 Phase 10) adds N small, deterministic, original books under "Bulk/" for scale
+and virtualisation journeys. Without --count (or with 0) the output is unchanged and still matches
+tests/fixtures/corpus/MANIFEST.sha256.json byte for byte.
 """
 import argparse
 import hashlib
@@ -147,6 +151,16 @@ def generate(root):
     make(root, deep, "Deeply Nested.pdf", "Deeply Nested", "Nester", "", "nested folder depth", 3)
 
 
+BULK_WORDS = "catalogue shelf volume chapter index reader margin folio binding archive"
+
+
+def generate_bulk(root, count):
+    """N small synthetic books (two pages each) with fixed metadata, for scale journeys."""
+    for i in range(1, count + 1):
+        make(root, "Bulk", f"Bulk Volume {i:05d}.pdf", f"Bulk Volume {i:05d}", f"Synthetic Author {i % 97:02d}",
+             "", BULK_WORDS, 2)
+
+
 def manifest(root):
     rows = {}
     for dirpath, _, files in os.walk(root):
@@ -162,10 +176,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("output")
     ap.add_argument("--manifest", help="write a JSON SHA-256 manifest of the generated files")
+    ap.add_argument("--count", type=int, default=0, help="add N small synthetic books under Bulk/")
     args = ap.parse_args()
     if os.path.exists(args.output) and os.listdir(args.output):
         sys.exit(f"output directory is not empty: {args.output}")
+    if args.count < 0:
+        sys.exit("--count must be zero or more")
     generate(args.output)
+    generate_bulk(args.output, args.count)
     rows = manifest(args.output)
     if args.manifest:
         with open(args.manifest, "w", encoding="utf-8") as fh:

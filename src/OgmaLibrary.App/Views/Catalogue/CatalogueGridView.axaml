@@ -3,12 +3,13 @@
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              xmlns:app="using:OgmaLibrary.Application.Catalogue"
              xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
+             xmlns:conv="using:OgmaLibrary.App.Converters"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueGridView"
              x:DataType="vm:CatalogueViewModel">
 
   <!--
-    Grid view: ListBox with WrapPanel for cover display.
-    Each cell shows a cover placeholder, the title, and the primary author.
+    Grid view: ListBox with a virtualising uniform grid (Sept-23 Phase 10; OGMA_CATALOGUE_VIRTUALIZE=0
+    selects the former WrapPanel). Each fixed-size cell shows the cover, the title and the author.
     Selecting a book routes through IBookDetailNavigationService.
   -->
 
@@ -44,7 +45,18 @@
                  AutomationProperties.Name="{Binding HomeStripTitle}">
           <ListBox.Styles>
             <Style Selector="ListBoxItem" x:DataType="app:BookSummaryProjection">
-              <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+              <Setter Property="AutomationProperties.Name">
+                <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Name">
+                  <Binding />
+                  <Binding Path="$parent[UserControl].DataContext.Localization" />
+                </MultiBinding>
+              </Setter>
+              <Setter Property="AutomationProperties.HelpText">
+                <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Help">
+                  <Binding />
+                  <Binding Path="$parent[UserControl].DataContext.Localization" />
+                </MultiBinding>
+              </Setter>
               <Setter Property="AutomationProperties.AutomationId" Value="{Binding BookId, StringFormat='Catalogue.Home.Item.{0}'}" />
             </Style>
           </ListBox.Styles>
@@ -80,7 +92,8 @@
       </Grid>
     </Border>
 
-  <ListBox Classes="card-grid"
+  <ListBox x:Name="BookGrid"
+           Classes="card-grid"
            ItemsSource="{Binding FilteredItems}"
            SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
            SelectionMode="Single"
@@ -92,34 +105,61 @@
       <!-- Sept-23 K14: the readable accessible name and a stable automation id belong on the
            ListBoxItem container; otherwise UI Automation announces the record's ToString(). -->
       <Style Selector="ListBoxItem" x:DataType="app:BookSummaryProjection">
-        <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+        <Setter Property="AutomationProperties.Name">
+          <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Name">
+            <Binding />
+            <Binding Path="$parent[UserControl].DataContext.Localization" />
+          </MultiBinding>
+        </Setter>
+        <Setter Property="AutomationProperties.HelpText">
+          <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Help">
+            <Binding />
+            <Binding Path="$parent[UserControl].DataContext.Localization" />
+          </MultiBinding>
+        </Setter>
         <Setter Property="AutomationProperties.AutomationId" Value="{Binding BookId, StringFormat='Catalogue.Item.{0}'}" />
       </Style>
     </ListBox.Styles>
     <ListBox.ItemsPanel>
       <ItemsPanelTemplate>
-        <WrapPanel Orientation="Horizontal" />
+        <cat:VirtualizingUniformGridPanel ItemWidth="{DynamicResource Size.Catalogue.Slot.Width}"
+                                          ItemHeight="{DynamicResource Size.Catalogue.Slot.Height}" />
       </ItemsPanelTemplate>
     </ListBox.ItemsPanel>
     <ListBox.ItemTemplate>
       <DataTemplate x:DataType="app:BookSummaryProjection">
         <Border Classes="book-card"
-                Width="160"
-                MinHeight="248"
+                Width="{DynamicResource Size.Catalogue.Card.Width}"
+                Height="{DynamicResource Size.Catalogue.Card.Height}"
                 Margin="8"
-                AutomationProperties.Name="{Binding Title}"
-                AutomationProperties.HelpText="{Binding PrimaryAuthor}"
                 ToolTip.Tip="{Binding Title}"
                 PointerPressed="BookCard_PointerPressed">
           <StackPanel Spacing="0">
             <!-- Extracted cover, or a generated cloth-bound cover (Sept-23 Phase 09). -->
             <Border Classes="book-card-cover">
-              <cat:CoverImageView Height="160"
-                                  AutomationProperties.AutomationId="Catalogue.Item.Cover"
-                                  RelativePath="{Binding CoverRelativePath}"
-                                  RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
-                                  Label="{Binding Title}"
-                                  Subtitle="{Binding CoverAuthor}" />
+              <Panel>
+                <cat:CoverImageView Height="{DynamicResource Size.Catalogue.Card.Cover}"
+                                    AutomationProperties.AutomationId="Catalogue.Item.Cover"
+                                    RelativePath="{Binding CoverRelativePath}"
+                                    RootPath="{Binding $parent[UserControl].DataContext.LibraryRootPath}"
+                                    Label="{Binding Title}"
+                                    Subtitle="{Binding CoverAuthor}" />
+                <!-- Sept-23 Phase 10: say why the extracted cover is missing once processing ends. -->
+                <Border Classes="badge warning"
+                        Margin="4"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Bottom"
+                        IsVisible="{Binding IsCoverUnavailable}"
+                        AutomationProperties.AutomationId="Catalogue.Item.Badge.CoverUnavailable">
+                  <ToolTip.Tip>
+                    <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="CoverReason">
+                      <Binding />
+                      <Binding Path="$parent[UserControl].DataContext.Localization" />
+                    </MultiBinding>
+                  </ToolTip.Tip>
+                  <TextBlock Text="{Binding $parent[UserControl].DataContext.CoverUnavailableBadgeText}" />
+                </Border>
+              </Panel>
             </Border>
             <!-- Metadata area -->
             <StackPanel Margin="10,8,10,8" Spacing="3">
@@ -133,8 +173,14 @@
                          TextWrapping="Wrap" />
               <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                         TextTrimming="CharacterEllipsis"
-                         Text="{Binding PrimaryAuthor}" />
+                         TextTrimming="CharacterEllipsis">
+                <TextBlock.Text>
+                  <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Author">
+                    <Binding />
+                    <Binding Path="$parent[UserControl].DataContext.Localization" />
+                  </MultiBinding>
+                </TextBlock.Text>
+              </TextBlock>
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">
                 <Border IsVisible="{Binding Processing.IsIndexed}"
                         Classes="badge success">

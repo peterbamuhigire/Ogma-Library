@@ -1130,9 +1130,11 @@ public sealed partial class MainShellViewModel :
             OnPropertyChanged(nameof(StatusText));
         }
 
-        if (e.PropertyName is nameof(CatalogueViewModel.TotalPages))
+        if (e.PropertyName is nameof(CatalogueViewModel.TotalPages) or nameof(CatalogueViewModel.IsPaged)
+            or nameof(CatalogueViewModel.ShowAll) or nameof(CatalogueViewModel.CanChoosePaging))
         {
             OnPropertyChanged(nameof(IsPagerVisible));
+            OnPropertyChanged(nameof(IsPagingFooterVisible));
         }
     }
 

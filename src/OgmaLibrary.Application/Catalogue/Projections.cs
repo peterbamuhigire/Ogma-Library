@@ -21,6 +21,9 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="RelativePath">Desktop-only library-root-relative source path; never expose in LAN projections.</param>
 /// <param name="Processing">Non-sensitive indexing, embedding, OCR, and quality state.</param>
 /// <param name="IsLocked">Whether the PDF needs a password to open (Sept-23 Phase 05).</param>
+/// <param name="CoverSource">Source of the ready cover asset (embedded, provider, generated, placeholder), or null.</param>
+/// <param name="HasFailedCover">Whether cover generation recorded a failure for this book.</param>
+/// <param name="CopyCount">Number of valid library files (occurrences) for this book; at least one.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -36,8 +39,58 @@ public sealed record BookSummaryProjection(
     bool IsFavourite = false,
     string? RelativePath = null,
     CatalogueProcessingProjection? Processing = null,
-    bool IsLocked = false)
+    bool IsLocked = false,
+    string? CoverSource = null,
+    bool HasFailedCover = false,
+    int CopyCount = 1)
 {
+    /// <summary>Whether a ready cover was taken from the book itself or a provider (not generated).</summary>
+    public bool HasExtractedCover =>
+        !string.IsNullOrWhiteSpace(CoverRelativePath) &&
+        !string.Equals(CoverSource, "generated", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(CoverSource, "placeholder", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Why no extracted cover is shown once processing has finished (Sept-23 Phase 10), or
+    /// <see cref="Catalogue.CoverUnavailableReason.None"/> while a cover exists or may still arrive.
+    /// </summary>
+    public CoverUnavailableReason CoverUnavailableReason
+    {
+        get
+        {
+            if (HasExtractedCover)
+            {
+                return CoverUnavailableReason.None;
+            }
+
+            if (IsLocked)
+            {
+                return CoverUnavailableReason.Locked;
+            }
+
+            if (!IsAvailable)
+            {
+                return CoverUnavailableReason.FileMissing;
+            }
+
+            if (HasFailedCover)
+            {
+                return CoverUnavailableReason.ExtractionFailed;
+            }
+
+            // Covers are produced in the same worker batch as text extraction, so a known text
+            // status (or a finished index attempt) means the cover step has also run.
+            bool processingFinished = Processing is { } processing &&
+                ((processing.HasTextStatus && !processing.IsOcrInProgress) ||
+                 processing.IndexStatus is global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Indexed
+                     or global::OgmaLibrary.Application.Search.SearchBookIndexStatus.Failed);
+            return processingFinished ? CoverUnavailableReason.NoCoverFound : CoverUnavailableReason.None;
+        }
+    }
+
+    /// <summary>Whether the card shows the "cover unavailable" badge.</summary>
+    public bool IsCoverUnavailable => CoverUnavailableReason != CoverUnavailableReason.None;
+
     /// <summary>Whether a non-empty title is available for display.</summary>
     public bool HasTitle => !string.IsNullOrWhiteSpace(Title);
 
@@ -55,6 +108,25 @@ public sealed record BookSummaryProjection(
     /// </summary>
     public string? CoverAuthor =>
         Authors.FirstOrDefault(author => !string.IsNullOrWhiteSpace(author))?.Trim();
+}
+
+/// <summary>Why a book shows the generated cover instead of an extracted one (Sept-23 Phase 10).</summary>
+public enum CoverUnavailableReason
+{
+    /// <summary>An extracted cover exists, or processing has not finished.</summary>
+    None = 0,
+
+    /// <summary>The PDF is password protected, so its first page cannot be rendered.</summary>
+    Locked = 1,
+
+    /// <summary>The library file is missing on disk.</summary>
+    FileMissing = 2,
+
+    /// <summary>Cover generation failed.</summary>
+    ExtractionFailed = 3,
+
+    /// <summary>Processing finished without producing a cover.</summary>
+    NoCoverFound = 4,
 }
 
 /// <summary>

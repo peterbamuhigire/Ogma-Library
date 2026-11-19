@@ -79,6 +79,13 @@ public sealed partial class ShellReaderNavigationTests
         await shell.InitializeAsync();
         Dispatcher.UIThread.RunJobs();
 
+        // Sept-23 Phase 10: "Show all" is on by default, so the pager stays hidden and only the
+        // paging footer (with the Show all toggle) appears when there is more than one page.
+        Assert.False(shell.IsPagerVisible);
+        Assert.Equal(expected, shell.IsPagingFooterVisible);
+
+        shell.Catalogue.ShowAll = false;
+        Dispatcher.UIThread.RunJobs();
         Assert.Equal(expected, shell.IsPagerVisible);
         shell.Dispose();
     }

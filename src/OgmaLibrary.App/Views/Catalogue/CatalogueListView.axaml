@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              xmlns:app="using:OgmaLibrary.Application.Catalogue"
+             xmlns:conv="using:OgmaLibrary.App.Converters"
              xmlns:cat="using:OgmaLibrary.App.Views.Catalogue"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueListView"
              x:DataType="vm:CatalogueViewModel">
@@ -21,7 +22,18 @@
       <!-- Sept-23 K14: the readable accessible name and a stable automation id belong on the
            ListBoxItem container; otherwise UI Automation announces the record's ToString(). -->
       <Style Selector="ListBoxItem" x:DataType="app:BookSummaryProjection">
-        <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+        <Setter Property="AutomationProperties.Name">
+          <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Name">
+            <Binding />
+            <Binding Path="$parent[UserControl].DataContext.Localization" />
+          </MultiBinding>
+        </Setter>
+        <Setter Property="AutomationProperties.HelpText">
+          <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Help">
+            <Binding />
+            <Binding Path="$parent[UserControl].DataContext.Localization" />
+          </MultiBinding>
+        </Setter>
         <Setter Property="AutomationProperties.AutomationId" Value="{Binding BookId, StringFormat='Catalogue.Item.{0}'}" />
       </Style>
     </ListBox.Styles>
@@ -33,7 +45,6 @@
     <ListBox.ItemTemplate>
       <DataTemplate x:DataType="app:BookSummaryProjection">
         <Border Padding="12,8"
-                AutomationProperties.Name="{Binding Title}"
                 Cursor="Hand"
                 PointerPressed="BookRow_PointerPressed">
           <Grid ColumnDefinitions="56,*,60,40">
@@ -61,9 +72,10 @@
                          Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                          TextTrimming="CharacterEllipsis">
                 <TextBlock.Text>
-                  <MultiBinding StringFormat="{}{0}">
-                    <Binding Path="PrimaryAuthor" />
-                </MultiBinding>
+                  <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Author">
+                    <Binding />
+                    <Binding Path="$parent[UserControl].DataContext.Localization" />
+                  </MultiBinding>
               </TextBlock.Text>
               </TextBlock>
               <WrapPanel Orientation="Horizontal" ItemSpacing="3" LineSpacing="3">

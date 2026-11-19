@@ -194,6 +194,11 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                     .ThenBy(asset => asset.Variant)
                     .Select(asset => new { asset.RelativePath, asset.Source })
                     .FirstOrDefault(),
+                HasFailedCover = b.VisualAssets.Any(asset =>
+                    asset.Kind == (int)VisualAssetKind.Cover &&
+                    asset.Status == (int)VisualAssetStatus.Failed),
+                CopyCount = b.BookFiles.Count(f =>
+                    f.FileStatus == 0 && (f.FileValidity == 0 || f.FileValidity == 4)),
                 Progress = b.ReadingProgress,
                 HasPresentFile = b.BookFiles.Any(f => f.FileStatus == 0),
                 PrimaryRelativePath = b.BookFiles
@@ -262,6 +267,9 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                  Sha256Hash: item.Sha256Hash,
                  RelativePath: item.PrimaryRelativePath,
                  IsLocked: item.IsLocked,
+                 CoverSource: item.CoverAsset?.Source,
+                 HasFailedCover: item.HasFailedCover,
+                 CopyCount: Math.Max(1, item.CopyCount),
                  Processing: new CatalogueProcessingProjection(
                      LockedAwareIndexStatus(item.IndexStatus, item.IsLocked),
                      (global::OgmaLibrary.Application.Search.SearchEmbeddingStatus)item.EmbeddingStatus,

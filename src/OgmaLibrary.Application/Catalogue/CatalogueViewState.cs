@@ -1,6 +1,9 @@
 namespace OgmaLibrary.Application.Catalogue;
 
-/// <summary>Persisted, non-sensitive catalogue presentation state.</summary>
+/// <summary>
+/// Persisted, non-sensitive catalogue presentation state. <c>ShowAll</c> (Sept-23 Phase 10) lists the
+/// whole result in the virtualised grid; older files without it default to showing all.
+/// </summary>
 public sealed record CatalogueViewState(
     string View,
     string? TitleSearch,
@@ -12,7 +15,8 @@ public sealed record CatalogueViewState(
     string? SelectedShelfId,
     string SortField,
     bool SortAscending,
-    int CurrentPage);
+    int CurrentPage,
+    bool ShowAll = true);
 
 /// <summary>Stores the user's catalogue view state across application restarts.</summary>
 public interface ICatalogueViewStateStore

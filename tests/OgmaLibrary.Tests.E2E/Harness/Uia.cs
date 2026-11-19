@@ -178,6 +178,67 @@ public static class Uia
     public static AutomationElement[] ListItems(AutomationElement container) =>
         Retry(() => container.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)));
 
+    /// <summary>
+    /// Finds a list item matching <paramref name="match"/>, scrolling a virtualised list from the top a
+    /// page at a time until the item is realised (Sept-23 Phase 10), then scrolls it into view.
+    /// </summary>
+    /// <param name="container">The list (or an ancestor of its scroll viewer).</param>
+    /// <param name="match">The item predicate.</param>
+    /// <param name="maxPages">The most pages to scroll before giving up.</param>
+    /// <returns>The item, or null when no realised page holds it.</returns>
+    public static AutomationElement? FindListItem(AutomationElement container, Func<AutomationElement, bool> match, int maxPages = 500)
+    {
+        ArgumentNullException.ThrowIfNull(container);
+        ArgumentNullException.ThrowIfNull(match);
+        AutomationElement? found = ListItems(container).FirstOrDefault(match);
+        if (found is null && ScrollPatternOf(container) is { } scroll && scroll.VerticallyScrollable.ValueOrDefault)
+        {
+            Retry(() =>
+            {
+                scroll.SetScrollPercent(-1, 0); // -1 = UIA_ScrollPatternNoScroll (keep horizontal)
+                return true;
+            });
+            for (int page = 0; page < maxPages && found is null; page++)
+            {
+                Thread.Sleep(120);
+                found = ListItems(container).FirstOrDefault(match);
+                if (found is null)
+                {
+                    if (scroll.VerticalScrollPercent.ValueOrDefault >= 99.9)
+                    {
+                        break;
+                    }
+
+                    Retry(() =>
+                    {
+                        scroll.Scroll(ScrollAmount.NoAmount, ScrollAmount.LargeIncrement);
+                        return true;
+                    });
+                }
+            }
+        }
+
+        if (found?.Patterns.ScrollItem.PatternOrDefault is { } scrollItem)
+        {
+            try
+            {
+                scrollItem.ScrollIntoView();
+            }
+            catch (Exception ex) when (IsTransient(ex) || ex is InvalidOperationException)
+            {
+                // Best effort: the item is realised, so it is reachable even if it cannot scroll.
+            }
+        }
+
+        return found;
+    }
+
+    private static FlaUI.Core.Patterns.IScrollPattern? ScrollPatternOf(AutomationElement container) =>
+        container.Patterns.Scroll.PatternOrDefault ??
+        Retry(() => container.FindAllDescendants())
+            .Select(element => element.Patterns.Scroll.PatternOrDefault)
+            .FirstOrDefault(pattern => pattern is not null);
+
     /// <summary>Whether <paramref name="candidate"/> is <paramref name="ancestor"/> or inside it.</summary>
     public static bool IsSameOrDescendant(UIA3Automation automation, AutomationElement candidate, AutomationElement ancestor)
     {

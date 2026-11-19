@@ -1,12 +1,19 @@
 """Kaizen 2026-09-25: generate the synthetic Ogma test library (16 generated files + 1 copied golden scan = 17; original content only).
 
-Usage: python New-SyntheticCorpus.py [output_dir]   (default: %TEMP%/ogma-corpus)
+Usage: python New-SyntheticCorpus.py [output_dir] [--count N]   (default: %TEMP%/ogma-corpus)
+--count N (Sept-23 Phase 10) adds N small synthetic books under "Bulk/"; without it the output is unchanged.
 Requires: pip install pymupdf pypdf. Copy tests/golden-corpus/ocr-pipeline/scanned-image-only.pdf
 into "<output_dir>/Edge Cases" to reproduce the audit corpus exactly. Phase 01 replaces this prototype.
 """
 import os, sys, shutil, random, tempfile, fitz
 from pypdf import PdfReader, PdfWriter
-root = sys.argv[1] if len(sys.argv) > 1 else os.path.join(tempfile.gettempdir(), "ogma-corpus")
+_args = sys.argv[1:]
+count = 0
+if "--count" in _args:
+    _i = _args.index("--count")
+    count = int(_args[_i + 1])
+    del _args[_i:_i + 2]
+root = _args[0] if _args else os.path.join(tempfile.gettempdir(), "ogma-corpus")
 for sub in ("Science", "History", "Fiction", "Edge Cases"):
     os.makedirs(os.path.join(root, sub), exist_ok=True)
 books = [
@@ -63,4 +70,8 @@ make("Science","Big Reference Handbook.pdf","Big Reference Handbook","Various","
 # deep nested path
 deep=os.path.join(root,"Edge Cases","a"*40,"b"*40,"c"*40); os.makedirs(deep,exist_ok=True)
 make(os.path.relpath(deep,root),"Deeply Nested.pdf","Deeply Nested","Nester","","nested folder depth",3)
+# scale journeys (Phase 10): N small synthetic books
+if count: os.makedirs(os.path.join(root,"Bulk"),exist_ok=True)
+for _n in range(1, count + 1):
+    make("Bulk",f"Bulk Volume {_n:05d}.pdf",f"Bulk Volume {_n:05d}",f"Synthetic Author {_n % 97:02d}","","catalogue shelf volume chapter index reader margin folio binding archive",2)
 print("ok")

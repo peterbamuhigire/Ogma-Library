@@ -2,13 +2,33 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
              xmlns:app="using:OgmaLibrary.Application.Catalogue"
+             xmlns:conv="using:OgmaLibrary.App.Converters"
              x:Class="OgmaLibrary.App.Views.Catalogue.CatalogueDirectoryView"
              x:DataType="vm:CatalogueViewModel">
   <ListBox ItemsSource="{Binding FilteredItems}"
            SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
            SelectionMode="Single"
            Background="Transparent"
-           BorderThickness="0">
+           BorderThickness="0"
+           AutomationProperties.AutomationId="Catalogue.Directory">
+    <ListBox.Styles>
+      <!-- Sept-23 Phase 10 (K14): composed name and stable id on the container, as in grid and list. -->
+      <Style Selector="ListBoxItem" x:DataType="app:BookSummaryProjection">
+        <Setter Property="AutomationProperties.Name">
+          <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Name">
+            <Binding />
+            <Binding Path="$parent[UserControl].DataContext.Localization" />
+          </MultiBinding>
+        </Setter>
+        <Setter Property="AutomationProperties.HelpText">
+          <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Help">
+            <Binding />
+            <Binding Path="$parent[UserControl].DataContext.Localization" />
+          </MultiBinding>
+        </Setter>
+        <Setter Property="AutomationProperties.AutomationId" Value="{Binding BookId, StringFormat='Catalogue.Item.{0}'}" />
+      </Style>
+    </ListBox.Styles>
     <ListBox.ItemsPanel>
       <ItemsPanelTemplate>
         <VirtualizingStackPanel />
@@ -17,7 +37,6 @@
     <ListBox.ItemTemplate>
       <DataTemplate x:DataType="app:BookSummaryProjection">
         <Border Padding="10,7"
-                AutomationProperties.Name="{Binding Title}"
                 Cursor="Hand"
                 PointerPressed="BookRow_PointerPressed">
           <Grid ColumnDefinitions="2*,*,*,Auto" ColumnSpacing="12">
@@ -43,9 +62,15 @@
                        TextTrimming="CharacterEllipsis"
                        VerticalAlignment="Center" />
             <TextBlock Grid.Column="2"
-                       Text="{Binding PrimaryAuthor}"
                        TextTrimming="CharacterEllipsis"
-                       VerticalAlignment="Center" />
+                       VerticalAlignment="Center">
+              <TextBlock.Text>
+                <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="Author">
+                    <Binding />
+                    <Binding Path="$parent[UserControl].DataContext.Localization" />
+                  </MultiBinding>
+              </TextBlock.Text>
+            </TextBlock>
             <TextBlock Grid.Column="3"
                        Text="{Binding Year}"
                        VerticalAlignment="Center" />
