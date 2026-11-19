@@ -65,6 +65,17 @@ function Fail([string]$message) {
     exit 2
 }
 
+# Runs a native command with $ErrorActionPreference scoped to Continue (K103). When the caller
+# redirects this script's output (2>&1 | Out-File), Windows PowerShell 5.1 turns each native stderr
+# line (for example xUnit [FAIL] lines) into an error record, which 'Stop' would make terminating and
+# so skip the summary. Stderr lines are passed on as plain text; $LASTEXITCODE is left to the caller.
+function Invoke-Native([scriptblock]$Command) {
+    $ErrorActionPreference = 'Continue'
+    & $Command 2>&1 | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() } else { $_ }
+    }
+}
+
 # ---- Validate parameters -------------------------------------------------------------------
 if (-not $All -and -not $Journey -and -not $Tag -and -not $ReportOnly) {
     Fail 'Specify -All, -Journey <id> or -Tag <name>.'
@@ -135,13 +146,13 @@ if (-not $NoBuild) {
     try {
         # Restore in locked mode once; the builds below never restore, so no lock file is rewritten
         # (an implicit Release-only restore would drop Debug-only packages from the App lock file).
-        & dotnet restore OgmaLibrary.sln --locked-mode
+        Invoke-Native { dotnet restore OgmaLibrary.sln --locked-mode }
         if ($LASTEXITCODE -ne 0) { Fail 'Locked-mode restore failed.' }
         if ($Exe -eq [IO.Path]::GetFullPath((Join-Path $appOut 'OgmaLibrary.App.exe'))) {
-            & dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj --configuration Release -p:OgmaE2EHooks=true --no-restore -o $appOut
+            Invoke-Native { dotnet build src/OgmaLibrary.App/OgmaLibrary.App.csproj --configuration Release -p:OgmaE2EHooks=true --no-restore -o $appOut }
             if ($LASTEXITCODE -ne 0) { Fail 'The E2E app build failed.' }
         }
-        & dotnet build $project --configuration Release --no-restore
+        Invoke-Native { dotnet build $project --configuration Release --no-restore }
         if ($LASTEXITCODE -ne 0) { Fail 'The E2E test project build failed.' }
     }
     finally {
@@ -164,6 +175,7 @@ $settings = @{
 }
 $saved = @{}
 $testExit = 0
+$runError = $null
 $runDirs = @()
 try {
     foreach ($theme in $Themes) {
@@ -186,10 +198,18 @@ try {
         }
 
         Write-Output "Running journeys: filter '$filter', sizes $($settings.OGMA_E2E_SIZES), theme $theme"
-        & dotnet test $project --configuration Release --no-build --filter $filter `
-            --logger "trx;LogFileName=e2e.trx" --results-directory $artifacts
+        Invoke-Native {
+            dotnet test $project --configuration Release --no-build --filter $filter `
+                --logger "trx;LogFileName=e2e.trx" --results-directory $artifacts
+        }
         if ($LASTEXITCODE -ne 0) { $testExit = $LASTEXITCODE }
     }
+}
+catch {
+    # Never lose the summary: report the error and summarise whatever results were written.
+    Write-Output "Journey run error: $($_.Exception.Message)"
+    $runError = $_.Exception.Message
+    $testExit = 1
 }
 finally {
     foreach ($key in $saved.Keys) { [Environment]::SetEnvironmentVariable($key, $saved[$key]) }
@@ -239,11 +259,12 @@ if ($failures.Count -gt 0) {
     foreach ($f in $failures) { $md += "- **$($f.Journey) $($f.Size)** ($($f.Test)): $($f.Message)" }
 }
 if ($rows.Count -eq 0) { $md += ''; $md += 'No journey produced a result (the test host failed or the filter matched nothing).' }
+if ($runError) { $md += ''; $md += "The journey run stopped with an error: $runError" }
 $md | Set-Content (Join-Path $runRoot 'results.md') -Encoding UTF8
 $rows | Sort-Object Journey, Test, Size | Format-Table Journey, Size, Result, Defects, Seconds -AutoSize | Out-String -Width 200 | Write-Output
 Write-Output "Summary: $(Join-Path $runRoot 'results.md')"
 
-if ($rows.Count -eq 0) { exit 1 }
+if ($runError -or $rows.Count -eq 0) { exit 1 }
 if ($failures.Count -gt 0) { exit 1 }
 if ($Strict -and @($rows | Where-Object { $_.Result -ne 'PASS' }).Count -gt 0) { exit 1 }
 exit 0

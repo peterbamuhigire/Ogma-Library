@@ -150,9 +150,33 @@ public static class Uia
     public static string? GetText(AutomationElement element) =>
         element.Patterns.Value.TryGetPattern(out var value) ? value.Value.Value : element.Properties.Name.ValueOrDefault;
 
-    /// <summary>List items directly or indirectly under a container.</summary>
+    /// <summary>Attempts <see cref="Retry{T}"/> makes before it rethrows a transient failure.</summary>
+    public const int RetryAttempts = 3;
+
+    /// <summary>
+    /// Runs <paramref name="action"/>, retrying a transient UIA failure (see <see cref="IsTransient"/>)
+    /// up to <see cref="RetryAttempts"/> attempts in all, <paramref name="gapMs"/> apart. The last
+    /// failure, or any non-transient failure, is rethrown unchanged (K102).
+    /// </summary>
+    public static T Retry<T>(Func<T> action, int gapMs = 200)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return action();
+            }
+            catch (Exception ex) when (attempt < RetryAttempts && IsTransient(ex))
+            {
+                Thread.Sleep(gapMs);
+            }
+        }
+    }
+
+    /// <summary>List items directly or indirectly under a container, retrying transient UIA failures (K102).</summary>
     public static AutomationElement[] ListItems(AutomationElement container) =>
-        container.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem));
+        Retry(() => container.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)));
 
     /// <summary>Whether <paramref name="candidate"/> is <paramref name="ancestor"/> or inside it.</summary>
     public static bool IsSameOrDescendant(UIA3Automation automation, AutomationElement candidate, AutomationElement ancestor)
