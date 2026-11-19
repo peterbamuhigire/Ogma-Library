@@ -385,6 +385,22 @@ public sealed partial class MainShellViewModel
         return true;
     }
 
+    /// <summary>
+    /// Closes the book inspector if it is open (Esc, Sept-23 Phase 11, 11.9). The catalogue
+    /// selection is left alone; Phase 10 owns it.
+    /// </summary>
+    /// <returns>True when the inspector was open and is now closed.</returns>
+    public bool CloseInspector()
+    {
+        if (!BookDetail.IsVisible)
+        {
+            return false;
+        }
+
+        BookDetail.Close();
+        return true;
+    }
+
     // ── Filter chips (K12) ────────────────────────────────────────────────────
 
     /// <summary>Chips for every active catalogue filter, so a hidden filter can never silently apply.</summary>

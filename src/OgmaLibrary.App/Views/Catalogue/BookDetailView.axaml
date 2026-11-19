@@ -25,6 +25,19 @@
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchmentMuted}" />
     </Style>
+    <!-- Left-edge resize handle (11.9); visible on hover and keyboard focus -->
+    <Style Selector="Thumb.inspector-resize">
+      <Setter Property="Cursor" Value="SizeWestEast" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" />
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="Thumb.inspector-resize:pointerover, Thumb.inspector-resize:focus-visible">
+      <Setter Property="Background" Value="{DynamicResource Brush.Focus}" />
+    </Style>
     <Style Selector="Border.skeleton">
       <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
       <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
@@ -42,9 +55,7 @@
 
   <Border Background="{DynamicResource Brush.Surface.Card}"
           BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-          BorderThickness="1,0,0,0"
-          Width="360"
-          MinWidth="320">
+          BorderThickness="1,0,0,0">
 
     <Grid RowDefinitions="Auto,Auto,*">
 
@@ -984,6 +995,24 @@
 
         </StackPanel>
       </ScrollViewer>
+
+      <!-- Resize handle (11.9): last in tab order, after header, segments and content -->
+      <Thumb x:Name="ResizeHandle"
+             Classes="inspector-resize"
+             Grid.Row="0"
+             Grid.RowSpan="3"
+             Width="6"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Stretch"
+             Focusable="True"
+             IsTabStop="True"
+             AutomationProperties.AutomationId="Detail.ResizeHandle"
+             AutomationProperties.Name="{Binding ResizeHandleName}"
+             AutomationProperties.HelpText="{Binding ResizeHandleHelp}"
+             ToolTip.Tip="{Binding ResizeHandleName}"
+             DragDelta="ResizeHandle_DragDelta"
+             DragCompleted="ResizeHandle_DragCompleted"
+             KeyDown="ResizeHandle_KeyDown" />
 
     </Grid>
   </Border>

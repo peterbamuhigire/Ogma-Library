@@ -131,6 +131,7 @@ public sealed class FileUserPreferencesService : IUserPreferencesService, IDispo
             Theme = theme,
             Density = density,
             Culture = NormalizeCulture(preferences.Culture),
+            InspectorWidth = UserPreferences.ClampInspectorWidth(preferences.InspectorWidth),
             SchemaVersion = UserPreferences.CurrentSchemaVersion,
         };
     }

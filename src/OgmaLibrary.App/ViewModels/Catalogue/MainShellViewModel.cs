@@ -105,6 +105,7 @@ public sealed partial class MainShellViewModel :
     private readonly IClassroomModeService? _classroomModeService;
     private readonly IUserPreferencesService? _userPreferencesService;
     private UserPreferencesController _preferences = null!;
+    private double? _liveInspectorWidth;
     private bool _ownsPreferences;
     private readonly ILogger _logger;
     private readonly string _searchIconPath = IconCatalog.GetAvaresPath("ic_search_global") ?? string.Empty;
@@ -644,6 +645,44 @@ public sealed partial class MainShellViewModel :
 
     /// <summary>The preference controller shared with Settings (Sept-23 Phase 08).</summary>
     public UserPreferencesController Preferences => _preferences;
+
+    /// <summary>
+    /// The inspector width in device-independent pixels (Sept-23 Phase 11, 11.9): the live value
+    /// while the user resizes, otherwise the persisted preference.
+    /// </summary>
+    public double InspectorWidth => _liveInspectorWidth ?? _preferences.Current.InspectorWidth;
+
+    /// <summary>
+    /// Applies a new inspector width live, clamped to the allowed range, without saving it.
+    /// Call <see cref="CommitInspectorWidthAsync"/> when the drag or key sequence ends.
+    /// </summary>
+    /// <param name="width">The requested width.</param>
+    public void ResizeInspector(double width)
+    {
+        double clamped = UserPreferences.ClampInspectorWidth(width);
+        if (Math.Abs(clamped - InspectorWidth) < 0.5)
+        {
+            return;
+        }
+
+        _liveInspectorWidth = clamped;
+        OnPropertyChanged(nameof(InspectorWidth));
+    }
+
+    /// <summary>Persists the live inspector width, if the user changed it.</summary>
+    /// <param name="cancellationToken">A token to cancel the save.</param>
+    /// <returns>A task that completes when the width is saved.</returns>
+    public Task CommitInspectorWidthAsync(CancellationToken cancellationToken = default)
+    {
+        if (_liveInspectorWidth is not { } width)
+        {
+            return Task.CompletedTask;
+        }
+
+        // UpdateAsync applies the new value before it awaits the save, so the width never flickers.
+        _liveInspectorWidth = null;
+        return _preferences.UpdateAsync(current => current with { InspectorWidth = width }, cancellationToken);
+    }
 
     /// <summary>The Settings destination's view model, when composed (Sept-23 Phase 08).</summary>
     public SettingsViewModel? Settings { get; }
@@ -1420,6 +1459,7 @@ public sealed partial class MainShellViewModel :
     {
         OnPropertyChanged(nameof(Theme));
         OnPropertyChanged(nameof(Density));
+        OnPropertyChanged(nameof(InspectorWidth));
         OnPropertyChanged(nameof(CommandPaletteItems));
         UserPreferencesChanged?.Invoke(this, preferences);
     }

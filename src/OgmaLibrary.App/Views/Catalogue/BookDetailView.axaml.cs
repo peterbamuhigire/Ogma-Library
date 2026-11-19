@@ -55,6 +55,57 @@ public partial class BookDetailView : UserControl
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
+    // ── Resize handle (11.9): the shell owns the width; the view only reports intent ──
+
+    /// <summary>The keyboard step, in device-independent pixels, for Left and Right on the handle.</summary>
+    public const double ResizeKeyStep = 16;
+
+    /// <summary>
+    /// Raised while the user resizes the panel. The argument is the change in width: positive
+    /// widens the panel (the handle sits on its left edge, so dragging left widens it).
+    /// </summary>
+    public event EventHandler<double>? ResizeRequested;
+
+    /// <summary>
+    /// Raised when a resize gesture ends. The argument is true for a keyboard step, which the
+    /// shell saves after a short pause, and false for the end of a pointer drag, saved at once.
+    /// </summary>
+    public event EventHandler<bool>? ResizeEnded;
+
+    private void ResizeHandle_DragDelta(object? sender, Avalonia.Input.VectorEventArgs e)
+    {
+        if (e.Vector.X != 0)
+        {
+            ResizeRequested?.Invoke(this, -e.Vector.X);
+        }
+    }
+
+    private void ResizeHandle_DragCompleted(object? sender, Avalonia.Input.VectorEventArgs e) =>
+        ResizeEnded?.Invoke(this, false);
+
+    private void ResizeHandle_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (e.KeyModifiers != Avalonia.Input.KeyModifiers.None)
+        {
+            return;
+        }
+
+        double delta = e.Key switch
+        {
+            Avalonia.Input.Key.Left => ResizeKeyStep,
+            Avalonia.Input.Key.Right => -ResizeKeyStep,
+            _ => 0,
+        };
+        if (delta == 0)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ResizeRequested?.Invoke(this, delta);
+        ResizeEnded?.Invoke(this, true);
+    }
+
     private void RetryProcessingButton_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(
             async () =>

@@ -101,6 +101,12 @@ public sealed partial class BookDetailViewModel
     /// <summary>Localised title of the file picker.</summary>
     public string LocateFilePickerTitle => _localization["Catalogue.BookDetail.Relink.PickerTitle"];
 
+    /// <summary>Accessible name of the inspector's resize handle (11.9).</summary>
+    public string ResizeHandleName => _localization["Catalogue.BookDetail.ResizeHandle.Name"];
+
+    /// <summary>Accessible help text of the resize handle: how to use it by keyboard.</summary>
+    public string ResizeHandleHelp => _localization["Catalogue.BookDetail.ResizeHandle.Help"];
+
     /// <summary>Localised name of the PDF file-type filter in the picker.</summary>
     public string PdfFilesFilterText => _localization["MainWindow.PdfPicker.PdfFiles"];
 
@@ -286,6 +292,8 @@ public sealed partial class BookDetailViewModel
         OnPropertyChanged(nameof(LocateFileText));
         OnPropertyChanged(nameof(LocateFilePickerTitle));
         OnPropertyChanged(nameof(PdfFilesFilterText));
+        OnPropertyChanged(nameof(ResizeHandleName));
+        OnPropertyChanged(nameof(ResizeHandleHelp));
         OnPropertyChanged(nameof(PasswordStateTitleText));
         OnPropertyChanged(nameof(PasswordStateBodyText));
         OnPropertyChanged(nameof(ProcessingStateTitleText));

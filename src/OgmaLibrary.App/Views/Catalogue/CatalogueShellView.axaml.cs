@@ -45,6 +45,68 @@ public partial class CatalogueShellView : UserControl
                 UpdateSelectionToolbarInset();
             }
         };
+        Inspector.ResizeRequested += OnInspectorResizeRequested;
+        Inspector.ResizeEnded += OnInspectorResizeEnded;
+        _inspectorWidthSaveTimer = new DispatcherTimer { Interval = InspectorWidthSaveDelay };
+        _inspectorWidthSaveTimer.Tick += (_, _) =>
+        {
+            _inspectorWidthSaveTimer.Stop();
+            CommitInspectorWidth();
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            // Save a pending keyboard resize rather than lose it when the shell goes away.
+            if (_inspectorWidthSaveTimer.IsEnabled)
+            {
+                _inspectorWidthSaveTimer.Stop();
+                CommitInspectorWidth();
+            }
+        };
+    }
+
+    /// <summary>How long after the last keyboard resize step the width is saved.</summary>
+    private static readonly TimeSpan InspectorWidthSaveDelay = TimeSpan.FromMilliseconds(500);
+
+    private readonly DispatcherTimer _inspectorWidthSaveTimer;
+
+    // ── Inspector width (Sept-23 Phase 11, 11.9) ──────────────────────────────
+
+    private void OnInspectorResizeRequested(object? sender, double delta)
+    {
+        if (ViewModel is { } vm)
+        {
+            vm.ResizeInspector(vm.InspectorWidth + delta);
+        }
+    }
+
+    private void OnInspectorResizeEnded(object? sender, bool fromKeyboard)
+    {
+        _inspectorWidthSaveTimer.Stop();
+        if (fromKeyboard)
+        {
+            // Debounced: a run of arrow presses is saved once.
+            _inspectorWidthSaveTimer.Start();
+        }
+        else
+        {
+            CommitInspectorWidth();
+        }
+    }
+
+    private void CommitInspectorWidth()
+    {
+        if (ViewModel is { } vm)
+        {
+            UiActions.Run(() => vm.CommitInspectorWidthAsync(), "catalogue.inspector_width_save");
+        }
+    }
+
+    private void ApplyInspectorWidth()
+    {
+        if (ViewModel is { } vm)
+        {
+            Inspector.Width = vm.InspectorWidth;
+        }
     }
 
     private MainShellViewModel? ViewModel => DataContext as MainShellViewModel;
@@ -70,6 +132,7 @@ public partial class CatalogueShellView : UserControl
             }
 
             ApplyInspectorLayout();
+            ApplyInspectorWidth();
             RebuildMoreMenu();
         }
 
@@ -84,6 +147,10 @@ public partial class CatalogueShellView : UserControl
         if (e.PropertyName == nameof(MainShellViewModel.IsInspectorOverlay))
         {
             ApplyInspectorLayout();
+        }
+        else if (e.PropertyName == nameof(MainShellViewModel.InspectorWidth))
+        {
+            ApplyInspectorWidth();
         }
         else if (e.PropertyName is nameof(MainShellViewModel.DestinationHeading) or
                  nameof(MainShellViewModel.ExportDiagnosticsLabel))
@@ -184,9 +251,15 @@ public partial class CatalogueShellView : UserControl
 
         if (e.Key == Key.Escape)
         {
+            // Order (Phase 11, 11.9): drawer, then inspector, then search.
             if (vm.CloseDrawer())
             {
                 e.Handled = true;
+            }
+            else if (vm.CloseInspector())
+            {
+                e.Handled = true;
+                FocusSelectedCatalogueItem();
             }
             else if (vm.IsSearchActive)
             {
@@ -201,6 +274,26 @@ public partial class CatalogueShellView : UserControl
         {
             e.Handled = true;
         }
+    }
+
+    /// <summary>
+    /// After the inspector closes, focus returns to the selected card (or the catalogue list when
+    /// nothing is selected or the card is virtualised away), so keyboard users keep their place.
+    /// </summary>
+    private void FocusSelectedCatalogueItem()
+    {
+        ListBox? list = this.GetVisualDescendants()
+            .OfType<ListBox>()
+            .FirstOrDefault(candidate => candidate.IsEffectivelyVisible &&
+                                         Avalonia.Automation.AutomationProperties.GetAutomationId(candidate)
+                                             is "Catalogue.Grid" or "Catalogue.List");
+        if (list is null)
+        {
+            return;
+        }
+
+        Control? card = list.SelectedItem is { } item ? list.ContainerFromItem(item) : null;
+        (card ?? list).Focus(NavigationMethod.Tab);
     }
 
     private void Rail_KeyDown(object? sender, KeyEventArgs e)
