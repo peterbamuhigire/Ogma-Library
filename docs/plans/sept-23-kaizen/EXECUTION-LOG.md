@@ -136,3 +136,15 @@ These decisions were taken under that authority. Each is the recommended option 
   - G10 and J-CAT-5 at 1280x800 are **NOT_ASSESSED**. Run `20261119-155855` failed at launch ("main window did not appear"), while the owner's interactive desktop was running a full-screen game. A diagnostic launch showed the visible "Ogma Library" window, but `Process.MainWindowHandle` stayed 0. Real input was not injected again over a desktop in use.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **2026-11-19**: Phase 10 slice 8 (executor session), record and evidence. Phase 10 is **IMPLEMENTED, not COMPLETE**. New owner-proxy decision:
+  - **D-48**: a real-window run does not start while the owner's interactive session is in use (input within the last 5 minutes). The journeys are recorded as NOT_ASSESSED rather than injecting input over the owner's desktop. `baseline.json` is unchanged: D-17 requires 3 consecutive passes at both sizes.
+  - Preamble decisions D-18 to D-22 were recorded at the start of the phase and are restated in the record.
+
+  Results on `aee9e2dd`:
+  - The static gates pass: accountability (162 IDs), locked restore, format, Release build (0 warnings), the vulnerable-package scan (0 in 11 projects), analyzers and design tokens. The fast suite passes (Tests 1,350, Ui 417, Architecture 52).
+  - `-Tag Catalogue -Sizes 1280x800,1920x1080` is **NOT_ASSESSED** under D-48: the owner was using the desktop, with the last input 2 s earlier and game tooling in the foreground.
+  - The 2,000-book scroll in the real window is NOT_ASSESSED, because the harness has no frame timer. The headless proxy measured p95 212-250 ms and a worst step of 346-439 ms: HEURISTIC, over the target, and registered as K120 (Phase 24).
+  - K119 was added to the register as resolved. K121 (failed-job rows not localised, Phase 11) is new. K14 is resolved for the catalogue, and K23 is partly resolved.
+  - Open items to reach COMPLETE: the journeys at both sizes, G10 and J-CAT-5, screenshots, K120 and K121.
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).

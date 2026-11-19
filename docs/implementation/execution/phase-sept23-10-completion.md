@@ -1,13 +1,17 @@
 # Sept-23 Phase 10 completion: catalogue experience
 
-Status: **IN PROGRESS**. Slices 1 to 5 of 8 are done (2026-11-19). The phase is not
-IMPLEMENTED or COMPLETE.
+Status: **IMPLEMENTED** (2026-11-19). All 8 slices are done; this is **not COMPLETE**. See
+[Phase status](#phase-status-slice-8) for the Definition of Done items that do not hold.
 Branch: `kaizen/phase-10`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `d7e75952`.
 Plan: [phase-10](../../plans/sept-23-kaizen/phases/phase-10-catalogue-experience.md).
-Decisions: D-18 to D-36 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
-Defects: K14 is resolved for the grid, list, directory and home strip. K114 to K117 were found
-here; K116 and K117 are resolved in slice 5, K114 and K115 are handed on. See the [defect register](../../plans/sept-23-kaizen/03-defect-register.md).
+Decisions: D-18 to D-48 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Defects:
+- K14 is resolved for the catalogue: grid, list, directory and home strip.
+- K23 is partly resolved.
+- K114 to K121 were found here. K116, K117 and K119 are resolved; K114, K115, K118, K120 and K121 are open.
+
+See the [defect register](../../plans/sept-23-kaizen/03-defect-register.md).
 
 ## Typeface decision
 
@@ -267,3 +271,118 @@ Commit: `feat(catalogue): library health dashboard and key parity (META-008)`.
 - Re-run G10 and J-CAT-5 on an idle desktop. Their oracles have never executed.
 - Failed-job rows show the stable job type and failure codes (for example "Enrich · provider_timeout"), not localised text.
 - K118 (Keep separate) and the open items from slice 6.
+
+## Slice 8: record and evidence
+
+Head: `aee9e2dd`. Rollback point for the phase: `d7e75952` (`d7e759521a729a370904f409d9a20210d74ed778`).
+This slice changes only records and evidence; no product code changed.
+
+### Tasks 10.1 to 10.12
+
+| # | Task | Status | Where |
+|---|---|---|---|
+| 10.1 | Container-level accessible names in grid, list and directory | **Done**. Before this phase K14 had been fixed for title-only names on the grid and list. | Slice 1, `b50d0d21`: composed name, badges, directory id `Catalogue.Directory` |
+| 10.2 | Virtualised grid with keyboard navigation | **Done** (CODE, headless). The 2,000-book real-window frame budget is NOT_ASSESSED (K120, Phase 24). | Slice 1, `b50d0d21` (D-19) |
+| 10.3 | Progressive covers | **Pre-existing**: progressive refresh during processing landed in Phase 06 (T06.6, `MainShellViewModel`). This phase added the cover-unavailable badge with its reason. | Phase 06; slice 1, `b50d0d21` (reason inference K114) |
+| 10.4 | Filter model with read-model predicates; restore once | **Done**. Server-side paging is **moved** to Phase 24 (D-20). | Slice 2, `1174e30a` |
+| 10.5 | Filter bar, chips, no-results, Save as smart shelf | **Done** | Slice 3, `d617a4d9` |
+| 10.6 | Shelf membership: menu, drag, remove | **Done**. The menu path passes in a real window. The drag path is headless only: real-window OLE drag is NOT_ASSESSED, and drag on macOS is moved to Phase 27. | Slice 4, `e1a9f6b4`, `aba334b8` |
+| 10.7 | Multi-select and selection toolbar | **Done**. Enrich shows only when a provider is enabled. | Slice 4, `e1a9f6b4`, `fb2950e8` |
+| 10.8 | Bulk edit with preview, apply and undo | **Done** | Slice 5, `e14a593c`, `f3e7b873`, `3b0ecf50` |
+| 10.9 | Copies and editions, Compare, Merge, Split, Undo | **Done**, except *Keep separate*, which is **moved** to Phase 11 (K118, D-41) | Slice 6, `59e42021` |
+| 10.10 | Library health dashboard | **Done**. Localised failed-job rows are **moved** to Phase 11 (K121). | Slice 7, `aee9e2dd` |
+| 10.11 | Needs attention for invalid files | **Pre-existing**: Phase 05 (G6 stable) keeps invalid files out of the book list and adds the Needs attention panel. Moving `IngestionFailure` rows to `FileIssues` is **moved** to Phase 11 (D-22). Slice 7 adds the Needs attention health tile. | Phase 05; slice 7 |
+| 10.12 | Localisation and badge tooltips | **Done**: English and French key parity, badge tooltips and K119. Exception: K121. | Slice 7, `aee9e2dd` |
+
+### Decisions
+
+These preamble decisions were recorded at the start of the phase:
+- **D-18**: proceed although Phases 06 and 09 are IMPLEMENTED, not COMPLETE.
+- **D-19**: an in-repo virtualising panel inside the existing ListBox; `OGMA_CATALOGUE_VIRTUALIZE=0` restores the `WrapPanel`.
+- **D-20**: one criteria model with read-model and view-model parity; server-side paging moves to Phase 24.
+- **D-21**: copies show "2 copies" and Compare; merge and split act on work groups.
+- **D-22**: moving `IngestionFailure` rows to `FileIssues` moves to Phase 11.
+
+Slice decisions D-23 to D-47 are in the sections above and in the execution log. Slice 8 adds
+**D-48**: a real-window run does not start while the owner's interactive session is in use (input
+within the last 5 minutes). The journeys are then recorded as NOT_ASSESSED rather than injecting
+input over the owner's desktop. `baseline.json` is unchanged, because D-17 requires 3 consecutive
+passes at both sizes and no Phase 10 journey has passed at 1920x1080.
+
+### Gates on `aee9e2dd` (slice 8)
+
+Verbatim output: [gates and scroll](evidence/sept-23-kaizen/phase-10/slice-8/gates-and-scroll-20261119.md).
+
+| Gate | Class | Result |
+|---|---|---|
+| `./scripts/Test-RequirementAccountability.ps1` | MEASURED | PASS: 101 FRs, 29 NFRs, 32 controls; all 162 IDs assigned |
+| `dotnet restore OgmaLibrary.sln --locked-mode` | MEASURED | PASS (exit 0) |
+| `dotnet format --verify-no-changes --no-restore` | MEASURED | PASS (exit 0) |
+| `dotnet build -c Release --no-restore` | MEASURED | PASS: 0 warnings, 0 errors |
+| `dotnet list package --vulnerable --include-transitive` | MEASURED | PASS: 0 vulnerable packages in 11 of 11 projects |
+| `dotnet format analyzers ... --severity warn` | MEASURED | PASS (exit 0) |
+| `./scripts/Test-DesignTokens.ps1` | MEASURED | PASS ("clean") |
+| `./scripts/Test-Fast.ps1` | MEASURED | PASS: Tests 1,350, Ui 417, Architecture 52; 0 failed |
+| `src/shelf3d` npm gates | — | Not applicable: unchanged in Phase 10 |
+| 2,000-book scroll, real window | — | **NOT_ASSESSED**: the harness has no frame timer and there is no 2,000-book journey (K120, Phase 24) |
+| 2,000-book scroll, headless proxy | HEURISTIC | Median assertion passes. Layout p95 250.13 ms and 212.42 ms; worst step 438.51 ms and 345.65 ms (two runs); 26 containers realised. Above the plan's 16 ms / 100 ms targets (K120). |
+
+### Real-window journeys (slice 8)
+
+**NOT_ASSESSED on this head** (D-48). At 2026-11-19, before the run, the owner's desktop was in active
+use: the last input was 2 s earlier, and the foreground window was "FC Live Editor Launcher" (with EA
+and FIFA Mod Manager windows open). Under D-48, `Invoke-GoldenJourneys.ps1 -Tag Catalogue -Sizes 1280x800,1920x1080`
+was not started. A background check then waited 45 minutes for 5 minutes of idle time. It never came: the check ended
+at 20:11:06 with `STILL_ACTIVE ... lastIdleSec=0`. The screenshots this slice asked for at both sizes were therefore not captured
+on this head: grid, filter bar, no-results, shelf, bulk-edit preview, Compare and health, plus a fresh
+UIA dump.
+
+Existing real-window evidence from earlier slices, all at 1280x800 only (MEASURED):
+
+| Journey | Last PASS | Evidence |
+|---|---|---|
+| A11yNames (zero record names), G1, G2, G6, J-CAT-1, J-CAT-2 (menu), J-CAT-3, J-CAT-4 | Run `20261119-150819` | [results](evidence/sept-23-kaizen/phase-10/slice-6/catalogue-20261119-150819-results.md) |
+| J-CAT-1, J-CAT-2 | Run `20261119-132548` | [results](evidence/sept-23-kaizen/phase-10/slice-4/catalogue-20261119-132548-results.md) |
+| J-CAT-3 bulk-edit preview, applied, undone | Run `20261119-141641` | [preview](evidence/sept-23-kaizen/phase-10/slice-5/j-cat-3-bulk-edit-preview-1280x800.png), [results](evidence/sept-23-kaizen/phase-10/slice-5/catalogue-20261119-141641-results.md) |
+| J-CAT-4 Compare, merge, undo | Run `20261119-151646` | [compare](evidence/sept-23-kaizen/phase-10/slice-6/j-cat-4-compare-dialog-1280x800.png), [results](evidence/sept-23-kaizen/phase-10/slice-6/j-cat-4-20261119-151646-results.md) |
+| G10, J-CAT-5 | Never executed | [run `20261119-155855`](evidence/sept-23-kaizen/phase-10/slice-7/g10-jcat5-20261119-155855-results.md) failed at launch on a busy desktop |
+| Any Phase 10 journey at 1920x1080 | Never executed | — |
+
+Health dashboard appearance: headless only (CODE). `HealthDashboardRenderTests` renders the shipped
+view and writes `health-en.png` to its test output; no real-window capture exists.
+
+### Typeface statement
+
+No new typefaces in Phase 10. Cards use Public Sans for author, badges and captions. Card titles use
+the Phase 09 `ogma-display` class, and generated covers use Spectral. Sizes and colours come only from
+Phase 09 tokens; `Test-DesignTokens.ps1` is clean on `aee9e2dd`.
+
+### NOT_ASSESSED, with owners
+
+| Item | Owner |
+|---|---|
+| Screen-reader listening test of the catalogue (UIA name evidence only) | Phase 21 |
+| 50k-book scroll on reference hardware; 2,000-book real-window frame timing (K120) | Phase 24 |
+| Provider-backed batch enrichment (the dashboard shows Pause and Resume only when providers are enabled) | Owner (provider terms) |
+| Drag onto a collection on macOS; real-window OLE drag on Windows | Phase 27 (macOS); Phase 01 harness (OLE drag driver) |
+| PX-GATE evidence: 200% text, Arabic RTL, the longest declared language, dark theme, 1024x768, the keyboard and screen-reader walkthrough, profiling on reference hardware, an independent verifier's signature | Phase 21 (accessibility, text scale, RTL), Phase 24 (profiling), owner (independent verifier) |
+| Every Phase 10 journey at 1920x1080; G10 and J-CAT-5 at any size; slice 8 screenshots and UIA dump on this head | Next Phase 10 evidence run on an idle desktop |
+| Development engine skills for the slices that did not read them | Recorded per slice above |
+
+### Phase status (slice 8)
+
+**IMPLEMENTED, not COMPLETE.** Against `08-master-plan.md` §5:
+
+| # | Definition of Done item | Holds? |
+|---|---|---|
+| 1 | Every task done or moved with a reason | Yes (table above) |
+| 2 | Full gate set on a clean checkout, including the real-window journey suite | **No**: the static gates and the fast suite pass; the journey suite was not run on this head |
+| 3 | New behaviour tested at the right layer | Partly: unit and headless tests throughout; real-window coverage at 1280x800 for J-CAT-1 to J-CAT-4; none for G10 or J-CAT-5 |
+| 4 | Before and after screenshots of touched journeys at both sizes | **No**: 1280x800 only, for J-CAT-3 and J-CAT-4 |
+| 5 | Strings localised, tokens only, meaningful names | Mostly: key parity and the token lint pass; K121 is open |
+| 6 | Completion record with commands, results, evidence, NOT_ASSESSED items and rollback | Yes (this record) |
+| 7 | Status register and execution status updated | Yes (slice 8) |
+
+Open items to reach COMPLETE: run `-Tag Catalogue -Sizes 1280x800,1920x1080` on an idle desktop
+(G10 and J-CAT-5 included), capture the listed screenshots and a UIA dump, then fix or reassign
+K120 and K121.

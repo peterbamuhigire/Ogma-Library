@@ -14,6 +14,13 @@ claims below describe gate evidence, not a working product. Phase progress is tr
 [status register](../../plans/sept-23-kaizen/README.md#status-register) and
 [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
+- **Sept-23 Phase 10** (catalogue experience): **IMPLEMENTED** 2026-11-19 on branch
+  `kaizen/phase-10` (rollback `d7e75952`). Not COMPLETE.
+  - On `aee9e2dd`, the full static gate set and the fast suite pass (Tests 1,350, Ui 417, Architecture 52).
+  - J-CAT-1 to J-CAT-4 and A11yNames pass at 1280x800 only.
+  - NOT ASSESSED: every Phase 10 journey at 1920x1080; G10 and J-CAT-5 at any size; the real-window 2,000-book scroll (K120).
+  - Open: K118 and K121.
+  - See the [completion record](phase-sept23-10-completion.md).
 - **Sept-23 Phase 09** (design system, "Lamplit Library"): **IMPLEMENTED** 2026-11-19 on branch
   `kaizen/phase-09` (rollback `acb9d36c`). Gates passed on `5520c82c` except
   `Test-RequirementAccountability.ps1`, which failed on the archived `aug-39` matrix; `82f88e23`

@@ -67,7 +67,7 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 07 | Navigation and information architecture | B | **IMPLEMENTED** 2026-09-25; close-out 2026-11-19: G1, G7, Navigation stable; open: owner walkthrough (D-13) | [record](../../implementation/execution/phase-sept23-07-completion.md) |
 | 08 | Settings and capability centre | B | **COMPLETE** 2026-11-19 (close-out: 4 Settings journeys incl. J-SET-3 pass 3/3 at both sizes, run `co-final`, commit `ebb7b718`) | [record](../../implementation/execution/phase-sept23-08-completion.md) |
 | 09 | Design system and visual identity | C | **IMPLEMENTED** 2026-11-19 (branch `kaizen/phase-09`; all assessed journeys PASS both themes and sizes; accountability gate passes again after `82f88e23` restored the matrix, K100 resolved; open: owner walkthrough, gates and journeys on the final head) | [record](../../implementation/execution/phase-sept23-09-completion.md) |
-| 10 | Catalogue experience | C | NOT STARTED | — |
+| 10 | Catalogue experience | C | **IMPLEMENTED** 2026-11-19 (branch `kaizen/phase-10`, rollback `d7e75952`). The full static gate set and the fast suite pass on `aee9e2dd`. J-CAT-1 to J-CAT-4 and A11yNames PASS at 1280x800. Open: no journeys at 1920x1080; G10 and J-CAT-5 never executed; real-window 2k scroll (K120); K118, K121 | [record](../../implementation/execution/phase-sept23-10-completion.md) |
 | 11 | Book detail inspector overhaul | C | NOT STARTED | — |
 | 12 | Reader experience | C | NOT STARTED | — |
 | 13 | Unified, trustworthy search | D | **IMPLEMENTED** 2026-09-27; close-out 2026-11-19: G4 and A11yNames stable; open: K40 miss cause, J-SRCH-1 journey | [record](../../implementation/execution/phase-sept23-13-completion.md) |

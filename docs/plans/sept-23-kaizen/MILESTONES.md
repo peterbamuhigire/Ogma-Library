@@ -121,6 +121,22 @@ MEASURED, run `co-final` on `ebb7b718`. [Record](../../implementation/execution/
   [completion record](../../implementation/execution/phase-sept23-09-completion.md). Not COMPLETE:
   the accountability script fails on `main`'s archived `aug-39` matrix (K100), and the owner
   walkthrough is pending.
+- **Phase 10, catalogue experience: IMPLEMENTED 2026-11-19 (branch `kaizen/phase-10`); not
+  COMPLETE.** The catalogue is no longer a thin shell. Changes:
+  - Readable item names (K14 fixed for the catalogue) and a virtualised grid.
+  - Full filters with chips, an explained no-results state and smart shelves.
+  - Multi-select and shelf membership.
+  - Bulk edit with preview and undo.
+  - "2 copies" with Compare, Merge and Split with undo (K23 partly fixed).
+  - A library health dashboard.
+
+  The static gates and the fast suite pass. J-CAT-1 to J-CAT-4 pass at 1280x800. Open:
+  - No journey has run at 1920x1080.
+  - G10 and J-CAT-5 were never executed, because the owner's desktop was in use (D-48).
+  - The real-window 2,000-book scroll timing (K120).
+  - Keep separate (K118) and localised job rows (K121).
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).
 - **Phase 13, unified search: IMPLEMENTED and merged.** Phrases, typos, Unicode names and field
   queries; honest status; no race. G4 is stable. Open: the K40 miss cause and the J-SRCH-1
   journey.
