@@ -192,7 +192,7 @@ class Runner:
                 return rec, text
 
     def _session_once(self, ph, role, prompt, slice_id):
-        rc = self.cfg["roles"][role]
+        rc = self.role_cfg(ph, role)
         self.state["seq"] += 1
         seq = self.state["seq"]
         self.save()
@@ -288,7 +288,7 @@ class Runner:
                 w.writerow(CALL_COLS)
             w.writerows(rows)
         ru = result.get("usage") or {}
-        rec = {"run_id": self.run_id, "seq": seq, "phase": ph["id"], "role": role, "slice": slice_id, "session": sid,
+        rec = {"run_id": self.run_id, "seq": seq, "phase": ph["id"], "role": role, "slice": slice_id, "session": sid, "arm": ph.get("arm") or "default",
                "model_requested": rc["model"], "effort": rc["effort"], "start_utc": start, "end_utc": iso(),
                "wall_s": round(time.time() - t0, 1), "api_ms": result.get("duration_api_ms"), "turns": result.get("num_turns"),
                "exit": proc.returncode, "outcome": outcome, "stop_reason": result.get("stop_reason"),
@@ -308,6 +308,12 @@ class Runner:
                    f"out={tot['output']} cost={rec['cost_usd_cli']} commits={commits}")
         self.mirror()
         return rec, (text if text else err_tail)
+
+    def role_cfg(self, ph, role):
+        """Model, effort and timeout for a role; a phase's "arm" may override the default roles."""
+        rc = dict(self.cfg["roles"][role])
+        rc.update(((self.cfg.get("arms") or {}).get(ph.get("arm") or "") or {}).get(role) or {})
+        return rc
 
     def transcript_calls(self, sid):
         """Final per-call usage from the CLI's own transcript. The live stream reports a call's
@@ -707,7 +713,7 @@ class Runner:
         sess = [s for s in self._sessions() if s["phase"] == pid]
         base = st.get("pushed") and f"{st['pushed']}" or "HEAD"
         append_jsonl(os.path.join(self.metrics, "phases.jsonl"), {
-            "run_id": self.run_id, "phase": pid, "title": ph["title"], "verdict": verdict, "status": st["status"],
+            "run_id": self.run_id, "phase": pid, "title": ph["title"], "arm": ph.get("arm") or "default", "verdict": verdict, "status": st["status"],
             "reason": st.get("reason", ""), "started_utc": st.get("started_utc"), "ended_utc": iso(),
             "wall_s_this_run": round(time.time() - t0, 1), "sessions": len(sess), "reworks": st["reworks"],
             "gate_rounds": st.get("gate_rounds", 0), "slices": st["slice"], "commits": sum(s["commits"] for s in sess),
@@ -751,7 +757,7 @@ class Runner:
         append_jsonl(os.path.join(self.metrics, "run-meta.jsonl"), {
             "run_id": self.run_id, "started_utc": iso(), "pc_label": self.cfg.get("pc_label", "pc1"), "cli_version": ver,
             "runner_sha256": digest, "runner_repo_revision": self.git("rev-parse", "--short", "HEAD", cwd=self.repo)[1],
-            "roles": self.cfg["roles"], "max_reworks": self.cfg.get("max_reworks", 3), "gates": [g["name"] for g in self.cfg["gates"]],
+            "roles": self.cfg["roles"], "arms": self.cfg.get("arms"), "phase_arms": {p["id"]: p["arm"] for p in self.phases if p.get("arm")}, "max_reworks": self.cfg.get("max_reworks", 3), "gates": [g["name"] for g in self.cfg["gates"]],
             "publish": self.cfg.get("publish", True), "cpu_count": os.cpu_count(), "corpus_label": self.cfg["corpus_label"],
             "transcript_dir_hint": re.sub(r"[^A-Za-z0-9]", "-", self.wt),
             "instruction_bytes": {"repo_CLAUDE.md": size(os.path.join(self.repo, "CLAUDE.md")),

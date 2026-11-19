@@ -10,6 +10,18 @@ token-economy paper. The models per role are set only in `config.json`
 (`roles`); this is an owner-directed exception to the "Class S case: none" line
 in `CLAUDE.md` and lasts for this run.
 
+## Control arm (owner, 2026-11-19)
+
+Six of the sixteen phases not yet started when the decision was made (40%, rounded
+down) run with the standard class planning and reviewing and the normal class
+executing, under the same driver, gates and acceptance rule, so the paper can
+compare model combinations on one repository. They were fixed before any of them
+ran, as the second member of six like-for-like pairs: 11/**12**, 14/**15**,
+19/**20**, 21/**22**, 23/**24**, 25/**26** (control in bold). Phases 16, 18, 27
+and 28 stay on the default roles, unpaired. The mapping is `arm` in
+`phases.json` and `arms` in `config.json`; every session and phase row records
+its arm.
+
 ## What one phase does
 
 1. **Plan** (orchestrator, read-only): verifies the phase's premises against the

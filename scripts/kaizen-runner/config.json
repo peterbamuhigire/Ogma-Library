@@ -18,6 +18,15 @@
     "rework":  { "model": "opus",  "effort": "medium", "timeout_min": 120 },
     "resolve": { "model": "opus",  "effort": "medium", "timeout_min": 60 }
   },
+  "arms": {
+    "control": {
+      "plan":    { "model": "opus" },
+      "review":  { "model": "opus" },
+      "execute": { "model": "sonnet" },
+      "rework":  { "model": "sonnet" },
+      "resolve": { "model": "sonnet" }
+    }
+  },
   "allowed_tools": ["Read", "Glob", "Grep", "Edit", "Write", "Bash", "PowerShell", "Skill", "WebFetch", "WebSearch"],
   "disallowed_tools": [
     "Agent",
