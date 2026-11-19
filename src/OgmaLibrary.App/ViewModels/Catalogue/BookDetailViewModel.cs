@@ -1,9 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Application.Ocr;
@@ -34,6 +37,10 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     private readonly IBookFileLocator? _fileLocator;
     private readonly ITocExtractionService? _tocExtraction;
     private readonly IMetadataWriteBackService? _writeBackService;
+    private const string OpenFileMissingKey = "Catalogue.BookDetail.Open.FileMissing";
+    private const string OpenFailedKey = "Catalogue.BookDetail.Open.Failed";
+
+    private readonly ILogger _logger;
 
     private BookDetailProjection? _book;
     private ReadingMemory? _editableReadingMemory;
@@ -52,6 +59,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     private bool _isPreparingWriteBack;
     private bool _isWritingWriteBack;
     private bool _isVisible;
+    private bool _isOpeningReader;
+    private string? _openErrorKey;
     private string? _enrichmentStatusText;
     private string? _ocrStatusText;
     private string? _passwordStatusText;
@@ -86,6 +95,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     /// <param name="fileLocator">The safe catalogue-backed PDF locator.</param>
     /// <param name="tocExtraction">The bounded PDF table-of-contents extractor.</param>
     /// <param name="writeBackService">The reversible PDF metadata writeback boundary.</param>
+    /// <param name="logger">The redacting application logger (Sept-23 Phase 02).</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -100,7 +110,8 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         IMetadataReviewService? metadataReviewService = null,
         IBookFileLocator? fileLocator = null,
         ITocExtractionService? tocExtraction = null,
-        IMetadataWriteBackService? writeBackService = null)
+        IMetadataWriteBackService? writeBackService = null,
+        ILogger<BookDetailViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -120,6 +131,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         _fileLocator = fileLocator;
         _tocExtraction = tocExtraction;
         _writeBackService = writeBackService;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
         _localization.CultureChanged += OnCultureChanged;
     }
 
@@ -551,6 +563,63 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Human-readable file availability state for the detail panel.</summary>
     public string FileAvailabilityText => CanOpenReader ? AvailableFileText : MissingFileText;
 
+    // ── Primary action (Sept-23 Phase 11, tasks 11.2 and 11.8) ─────────────────
+
+    /// <summary>The single state-driven primary action for the loaded book.</summary>
+    public PrimaryActionKind PrimaryAction => ComputePrimaryAction(_book);
+
+    /// <summary>Localised label of <see cref="PrimaryAction"/>, e.g. "Continue reading · p. 43".</summary>
+    public string PrimaryActionText => PrimaryAction switch
+    {
+        PrimaryActionKind.ContinueReading => string.Format(
+            _localization.CurrentCulture,
+            _localization["Catalogue.BookDetail.Primary.ContinueFormat"],
+            (_book!.ReadingProgress!.CurrentPage + 1).ToString(_localization.CurrentCulture)),
+        PrimaryActionKind.LocateFile => _localization["Catalogue.BookDetail.Primary.LocateFile"],
+        PrimaryActionKind.Unlock => _localization["Catalogue.BookDetail.Primary.Unlock"],
+        _ => _localization["Catalogue.BookDetail.Primary.Read"],
+    };
+
+    /// <summary>True when the primary action can run now.</summary>
+    public bool CanExecutePrimaryAction => PrimaryAction != PrimaryActionKind.None && !IsOpeningReader;
+
+    /// <summary>True while an awaited Read is preflighting the file or opening the reader.</summary>
+    public bool IsOpeningReader
+    {
+        get => _isOpeningReader;
+        private set
+        {
+            if (_isOpeningReader != value)
+            {
+                _isOpeningReader = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanExecutePrimaryAction));
+            }
+        }
+    }
+
+    /// <summary>Localised, path-free reason the last open attempt did not reach the reader.</summary>
+    public string? OpenErrorText => _openErrorKey is null ? null : _localization[_openErrorKey];
+
+    /// <summary>True when <see cref="OpenErrorText"/> should be shown.</summary>
+    public bool HasOpenError => _openErrorKey is not null;
+
+    /// <summary>Localised message for a book whose PDF is not on disk.</summary>
+    public string OpenFileMissingText => _localization[OpenFileMissingKey];
+
+    /// <summary>Localised message for a reader open failure.</summary>
+    public string OpenFailedText => _localization[OpenFailedKey];
+
+    private void SetOpenError(string? key)
+    {
+        if (!string.Equals(_openErrorKey, key, StringComparison.Ordinal))
+        {
+            _openErrorKey = key;
+            OnPropertyChanged(nameof(OpenErrorText));
+            OnPropertyChanged(nameof(HasOpenError));
+        }
+    }
+
     /// <summary>True while the lazy history tab load is running.</summary>
     public bool IsLoadingHistory
     {
@@ -728,6 +797,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
                 _writeBackProposals = [];
                 WriteBackDiffRows.Clear();
                 WriteBackStatusText = null;
+                SetOpenError(null);
                 OnPropertyChanged(nameof(IsReadingHistoryLoaded));
                 OnPropertyChanged(nameof(HasNoReadingHistory));
                 OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
@@ -753,6 +823,9 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(RelativePath));
             OnPropertyChanged(nameof(CanOpenReader));
             OnPropertyChanged(nameof(FileAvailabilityText));
+            OnPropertyChanged(nameof(PrimaryAction));
+            OnPropertyChanged(nameof(PrimaryActionText));
+            OnPropertyChanged(nameof(CanExecutePrimaryAction));
             OnPropertyChanged(nameof(SizeBytes));
             OnPropertyChanged(nameof(Sha256Hash));
             OnPropertyChanged(nameof(IsOcrDerived));
@@ -1124,18 +1197,106 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>
     /// Opens the PDF reader for the currently loaded book through the shell
-    /// navigation service.
+    /// navigation service. The file is preflighted through <see cref="IBookFileLocator"/>;
+    /// a missing file or a reader failure leaves the panel open with a localised
+    /// <see cref="OpenErrorText"/> and never surfaces exception text (Sept-23 Phase 11, 11.8).
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     public async Task OpenReaderAsync(CancellationToken cancellationToken = default)
     {
-        if (!CanOpenReader || _book is null)
+        if (_book is null || IsOpeningReader)
         {
             return;
         }
 
-        await _reader.OpenReaderAsync(_book.BookId, null, cancellationToken).ConfigureAwait(false);
+        string bookId = _book.BookId;
+        SetOpenError(null);
+        if (!CanOpenReader)
+        {
+            SetOpenError(OpenFileMissingKey);
+            return;
+        }
+
+        IsOpeningReader = true;
+        try
+        {
+            if (_fileLocator is not null)
+            {
+                string? path = await _fileLocator.LocateAsync(bookId, cancellationToken).ConfigureAwait(false);
+                if (path is null)
+                {
+                    UpdateOnUiThread(() => SetOpenErrorFor(bookId, OpenFileMissingKey));
+                    return;
+                }
+            }
+
+            await _reader.OpenReaderAsync(bookId, null, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && !ExceptionClassification.IsFatal(ex))
+        {
+            // The exception may name a private path; only the redacting logger sees it.
+            AppLog.ReaderOpenFailed(_logger, ex);
+            UpdateOnUiThread(() => SetOpenErrorFor(bookId, OpenFailedKey));
+        }
+        finally
+        {
+            UpdateOnUiThread(() => IsOpeningReader = false);
+        }
     }
+
+    /// <summary>
+    /// Runs the inspector's single primary action for the current state
+    /// (Sept-23 Phase 11, task 11.2).
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public Task ExecutePrimaryActionAsync(CancellationToken cancellationToken = default) =>
+        PrimaryAction switch
+        {
+            PrimaryActionKind.Read or PrimaryActionKind.ContinueReading => OpenReaderAsync(cancellationToken),
+            PrimaryActionKind.LocateFile => LocateFileAsync(cancellationToken),
+            PrimaryActionKind.Unlock => UnlockAsync(cancellationToken),
+            _ => Task.CompletedTask,
+        };
+
+    /// <summary>
+    /// Called by the shell when the reader could not open a book requested from this
+    /// panel; shows a localised error if that book is still loaded.
+    /// </summary>
+    /// <param name="bookId">The book the reader failed to open.</param>
+    public void ReportReaderOpenFailed(string bookId) => SetOpenErrorFor(bookId, OpenFailedKey);
+
+    // Stub completed by Phase 11 slice 6 (relink inside an enabled root, SHA-256 match).
+    private Task LocateFileAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        SetOpenError("Catalogue.BookDetail.Open.LocateUnavailable");
+        return Task.CompletedTask;
+    }
+
+    // Stub completed by Phase 11 slice 6 (existing password prompt, or disabled with a reason).
+    private Task UnlockAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        SetOpenError("Catalogue.BookDetail.Open.Locked");
+        return Task.CompletedTask;
+    }
+
+    private void SetOpenErrorFor(string bookId, string key)
+    {
+        if (string.Equals(_book?.BookId, bookId, StringComparison.Ordinal))
+        {
+            SetOpenError(key);
+        }
+    }
+
+    private static PrimaryActionKind ComputePrimaryAction(BookDetailProjection? book) => book switch
+    {
+        null => PrimaryActionKind.None,
+        { IsAvailable: false } => PrimaryActionKind.LocateFile,
+        { IsPasswordProtected: true } => PrimaryActionKind.Unlock,
+        { ReadingProgress.CurrentPage: > 0 } => PrimaryActionKind.ContinueReading,
+        _ => PrimaryActionKind.Read,
+    };
 
     /// <summary>
     /// Builds a PDF metadata diff and prepares a retained backup. No PDF mutation
@@ -2024,6 +2185,10 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(TocEmptyText));
         OnPropertyChanged(nameof(LoadProvenanceLabel));
         OnPropertyChanged(nameof(MissingFileText));
+        OnPropertyChanged(nameof(PrimaryActionText));
+        OnPropertyChanged(nameof(OpenErrorText));
+        OnPropertyChanged(nameof(OpenFileMissingText));
+        OnPropertyChanged(nameof(OpenFailedText));
         OnPropertyChanged(nameof(AvailableFileText));
         OnPropertyChanged(nameof(WriteBackHeadingText));
         OnPropertyChanged(nameof(PrepareWriteBackLabel));

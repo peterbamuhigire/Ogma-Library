@@ -24,11 +24,14 @@ public partial class BookDetailView : UserControl
         }
     }
 
-    private void ReadButton_Click(object? sender, RoutedEventArgs e)
+    private void ReadButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => ReadButton_ClickAsync(sender, e), "catalogue.read_button_click");
+
+    private async Task ReadButton_ClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is BookDetailViewModel vm)
         {
-            _ = vm.OpenReaderAsync();
+            await vm.OpenReaderAsync().ConfigureAwait(true);
         }
     }
 

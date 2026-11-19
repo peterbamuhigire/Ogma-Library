@@ -703,6 +703,11 @@ public sealed partial class MainShellViewModel :
             OnPropertyChanged(nameof(IsReadingEmptyVisible));
         }
 
+        // A Read from the inspector returns there with a visible error if the open fails
+        // (Sept-23 Phase 11, 11.8); other callers keep the reader's own error state.
+        bool fromInspector = BookDetail.IsVisible &&
+            string.Equals(BookDetail.Book?.BookId, bookId, StringComparison.Ordinal);
+
         if (Reader is not null)
         {
             // Switch immediately so the user gets reader feedback while the
@@ -712,7 +717,21 @@ public sealed partial class MainShellViewModel :
                 Show();
             }
 
-            await Reader.OpenAsync(bookId, pageHint, cancellationToken).ConfigureAwait(false);
+            // ReaderViewModel.OpenAsync logs and reports failures through its return
+            // value rather than throwing (Sept-23 Phase 02, T02.2).
+            bool opened = await Reader.OpenAsync(bookId, pageHint, cancellationToken).ConfigureAwait(false);
+            if (!opened && fromInspector)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    OpenCatalogue();
+                    BookDetail.IsVisible = true;
+                    BookDetail.ReportReaderOpenFailed(bookId);
+                    OnPropertyChanged(nameof(IsReaderContentVisible));
+                    OnPropertyChanged(nameof(IsReadingEmptyVisible));
+                });
+                return;
+            }
         }
 
         Avalonia.Threading.Dispatcher.UIThread.Post(Show);

@@ -56,6 +56,17 @@
       <ScrollViewer Grid.Row="1" Margin="0,0,0,0">
         <StackPanel Spacing="0" Margin="16,0,16,16">
 
+          <!-- Open error: a failed or impossible Read keeps the panel open (Sept-23 Phase 11, 11.8) -->
+          <TextBlock Text="{Binding OpenErrorText}"
+                     IsVisible="{Binding HasOpenError}"
+                     AutomationProperties.AutomationId="Detail.OpenError"
+                     AutomationProperties.Name="{Binding OpenErrorText}"
+                     FontSize="{DynamicResource Type.Size.Caption}"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                     TextWrapping="Wrap"
+                     Margin="0,0,0,12" />
+
           <!-- Cover placeholder -->
           <cat:CoverImageView Width="140"
                               Height="200"

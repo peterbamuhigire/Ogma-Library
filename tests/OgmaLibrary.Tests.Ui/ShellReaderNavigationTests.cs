@@ -76,6 +76,44 @@ public sealed partial class ShellReaderNavigationTests
     }
 
     [AvaloniaFact]
+    public async Task MainShell_OpenReaderFromInspectorFails_ReturnsToInspectorWithLocalisedError()
+    {
+        var localization = new InMemoryLocalizationService();
+        var readModel = new MutableCatalogueReadModel();
+        var writeService = new NoOpCatalogueWriteService();
+        var filter = new CatalogueFilterViewModel();
+        var catalogue = new CatalogueViewModel(readModel, new NullNavigation(), localization);
+        var shelfSidebar = new ShelfSidebarViewModel(readModel, writeService, localization, filter);
+        var sessionService = new FakeReaderSessionService
+        {
+            OpenFailure = new IOException("Access denied: secret-private-book.pdf"),
+        };
+        var reader = new ReaderViewModel(
+            sessionService,
+            new EmptyAnnotationService(),
+            new EmptyBookmarkService(),
+            new EmptyLayerService(),
+            new EmptyCitationService(),
+            new EmptyReadingMemoryService(),
+            localization);
+        var forwarding = new ForwardingReaderNavigation();
+        var bookDetail = new BookDetailViewModel(readModel, forwarding, localization);
+        var shell = new MainShellViewModel(localization, catalogue, bookDetail, shelfSidebar, reader);
+        forwarding.Shell = shell;
+        await bookDetail.LoadBookAsync("book-direct");
+        Dispatcher.UIThread.RunJobs();
+
+        await bookDetail.OpenReaderAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(ShellView.Catalogue, shell.ActiveView);
+        Assert.True(bookDetail.IsVisible);
+        Assert.Equal(bookDetail.OpenFailedText, bookDetail.OpenErrorText);
+        Assert.DoesNotContain("secret", bookDetail.OpenErrorText, StringComparison.Ordinal);
+        Assert.False(bookDetail.IsOpeningReader);
+    }
+
+    [AvaloniaFact]
     public async Task CatalogueShellView_ReaderRoute_ShowsLibraryEscapeAndNamedPageControls()
     {
         var localization = new InMemoryLocalizationService();
@@ -802,6 +840,14 @@ public sealed partial class ShellReaderNavigationTests
             Task.CompletedTask;
     }
 
+    private sealed class ForwardingReaderNavigation : IReaderNavigationService
+    {
+        public MainShellViewModel? Shell { get; set; }
+
+        public Task OpenReaderAsync(string bookId, int? pageHint = null, CancellationToken cancellationToken = default) =>
+            Shell!.OpenReaderAsync(bookId, pageHint, cancellationToken);
+    }
+
     private sealed class NullNavigation :
         IBookDetailNavigationService,
         IReaderNavigationService
@@ -960,6 +1006,8 @@ public sealed partial class ShellReaderNavigationTests
     {
         public string? OpenedBookId { get; private set; }
 
+        public Exception? OpenFailure { get; set; }
+
         public ReaderSession? CurrentSession { get; private set; }
 
         public IPdfRenderer? CurrentRenderer => null;
@@ -967,6 +1015,11 @@ public sealed partial class ShellReaderNavigationTests
         public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct)
         {
             OpenedBookId = bookId;
+            if (OpenFailure is not null)
+            {
+                return Task.FromException<ReaderSession>(OpenFailure);
+            }
+
             CurrentSession = new ReaderSession(
                 bookId,
                 "C:/fixtures/book.pdf",
