@@ -9,7 +9,8 @@ namespace OgmaLibrary.Tests.E2E.Journeys;
 
 /// <summary>
 /// Sept-23 Phase 10 catalogue journeys: J-CAT-1 keyboard browse to detail; J-CAT-2 create a
-/// collection, add books by the selection toolbar menu and by drag, then filter the Library by it.
+/// collection, add books by the selection toolbar menu and by drag, then filter the Library by it;
+/// J-CAT-3 bulk-set the author of books missing one, with preview, apply and undo.
 /// </summary>
 [Collection(RealWindowTests.Name)]
 public sealed class CatalogueOrganiseTests
@@ -146,6 +147,86 @@ public sealed class CatalogueOrganiseTests
             context.Record("drag.result", TryDragThirdCard(context, window));
         });
 
+    /// <summary>
+    /// Oracle (CAT-005): with the "missing author" filter on, bulk-setting an author through the
+    /// dialog removes the edited books from the filtered view, and Undo in the toast brings exactly
+    /// those books back. The preview shows one row per selected book before anything is written.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(E2ESettings.SizeData), MemberType = typeof(E2ESettings))]
+    [Trait("Category", "E2E")]
+    [Trait("Journey", "J-CAT-3")]
+    [Trait("Tag", "Catalogue")]
+    public void JCat3_BulkSetAuthor_Preview_Apply_Undo(string size) =>
+        Journey.Run("J-CAT-3", size, JourneySupport.Standard, context =>
+        {
+            context.Launch(Shell.SeedEnvironment(context));
+            Shell.WaitReady(context);
+            Shell.AddCorpusLibrary(context);
+            Shell.WaitForCatalogue(context, minimum: 3);
+            AutomationElement window = context.RequireApp.MainWindow;
+
+            // 1. Filter to books with no author.
+            Uia.Activate(Uia.WaitFor(window, "Shell.Action.Filter"));
+            AutomationElement missingAuthor = Uia.WaitFor(window, "Catalogue.Filter.Missing.Author");
+            missingAuthor.Patterns.Toggle.Pattern.Toggle();
+            Assert.True(
+                Uia.Poll(() => missingAuthor.Patterns.Toggle.Pattern.ToggleState.ValueOrDefault == ToggleState.On, TimeSpan.FromSeconds(5)),
+                "The missing-author filter did not switch on.");
+            Uia.Activate(Uia.WaitFor(window, "Shell.Drawer.Close"));
+            AutomationElement[] items = Shell.WaitForCatalogue(context, minimum: 1, stableFor: TimeSpan.FromSeconds(2));
+            string[] picked = items.Select(Id).Take(2).ToArray();
+            context.Record("missingAuthor.shown", items.Select(Id).ToArray());
+            context.Mark("filter.missingAuthor");
+
+            // 2. Select the books and open Edit...
+            Native.ForceForeground(context.RequireApp.Handle);
+            Click(items[0]);
+            if (picked.Length > 1)
+            {
+                using (Keyboard.Pressing(VirtualKeyShort.CONTROL))
+                {
+                    Click(items[1]);
+                }
+            }
+
+            AutomationElement edit = Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Selection.Edit") is { } e && e.IsEnabled ? e : null,
+                TimeSpan.FromSeconds(10),
+                "an enabled Edit... button");
+            Click(edit);
+            AutomationElement dialog = Uia.WaitUntil(() => FindTopLevel(context, "BulkEdit.Dialog"), TimeSpan.FromSeconds(10), "the bulk-edit dialog");
+            context.Mark("dialog.opened");
+
+            // 3. Type the author; the preview shows one row per selected book; Apply.
+            Uia.SetText(Uia.WaitFor(dialog, "BulkEdit.Value"), "Journey Author");
+            Assert.True(
+                Uia.Poll(() => picked.All(id => Uia.TryFind(dialog, $"BulkEdit.Row.{BookId(id)}") is not null), TimeSpan.FromSeconds(5)),
+                "The preview did not show a row for every selected book.");
+            context.Mark("preview.shown");
+            context.Shot("bulk-edit-preview", dialog.Properties.NativeWindowHandle.ValueOrDefault);
+            Uia.Activate(Uia.WaitUntil(
+                () => Uia.TryFind(dialog, "BulkEdit.Apply") is { } a && a.IsEnabled ? a : null,
+                TimeSpan.FromSeconds(5),
+                "an enabled Apply button"));
+
+            // 4. The edited books now have an author, so they leave the missing-author view.
+            Assert.True(
+                Uia.Poll(() => !Shell.CatalogueItems(context).Select(Id).Intersect(picked).Any(), TimeSpan.FromSeconds(15), intervalMs: 300),
+                "The edited books still show under the missing-author filter.");
+            context.Mark("edit.applied");
+            AutomationElement undo = Uia.WaitFor(window, "Shell.Toast.Action", TimeSpan.FromSeconds(10));
+            context.Shot("bulk-edit-applied-toast");
+
+            // 5. Undo from the toast restores them.
+            Uia.Activate(undo);
+            Assert.True(
+                Uia.Poll(() => picked.All(id => Shell.CatalogueItems(context).Select(Id).Contains(id)), TimeSpan.FromSeconds(15), intervalMs: 300),
+                "Undo did not bring the edited books back under the missing-author filter.");
+            context.Mark("edit.undone");
+            context.Shot("bulk-edit-undone");
+        });
+
     private static string TryDragThirdCard(JourneyContext context, AutomationElement window)
     {
         Uia.Activate(Uia.WaitFor(window, "Catalogue.Filter.Clear"));
@@ -202,6 +283,22 @@ public sealed class CatalogueOrganiseTests
             .SelectMany(top => top.FindAllDescendants(cf => cf.ByName(name)))
             .FirstOrDefault(candidate => candidate.ControlType == ControlType.MenuItem);
     }
+
+    private static AutomationElement? FindTopLevel(JourneyContext context, string automationId)
+    {
+        int pid = context.RequireApp.Process.Id;
+        return context.RequireApp.Automation.GetDesktop()
+            .FindAllChildren(cf => cf.ByProcessId(pid))
+            .Append(context.RequireApp.MainWindow)
+            .SelectMany(top => top.Properties.AutomationId.ValueOrDefault == automationId
+                ? [top]
+                : top.FindAllDescendants(cf => cf.ByAutomationId(automationId)))
+            .FirstOrDefault();
+    }
+
+    // Card ids are "Catalogue.Item.{bookId}"; preview rows are "BulkEdit.Row.{bookId}".
+    private static string BookId(string cardId) =>
+        cardId.StartsWith("Catalogue.Item.", StringComparison.Ordinal) ? cardId["Catalogue.Item.".Length..] : cardId;
 
     // Re-found on every poll: a background refresh may hand the card a new UIA element.
     private static bool IsSelected(AutomationElement window, string automationId) =>

@@ -171,16 +171,22 @@ public sealed class JourneyContext : IDisposable
     public bool HasMark(string key) => _timings.ContainsKey(key + "Ms");
 
     /// <summary>Saves <c>{label}-{size}.png</c> and returns its path (null when no window).</summary>
-    public string? Shot(string label)
+    public string? Shot(string label) => Shot(label, App?.Handle ?? IntPtr.Zero);
+
+    /// <summary>
+    /// Saves <c>{label}-{size}.png</c> of another top-level window of the app (for example a
+    /// dialog, which the main-window capture does not include) and returns its path.
+    /// </summary>
+    public string? Shot(string label, IntPtr windowHandle)
     {
-        if (App is null || !App.IsAlive)
+        if (App is null || !App.IsAlive || windowHandle == IntPtr.Zero)
         {
             return null;
         }
 
         try
         {
-            return ScreenCapture.SaveWindow(App.Handle, Path.Combine(EvidenceDirectory, $"{label}-{Size}.png"));
+            return ScreenCapture.SaveWindow(windowHandle, Path.Combine(EvidenceDirectory, $"{label}-{Size}.png"));
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.ExternalException or ArgumentException or InvalidOperationException)
         {

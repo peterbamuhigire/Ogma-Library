@@ -1,13 +1,13 @@
 # Sept-23 Phase 10 completion: catalogue experience
 
-Status: **IN PROGRESS**. Slices 1 to 4 of 8 are done (2026-11-19). The phase is not
+Status: **IN PROGRESS**. Slices 1 to 5 of 8 are done (2026-11-19). The phase is not
 IMPLEMENTED or COMPLETE.
 Branch: `kaizen/phase-10`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `d7e75952`.
 Plan: [phase-10](../../plans/sept-23-kaizen/phases/phase-10-catalogue-experience.md).
-Decisions: D-18 to D-31 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Decisions: D-18 to D-36 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 Defects: K14 is resolved for the grid, list, directory and home strip. K114 to K117 were found
-here and are handed on. See the [defect register](../../plans/sept-23-kaizen/03-defect-register.md).
+here; K116 and K117 are resolved in slice 5, K114 and K115 are handed on. See the [defect register](../../plans/sept-23-kaizen/03-defect-register.md).
 
 ## Typeface decision
 
@@ -150,3 +150,43 @@ Commits: `e1a9f6b4` (feature), `aba334b8` (real-window selection, focus and menu
 - K116: `BulkEditCommand.NewStatus` is documented as reading status but writes the lifecycle status (slice 5).
 - K117: a notification toast covers the right end of the selection toolbar while it shows.
 - The drag journey needs a real OLE drag driver; until then it is NOT_ASSESSED.
+
+## Slice 5: bulk edit with preview and undo (CAT-005)
+
+Commits: `e14a593c` (planner, undoable command, snapshot undo, K116), `f3e7b873` (dialog,
+toast and Activity Centre Undo, Edit… enabled), and the journey and records commit after it.
+
+Premise correction: the plan assumed `UpdateMetadataFieldAsync` already validated values. It did
+not, so the slice added shared `BulkEditFieldRules`, used by both the preview and the write (D-32).
+
+| Area | Result |
+|---|---|
+| Command and rules | `BulkEditCommand` carries author and year. `BulkEditFieldRules` normalise and validate author (semicolon-separated), year and rating; the planner and the write path share them (D-32). K116 is fixed: the field is `NewLifecycleStatus`, and the form offers only author, year and rating (D-33). |
+| Preview | `BulkEditPlanner` returns one row per selected book with its current and new value and whether it changes. `BulkEditDialog` (`BulkEdit.*` ids) shows a field picker, a value box with persistent labels and help, an assertive validation message, a "n of m books will change" summary and the rows. Apply is enabled only when at least one row changes; Cancel writes nothing. Each row's id `BulkEdit.Row.{bookId}` and full accessible description sit on the title text, because a `Border` has no automation peer (the first real-window run failed on this). |
+| Undo | `BulkEditUndoableCommand` captures a snapshot of every touched field before writing and restores it on undo (D-34). It goes on the shared `ICommandHistory` (LIFO, 20). Undo is offered in a toast and in a new Activity Centre "Edits" list. Only the newest edit is undoable; a stale toast Undo does nothing, and a failed undo marks the entry unavailable so the log and history stay in step (D-35). |
+| Toast placement (K117) | The toast is lifted above the selection toolbar (margin `16,16,16,112`) and has `Shell.Toast.Action` and `Shell.Toast.Dismiss` ids (D-36). |
+| Strings and design | Every new string is in English and French. Phase 09 tokens only; Public Sans and Spectral only; `Catalogue.Item.{id}` ids unchanged. |
+
+### Gates (slice 5)
+
+| Gate | Result |
+|---|---|
+| `dotnet build OgmaLibrary.sln -c Release --no-restore` | PASS, 0 warnings, 0 errors |
+| `dotnet format --verify-no-changes --no-restore` | PASS |
+| `scripts/Test-DesignTokens.ps1` | PASS ("clean") |
+| Architecture tests | PASS, 52 of 52 |
+| `scripts/Test-Fast.ps1` | **PASS**: Tests 1,327, Ui 413, Architecture 52 |
+| Filter `Sept23Phase10BulkEdit` | PASS: 4 SQLite tests (the preview equals the applied result; undo restores author, year, status, rating, tags and shelf; planning alone writes nothing; no-change and invalid values cannot apply) and 5 headless dialog tests. The row test asserts that the id is on an element with a control-view automation peer. |
+| J-CAT-3 at 1280x800 under the desktop lock | Run `20261119-140258` FAILED (rows not exposed to UIA). After the fix, runs `20261119-141118` and `20261119-141641` **PASS**: filter Missing: Author, select two books, Edit…, set the author, preview rows found, apply (both books leave the filtered list), Undo from the toast (both return). The other catalogue journeys pass in the same runs. [Evidence](evidence/sept-23-kaizen/phase-10/slice-5/), including a capture of the dialog itself. |
+| K117 in a real window | MEASURED across two shots at 1280x800 in run `20261119-141641`: the toast's bottom edge (y 680) sits above the toolbar's top edge (y 697). The toast and toolbar were not on screen together, because a successful apply clears the selection. |
+| G10 Organise | **NOT ASSESSED**: still the Phase 01 placeholder; binding it to J-CAT-3 is left to a later slice. |
+| 1024x768, dark theme, RTL, 200% text, screen reader | NOT_ASSESSED in this slice |
+| `Test-RequirementAccountability.ps1` | NOT_ASSESSED in this slice |
+| Skills | Development engine skills were not read this slice: NOT_ASSESSED. |
+
+### Open after slice 5
+
+- K115 stays open: the D-31 deferral named slice 5, but it still needs id-stable shelf selection and was not taken up.
+- G10 is still a placeholder; J-CAT-3 is the natural binding.
+- Risk: undo restores a snapshot, so a background enrichment that wrote the same field between apply and undo would be overwritten. The journey ran during processing without a conflict, but no test covers the race.
+- The drag journey still needs a real OLE drag driver.

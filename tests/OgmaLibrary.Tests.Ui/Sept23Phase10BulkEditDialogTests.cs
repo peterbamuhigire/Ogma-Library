@@ -1,4 +1,5 @@
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -62,7 +63,10 @@ public sealed class Sept23Phase10BulkEditDialogTests
         dialog.Show();
         Dispatcher.UIThread.RunJobs();
 
-        Border row = Find<Border>(dialog, "BulkEdit.Row.book-007");
+        TextBlock row = Find<TextBlock>(dialog, "BulkEdit.Row.book-007");
+        AutomationPeer peer = ControlAutomationPeer.CreatePeerForElement(row);
+        Assert.Equal("BulkEdit.Row.book-007", peer.GetAutomationId());
+        Assert.True(peer.IsControlElement(), "The row id must sit on an element UI Automation exposes.");
         string name = AutomationProperties.GetName(row) ?? string.Empty;
         Assert.Contains("Grace Hopper", name, StringComparison.Ordinal);
         Assert.Contains("Topic 007", name, StringComparison.Ordinal);
@@ -158,7 +162,7 @@ public sealed class Sept23Phase10BulkEditDialogTests
         window.GetVisualDescendants().OfType<T>().Single(control => AutomationProperties.GetAutomationId(control) == automationId);
 
     private static string[] RowIds(Window window) =>
-        window.GetVisualDescendants().OfType<Border>()
+        window.GetVisualDescendants().OfType<TextBlock>()
             .Select(border => AutomationProperties.GetAutomationId(border))
             .Where(id => id?.StartsWith("BulkEdit.Row.", StringComparison.Ordinal) == true)
             .Select(id => id!)

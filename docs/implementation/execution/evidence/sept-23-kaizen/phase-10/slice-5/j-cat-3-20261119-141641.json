@@ -1,0 +1,38 @@
+{
+  "journey": "J-CAT-3",
+  "test": "JCat3_BulkSetAuthor_Preview_Apply_Undo",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Light",
+  "launch.timeToWindowMs": 3782,
+  "shell.readyMs": 11840,
+  "library.chooseFolderPressedMs": 12288,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 15523,
+  "catalogue.firstItemMs": 15965,
+  "catalogue.settledMs": 34995,
+  "catalogue.count": 6,
+  "missingAuthor.shown": [
+    "Catalogue.Item.01M7T2T1XBD0F2BW7C57BVH16Y",
+    "Catalogue.Item.01M7T2T101AHNA5Q5C90X2E6VR",
+    "Catalogue.Item.01M7T2T1BAFMS7K10ZRQF9KS3R",
+    "Catalogue.Item.01M7T2T1CCB0X4TT5VMTXF9JPP",
+    "Catalogue.Item.01M7T2T1YMVK2TFWRCEPVB3CM5",
+    "Catalogue.Item.01M7T2T1F9PYF3NV4V2CAAVV84"
+  ],
+  "filter.missingAuthorMs": 34999,
+  "dialog.openedMs": 36334,
+  "preview.shownMs": 36477,
+  "edit.appliedMs": 37157,
+  "edit.undoneMs": 38136,
+  "status": "PASS",
+  "totalMs": 38339,
+  "log.warningsOrAbove": 7,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 793,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

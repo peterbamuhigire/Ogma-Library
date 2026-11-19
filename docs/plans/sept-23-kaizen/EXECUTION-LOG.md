@@ -95,3 +95,17 @@ These decisions were taken under that authority. Each is the recommended option 
   - K116 and K117 were logged.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **2026-11-19** — Phase 10 slice 5 (executor session): bulk edit with preview and undo (CAT-005). New owner-proxy decisions (the plan's recommended or least-surprise options):
+  - **D-32**: the preview and the write share `BulkEditFieldRules`. This corrects the plan's premise that `UpdateMetadataFieldAsync` already validated values; it did not.
+  - **D-33**: the bulk-edit form offers author, year and rating only. Lifecycle status stays internal (`NewLifecycleStatus`, K116 resolved) and reading state stays with curation (D-29).
+  - **D-34**: undo restores a snapshot of every touched field, captured before the write, rather than replaying an inverse edit.
+  - **D-35**: each applied edit has its own Undo on the shared LIFO history, exposed only for the newest edit. A stale toast Undo does nothing, and a failed undo marks the Activity entry unavailable.
+  - **D-36**: notification toasts sit 112 px above the bottom edge so they clear the selection toolbar (K117).
+
+  Results:
+  - The first real-window J-CAT-3 run (`20261119-140258`) failed: the preview row ids were on a `Border`, which has no automation peer. The ids moved to the row title, and a headless test now asserts the peer.
+  - J-CAT-3 and the other catalogue journeys PASS at 1280x800 under the desktop lock (runs `20261119-141118` and `-141641`). The journey harness can now capture a dialog window.
+  - `Sept23Phase10BulkEdit` 9 of 9; the fast suite (Tests 1,327, Ui 413, Architecture 52); build, format and design tokens pass.
+  - G10, K115 and the other widths, themes and accessibility checks are NOT_ASSESSED or open.
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).

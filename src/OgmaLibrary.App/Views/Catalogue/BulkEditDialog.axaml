@@ -104,11 +104,13 @@
               <DataTemplate x:DataType="vm:BulkEditPreviewItem">
                 <Border BorderBrush="{DynamicResource Brush.Surface.Divider}"
                         BorderThickness="0,0,0,1"
-                        Padding="0,6"
-                        AutomationProperties.AutomationId="{Binding AutomationId}"
-                        AutomationProperties.Name="{Binding AccessibleName}">
+                        Padding="0,6">
                   <Grid ColumnDefinitions="2*,*,*" ColumnSpacing="12">
+                    <!-- A Border has no automation peer; the row id and its full
+                         accessible description live on the title text, which does. -->
                     <TextBlock Text="{Binding Title}"
+                               AutomationProperties.AutomationId="{Binding AutomationId}"
+                               AutomationProperties.Name="{Binding AccessibleName}"
                                TextTrimming="CharacterEllipsis"
                                ToolTip.Tip="{Binding Title}"
                                Foreground="{DynamicResource Brush.Text.Primary}" />
