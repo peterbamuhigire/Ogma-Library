@@ -106,3 +106,8 @@ conflicts. `SidebarToggleLabel` is now unused but kept because `RaiseAllChanged`
 | Sort option names and "Ascending/Descending" are not localised (pre-existing) | Phase 22 | Out of scope; shown unchanged |
 | Catalogue scroll restore on Back | — | CODE + unit test of the history; not measured in the real window |
 | macOS menu bar (NativeMenu), Cmd shortcuts on macOS | Phase 27 | Cmd is accepted by the same gestures; NOT ASSESSED on macOS |
+
+## Phase CO slice 5 (2026-11-19): journeys on the close-out head
+
+- Navigation (all 3 tests), G1, G7 and A11yNames passed at 1280x800 and 1920x1080 in Light and Dark in `co-nav-1` (52/52 for the whole run). With slice 2's runs, and counting each theme as one run, Navigation now has 4 consecutive passes at 1280x800 (`co-all-2`, `co-all-3`, and `co-nav-1` Light and Dark) and 5 at 1920x1080. K107 did not recur.
+- The owner walkthrough stays NOT ASSESSED (Owner), under D-02 and D-13.

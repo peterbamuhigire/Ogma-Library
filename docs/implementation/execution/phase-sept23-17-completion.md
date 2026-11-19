@@ -110,3 +110,12 @@ packages; `Test-Fast.ps1`: Architecture 52/52, core 1,111/1,111, UI 188/188 (1,3
 | Battery pause on a real laptop on battery | Engineering | Desktop on AC; the power check is unit-tested through `IPowerSource` |
 | Accuracy per extra language | Language owner | No extra language ships |
 | Third-party notice entry | Phase 26 | No notice file exists in the repo yet; the licence facts are recorded here and in the guide |
+
+## Phase CO slice 5 (2026-11-19): real-window proof
+
+Evidence: [co-ocr-journey.md](evidence/sept-23-kaizen/phase-17/co-ocr-journey.md) (MEASURED).
+
+- `ScanOcrSearch` passed in `co-nav-1` and `co-nav-2` at both sizes and in both themes. That is 6 consecutive passes at 1280x800 and 7 at 1920x1080, counting slice 2's `co-all-2` and `co-all-3`.
+- Both scanned fixtures reach the *OCR text* badge. Both OCR-only phrases find their book in the top three, with the "From OCR text" label and the catalogue title.
+- The baseline entry was removed (`912977c6`), and K97 and K99 are resolved.
+- G2 and G6 were re-run by slice 4 (see Phase 06 evidence). The status decision is left to the close-out's final slice.

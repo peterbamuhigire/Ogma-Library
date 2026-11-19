@@ -219,3 +219,35 @@ with `results-co-library-{1,2}.md` and two screenshots beside it. All values MEA
   Phase 01/24.
 - Dark theme, 200 % text and `fr` for G2 and G6.
 - The fast suite: only E2E test code changed, and the E2E project is excluded from it.
+
+## Slice 5: navigation, Settings, search and OCR journeys (Phases 07, 08, 13, 17)
+
+Evidence: [`phase-08/co-settings-journeys.md`](evidence/sept-23-kaizen/phase-08/co-settings-journeys.md)
+and [`phase-17/co-ocr-journey.md`](evidence/sept-23-kaizen/phase-17/co-ocr-journey.md). All values MEASURED, inside
+`Use-DesktopLock.ps1`, with fresh data folders and the synthetic corpus.
+
+| Run | Journeys | Rows | Result |
+|---|---|---|---|
+| `co-nav-1` (acceptance command) | G1, G4, G7, Navigation, Settings, A11yNames, ScanOcrSearch; both sizes; Light, Dark | 52 | 52 PASS (ScanOcrSearch 4 x PASS (baseline cleared)) |
+| `co-nav-2` (after the K113 fix, baseline removed) | G4, Settings, ScanOcrSearch, A11yNames; both sizes; Light, Dark | 32 | 32 PASS |
+
+- **J-SET-3 (`ae0b26db`).** The new journey `Settings_SecondFolderAddedFromSettings_JoinsCatalogueAfterRescan` adds a second folder from Settings > Library and presses *Rescan library*. The catalogue goes from 13 to 14 books. It passed in 8 of 8 rows.
+  - *Premise corrected:* the work order said to use the existing E2E folder-picker hook. That hook covers only the shell's Choose folder, and the Settings panel always opens the native dialog. So the journey drives the real dialog through `FolderPicker.Pick`, which is the production path, and the hook was not extended.
+- **Phase 08 screenshots.** A new journey, `Settings_EverySection_OpensAndIsCaptured`, captured all 8 sections in Light and Dark at both sizes (32 PNGs in `phase-08/`).
+- **ScanOcrSearch (`912977c6`).** It has 6 consecutive passes at 1280x800 and 7 at 1920x1080, above the D-17 rule of 3. The baseline entry was removed, and K97 and K99 are Resolved.
+  - Phase 17 is confirmed: both scanned fixtures reach *OCR text*, and both hits are labelled "From OCR text" under their catalogue titles.
+  - K40's phrase miss did not recur in these rows. Its row is left to Phase 13's owner.
+- **G4 flake.** Not reproduced: 7 consecutive passes per size (`co-all-1` to `-3`, then `co-nav-1` and `co-nav-2` in both themes).
+  - The journey already waits for metadata (`4ca23f2`).
+  - The `SearchViewModel` request loop was reviewed and has version guards and a live refresh. There was no failing evidence to fix against, so no product change was made.
+- **K113, new; fix `1fc796ea`.** Accent fill brushes are used as text, which is 2.0 to 3.0:1 in Dark.
+  - Found in the `co-nav-1` Dark Settings screenshot: `#2552A0` on `#1B2440`.
+  - Fixed in Settings, in the Settings overview and on the search badge. The co-nav-2 pixel is now `#9FBFF2`.
+  - A new fail-first UI test guards this. Nine usages owned by other phases are allow-listed and assigned to Phase 09.
+- **J-SET-2:** NOT_ASSESSED, moved to Phase 11 (no mock provider endpoint).
+
+### NOT ASSESSED
+
+- The fast suite (K105, about 18 min). Only three XAML brush references and test code changed. 143 targeted UI tests (design system, Settings, search) passed.
+- 200 % text, `fr`, keyboard-only and screen-reader variants of these journeys.
+- J-SET-3's stability: it has 2 consecutive runs (8 rows), not 3 runs.

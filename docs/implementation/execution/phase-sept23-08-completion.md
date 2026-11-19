@@ -109,3 +109,14 @@ pass (101 FRs, 29 NFRs, 32 controls); `scripts/Test-Fast.ps1` **1,373 passed, 0 
 | "First enable" disclosure dialog | Phase 23 | The disclosure is always visible beside the default-off switch instead of a modal |
 | French copy native review | Owner / Phase 22 | Machine-consistent keys only; a pre-existing unaccented "Bibliotheque" (`Navigation.Library`, fr) was left for Phase 22 |
 | Screen-reader announcement of section changes; macOS rendering | Phases 21, 27 | Not measured |
+
+## Phase CO slice 5 (2026-11-19): real-window proof
+
+Evidence: [co-settings-journeys.md](evidence/sept-23-kaizen/phase-08/co-settings-journeys.md) (MEASURED).
+
+- The real-window runs re-dispatched above were done. In `co-nav-1`, G1, G7, Navigation and Settings passed at 1280x800 and 1920x1080 in Light and Dark (52/52 for the whole run). In `co-nav-2`, Settings passed again in all four rows.
+- The screenshots were taken: all eight sections, Light and Dark, at both sizes (32 files in `evidence/sept-23-kaizen/phase-08/`).
+- J-SET-3 is done (`ae0b26db`). A second folder added from Settings through the real native dialog joins the catalogue after *Rescan library* (13 to 14 books). It passed in both runs, both sizes and both themes.
+- J-SET-2 remains NOT ASSESSED and moves to Phase 11 (G9), because there is no mock provider endpoint.
+- K113 was found and partly fixed (`1fc796ea`). The capability status text was 2.03:1 in Dark and now uses `Brush.Link`. The remaining accent-as-text usages are registered for Phase 09.
+- The status decision is left to the close-out's final slice.

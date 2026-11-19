@@ -159,3 +159,10 @@ coverage button reuses the Retry button pattern. Snippet terms are highlighted w
 | macOS Cmd+F | Phase 27 | Windows only |
 | Same-machine A/B of LaunchCycles/Smoke against `main` (were close hangs worse on this branch?) | Coordinator (K71, Phase 24) | 19/20 here vs 3/20 recorded on main, under load from other lanes |
 | Real-window screenshot after the results-list height fix | Coordinator re-run of G4 | The fix landed after the journey runs; headless UI tests cover it |
+
+## Phase CO slice 5 (2026-11-19): journeys on the close-out head
+
+- G4 passed at 1280x800 and 1920x1080 in Light and Dark in `co-nav-1` and `co-nav-2`. Together with slice 2's `co-all-1` to `co-all-3`, that is 7 consecutive passes per size.
+- The "Grace Namutebi" author-probe flake did not reproduce. Every probe was found in 0.5 to 4.4 s. The `SearchViewModel` request loop was reviewed and needs no change: stale responses are dropped by version, and the live refresh re-runs while books are pending. No fix is claimed.
+- The `ScanOcrSearch` failure in the status line above is superseded. It now passes, and its baseline entry was removed (`912977c6`; K97 and K99 resolved; see Phase 17 evidence).
+- The search-result badge label now uses `Brush.Accent.Text` (K113, `1fc796ea`), so it is readable in Dark.
