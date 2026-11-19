@@ -218,9 +218,23 @@
                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Tag="Activity"
                   AutomationProperties.AutomationId="Detail.Section.Activity"
-                  AutomationProperties.Name="{Binding ActivitySectionText}"
+                  AutomationProperties.Name="{Binding ActivitySectionAccessibleText}"
                   Click="SectionButton_Click">
-            <TextBlock Text="{Binding ActivitySectionText}" TextTrimming="CharacterEllipsis" />
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="{Binding ActivitySectionText}" TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center" />
+              <Border IsVisible="{Binding HasSuggestedChanges}"
+                      Background="{DynamicResource Brush.Accent.Primary}"
+                      CornerRadius="{DynamicResource Radius.S}" Padding="5,0" MinWidth="16"
+                      VerticalAlignment="Center">
+                <TextBlock Text="{Binding ActivityBadgeText}"
+                           AutomationProperties.AutomationId="Detail.Section.Activity.Badge"
+                           IsVisible="{Binding HasSuggestedChanges}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Accent.OnAccent}"
+                           HorizontalAlignment="Center" />
+              </Border>
+            </StackPanel>
           </Button>
         </Grid>
       </Border>
@@ -232,6 +246,40 @@
           <StackPanel Spacing="6"
                       IsVisible="{Binding IsOverviewSection}"
                       AutomationProperties.AutomationId="Detail.Section.Overview.Content">
+            <!-- No-metadata state (Phase 11 slice 4) -->
+            <Border Background="{DynamicResource Brush.Surface.Footer}"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    Padding="8"
+                    IsVisible="{Binding HasNoMetadata}"
+                    AutomationProperties.AutomationId="Detail.State.NoMetadata"
+                    AutomationProperties.Name="{Binding NoMetadataTitleText}">
+              <StackPanel Spacing="5">
+                <TextBlock Text="{Binding NoMetadataTitleText}"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBlock Text="{Binding NoMetadataBodyText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <Button HorizontalAlignment="Left"
+                        IsVisible="{Binding ShowNoMetadataEnrich}"
+                        IsEnabled="{Binding CanEnrich}"
+                        AutomationProperties.AutomationId="Detail.State.NoMetadata.Enrich"
+                        AutomationProperties.Name="{Binding EnrichText}"
+                        Click="EnrichButton_Click">
+                  <TextBlock Text="{Binding EnrichText}" />
+                </Button>
+                <TextBlock Text="{Binding NoMetadataSettingsHintText}"
+                           IsVisible="{Binding ShowNoMetadataSettingsHint}"
+                           AutomationProperties.AutomationId="Detail.State.NoMetadata.Hint"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              </StackPanel>
+            </Border>
             <StackPanel Spacing="5" IsVisible="{Binding CanEditTags}">
               <TextBlock Text="{Binding TagsLabel}"
                          FontSize="{DynamicResource Type.Size.Caption}"
@@ -671,67 +719,98 @@
               </ItemsControl>
             </StackPanel>
 
-            <!-- Metadata proposals -->
-            <StackPanel Spacing="5"
-                        Margin="0,8,0,0"
-                        IsVisible="{Binding CanReviewMetadata}">
-              <TextBlock Text="{Binding MetadataReviewLabel}"
-                         FontSize="{DynamicResource Type.Size.Caption}"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-              <ItemsControl ItemsSource="{Binding PendingMetadataProposals}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Border Background="{DynamicResource Brush.Surface.Footer}"
-                            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                            BorderThickness="1"
-                            Padding="8"
-                            Margin="0,2">
-                      <StackPanel Spacing="4">
-                        <TextBlock Text="{Binding FieldName}"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                        <TextBlock Text="{Binding ProposedValueLabel}"
-                                   FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                        <TextBox Text="{Binding EditableValue, Mode=TwoWay}"
-                                 AutomationProperties.Name="{Binding FieldName}" />
-                        <TextBlock Text="{Binding CurrentValue}"
-                                   ToolTip.Tip="{Binding CurrentValueLabel}"
-                                   FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                   TextWrapping="Wrap" />
-                        <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                          <Run Text="{Binding SourceLabel}" />
-                          <Run Text=": " />
-                          <Run Text="{Binding Source}" />
-                          <Run Text=" · " />
-                          <Run Text="{Binding ConfidenceLabel}" />
-                          <Run Text=": " />
-                          <Run Text="{Binding Confidence}" />
-                        </TextBlock>
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                          <Button AutomationProperties.Name="{Binding AcceptLabel}"
-                                  Click="AcceptMetadataProposalButton_Click">
-                            <TextBlock Text="{Binding AcceptLabel}" />
-                          </Button>
-                          <Button AutomationProperties.Name="{Binding RejectLabel}"
-                                  Click="RejectMetadataProposalButton_Click">
-                            <TextBlock Text="{Binding RejectLabel}" />
-                          </Button>
+            <!-- Enrichment review card (Phase 11 slice 4) -->
+            <Border Background="{DynamicResource Brush.Surface.Footer}"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    Padding="8"
+                    Margin="0,8,0,0"
+                    IsVisible="{Binding ShowReviewCard}"
+                    AutomationProperties.AutomationId="Detail.Review.Card"
+                    AutomationProperties.Name="{Binding ReviewCardTitleText}">
+              <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding ReviewCardTitleText}"
+                             AutomationProperties.AutomationId="Detail.Review.Title"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5">
+                    <Button Classes="accent"
+                            IsVisible="{Binding HasSuggestedChanges}"
+                            IsEnabled="{Binding CanAcceptAll}"
+                            AutomationProperties.AutomationId="Detail.Review.AcceptAll"
+                            AutomationProperties.Name="{Binding AcceptAllText}"
+                            Click="AcceptAllProposalsButton_Click">
+                      <TextBlock Text="{Binding AcceptAllText}" />
+                    </Button>
+                    <Button IsVisible="{Binding CanUndoReview}"
+                            AutomationProperties.AutomationId="Detail.Review.Undo"
+                            AutomationProperties.Name="{Binding UndoReviewAccessibleText}"
+                            Click="UndoReviewButton_Click">
+                      <TextBlock Text="{Binding UndoReviewText}" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <ItemsControl ItemsSource="{Binding PendingMetadataProposals}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                              BorderThickness="0,1,0,0"
+                              Padding="0,6,0,0"
+                              Margin="0,2">
+                        <StackPanel Spacing="4">
+                          <TextBlock Text="{Binding FieldLabel}"
+                                     FontWeight="SemiBold"
+                                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                          <TextBlock Text="{Binding ChangeText}"
+                                     ToolTip.Tip="{Binding CurrentValueLabel}"
+                                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                                     TextWrapping="Wrap" />
+                          <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                     TextWrapping="Wrap">
+                            <Run Text="{Binding SourceLabel}" />
+                            <Run Text=": " />
+                            <Run Text="{Binding Source}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding ConfidenceLabel}" />
+                            <Run Text=": " />
+                            <Run Text="{Binding Confidence}" />
+                          </TextBlock>
+                          <TextBlock Text="{Binding ProposedValueLabel}"
+                                     FontSize="{DynamicResource Type.Size.Caption}"
+                                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                          <TextBox Text="{Binding EditableValue, Mode=TwoWay}"
+                                   AutomationProperties.Name="{Binding FieldLabel}" />
+                          <StackPanel Orientation="Horizontal" Spacing="5">
+                            <Button AutomationProperties.AutomationId="{Binding AcceptAutomationId}"
+                                    AutomationProperties.Name="{Binding AcceptAccessibleName}"
+                                    Click="AcceptMetadataProposalButton_Click">
+                              <TextBlock Text="{Binding AcceptLabel}" />
+                            </Button>
+                            <Button AutomationProperties.AutomationId="{Binding RejectAutomationId}"
+                                    AutomationProperties.Name="{Binding RejectAccessibleName}"
+                                    Click="RejectMetadataProposalButton_Click">
+                              <TextBlock Text="{Binding RejectLabel}" />
+                            </Button>
+                          </StackPanel>
                         </StackPanel>
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <TextBlock Text="{Binding MetadataReviewStatusText}"
-                         IsVisible="{Binding HasMetadataReviewStatus}"
-                         FontSize="{DynamicResource Type.Size.Caption}"
-                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                         TextWrapping="Wrap" />
-            </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding MetadataReviewStatusText}"
+                           IsVisible="{Binding HasMetadataReviewStatus}"
+                           AutomationProperties.AutomationId="Detail.Review.Status"
+                           AutomationProperties.LiveSetting="Polite"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
 
             <!-- Provenance (lazy) -->
             <StackPanel Spacing="5" Margin="0,8,0,0">

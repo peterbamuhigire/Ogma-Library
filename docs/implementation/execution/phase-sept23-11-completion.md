@@ -1,10 +1,10 @@
 # Sept-23 Phase 11 completion: book detail inspector
 
-Status: **IN PROGRESS** (2026-11-19). Slices 1 to 3 of 8 are done.
+Status: **IN PROGRESS** (2026-11-19). Slices 1 to 4 of 8 are done.
 Branch: `kaizen/phase-11`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `bde93dac`.
 Plan: [phase-11](../../plans/sept-23-kaizen/phases/phase-11-book-detail-inspector.md).
-Decisions: D-49 to D-66 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Decisions: D-49 to D-71 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
 ## Typeface decision
 
@@ -88,3 +88,31 @@ Gates on the slice-3 tree:
   (Architecture 52, Tests 1,380, Ui 435; 0 failed).
 - NOT_ASSESSED (not run in this slice): real-window inline editing at both sizes, the
   screen-reader walkthrough of the editor and Flyout, 200% text, Arabic RTL and screenshots.
+
+## Slice 4: enrichment review card, accept-all with undo, and the raw-error purge (11.6, 11.7)
+
+| Task | Result | Evidence |
+|---|---|---|
+| Review card | Under Activity, a `Detail.Review.Card` Border is named "N suggested changes" (`Detail.Review.Title`). Each row shows the localised field, "current → proposed", source and confidence, plus named Accept and Reject buttons (`Detail.Review.Accept.{Field}`, `Detail.Review.Reject.{Field}`). The status line is a polite live region (`Detail.Review.Status`) | `ReviewCard_RendersItsCount_AndNamedButtons` (MEASURED, headless) |
+| Activity badge | `Detail.Section.Activity.Badge` shows the count. The segment is named "Activity, N suggested changes" and the badge hides when nothing is pending | Same test |
+| Accept all and Undo | *Accept all* calls `PreviewAsync`, then `ApplyAsync` with actor `local-user` (D-68), and keeps `BatchId` and `UndoToken`. *Undo* (`Detail.Review.Undo`) calls `UndoAsync` and reloads the detail. A single unedited Accept takes the same path with one id; an edited Accept and every Reject stay on `DecideAsync` (D-67) | `AcceptAll_ThenUndo_RestoresThePriorValues`, `SingleAccept_GoesThroughTheBulkService_AndIsUndoable`, `Reject_StaysOnTheSingleDecisionService` (MEASURED) |
+| Partial failure and conflict | Fields that were not applied are listed by localised label and logged; the user never sees the service's text. An undo conflict shows `Review.UndoConflict` and retires the token (D-69) | `PartialFailure_IsReportedPerField_WithoutRawErrors`, `UndoConflict_ShowsALocalisedExplanation` (MEASURED) |
+| Raw-error purge | All 12 `ex.Message` sites in `BookDetailViewModel.cs` now log through `AppLog.ViewModelOperationFailed` and show actionable localised text. Service-reported failures log through the new event 3005 (D-70). The eight `*FailedFormat` keys no longer have `{0}` in EN or FR | `Phase11NoRawErrorTests`: 16 failing paths in EN and fr-FR (MEASURED). `Select-String … 'ex\.Message'` on the file returns nothing |
+| No-metadata state | `Detail.State.NoMetadata` in Overview offers *Enrich* (`.Enrich`) when lookup is wired; otherwise `.Hint` points to Settings (D-71) | `NoMetadata_OffersEnrich_OrPointsToSettings` (true/false) |
+| Wiring | `ShellModule` passes `IMetadataBulkReviewService` to the inspector | Release build |
+| Updated tests | Three Phase 06 `BookDetailViewModelTests` assertions that expected raw enrich/OCR text now expect the localised copy (updated, not deleted) | Fast suite |
+| Strings | `Catalogue.BookDetail.Review.*`, `NoMetadata.*`, `MetadataReview.LoadFailed`, `Curation.TagsTooMany`/`TagTooLong` and `ReadingMemory.SaveFailed`, all in EN and FR | Key parity in the fast suite |
+
+Typeface: there is no new face. The card, badge and no-metadata state use Public Sans through
+existing tokens (`Type.Size.Caption`, `Brush.Surface.*`, `Brush.Accent.Primary`/`OnAccent`,
+`Radius.S`). The title stays Spectral, and JetBrains Mono stays inside Technical details only.
+
+New defect: K123. Raw `ex.Message` remains in `HostSharingViewModel` and
+`StudentSmartSearchViewModel`; this is outside the inspector and targeted at Phases 19 and 20.
+
+Gates on the slice-4 tree:
+- MEASURED, passing: the Release build (0 warnings), `dotnet format --verify-no-changes`,
+  `Test-DesignTokens.ps1` (clean), Phase11 filters (Tests 42, Ui 41) and `Test-Fast.ps1`
+  (Architecture 52, Tests 1,380, Ui 459; 0 failed).
+- NOT_ASSESSED (not run in this slice): the real-window review journey at both sizes,
+  screenshots, 200% text, Arabic RTL, and the screen-reader and keyboard walkthrough of the card.

@@ -375,4 +375,14 @@ public partial class BookDetailView : UserControl
             await vm.RejectMetadataProposalAsync(proposal).ConfigureAwait(true);
         }
     }
+
+    private void AcceptAllProposalsButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => DataContext is BookDetailViewModel vm ? vm.AcceptAllProposalsAsync() : Task.CompletedTask,
+            "catalogue.review.accept_all_click");
+
+    private void UndoReviewButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => DataContext is BookDetailViewModel vm ? vm.UndoReviewAsync() : Task.CompletedTask,
+            "catalogue.review.undo_click");
 }

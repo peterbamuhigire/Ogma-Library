@@ -129,6 +129,7 @@ public sealed partial class BookDetailViewModel
         OnPropertyChanged(nameof(CurrentReadingStatusIndex));
         OnPropertyChanged(nameof(CanShowInFolder));
         OnFieldsBookChanged();
+        OnReviewBookChanged();
     }
 
     private void OnInspectorCultureChanged()
@@ -146,5 +147,6 @@ public sealed partial class BookDetailViewModel
         OnPropertyChanged(nameof(AiCardText));
         OnPropertyChanged(nameof(SizeDisplayText));
         OnFieldsCultureChanged();
+        OnReviewCultureChanged();
     }
 }

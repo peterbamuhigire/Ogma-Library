@@ -260,7 +260,7 @@ public sealed class BookDetailViewModelTests
 
         Assert.False(vm.IsEnriching);
         Assert.True(vm.CanEnrich);
-        Assert.Equal("Metadata enrichment failed: provider offline", vm.EnrichmentStatusText);
+        Assert.Equal(new InMemoryLocalizationService()["Catalogue.BookDetail.EnrichFailedFormat"], vm.EnrichmentStatusText);
     }
 
     /// <summary>Projection refresh failures are reported instead of becoming unobserved task errors.</summary>
@@ -281,7 +281,7 @@ public sealed class BookDetailViewModelTests
 
         Assert.False(vm.IsEnriching);
         Assert.True(vm.CanEnrich);
-        Assert.Equal("Metadata enrichment failed: refresh failed", vm.EnrichmentStatusText);
+        Assert.Equal(new InMemoryLocalizationService()["Catalogue.BookDetail.EnrichFailedFormat"], vm.EnrichmentStatusText);
     }
 
     /// <summary>Manual OCR queueing surfaces a clear status and leaves the action usable.</summary>
@@ -315,7 +315,7 @@ public sealed class BookDetailViewModelTests
 
         Assert.False(vm.IsQueueingOcr);
         Assert.True(vm.CanRunOcr);
-        Assert.Equal("OCR could not be queued: file missing", vm.OcrStatusText);
+        Assert.Equal(new InMemoryLocalizationService()["Catalogue.BookDetail.OcrFailedFormat"], vm.OcrStatusText);
     }
 
     /// <summary>Protected book details can clear stored OS credentials without mutating catalogue flags.</summary>

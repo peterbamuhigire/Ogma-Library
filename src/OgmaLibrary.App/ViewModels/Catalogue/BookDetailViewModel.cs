@@ -98,6 +98,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     /// <param name="writeBackService">The reversible PDF metadata writeback boundary.</param>
     /// <param name="logger">The redacting application logger (Sept-23 Phase 02).</param>
     /// <param name="commandHistory">The shared undo history that runs inline metadata edits (Sept-23 Phase 11).</param>
+    /// <param name="metadataBulkReviewService">The undoable batch boundary for accepting proposals (Sept-23 Phase 11).</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -114,7 +115,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         ITocExtractionService? tocExtraction = null,
         IMetadataWriteBackService? writeBackService = null,
         ILogger<BookDetailViewModel>? logger = null,
-        OgmaLibrary.Application.Commands.ICommandHistory? commandHistory = null)
+        OgmaLibrary.Application.Commands.ICommandHistory? commandHistory = null,
+        IMetadataBulkReviewService? metadataBulkReviewService = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -136,6 +138,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         _writeBackService = writeBackService;
         _logger = logger ?? (ILogger)NullLogger.Instance;
         _commandHistory = commandHistory;
+        _bulkReview = metadataBulkReviewService;
         _localization.CultureChanged += OnCultureChanged;
     }
 
@@ -697,6 +700,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 _isReviewingMetadata = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanReviewMetadata));
+                OnReviewStateChanged();
             }
         }
     }
@@ -718,6 +722,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 _metadataReviewStatusText = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasMetadataReviewStatus));
+                OnPropertyChanged(nameof(ShowReviewCard));
             }
         }
     }
@@ -1425,12 +1430,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "writeback.confirm");
             UpdateOnUiThread(() =>
             {
-                WriteBackStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.WriteBack.FailedFormat"],
-                    ex.Message);
+                WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.FailedFormat"];
                 IsWritingWriteBack = false;
             });
         }
@@ -1477,12 +1480,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "writeback.restore");
             UpdateOnUiThread(() =>
             {
-                WriteBackStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.WriteBack.FailedFormat"],
-                    ex.Message);
+                WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.RestoreFailed"];
                 IsWritingWriteBack = false;
             });
         }
@@ -1606,13 +1607,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "history.load");
             UpdateOnUiThread(() =>
             {
                 IsLoadingHistory = false;
-                ReadingHistoryStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.Curation.HistoryFailedFormat"],
-                    ex.Message);
+                ReadingHistoryStatusText = _localization["Catalogue.BookDetail.Curation.HistoryFailedFormat"];
             });
         }
     }
@@ -1639,14 +1638,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             return;
         }
 
-        string[] tags;
-        try
+        string[]? tags = NormalizeTags(TagsText, out string? tagsErrorKey);
+        if (tags is null)
         {
-            tags = NormalizeTags(TagsText);
-        }
-        catch (ArgumentException ex)
-        {
-            TagsStatusText = ex.Message;
+            TagsStatusText = _localization[tagsErrorKey!];
             return;
         }
 
@@ -1671,12 +1666,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "tags.save");
             UpdateOnUiThread(() =>
             {
-                TagsStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.Curation.TagsFailedFormat"],
-                    ex.Message);
+                TagsStatusText = _localization["Catalogue.BookDetail.Curation.TagsFailedFormat"];
                 IsSavingTags = false;
             });
         }
@@ -1716,6 +1709,15 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 StringComparison.Ordinal)
             ? proposal.EditableValue
             : null;
+
+        // An unedited accept goes through the bulk service with one id so it can be undone (D-67).
+        // An edited value is a user override, which only the single-decision service records.
+        if (accept && editedValue is null && _bulkReview is not null)
+        {
+            await ApplyBulkAsync([proposal.ProposalId], cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         IsReviewingMetadata = true;
         MetadataReviewStatusText = null;
         try
@@ -1745,12 +1747,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, accept ? "review.accept" : "review.reject");
             UpdateOnUiThread(() =>
             {
-                MetadataReviewStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.MetadataReview.FailedFormat"],
-                    ex.Message);
+                MetadataReviewStatusText = _localization["Catalogue.BookDetail.MetadataReview.FailedFormat"];
                 IsReviewingMetadata = false;
             });
         }
@@ -1783,12 +1783,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
 
             if (!success)
             {
+                AppLog.ViewModelOperationRejected(_logger, ViewModelName, "metadata.enrich", errorMessage ?? "unspecified");
                 UpdateOnUiThread(() =>
                 {
-                    EnrichmentStatusText = string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
-                        _localization["Catalogue.BookDetail.EnrichFailedFormat"],
-                        errorMessage ?? _localization["Catalogue.BookDetail.EnrichUnknownError"]);
+                    EnrichmentStatusText = _localization["Catalogue.BookDetail.EnrichFailedFormat"];
                     IsEnriching = false;
                 });
                 return;
@@ -1807,12 +1805,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "metadata.enrich");
             UpdateOnUiThread(() =>
             {
-                EnrichmentStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.EnrichFailedFormat"],
-                    ex.Message);
+                EnrichmentStatusText = _localization["Catalogue.BookDetail.EnrichFailedFormat"];
                 IsEnriching = false;
             });
         }
@@ -1842,28 +1838,28 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             OcrQueueResult result = await _ocrJobs.QueueBookAsync(bookId, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
+            if (result is { Queued: false, AlreadyQueued: false })
+            {
+                AppLog.ViewModelOperationRejected(_logger, ViewModelName, "ocr.queue", result.ErrorMessage ?? "unspecified");
+            }
+
             UpdateOnUiThread(() =>
             {
                 OcrStatusText = result switch
                 {
                     { Queued: true } => _localization["Catalogue.BookDetail.OcrQueued"],
                     { AlreadyQueued: true } => _localization["Catalogue.BookDetail.OcrAlreadyQueued"],
-                    _ => string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
-                        _localization["Catalogue.BookDetail.OcrFailedFormat"],
-                        result.ErrorMessage ?? _localization["Catalogue.BookDetail.EnrichUnknownError"]),
+                    _ => _localization["Catalogue.BookDetail.OcrFailedFormat"],
                 };
                 IsQueueingOcr = false;
             });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "ocr.queue");
             UpdateOnUiThread(() =>
             {
-                OcrStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.OcrFailedFormat"],
-                    ex.Message);
+                OcrStatusText = _localization["Catalogue.BookDetail.OcrFailedFormat"];
                 IsQueueingOcr = false;
             });
         }
@@ -1893,12 +1889,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "password.forget");
             UpdateOnUiThread(() =>
             {
-                PasswordStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.ForgetPasswordFailedFormat"],
-                    ex.Message);
+                PasswordStatusText = _localization["Catalogue.BookDetail.ForgetPasswordFailedFormat"];
             });
         }
     }
@@ -1964,9 +1958,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "reading-memory.save");
             UpdateOnUiThread(() =>
             {
-                ReadingMemoryStatusText = ex.Message;
+                ReadingMemoryStatusText = _localization["ReadingMemory.SaveFailed"];
                 IsSavingReadingMemory = false;
             });
         }
@@ -2006,12 +2001,10 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "curation.update");
             UpdateOnUiThread(() =>
             {
-                CurationStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    _localization["Catalogue.BookDetail.Curation.FailedFormat"],
-                    ex.Message);
+                CurationStatusText = _localization["Catalogue.BookDetail.Curation.FailedFormat"];
                 IsUpdatingCuration = false;
             });
         }
@@ -2042,10 +2035,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            UpdateOnUiThread(() => MetadataReviewStatusText = string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                _localization["Catalogue.BookDetail.MetadataReview.FailedFormat"],
-                ex.Message));
+            AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "review.list");
+            UpdateOnUiThread(() => MetadataReviewStatusText = _localization["Catalogue.BookDetail.MetadataReview.LoadFailed"]);
             return [];
         }
     }
@@ -2055,6 +2046,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         PendingMetadataProposals.Clear();
         foreach (MetadataProposalDescriptor proposal in proposals)
         {
+            string label = ReviewFieldLabel(proposal.FieldName);
             PendingMetadataProposals.Add(new MetadataProposalItemViewModel(
                 proposal,
                 _localization["Catalogue.BookDetail.MetadataReview.Accept"],
@@ -2062,29 +2054,38 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 _localization["Catalogue.BookDetail.MetadataReview.Proposed"],
                 _localization["Catalogue.BookDetail.MetadataReview.Current"],
                 _localization["Catalogue.BookDetail.MetadataReview.Source"],
-                _localization["Catalogue.BookDetail.MetadataReview.Confidence"]));
+                _localization["Catalogue.BookDetail.MetadataReview.Confidence"])
+            {
+                FieldLabel = label,
+                AcceptAccessibleName = string.Format(
+                    _localization.CurrentCulture, _localization["Catalogue.BookDetail.Review.AcceptFormat"], label),
+                RejectAccessibleName = string.Format(
+                    _localization.CurrentCulture, _localization["Catalogue.BookDetail.Review.RejectFormat"], label),
+                ChangeText = string.Format(
+                    _localization.CurrentCulture,
+                    _localization["Catalogue.BookDetail.Review.ChangeFormat"],
+                    proposal.CurrentValue ?? _localization["Catalogue.BookDetail.Edit.Empty"],
+                    proposal.ProposedValue ?? _localization["Catalogue.BookDetail.Edit.Empty"]),
+            });
         }
         OnPropertyChanged(nameof(PendingMetadataProposals));
+        OnReviewProposalsChanged();
     }
 
-    private static string[] NormalizeTags(string value)
+    // Returns the normalised tags, or null with the localisation key of the validation message.
+    private static string[]? NormalizeTags(string value, out string? errorKey)
     {
         string[] tags = value
             .Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(tag => tag.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        if (tags.Length > 32)
-        {
-            throw new ArgumentException("Use at most 32 tags.");
-        }
-
-        if (tags.Any(tag => tag.Length > 128))
-        {
-            throw new ArgumentException("Each tag must be at most 128 characters.");
-        }
-
-        return tags;
+        errorKey = tags.Length > 32
+            ? "Catalogue.BookDetail.Curation.TagsTooMany"
+            : tags.Any(tag => tag.Length > 128)
+                ? "Catalogue.BookDetail.Curation.TagTooLong"
+                : null;
+        return errorKey is null ? tags : null;
     }
 
     /// <summary>Closes the detail panel.</summary>

@@ -188,4 +188,12 @@ public static partial class AppLog
     [LoggerMessage(EventId = 3004, EventName = "viewmodel.operation.ignored", Level = LogLevel.Debug,
         Message = "{ViewModel} best-effort step {Operation} failed and was ignored")]
     public static partial void ViewModelStepIgnored(ILogger logger, Exception exception, string viewModel, string operation);
+
+    /// <summary>
+    /// A service reported a failure without throwing; the reason is logged (redacted by the sink)
+    /// while the user sees localised text only (Sept-23 Phase 11).
+    /// </summary>
+    [LoggerMessage(EventId = 3005, EventName = "viewmodel.operation.rejected", Level = LogLevel.Warning,
+        Message = "{ViewModel} operation {Operation} was rejected by the service: {Reason}")]
+    public static partial void ViewModelOperationRejected(ILogger logger, string viewModel, string operation, string reason);
 }

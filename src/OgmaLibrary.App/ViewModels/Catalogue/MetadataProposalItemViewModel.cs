@@ -9,6 +9,9 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 public sealed class MetadataProposalItemViewModel : INotifyPropertyChanged
 {
     private string _editableValue;
+    private readonly string? _fieldLabel;
+    private readonly string? _acceptAccessibleName;
+    private readonly string? _rejectAccessibleName;
 
     /// <summary>Initializes a proposal card for the review panel.</summary>
     public MetadataProposalItemViewModel(
@@ -68,6 +71,36 @@ public sealed class MetadataProposalItemViewModel : INotifyPropertyChanged
 
     /// <summary>Localized confidence label.</summary>
     public string ConfidenceLabel { get; }
+
+    /// <summary>Localised field label, for example "Title"; defaults to the canonical field name.</summary>
+    public string FieldLabel
+    {
+        get => _fieldLabel ?? FieldName;
+        init => _fieldLabel = value;
+    }
+
+    /// <summary>Accessible name of the Accept button, naming the field.</summary>
+    public string AcceptAccessibleName
+    {
+        get => _acceptAccessibleName ?? AcceptLabel;
+        init => _acceptAccessibleName = value;
+    }
+
+    /// <summary>Accessible name of the Reject button, naming the field.</summary>
+    public string RejectAccessibleName
+    {
+        get => _rejectAccessibleName ?? RejectLabel;
+        init => _rejectAccessibleName = value;
+    }
+
+    /// <summary>Localised "current → proposed" summary.</summary>
+    public string ChangeText { get; init; } = string.Empty;
+
+    /// <summary>Stable automation id of the Accept button.</summary>
+    public string AcceptAutomationId => "Detail.Review.Accept." + FieldName;
+
+    /// <summary>Stable automation id of the Reject button.</summary>
+    public string RejectAutomationId => "Detail.Review.Reject." + FieldName;
 
     /// <summary>Value to apply when the proposal is accepted.</summary>
     public string EditableValue
