@@ -170,3 +170,56 @@ Gates on the slice-6 tree:
 - NOT_ASSESSED (not run in this slice): the real-window relink journey on the synthetic corpus,
   screenshots at 1280×800 and 1920×1080, light and dark, 200% text, Arabic RTL, and the
   screen-reader and keyboard walkthrough of the state cards.
+
+## Slice 7: resize and persistence, Esc, names and Detail journeys (11.9, 11.10)
+
+| Task | Result | Evidence |
+|---|---|---|
+| Width | The fixed `Width="360"` is gone. The shell owns the width (`MainShellViewModel.InspectorWidth`, `ResizeInspector`, `CommitInspectorWidthAsync`). A 6 px left-edge `Thumb` (`Detail.ResizeHandle`, named, with help text and a tooltip) resizes by pointer drag, and by Left or Right (16 px) when focused. The width is clamped to 320–560 | `Phase11InspectorShellTests` (headless, MEASURED) |
+| Persistence | `UserPreferences.InspectorWidth` (schema 3, default 360) is clamped on load and on save (`ClampInspectorWidth`; NaN and infinity give 360). A schema 2 file migrates to 360. The width is saved at once at drag end and 500 ms after the last keyboard step (D-82). A pending save is committed on detach | `Sept23Phase11InspectorWidthTests` (MEASURED) |
+| Toolbar inset | The selection toolbar still follows the live `Inspector.Bounds.Width` | Existing layout tests (MEASURED) |
+| Esc | Esc closes the drawer, then the inspector, then search. Closing the inspector keeps the selection, and focus returns to the selected card (D-84) | `Phase11InspectorShellTests` (MEASURED) |
+| Nothing selected | The panel is hidden and its column is 0 wide; it is 360 wide when shown | Same (MEASURED) |
+| 11.10 | The new control has `AutomationId` and `Name`. Tab order is header → segments → content → resize handle (D-83). Two new keys are in EN and FR | Key parity (MEASURED); inspector UIA audit (MEASURED, below) |
+| Journeys | `DetailTests`: J-DET-1, J-DET-2, J-DET-3, J-DET-4, the negative Read on a deleted file, and G9 (which replaces `G9_Metadata_Placeholder`). `AccessibleNamesTests.Inspector_HasReadableAccessibleNames` is new. `baseline.json` is unchanged: G9 had no baseline entry, and no defect was fixed | `Test-GoldenJourneyRunner.ps1` PASS (MEASURED) |
+
+Typeface: there is no new face, and the handle has no text. Colours come from tokens only
+(`Brush.Focus` on hover and focus-visible; otherwise transparent).
+
+Real-window smoke: `Use-DesktopLock.ps1 -Owner phase-11`, `-Tag Detail -Sizes 1280x800`. There
+were three runs: `20261119-210238`, `-211307` and `-212008`. The `artifacts/` evidence is local
+and not committed.
+- MEASURED, PASS: A11yNames on the inspector (every focusable control is named, and the UIA audit
+  is clean) in all three runs.
+- MEASURED, BASELINE-FAIL: G3 in run 3 (p95 514 ms [K32]). In runs 1 and 2, G3 failed in the
+  first-page hit test on a foreign window (K126), not in Phase 11 code.
+- NOT ASSESSED: J-DET-2. There is no offline metadata-provider seam (D-81).
+- NOT_ASSESSED (environment): J-DET-1, J-DET-3, J-DET-4, the negative journey and G9. The raw
+  runner reported FAIL. While these runs were going, a user application held the foreground and
+  covered the app window: `GetForegroundWindow` and `WindowFromPoint` at the failing hit-test
+  points both resolved to it (MEASURED). Hit tests landed on its panes, and keyboard and mouse
+  input (field edit by Enter, clicks on the overflow menu) went to it. The journeys were not
+  rerun with the desktop free; their pass or fail is unknown. The harness does not detect this
+  case (K126).
+- Fixed in the journeys during the runs (CODE): the missing-state card is a `Border`, which UIA
+  does not expose, so the journeys wait for `Detail.State.MissingFile.Body`. The fields sit under
+  the Details segment, so the journeys select it first. Avalonia menu items have no Invoke
+  pattern, so they are clicked.
+- Observed (HEURISTIC): in run 2, J-DET-1's *Back to Library* left Reading showing "No book is
+  open" after two reader-engine restarts (K127). In run 1, J-DET-1 showed Library health instead
+  of the inspector after a selection. The cause is unknown; the occluding window may have
+  received the input.
+
+Deviation: early in the session, a targeted `dotnet test --filter FullyQualifiedName~AccessibleNames`
+also ran the real-window `AccessibleNamesTests` outside the desktop lock. Three tests failed.
+Afterwards, no Ogma process was left running. Later runs excluded `Category=E2E` from local
+filters.
+
+New defects: K126 (the harness misses foreign foreground occlusion) and K127 (*Back to Library*
+after a reader-engine restart).
+
+Gates on the slice-7 tree:
+- MEASURED, passing: the Release build (0 warnings), `dotnet format --verify-no-changes`,
+  `Test-DesignTokens.ps1` (clean), `Test-GoldenJourneyRunner.ps1` and `Test-Fast.ps1` (exit 0; Ui 482 passed, 0 failed; the Architecture and Tests counts were not captured in the output tail, and that run printed no failure).
+- NOT_ASSESSED: the Detail journeys above, with the desktop free; 1920×1080; dark theme; 200%
+  text; Arabic RTL, including the handle direction (D-85); and the screen-reader walkthrough.

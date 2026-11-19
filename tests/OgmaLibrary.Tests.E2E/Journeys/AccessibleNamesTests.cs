@@ -63,6 +63,33 @@ public sealed class AccessibleNamesTests
             AssertReadable(names);
         });
 
+    /// <summary>
+    /// Sept-23 Phase 11 (11.10): every interactive control in the open inspector, including the
+    /// resize handle, has a readable name and passes the UIA audit.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(E2ESettings.SizeData), MemberType = typeof(E2ESettings))]
+    [Trait("Category", "E2E")]
+    [Trait("Journey", "A11yNames")]
+    [Trait("Tag", "Accessibility")]
+    [Trait("Tag", "Detail")]
+    public void Inspector_HasReadableAccessibleNames(string size) =>
+        Journey.Run("A11yNames", size, JourneySupport.Standard, evidenceFolder: "inspector", body: context =>
+        {
+            AutomationElement panel = DetailTests.OpenLibraryAndInspect(context, Corpus.Oracle.Reader.Title);
+            AutomationElement handle = Uia.WaitFor(panel, "Detail.ResizeHandle");
+            string[] names = panel.FindAllDescendants()
+                .Where(e => e.Properties.IsKeyboardFocusable.ValueOrDefault)
+                .Select(e => e.Properties.Name.ValueOrDefault ?? string.Empty)
+                .Append(handle.Properties.Name.ValueOrDefault ?? string.Empty)
+                .ToArray();
+            context.Record("names.inspector", names);
+            IReadOnlyList<string> violations = UiaAudit.Violations(panel);
+            context.Record("audit.inspector", violations);
+            AssertReadable(names);
+            Assert.True(violations.Count == 0, "Inspector UIA audit: " + string.Join(" | ", violations.Take(10)));
+        });
+
     private static void AssertReadable(string[] names)
     {
         string[] bad = names.Where(name => string.IsNullOrWhiteSpace(name) || UiaAudit.IsRecordDump(name)).ToArray();
