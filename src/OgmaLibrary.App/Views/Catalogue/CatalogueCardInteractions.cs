@@ -105,25 +105,7 @@ internal static class CatalogueCardInteractions
         var add = new MenuItem { Header = selection.AddToShelfText };
         AutomationProperties.SetName(add, selection.AddToShelfText);
         AutomationProperties.SetAutomationId(add, "Catalogue.CardMenu.AddToShelf");
-        if (membership.ManualShelves.Count == 0)
-        {
-            var none = new MenuItem { Header = selection.NoShelvesText, IsEnabled = false };
-            AutomationProperties.SetName(none, selection.NoShelvesText);
-            add.Items.Add(none);
-        }
-
-        foreach (ShelfProjection shelf in membership.ManualShelves)
-        {
-            var target = new MenuItem { Header = shelf.Name };
-            AutomationProperties.SetName(target, shelf.Name);
-            AutomationProperties.SetAutomationId(target, $"Catalogue.CardMenu.Shelf.{shelf.ShelfId}");
-            string shelfId = shelf.ShelfId;
-            target.Click += (_, _) => UiActions.Run(
-                () => membership.AddToShelfAsync(shelfId, ids),
-                "catalogue.card_menu_add");
-            add.Items.Add(target);
-        }
-
+        PopulateAddToShelf(add, selection, ids, "Catalogue.CardMenu.Shelf", "catalogue.card_menu_add");
         menu.Items.Add(add);
 
         if (membership.ActiveManualShelf is not null)
@@ -146,6 +128,45 @@ internal static class CatalogueCardInteractions
             : [book.BookId];
     }
 
-    private static MainShellViewModel? FindShell(Visual visual) =>
+    /// <summary>
+    /// Fills an "Add to collection" submenu with one item per manual collection, or a disabled
+    /// "No collections yet" item. Shared by the card menu and the inspector overflow menu.
+    /// </summary>
+    /// <param name="add">The submenu to fill; its existing items are replaced.</param>
+    /// <param name="selection">The catalogue selection that owns shelf membership.</param>
+    /// <param name="ids">The books to add.</param>
+    /// <param name="automationPrefix">AutomationId prefix for each collection item.</param>
+    /// <param name="operation">The UiActions operation name for logging.</param>
+    internal static void PopulateAddToShelf(
+        MenuItem add,
+        CatalogueSelectionViewModel selection,
+        string[] ids,
+        string automationPrefix,
+        string operation)
+    {
+        add.Items.Clear();
+        ShelfMembershipViewModel membership = selection.Membership;
+        if (membership.ManualShelves.Count == 0)
+        {
+            var none = new MenuItem { Header = selection.NoShelvesText, IsEnabled = false };
+            AutomationProperties.SetName(none, selection.NoShelvesText);
+            add.Items.Add(none);
+        }
+
+        foreach (ShelfProjection shelf in membership.ManualShelves)
+        {
+            var target = new MenuItem { Header = shelf.Name };
+            AutomationProperties.SetName(target, shelf.Name);
+            AutomationProperties.SetAutomationId(target, $"{automationPrefix}.{shelf.ShelfId}");
+            string shelfId = shelf.ShelfId;
+            target.Click += (_, _) => UiActions.Run(() => membership.AddToShelfAsync(shelfId, ids), operation);
+            add.Items.Add(target);
+        }
+    }
+
+    /// <summary>Finds the main shell view model above a visual, if any.</summary>
+    /// <param name="visual">A visual inside the catalogue shell.</param>
+    /// <returns>The shell view model, or <see langword="null"/>.</returns>
+    internal static MainShellViewModel? FindShell(Visual visual) =>
         visual.FindAncestorOfType<CatalogueShellView>()?.DataContext as MainShellViewModel;
 }

@@ -7,11 +7,12 @@
              IsVisible="{Binding IsVisible}">
 
   <!--
-    Book-detail panel (FR-CAT-004). Slides in from the right.
-    Seven tab groups: File, Bibliographic, Reading, Enrichment, AI, TOC, Provenance.
-    "Read" button routes through IReaderNavigationService.
-    "Enrich" runs deterministic no-AI metadata provider lookup.
-    "Run OCR" queues scanned PDFs for searchable text extraction.
+    Book-detail inspector (FR-CAT-004; Sept-23 Phase 11, slice 2).
+    Header: compact cover, title (Spectral), authors, year, one state-driven primary action,
+    a "More actions" overflow menu, curation (status, rating, favourite) and Close.
+    Four segmented sections replace the earlier seven tabs: Overview, Details, Contents, Activity.
+    There is no footer button row; Enrich, Run OCR, Add to collection, write-back, Show in folder
+    and Forget password live in the overflow menu.
   -->
 
   <Border Background="{DynamicResource Brush.Surface.Card}"
@@ -20,673 +21,694 @@
           Width="360"
           MinWidth="320">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*">
 
-      <!-- Header: title + close button -->
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="16,12,12,8">
-        <TextBlock Grid.Column="0"
-                   Text="{Binding Title}"
-                   FontSize="{DynamicResource Type.Size.Subtitle}"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                   TextWrapping="Wrap"
-                   MaxLines="2"
-                   VerticalAlignment="Center" />
-        <Button Classes="primary" Grid.Column="1"
-                Padding="12,6"
-                Margin="8,0,4,0"
-                IsEnabled="{Binding CanOpenReader}"
-                AutomationProperties.AutomationId="Detail.Action.Read"
-                AutomationProperties.Name="{Binding ReadText}"
-                Click="ReadButton_Click">
-          <TextBlock Text="{Binding ReadText}" FontSize="{DynamicResource Type.Size.Caption}" />
-        </Button>
-        <Button Classes="tool" Grid.Column="2"
-                BorderThickness="0"
-                Padding="6"
-                VerticalAlignment="Center"
-                AutomationProperties.AutomationId="Detail.Action.Close"
-                AutomationProperties.Name="{Binding CloseButtonText}"
-                Click="CloseButton_Click">
-          <TextBlock Text="✕" FontSize="{DynamicResource Type.Size.Body}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        </Button>
-      </Grid>
-
-      <!-- Scrollable detail area -->
-      <ScrollViewer Grid.Row="1" Margin="0,0,0,0">
-        <StackPanel Spacing="0" Margin="16,0,16,16">
-
-          <!-- Open error: a failed or impossible Read keeps the panel open (Sept-23 Phase 11, 11.8) -->
-          <TextBlock Text="{Binding OpenErrorText}"
-                     IsVisible="{Binding HasOpenError}"
-                     AutomationProperties.AutomationId="Detail.OpenError"
-                     AutomationProperties.Name="{Binding OpenErrorText}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                     TextWrapping="Wrap"
-                     Margin="0,0,0,12" />
-
-          <!-- Cover placeholder -->
-          <cat:CoverImageView Width="140"
-                              Height="200"
-                              Margin="0,0,0,16"
-                              HorizontalAlignment="Center"
+      <!-- Header -->
+      <StackPanel Grid.Row="0"
+                  Spacing="8"
+                  Margin="16,12,12,8"
+                  AutomationProperties.AutomationId="Detail.Header">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <cat:CoverImageView Grid.Column="0"
+                              Width="56"
+                              Height="80"
+                              Margin="0,0,12,0"
+                              VerticalAlignment="Top"
                               RelativePath="{Binding Book.CoverRelativePath}"
                               RootPath="{Binding AssetRootPath}"
                               Label="{Binding Title}"
                               Subtitle="{Binding AuthorsDisplay}" />
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Top">
+            <TextBlock Classes="ogma-display"
+                       FontSize="{DynamicResource Type.Size.Title}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                       Text="{Binding Title}"
+                       ToolTip.Tip="{Binding Title}"
+                       AutomationProperties.AutomationId="Detail.Title"
+                       TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis"
+                       MaxLines="2" />
+            <TextBlock Text="{Binding AuthorsDisplay}"
+                       ToolTip.Tip="{Binding AuthorsDisplay}"
+                       AutomationProperties.AutomationId="Detail.Authors"
+                       FontSize="{DynamicResource Type.Size.Small}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis"
+                       MaxLines="2" />
+            <TextBlock Text="{Binding Year}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </StackPanel>
+          <Button Classes="tool" Grid.Column="2"
+                  BorderThickness="0"
+                  Padding="6"
+                  VerticalAlignment="Top"
+                  AutomationProperties.AutomationId="Detail.Action.Close"
+                  AutomationProperties.Name="{Binding CloseButtonText}"
+                  ToolTip.Tip="{Binding CloseButtonText}"
+                  Click="CloseButton_Click">
+            <TextBlock Text="✕" FontSize="{DynamicResource Type.Size.Body}" Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          </Button>
+        </Grid>
 
-          <!-- Authors -->
-          <TextBlock Text="{Binding AuthorsDisplay}"
-                     FontSize="{DynamicResource Type.Size.Body}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     TextWrapping="Wrap"
-                     Margin="0,0,0,4" />
+        <!-- One primary action, then the overflow menu -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <Button Classes="primary" Grid.Column="0"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  Padding="12,6"
+                  IsEnabled="{Binding CanExecutePrimaryAction}"
+                  AutomationProperties.AutomationId="Detail.Action.Read"
+                  AutomationProperties.Name="{Binding PrimaryActionText}"
+                  Click="PrimaryActionButton_Click">
+            <TextBlock Text="{Binding PrimaryActionText}" TextTrimming="CharacterEllipsis" />
+          </Button>
+          <Button x:Name="MoreButton"
+                  Classes="tool" Grid.Column="1"
+                  Padding="10,6"
+                  AutomationProperties.AutomationId="Detail.Action.More"
+                  AutomationProperties.Name="{Binding MoreActionsText}"
+                  ToolTip.Tip="{Binding MoreActionsText}">
+            <TextBlock Text="⋯" FontSize="{DynamicResource Type.Size.Body}" />
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="MoreMenu_Opening">
+                <MenuItem Header="{Binding EnrichText}"
+                          IsEnabled="{Binding CanEnrich}"
+                          ToolTip.Tip="{Binding EnrichTooltip}"
+                          AutomationProperties.AutomationId="Detail.Action.Enrich"
+                          AutomationProperties.Name="{Binding EnrichText}"
+                          Click="EnrichButton_Click" />
+                <MenuItem Header="{Binding RunOcrText}"
+                          IsEnabled="{Binding CanRunOcr}"
+                          ToolTip.Tip="{Binding RunOcrTooltip}"
+                          AutomationProperties.AutomationId="Detail.Action.RunOcr"
+                          AutomationProperties.Name="{Binding RunOcrText}"
+                          Click="RunOcrButton_Click" />
+                <MenuItem x:Name="AddToShelfMenuItem"
+                          Header="{Binding AddToShelfMenuText}"
+                          AutomationProperties.AutomationId="Detail.Action.AddToShelf"
+                          AutomationProperties.Name="{Binding AddToShelfMenuText}" />
+                <MenuItem Header="{Binding WriteMetadataMenuText}"
+                          IsEnabled="{Binding CanPrepareWriteBack}"
+                          AutomationProperties.AutomationId="Detail.Action.WriteMetadata"
+                          AutomationProperties.Name="{Binding WriteMetadataMenuText}"
+                          Click="PrepareWriteBackButton_Click" />
+                <MenuItem Header="{Binding ShowInFolderText}"
+                          IsEnabled="{Binding CanShowInFolder}"
+                          AutomationProperties.AutomationId="Detail.Action.ShowInFolder"
+                          AutomationProperties.Name="{Binding ShowInFolderText}"
+                          Click="ShowInFolderButton_Click" />
+                <MenuItem Header="{Binding ForgetPasswordText}"
+                          IsVisible="{Binding IsPasswordProtected}"
+                          IsEnabled="{Binding CanForgetPassword}"
+                          ToolTip.Tip="{Binding ForgetPasswordTooltip}"
+                          AutomationProperties.AutomationId="Detail.Action.ForgetPassword"
+                          AutomationProperties.Name="{Binding ForgetPasswordText}"
+                          Click="ForgetPasswordButton_Click" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </Grid>
 
-          <!-- Year -->
-          <TextBlock Text="{Binding Year}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     Margin="0,0,0,16" />
+        <!-- Curation: reading status, rating and favourite (moved up from Bibliographic) -->
+        <WrapPanel Orientation="Horizontal"
+                   ItemSpacing="4"
+                   LineSpacing="4"
+                   IsVisible="{Binding CanUpdateCuration}">
+          <ComboBox x:Name="ReadingStatusPicker"
+                    MinWidth="120"
+                    SelectedIndex="{Binding CurrentReadingStatusIndex, Mode=OneWay}"
+                    AutomationProperties.AutomationId="Detail.Curation.Status"
+                    AutomationProperties.Name="{Binding CurationStatusLabel}"
+                    ToolTip.Tip="{Binding CurationStatusLabel}"
+                    SelectionChanged="ReadingStatusPicker_SelectionChanged">
+            <ComboBoxItem Content="{Binding CurationUnreadText}" AutomationProperties.Name="{Binding CurationUnreadText}" />
+            <ComboBoxItem Content="{Binding CurationReadingText}" AutomationProperties.Name="{Binding CurationReadingText}" />
+            <ComboBoxItem Content="{Binding CurationFinishedText}" AutomationProperties.Name="{Binding CurationFinishedText}" />
+            <ComboBoxItem Content="{Binding CurationAbandonedText}" AutomationProperties.Name="{Binding CurationAbandonedText}" />
+          </ComboBox>
+          <StackPanel Orientation="Horizontal" Spacing="2" ToolTip.Tip="{Binding CurationRatingLabel}">
+            <Button Classes="compact" Tag="1" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingOneAccessibilityText}"><TextBlock Text="1" /></Button>
+            <Button Classes="compact" Tag="2" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingTwoAccessibilityText}"><TextBlock Text="2" /></Button>
+            <Button Classes="compact" Tag="3" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingThreeAccessibilityText}"><TextBlock Text="3" /></Button>
+            <Button Classes="compact" Tag="4" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingFourAccessibilityText}"><TextBlock Text="4" /></Button>
+            <Button Classes="compact" Tag="5" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingFiveAccessibilityText}"><TextBlock Text="5" /></Button>
+          </StackPanel>
+          <Button Classes="compact"
+                  Click="FavouriteButton_Click"
+                  AutomationProperties.AutomationId="Detail.Curation.Favourite"
+                  AutomationProperties.Name="{Binding FavouriteButtonText}">
+            <TextBlock Text="{Binding FavouriteButtonText}" />
+          </Button>
+        </WrapPanel>
+        <TextBlock Text="{Binding CurationStatusText}"
+                   IsVisible="{Binding HasCurationStatus}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                   TextWrapping="Wrap" />
 
-          <!-- Tab control for 5 field groups -->
-          <TabControl>
+        <!-- Open error: a failed or impossible primary action keeps the panel open (11.8) -->
+        <TextBlock Text="{Binding OpenErrorText}"
+                   IsVisible="{Binding HasOpenError}"
+                   AutomationProperties.AutomationId="Detail.OpenError"
+                   AutomationProperties.Name="{Binding OpenErrorText}"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
 
-            <!-- Group 1: File -->
-            <TabItem Header="{Binding FileTabText}">
-              <StackPanel Spacing="6" Margin="0,8,0,0">
-                <TextBlock Text="{Binding RelativePath}"
+      <!-- Section switcher -->
+      <Border Grid.Row="1"
+              Classes="segmented"
+              Margin="16,0,16,8"
+              AutomationProperties.AutomationId="Detail.Sections"
+              AutomationProperties.Name="{Binding SectionsAccessibleText}">
+        <Grid ColumnDefinitions="*,*,*,*">
+          <Button Grid.Column="0" Classes="segment"
+                  Classes.selected="{Binding IsOverviewSection}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Tag="Overview"
+                  AutomationProperties.AutomationId="Detail.Section.Overview"
+                  AutomationProperties.Name="{Binding OverviewSectionText}"
+                  Click="SectionButton_Click">
+            <TextBlock Text="{Binding OverviewSectionText}" TextTrimming="CharacterEllipsis" />
+          </Button>
+          <Button Grid.Column="1" Classes="segment"
+                  Classes.selected="{Binding IsDetailsSection}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Tag="Details"
+                  AutomationProperties.AutomationId="Detail.Section.Details"
+                  AutomationProperties.Name="{Binding DetailsSectionText}"
+                  Click="SectionButton_Click">
+            <TextBlock Text="{Binding DetailsSectionText}" TextTrimming="CharacterEllipsis" />
+          </Button>
+          <Button Grid.Column="2" Classes="segment"
+                  Classes.selected="{Binding IsContentsSection}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Tag="Contents"
+                  AutomationProperties.AutomationId="Detail.Section.Contents"
+                  AutomationProperties.Name="{Binding ContentsSectionText}"
+                  Click="SectionButton_Click">
+            <TextBlock Text="{Binding ContentsSectionText}" TextTrimming="CharacterEllipsis" />
+          </Button>
+          <Button Grid.Column="3" Classes="segment"
+                  Classes.selected="{Binding IsActivitySection}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Tag="Activity"
+                  AutomationProperties.AutomationId="Detail.Section.Activity"
+                  AutomationProperties.Name="{Binding ActivitySectionText}"
+                  Click="SectionButton_Click">
+            <TextBlock Text="{Binding ActivitySectionText}" TextTrimming="CharacterEllipsis" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <ScrollViewer Grid.Row="2">
+        <StackPanel Margin="16,0,16,16">
+
+          <!-- ── Overview ───────────────────────────────────────────────── -->
+          <StackPanel Spacing="6"
+                      IsVisible="{Binding IsOverviewSection}"
+                      AutomationProperties.AutomationId="Detail.Section.Overview.Content">
+            <StackPanel Spacing="5" IsVisible="{Binding CanEditTags}">
+              <TextBlock Text="{Binding TagsLabel}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBox Text="{Binding TagsText, Mode=TwoWay}"
+                       Watermark="{Binding TagsWatermark}"
+                       AutomationProperties.Name="{Binding TagsLabel}" />
+              <Button HorizontalAlignment="Left"
+                      IsEnabled="{Binding CanEditTags}"
+                      AutomationProperties.Name="{Binding SaveTagsLabel}"
+                      Click="SaveTagsButton_Click">
+                <TextBlock Text="{Binding SaveTagsLabel}" />
+              </Button>
+              <TextBlock Text="{Binding TagsStatusText}"
+                         IsVisible="{Binding HasTagsStatus}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+            <TextBlock Text="{Binding ProgressSummaryText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <TextBlock Text="{Binding LastReadSummaryText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <TextBlock Text="{Binding AnnotationSummaryText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <StackPanel Spacing="4" Margin="0,8,0,0">
+              <TextBlock Text="{Binding ReadingMemorySummaryLabel}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                <TextBlock.Text>
+                  <MultiBinding StringFormat="{}{0}: {1}">
+                    <Binding Path="ReadingMemoryDispositionLabel" />
+                    <Binding Path="ReadingMemoryDispositionDisplay" />
+                  </MultiBinding>
+                </TextBlock.Text>
+              </TextBlock>
+              <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                <TextBlock.Text>
+                  <MultiBinding StringFormat="{}{0}: {1}">
+                    <Binding Path="ReadingMemoryKeyInsightLabel" />
+                    <Binding Path="ReadingMemoryKeyInsightExcerpt" />
+                  </MultiBinding>
+                </TextBlock.Text>
+              </TextBlock>
+              <StackPanel Spacing="5"
+                          Margin="0,8,0,0"
+                          IsVisible="{Binding CanEditReadingMemory}">
+                <TextBlock Text="{Binding ReadingMemoryOpenedBecauseLabel}"
                            FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                           TextWrapping="Wrap" />
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="Size: {0} bytes">
-                      <Binding Path="SizeBytes" FallbackValue="Unknown" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                           TextWrapping="Wrap"
-                           Text="{Binding Sha256Hash}" />
-                <TextBlock Text="{Binding FileAvailabilityText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           FontWeight="SemiBold"
                            Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding ReadingMemoryOpenedBecause}"
+                         AcceptsReturn="True"
+                         MinHeight="44"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{Binding ReadingMemoryOpenedBecauseLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+                <TextBlock Text="{Binding ReadingMemoryKeyInsightLabel}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding ReadingMemoryKeyInsight}"
+                         AcceptsReturn="True"
+                         MinHeight="44"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{Binding ReadingMemoryKeyInsightLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+                <TextBlock Text="{Binding ReadingMemoryOpenQuestionsLabel}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding ReadingMemoryOpenQuestions}"
+                         AcceptsReturn="True"
+                         MinHeight="44"
+                         TextWrapping="Wrap"
+                         AutomationProperties.Name="{Binding ReadingMemoryOpenQuestionsLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
+                <TextBlock Text="{Binding ReadingMemoryDispositionLabel}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBox Text="{Binding ReadingMemoryDispositionText}"
+                         AutomationProperties.Name="{Binding ReadingMemoryDispositionLabel}"
+                         LostFocus="ReadingMemoryField_LostFocus" />
                 <Button HorizontalAlignment="Left"
-                        Margin="0,8,0,0"
-                        IsVisible="{Binding CanPrepareWriteBack}"
-                        IsEnabled="{Binding CanPrepareWriteBack}"
-                        AutomationProperties.Name="{Binding PrepareWriteBackLabel}"
-                        Click="PrepareWriteBackButton_Click">
-                  <TextBlock Text="{Binding PrepareWriteBackLabel}" />
+                        Padding="10,4"
+                        IsEnabled="{Binding CanSaveReadingMemory}"
+                        AutomationProperties.Name="{Binding ReadingMemorySaveLabel}"
+                        Click="SaveReadingMemoryButton_Click">
+                  <TextBlock Text="{Binding ReadingMemorySaveLabel}" />
                 </Button>
-                <StackPanel Spacing="5"
-                            Margin="0,8,0,0"
-                            IsVisible="{Binding HasPreparedWriteBack}">
-                  <TextBlock Text="{Binding WriteBackHeadingText}"
-                             FontWeight="SemiBold"
-                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                  <ItemsControl ItemsSource="{Binding WriteBackDiffRows}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                   TextWrapping="Wrap" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                  <WrapPanel Orientation="Horizontal" ItemSpacing="5" LineSpacing="5">
-                    <Button IsEnabled="{Binding CanConfirmWriteBack}"
-                            AutomationProperties.Name="{Binding ConfirmWriteBackLabel}"
-                            Click="ConfirmWriteBackButton_Click">
-                      <TextBlock Text="{Binding ConfirmWriteBackLabel}" />
-                    </Button>
-                    <Button IsEnabled="{Binding CanRestoreWriteBack}"
-                            AutomationProperties.Name="{Binding RestoreWriteBackLabel}"
-                            Click="RestoreWriteBackButton_Click">
-                      <TextBlock Text="{Binding RestoreWriteBackLabel}" />
-                    </Button>
-                    <Button IsEnabled="{Binding CanRestoreWriteBack}"
-                            AutomationProperties.Name="{Binding CancelWriteBackLabel}"
-                            Click="CancelWriteBackButton_Click">
-                      <TextBlock Text="{Binding CancelWriteBackLabel}" />
-                    </Button>
-                  </WrapPanel>
-                </StackPanel>
-                <TextBlock Text="{Binding WriteBackStatusText}"
-                           IsVisible="{Binding HasWriteBackStatus}"
+                <TextBlock Text="{Binding ReadingMemoryStatusText}"
+                           IsVisible="{Binding HasReadingMemoryStatus}"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                            TextWrapping="Wrap" />
               </StackPanel>
-            </TabItem>
+            </StackPanel>
+          </StackPanel>
 
-            <!-- Group 2: Bibliographic -->
-            <TabItem Header="{Binding BiblioTabText}">
-              <StackPanel Spacing="6" Margin="0,8,0,0">
-                <StackPanel Spacing="5"
-                            IsVisible="{Binding CanUpdateCuration}">
-                  <TextBlock Text="{Binding CurationStatusLabel}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             FontWeight="SemiBold"
-                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                  <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4">
-                    <Button Tag="Unread"
-                            Click="CurationStatusButton_Click"
-                            AutomationProperties.Name="{Binding CurationUnreadText}">
-                      <TextBlock Text="{Binding CurationUnreadText}" />
-                    </Button>
-                    <Button Tag="Reading"
-                            Click="CurationStatusButton_Click"
-                            AutomationProperties.Name="{Binding CurationReadingText}">
-                      <TextBlock Text="{Binding CurationReadingText}" />
-                    </Button>
-                    <Button Tag="Finished"
-                            Click="CurationStatusButton_Click"
-                            AutomationProperties.Name="{Binding CurationFinishedText}">
-                      <TextBlock Text="{Binding CurationFinishedText}" />
-                    </Button>
-                    <Button Tag="Abandoned"
-                            Click="CurationStatusButton_Click"
-                            AutomationProperties.Name="{Binding CurationAbandonedText}">
-                      <TextBlock Text="{Binding CurationAbandonedText}" />
-                    </Button>
-                  </WrapPanel>
-                  <TextBlock Text="{Binding CurationRatingLabel}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                  <WrapPanel Orientation="Horizontal" ItemSpacing="4">
-                    <Button Tag="1" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingOneAccessibilityText}"><TextBlock Text="1" /></Button>
-                    <Button Tag="2" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingTwoAccessibilityText}"><TextBlock Text="2" /></Button>
-                    <Button Tag="3" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingThreeAccessibilityText}"><TextBlock Text="3" /></Button>
-                    <Button Tag="4" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingFourAccessibilityText}"><TextBlock Text="4" /></Button>
-                    <Button Tag="5" Click="RatingButton_Click" AutomationProperties.Name="{Binding RatingFiveAccessibilityText}"><TextBlock Text="5" /></Button>
-                    <Button Click="FavouriteButton_Click"
-                            AutomationProperties.Name="{Binding FavouriteButtonText}">
-                      <TextBlock Text="{Binding FavouriteButtonText}" />
-                    </Button>
-                  </WrapPanel>
-                  <TextBlock Text="{Binding CurationStatusText}"
-                             IsVisible="{Binding HasCurationStatus}"
+          <!-- ── Details ────────────────────────────────────────────────── -->
+          <StackPanel Spacing="6"
+                      IsVisible="{Binding IsDetailsSection}"
+                      AutomationProperties.AutomationId="Detail.Section.Details.Content">
+            <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+              <TextBlock.Text>
+                <MultiBinding StringFormat="ISBN: {0}">
+                  <Binding Path="Isbn" FallbackValue="—" />
+                </MultiBinding>
+              </TextBlock.Text>
+            </TextBlock>
+            <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+              <TextBlock.Text>
+                <MultiBinding StringFormat="DOI: {0}">
+                  <Binding Path="Doi" FallbackValue="—" />
+                </MultiBinding>
+              </TextBlock.Text>
+            </TextBlock>
+            <ItemsControl ItemsSource="{Binding BiblioFieldDisplayRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}"
                              FontSize="{DynamicResource Type.Size.Caption}"
                              Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                              TextWrapping="Wrap" />
-                </StackPanel>
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="ISBN: {0}">
-                      <Binding Path="Isbn" FallbackValue="—" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
-                <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                  <TextBlock.Text>
-                    <MultiBinding StringFormat="DOI: {0}">
-                      <Binding Path="Doi" FallbackValue="—" />
-                    </MultiBinding>
-                  </TextBlock.Text>
-                </TextBlock>
-                <ItemsControl ItemsSource="{Binding BiblioFieldDisplayRows}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <TextBlock Text="{Binding}"
-                                 FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                 TextWrapping="Wrap" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <StackPanel Spacing="5"
-                            Margin="0,8,0,0"
-                            IsVisible="{Binding CanEditTags}">
-                  <TextBlock Text="{Binding TagsLabel}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                  <TextBox Text="{Binding TagsText, Mode=TwoWay}"
-                           Watermark="{Binding TagsWatermark}"
-                           AutomationProperties.Name="{Binding TagsLabel}" />
-                  <Button HorizontalAlignment="Left"
-                          IsEnabled="{Binding CanEditTags}"
-                          AutomationProperties.Name="{Binding SaveTagsLabel}"
-                          Click="SaveTagsButton_Click">
-                    <TextBlock Text="{Binding SaveTagsLabel}" />
-                  </Button>
-                  <TextBlock Text="{Binding TagsStatusText}"
-                             IsVisible="{Binding HasTagsStatus}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                             TextWrapping="Wrap" />
-                </StackPanel>
-                <StackPanel Spacing="5"
-                            Margin="0,12,0,0"
-                            IsVisible="{Binding CanReviewMetadata}">
-                  <TextBlock Text="{Binding MetadataReviewLabel}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             FontWeight="SemiBold"
-                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                  <ItemsControl ItemsSource="{Binding PendingMetadataProposals}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <Border Background="{DynamicResource Brush.Surface.Footer}"
-                                BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-                                BorderThickness="1"
-                                Padding="8"
-                                Margin="0,2">
-                          <StackPanel Spacing="4">
-                            <TextBlock Text="{Binding FieldName}"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                            <TextBlock Text="{Binding ProposedValueLabel}"
-                                       FontSize="{DynamicResource Type.Size.Caption}"
-                                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                            <TextBox Text="{Binding EditableValue, Mode=TwoWay}"
-                                     AutomationProperties.Name="{Binding FieldName}" />
-                            <TextBlock Text="{Binding CurrentValue}"
-                                       ToolTip.Tip="{Binding CurrentValueLabel}"
-                                       FontSize="{DynamicResource Type.Size.Caption}"
-                                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                       TextWrapping="Wrap" />
-                            <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                              <Run Text="{Binding SourceLabel}" />
-                              <Run Text=": " />
-                              <Run Text="{Binding Source}" />
-                              <Run Text=" · " />
-                              <Run Text="{Binding ConfidenceLabel}" />
-                              <Run Text=": " />
-                              <Run Text="{Binding Confidence}" />
-                            </TextBlock>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                              <Button AutomationProperties.Name="{Binding AcceptLabel}"
-                                      Click="AcceptMetadataProposalButton_Click">
-                                <TextBlock Text="{Binding AcceptLabel}" />
-                              </Button>
-                              <Button AutomationProperties.Name="{Binding RejectLabel}"
-                                      Click="RejectMetadataProposalButton_Click">
-                                <TextBlock Text="{Binding RejectLabel}" />
-                              </Button>
-                            </StackPanel>
-                          </StackPanel>
-                        </Border>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                  <TextBlock Text="{Binding MetadataReviewStatusText}"
-                             IsVisible="{Binding HasMetadataReviewStatus}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                             TextWrapping="Wrap" />
-                </StackPanel>
-              </StackPanel>
-            </TabItem>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding FileAvailabilityText}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}" />
 
-            <!-- Group 3: Reading -->
-            <TabItem Header="{Binding ReadingTabText}">
-              <StackPanel Spacing="6" Margin="0,8,0,0">
-                <TextBlock Text="{Binding RatingSummaryText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <TextBlock Text="{Binding ProgressSummaryText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <TextBlock Text="{Binding LastReadSummaryText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <TextBlock Text="{Binding AnnotationSummaryText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <StackPanel Spacing="4" Margin="0,8,0,0">
-                  <TextBlock Text="{Binding ReadingMemorySummaryLabel}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             FontWeight="SemiBold"
-                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                  <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                    <TextBlock.Text>
-                      <MultiBinding StringFormat="{}{0}: {1}">
-                        <Binding Path="ReadingMemoryDispositionLabel" />
-                        <Binding Path="ReadingMemoryDispositionDisplay" />
-                      </MultiBinding>
-                    </TextBlock.Text>
-                  </TextBlock>
-                  <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                             TextWrapping="Wrap"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
-                    <TextBlock.Text>
-                      <MultiBinding StringFormat="{}{0}: {1}">
-                        <Binding Path="ReadingMemoryKeyInsightLabel" />
-                        <Binding Path="ReadingMemoryKeyInsightExcerpt" />
-                      </MultiBinding>
-                    </TextBlock.Text>
-                  </TextBlock>
-                  <StackPanel Spacing="5"
-                              Margin="0,8,0,0"
-                              IsVisible="{Binding CanEditReadingMemory}">
-                    <TextBlock Text="{Binding ReadingMemoryOpenedBecauseLabel}"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                    <TextBox Text="{Binding ReadingMemoryOpenedBecause}"
-                             AcceptsReturn="True"
-                             MinHeight="44"
-                             TextWrapping="Wrap"
-                             AutomationProperties.Name="{Binding ReadingMemoryOpenedBecauseLabel}"
-                             LostFocus="ReadingMemoryField_LostFocus" />
-                    <TextBlock Text="{Binding ReadingMemoryKeyInsightLabel}"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                    <TextBox Text="{Binding ReadingMemoryKeyInsight}"
-                             AcceptsReturn="True"
-                             MinHeight="44"
-                             TextWrapping="Wrap"
-                             AutomationProperties.Name="{Binding ReadingMemoryKeyInsightLabel}"
-                             LostFocus="ReadingMemoryField_LostFocus" />
-                    <TextBlock Text="{Binding ReadingMemoryOpenQuestionsLabel}"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                    <TextBox Text="{Binding ReadingMemoryOpenQuestions}"
-                             AcceptsReturn="True"
-                             MinHeight="44"
-                             TextWrapping="Wrap"
-                             AutomationProperties.Name="{Binding ReadingMemoryOpenQuestionsLabel}"
-                             LostFocus="ReadingMemoryField_LostFocus" />
-                    <TextBlock Text="{Binding ReadingMemoryDispositionLabel}"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                    <TextBox Text="{Binding ReadingMemoryDispositionText}"
-                             AutomationProperties.Name="{Binding ReadingMemoryDispositionLabel}"
-                             LostFocus="ReadingMemoryField_LostFocus" />
-                    <Button HorizontalAlignment="Left"
-                            Padding="10,4"
-                            IsEnabled="{Binding CanSaveReadingMemory}"
-                            AutomationProperties.Name="{Binding ReadingMemorySaveLabel}"
-                            Click="SaveReadingMemoryButton_Click">
-                      <TextBlock Text="{Binding ReadingMemorySaveLabel}" />
-                    </Button>
-                    <TextBlock Text="{Binding ReadingMemoryStatusText}"
-                               IsVisible="{Binding HasReadingMemoryStatus}"
+            <!-- Write-back preview, opened from "Write metadata to PDF…" -->
+            <StackPanel Spacing="5"
+                        Margin="0,8,0,0"
+                        IsVisible="{Binding HasPreparedWriteBack}">
+              <TextBlock Text="{Binding WriteBackHeadingText}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <ItemsControl ItemsSource="{Binding WriteBackDiffRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding}"
                                FontSize="{DynamicResource Type.Size.Caption}"
                                Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                                TextWrapping="Wrap" />
-                  </StackPanel>
-                </StackPanel>
-                <StackPanel Spacing="5"
-                            Margin="0,12,0,0"
-                            IsVisible="{Binding CanLoadReadingHistory}">
-                  <TextBlock Text="{Binding ReadingHistoryLabel}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             FontWeight="SemiBold"
-                             Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                  <Button HorizontalAlignment="Left"
-                          IsVisible="{Binding ShowLoadReadingHistoryButton}"
-                          IsEnabled="{Binding CanLoadReadingHistory}"
-                          AutomationProperties.Name="{Binding LoadReadingHistoryLabel}"
-                          Click="LoadReadingHistoryButton_Click">
-                    <TextBlock Text="{Binding LoadReadingHistoryLabel}" />
-                  </Button>
-                  <TextBlock Text="{Binding ReadingHistoryLoadingText}"
-                             IsVisible="{Binding IsLoadingHistory}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                  <ItemsControl ItemsSource="{Binding ReadingHistoryRows}"
-                                IsVisible="{Binding IsReadingHistoryLoaded}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                   TextWrapping="Wrap"
-                                   Margin="0,1" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                  <TextBlock Text="{Binding ReadingHistoryEmptyText}"
-                             IsVisible="{Binding HasNoReadingHistory}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                  <TextBlock Text="{Binding ReadingHistoryStatusText}"
-                             IsVisible="{Binding HasReadingHistoryStatus}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                             TextWrapping="Wrap" />
-                </StackPanel>
-              </StackPanel>
-            </TabItem>
-
-            <!-- Group 4: Enrichment -->
-            <TabItem Header="{Binding EnrichmentTabText}">
-              <StackPanel Spacing="4" Margin="0,8,0,0">
-                <TextBlock Text="{Binding EnrichmentHeadingText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <StackPanel Spacing="3"
-                            IsVisible="{Binding HasProviderAttributionLinks}"
-                            Margin="0,0,0,5">
-                  <TextBlock Text="{Binding ProviderAttributionHeadingText}"
-                             FontSize="{DynamicResource Type.Size.Caption}"
-                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                  <ItemsControl ItemsSource="{Binding ProviderAttributionLinks}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ProviderAttributionLink">
-                        <Button Classes="tool" HorizontalAlignment="Left"
-                                Padding="4,2"
-                                BorderThickness="0"
-                                AutomationProperties.Name="{Binding AccessibleName}"
-                                Click="OpenProviderAttributionButton_Click">
-                          <TextBlock Text="{Binding ProviderName}"
-                                     TextDecorations="Underline"
-                                     FontSize="{DynamicResource Type.Size.Caption}"
-                                     Foreground="{DynamicResource Brush.Accent.Slate}" />
-                        </Button>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-                <StackPanel Spacing="3"
-                            IsVisible="{Binding HasProviderLookupStatus}"
-                            Margin="0,0,0,5">
-                  <ItemsControl ItemsSource="{Binding ProviderLookupDisplayRows}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   FontSize="{DynamicResource Type.Size.Caption}"
-                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                   TextWrapping="Wrap" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-                <ItemsControl ItemsSource="{Binding EnrichmentFieldDisplayRows}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <TextBlock Text="{Binding}"
-                                 FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                 TextWrapping="Wrap" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </TabItem>
-
-            <!-- Group 5: AI -->
-            <TabItem Header="{Binding AiTabText}">
-              <StackPanel Spacing="4" Margin="0,8,0,0">
-                <TextBlock Text="{Binding AiHeadingText}"
-                           FontSize="{DynamicResource Type.Size.Caption}"
-                           Foreground="{DynamicResource Brush.Accent.Plum}" />
-                <ItemsControl ItemsSource="{Binding AiFields}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </TabItem>
-
-            <!-- Group 6: Lazy table of contents -->
-            <TabItem Header="{Binding TocTabText}">
-              <StackPanel Spacing="5" Margin="0,8,0,0">
-                <Button HorizontalAlignment="Left"
-                        IsVisible="{Binding ShowLoadTocButton}"
-                        IsEnabled="{Binding CanLoadToc}"
-                        AutomationProperties.Name="{Binding LoadTocLabel}"
-                        Click="LoadTocButton_Click">
-                  <TextBlock Text="{Binding LoadTocLabel}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <WrapPanel Orientation="Horizontal" ItemSpacing="5" LineSpacing="5">
+                <Button IsEnabled="{Binding CanConfirmWriteBack}"
+                        AutomationProperties.Name="{Binding ConfirmWriteBackLabel}"
+                        Click="ConfirmWriteBackButton_Click">
+                  <TextBlock Text="{Binding ConfirmWriteBackLabel}" />
                 </Button>
-                <TextBlock Text="{Binding TocLoadingText}"
-                           IsVisible="{Binding IsLoadingToc}"
+                <Button IsEnabled="{Binding CanRestoreWriteBack}"
+                        AutomationProperties.Name="{Binding RestoreWriteBackLabel}"
+                        Click="RestoreWriteBackButton_Click">
+                  <TextBlock Text="{Binding RestoreWriteBackLabel}" />
+                </Button>
+                <Button IsEnabled="{Binding CanRestoreWriteBack}"
+                        AutomationProperties.Name="{Binding CancelWriteBackLabel}"
+                        Click="CancelWriteBackButton_Click">
+                  <TextBlock Text="{Binding CancelWriteBackLabel}" />
+                </Button>
+              </WrapPanel>
+            </StackPanel>
+            <TextBlock Text="{Binding WriteBackStatusText}"
+                       IsVisible="{Binding HasWriteBackStatus}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding PasswordStatusText}"
+                       IsVisible="{Binding HasPasswordStatus}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+
+            <Expander Header="{Binding TechnicalDetailsText}"
+                      IsExpanded="False"
+                      HorizontalAlignment="Stretch"
+                      Margin="0,8,0,0"
+                      AutomationProperties.AutomationId="Detail.Technical"
+                      AutomationProperties.Name="{Binding TechnicalDetailsText}">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="ogma-mono"
+                           Text="{Binding RelativePath}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="ogma-mono"
+                           Text="{Binding SizeDisplayText}"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-                <ItemsControl ItemsSource="{Binding TocRows}"
-                              IsVisible="{Binding IsTocLoaded}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <TextBlock Text="{Binding}"
-                                 FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                 TextWrapping="Wrap"
-                                 Margin="0,1" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Text="{Binding TocEmptyText}"
-                           IsVisible="{Binding HasNoToc}"
+                <TextBlock Classes="ogma-mono"
+                           Text="{Binding Sha256Hash}"
+                           AutomationProperties.AutomationId="Detail.Technical.Hash"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                           TextWrapping="Wrap" />
+                <!-- Sept-23 Phase 17: honest text status and text quality. -->
+                <TextBlock Text="{Binding TextStatusText}"
+                           IsVisible="{Binding HasTextStatus}"
+                           AutomationProperties.AutomationId="Detail.TextStatus"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{Binding TextQualityText}"
+                           IsVisible="{Binding HasTextStatus}"
+                           AutomationProperties.AutomationId="Detail.TextQuality"
                            FontSize="{DynamicResource Type.Size.Caption}"
                            Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                            TextWrapping="Wrap" />
               </StackPanel>
-            </TabItem>
+            </Expander>
+          </StackPanel>
 
-            <!-- Group 7: Lazy provenance -->
-            <TabItem Header="{Binding ProvenanceTabText}">
-              <StackPanel Spacing="5" Margin="0,8,0,0">
-                <Button HorizontalAlignment="Left"
-                        IsVisible="{Binding ShowLoadProvenanceButton}"
-                        AutomationProperties.Name="{Binding LoadProvenanceLabel}"
-                        Click="LoadProvenanceButton_Click">
-                  <TextBlock Text="{Binding LoadProvenanceLabel}" />
-                </Button>
-                <ItemsControl ItemsSource="{Binding ProvenanceRows}"
-                              IsVisible="{Binding IsProvenanceLoaded}">
+          <!-- ── Contents ───────────────────────────────────────────────── -->
+          <StackPanel Spacing="5"
+                      IsVisible="{Binding IsContentsSection}"
+                      AutomationProperties.AutomationId="Detail.Section.Contents.Content">
+            <Button HorizontalAlignment="Left"
+                    IsVisible="{Binding ShowLoadTocButton}"
+                    IsEnabled="{Binding CanLoadToc}"
+                    AutomationProperties.Name="{Binding LoadTocLabel}"
+                    Click="LoadTocButton_Click">
+              <TextBlock Text="{Binding LoadTocLabel}" />
+            </Button>
+            <TextBlock Text="{Binding TocLoadingText}"
+                       IsVisible="{Binding IsLoadingToc}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+            <ItemsControl ItemsSource="{Binding TocRows}"
+                          IsVisible="{Binding IsTocLoaded}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}"
+                             FontSize="{DynamicResource Type.Size.Caption}"
+                             Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                             TextWrapping="Wrap"
+                             Margin="0,1" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding TocEmptyText}"
+                       IsVisible="{Binding HasNoToc}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+
+          <!-- ── Activity ───────────────────────────────────────────────── -->
+          <StackPanel Spacing="6"
+                      IsVisible="{Binding IsActivitySection}"
+                      AutomationProperties.AutomationId="Detail.Section.Activity.Content">
+            <TextBlock Text="{Binding EnrichmentStatusText}"
+                       IsVisible="{Binding HasEnrichmentStatus}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding OcrStatusText}"
+                       IsVisible="{Binding HasOcrStatus}"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding OcrFailureText}"
+                       IsVisible="{Binding HasOcrFailure}"
+                       AutomationProperties.AutomationId="Detail.OcrFailure"
+                       FontSize="{DynamicResource Type.Size.Caption}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                       TextWrapping="Wrap" />
+
+            <!-- Reading history -->
+            <StackPanel Spacing="5" IsVisible="{Binding CanLoadReadingHistory}">
+              <TextBlock Text="{Binding ReadingHistoryLabel}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <Button HorizontalAlignment="Left"
+                      IsVisible="{Binding ShowLoadReadingHistoryButton}"
+                      IsEnabled="{Binding CanLoadReadingHistory}"
+                      AutomationProperties.Name="{Binding LoadReadingHistoryLabel}"
+                      Click="LoadReadingHistoryButton_Click">
+                <TextBlock Text="{Binding LoadReadingHistoryLabel}" />
+              </Button>
+              <TextBlock Text="{Binding ReadingHistoryLoadingText}"
+                         IsVisible="{Binding IsLoadingHistory}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ItemsControl ItemsSource="{Binding ReadingHistoryRows}"
+                            IsVisible="{Binding IsReadingHistoryLoaded}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextWrapping="Wrap"
+                               Margin="0,1" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding ReadingHistoryEmptyText}"
+                         IsVisible="{Binding HasNoReadingHistory}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <TextBlock Text="{Binding ReadingHistoryStatusText}"
+                         IsVisible="{Binding HasReadingHistoryStatus}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Enrichment and provider attribution -->
+            <StackPanel Spacing="4" Margin="0,8,0,0">
+              <TextBlock Text="{Binding EnrichmentHeadingText}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <StackPanel Spacing="3" IsVisible="{Binding HasProviderAttributionLinks}">
+                <TextBlock Text="{Binding ProviderAttributionHeadingText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                <ItemsControl ItemsSource="{Binding ProviderAttributionLinks}">
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <TextBlock Text="{Binding}"
-                                 FontSize="{DynamicResource Type.Size.Caption}"
-                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                                 TextWrapping="Wrap"
-                                 Margin="0,1" />
+                    <DataTemplate x:DataType="vm:ProviderAttributionLink">
+                      <Button Classes="tool" HorizontalAlignment="Left"
+                              Padding="4,2"
+                              BorderThickness="0"
+                              AutomationProperties.Name="{Binding AccessibleName}"
+                              Click="OpenProviderAttributionButton_Click">
+                        <TextBlock Text="{Binding ProviderName}"
+                                   TextDecorations="Underline"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Accent.Slate}" />
+                      </Button>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
               </StackPanel>
-            </TabItem>
+              <ItemsControl ItemsSource="{Binding ProviderLookupDisplayRows}"
+                            IsVisible="{Binding HasProviderLookupStatus}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding EnrichmentFieldDisplayRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
 
-          </TabControl>
+            <!-- Metadata proposals -->
+            <StackPanel Spacing="5"
+                        Margin="0,8,0,0"
+                        IsVisible="{Binding CanReviewMetadata}">
+              <TextBlock Text="{Binding MetadataReviewLabel}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+              <ItemsControl ItemsSource="{Binding PendingMetadataProposals}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Background="{DynamicResource Brush.Surface.Footer}"
+                            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                            BorderThickness="1"
+                            Padding="8"
+                            Margin="0,2">
+                      <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding FieldName}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                        <TextBlock Text="{Binding ProposedValueLabel}"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                        <TextBox Text="{Binding EditableValue, Mode=TwoWay}"
+                                 AutomationProperties.Name="{Binding FieldName}" />
+                        <TextBlock Text="{Binding CurrentValue}"
+                                   ToolTip.Tip="{Binding CurrentValueLabel}"
+                                   FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock FontSize="{DynamicResource Type.Size.Caption}"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}">
+                          <Run Text="{Binding SourceLabel}" />
+                          <Run Text=": " />
+                          <Run Text="{Binding Source}" />
+                          <Run Text=" · " />
+                          <Run Text="{Binding ConfidenceLabel}" />
+                          <Run Text=": " />
+                          <Run Text="{Binding Confidence}" />
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Button AutomationProperties.Name="{Binding AcceptLabel}"
+                                  Click="AcceptMetadataProposalButton_Click">
+                            <TextBlock Text="{Binding AcceptLabel}" />
+                          </Button>
+                          <Button AutomationProperties.Name="{Binding RejectLabel}"
+                                  Click="RejectMetadataProposalButton_Click">
+                            <TextBlock Text="{Binding RejectLabel}" />
+                          </Button>
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding MetadataReviewStatusText}"
+                         IsVisible="{Binding HasMetadataReviewStatus}"
+                         FontSize="{DynamicResource Type.Size.Caption}"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                         TextWrapping="Wrap" />
+            </StackPanel>
 
-          <TextBlock Text="{Binding EnrichmentStatusText}"
-                     IsVisible="{Binding HasEnrichmentStatus}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     TextWrapping="Wrap"
-                     Margin="0,12,0,0" />
+            <!-- Provenance (lazy) -->
+            <StackPanel Spacing="5" Margin="0,8,0,0">
+              <Button HorizontalAlignment="Left"
+                      IsVisible="{Binding ShowLoadProvenanceButton}"
+                      AutomationProperties.Name="{Binding LoadProvenanceLabel}"
+                      Click="LoadProvenanceButton_Click">
+                <TextBlock Text="{Binding LoadProvenanceLabel}" />
+              </Button>
+              <ItemsControl ItemsSource="{Binding ProvenanceRows}"
+                            IsVisible="{Binding IsProvenanceLoaded}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               FontSize="{DynamicResource Type.Size.Caption}"
+                               Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                               TextWrapping="Wrap"
+                               Margin="0,1" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
 
-          <TextBlock Text="{Binding OcrStatusText}"
-                     IsVisible="{Binding HasOcrStatus}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     TextWrapping="Wrap"
-                     Margin="0,6,0,0" />
-
-          <!-- Sept-23 Phase 17: honest text status, text quality and OCR failure reason. -->
-          <TextBlock Text="{Binding TextStatusText}"
-                     IsVisible="{Binding HasTextStatus}"
-                     AutomationProperties.AutomationId="Detail.TextStatus"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                     TextWrapping="Wrap"
-                     Margin="0,6,0,0" />
-          <TextBlock Text="{Binding TextQualityText}"
-                     IsVisible="{Binding HasTextStatus}"
-                     AutomationProperties.AutomationId="Detail.TextQuality"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     TextWrapping="Wrap" />
-          <TextBlock Text="{Binding OcrFailureText}"
-                     IsVisible="{Binding HasOcrFailure}"
-                     AutomationProperties.AutomationId="Detail.OcrFailure"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                     TextWrapping="Wrap" />
-
-          <Button Classes="danger" Padding="10,6"
-                  Margin="0,10,0,0"
-                  HorizontalAlignment="Left"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  IsVisible="{Binding IsPasswordProtected}"
-                  IsEnabled="{Binding CanForgetPassword}"
-                  AutomationProperties.Name="{Binding ForgetPasswordText}"
-                  ToolTip.Tip="{Binding ForgetPasswordTooltip}"
-                  Click="ForgetPasswordButton_Click">
-            <TextBlock Text="{Binding ForgetPasswordText}" />
-          </Button>
-
-          <TextBlock Text="{Binding PasswordStatusText}"
-                     IsVisible="{Binding HasPasswordStatus}"
-                     FontSize="{DynamicResource Type.Size.Caption}"
-                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
-                     TextWrapping="Wrap"
-                     Margin="0,6,0,0" />
+            <!-- AI card: content arrives with Phase 16 (D-50) -->
+            <Border Background="{DynamicResource Brush.Surface.Footer}"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.S}"
+                    Padding="8"
+                    Margin="0,8,0,0"
+                    AutomationProperties.AutomationId="Detail.AiCard">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding AiCardText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBlock Text="{Binding AiHeadingText}"
+                           FontSize="{DynamicResource Type.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Accent.Plum}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
 
         </StackPanel>
       </ScrollViewer>
-
-      <!-- Action buttons -->
-      <StackPanel Grid.Row="2"
-                  Orientation="Horizontal"
-                  Spacing="8"
-                  Margin="16,8,16,16"
-                  HorizontalAlignment="Center">
-
-        <!-- Read button -->
-        <Button Classes="primary" Padding="16,8"
-                CornerRadius="{DynamicResource Radius.S}"
-                IsEnabled="{Binding CanOpenReader}"
-                AutomationProperties.Name="{Binding ReadText}"
-                Click="ReadButton_Click">
-            <TextBlock Text="{Binding ReadText}" />
-        </Button>
-
-        <!-- Enrich button -->
-        <Button Classes="primary" Padding="16,8"
-                CornerRadius="{DynamicResource Radius.S}"
-                IsEnabled="{Binding CanEnrich}"
-                AutomationProperties.Name="{Binding EnrichText}"
-                ToolTip.Tip="{Binding EnrichTooltip}"
-                Click="EnrichButton_Click">
-          <TextBlock Text="{Binding EnrichText}" />
-        </Button>
-
-        <!-- OCR button -->
-        <Button Classes="primary" Padding="12,8"
-                CornerRadius="{DynamicResource Radius.S}"
-                IsEnabled="{Binding CanRunOcr}"
-                AutomationProperties.Name="{Binding RunOcrText}"
-                ToolTip.Tip="{Binding RunOcrTooltip}"
-                Click="RunOcrButton_Click">
-          <TextBlock Text="{Binding RunOcrText}" />
-        </Button>
-
-      </StackPanel>
 
     </Grid>
   </Border>

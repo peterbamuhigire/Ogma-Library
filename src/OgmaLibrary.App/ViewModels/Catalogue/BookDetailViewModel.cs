@@ -21,7 +21,7 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// field groups from <see cref="BookDetailProjection"/> and the "Read" / "Enrich"
 /// action commands.
 /// </summary>
-public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
+public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly ICatalogueReadModel _readModel;
     private readonly IReaderNavigationService _reader;
@@ -872,6 +872,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(CanReviewMetadata));
             OnPropertyChanged(nameof(CanLoadReadingHistory));
             OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
+            OnInspectorBookChanged();
         }
     }
 
@@ -2165,6 +2166,7 @@ public sealed class BookDetailViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnCultureChanged(object? sender, EventArgs e)
     {
+        OnInspectorCultureChanged();
         OnPropertyChanged(nameof(ReadText));
         OnPropertyChanged(nameof(CloseButtonText));
         OnPropertyChanged(nameof(RatingOneAccessibilityText));

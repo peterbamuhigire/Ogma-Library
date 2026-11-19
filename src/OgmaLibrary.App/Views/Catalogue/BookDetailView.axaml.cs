@@ -24,14 +24,60 @@ public partial class BookDetailView : UserControl
         }
     }
 
-    private void ReadButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => ReadButton_ClickAsync(sender, e), "catalogue.read_button_click");
+    private void PrimaryActionButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(PrimaryActionButton_ClickAsync, "catalogue.primary_action_click");
 
-    private async Task ReadButton_ClickAsync(object? sender, RoutedEventArgs e)
+    private async Task PrimaryActionButton_ClickAsync()
     {
         if (DataContext is BookDetailViewModel vm)
         {
-            await vm.OpenReaderAsync().ConfigureAwait(true);
+            await vm.ExecutePrimaryActionAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void SectionButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm && sender is Button button &&
+            Enum.TryParse(button.Tag?.ToString(), out InspectorSection section))
+        {
+            vm.SelectedSection = section;
+        }
+    }
+
+    private void MoreMenu_Opening(object? sender, EventArgs e)
+    {
+        if (DataContext is not BookDetailViewModel { Book: { } book } ||
+            CatalogueCardInteractions.FindShell(this)?.Selection is not { } selection)
+        {
+            AddToShelfMenuItem.IsEnabled = false;
+            AddToShelfMenuItem.Items.Clear();
+            return;
+        }
+
+        AddToShelfMenuItem.IsEnabled = true;
+        CatalogueCardInteractions.PopulateAddToShelf(
+            AddToShelfMenuItem, selection, [book.BookId], "Detail.Shelf", "catalogue.detail_add_to_shelf");
+    }
+
+    private void ShowInFolderButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(ShowInFolderButton_ClickAsync, "catalogue.show_in_folder_click");
+
+    private async Task ShowInFolderButton_ClickAsync()
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.ShowInFolderAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void ReadingStatusPicker_SelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        UiActions.Run(ReadingStatusPicker_SelectionChangedAsync, "catalogue.reading_status_changed");
+
+    private async Task ReadingStatusPicker_SelectionChangedAsync()
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            await vm.SetReadingStatusIndexAsync(ReadingStatusPicker.SelectedIndex).ConfigureAwait(true);
         }
     }
 
@@ -42,6 +88,7 @@ public partial class BookDetailView : UserControl
     {
         if (DataContext is BookDetailViewModel vm)
         {
+            vm.SelectedSection = InspectorSection.Activity;
             await vm.EnrichMetadataAsync().ConfigureAwait(true);
         }
     }
@@ -53,6 +100,7 @@ public partial class BookDetailView : UserControl
     {
         if (DataContext is BookDetailViewModel vm)
         {
+            vm.SelectedSection = InspectorSection.Activity;
             await vm.RunOcrAsync().ConfigureAwait(true);
         }
     }
@@ -119,6 +167,7 @@ public partial class BookDetailView : UserControl
     {
         if (DataContext is BookDetailViewModel vm)
         {
+            vm.SelectedSection = InspectorSection.Details;
             await vm.PrepareWriteBackAsync().ConfigureAwait(true);
         }
     }
@@ -179,20 +228,6 @@ public partial class BookDetailView : UserControl
         {
             await topLevel.Launcher.LaunchUriAsync(uri).ConfigureAwait(true);
         }
-    }
-
-    private void CurationStatusButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => CurationStatusButton_ClickAsync(sender, e), "catalogue.curation_status_button_click");
-
-    private async Task CurationStatusButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not BookDetailViewModel vm || sender is not Button button ||
-            !Enum.TryParse(button.Tag?.ToString(), out ReadingStatus status))
-        {
-            return;
-        }
-
-        await vm.SetReadingStatusAsync(status).ConfigureAwait(true);
     }
 
     private void RatingButton_Click(object? sender, RoutedEventArgs e) =>

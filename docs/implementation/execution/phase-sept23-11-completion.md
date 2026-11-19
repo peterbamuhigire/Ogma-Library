@@ -1,16 +1,19 @@
 # Sept-23 Phase 11 completion: book detail inspector
 
-Status: **IN PROGRESS** (2026-11-19). Slice 1 of 8 is done.
+Status: **IN PROGRESS** (2026-11-19). Slices 1 and 2 of 8 are done.
 Branch: `kaizen/phase-11`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `bde93dac`.
 Plan: [phase-11](../../plans/sept-23-kaizen/phases/phase-11-book-detail-inspector.md).
-Decisions: D-49 to D-55 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Decisions: D-49 to D-62 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
 ## Typeface decision
 
 Applied per D-55: **Spectral** for the inspector title, **Public Sans** elsewhere and
 **JetBrains Mono** only inside Technical details. Slice 1 adds one caption-sized error line in
-Public Sans through existing tokens; `Test-DesignTokens.ps1` is clean.
+Public Sans through existing tokens. Slice 2 sets the title in Spectral (`ogma-display`,
+`Type.Size.Title`, at most 2 lines with a tooltip) and puts path, size and SHA-256 in JetBrains
+Mono (`ogma-mono`) inside the collapsed Technical details expander only. `Test-DesignTokens.ps1`
+is clean after both slices.
 
 ## Slice 1: click-path audit, awaited Read and primary-action state machine
 
@@ -38,3 +41,27 @@ Gates on the slice-1 tree:
   0 failed).
 - Not run in slice 1 (NOT_ASSESSED): the real-window journey (deleted file → in-panel error)
   at both sizes and screenshots. They are planned for the phase's journey slice.
+
+## Slice 2: header, overflow menu and four sections
+
+| Task | Result | Evidence |
+|---|---|---|
+| Header | Compact 56×80 cover, Spectral title (`Detail.Title`), authors (`Detail.Authors`, 2 lines, trimmed, tooltip), year, Close. One `Button.primary` (`Detail.Action.Read`) bound to `PrimaryActionText` and enabled by `CanExecutePrimaryAction`. Status ComboBox, rating 1-5 and favourite moved up (D-57) | `Phase11InspectorStructureTests` header and primary-action tests (MEASURED, headless) |
+| Overflow | `Detail.Action.More` `MenuFlyout`: Enrich, Run OCR, Add to collection (submenu), Write metadata to PDF…, Show in folder, Forget password. *Remove from library* is omitted, registered as K122 (D-58, D-59) | `OverflowMenu_OffersSecondaryActionsWithAccessibleNames` (MEASURED) |
+| Sections | `Border.segmented` (`Detail.Sections`) with four `Button.segment`s driven by `SelectedSection`. Placement per D-61; Technical details is collapsed by default | `FourSegments_*`, `IsbnLivesUnderDetails`, `HashIsHidden_*`, `SegmentRow_IsASingleRow` at 360/520 (MEASURED) |
+| Footer | Removed; Enrich, Run OCR and Forget password are reachable from the overflow menu | Structure tests |
+| Projection | No description, subjects or shelves fields exist; nothing is invented (D-60) | Code: `BookDetailProjection` |
+| Updated tests | `BookDetailCurationTests` selects sections instead of tabs. G02 E2E activates `Detail.Section.Details`. `BookDetailFileAndProvenanceTests` and `Sept23Phase09TabOverflowTests` pass unchanged | Targeted filter: 149 passed |
+| Strings | Eleven EN and FR keys (`Catalogue.BookDetail.Section.*`, `More`, `Technical*`, `AddToShelf`, `WriteMetadata`, `ShowInFolder`) | Key parity in the fast suite |
+
+Frames (headless, MEASURED render, not a real window): `inspector-360-light.png`,
+`inspector-360-dark.png`, `inspector-520-light.png` and `inspector-520-dark.png` in
+[evidence/sept-23-kaizen/phase-11](evidence/sept-23-kaizen/phase-11/). The panel stays 360 px
+wide at 520 (D-62).
+
+Gates on the slice-2 tree:
+- MEASURED, passing: the Release build (0 warnings), `dotnet format --verify-no-changes`,
+  `Test-DesignTokens.ps1` (clean), `Test-Fast.ps1` (Architecture 52, Tests 1,365, Ui 431;
+  0 failed) and the targeted Phase11/BookDetail/Sept23Phase09 filter (149 passed).
+- NOT_ASSESSED (not run in this slice): the real-window journey, the G02 E2E run, 200% text,
+  Arabic RTL, the screen-reader walkthrough and the keyboard path through the overflow menu.

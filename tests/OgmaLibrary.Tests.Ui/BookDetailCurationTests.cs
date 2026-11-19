@@ -118,12 +118,12 @@ public sealed class BookDetailCurationTests
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
-        TabControl tabs = Assert.Single(view.GetVisualDescendants().OfType<TabControl>());
-        tabs.SelectedIndex = 1;
+        // Phase 11: tags moved from the Bibliographic tab to the Overview section.
+        viewModel.SelectedSection = InspectorSection.Overview;
         Dispatcher.UIThread.RunJobs();
 
         Assert.Contains(view.GetVisualDescendants().OfType<TextBox>(), textBox =>
-            textBox.Watermark == "tag, another tag");
+            textBox.IsEffectivelyVisible && textBox.Watermark == "tag, another tag");
         Assert.Contains(view.GetVisualDescendants().OfType<Button>(), button =>
             button.Content is TextBlock text && text.Text == "Save tags");
         window.Close();
@@ -195,12 +195,12 @@ public sealed class BookDetailCurationTests
         };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        TabControl tabs = Assert.Single(view.GetVisualDescendants().OfType<TabControl>());
-        tabs.SelectedIndex = 1;
+        // Phase 11: metadata proposals moved from the Bibliographic tab to the Activity section.
+        viewModel.SelectedSection = InspectorSection.Activity;
         Dispatcher.UIThread.RunJobs();
 
         Assert.Contains(view.GetVisualDescendants().OfType<TextBox>(), textBox =>
-            textBox.GetValue(AutomationProperties.NameProperty) == "Title");
+            textBox.IsEffectivelyVisible && textBox.GetValue(AutomationProperties.NameProperty) == "Title");
         Button acceptButton = Assert.Single(view.GetVisualDescendants().OfType<Button>(), button =>
             button.Content is TextBlock text && text.Text == "Accept");
         Button rejectButton = Assert.Single(view.GetVisualDescendants().OfType<Button>(), button =>

@@ -180,17 +180,10 @@ public sealed class G02AddLibraryTests
         item.Patterns.SelectionItem.Pattern.Select();
         Uia.WaitFor(window, "Detail.Action.Close", TimeSpan.FromSeconds(30));
 
-        // The ISBN is on the inspector's second tab group (Bibliographic; File is the default).
-        // The tabs have no AutomationId, so the seven-group tab control is found by shape.
-        AutomationElement biblio = Uia.WaitUntil(
-            () => window
-                .FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Tab))
-                .Select(t => t.FindAllChildren(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.TabItem)))
-                .FirstOrDefault(items => items.Length >= 7)?[1],
-            TimeSpan.FromSeconds(15),
-            "the inspector's Bibliographic tab");
-        context.Record("detail.isbn.tab", biblio.Properties.Name.ValueOrDefault);
-        biblio.Patterns.SelectionItem.Pattern.Select();
+        // Phase 11: the ISBN is in the inspector's Details section (Overview is the default).
+        AutomationElement details = Uia.WaitFor(window, "Detail.Section.Details", TimeSpan.FromSeconds(15));
+        context.Record("detail.isbn.tab", details.Properties.Name.ValueOrDefault);
+        Uia.Activate(details);
 
         string? shown = null;
         Uia.Poll(

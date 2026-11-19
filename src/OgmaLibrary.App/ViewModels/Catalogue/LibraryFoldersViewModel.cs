@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
@@ -500,24 +499,7 @@ public sealed class LibraryFoldersViewModel : INotifyPropertyChanged
             return;
         }
 
-        var start = new ProcessStartInfo { UseShellExecute = false };
-        if (OperatingSystem.IsWindows())
-        {
-            start.FileName = "explorer.exe";
-            start.ArgumentList.Add("/select," + path);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            start.FileName = "open";
-            start.ArgumentList.Add("-R");
-            start.ArgumentList.Add(path);
-        }
-        else
-        {
-            return;
-        }
-
-        using Process? process = Process.Start(start);
+        FileManagerReveal.Reveal(path);
     }
 
     private async Task AfterRootsChangedAsync(CancellationToken cancellationToken)
