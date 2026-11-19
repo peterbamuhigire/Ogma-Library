@@ -26,6 +26,7 @@ public partial class CatalogueShellView : UserControl
     private MainShellViewModel? _viewModel;
     private CatalogueSelectionViewModel? _selection;
     private string? _addToShelfMenuSignature;
+    private readonly Thickness _selectionToolbarMargin;
 
     /// <summary>Initializes a new instance of <see cref="CatalogueShellView"/>.</summary>
     public CatalogueShellView()
@@ -36,6 +37,14 @@ public partial class CatalogueShellView : UserControl
             Dispatcher.UIThread.Post(RebuildMoreMenu, DispatcherPriority.Background);
         SizeChanged += OnSizeChanged;
         AddHandler(PointerPressedEvent, OnShellPointerPressed, RoutingStrategies.Tunnel);
+        _selectionToolbarMargin = SelectionToolbar.Margin;
+        Inspector.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == IsVisibleProperty || e.Property == BoundsProperty)
+            {
+                UpdateSelectionToolbarInset();
+            }
+        };
     }
 
     private MainShellViewModel? ViewModel => DataContext as MainShellViewModel;
@@ -97,6 +106,22 @@ public partial class CatalogueShellView : UserControl
             ? Avalonia.Layout.HorizontalAlignment.Right
             : Avalonia.Layout.HorizontalAlignment.Stretch;
         Inspector.ZIndex = vm.IsInspectorOverlay ? 1 : 0;
+        UpdateSelectionToolbarInset();
+    }
+
+    /// <summary>
+    /// When the inspector overlays the content it would cover the right end of the selection
+    /// toolbar (Clear selection), so the toolbar is inset by the inspector's width and wraps.
+    /// </summary>
+    private void UpdateSelectionToolbarInset()
+    {
+        bool covered = ViewModel?.IsInspectorOverlay == true && Inspector.IsVisible;
+        double inset = covered ? Inspector.Bounds.Width : 0;
+        SelectionToolbar.Margin = new Thickness(
+            _selectionToolbarMargin.Left,
+            _selectionToolbarMargin.Top,
+            _selectionToolbarMargin.Right + inset,
+            _selectionToolbarMargin.Bottom);
     }
 
     private void OnNavigationChanged(object? sender, NavigationChangedEventArgs e)

@@ -267,6 +267,37 @@ public sealed class Sept23Phase10SelectionTests
     }
 
     /// <summary>
+    /// Regression (J-CAT-2 screenshot): below 1280 px the inspector overlays the content and hid
+    /// the right end of the selection toolbar, including Clear selection.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task ShellView_OverlayInspector_DoesNotCoverTheSelectionToolbar()
+    {
+        Fixture fixture = await Fixture.CreateAsync();
+        var view = new CatalogueShellView { DataContext = fixture.Shell };
+        var window = new Window { Width = 1200, Height = 800, Content = view };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Select(fixture, "book-001", "book-002");
+        await fixture.Shell.BookDetail.LoadBookAsync("book-001");
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(fixture.Shell.IsInspectorOverlay);
+        Control inspector = view.FindControl<Control>("Inspector")!;
+        Control toolbar = view.FindControl<Control>("SelectionToolbar")!;
+        Assert.True(toolbar.IsEffectivelyVisible);
+        Assert.True(inspector.IsEffectivelyVisible && inspector.Bounds.Width > 0, "The inspector did not open.");
+        double inspectorLeft = inspector.TranslatePoint(default, window)!.Value.X;
+        double toolbarRight = toolbar.TranslatePoint(new Point(toolbar.Bounds.Width, 0), window)!.Value.X;
+        Assert.True(toolbarRight <= inspectorLeft, $"The toolbar ends at {toolbarRight}, under the inspector at {inspectorLeft}.");
+        window.Close();
+        fixture.Shell.Dispose();
+    }
+
+    /// <summary>
     /// Regression (J-CAT-1/J-CAT-2 real-window failure): with every catalogue view live, a click
     /// then a Ctrl+click must give exactly two selected books, and a background refresh that
     /// replaces the selected cards must keep both selected and keep the primary.

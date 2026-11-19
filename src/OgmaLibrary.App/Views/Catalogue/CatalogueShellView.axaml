@@ -576,7 +576,8 @@
 
             <!-- Selection toolbar (Sept-23 Phase 10, D-27): two or more selected, or one with a
                  context action (the Library is filtered to a manual collection). -->
-            <Border IsVisible="{Binding Selection.IsToolbarVisible, FallbackValue=False}"
+            <Border x:Name="SelectionToolbar"
+                    IsVisible="{Binding Selection.IsToolbarVisible, FallbackValue=False}"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Center"
                     Margin="16"
