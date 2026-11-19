@@ -113,8 +113,9 @@ failed once under full-suite load (5 s) and passed in isolation and in the final
 
 | Item | Owner | Why |
 |---|---|---|
-| G2 and `Category=Processing` E2E journeys | Phase 01 harness | This lane predates the harness merge; covered by the prototype driver above |
-| ISBN shown in the detail inspector in the real window | Phase 01 / Phase 21 | Catalogue cards expose no accessible name, so the prototype driver cannot select a card; DB values and the `Isbn` binding are verified |
+| ~~G2~~ | Done (Phase CO slice 4) | G2 PASS at both sizes in `co-library-2`, which asserts the processing status: 0 of 18 samples with N > M, and the finished summary reached ([co-library-journeys.md](evidence/sept-23-kaizen/phase-06/co-library-journeys.md)) |
+| `Category=Processing` E2E | Phase 24 | No separate journey exists; G2 now covers the status oracle |
+| ~~ISBN shown in the detail inspector in the real window~~ | Done (Phase CO slice 4) | MEASURED `ISBN: 9780306406157` on the Bibliographic tab at both sizes (`co-library-2`). Hard-coded label: K111 |
 | Processing resumes within 5 s of relaunch (exact) | Phase 01 | Sampled at 20 s only |
 | Throughput at 2k/50k books | Phase 24 | Local corpus only |
 | Real embedding provider becoming available (resume) | Phase 14 | No provider on this machine; resume is unit-tested |

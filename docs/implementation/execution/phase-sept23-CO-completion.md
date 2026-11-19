@@ -1,6 +1,6 @@
 # Sept-23 Phase CO completion: close-out of phases 02, 05, 06, 07, 08, 13 and 17
 
-Status: **IN PROGRESS** (2026-11-19). Slices 1 and 2 of 6 are done. This is the canonical record for
+Status: **IN PROGRESS** (2026-11-19). Slices 1 to 4 of 6 are done. This is the canonical record for
 the close-out unit (decision D-16); `phase-sept23-closeout-completion.md` points here.
 
 ## Slice 1: harness robustness (K102, K103, K98)
@@ -181,3 +181,41 @@ and the `results-co-*.md` summaries beside it. All values MEASURED, inside `Use-
 
 - Fast suite and full journey suite after `fc153ba6` (only the targeted tests and G3/G5/G8 ran).
 - Dark theme, 200% text, `fr`, keyboard-only for the reader journeys.
+
+## Slice 4: library and processing journeys (Phases 05 and 06: G2, G6, LaunchCycles)
+
+Evidence: [`evidence/sept-23-kaizen/phase-06/co-library-journeys.md`](evidence/sept-23-kaizen/phase-06/co-library-journeys.md),
+with `results-co-library-{1,2}.md` and two screenshots beside it. All values MEASURED, inside
+`Use-DesktopLock.ps1`. No product code changed.
+
+- **Test `b8bc973a`.** G2 now asserts that the inspector ISBN matches expected.json, and that the
+  status bar never shows N > M and reaches the finished summary.
+- **Premise corrected.** Run `co-library-1` failed G2 at both sizes with "(no ISBN line)". The
+  ISBN is on the inspector's Bibliographic tab, and the File tab opens by default. This was a
+  test error, not a product failure, so the test now selects that tab.
+- **Run `co-library-2`: 5 of 5 PASS** (G2 and G6 at both sizes, plus LaunchCycles).
+  - The ISBN reads `9780306406157` at both sizes.
+  - The status was sampled 19 times per size, 18 of them "Preparing books". None showed N > M,
+    and the finished summary was reached.
+- **No G2 or G6 product failure** occurred in slice 2 or here, so no Phase 05/06 fix was needed.
+  G6 confirms the validity notice and the Locked badge.
+- **LaunchCycles (K71).** 40 cycles over two runs, with 0 kills and 0 orphaned workers. The
+  slowest exit was 882 ms. K71 is not re-registered.
+- **Phase 05 rows re-registered.** These are NOT_ASSESSED because no journey exists, and the
+  unit-test coverage is named in the Phase 05 record:
+  - `Category=Roots`: Phase 10.
+  - Open-PDF loose book: Phase 10.
+  - Cancel mid-scan: Phase 24.
+  - `Category=Watcher`: Phase 24.
+- **New defects.**
+  - K111 (Phase 11, copy with Phase 22): hard-coded `ISBN:`, `DOI:` and `Size:` labels, and an
+    empty DOI shown as "DOI: ".
+  - K112 (Phase 22): the finished summary says "Added 0" after the first scan.
+
+### NOT ASSESSED
+
+- The extended G2 has passed once. Its stability over three runs is not established.
+- Phase 06: processing resumes within 5 s of relaunch. No journey measures it, so it stays with
+  Phase 01/24.
+- Dark theme, 200 % text and `fr` for G2 and G6.
+- The fast suite: only E2E test code changed, and the E2E project is excluded from it.

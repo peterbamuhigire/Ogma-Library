@@ -95,9 +95,12 @@ Typeface: unchanged theme (Public Sans body, Spectral headings); the new panel u
 
 | Item | Owner | Why |
 |---|---|---|
-| G2, G6, `Category=Roots`, `Category=Watcher`, cancel-mid-scan and corrupted-settings E2E journeys | Phase 01 harness | Harness not merged; covered here by unit/UI tests and the prototype real-window run |
-| Cancel mid-scan in the real window (UI leaves Scanning within 1 s) | Phase 01 | The 17-file scan finishes in ~1 s, too fast to cancel by hand; unit-tested |
-| Open PDF loose-book offer in the real window | Phase 01 | Unit/UI-tested only |
+| ~~G2, G6~~ | Done (Phase CO slice 4) | G2 and G6 PASS at both sizes in runs `co-all-1..3` and `co-library-1..2`; see [co-library-journeys.md](evidence/sept-23-kaizen/phase-06/co-library-journeys.md) |
+| `Category=Roots` E2E | Phase 10 | No such journey exists (Phase CO, 2026-11-19). Unit coverage: `Sept23Phase05LibraryRootScanTests` `LibraryRoot_*` (8 tests), `Phase05LibraryRootTests` (4), `LibraryFoldersPanelTests` (UI) |
+| `Category=Watcher` E2E | Phase 24 | No such journey exists. Unit coverage: `LibraryMonitor_WatcherPicksUpNewPdfWithoutUserAction` |
+| Corrupted-settings E2E | Done | G8 `corrupt settings` PASS in `co-all-1..3` and `co-reader-1..3` |
+| Cancel mid-scan in the real window (UI leaves Scanning within 1 s) | Phase 24 | No journey exists, and the 17-file scan finishes in about 1 s, too fast to cancel. Unit coverage: `ScanState_CancelDuringProcessing_EndsCancelled`, `LibraryMonitor_CancelScan_ReportsCancelled` |
+| Open PDF loose-book offer in the real window | Phase 10 | No journey exists. Unit coverage: `DirectPdfOpenServiceTests` (13) |
 | Unplugged removable drive, UNC/network share, OneDrive placeholders | Engineering | No such media on this machine; offline-root behaviour unit-tested |
 | Synthetic 2k-book migration | Phase 24 | The 17-book rehearsal ran; scale rehearsal left to performance work |
 | macOS FSEvents watcher | Phase 27 | No Mac |
