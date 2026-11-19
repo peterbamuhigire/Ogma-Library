@@ -447,7 +447,7 @@ public static partial class UiaAudit
     public static IReadOnlyList<string> Violations(AutomationElement root)
     {
         var violations = new List<string>();
-        foreach (AutomationElement element in root.FindAllDescendants())
+        foreach (AutomationElement element in Uia.Retry(root.FindAllDescendants)) // K102: the walk itself can hit a transient COMException.
         {
             try
             {
@@ -480,7 +480,7 @@ public static partial class UiaAudit
     public static IReadOnlyList<object> Snapshot(AutomationElement root)
     {
         var rows = new List<object>();
-        foreach (AutomationElement element in root.FindAllDescendants())
+        foreach (AutomationElement element in Uia.Retry(root.FindAllDescendants)) // K102: the walk itself can hit a transient COMException.
         {
             try
             {
