@@ -8,7 +8,7 @@
   "remote": "origin",
   "main_branch": "main",
   "max_hours": 168,
-  "max_reworks": 3,
+  "max_reworks": 6,
   "max_slices": 8,
   "max_error_streak": 4,
   "roles": {

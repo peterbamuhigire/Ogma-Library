@@ -276,29 +276,17 @@ class Runner:
             commits = int(self.git("rev-list", "--count", f"{head_before}..{head_after}")[1] or 0)
             stat = self.git("diff", "--shortstat", head_before, head_after)[1]
             files, ins, dele = (int((re.search(rf"(\d+) {k}", stat) or [0, 0])[1]) for k in ("file", "insertion", "deletion"))
-        tot = {"input": 0, "output": 0, "cw_5m": 0, "cw_1h": 0, "cache_read": 0}
-        contexts, sub_calls = [], 0
+        final = self.transcript_calls(sid)
+        usage_source = "transcript" if final else "stream"
+        calls = final or calls
+        rows, tot, contexts, sub_calls = self.call_rows(calls, sid, self.run_id, ph["id"], role, slice_id, seq)
         calls_path = os.path.join(self.metrics, "calls.csv")
         new_file = not os.path.exists(calls_path)
         with open(calls_path, "a", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             if new_file:
                 w.writerow(CALL_COLS)
-            for ts, model, u, sub in calls.values():
-                cc = u.get("cache_creation") or {}
-                cw = u.get("cache_creation_input_tokens", 0) or 0
-                cw1, cw5 = cc.get("ephemeral_1h_input_tokens"), cc.get("ephemeral_5m_input_tokens")
-                if cw1 is None and cw5 is None:
-                    cw5, cw1 = cw, 0
-                inp, out, cr = u.get("input_tokens", 0) or 0, u.get("output_tokens", 0) or 0, u.get("cache_read_input_tokens", 0) or 0
-                ctx = inp + cw + cr
-                w.writerow([self.cfg["corpus_label"], "autorun", sid, sub, "", ts, model, family(model), inp, out, cw5 or 0,
-                            cw1 or 0, cr, ctx, u.get("speed", ""), u.get("inference_geo", ""), self.run_id, ph["id"], role, slice_id, seq])
-                for k, v in (("input", inp), ("output", out), ("cw_5m", cw5 or 0), ("cw_1h", cw1 or 0), ("cache_read", cr)):
-                    tot[k] += v
-                sub_calls += sub
-                if not sub:
-                    contexts.append(ctx)
+            w.writerows(rows)
         ru = result.get("usage") or {}
         rec = {"run_id": self.run_id, "seq": seq, "phase": ph["id"], "role": role, "slice": slice_id, "session": sid,
                "model_requested": rc["model"], "effort": rc["effort"], "start_utc": start, "end_utc": iso(),
@@ -306,7 +294,7 @@ class Runner:
                "exit": proc.returncode, "outcome": outcome, "stop_reason": result.get("stop_reason"),
                "terminal_reason": result.get("terminal_reason"), "calls": len(calls), "subagent_calls": sub_calls,
                "first_context": contexts[0] if contexts else None, "max_context": max(contexts) if contexts else None,
-               "tokens": tot, "thinking_tokens": (ru.get("output_tokens_details") or {}).get("thinking_tokens"),
+               "tokens": tot, "usage_source": usage_source, "thinking_tokens": (ru.get("output_tokens_details") or {}).get("thinking_tokens"),
                "cost_usd_cli": result.get("total_cost_usd"), "model_usage": result.get("modelUsage"),
                "permission_denials": len(result.get("permission_denials") or []), "prompt_chars": len(prompt),
                "result_chars": len(text), "head_before": head_before[:10], "head_after": head_after[:10],
@@ -320,6 +308,86 @@ class Runner:
                    f"out={tot['output']} cost={rec['cost_usd_cli']} commits={commits}")
         self.mirror()
         return rec, (text if text else err_tail)
+
+    def transcript_calls(self, sid):
+        """Final per-call usage from the CLI's own transcript. The live stream reports a call's
+        output tokens before the call has finished, so it under-counts output."""
+        path = os.path.join(os.path.expanduser("~"), ".claude", "projects", re.sub(r"[^A-Za-z0-9]", "-", self.wt), sid + ".jsonl")
+        calls = {}
+        try:
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    try:
+                        o = json.loads(line)
+                    except ValueError:
+                        continue
+                    m = o.get("message") if o.get("type") == "assistant" else None
+                    if isinstance(m, dict) and m.get("usage") and m.get("model") != "<synthetic>":
+                        calls[m.get("id") or o.get("uuid")] = (o.get("timestamp") or "", m.get("model", "?"), m["usage"],
+                                                              1 if o.get("isSidechain") else 0)
+        except OSError:
+            return {}
+        return calls
+
+    def call_rows(self, calls, sid, run_id, phase, role, slice_id, seq):
+        """Rows in the paper's calls.csv schema, plus the session totals derived from them."""
+        rows, contexts, sub_calls = [], [], 0
+        tot = {"input": 0, "output": 0, "cw_5m": 0, "cw_1h": 0, "cache_read": 0}
+        for ts, model, u, sub in calls.values():
+            cc = u.get("cache_creation") or {}
+            cw = u.get("cache_creation_input_tokens", 0) or 0
+            cw1, cw5 = cc.get("ephemeral_1h_input_tokens"), cc.get("ephemeral_5m_input_tokens")
+            if cw1 is None and cw5 is None:
+                cw5, cw1 = cw, 0
+            inp, out, cr = u.get("input_tokens", 0) or 0, u.get("output_tokens", 0) or 0, u.get("cache_read_input_tokens", 0) or 0
+            ctx = inp + cw + cr
+            rows.append([self.cfg["corpus_label"], "autorun", sid, sub, "", ts, model, family(model), inp, out, cw5 or 0,
+                         cw1 or 0, cr, ctx, u.get("speed", ""), u.get("inference_geo", ""), run_id, phase, role, slice_id, seq])
+            for k, v in (("input", inp), ("output", out), ("cw_5m", cw5 or 0), ("cw_1h", cw1 or 0), ("cache_read", cr)):
+                tot[k] += v
+            sub_calls += sub
+            if not sub:
+                contexts.append(ctx)
+        return rows, tot, contexts, sub_calls
+
+    def backfill(self):
+        """Rebuild calls.csv and the session token totals from the transcripts (run only while stopped)."""
+        lock = read_json(os.path.join(self.root, "runner.lock"))
+        if lock and pid_alive(lock.get("pid", -1)):
+            sys.exit("the runner is active; stop it before a backfill")
+        calls_path, sess_path = os.path.join(self.metrics, "calls.csv"), os.path.join(self.metrics, "sessions.jsonl")
+        old = {}
+        if os.path.exists(calls_path):
+            with open(calls_path, newline="", encoding="utf-8") as fh:
+                for row in list(csv.reader(fh))[1:]:
+                    old.setdefault(row[2], []).append(row)
+        sess, out_rows, fixed = self._sessions(), [], 0
+        for s in sess:
+            final = self.transcript_calls(s["session"])
+            if not final:
+                out_rows += old.get(s["session"], [])
+                s.setdefault("usage_source", "stream")
+                continue
+            rows, tot, contexts, sub_calls = self.call_rows(final, s["session"], s["run_id"], s["phase"], s["role"], s["slice"], s["seq"])
+            out_rows += rows
+            s.update(tokens=tot, calls=len(final), subagent_calls=sub_calls, usage_source="transcript",
+                     first_context=contexts[0] if contexts else None, max_context=max(contexts) if contexts else None)
+            fixed += 1
+        for path in (calls_path, sess_path):
+            if os.path.exists(path):
+                shutil.copy2(path, os.path.join(self.root, os.path.basename(path) + ".before-backfill"))
+        with open(calls_path + ".tmp", "w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            w.writerow(CALL_COLS)
+            w.writerows(out_rows)
+        os.replace(calls_path + ".tmp", calls_path)
+        with open(sess_path + ".tmp", "w", encoding="utf-8") as fh:
+            for s in sess:
+                fh.write(json.dumps(s, separators=(",", ":")) + "\n")
+        os.replace(sess_path + ".tmp", sess_path)
+        self.event("backfill", detail=f"{fixed} of {len(sess)} sessions rebuilt from transcripts, {len(out_rows)} call rows")
+        report(self.metrics)
+        self.mirror()
 
     # ---------- prompts ----------
     def common(self, ph, branch):
@@ -872,7 +940,7 @@ def selftest():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("action", choices=["run", "status", "report", "selftest", "_fake"])
+    ap.add_argument("action", choices=["run", "status", "report", "backfill", "selftest", "_fake"])
     ap.add_argument("arg", nargs="?")
     ap.add_argument("--repo", default=os.path.abspath(os.path.join(HERE, "..", "..")))
     ap.add_argument("--config", default=os.path.join(HERE, "config.json"))
@@ -887,6 +955,8 @@ def main():
         r.run()
     elif a.action == "status":
         status(r)
+    elif a.action == "backfill":
+        r.backfill()
     else:
         report(r.metrics)
         r.mirror()
