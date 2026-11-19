@@ -146,6 +146,7 @@ public sealed partial class BookDetailViewModel
         OnPropertyChanged(nameof(ShowInFolderText));
         OnPropertyChanged(nameof(AiCardText));
         OnPropertyChanged(nameof(SizeDisplayText));
+        OnStatesCultureChanged();
         OnFieldsCultureChanged();
         OnReviewCultureChanged();
         OnWriteBackCultureChanged();

@@ -145,3 +145,28 @@ Gates on the slice-5 tree:
 - NOT_ASSESSED (not run in this slice): the real-window write-back journey on a synthetic
   fixture copy, screenshots at both widths, light and dark, 200% text, Arabic RTL, and the
   screen-reader and keyboard walkthrough of the dialog.
+
+## Slice 6: explicit states and hash-verified file relink (11.7)
+
+| Task | Result | Evidence |
+|---|---|---|
+| States | `InspectorState` (None, Loading, Ready, MissingFile, PasswordProtected, Processing, ProcessingFailed, NoMetadata) by the D-77 priority. The view has one template per state: `Detail.State.Loading` (a token skeleton, no spinner), `Detail.State.MissingFile`, `Detail.State.Password` (reason plus *Forget password*), `Detail.State.Processing` (live `TextStatusText` and `OcrStatusText`), `Detail.State.Failed` (reason plus *Retry*) and the existing `Detail.State.NoMetadata` | `Phase11/InspectorStateTests` (VM, MEASURED); `Phase11InspectorStateViewTests` (headless, MEASURED; one frame per state in `artifacts/phase-11/inspector-state-*.png`) |
+| Primary action | MissingFile: *Locate file…*. Password: *Unlock*, disabled with a reason (D-76, K125). Other states: *Read* or *Continue reading* | Same tests |
+| Relink | `IBookRelinkService.RelinkAsync` returns Relinked, HashMismatch, OutsideLibraryRoots, NotFound or Failed. `BookRelinkService` checks the enabled roots through `PathGuard`, computes SHA-256, updates the file row and book status and writes the `BookFileRelinked` audit event in one save. Bound in `CatalogueProcessingModule` and passed by `ShellModule`. The view's storage-provider PDF picker feeds `LocateFilePicker`. Outcomes are localised in `Detail.RelinkStatus` and never show the path | `Phase11/BookRelinkServiceTests`: match, mismatch, outside, disabled root, `..` traversal, missing path, unknown book, empty or relative path (MEASURED) |
+| Deleted while open | A failed Read re-evaluates to MissingFile; a refresh after the file returns gives Ready (D-80) | `InspectorStateTests` (MEASURED) |
+| Strings | 15 new `Catalogue.BookDetail.State.*` and `.Relink.*` keys, plus "Locate file…", in EN and FR | Key parity in the fast suite |
+
+Typeface: there is no new face. Card titles and body text use Public Sans, and the title stays Spectral.
+JetBrains Mono is not used. Colours, sizes and radii come from tokens (`Brush.Surface.Footer`,
+`Brush.Surface.Sunken`, `Brush.Surface.CardBorder`, `Brush.Surface.OnParchment*`,
+`Type.Size.Caption`, `Radius.S`).
+
+New defect: K125, the protected-book *Unlock*, targeted at Phase 12.
+
+Gates on the slice-6 tree:
+- MEASURED, passing: the Release build, `dotnet format --verify-no-changes`,
+  `Test-DesignTokens.ps1` (clean), Phase11 filters (Tests 77, Ui 59), Architecture (52) and
+  `Test-Fast.ps1` (Architecture 52, Tests 1,415, Ui 477; 0 failed).
+- NOT_ASSESSED (not run in this slice): the real-window relink journey on the synthetic corpus,
+  screenshots at 1280×800 and 1920×1080, light and dark, 200% text, Arabic RTL, and the
+  screen-reader and keyboard walkthrough of the state cards.

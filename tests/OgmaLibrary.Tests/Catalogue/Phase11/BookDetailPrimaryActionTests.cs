@@ -61,7 +61,7 @@ public sealed class BookDetailPrimaryActionTests
         await vm.LoadBookAsync(BookId);
 
         Assert.Equal(PrimaryActionKind.LocateFile, vm.PrimaryAction);
-        Assert.Equal("Locate file", vm.PrimaryActionText);
+        Assert.Equal("Locate file…", vm.PrimaryActionText);
     }
 
     [Fact]

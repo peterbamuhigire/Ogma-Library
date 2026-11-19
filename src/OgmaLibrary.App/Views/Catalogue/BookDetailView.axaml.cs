@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application.Metadata;
@@ -14,7 +15,56 @@ public partial class BookDetailView : UserControl
     public BookDetailView()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
     }
+
+    // Locate file… (11.7): the view owns the storage-provider picker; the view model owns the
+    // relink. Same pattern as LibraryFoldersPanelView.
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is BookDetailViewModel vm)
+        {
+            vm.LocateFilePicker = PickPdfAsync;
+        }
+    }
+
+    private async Task<string?> PickPdfAsync(CancellationToken cancellationToken)
+    {
+        if (DataContext is not BookDetailViewModel vm || TopLevel.GetTopLevel(this) is not { } topLevel ||
+            !topLevel.StorageProvider.CanOpen)
+        {
+            return null;
+        }
+
+        IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = vm.LocateFilePickerTitle,
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType(vm.PdfFilesFilterText)
+                    {
+                        Patterns = ["*.pdf"],
+                        AppleUniformTypeIdentifiers = ["com.adobe.pdf"],
+                        MimeTypes = ["application/pdf"],
+                    },
+                ],
+            }).ConfigureAwait(true);
+        cancellationToken.ThrowIfCancellationRequested();
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    private void RetryProcessingButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            async () =>
+            {
+                if (DataContext is BookDetailViewModel vm)
+                {
+                    await vm.RetryProcessingAsync().ConfigureAwait(true);
+                }
+            },
+            "catalogue.retry_processing_click");
 
     private void CloseButton_Click(object? sender, RoutedEventArgs e)
     {

@@ -130,4 +130,11 @@ public static partial class InfrastructureLog
     [LoggerMessage(EventId = 5023, EventName = "ocr.auto.paused_on_battery", Level = LogLevel.Information,
         Message = "Automatic OCR is paused while the device runs on battery power")]
     public static partial void OcrAutoPausedOnBattery(ILogger logger);
+
+    /// <summary>A per-book relink could not read the file or save the catalogue (Sept-23 Phase 11).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The failure; its message may name a private path, so the redacting logger handles it.</param>
+    [LoggerMessage(EventId = 5024, EventName = "catalogue.relink.failed", Level = LogLevel.Warning,
+        Message = "Relinking a book file failed")]
+    public static partial void BookRelinkFailed(ILogger logger, Exception exception);
 }

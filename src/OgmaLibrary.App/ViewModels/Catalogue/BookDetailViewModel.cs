@@ -99,6 +99,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     /// <param name="logger">The redacting application logger (Sept-23 Phase 02).</param>
     /// <param name="commandHistory">The shared undo history that runs inline metadata edits (Sept-23 Phase 11).</param>
     /// <param name="metadataBulkReviewService">The undoable batch boundary for accepting proposals (Sept-23 Phase 11).</param>
+    /// <param name="bookRelink">The hash-verified relink for a moved file (Sept-23 Phase 11, 11.7).</param>
     public BookDetailViewModel(
         ICatalogueReadModel readModel,
         IReaderNavigationService reader,
@@ -116,7 +117,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         IMetadataWriteBackService? writeBackService = null,
         ILogger<BookDetailViewModel>? logger = null,
         OgmaLibrary.Application.Commands.ICommandHistory? commandHistory = null,
-        IMetadataBulkReviewService? metadataBulkReviewService = null)
+        IMetadataBulkReviewService? metadataBulkReviewService = null,
+        IBookRelinkService? bookRelink = null)
     {
         ArgumentNullException.ThrowIfNull(readModel);
         ArgumentNullException.ThrowIfNull(reader);
@@ -139,6 +141,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         _logger = logger ?? (ILogger)NullLogger.Instance;
         _commandHistory = commandHistory;
         _bulkReview = metadataBulkReviewService;
+        _relink = bookRelink;
         _localization.CultureChanged += OnCultureChanged;
     }
 
@@ -157,6 +160,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             {
                 _isLoading = value;
                 OnPropertyChanged();
+                NotifyStateChanged();
             }
         }
     }
@@ -187,6 +191,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 _isQueueingOcr = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanRunOcr));
+                NotifyStateChanged();
             }
         }
     }
@@ -565,7 +570,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     public bool IsProvenanceLoaded => _provenanceLoaded;
 
     /// <summary>Whether the loaded book still has a file that can be opened.</summary>
-    public bool CanOpenReader => _book?.IsAvailable == true;
+    public bool CanOpenReader => _book?.IsAvailable == true && !_fileMissingOnDisk;
 
     /// <summary>Human-readable file availability state for the detail panel.</summary>
     public string FileAvailabilityText => CanOpenReader ? AvailableFileText : MissingFileText;
@@ -573,7 +578,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     // ── Primary action (Sept-23 Phase 11, tasks 11.2 and 11.8) ─────────────────
 
     /// <summary>The single state-driven primary action for the loaded book.</summary>
-    public PrimaryActionKind PrimaryAction => ComputePrimaryAction(_book);
+    public PrimaryActionKind PrimaryAction => ComputePrimaryAction(_book, _fileMissingOnDisk);
 
     /// <summary>Localised label of <see cref="PrimaryAction"/>, e.g. "Continue reading · p. 43".</summary>
     public string PrimaryActionText => PrimaryAction switch
@@ -588,7 +593,9 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     };
 
     /// <summary>True when the primary action can run now.</summary>
-    public bool CanExecutePrimaryAction => PrimaryAction != PrimaryActionKind.None && !IsOpeningReader;
+    /// <remarks>Unlock stays visible but disabled with a reason until Phase 12 (D-76, K125).</remarks>
+    public bool CanExecutePrimaryAction =>
+        PrimaryAction is not (PrimaryActionKind.None or PrimaryActionKind.Unlock) && !IsOpeningReader && !IsRelinking;
 
     /// <summary>True while an awaited Read is preflighting the file or opening the reader.</summary>
     public bool IsOpeningReader
@@ -880,6 +887,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             OnPropertyChanged(nameof(CanLoadReadingHistory));
             OnPropertyChanged(nameof(ShowLoadReadingHistoryButton));
             OnInspectorBookChanged();
+            OnStatesBookChanged(changedBook);
         }
     }
 
@@ -1219,7 +1227,9 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
 
         string bookId = _book.BookId;
         SetOpenError(null);
-        if (!CanOpenReader)
+        // The catalogue flag gates here; a file found missing on an earlier Read is re-located
+        // below, so Read still works once the file is back (deleted while open, 11.7).
+        if (!_book.IsAvailable)
         {
             SetOpenError(OpenFileMissingKey);
             return;
@@ -1233,9 +1243,15 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 string? path = await _fileLocator.LocateAsync(bookId, cancellationToken).ConfigureAwait(false);
                 if (path is null)
                 {
-                    UpdateOnUiThread(() => SetOpenErrorFor(bookId, OpenFileMissingKey));
+                    UpdateOnUiThread(() =>
+                    {
+                        SetFileMissingOnDisk(bookId, missing: true);
+                        SetOpenErrorFor(bookId, OpenFileMissingKey);
+                    });
                     return;
                 }
+
+                UpdateOnUiThread(() => SetFileMissingOnDisk(bookId, missing: false));
             }
 
             await _reader.OpenReaderAsync(bookId, null, cancellationToken).ConfigureAwait(false);
@@ -1273,15 +1289,8 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     /// <param name="bookId">The book the reader failed to open.</param>
     public void ReportReaderOpenFailed(string bookId) => SetOpenErrorFor(bookId, OpenFailedKey);
 
-    // Stub completed by Phase 11 slice 6 (relink inside an enabled root, SHA-256 match).
-    private Task LocateFileAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        SetOpenError("Catalogue.BookDetail.Open.LocateUnavailable");
-        return Task.CompletedTask;
-    }
-
-    // Stub completed by Phase 11 slice 6 (existing password prompt, or disabled with a reason).
+    // Unlock is disabled with a reason (D-76): the reader has no route that opens a protected
+    // session until Phase 12 (K125). Called directly, it still explains instead of opening.
     private Task UnlockAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -1297,10 +1306,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         }
     }
 
-    private static PrimaryActionKind ComputePrimaryAction(BookDetailProjection? book) => book switch
+    private static PrimaryActionKind ComputePrimaryAction(BookDetailProjection? book, bool fileMissingOnDisk) => book switch
     {
         null => PrimaryActionKind.None,
         { IsAvailable: false } => PrimaryActionKind.LocateFile,
+        _ when fileMissingOnDisk => PrimaryActionKind.LocateFile,
         { IsPasswordProtected: true } => PrimaryActionKind.Unlock,
         { ReadingProgress.CurrentPage: > 0 } => PrimaryActionKind.ContinueReading,
         _ => PrimaryActionKind.Read,
@@ -2170,6 +2180,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             ReplacePendingMetadataProposals(proposals);
             SetEditableReadingMemory(memory);
         });
+
+        if (detail?.IsAvailable == true)
+        {
+            await ReevaluateFileOnDiskAsync(bookId, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)

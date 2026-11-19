@@ -6,6 +6,31 @@
              x:DataType="vm:BookDetailViewModel"
              IsVisible="{Binding IsVisible}">
 
+  <UserControl.Styles>
+    <!-- Explicit-state cards and loading skeleton (Phase 11 slice 6); tokens only -->
+    <Style Selector="Border.detail-state">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Footer}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Surface.CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
+    <Style Selector="TextBlock.detail-state-title">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchment}" />
+    </Style>
+    <Style Selector="TextBlock.detail-state-body">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Caption}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+    </Style>
+    <Style Selector="Border.skeleton">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.S}" />
+    </Style>
+  </UserControl.Styles>
+
   <!--
     Book-detail inspector (FR-CAT-004; Sept-23 Phase 11, slice 2).
     Header: compact cover, title (Spectral), authors, year, one state-driven primary action,
@@ -27,6 +52,7 @@
       <StackPanel Grid.Row="0"
                   Spacing="8"
                   Margin="16,12,12,8"
+                  IsVisible="{Binding IsContentVisible}"
                   AutomationProperties.AutomationId="Detail.Header">
         <Grid ColumnDefinitions="Auto,*,Auto">
           <cat:CoverImageView Grid.Column="0"
@@ -177,10 +203,119 @@
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource Brush.Surface.OnParchment}"
                    TextWrapping="Wrap" />
+
+        <!-- Relink outcome (11.7): localised result, never the chosen path -->
+        <TextBlock Text="{Binding RelinkStatusText}"
+                   IsVisible="{Binding HasRelinkStatus}"
+                   AutomationProperties.AutomationId="Detail.RelinkStatus"
+                   AutomationProperties.Name="{Binding RelinkStatusText}"
+                   AutomationProperties.LiveSetting="Polite"
+                   FontSize="{DynamicResource Type.Size.Caption}"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}"
+                   TextWrapping="Wrap" />
+
+        <!-- Explicit states (11.7): one card per state; the primary action above follows it -->
+        <Border Classes="detail-state"
+                IsVisible="{Binding IsMissingFileState}"
+                AutomationProperties.AutomationId="Detail.State.MissingFile"
+                AutomationProperties.Name="{Binding MissingStateTitleText}">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="detail-state-title" Text="{Binding MissingStateTitleText}" />
+            <TextBlock Classes="detail-state-body"
+                       Text="{Binding MissingStateBodyText}"
+                       AutomationProperties.AutomationId="Detail.State.MissingFile.Body" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="detail-state"
+                IsVisible="{Binding IsPasswordState}"
+                AutomationProperties.AutomationId="Detail.State.Password"
+                AutomationProperties.Name="{Binding PasswordStateTitleText}">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="detail-state-title" Text="{Binding PasswordStateTitleText}" />
+            <TextBlock Classes="detail-state-body"
+                       Text="{Binding PasswordStateBodyText}"
+                       AutomationProperties.AutomationId="Detail.State.Password.Reason" />
+            <Button HorizontalAlignment="Left"
+                    IsEnabled="{Binding CanForgetPassword}"
+                    ToolTip.Tip="{Binding ForgetPasswordTooltip}"
+                    AutomationProperties.AutomationId="Detail.State.Password.Forget"
+                    AutomationProperties.Name="{Binding ForgetPasswordText}"
+                    Click="ForgetPasswordButton_Click">
+              <TextBlock Text="{Binding ForgetPasswordText}" />
+            </Button>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="detail-state"
+                IsVisible="{Binding IsProcessingState}"
+                AutomationProperties.AutomationId="Detail.State.Processing"
+                AutomationProperties.Name="{Binding ProcessingStateTitleText}">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="detail-state-title" Text="{Binding ProcessingStateTitleText}" />
+            <TextBlock Classes="detail-state-body"
+                       Text="{Binding TextStatusText}"
+                       IsVisible="{Binding HasTextStatus}"
+                       AutomationProperties.AutomationId="Detail.State.Processing.Status"
+                       AutomationProperties.LiveSetting="Polite" />
+            <TextBlock Classes="detail-state-body"
+                       Text="{Binding OcrStatusText}"
+                       IsVisible="{Binding HasOcrStatus}"
+                       AutomationProperties.AutomationId="Detail.State.Processing.Queue"
+                       AutomationProperties.LiveSetting="Polite" />
+            <TextBlock Classes="detail-state-body"
+                       Text="{Binding ProcessingStateBodyText}" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="detail-state"
+                IsVisible="{Binding IsProcessingFailedState}"
+                AutomationProperties.AutomationId="Detail.State.Failed"
+                AutomationProperties.Name="{Binding FailedStateTitleText}">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="detail-state-title" Text="{Binding FailedStateTitleText}" />
+            <TextBlock Classes="detail-state-body"
+                       Text="{Binding OcrFailureText}"
+                       IsVisible="{Binding HasOcrFailure}"
+                       AutomationProperties.AutomationId="Detail.State.Failed.Reason" />
+            <Button HorizontalAlignment="Left"
+                    IsEnabled="{Binding CanRetryProcessing}"
+                    AutomationProperties.AutomationId="Detail.State.Failed.Retry"
+                    AutomationProperties.Name="{Binding RetryProcessingText}"
+                    Click="RetryProcessingButton_Click">
+              <TextBlock Text="{Binding RetryProcessingText}" />
+            </Button>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Loading (11.7): token skeleton blocks in the shape of the header, not a bare spinner -->
+      <StackPanel Grid.Row="0"
+                  Grid.RowSpan="3"
+                  Spacing="8"
+                  Margin="16,12,12,8"
+                  IsVisible="{Binding IsLoadingState}"
+                  AutomationProperties.AutomationId="Detail.State.Loading"
+                  AutomationProperties.Name="{Binding LoadingStateText}"
+                  AutomationProperties.LiveSetting="Polite">
+        <Grid ColumnDefinitions="Auto,*">
+          <Border Classes="skeleton" Grid.Column="0" Width="56" Height="80" Margin="0,0,12,0" />
+          <StackPanel Grid.Column="1" Spacing="6">
+            <Border Classes="skeleton" Height="18" />
+            <Border Classes="skeleton" Height="18" Width="140" HorizontalAlignment="Left" />
+            <Border Classes="skeleton" Height="12" Width="96" HorizontalAlignment="Left" />
+          </StackPanel>
+        </Grid>
+        <Border Classes="skeleton" Height="32" />
+        <Border Classes="skeleton" Height="28" />
+        <Border Classes="skeleton" Height="12" />
+        <Border Classes="skeleton" Height="12" />
+        <Border Classes="skeleton" Height="12" Width="200" HorizontalAlignment="Left" />
       </StackPanel>
 
       <!-- Section switcher -->
       <Border Grid.Row="1"
+              IsVisible="{Binding IsContentVisible}"
               Classes="segmented"
               Margin="16,0,16,8"
               AutomationProperties.AutomationId="Detail.Sections"
@@ -239,7 +374,7 @@
         </Grid>
       </Border>
 
-      <ScrollViewer Grid.Row="2">
+      <ScrollViewer Grid.Row="2" IsVisible="{Binding IsContentVisible}">
         <StackPanel Margin="16,0,16,16">
 
           <!-- ── Overview ───────────────────────────────────────────────── -->

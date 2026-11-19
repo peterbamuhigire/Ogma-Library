@@ -62,6 +62,7 @@ internal sealed class CatalogueProcessingModule : IOgmaModuleRegistrar
         services.AddHostedService<OcrWorker>();
 
         services.AddSingleton<ICatalogueWriteService, CatalogueWriteService>();
+        services.AddSingleton<IBookRelinkService, BookRelinkService>();
         services.AddSingleton<ICommandHistory, CommandHistory>();
     }
 }

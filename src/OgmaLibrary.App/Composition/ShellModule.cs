@@ -111,7 +111,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IMetadataWriteBackService>(),
             services.GetRequiredService<ILogger<BookDetailViewModel>>(),
             services.GetRequiredService<OgmaLibrary.Application.Commands.ICommandHistory>(),
-            services.GetRequiredService<IMetadataBulkReviewService>());
+            services.GetRequiredService<IMetadataBulkReviewService>(),
+            services.GetService<IBookRelinkService>());
         var bookshelf3D = new Bookshelf3DViewModel(
             readModel,
             services.GetRequiredService<IWebViewBridge>(),
