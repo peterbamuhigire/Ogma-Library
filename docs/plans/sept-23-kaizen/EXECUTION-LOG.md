@@ -148,3 +148,14 @@ These decisions were taken under that authority. Each is the recommended option 
   - Open items to reach COMPLETE: the journeys at both sizes, G10 and J-CAT-5, screenshots, K120 and K121.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+
+- **2026-11-19**: Phase 11 slice 1 (executor session): click-path audit, awaited Read and the primary-action state machine. The orchestrator's preamble decisions were recorded as owner-proxy decisions:
+  - **D-49**: Phase 09 is IMPLEMENTED, not COMPLETE. Phase 11 proceeds because Phase 09's components exist.
+  - **D-50**: the AI tab's content stays as a card under Activity until Phase 16.
+  - **D-51**: *Unlock* reuses an existing password prompt if one can be reached. Otherwise it is disabled with a reason and gets a K row for Phase 12.
+  - **D-52**: *Remove from library* and *Show in folder* are wired only to existing contracts. Otherwise they are omitted with a K row; no new deletion semantics.
+  - **D-53**: *Relink* accepts only a file inside an enabled root whose SHA-256 matches the catalogue.
+  - **D-54**: when `Reader.OpenAsync` reports failure (it returns `false` and does not throw, Phase 02 T02.2) for a Read started from the inspector, the shell returns to the catalogue and the inspector shows a localised error. Other callers keep the reader's error state.
+  - **D-55**: typefaces: Spectral for the inspector title, Public Sans elsewhere, JetBrains Mono only inside Technical details.
+
+  Results: `Test-Fast.ps1` passes (Architecture 52, Tests 1,365, Ui 418), as do the Release build, format and design tokens. Real-window proof is NOT_ASSESSED in this slice. [Record](../../implementation/execution/phase-sept23-11-completion.md).
