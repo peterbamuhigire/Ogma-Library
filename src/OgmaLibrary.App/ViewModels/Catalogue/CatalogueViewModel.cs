@@ -137,6 +137,13 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>The filtered, sorted list of book summaries for binding.</summary>
     public ObservableCollection<BookSummaryProjection> FilteredItems => _filteredItems;
 
+    /// <summary>
+    /// Every selected book (Sept-23 Phase 10, multi-select). Bound to the grid and list
+    /// <c>SelectedItems</c>; <see cref="SelectedBook"/> stays the primary selection that drives the
+    /// detail pane. The selection survives a refresh that replaces changed cards.
+    /// </summary>
+    public ObservableCollection<BookSummaryProjection> SelectedBooks { get; } = [];
+
     /// <summary>The currently selected book.</summary>
     public BookSummaryProjection? SelectedBook
     {
@@ -555,8 +562,10 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
         {
             // Sept-23 Phase 09: update in place so unchanged cards keep their containers (no
             // flicker, stable UI Automation elements) while background processing refreshes.
+            string[] selectedIds = SelectedBooks.Select(book => book.BookId).ToArray();
             SyncInPlace(_filteredItems, results);
             SyncInPlace(_homeStripItems, strip);
+            RestoreSelection(selectedIds);
 
             OnPropertyChanged(nameof(HasHomeStrip));
             OnPropertyChanged(nameof(HasBooksInProgress));
@@ -692,6 +701,46 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     {
         UiThreadGuard.Verify(this, name, PropertyChanged);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    /// <summary>
+    /// A card replaced by <see cref="SyncInPlace"/> drops out of the list control's selection.
+    /// Re-select the visible cards by id so a membership change keeps the user's selection.
+    /// </summary>
+    private void RestoreSelection(string[] selectedIds)
+    {
+        if (selectedIds.Length == 0)
+        {
+            return;
+        }
+
+        List<BookSummaryProjection> wanted = selectedIds
+            .Select(id => _filteredItems.FirstOrDefault(book => book.BookId == id))
+            .OfType<BookSummaryProjection>()
+            .ToList();
+
+        bool unchanged = wanted.Count == SelectedBooks.Count &&
+            wanted.Zip(SelectedBooks).All(pair => ReferenceEquals(pair.First, pair.Second));
+        if (unchanged)
+        {
+            return;
+        }
+
+        for (int i = SelectedBooks.Count - 1; i >= 0; i--)
+        {
+            if (!wanted.Contains(SelectedBooks[i]))
+            {
+                SelectedBooks.RemoveAt(i);
+            }
+        }
+
+        foreach (BookSummaryProjection book in wanted)
+        {
+            if (!SelectedBooks.Contains(book))
+            {
+                SelectedBooks.Add(book);
+            }
+        }
     }
 
     private static void SyncInPlace(ObservableCollection<BookSummaryProjection> target, List<BookSummaryProjection> source)

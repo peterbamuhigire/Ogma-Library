@@ -33,7 +33,10 @@
         </Button>
       </Grid>
 
-      <ListBox ItemsSource="{Binding ShelfSidebar.Shelves}"
+      <!-- Sept-23 Phase 10: books dragged from the Library drop onto a row (D-28). -->
+      <ListBox x:Name="ShelfList"
+               ItemsSource="{Binding ShelfSidebar.Shelves}"
+               DragDrop.AllowDrop="True"
                SelectedItem="{Binding ShelfSidebar.SelectedShelf, Mode=TwoWay}"
                MinHeight="120"
                Background="Transparent"

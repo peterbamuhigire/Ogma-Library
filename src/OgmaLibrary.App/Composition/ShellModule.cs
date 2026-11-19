@@ -237,6 +237,25 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         settings.TextRecognitionOptions = ocrOptions;
         _ = ocrOptions.LoadAsync();
 
+        // Sept-23 Phase 10: multi-select toolbar and shelf membership (menu, toolbar, drop).
+        var notifier = services.GetRequiredService<IUserNotifier>();
+        var membership = new ShelfMembershipViewModel(
+            readModel,
+            writeService,
+            shelfSidebar,
+            catalogue,
+            notifier,
+            services.GetRequiredService<ILogger<ShelfMembershipViewModel>>());
+        var selection = new CatalogueSelectionViewModel(
+            catalogue,
+            membership,
+            localization,
+            notifier,
+            services.GetRequiredService<IBookCurationService>(),
+            services.GetRequiredService<IBookMetadataEnrichmentService>(),
+            capabilities,
+            services.GetRequiredService<ILogger<CatalogueSelectionViewModel>>());
+
         shell = new MainShellViewModel(
             localization,
             catalogue,
@@ -264,7 +283,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetService<IProcessingProgressService>(),
             capabilities,
             preferences,
-            settings);
+            settings,
+            selection);
 
         return shell;
     }

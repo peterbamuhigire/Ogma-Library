@@ -15,10 +15,26 @@ public partial class CatalogueListView : UserControl
     public CatalogueListView()
     {
         InitializeComponent();
+        CatalogueCardInteractions.Attach(BookList);
     }
 
-    private void BookRow_PointerPressed(object? sender, PointerPressedEventArgs e) =>
+    private void BookRow_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control row)
+        {
+            CatalogueCardInteractions.OnPressed(row, e);
+        }
+
         UiActions.Run(() => BookRow_PointerPressedAsync(sender, e), "catalogue.book_row_pointer_pressed");
+    }
+
+    private void BookRow_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (sender is Control row)
+        {
+            CatalogueCardInteractions.OnMoved(row, e);
+        }
+    }
 
     private async Task BookRow_PointerPressedAsync(object? sender, PointerPressedEventArgs e)
     {

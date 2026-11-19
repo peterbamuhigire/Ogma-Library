@@ -144,6 +144,8 @@
                         AutomationProperties.Name="{Binding Label}"
                         AutomationProperties.ItemStatus="{Binding Status}"
                         ToolTip.Tip="{Binding ToolTip}"
+                        DragDrop.AllowDrop="True"
+                        DragDrop.DragOver="RailItem_DragOver"
                         Click="RailItem_Click">
                   <StackPanel Orientation="Horizontal" Spacing="10">
                     <Border Classes="rail-indicator" VerticalAlignment="Center" />
@@ -570,6 +572,72 @@
                   </Button>
                 </WrapPanel>
               </StackPanel>
+            </Border>
+
+            <!-- Selection toolbar (Sept-23 Phase 10, D-27): two or more selected, or one with a
+                 context action (the Library is filtered to a manual collection). -->
+            <Border IsVisible="{Binding Selection.IsToolbarVisible, FallbackValue=False}"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="16"
+                    Padding="12,6"
+                    CornerRadius="{DynamicResource Radius.M}"
+                    Background="{DynamicResource Brush.Surface.Card}"
+                    BorderBrush="{DynamicResource Brush.Accent.Ink}"
+                    BorderThickness="1"
+                    AutomationProperties.AutomationId="Catalogue.Selection.Toolbar"
+                    AutomationProperties.Name="{Binding Selection.ToolbarName}">
+              <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="6">
+                <TextBlock Text="{Binding Selection.CountText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,4,0"
+                           FontWeight="SemiBold"
+                           AutomationProperties.AutomationId="Catalogue.Selection.Count"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <DropDownButton Classes="tool"
+                                IsEnabled="{Binding Selection.CanAddToShelf, FallbackValue=False}"
+                                AutomationProperties.AutomationId="Catalogue.Selection.AddToShelf"
+                                AutomationProperties.Name="{Binding Selection.AddToShelfText}">
+                  <DropDownButton.Flyout>
+                    <MenuFlyout Placement="TopEdgeAlignedLeft" Opening="AddToShelfMenu_Opening" />
+                  </DropDownButton.Flyout>
+                  <TextBlock Text="{Binding Selection.AddToShelfText}" />
+                </DropDownButton>
+                <Button Classes="tool"
+                        IsVisible="{Binding Selection.CanRemoveFromShelf, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.RemoveFromShelf"
+                        AutomationProperties.Name="{Binding Selection.RemoveFromShelfText}"
+                        Click="SelectionRemoveFromShelf_Click">
+                  <TextBlock Text="{Binding Selection.RemoveFromShelfText}" />
+                </Button>
+                <Button Classes="tool"
+                        IsEnabled="{Binding Selection.CanEdit, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.Edit"
+                        AutomationProperties.Name="{Binding Selection.EditText}">
+                  <TextBlock Text="{Binding Selection.EditText}" />
+                </Button>
+                <Button Classes="tool"
+                        IsEnabled="{Binding Selection.CanMarkAsRead, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.MarkRead"
+                        AutomationProperties.Name="{Binding Selection.MarkReadText}"
+                        Click="SelectionMarkRead_Click">
+                  <TextBlock Text="{Binding Selection.MarkReadText}" />
+                </Button>
+                <Button Classes="tool"
+                        IsVisible="{Binding Selection.IsEnrichVisible, FallbackValue=False}"
+                        IsEnabled="{Binding Selection.CanEnrich, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.Enrich"
+                        AutomationProperties.Name="{Binding Selection.EnrichText}"
+                        Click="SelectionEnrich_Click">
+                  <TextBlock Text="{Binding Selection.EnrichText}" />
+                </Button>
+                <Button Classes="tool"
+                        AutomationProperties.AutomationId="Catalogue.Selection.Clear"
+                        AutomationProperties.Name="{Binding Selection.ClearText}"
+                        Click="SelectionClear_Click">
+                  <TextBlock Text="{Binding Selection.ClearText}" />
+                </Button>
+              </WrapPanel>
             </Border>
           </Grid>
 

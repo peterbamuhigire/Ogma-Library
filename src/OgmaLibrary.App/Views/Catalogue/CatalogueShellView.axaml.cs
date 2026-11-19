@@ -214,6 +214,22 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    /// <summary>
+    /// Spring-loaded Collections (Sept-23 Phase 10, D-28): dragging books over the Collections rail
+    /// item opens Collections so the books can be dropped on a row. Other items refuse the drag.
+    /// </summary>
+    private void RailItem_DragOver(object? sender, DragEventArgs e)
+    {
+        bool isCollections = sender is Button { DataContext: RailItemViewModel { Destination: ShellDestination.Collections } } &&
+            CatalogueCardInteractions.ReadBookIds(e).Length > 0;
+        e.DragEffects = DragDropEffects.None;
+        e.Handled = true;
+        if (isCollections && ViewModel is { IsCollectionsActive: false } shell)
+        {
+            shell.NavigateTo(ShellDestination.Collections);
+        }
+    }
+
     private void ToggleRail_Click(object? sender, RoutedEventArgs e) => ViewModel?.ToggleRail();
 
     // ── Library toolbar and More menu ───────────────────────────────────────────
@@ -332,6 +348,53 @@ public partial class CatalogueShellView : UserControl
     }
 
     private void ClearFilters_Click(object? sender, RoutedEventArgs e) => ViewModel?.Catalogue.Filter.ClearAll();
+
+    // Sept-23 Phase 10: selection toolbar.
+    private void AddToShelfMenu_Opening(object? sender, EventArgs e)
+    {
+        if (sender is not MenuFlyout menu || ViewModel?.Selection is not { } selection)
+        {
+            return;
+        }
+
+        menu.Items.Clear();
+        if (selection.Membership.ManualShelves.Count == 0)
+        {
+            var none = new MenuItem { Header = selection.NoShelvesText, IsEnabled = false };
+            Avalonia.Automation.AutomationProperties.SetName(none, selection.NoShelvesText);
+            menu.Items.Add(none);
+            return;
+        }
+
+        foreach (ShelfProjection shelf in selection.Membership.ManualShelves)
+        {
+            var item = new MenuItem { Header = shelf.Name };
+            Avalonia.Automation.AutomationProperties.SetName(item, shelf.Name);
+            Avalonia.Automation.AutomationProperties.SetAutomationId(item, $"Catalogue.Selection.Shelf.{shelf.ShelfId}");
+            string shelfId = shelf.ShelfId;
+            item.Click += (_, _) => UiActions.Run(
+                () => selection.AddSelectionToShelfAsync(shelfId),
+                "catalogue.selection_add_to_shelf");
+            menu.Items.Add(item);
+        }
+    }
+
+    private void SelectionRemoveFromShelf_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => ViewModel?.Selection?.RemoveSelectionFromShelfAsync() ?? Task.CompletedTask,
+            "catalogue.selection_remove_from_shelf");
+
+    private void SelectionMarkRead_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => ViewModel?.Selection?.MarkSelectionAsReadAsync() ?? Task.CompletedTask,
+            "catalogue.selection_mark_read");
+
+    private void SelectionEnrich_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => ViewModel?.Selection?.EnrichSelectionAsync() ?? Task.CompletedTask,
+            "catalogue.selection_enrich");
+
+    private void SelectionClear_Click(object? sender, RoutedEventArgs e) => ViewModel?.Selection?.ClearSelection();
 
     private void SaveSmartShelf_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => ViewModel?.FilterBar.SaveSmartShelfAsync() ?? Task.CompletedTask, "catalogue.smart_shelf_save_click");

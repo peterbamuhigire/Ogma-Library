@@ -12,9 +12,11 @@
     Row = small cover placeholder + title + author + year + rating + status.
   -->
 
-  <ListBox ItemsSource="{Binding FilteredItems}"
+  <ListBox x:Name="BookList"
+           ItemsSource="{Binding FilteredItems}"
            SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
-           SelectionMode="Single"
+           SelectedItems="{Binding SelectedBooks}"
+           SelectionMode="Multiple"
            Background="Transparent"
            BorderThickness="0"
            AutomationProperties.AutomationId="Catalogue.List">
@@ -46,7 +48,8 @@
       <DataTemplate x:DataType="app:BookSummaryProjection">
         <Border Padding="12,8"
                 Cursor="Hand"
-                PointerPressed="BookRow_PointerPressed">
+                PointerPressed="BookRow_PointerPressed"
+                PointerMoved="BookRow_PointerMoved">
           <Grid ColumnDefinitions="56,*,60,40">
 
             <!-- Cover placeholder -->

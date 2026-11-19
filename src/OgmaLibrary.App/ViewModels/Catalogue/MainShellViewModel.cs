@@ -161,6 +161,7 @@ public sealed partial class MainShellViewModel :
     /// <param name="capabilities">The capability state (Sept-23 Phase 07); defaults to standalone.</param>
     /// <param name="preferences">The shared preference controller (Sept-23 Phase 08); built from the store when null.</param>
     /// <param name="settings">The Settings destination view model (Sept-23 Phase 08).</param>
+    /// <param name="selection">The selection toolbar and shelf membership (Sept-23 Phase 10).</param>
     public MainShellViewModel(
         ILocalizationService localization,
         CatalogueViewModel catalogue,
@@ -188,7 +189,8 @@ public sealed partial class MainShellViewModel :
         IProcessingProgressService? processingProgress = null,
         ICapabilityState? capabilities = null,
         UserPreferencesController? preferences = null,
-        SettingsViewModel? settings = null)
+        SettingsViewModel? settings = null,
+        CatalogueSelectionViewModel? selection = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -267,6 +269,7 @@ public sealed partial class MainShellViewModel :
             _localization);
         _preferences.Changed += OnPreferencesChanged;
         Settings = settings;
+        Selection = selection;
     }
 
     /// <summary>
@@ -625,6 +628,9 @@ public sealed partial class MainShellViewModel :
 
     /// <summary>The Settings destination's view model, when composed (Sept-23 Phase 08).</summary>
     public SettingsViewModel? Settings { get; }
+
+    /// <summary>The catalogue selection toolbar and shelf membership actions (Sept-23 Phase 10).</summary>
+    public CatalogueSelectionViewModel? Selection { get; }
 
     /// <summary>Loads preferences (theme, density, language, capabilities) before the ready shell is shown.</summary>
     public Task InitializePreferencesAsync(CancellationToken cancellationToken = default) =>
