@@ -248,6 +248,6 @@ and [`phase-17/co-ocr-journey.md`](evidence/sept-23-kaizen/phase-17/co-ocr-journ
 
 ### NOT ASSESSED
 
-- The fast suite (K105, about 18 min). Only three XAML brush references and test code changed. 143 targeted UI tests (design system, Settings, search) passed.
+- Nothing for the fast suite: `scripts/Test-Fast.ps1` passed on `dbf79a4f`, exit 0, MEASURED. Architecture 52/52, core 1,248/1,248 (5 min 1 s) and UI 377/377.
 - 200 % text, `fr`, keyboard-only and screen-reader variants of these journeys.
 - J-SET-3's stability: it has 2 consecutive runs (8 rows), not 3 runs.
