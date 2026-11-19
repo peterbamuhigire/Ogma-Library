@@ -54,6 +54,22 @@ public sealed class OcrJobProcessorTests : IDisposable
     }
 
     [Fact]
+    public async Task OcrJobProcessor_ReadsTextLayersAsynchronously_NeverBlockingAPoolThread()
+    {
+        string bookId = SeedBook("BOOKOCRASYNC00000000001");
+        SeedOcrJob(bookId, 0, new OcrJobPayload("sample.pdf"));
+        var provider = new FakeOcrProvider();
+        var processor = CreateProcessor(new FakePdfRendererFactory(pageCount: 3, asyncOnly: true), provider);
+
+        bool processed = await processor.ProcessNextAsync(CancellationToken.None);
+        _context.ChangeTracker.Clear();
+
+        Assert.True(processed);
+        Assert.Equal(3, provider.CallCount);
+        Assert.Equal(2, _context.Jobs.Single(job => job.JobType == OcrJobProcessor.JobType).Status);
+    }
+
+    [Fact]
     public async Task OcrJobProcessor_TextPages_AreSkippedWithoutInvokingOcr()
     {
         string bookId = SeedBook("BOOKOCRTEXTSKIP00000001");
@@ -287,9 +303,37 @@ public sealed class OcrJobProcessorTests : IDisposable
 
     private sealed class FakePdfRendererFactory(
         int pageCount,
-        ExtractionQuality quality = ExtractionQuality.Scanned) : IPdfRendererFactory
+        ExtractionQuality quality = ExtractionQuality.Scanned,
+        bool asyncOnly = false) : IPdfRendererFactory
     {
-        public IPdfRenderer Open(string filePath) => new FakePdfRenderer(pageCount, quality);
+        public IPdfRenderer Open(string filePath) => asyncOnly
+            ? new AsyncOnlyPdfRenderer(pageCount, quality)
+            : new FakePdfRenderer(pageCount, quality);
+    }
+
+    /// <summary>
+    /// A renderer whose blocking text-layer call fails, as a stand-in for the isolated worker:
+    /// its synchronous wrapper blocks a thread-pool thread on the worker reply, and per-page
+    /// background loops that use it starve the pool the reader's replies need (K94).
+    /// </summary>
+    private sealed class AsyncOnlyPdfRenderer(int pageCount, ExtractionQuality quality) : IPdfRenderer
+    {
+        public int PageCount => pageCount;
+
+        public void Dispose()
+        {
+        }
+
+        public Task<RenderResult> RenderPageAsync(int pageIndex, RenderRequest request, CancellationToken ct) =>
+            Task.FromResult(new RenderResult([(byte)pageIndex], 612, 792, pageIndex));
+
+        public int GetPageRotationDegrees(int pageIndex) => 0;
+
+        public TextLayer ExtractTextLayer(int pageIndex) =>
+            throw new InvalidOperationException("Blocking text-layer call on a background page loop.");
+
+        public Task<TextLayer> ExtractTextLayerAsync(int pageIndex, CancellationToken ct) =>
+            Task.FromResult(new TextLayer(pageIndex, [], quality));
     }
 
     private sealed class FakePdfRenderer(int pageCount, ExtractionQuality quality) : IPdfRenderer

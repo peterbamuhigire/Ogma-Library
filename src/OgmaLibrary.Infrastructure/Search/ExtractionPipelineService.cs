@@ -472,9 +472,10 @@ public sealed class ExtractionPipelineService : IExtractionPipelineService, ISta
             ExtractedPageRecord record;
             try
             {
-                TextLayer layer = await Task.Run(
-                        () => renderer.ExtractTextLayer(pageIndex),
-                        cancellationToken)
+                // Await the worker reply; a blocking call here holds a thread-pool thread per
+                // page and starves the pool the reader's replies need (K94).
+                TextLayer layer = await renderer
+                    .ExtractTextLayerAsync(pageIndex, cancellationToken)
                     .ConfigureAwait(false);
                 string text = JoinWords(layer.Words);
                 record = new ExtractedPageRecord(

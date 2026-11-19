@@ -56,6 +56,28 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExtractionPipeline_ReadsTextLayersAsynchronously_NeverBlockingAPoolThread()
+    {
+        // K94: a blocking text-layer call per page holds a thread-pool thread while the
+        // isolated worker replies; enough of them starve the pool the reader needs.
+        string bookId = SeedBookWithSearchSources();
+        var rendererFactory = new FakeRendererFactory([
+            new TextLayer(0, [Word("asynchronous"), Word("pagekeyword")], ExtractionQuality.Full),
+            new TextLayer(1, [Word("second")], ExtractionQuality.Full),
+        ])
+        {
+            AsyncOnly = true,
+        };
+        ExtractionPipelineService service = CreateService(rendererFactory);
+
+        ExtractionBookResult result = await service.IndexBookAsync(bookId, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.PagesProcessed);
+        Assert.Equal(0, result.FailedPages);
+    }
+
+    [Fact]
     public async Task ExtractionPipeline_IndexBook_PersistsPagesAndImplementedSources()
     {
         string bookId = SeedBookWithSearchSources();
@@ -434,6 +456,9 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
 
         public int ExtractCalls { get; private set; }
 
+        /// <summary>When set, the blocking text-layer call fails and only the async one works.</summary>
+        public bool AsyncOnly { get; init; }
+
         public IPdfRenderer Open(string filePath) => new FakeRenderer(this);
 
         private sealed class FakeRenderer : IPdfRenderer
@@ -456,7 +481,18 @@ public sealed class ExtractionPipelineServiceTests : IDisposable
 
             public int GetPageRotationDegrees(int pageIndex) => 0;
 
-            public TextLayer ExtractTextLayer(int pageIndex)
+            public TextLayer ExtractTextLayer(int pageIndex) =>
+                _factory.AsyncOnly
+                    ? throw new NotSupportedException("Blocking text-layer call on a background page loop.")
+                    : Extract(pageIndex);
+
+            public Task<TextLayer> ExtractTextLayerAsync(int pageIndex, CancellationToken ct)
+            {
+                ct.ThrowIfCancellationRequested();
+                return Task.FromResult(Extract(pageIndex));
+            }
+
+            private TextLayer Extract(int pageIndex)
             {
                 _factory.ExtractCalls++;
                 if (_factory._failingPages.Contains(pageIndex))

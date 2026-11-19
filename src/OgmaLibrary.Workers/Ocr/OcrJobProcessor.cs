@@ -229,9 +229,10 @@ internal sealed class OcrJobProcessor : IOcrJobProcessor
                     continue;
                 }
 
-                TextLayer nativeLayer = await Task.Run(
-                        () => renderer.ExtractTextLayer(pageIndex),
-                        cancellationToken)
+                // Await the worker reply; a blocking call here holds a thread-pool thread per
+                // page and starves the pool the reader's replies need (K94).
+                TextLayer nativeLayer = await renderer
+                    .ExtractTextLayerAsync(pageIndex, cancellationToken)
                     .ConfigureAwait(false);
                 if (!OcrPageQualityPolicy.ShouldProcess(nativeLayer.Quality, nativeLayer.Words.Count))
                 {
