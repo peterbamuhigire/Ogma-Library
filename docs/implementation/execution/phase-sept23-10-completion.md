@@ -1,13 +1,13 @@
 # Sept-23 Phase 10 completion: catalogue experience
 
-Status: **IN PROGRESS**. Slice 1 of 8 is done (2026-11-19). The phase is not IMPLEMENTED or
-COMPLETE.
+Status: **IN PROGRESS**. Slices 1 to 4 of 8 are done (2026-11-19). The phase is not
+IMPLEMENTED or COMPLETE.
 Branch: `kaizen/phase-10`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `d7e75952`.
 Plan: [phase-10](../../plans/sept-23-kaizen/phases/phase-10-catalogue-experience.md).
-Decisions: D-18 to D-22 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
-Defects: K14 is resolved for the grid, list, directory and home strip. K114 was found here and is
-handed on. See the [defect register](../../plans/sept-23-kaizen/03-defect-register.md).
+Decisions: D-18 to D-31 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Defects: K14 is resolved for the grid, list, directory and home strip. K114 to K117 were found
+here and are handed on. See the [defect register](../../plans/sept-23-kaizen/03-defect-register.md).
 
 ## Typeface decision
 
@@ -113,3 +113,40 @@ Evidence: `evidence/sept-23-kaizen/phase-10/slice-1/`.
 - K115: the Collections sidebar holds its own filter instance (slice 4, task 10.6).
 - Sidebar counts call `CountAsync` once per shelf, which repeats the smart-shelf evaluation already done in `GetShelvesAsync`. This is acceptable at the current scale; server-side counting is Phase 24 (D-20).
 - The intermittent Navigation occlusion by a foreign `ToolBar` (`view_1000`) is still unexplained. If it recurs, the harness should name the owning process.
+
+## Slice 4: multi-select, selection toolbar and shelf membership
+
+Commits: `e1a9f6b4` (feature), `aba334b8` (real-window selection, focus and menu fixes),
+`fb2950e8` (toolbar clear of the overlay inspector).
+
+| Area | Result |
+|---|---|
+| Multi-select | The grid and list use `SelectionMode="Multiple"` and bind only `SelectedItems` to `CatalogueViewModel.SelectedBooks`. `SelectedBook` stays the primary selection (the first pick, D-30) and drives the detail pane. The home strip and directory stay single-select. Ctrl+click, Shift+arrow and Ctrl+A work. A refresh that replaces cards restores the selection once and keeps the primary. |
+| Toolbar (D-27) | Shown at two or more selected books, or at one when the Library is filtered to a manual collection. Add to collection, Remove from collection, Edit… (disabled until slice 5), Mark as read (D-29), Enrich (only with a metadata provider enabled) and Clear selection. Each has a `Catalogue.Selection.*` id and a localised name. |
+| Card menu and drop (D-28) | Each card's ContextFlyout offers Add to collection ▸ (manual collections) and Remove from collection. Cards drag onto Collections rows; the Collections rail item opens Collections while a drag is over it. `ShelfMembershipViewModel` re-reads the shelves first, so a smart or deleted collection gets a localised warning and nothing is written. Failures go to `IUserNotifier` and `AppLog`, never as exception text. |
+| Real-window fixes | Four defects that only appeared with background processing reloading the catalogue: (1) two-way `SelectedItem` beside `SelectedItems`, plus reused grid containers keeping a stale `IsSelected`, dropped or tripled picks; (2) a refresh hid the focused card, so arrows stopped working, and the grid panel now refocuses it; (3) the sidebar cleared and refilled its shelves, briefly disabling Add to collection, and shelves now sync in place; (4) the Add to collection menu was empty until `Opening`, and an empty `MenuFlyout` never opens in a real window, so it is now built whenever the collections or the culture change. |
+| Overlay inspector | Below 1280 px of client width the inspector covered the toolbar's Clear selection. While the overlay is open, the toolbar is now inset by the inspector's width. |
+| Typeface | Unchanged: Public Sans for UI and cards, Spectral for generated covers, no new faces; Phase 09 tokens only. |
+
+### Gates (slice 4)
+
+| Gate | Result |
+|---|---|
+| `dotnet build OgmaLibrary.sln -c Release --no-restore` | PASS, 0 warnings, 0 errors |
+| `dotnet format --verify-no-changes --no-restore` | PASS |
+| `scripts/Test-DesignTokens.ps1` | PASS ("clean") |
+| `scripts/Test-Fast.ps1` | **PASS**: 1,783 of 1,783 (Tests 1,323, Ui 408, Architecture 52) |
+| Filter `Sept23Phase10Selection` | PASS, 12 of 12. The focus-after-refresh and overlay-toolbar assertions were mutation-checked: each fails with its fix disabled. |
+| Golden journeys `-Tag Catalogue`, 1280x800, under the desktop lock | Run `20261119-132548`: A11yNames, G1, G2, G6, **J-CAT-1 PASS**, **J-CAT-2 PASS** (menu opened by a real click, filter shows exactly the two picked books). Earlier runs failed on the defects above (`20261119-124005`, `-124702`, `-125416`). [Evidence](evidence/sept-23-kaizen/phase-10/slice-4/). |
+| J-CAT-2 drag onto a collection | **NOT_ASSESSED**: injected mouse input does not start an OLE drag, so Collections did not open. The drop path is covered headlessly (deleted and smart drops rejected). |
+| G10 Organise | **NOT ASSESSED**: still the Phase 01 placeholder. J-CAT-1 and J-CAT-2 cover slice 4; G10 should be bound once bulk edit (slice 5) lands. |
+| 1024x768, dark theme, RTL, 200% text, screen reader | NOT_ASSESSED in this slice |
+| `Test-RequirementAccountability.ps1` | NOT_ASSESSED in this slice |
+| Skills | Development engine skills were not read this slice: NOT_ASSESSED. |
+
+### Open after slice 4
+
+- K115 stays open (D-31): sharing the Library filter with the sidebar needs id-stable shelf selection first.
+- K116: `BulkEditCommand.NewStatus` is documented as reading status but writes the lifecycle status (slice 5).
+- K117: a notification toast covers the right end of the selection toolbar while it shows.
+- The drag journey needs a real OLE drag driver; until then it is NOT_ASSESSED.

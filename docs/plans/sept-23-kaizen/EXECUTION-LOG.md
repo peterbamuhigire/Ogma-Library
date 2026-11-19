@@ -81,3 +81,17 @@ These decisions were taken under that authority. Each is the recommended option 
   - K115 was logged: the sidebar holds an orphan filter instance.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **2026-11-19** — Phase 10 slice 4 (executor session): multi-select, selection toolbar and shelf membership. New owner-proxy decisions (the plan's recommended or least-surprise options):
+  - **D-27**: the selection toolbar shows at two or more selected books, or at one when the Library is filtered to a manual collection (so Remove from collection applies).
+  - **D-28**: drag targets are the Collections rows. Collections is not on screen with the Library, so the Collections rail item opens Collections while a drag is over it.
+  - **D-29**: Mark as read uses `IBookCurationService.UpdateReadingStateAsync(Finished)`, not `BulkEditCommand.NewStatus`, which writes the lifecycle status (K116).
+  - **D-30**: in multi-select the primary book (detail pane) is the first pick; the grid and list bind only `SelectedItems`, and shelves sync in place on refresh.
+  - **D-31**: K115 is deferred to slice 5. Sharing the Library filter with the sidebar now would let a background reload, which replaces shelf rows, clear the Library's collection filter; it needs id-stable shelf selection first.
+
+  Results:
+  - Real-window J-CAT-1 and J-CAT-2 PASS at 1280x800 under the desktop lock (run `20261119-132548`), after four refresh-related defects were fixed (selection, focus, shelf flicker, empty menu) and the overlay inspector no longer hides the toolbar.
+  - J-CAT-2's drag step and G10 are NOT_ASSESSED (injected input cannot start an OLE drag; G10 is still a placeholder).
+  - `Sept23Phase10Selection` 12 of 12; the fast suite 1,783 of 1,783; build, format and design tokens pass.
+  - K116 and K117 were logged.
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).
