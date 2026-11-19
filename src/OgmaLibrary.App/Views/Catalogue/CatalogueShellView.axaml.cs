@@ -467,6 +467,26 @@ public partial class CatalogueShellView : UserControl
             () => ViewModel?.Selection?.EnrichSelectionAsync() ?? Task.CompletedTask,
             "catalogue.selection_enrich");
 
+    private void SelectionEdit_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(SelectionEditAsync, "catalogue.selection_edit");
+
+    private async Task SelectionEditAsync()
+    {
+        CatalogueSelectionViewModel? selection = ViewModel?.Selection;
+        BulkEditViewModel? form = selection?.CreateBulkEdit();
+        if (selection is null || form is null || TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return;
+        }
+
+        var dialog = new BulkEditDialog { DataContext = form };
+        bool applied = await dialog.ShowDialog<bool>(owner).ConfigureAwait(true);
+        if (applied)
+        {
+            await selection.ApplyBulkEditAsync(form).ConfigureAwait(true);
+        }
+    }
+
     private void SelectionClear_Click(object? sender, RoutedEventArgs e) => ViewModel?.Selection?.ClearSelection();
 
     private void SaveSmartShelf_Click(object? sender, RoutedEventArgs e) =>

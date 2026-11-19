@@ -177,6 +177,7 @@ public sealed class ToastViewModel : INotifyPropertyChanged
         UserNotificationActionKind.Retry => _localization["Notification.Action.Retry"],
         UserNotificationActionKind.OpenSettings => _localization["Notification.Action.OpenSettings"],
         UserNotificationActionKind.ExportDiagnostics => _localization["Notification.Action.ExportDiagnostics"],
+        UserNotificationActionKind.Undo => _localization["Notification.Action.Undo"],
         _ => string.Empty,
     };
 

@@ -615,7 +615,8 @@
                 <Button Classes="tool"
                         IsEnabled="{Binding Selection.CanEdit, FallbackValue=False}"
                         AutomationProperties.AutomationId="Catalogue.Selection.Edit"
-                        AutomationProperties.Name="{Binding Selection.EditText}">
+                        AutomationProperties.Name="{Binding Selection.EditText}"
+                        Click="SelectionEdit_Click">
                   <TextBlock Text="{Binding Selection.EditText}" />
                 </Button>
                 <Button Classes="tool"

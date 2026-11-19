@@ -269,7 +269,9 @@
 
     <!-- Sept-23 Phase 02 (T02.7): non-modal, dismissible error surface. Its DataContext is
          the process NotificationCenterViewModel, attached from code-behind so it survives the
-         startup-to-runtime DataContext swap of the window. -->
+         startup-to-runtime DataContext swap of the window. Sept-23 Phase 10 (K117): the stack
+         sits above the bottom band where the catalogue selection toolbar floats, so an Undo
+         toast never hides the toolbar's buttons. -->
     <ItemsControl x:Name="ToastHost"
                   x:DataType="vm:NotificationCenterViewModel"
                   ItemsSource="{Binding Toasts}"
@@ -277,7 +279,7 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
                   Width="400"
-                  Margin="16"
+                  Margin="16,16,16,112"
                   AutomationProperties.AutomationId="Shell.Toasts"
                   AutomationProperties.Name="{Binding RegionName}"
                   AutomationProperties.LiveSetting="Assertive">
@@ -311,10 +313,12 @@
                         IsVisible="{Binding HasAction}"
                         Command="{Binding ActionCommand}"
                         MinHeight="36"
+                        AutomationProperties.AutomationId="Shell.Toast.Action"
                         AutomationProperties.Name="{Binding ActionText}" />
                 <Button Content="{Binding DismissText}"
                         Command="{Binding DismissCommand}"
                         MinHeight="36"
+                        AutomationProperties.AutomationId="Shell.Toast.Dismiss"
                         AutomationProperties.Name="{Binding DismissText}" />
               </StackPanel>
             </StackPanel>

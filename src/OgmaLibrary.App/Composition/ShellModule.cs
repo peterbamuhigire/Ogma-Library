@@ -15,6 +15,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.ClassroomClient;
+using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Ingestion;
 using OgmaLibrary.Application.LanHost;
@@ -153,13 +154,17 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                     shell.IsIndexManagerOpen = true;
                 }
             });
+        // Sept-23 Phase 10, task 10.8: recent undoable bulk edits, shared by the selection
+        // toolbar (which records them) and the Activity Centre (which offers Undo).
+        var editLog = new EditActivityLog(localization);
         var indexManager = new IndexManagerViewModel(
             services.GetRequiredService<IIndexManagerService>(),
             services.GetRequiredService<IEmbeddingErasureService>(),
             localization,
             jobRuntime: services.GetRequiredService<IJobRuntimeService>(),
             logger: services.GetRequiredService<ILogger<IndexManagerViewModel>>(),
-            ocrJobs: services.GetRequiredService<IOcrJobQueueService>());
+            ocrJobs: services.GetRequiredService<IOcrJobQueueService>(),
+            edits: editLog);
         var reconciliationReviews = new ReconciliationReviewPanelViewModel(
             services.GetRequiredService<IReconciliationReviewService>(),
             localization);
@@ -254,7 +259,10 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IBookCurationService>(),
             services.GetRequiredService<IBookMetadataEnrichmentService>(),
             capabilities,
-            services.GetRequiredService<ILogger<CatalogueSelectionViewModel>>());
+            services.GetRequiredService<ILogger<CatalogueSelectionViewModel>>(),
+            writeService,
+            services.GetRequiredService<ICommandHistory>(),
+            editLog);
 
         shell = new MainShellViewModel(
             localization,

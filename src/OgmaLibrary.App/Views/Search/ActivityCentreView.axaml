@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:OgmaLibrary.App.ViewModels.Search"
+             xmlns:cvm="using:OgmaLibrary.App.ViewModels.Catalogue"
              x:Class="OgmaLibrary.App.Views.Search.ActivityCentreView"
              x:DataType="vm:ActivityCentreViewModel">
   <Border Padding="10"
@@ -8,7 +9,7 @@
           BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
           BorderThickness="1"
           CornerRadius="{DynamicResource Radius.S}">
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto">
         <TextBlock Text="{Binding Title}"
                    FontWeight="SemiBold"
@@ -104,6 +105,39 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+
+      <!-- Sept-23 Phase 10, task 10.8: recent bulk edits. Undo is LIFO, so only the newest
+           edit not yet undone has an enabled Undo. -->
+      <StackPanel Grid.Row="4"
+                  Margin="0,8,0,0"
+                  Spacing="4"
+                  IsVisible="{Binding Edits.HasItems, FallbackValue=False}"
+                  AutomationProperties.AutomationId="ActivityCentre.Edits">
+        <TextBlock Text="{Binding Edits.Title, FallbackValue=''}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+        <ItemsControl ItemsSource="{Binding Edits.Items, FallbackValue={x:Null}}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="cvm:EditActivityItem">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                <TextBlock Text="{Binding Text}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <Button Grid.Column="1"
+                        Margin="8,0,0,0"
+                        Padding="6,2"
+                        IsVisible="{Binding !IsUndone}"
+                        Command="{Binding UndoCommand}"
+                        AutomationProperties.AutomationId="{Binding UndoAutomationId}"
+                        AutomationProperties.Name="{Binding UndoText}">
+                  <TextBlock Text="{Binding UndoText}" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
     </Grid>
   </Border>
 </UserControl>

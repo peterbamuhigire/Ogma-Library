@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Catalogue;
+using OgmaLibrary.Application.Commands;
 using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Metadata;
 using OgmaLibrary.Application.Navigation;
@@ -18,21 +19,25 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// The catalogue selection toolbar (Sept-23 Phase 10, task 10.7). It shows when two or more
 /// books are selected, or when one is selected and a context action applies (the Library is
 /// filtered to a manual shelf, so "Remove from shelf" is available). Actions: Add to shelf,
-/// Edit… (bulk edit, slice 5), Mark as read, Enrich (only with a metadata provider enabled) and
+/// Edit… (bulk edit with preview and undo, task 10.8), Mark as read, Enrich (only with a metadata provider enabled) and
 /// Clear selection.
 /// </summary>
 public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
 {
-    // Bulk edit arrives in slice 5; until then Edit… is shown but disabled.
-    private const bool BulkEditAvailable = false;
-
     private readonly CatalogueViewModel _catalogue;
     private readonly ILocalizationService _localization;
     private readonly IUserNotifier _notifier;
     private readonly IBookCurationService? _curation;
     private readonly IBookMetadataEnrichmentService? _enrichment;
     private readonly ICapabilityState? _capabilities;
+    private readonly ICatalogueWriteService? _writeService;
+    private readonly ICommandHistory? _history;
     private readonly ILogger _logger;
+
+    // Bulk edits applied from this toolbar, oldest first, mirroring the LIFO command history so a
+    // toast or Activity Centre entry can undo only its own edit.
+    private const int MaxUndoableEdits = 20;
+    private readonly List<BulkEditUndoableCommand> _applied = [];
     private bool _isBusy;
 
     /// <summary>Initializes a new instance of <see cref="CatalogueSelectionViewModel"/>.</summary>
@@ -44,6 +49,9 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
     /// <param name="enrichment">Provider enrichment, for Enrich.</param>
     /// <param name="capabilities">Capability state; Enrich shows only when metadata providers are enabled.</param>
     /// <param name="logger">Optional logger.</param>
+    /// <param name="writeService">Catalogue writes, for bulk edit.</param>
+    /// <param name="history">The undo history; bulk edit is offered only with both this and <paramref name="writeService"/>.</param>
+    /// <param name="editLog">Recent edits shown in the Activity Centre.</param>
     public CatalogueSelectionViewModel(
         CatalogueViewModel catalogue,
         ShelfMembershipViewModel membership,
@@ -52,7 +60,10 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
         IBookCurationService? curation = null,
         IBookMetadataEnrichmentService? enrichment = null,
         ICapabilityState? capabilities = null,
-        ILogger<CatalogueSelectionViewModel>? logger = null)
+        ILogger<CatalogueSelectionViewModel>? logger = null,
+        ICatalogueWriteService? writeService = null,
+        ICommandHistory? history = null,
+        EditActivityLog? editLog = null)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(membership);
@@ -67,6 +78,13 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
         _enrichment = enrichment;
         _capabilities = capabilities;
         _logger = logger ?? (ILogger)NullLogger.Instance;
+        _writeService = writeService;
+        _history = history;
+        EditLog = editLog;
+        if (EditLog is not null)
+        {
+            EditLog.UndoLatest = UndoLastEditAsync;
+        }
 
         _catalogue.SelectedBooks.CollectionChanged += OnSelectionChanged;
         _catalogue.SelectionRestored += (_, _) => RaiseState();
@@ -100,8 +118,11 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
     /// <summary>Whether the selection can be removed from the manual shelf the Library is filtered to.</summary>
     public bool CanRemoveFromShelf => Count > 0 && Membership.ActiveManualShelf is not null && !IsBusy;
 
-    /// <summary>Whether bulk edit is available. Off until slice 5 delivers the edit form.</summary>
-    public bool CanEdit => BulkEditAvailable && Count > 0;
+    /// <summary>Whether bulk edit (Edit…) can open for the selection.</summary>
+    public bool CanEdit => Count > 0 && _writeService is not null && _history is not null && !IsBusy;
+
+    /// <summary>Recent edits with Undo, shared with the Activity Centre.</summary>
+    public EditActivityLog? EditLog { get; }
 
     /// <summary>Whether the selection can be marked as read.</summary>
     public bool CanMarkAsRead => Count > 0 && _curation is not null && !IsBusy;
@@ -190,6 +211,101 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
                 "Catalogue.Selection.EnrichFailed",
                 cancellationToken);
 
+    /// <summary>Creates the bulk-edit form for the current selection, or <see langword="null"/> when Edit… is unavailable.</summary>
+    /// <returns>The form view model.</returns>
+    public BulkEditViewModel? CreateBulkEdit() =>
+        CanEdit ? new BulkEditViewModel(_catalogue.SelectedBooks.ToArray(), _localization) : null;
+
+    /// <summary>
+    /// Applies an accepted bulk-edit form through the command history, reloads the catalogue and
+    /// offers Undo in a notification and in the Activity Centre. A form that was cancelled or
+    /// cannot apply writes nothing.
+    /// </summary>
+    /// <param name="form">The form.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task ApplyBulkEditAsync(BulkEditViewModel form, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(form);
+        if (!form.IsApplied || form.BuildCommand() is not { } command || _writeService is null || _history is null)
+        {
+            return;
+        }
+
+        _isBusy = true;
+        RaiseState();
+        try
+        {
+            var undoable = new BulkEditUndoableCommand(_writeService, command);
+            await _history.ExecuteAsync(undoable, cancellationToken).ConfigureAwait(true);
+            _applied.Add(undoable);
+            if (_applied.Count > MaxUndoableEdits)
+            {
+                _applied.RemoveAt(0);
+            }
+
+            EditLog?.Record(form.Field, command.BookIds.Count);
+            // The toast undoes only its own edit: once that edit is undone (for example from the
+            // Activity Centre), a stale toast must not undo an older edit (LIFO history).
+            _notifier.Notify(new UserNotification(
+                "Catalogue.BulkEdit.Applied",
+                UserNotificationSeverity.Information,
+                UserNotificationActionKind.Undo,
+                token => UndoEditAsync(undoable, token)));
+            await _catalogue.LoadAsync(cancellationToken).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && !ExceptionClassification.IsFatal(ex))
+        {
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(CatalogueSelectionViewModel), "bulk_edit");
+            _notifier.Notify(new UserNotification("Catalogue.BulkEdit.Failed"));
+        }
+        finally
+        {
+            _isBusy = false;
+            RaiseState();
+        }
+    }
+
+    /// <summary>Undoes the most recent bulk edit and reloads the catalogue.</summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public Task UndoLastEditAsync(CancellationToken cancellationToken = default) =>
+        _applied.Count == 0 ? Task.CompletedTask : UndoEditAsync(_applied[^1], cancellationToken);
+
+    private async Task UndoEditAsync(BulkEditUndoableCommand expected, CancellationToken cancellationToken)
+    {
+        if (_history is null || !_history.CanUndo || _applied.Count == 0 || !ReferenceEquals(_applied[^1], expected))
+        {
+            return;
+        }
+
+        _isBusy = true;
+        RaiseState();
+        bool undone = false;
+        try
+        {
+            // The history pops the entry before undoing, so the edit leaves both stacks either way.
+            _applied.RemoveAt(_applied.Count - 1);
+            await _history.UndoAsync(cancellationToken).ConfigureAwait(true);
+            undone = true;
+            EditLog?.MarkLatestUndone();
+            _notifier.Notify(new UserNotification("Catalogue.BulkEdit.Undone", UserNotificationSeverity.Information));
+            await _catalogue.LoadAsync(cancellationToken).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && !ExceptionClassification.IsFatal(ex))
+        {
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(CatalogueSelectionViewModel), "bulk_edit_undo");
+            if (!undone)
+            {
+                EditLog?.MarkLatestUnavailable();
+                _notifier.Notify(new UserNotification("Catalogue.BulkEdit.UndoFailed"));
+            }
+        }
+        finally
+        {
+            _isBusy = false;
+            RaiseState();
+        }
+    }
+
     /// <summary>Clears the selection; the toolbar hides.</summary>
     public void ClearSelection() => _catalogue.SelectedBooks.Clear();
 
@@ -246,6 +362,7 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsToolbarVisible));
         OnPropertyChanged(nameof(CanAddToShelf));
         OnPropertyChanged(nameof(CanRemoveFromShelf));
+        OnPropertyChanged(nameof(CanEdit));
         OnPropertyChanged(nameof(CanMarkAsRead));
         OnPropertyChanged(nameof(IsEnrichVisible));
         OnPropertyChanged(nameof(CanEnrich));

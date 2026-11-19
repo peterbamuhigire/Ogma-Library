@@ -27,6 +27,9 @@ public enum UserNotificationActionKind
 
     /// <summary>Save a redacted diagnostics bundle.</summary>
     ExportDiagnostics = 3,
+
+    /// <summary>Undo the change just made (Sept-23 Phase 10, bulk edit).</summary>
+    Undo = 4,
 }
 
 /// <summary>

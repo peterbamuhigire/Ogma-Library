@@ -25,22 +25,28 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
     /// <param name="runtime">The job runtime.</param>
     /// <param name="localization">The localisation service.</param>
     /// <param name="ocrJobs">Optional OCR queue for the "make scanned books searchable" banner.</param>
+    /// <param name="edits">Optional recent catalogue edits with Undo (Sept-23 Phase 10, task 10.8).</param>
     public ActivityCentreViewModel(
         IJobRuntimeService runtime,
         ILocalizationService localization,
-        IOcrJobQueueService? ocrJobs = null)
+        IOcrJobQueueService? ocrJobs = null,
+        OgmaLibrary.App.ViewModels.Catalogue.EditActivityLog? edits = null)
     {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(localization);
         _runtime = runtime;
         _localization = localization;
         _ocrJobs = ocrJobs;
+        Edits = edits;
         _statusText = _localization["ActivityCentre.Status.Ready"];
         _localization.CultureChanged += OnCultureChanged;
     }
 
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>Recent undoable catalogue edits, or <see langword="null"/> when not wired.</summary>
+    public OgmaLibrary.App.ViewModels.Catalogue.EditActivityLog? Edits { get; }
 
     /// <summary>Recent jobs, newest first, with no payload or free-form error text.</summary>
     public ObservableCollection<ActivityJobDisplayItem> Jobs { get; } = [];

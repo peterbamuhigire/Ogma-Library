@@ -1,0 +1,152 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+        x:Class="OgmaLibrary.App.Views.Catalogue.BulkEditDialog"
+        x:DataType="vm:BulkEditViewModel"
+        Width="680"
+        Height="560"
+        MinWidth="480"
+        MinHeight="420"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Brush.Surface.Page}"
+        Title="{Binding Title}"
+        AutomationProperties.AutomationId="BulkEdit.Dialog"
+        AutomationProperties.Name="{Binding Title}">
+  <!-- Sept-23 Phase 10, task 10.8 (CAT-005): field, value, before-and-after preview, Apply/Cancel.
+       Apply is the default button and is disabled until the value is valid and changes a book;
+       Escape cancels. Nothing is written until the owner applies the form. -->
+  <Window.Styles>
+    <Style Selector="TextBlock.change">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12" Margin="20">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding Title}"
+                 FontSize="{DynamicResource Type.Size.Title}"
+                 FontWeight="SemiBold"
+                 Foreground="{DynamicResource Brush.Text.Primary}" />
+      <TextBlock Text="{Binding IntroText}"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Text.Secondary}" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="200,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+      <TextBlock Text="{Binding FieldLabel}"
+                 FontWeight="SemiBold"
+                 Foreground="{DynamicResource Brush.Text.Primary}" />
+      <TextBlock Grid.Column="1"
+                 Text="{Binding ValueLabel}"
+                 FontWeight="SemiBold"
+                 Foreground="{DynamicResource Brush.Text.Primary}" />
+      <ComboBox x:Name="FieldPicker"
+                Grid.Row="1"
+                HorizontalAlignment="Stretch"
+                ItemsSource="{Binding Fields}"
+                SelectedItem="{Binding SelectedField}"
+                AutomationProperties.AutomationId="BulkEdit.Field"
+                AutomationProperties.Name="{Binding FieldLabel}">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:BulkEditFieldOption">
+            <TextBlock Text="{Binding Label}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBox x:Name="ValueBox"
+               Grid.Row="1"
+               Grid.Column="1"
+               Text="{Binding Value}"
+               AutomationProperties.AutomationId="BulkEdit.Value"
+               AutomationProperties.Name="{Binding ValueLabel}"
+               AutomationProperties.HelpText="{Binding HintText}" />
+    </Grid>
+
+    <StackPanel Grid.Row="2" Spacing="4">
+      <TextBlock Text="{Binding HintText}"
+                 TextWrapping="Wrap"
+                 FontSize="{DynamicResource Type.Size.Small}"
+                 Foreground="{DynamicResource Brush.Text.Secondary}" />
+      <TextBlock Text="{Binding ValidationText}"
+                 IsVisible="{Binding HasValidationError}"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Status.Danger}"
+                 AutomationProperties.AutomationId="BulkEdit.Validation"
+                 AutomationProperties.LiveSetting="Assertive" />
+    </StackPanel>
+
+    <Border Grid.Row="3"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource Radius.M}"
+            Background="{DynamicResource Brush.Surface.Card}"
+            Padding="12">
+      <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="8">
+        <TextBlock Text="{Binding PreviewLabel}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Text.Primary}" />
+        <TextBlock Grid.Row="1"
+                   Text="{Binding SummaryText}"
+                   Foreground="{DynamicResource Brush.Text.Secondary}"
+                   AutomationProperties.AutomationId="BulkEdit.Summary"
+                   AutomationProperties.LiveSetting="Polite" />
+        <Grid Grid.Row="2" ColumnDefinitions="2*,*,*" ColumnSpacing="12">
+          <TextBlock Text="{Binding BookColumnText}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Secondary}" />
+          <TextBlock Grid.Column="1" Text="{Binding BeforeColumnText}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Secondary}" />
+          <TextBlock Grid.Column="2" Text="{Binding AfterColumnText}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Secondary}" />
+        </Grid>
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding PreviewRows}"
+                        AutomationProperties.AutomationId="BulkEdit.Preview"
+                        AutomationProperties.Name="{Binding PreviewLabel}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:BulkEditPreviewItem">
+                <Border BorderBrush="{DynamicResource Brush.Surface.Divider}"
+                        BorderThickness="0,0,0,1"
+                        Padding="0,6"
+                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                        AutomationProperties.Name="{Binding AccessibleName}">
+                  <Grid ColumnDefinitions="2*,*,*" ColumnSpacing="12">
+                    <TextBlock Text="{Binding Title}"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Title}"
+                               Foreground="{DynamicResource Brush.Text.Primary}" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding BeforeText}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource Brush.Text.Secondary}" />
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding AfterText}"
+                               TextWrapping="Wrap"
+                               Classes.change="{Binding IsChange}"
+                               Foreground="{DynamicResource Brush.Text.Primary}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button IsCancel="True"
+              MinHeight="36"
+              Click="Cancel_Click"
+              AutomationProperties.AutomationId="BulkEdit.Cancel"
+              AutomationProperties.Name="{Binding CancelText}">
+        <TextBlock Text="{Binding CancelText}" />
+      </Button>
+      <Button Classes="primary"
+              IsDefault="True"
+              MinHeight="36"
+              IsEnabled="{Binding CanApply}"
+              Click="Apply_Click"
+              AutomationProperties.AutomationId="BulkEdit.Apply"
+              AutomationProperties.Name="{Binding ApplyText}">
+        <TextBlock Text="{Binding ApplyText}" />
+      </Button>
+    </StackPanel>
+  </Grid>
+</Window>
