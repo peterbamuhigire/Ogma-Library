@@ -93,9 +93,16 @@ CODE (real engines in tests); real-window run in progress.
 
 ## In progress
 
-- **Phase 09, "The Lamplit Library" (D-14).** A vivid, jewel-toned visual identity in response to
-  the owner's feedback ("too greyish and boring"). Concept screenshots first, then the full
-  design system.
+- **Phase 09, "The Lamplit Library" (D-14): IMPLEMENTED 2026-11-19 on `kaizen/phase-09`, awaiting
+  merge and the owner walkthrough.** A vivid, jewel-toned visual identity in response to the
+  owner's feedback ("too greyish and boring"): one type scale on Spectral, Public Sans and
+  JetBrains Mono with a 12 px floor; Lamplit colour roles and a Night Library dark theme; one
+  button-variant set; amber selection; licensed duotone icons; cloth-bound generated covers; a
+  vector QR; a TabStrip overflow menu (D-15); and a design-token lint in CI. No literal font size,
+  `White` or hex colour remains in the views. Light and Dark screenshots at both sizes are in the
+  [completion record](../../implementation/execution/phase-sept23-09-completion.md). Not COMPLETE:
+  the accountability script fails on `main`'s archived `aug-39` matrix (K100), and the owner
+  walkthrough is pending.
 - **Phase 13, unified search.** Phrases, typos, Unicode names and field queries; honest status;
   no race.
 

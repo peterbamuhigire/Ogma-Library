@@ -66,7 +66,7 @@ Update this table as each phase moves. A phase is **COMPLETE** only under the De
 | 06 | Processing pipeline, jobs and identity promotion | B | **IMPLEMENTED** 2026-09-25 (E2E G2 processing journeys pending re-run) | [record](../../implementation/execution/phase-sept23-06-completion.md) |
 | 07 | Navigation and information architecture | B | **IMPLEMENTED** 2026-09-25 (owner walkthrough pending) | [record](../../implementation/execution/phase-sept23-07-completion.md) |
 | 08 | Settings and capability centre | B | **IMPLEMENTED** 2026-09-25 (Settings journey PASS both sizes) | [record](../../implementation/execution/phase-sept23-08-completion.md) |
-| 09 | Design system and visual identity | C | IN PROGRESS (lane: verification and merge) | — |
+| 09 | Design system and visual identity | C | **IMPLEMENTED** 2026-11-19 (branch `kaizen/phase-09`; all assessed journeys PASS both themes and sizes; open: accountability gate K100, owner walkthrough) | [record](../../implementation/execution/phase-sept23-09-completion.md) |
 | 10 | Catalogue experience | C | NOT STARTED | — |
 | 11 | Book detail inspector overhaul | C | NOT STARTED | — |
 | 12 | Reader experience | C | NOT STARTED | — |
