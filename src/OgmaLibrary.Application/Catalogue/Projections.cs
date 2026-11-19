@@ -30,7 +30,8 @@ namespace OgmaLibrary.Application.Catalogue;
 /// <param name="HasIsbn">Whether an ISBN is recorded.</param>
 /// <param name="OccurrenceCount">Number of file occurrences of any state (present, missing or invalid).</param>
 /// <param name="WorkGroupId">Reviewed work group (several editions of one work), or null.</param>
-/// <param name="EditionCount">Number of listed editions in <paramref name="WorkGroupId"/>; one when ungrouped.</param>
+/// <param name="EditionCount">Number of editions in <paramref name="WorkGroupId"/> (shown as one card); one when ungrouped.</param>
+/// <param name="HasDuplicateCandidate">Whether another book shares this book's ISBN or content hash.</param>
 public sealed record BookSummaryProjection(
     string BookId,
     string? Title,
@@ -56,10 +57,17 @@ public sealed record BookSummaryProjection(
     bool HasIsbn = false,
     int OccurrenceCount = 1,
     string? WorkGroupId = null,
-    int EditionCount = 1)
+    int EditionCount = 1,
+    bool HasDuplicateCandidate = false)
 {
-    /// <summary>Whether the book has several copies or is one of several editions of a work.</summary>
-    public bool IsPossibleDuplicate => CopyCount > 1 || EditionCount > 1;
+    /// <summary>
+    /// Whether the book has several copies, is one of several editions of a work, or shares an ISBN
+    /// or content hash with another book (the library health duplicate rules).
+    /// </summary>
+    public bool IsPossibleDuplicate => CopyCount > 1 || EditionCount > 1 || HasDuplicateCandidate;
+
+    /// <summary>Whether the card shows the copies, editions or possible-duplicate badge (task 10.9).</summary>
+    public bool HasIdentityBadge => OccurrenceCount > 1 || EditionCount > 1 || HasDuplicateCandidate;
 
     /// <summary>Whether a ready cover was taken from the book itself or a provider (not generated).</summary>
     public bool HasExtractedCover =>

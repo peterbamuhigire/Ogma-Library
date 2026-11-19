@@ -14,7 +14,8 @@ namespace OgmaLibrary.App.Converters;
 /// <remarks>
 /// Used as a multi-value converter: value 0 is the <see cref="BookSummaryProjection"/>, value 1 the
 /// <see cref="ILocalizationService"/>. The converter parameter selects the output:
-/// <c>Name</c> (default), <c>Author</c>, <c>Help</c> or <c>CoverReason</c>.
+/// <c>Name</c> (default), <c>Author</c>, <c>Help</c>, <c>CoverReason</c>, <c>IdentityBadge</c> or
+/// <c>IdentityTooltip</c>.
 /// </remarks>
 public sealed class BookAccessibleNameConverter : IMultiValueConverter
 {
@@ -37,6 +38,8 @@ public sealed class BookAccessibleNameConverter : IMultiValueConverter
             "Author" => ComposeAuthor(book, localization),
             "Help" => localization["Catalogue.Item.HelpText"],
             "CoverReason" => ComposeCoverReason(book, localization),
+            "IdentityBadge" => ComposeIdentityBadge(book, localization),
+            "IdentityTooltip" => ComposeIdentityTooltip(book, localization),
             _ => ComposeName(book, localization),
         };
     }
@@ -92,16 +95,54 @@ public sealed class BookAccessibleNameConverter : IMultiValueConverter
             parts.Add(localization[textStatus]);
         }
 
-        if (book.CopyCount > 1)
+        string? identity = ComposeIdentityBadge(book, localization);
+        if (identity is not null)
         {
-            parts.Add(string.Format(
-                localization.CurrentCulture,
-                localization["Catalogue.Item.CopiesFormat"],
-                book.CopyCount));
+            parts.Add(identity);
         }
 
         return string.Join(", ", parts);
     }
+
+    /// <summary>
+    /// The copies and editions badge (task 10.9): "2 copies", "2 editions · 1 work", both joined by
+    /// " · ", or "Possible duplicate" for an ISBN or content-hash candidate; null when none applies.
+    /// </summary>
+    /// <param name="book">The catalogue item.</param>
+    /// <param name="localization">The localisation service.</param>
+    /// <returns>The badge text, or <see langword="null"/>.</returns>
+    public static string? ComposeIdentityBadge(BookSummaryProjection book, ILocalizationService localization)
+    {
+        ArgumentNullException.ThrowIfNull(book);
+        ArgumentNullException.ThrowIfNull(localization);
+        var parts = new List<string>(2);
+        int copies = Math.Max(book.CopyCount, book.OccurrenceCount);
+        if (copies > 1)
+        {
+            parts.Add(string.Format(localization.CurrentCulture, localization["Catalogue.Item.CopiesFormat"], copies));
+        }
+
+        if (book.EditionCount > 1)
+        {
+            parts.Add(string.Format(localization.CurrentCulture, localization["Catalogue.Item.Badge.EditionsFormat"], book.EditionCount));
+        }
+
+        if (parts.Count == 0 && book.HasDuplicateCandidate)
+        {
+            parts.Add(localization["Catalogue.Item.Badge.PossibleDuplicate"]);
+        }
+
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
+    }
+
+    /// <summary>The badge tooltip: the badge text and how to compare, merge or split.</summary>
+    /// <param name="book">The catalogue item.</param>
+    /// <param name="localization">The localisation service.</param>
+    /// <returns>The tooltip, or <see langword="null"/> when the book has no badge.</returns>
+    public static string? ComposeIdentityTooltip(BookSummaryProjection book, ILocalizationService localization) =>
+        ComposeIdentityBadge(book, localization) is { } badge
+            ? string.Format(localization.CurrentCulture, localization["Catalogue.Item.Badge.Tooltip"], badge)
+            : null;
 
     /// <summary>
     /// The localised reason the extracted cover is not shown. When the book has a cover asset but the

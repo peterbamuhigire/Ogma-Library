@@ -261,6 +261,24 @@
                   <TextBlock Text="{Binding $parent[UserControl].DataContext.LockedBadgeText}"
                              AutomationProperties.AutomationId="Catalogue.Item.Badge.Locked" />
                 </Border>
+                <!-- Sept-23 Phase 10, task 10.9 (CAT-007): copies and editions. -->
+                <Border IsVisible="{Binding HasIdentityBadge}"
+                        Classes="badge info">
+                  <ToolTip.Tip>
+                    <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="IdentityTooltip">
+                      <Binding />
+                      <Binding Path="$parent[UserControl].DataContext.Localization" />
+                    </MultiBinding>
+                  </ToolTip.Tip>
+                  <TextBlock AutomationProperties.AutomationId="Catalogue.Item.Badge.Identity">
+                    <TextBlock.Text>
+                      <MultiBinding Converter="{x:Static conv:BookAccessibleNameConverter.Instance}" ConverterParameter="IdentityBadge">
+                        <Binding />
+                        <Binding Path="$parent[UserControl].DataContext.Localization" />
+                      </MultiBinding>
+                    </TextBlock.Text>
+                  </TextBlock>
+                </Border>
               </WrapPanel>
             </StackPanel>
           </StackPanel>

@@ -18,9 +18,10 @@ namespace OgmaLibrary.App.ViewModels.Catalogue;
 /// <summary>
 /// The catalogue selection toolbar (Sept-23 Phase 10, task 10.7). It shows when two or more
 /// books are selected, or when one is selected and a context action applies (the Library is
-/// filtered to a manual shelf, so "Remove from shelf" is available). Actions: Add to shelf,
-/// Edit… (bulk edit with preview and undo, task 10.8), Mark as read, Enrich (only with a metadata provider enabled) and
-/// Clear selection.
+/// filtered to a manual shelf, so "Remove from shelf" is available, or the card has copies or
+/// editions to compare or split). Actions: Add to shelf, Edit… (bulk edit with preview and undo,
+/// task 10.8), Compare, Merge into one work and Split (task 10.9), Mark as read, Enrich (only with
+/// a metadata provider enabled) and Clear selection.
 /// </summary>
 public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
 {
@@ -52,6 +53,7 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
     /// <param name="writeService">Catalogue writes, for bulk edit.</param>
     /// <param name="history">The undo history; bulk edit is offered only with both this and <paramref name="writeService"/>.</param>
     /// <param name="editLog">Recent edits shown in the Activity Centre.</param>
+    /// <param name="identity">Compare, Merge into one work and Split (task 10.9).</param>
     public CatalogueSelectionViewModel(
         CatalogueViewModel catalogue,
         ShelfMembershipViewModel membership,
@@ -63,7 +65,8 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
         ILogger<CatalogueSelectionViewModel>? logger = null,
         ICatalogueWriteService? writeService = null,
         ICommandHistory? history = null,
-        EditActivityLog? editLog = null)
+        EditActivityLog? editLog = null,
+        IdentityGroupingViewModel? identity = null)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
         ArgumentNullException.ThrowIfNull(membership);
@@ -84,6 +87,12 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
         if (EditLog is not null)
         {
             EditLog.UndoLatest = UndoLastEditAsync;
+        }
+
+        Identity = identity;
+        if (Identity is not null)
+        {
+            Identity.PropertyChanged += (_, _) => OnPropertyChanged(nameof(IsToolbarVisible));
         }
 
         _catalogue.SelectedBooks.CollectionChanged += OnSelectionChanged;
@@ -107,7 +116,11 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
     public int Count => _catalogue.SelectedBooks.Count;
 
     /// <summary>Whether the toolbar is shown.</summary>
-    public bool IsToolbarVisible => Count >= 2 || (Count == 1 && CanRemoveFromShelf);
+    public bool IsToolbarVisible => Count >= 2 ||
+        (Count == 1 && (CanRemoveFromShelf || Identity?.CanCompare == true || Identity?.CanSplit == true));
+
+    /// <summary>Compare, Merge into one work and Split, or null when grouping is unavailable.</summary>
+    public IdentityGroupingViewModel? Identity { get; }
 
     /// <summary>Whether a membership or bulk action is running.</summary>
     public bool IsBusy => _isBusy || Membership.IsBusy;

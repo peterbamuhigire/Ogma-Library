@@ -10,7 +10,8 @@ namespace OgmaLibrary.Tests.E2E.Journeys;
 /// <summary>
 /// Sept-23 Phase 10 catalogue journeys: J-CAT-1 keyboard browse to detail; J-CAT-2 create a
 /// collection, add books by the selection toolbar menu and by drag, then filter the Library by it;
-/// J-CAT-3 bulk-set the author of books missing one, with preview, apply and undo.
+/// J-CAT-3 bulk-set the author of books missing one, with preview, apply and undo; J-CAT-4 copies
+/// badge and Compare on the corpus duplicate, then merge two books into one work and undo.
 /// </summary>
 [Collection(RealWindowTests.Name)]
 public sealed class CatalogueOrganiseTests
@@ -226,6 +227,106 @@ public sealed class CatalogueOrganiseTests
             context.Mark("edit.undone");
             context.Shot("bulk-edit-undone");
         });
+
+    /// <summary>
+    /// Oracle (CAT-007): the corpus duplicate's card carries the "2 copies" badge in its accessible
+    /// name and Compare shows both files side by side; merging two other books shows one
+    /// "2 editions · 1 work" card, and Undo in the toast brings both cards back. No file is deleted.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(E2ESettings.SizeData), MemberType = typeof(E2ESettings))]
+    [Trait("Category", "E2E")]
+    [Trait("Journey", "J-CAT-4")]
+    [Trait("Tag", "Catalogue")]
+    public void JCat4_Copies_Compare_Merge_Undo(string size) =>
+        Journey.Run("J-CAT-4", size, JourneySupport.Standard, context =>
+        {
+            context.Launch(Shell.SeedEnvironment(context));
+            Shell.WaitReady(context);
+            Shell.AddCorpusLibrary(context);
+            Shell.WaitForCatalogue(context, minimum: 3, stableFor: TimeSpan.FromSeconds(2));
+            AutomationElement window = context.RequireApp.MainWindow;
+            int fileCount = Directory.EnumerateFiles(context.Session.LibraryDirectory, "*", SearchOption.AllDirectories).Count();
+
+            // 1. The corpus duplicate shows one card with the copies badge in its name.
+            AutomationElement copies = Uia.WaitUntil(
+                () => Shell.CatalogueItems(context).FirstOrDefault(item => Name(item).Contains("2 copies", StringComparison.Ordinal)),
+                TimeSpan.FromSeconds(30),
+                "a card named with the '2 copies' badge");
+            string copiesId = Id(copies);
+            context.Record("copies.card", copiesId);
+            context.Mark("badge.copies");
+
+            // 2. Compare shows both files side by side, then closes.
+            Native.ForceForeground(context.RequireApp.Handle);
+            Click(copies);
+            Click(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Selection.Compare") is { } c && c.IsEnabled ? c : null,
+                TimeSpan.FromSeconds(10),
+                "an enabled Compare button"));
+            AutomationElement dialog = Uia.WaitUntil(() => FindTopLevel(context, "Compare.Dialog"), TimeSpan.FromSeconds(15), "the Compare dialog");
+            Assert.True(
+                Uia.Poll(() => CompareColumns(dialog) >= 2, TimeSpan.FromSeconds(5)),
+                "The Compare dialog did not show two file columns.");
+            context.Record("compare.columns", CompareColumns(dialog));
+            context.Mark("compare.shown");
+            context.Shot("compare-dialog", dialog.Properties.NativeWindowHandle.ValueOrDefault);
+            Uia.Activate(Uia.WaitFor(dialog, "Compare.Close"));
+            Assert.True(
+                Uia.Poll(() => FindTopLevel(context, "Compare.Dialog") is null, TimeSpan.FromSeconds(10)),
+                "The Compare dialog did not close.");
+
+            // 3. Merge two other books into one work: one grouped card replaces two.
+            AutomationElement[] items = Shell.WaitForCatalogue(context, minimum: 3, stableFor: TimeSpan.FromSeconds(2));
+            AutomationElement[] plain = items
+                .Where(item => Id(item) != copiesId && !Name(item).Contains("1 work", StringComparison.Ordinal))
+                .Take(2)
+                .ToArray();
+            Assert.Equal(2, plain.Length);
+            string[] picked = plain.Select(Id).ToArray();
+            int before = items.Length;
+            Native.ForceForeground(context.RequireApp.Handle);
+            Click(plain[0]);
+            using (Keyboard.Pressing(VirtualKeyShort.CONTROL))
+            {
+                Click(plain[1]);
+            }
+
+            Click(Uia.WaitUntil(
+                () => Uia.TryFind(window, "Catalogue.Selection.Merge") is { } m && m.IsEnabled ? m : null,
+                TimeSpan.FromSeconds(10),
+                "an enabled Merge button"));
+            Assert.True(
+                Uia.Poll(
+                    () => Shell.CatalogueItems(context) is { } now &&
+                          now.Length == before - 1 &&
+                          now.Any(item => Name(item).Contains("2 editions · 1 work", StringComparison.Ordinal)),
+                    TimeSpan.FromSeconds(15),
+                    intervalMs: 300),
+                "Merging did not show one '2 editions · 1 work' card in place of two.");
+            context.Mark("merge.applied");
+            AutomationElement undo = Uia.WaitFor(window, "Shell.Toast.Action", TimeSpan.FromSeconds(10));
+            context.Shot("merged-toast");
+
+            // 4. Undo restores both cards; no file was deleted at any point.
+            Uia.Activate(undo);
+            Assert.True(
+                Uia.Poll(
+                    () => Shell.CatalogueItems(context) is { } now &&
+                          now.Length == before &&
+                          picked.All(id => now.Select(Id).Contains(id)),
+                    TimeSpan.FromSeconds(15),
+                    intervalMs: 300),
+                "Undo did not bring both merged books back as separate cards.");
+            context.Mark("merge.undone");
+            context.Shot("merge-undone");
+            Assert.Equal(fileCount, Directory.EnumerateFiles(context.Session.LibraryDirectory, "*", SearchOption.AllDirectories).Count());
+            context.Mark("files.untouched");
+        });
+
+    private static int CompareColumns(AutomationElement dialog) =>
+        dialog.FindAllDescendants()
+            .Count(element => element.Properties.AutomationId.ValueOrDefault?.StartsWith("Compare.Column.", StringComparison.Ordinal) == true);
 
     private static string TryDragThirdCard(JourneyContext context, AutomationElement window)
     {

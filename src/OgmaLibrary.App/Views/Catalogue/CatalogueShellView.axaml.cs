@@ -487,6 +487,36 @@ public partial class CatalogueShellView : UserControl
         }
     }
 
+    private void SelectionMerge_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => ViewModel?.Selection?.Identity?.MergeSelectionAsync() ?? Task.CompletedTask,
+            "catalogue.selection_merge");
+
+    private void SelectionSplit_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(
+            () => ViewModel?.Selection?.Identity?.SplitSelectionAsync() ?? Task.CompletedTask,
+            "catalogue.selection_split");
+
+    private void SelectionCompare_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(SelectionCompareAsync, "catalogue.selection_compare");
+
+    private async Task SelectionCompareAsync()
+    {
+        IdentityGroupingViewModel? identity = ViewModel?.Selection?.Identity;
+        if (identity is null || TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return;
+        }
+
+        CompareCopiesViewModel? compare = await identity.CreateCompareAsync().ConfigureAwait(true);
+        if (compare is null)
+        {
+            return;
+        }
+
+        await new CompareCopiesDialog { DataContext = compare }.ShowDialog(owner).ConfigureAwait(true);
+    }
+
     private void SelectionClear_Click(object? sender, RoutedEventArgs e) => ViewModel?.Selection?.ClearSelection();
 
     private void SaveSmartShelf_Click(object? sender, RoutedEventArgs e) =>

@@ -48,6 +48,8 @@ public static class IngestionServiceExtensions
         services.AddSingleton<IFilesystemReconciliationService, FilesystemReconciliationService>();
         services.AddSingleton<IReconciliationReviewService, ReconciliationReviewService>();
         services.AddSingleton<IIdentityGroupingService, IdentityGroupingService>();
+        services.AddSingleton<IBookOccurrenceReader>(sp => new BookOccurrenceReader(
+            sp.GetRequiredService<IDbContextFactory<CatalogueDbContext>>()));
         services.AddSingleton<IPdfInputBroker, PdfInputBroker>();
         // Garbage collection deletes only inside the app-data asset store (D-04).
         services.AddSingleton<IVisualAssetService>(sp => new VisualAssetService(

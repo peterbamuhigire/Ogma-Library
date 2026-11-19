@@ -619,6 +619,28 @@
                         Click="SelectionEdit_Click">
                   <TextBlock Text="{Binding Selection.EditText}" />
                 </Button>
+                <!-- Sept-23 Phase 10, task 10.9 (CAT-007): copies and editions; never deletes files. -->
+                <Button Classes="tool"
+                        IsVisible="{Binding Selection.Identity.CanCompare, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.Compare"
+                        AutomationProperties.Name="{Binding Selection.Identity.CompareText}"
+                        Click="SelectionCompare_Click">
+                  <TextBlock Text="{Binding Selection.Identity.CompareText}" />
+                </Button>
+                <Button Classes="tool"
+                        IsVisible="{Binding Selection.Identity.CanMerge, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.Merge"
+                        AutomationProperties.Name="{Binding Selection.Identity.MergeText}"
+                        Click="SelectionMerge_Click">
+                  <TextBlock Text="{Binding Selection.Identity.MergeText}" />
+                </Button>
+                <Button Classes="tool"
+                        IsVisible="{Binding Selection.Identity.CanSplit, FallbackValue=False}"
+                        AutomationProperties.AutomationId="Catalogue.Selection.Split"
+                        AutomationProperties.Name="{Binding Selection.Identity.SplitText}"
+                        Click="SelectionSplit_Click">
+                  <TextBlock Text="{Binding Selection.Identity.SplitText}" />
+                </Button>
                 <Button Classes="tool"
                         IsEnabled="{Binding Selection.CanMarkAsRead, FallbackValue=False}"
                         AutomationProperties.AutomationId="Catalogue.Selection.MarkRead"

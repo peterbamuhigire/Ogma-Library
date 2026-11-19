@@ -1,0 +1,105 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:OgmaLibrary.App.ViewModels.Catalogue"
+        x:Class="OgmaLibrary.App.Views.Catalogue.CompareCopiesDialog"
+        x:DataType="vm:CompareCopiesViewModel"
+        Width="760"
+        Height="520"
+        MinWidth="480"
+        MinHeight="360"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Brush.Surface.Page}"
+        Title="{Binding Title}"
+        AutomationProperties.AutomationId="Compare.Dialog"
+        AutomationProperties.Name="{Binding Title}">
+  <!-- Sept-23 Phase 10, task 10.9 (CAT-007): the files of the selection side by side. Read-only:
+       comparing never deletes, moves or renames a file. Escape or Close dismisses it. -->
+  <Window.Styles>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="{DynamicResource Type.Size.Caption}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    </Style>
+    <Style Selector="TextBlock.value">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12" Margin="20">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding Title}"
+                 FontSize="{DynamicResource Type.Size.Title}"
+                 FontWeight="SemiBold"
+                 Foreground="{DynamicResource Brush.Text.Primary}" />
+      <TextBlock Text="{Binding IntroText}"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Text.Secondary}" />
+      <TextBlock Text="{Binding VerdictText}"
+                 FontWeight="SemiBold"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Text.Primary}"
+                 AutomationProperties.AutomationId="Compare.Verdict" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Columns}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="12" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:CompareCopyColumn">
+            <Border Width="300"
+                    BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource Radius.M}"
+                    Background="{DynamicResource Brush.Surface.Card}"
+                    Padding="12">
+              <StackPanel Spacing="4">
+                <!-- A Border has no automation peer; the column id and its summary live on the
+                     heading text, which does. -->
+                <TextBlock Text="{Binding Heading}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Text.Primary}"
+                           AutomationProperties.AutomationId="{Binding AutomationId}"
+                           AutomationProperties.Name="{Binding AccessibleName}" />
+                <TextBlock Classes="value" Text="{Binding Title}" FontWeight="SemiBold" />
+                <TextBlock Classes="label" Text="{Binding $parent[ItemsControl].((vm:CompareCopiesViewModel)DataContext).PathLabel}" />
+                <SelectableTextBlock Text="{Binding PathText}"
+                                     TextWrapping="Wrap"
+                                     Foreground="{DynamicResource Brush.Text.Primary}" />
+                <TextBlock Classes="label" Text="{Binding $parent[ItemsControl].((vm:CompareCopiesViewModel)DataContext).SizeLabel}" />
+                <TextBlock Classes="value" Text="{Binding SizeText}" />
+                <TextBlock Classes="label" Text="{Binding $parent[ItemsControl].((vm:CompareCopiesViewModel)DataContext).HashLabel}" />
+                <SelectableTextBlock Text="{Binding HashText}"
+                                     Foreground="{DynamicResource Brush.Text.Primary}" />
+                <TextBlock Classes="label" Text="{Binding $parent[ItemsControl].((vm:CompareCopiesViewModel)DataContext).ValidityLabel}" />
+                <TextBlock Classes="value" Text="{Binding ValidityText}" />
+                <TextBlock Classes="label" Text="{Binding $parent[ItemsControl].((vm:CompareCopiesViewModel)DataContext).AddedLabel}" />
+                <TextBlock Classes="value" Text="{Binding AddedText}" />
+                <TextBlock Classes="label" Text="{Binding $parent[ItemsControl].((vm:CompareCopiesViewModel)DataContext).LastSeenLabel}" />
+                <TextBlock Classes="value" Text="{Binding LastSeenText}" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <Button Grid.Row="2"
+            HorizontalAlignment="Right"
+            Classes="primary"
+            IsCancel="True"
+            IsDefault="True"
+            MinHeight="36"
+            Click="Close_Click"
+            AutomationProperties.AutomationId="Compare.Close"
+            AutomationProperties.Name="{Binding CloseText}">
+      <TextBlock Text="{Binding CloseText}" />
+    </Button>
+  </Grid>
+</Window>

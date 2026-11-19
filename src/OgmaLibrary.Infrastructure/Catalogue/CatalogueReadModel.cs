@@ -302,10 +302,28 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
             }
         }
 
+        // Sept-23 Phase 10, task 10.9 (D-37): a reviewed work group is one card. The first edition
+        // by book id represents the group and carries the edition count; Compare and Split reach
+        // the others.
         Dictionary<string, int> editionCounts = results
             .Where(item => workGroupByBook.ContainsKey(item.BookId))
             .GroupBy(item => workGroupByBook[item.BookId], StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        if (editionCounts.Values.Any(count => count > 1))
+        {
+            HashSet<string> representatives = results
+                .Where(item => workGroupByBook.ContainsKey(item.BookId))
+                .GroupBy(item => workGroupByBook[item.BookId], StringComparer.Ordinal)
+                .Select(group => group.Select(item => item.BookId).Min(StringComparer.Ordinal)!)
+                .ToHashSet(StringComparer.Ordinal);
+            results = results
+                .Where(item => !workGroupByBook.ContainsKey(item.BookId) || representatives.Contains(item.BookId))
+                .ToList();
+        }
+
+        HashSet<string> duplicateCandidates = results.Count > 0
+            ? await DuplicateCandidates.LoadBookIdsAsync(context, cancellationToken).ConfigureAwait(false)
+            : [];
 
         var summaries = new List<BookSummaryProjection>(results.Count);
         foreach (var item in results)
@@ -340,6 +358,7 @@ public sealed class CatalogueReadModel : ICatalogueReadModel
                  OccurrenceCount: Math.Max(1, item.OccurrenceCount),
                  WorkGroupId: workGroupId,
                  EditionCount: workGroupId is null ? 1 : Math.Max(1, editionCounts.GetValueOrDefault(workGroupId)),
+                 HasDuplicateCandidate: duplicateCandidates.Contains(item.BookId),
                  Processing: new CatalogueProcessingProjection(
                      LockedAwareIndexStatus(item.IndexStatus, item.IsLocked),
                      (global::OgmaLibrary.Application.Search.SearchEmbeddingStatus)item.EmbeddingStatus,

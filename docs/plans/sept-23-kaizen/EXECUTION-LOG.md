@@ -109,3 +109,16 @@ These decisions were taken under that authority. Each is the recommended option 
   - G10, K115 and the other widths, themes and accessibility checks are NOT_ASSESSED or open.
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **2026-11-19** — Phase 10 slice 6 (executor session): copies and editions badge, Compare, Merge and Split with Undo (CAT-007). New owner-proxy decisions:
+  - **D-37**: a reviewed work group shows as one card (the lowest book id), collapsed after the query and paging, as edition groups already are.
+  - **D-38**: Merge creates a work from ungrouped books, adds books to the one work already selected, and refuses books from two different works with a message. Split dissolves the whole work.
+  - **D-39**: Undo checks that the group version still matches what this operation produced; a change made elsewhere is shown as a conflict, not overwritten. The check is optimistic, because the service has no expected-version parameter.
+  - **D-40**: "Possible duplicates" and Library Health share one rule set (`DuplicateCandidates`); the catalogue also flags a book held as two or more files.
+  - **D-41**: Keep separate is omitted until it can be persisted (K118, Phase 11).
+
+  Results:
+  - J-CAT-4 PASS at 1280x800 under the desktop lock (runs `20261119-150819` with every catalogue journey, and `20261119-151646` after the Compare title fix).
+  - `Sept23Phase10Identity` 7 + 3; the fast suite (Tests 1,333, Ui 416, Architecture 52); build, format and design tokens pass.
+  - The stale card after a merge (`IsSameCard` ignored the identity fields) and the journey runner's rejection of hyphenated journey names were fixed in this slice.
+
+  [Record](../../implementation/execution/phase-sept23-10-completion.md).

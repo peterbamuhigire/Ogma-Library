@@ -262,7 +262,14 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<ILogger<CatalogueSelectionViewModel>>(),
             writeService,
             services.GetRequiredService<ICommandHistory>(),
-            editLog);
+            editLog,
+            new IdentityGroupingViewModel(
+                catalogue,
+                services.GetRequiredService<IIdentityGroupingService>(),
+                services.GetRequiredService<IBookOccurrenceReader>(),
+                localization,
+                notifier,
+                services.GetRequiredService<ILogger<IdentityGroupingViewModel>>()));
 
         shell = new MainShellViewModel(
             localization,

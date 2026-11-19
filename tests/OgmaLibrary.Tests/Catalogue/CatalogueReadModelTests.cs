@@ -411,6 +411,10 @@ public sealed class CatalogueReadModelTests
             string occurrenceId,
             CancellationToken cancellationToken = default) => Task.FromResult<IdentityGroupDescriptor?>(null);
 
+        public Task<IdentityGroupDescriptor?> FindByIdAsync(
+            string groupId,
+            CancellationToken cancellationToken = default) => Task.FromResult<IdentityGroupDescriptor?>(null);
+
         public Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(
             IReadOnlyList<string> bookIds,
             bool includeWorkGroups,

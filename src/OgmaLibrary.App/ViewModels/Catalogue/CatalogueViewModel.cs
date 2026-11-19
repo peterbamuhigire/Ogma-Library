@@ -885,6 +885,10 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
          a.CoverSource == b.CoverSource &&
          a.HasFailedCover == b.HasFailedCover &&
          a.CopyCount == b.CopyCount &&
+         a.OccurrenceCount == b.OccurrenceCount &&
+         a.WorkGroupId == b.WorkGroupId &&
+         a.EditionCount == b.EditionCount &&
+         a.HasDuplicateCandidate == b.HasDuplicateCandidate &&
          a.RelativePath == b.RelativePath &&
          Equals(a.Processing, b.Processing) &&
          a.Authors.SequenceEqual(b.Authors) &&

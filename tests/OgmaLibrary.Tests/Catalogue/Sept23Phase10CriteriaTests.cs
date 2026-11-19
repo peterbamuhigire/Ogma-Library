@@ -44,7 +44,7 @@ public sealed class Sept23Phase10CriteriaTests
             [B, G]
         },
         { "needs OCR (locked books excluded)", new CatalogueFilter(NeedsOcr: true), [B, C] },
-        { "possible duplicates (copies and editions)", new CatalogueFilter(PossibleDuplicates: true), [D, E, F] },
+        { "possible duplicates (copies; ungrouped here)", new CatalogueFilter(PossibleDuplicates: true), [D] },
         {
             "combined",
             new CatalogueFilter(MinRating: 1, QualityBelow: 0.5, MissingFields: CatalogueMissingFields.Author),
@@ -128,7 +128,7 @@ public sealed class Sept23Phase10CriteriaTests
     public async Task Projection_CarriesTheNewSummaryFields()
     {
         using CatalogueDbContext context = await SeedAsync();
-        IReadOnlyList<BookSummaryProjection> all = await AllAsync(CreateReadModel(context));
+        IReadOnlyList<BookSummaryProjection> all = await AllAsync(CreateGroupedReadModel(context));
 
         BookSummaryProjection a = all.Single(book => book.BookId == A);
         Assert.Equal(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), a.DateAddedUtc);
@@ -143,6 +143,7 @@ public sealed class Sept23Phase10CriteriaTests
         BookSummaryProjection e = all.Single(book => book.BookId == E);
         Assert.Equal("P10-WORK", e.WorkGroupId);
         Assert.Equal(2, e.EditionCount);
+        Assert.DoesNotContain(all, book => book.BookId == F);
         Assert.DoesNotContain(all, book => book.BookId == H);
     }
 
@@ -216,7 +217,11 @@ public sealed class Sept23Phase10CriteriaTests
         Assert.Equal(new CatalogueFilter(), filter);
     }
 
-    private static CatalogueReadModel CreateReadModel(CatalogueDbContext context) =>
+    // Criteria and sort parity are checked without identity grouping: since D-37 a reviewed work
+    // is one card, which Projection_CarriesTheNewSummaryFields and Sept23Phase10IdentityUiTests cover.
+    private static CatalogueReadModel CreateReadModel(CatalogueDbContext context) => new(context);
+
+    private static CatalogueReadModel CreateGroupedReadModel(CatalogueDbContext context) =>
         new(context, identityGrouping: new WorkGrouping(
             new IdentityGroupBookMembership(E, "P10-WORK", IdentityGroupKind.Work),
             new IdentityGroupBookMembership(F, "P10-WORK", IdentityGroupKind.Work)));
@@ -439,6 +444,10 @@ public sealed class Sept23Phase10CriteriaTests
 
         public Task<IdentityGroupDescriptor?> FindByOccurrenceAsync(
             string occurrenceId,
+            CancellationToken cancellationToken = default) => Task.FromResult<IdentityGroupDescriptor?>(null);
+
+        public Task<IdentityGroupDescriptor?> FindByIdAsync(
+            string groupId,
             CancellationToken cancellationToken = default) => Task.FromResult<IdentityGroupDescriptor?>(null);
 
         public Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(

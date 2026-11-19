@@ -190,3 +190,46 @@ not, so the slice added shared `BulkEditFieldRules`, used by both the preview an
 - G10 is still a placeholder; J-CAT-3 is the natural binding.
 - Risk: undo restores a snapshot, so a background enrichment that wrote the same field between apply and undo would be overwritten. The journey ran during processing without a conflict, but no test covers the race.
 - The drag journey still needs a real OLE drag driver.
+
+## Slice 6: copies, editions, merge and split (CAT-007)
+
+Commit: `feat(catalogue): copies and editions badge, compare, merge and split with undo (CAT-007)`.
+
+Premise corrections:
+
+- No read contract mapped a book to its file occurrences or file facts. The slice adds `IBookOccurrenceReader` (`BookOccurrenceReader`).
+- Books scanned since launch had no canonical identity graph (aliases, occurrences). The reader fills the graph on demand for the books it is asked about, so Merge and Compare work on newly scanned books.
+- `IIdentityGroupingService` has no expected-version parameter. Undo therefore checks the version optimistically (D-39); the check is not atomic.
+- Keep separate cannot be persisted by the service, so it is omitted and registered as K118 (Phase 11, open; D-41).
+
+| Area | Result |
+|---|---|
+| Badge | Grid and list cards show "2 copies", "2 editions · 1 work" (joined with " · " when both apply) or "Possible duplicate", with a tooltip saying that files are never deleted. The badge text ends the card's accessible name. Id `Catalogue.Item.Badge.Identity`; the `Catalogue.Item.{id}` ids are unchanged. |
+| One card per work (D-37) | `CatalogueReadModel` collapses a work group to the card with the lowest book id after paging, as edition groups already are; a page can therefore be short (known limitation, shared with edition groups). `CatalogueViewModel.IsSameCard` now compares the identity fields. Before this fix a merged card stayed stale until restart. |
+| Compare | `CompareCopiesDialog` and `CompareCopiesViewModel` show each file side by side: name, location, size, a content fingerprint prefix, condition, added and last seen, and an identical or different verdict. The dialog is read-only and never deletes, moves or renames a file. When no title is stored, each column is named by its own file name, as the card is (fixed after the first real-window run showed "Untitled"). |
+| Merge, Split, Undo | `IdentityGroupingViewModel` adds Merge, Split and Compare to the selection toolbar (`Catalogue.Selection.Merge`, `.Split` and `.Compare`). Each change raises a toast with a one-shot Undo. A conflict or refusal gives a localised warning (D-38, D-39). `IIdentityGroupingService` and `IBookOccurrenceReader` are resolved only in `ShellModule`. |
+| Possible duplicates (D-40) | `DuplicateCandidates` holds the shared rules: a shared normalised ISBN, or a shared content hash. `LibraryHealthService.LoadDuplicatesAsync` delegates to it, and the catalogue filter adds books held as two or more files. A test proves the two agree. |
+| Strings and design | Every new string is in English and French. Phase 09 tokens only, with no hard-coded colour, `FontSize` or `Foreground`. The typeface is Public Sans and Spectral only. |
+
+### Gates (slice 6)
+
+| Gate | Result |
+|---|---|
+| `dotnet build OgmaLibrary.sln -c Release --no-restore` | PASS, 0 warnings, 0 errors (re-run after the last fix) |
+| `dotnet format --verify-no-changes --no-restore` | PASS (re-run after the last fix) |
+| `scripts/Test-DesignTokens.ps1` | PASS ("clean"); no XAML has changed since |
+| `scripts/Test-Fast.ps1` | **PASS**: Tests 1,333, Ui 416, Architecture 52. This ran before the Compare title fix; after the fix, only the Identity filter was re-run. |
+| Filter `Sept23Phase10Identity` | PASS: 7 SQLite tests (merge then undo, split then undo, conflict, refusal of two works, Compare, the file-name title, parity with Library Health) and 3 headless tests (badges in grid and list, the accessible name and tooltip in English and French, the Compare dialog columns and Close). |
+| J-CAT-4 at 1280x800 under the desktop lock | **PASS** in run `20261119-150819` (with J-CAT-1/2/3, G1, G2, G6 and A11yNames, all PASS) and in run `20261119-151646` after the title fix. The corpus duplicate's card is named with "2 copies". Compare shows 2 columns and closes. Merging two books shows one "2 editions · 1 work" card in place of two, Undo in the toast brings both back, and the library file count is unchanged. [Evidence](evidence/sept-23-kaizen/phase-10/slice-6/). |
+| Journey runner | `Invoke-GoldenJourneys.ps1 -Journey` rejected hyphenated ids such as `J-CAT-4`; it now accepts them. |
+| G10 Organise | NOT ASSESSED (still a placeholder) |
+| 1024x768, dark theme, RTL, 200% text, screen reader | NOT_ASSESSED in this slice |
+| `Test-RequirementAccountability.ps1` | NOT_ASSESSED in this slice |
+| Skills | Development engine skills were not read this slice: NOT_ASSESSED. |
+
+### Open after slice 6
+
+- K118: Keep separate (Phase 11).
+- At 1280x800, with the inspector open, the selection toolbar wraps onto a second line ("Clear selection"); everything stays reachable. This was observed, not measured against a budget.
+- Undo's version check is optimistic, not atomic (D-39).
+- When a work collapses, a page can be short (D-37).

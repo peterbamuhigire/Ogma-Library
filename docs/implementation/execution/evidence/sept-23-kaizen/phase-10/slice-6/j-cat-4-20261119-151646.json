@@ -1,0 +1,32 @@
+{
+  "journey": "J-CAT-4",
+  "test": "JCat4_Copies_Compare_Merge_Undo",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Light",
+  "launch.timeToWindowMs": 4055,
+  "shell.readyMs": 11758,
+  "library.chooseFolderPressedMs": 12572,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 15870,
+  "catalogue.firstItemMs": 16257,
+  "catalogue.settledMs": 25349,
+  "catalogue.count": 13,
+  "copies.card": "Catalogue.Item.01M7T64RBK2QZQKVXQVFMQXKNJ",
+  "badge.copiesMs": 19142,
+  "compare.columns": 2,
+  "compare.shownMs": 21087,
+  "merge.appliedMs": 26473,
+  "merge.undoneMs": 27644,
+  "files.untouchedMs": 27760,
+  "status": "PASS",
+  "totalMs": 27863,
+  "log.warningsOrAbove": 5,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 1024,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

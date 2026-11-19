@@ -172,6 +172,32 @@ public sealed class IdentityGroupingService : IIdentityGroupingService
     }
 
     /// <inheritdoc />
+    public async Task<IdentityGroupDescriptor?> FindByIdAsync(
+        string groupId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateGroupId(groupId);
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        IdentityGroupRow? group = await context.IdentityGroups
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.IdentityGroupId == groupId, cancellationToken)
+            .ConfigureAwait(false);
+        if (group is null)
+        {
+            return null;
+        }
+
+        string[] active = await context.IdentityGroupMembers
+            .AsNoTracking()
+            .Where(row => row.IdentityGroupId == groupId && row.IsActive)
+            .Select(row => row.FileOccurrenceId)
+            .ToArrayAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return ToDescriptor(group, active);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(
         IReadOnlyList<string> bookIds,
         bool includeWorkGroups,

@@ -174,56 +174,7 @@ public sealed class LibraryHealthService : ILibraryHealthService
             .ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
 
-        // Load all books with an ISBN or hash; group client-side for SQLite compatibility.
-        var booksWithIsbn = await context.Books
-            .AsNoTracking()
-            .Where(b => b.IsbnNormalized != null)
-            .Select(b => new { b.BookId, b.Title, b.IsbnNormalized, b.Sha256Hash })
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var result = new List<DuplicateBookEntry>();
-
-        // ISBN duplicates.
-        var isbnGroups = booksWithIsbn
-            .GroupBy(b => b.IsbnNormalized!)
-            .Where(g => g.Count() > 1);
-
-        foreach (var g in isbnGroups)
-        {
-            foreach (var b in g)
-            {
-                result.Add(new DuplicateBookEntry(b.BookId, b.Title, g.Key, "ISBN"));
-            }
-        }
-
-        // Hash duplicates.
-        var booksWithHash = await context.Books
-            .AsNoTracking()
-            .Where(b => b.Sha256Hash != null)
-            .Select(b => new { b.BookId, b.Title, b.Sha256Hash })
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var hashGroups = booksWithHash
-            .GroupBy(b => b.Sha256Hash!)
-            .Where(g => g.Count() > 1);
-
-        var seenIds = new HashSet<string>(result.Select(r => r.BookId), StringComparer.OrdinalIgnoreCase);
-
-        foreach (var g in hashGroups)
-        {
-            foreach (var b in g)
-            {
-                // Only add if not already in result (a book may duplicate on both ISBN and hash).
-                if (seenIds.Add($"{b.BookId}|ContentHash"))
-                {
-                    result.Add(new DuplicateBookEntry(b.BookId, b.Title, g.Key, "ContentHash"));
-                }
-            }
-        }
-
-        return result;
+        return await DuplicateCandidates.LoadAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<MissingCoverEntry>> LoadMissingCoversAsync(

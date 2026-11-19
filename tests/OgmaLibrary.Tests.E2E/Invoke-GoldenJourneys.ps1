@@ -100,7 +100,7 @@ foreach ($entry in $Sizes) {
 $journeyList = @()
 foreach ($entry in $Journey) { $journeyList += ($entry -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 foreach ($id in $journeyList) {
-    if ($id -notmatch '^(G([1-9]|1[0-2])|[A-Za-z][A-Za-z0-9]+)$') {
+    if ($id -notmatch '^(G([1-9]|1[0-2])|[A-Za-z][A-Za-z0-9-]+)$') {
         Fail "Journey '$id' is not G1..G12 or a named scenario trait."
     }
 }

@@ -59,6 +59,14 @@ public interface IIdentityGroupingService
         string occurrenceId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns a group by id with its active members (possibly none after a split), or null when
+    /// the group does not exist. Used to detect that a group changed before undoing.
+    /// </summary>
+    Task<IdentityGroupDescriptor?> FindByIdAsync(
+        string groupId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Resolves reviewed groups for legacy book IDs through canonical aliases.</summary>
     Task<IReadOnlyList<IdentityGroupBookMembership>> FindBookMembershipsAsync(
         IReadOnlyList<string> bookIds,
