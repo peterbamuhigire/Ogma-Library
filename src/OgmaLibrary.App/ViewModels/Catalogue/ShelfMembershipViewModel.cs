@@ -220,13 +220,17 @@ public sealed class ShelfMembershipViewModel : INotifyPropertyChanged
 
     private void SyncManualShelves()
     {
-        ManualShelves.Clear();
-        foreach (ShelfProjection shelf in _shelves.Shelves.Where(shelf => !shelf.IsSmart))
+        // In place, so a sidebar refresh never empties the list for a moment (that would disable
+        // the toolbar's Add to collection button and close its open menu).
+        bool hadShelves = HasManualShelves;
+        ShelfSidebarViewModel.SyncInPlace(
+            ManualShelves,
+            _shelves.Shelves.Where(shelf => !shelf.IsSmart).ToList());
+        if (hadShelves != HasManualShelves)
         {
-            ManualShelves.Add(shelf);
+            OnPropertyChanged(nameof(HasManualShelves));
         }
 
-        OnPropertyChanged(nameof(HasManualShelves));
         OnPropertyChanged(nameof(ActiveManualShelf));
     }
 

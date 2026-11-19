@@ -69,6 +69,7 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
         _logger = logger ?? (ILogger)NullLogger.Instance;
 
         _catalogue.SelectedBooks.CollectionChanged += OnSelectionChanged;
+        _catalogue.SelectionRestored += (_, _) => RaiseState();
         Membership.PropertyChanged += (_, _) => RaiseState();
         Membership.ManualShelves.CollectionChanged += (_, _) => RaiseState();
         _localization.CultureChanged += (_, _) => RaiseText();
@@ -227,7 +228,15 @@ public sealed class CatalogueSelectionViewModel : INotifyPropertyChanged
     private string[] SelectedIds() =>
         _catalogue.SelectedBooks.Select(book => book.BookId).Distinct(StringComparer.Ordinal).ToArray();
 
-    private void OnSelectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => RaiseState();
+    // A background refresh briefly drops replaced cards from the selection; reacting would hide
+    // the toolbar and close an open Add to collection menu, so wait for SelectionRestored.
+    private void OnSelectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (!_catalogue.IsRestoringSelection)
+        {
+            RaiseState();
+        }
+    }
 
     private void RaiseState()
     {

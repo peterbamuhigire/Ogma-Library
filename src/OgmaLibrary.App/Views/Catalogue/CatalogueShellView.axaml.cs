@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
@@ -23,6 +24,8 @@ namespace OgmaLibrary.App.Views.Catalogue;
 public partial class CatalogueShellView : UserControl
 {
     private MainShellViewModel? _viewModel;
+    private CatalogueSelectionViewModel? _selection;
+    private string? _addToShelfMenuSignature;
 
     /// <summary>Initializes a new instance of <see cref="CatalogueShellView"/>.</summary>
     public CatalogueShellView()
@@ -60,6 +63,8 @@ public partial class CatalogueShellView : UserControl
             ApplyInspectorLayout();
             RebuildMoreMenu();
         }
+
+        SubscribeSelection(_viewModel?.Selection);
     }
 
     private void OnSizeChanged(object? sender, SizeChangedEventArgs e) =>
@@ -350,13 +355,56 @@ public partial class CatalogueShellView : UserControl
     private void ClearFilters_Click(object? sender, RoutedEventArgs e) => ViewModel?.Catalogue.Filter.ClearAll();
 
     // Sept-23 Phase 10: selection toolbar.
-    private void AddToShelfMenu_Opening(object? sender, EventArgs e)
+    private void SubscribeSelection(CatalogueSelectionViewModel? selection)
     {
-        if (sender is not MenuFlyout menu || ViewModel?.Selection is not { } selection)
+        if (_selection is not null)
+        {
+            _selection.Membership.ManualShelves.CollectionChanged -= OnManualShelvesChanged;
+            _selection.PropertyChanged -= OnSelectionPropertyChanged;
+        }
+
+        _selection = selection;
+        if (_selection is not null)
+        {
+            _selection.Membership.ManualShelves.CollectionChanged += OnManualShelvesChanged;
+            _selection.PropertyChanged += OnSelectionPropertyChanged;
+        }
+
+        RebuildAddToShelfMenu();
+    }
+
+    private void OnManualShelvesChanged(object? sender, NotifyCollectionChangedEventArgs e) => RebuildAddToShelfMenu();
+
+    private void OnSelectionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(CatalogueSelectionViewModel.NoShelvesText))
+        {
+            RebuildAddToShelfMenu();
+        }
+    }
+
+    /// <summary>
+    /// Builds the Add to collection menu whenever the manual shelves or the culture change. It is
+    /// never built in Opening: a MenuFlyout with no items does not open in a real window.
+    /// </summary>
+    private void RebuildAddToShelfMenu()
+    {
+        if (SelectionAddToShelfButton.Flyout is not MenuFlyout menu || _selection is not { } selection)
         {
             return;
         }
 
+        // A background reload replaces rows whose counts changed; leave an open menu alone
+        // unless the shelves it lists (ids and names) actually changed.
+        string signature = selection.Membership.ManualShelves.Count == 0
+            ? "\u0000" + selection.NoShelvesText
+            : string.Join('\u0000', selection.Membership.ManualShelves.Select(shelf => shelf.ShelfId + "\u0001" + shelf.Name));
+        if (string.Equals(signature, _addToShelfMenuSignature, StringComparison.Ordinal) && menu.Items.Count > 0)
+        {
+            return;
+        }
+
+        _addToShelfMenuSignature = signature;
         menu.Items.Clear();
         if (selection.Membership.ManualShelves.Count == 0)
         {

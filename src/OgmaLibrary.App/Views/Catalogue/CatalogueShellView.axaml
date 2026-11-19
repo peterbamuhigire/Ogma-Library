@@ -594,12 +594,13 @@
                            FontWeight="SemiBold"
                            AutomationProperties.AutomationId="Catalogue.Selection.Count"
                            Foreground="{DynamicResource Brush.Surface.OnParchment}" />
-                <DropDownButton Classes="tool"
+                <DropDownButton x:Name="SelectionAddToShelfButton"
+                                Classes="tool"
                                 IsEnabled="{Binding Selection.CanAddToShelf, FallbackValue=False}"
                                 AutomationProperties.AutomationId="Catalogue.Selection.AddToShelf"
                                 AutomationProperties.Name="{Binding Selection.AddToShelfText}">
                   <DropDownButton.Flyout>
-                    <MenuFlyout Placement="TopEdgeAlignedLeft" Opening="AddToShelfMenu_Opening" />
+                    <MenuFlyout Placement="TopEdgeAlignedLeft" />
                   </DropDownButton.Flyout>
                   <TextBlock Text="{Binding Selection.AddToShelfText}" />
                 </DropDownButton>

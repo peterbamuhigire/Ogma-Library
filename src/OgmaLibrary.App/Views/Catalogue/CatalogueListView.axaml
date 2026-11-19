@@ -14,7 +14,6 @@
 
   <ListBox x:Name="BookList"
            ItemsSource="{Binding FilteredItems}"
-           SelectedItem="{Binding SelectedBook, Mode=TwoWay}"
            SelectedItems="{Binding SelectedBooks}"
            SelectionMode="Multiple"
            Background="Transparent"

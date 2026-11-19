@@ -243,9 +243,93 @@ public sealed class Sept23Phase10SelectionTests
             toolbar.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible),
             button => Assert.False(string.IsNullOrWhiteSpace(Avalonia.Automation.AutomationProperties.GetName(button))));
 
+        // A click opens the Add to collection menu with one entry per manual collection (J-CAT-2).
+        DropDownButton add = toolbar.GetVisualDescendants().OfType<DropDownButton>().Single();
+        // Built before it opens: a MenuFlyout with no items never opens in a real window.
+        Assert.NotEmpty(Assert.IsType<MenuFlyout>(add.Flyout).Items);
+        Point addCentre = add.TranslatePoint(new Point(add.Bounds.Width / 2, add.Bounds.Height / 2), window)
+            ?? throw new InvalidOperationException("The Add button is not in the window.");
+        window.MouseDown(addCentre, MouseButton.Left);
+        window.MouseUp(addCentre, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        var addMenu = Assert.IsType<MenuFlyout>(add.Flyout);
+        Assert.True(addMenu.IsOpen, "Clicking Add to collection did not open its menu.");
+        MenuItem entry = Assert.Single(addMenu.Items.OfType<MenuItem>());
+        Assert.Equal("Catalogue.Selection.Shelf.shelf-manual", Avalonia.Automation.AutomationProperties.GetAutomationId(entry));
+        addMenu.Hide();
+        Dispatcher.UIThread.RunJobs();
+
         ListBoxItem card = view.GetVisualDescendants().OfType<ListBoxItem>()
             .First(item => Avalonia.Automation.AutomationProperties.GetAutomationId(item) == "Catalogue.Item.book-001");
         Assert.IsType<MenuFlyout>(card.ContextFlyout);
+        window.Close();
+        fixture.Shell.Dispose();
+    }
+
+    /// <summary>
+    /// Regression (J-CAT-1/J-CAT-2 real-window failure): with every catalogue view live, a click
+    /// then a Ctrl+click must give exactly two selected books, and a background refresh that
+    /// replaces the selected cards must keep both selected and keep the primary.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task ShellView_ClickCtrlClick_AndRefresh_KeepExactlyTheSelection()
+    {
+        Fixture fixture = await Fixture.CreateAsync();
+        var view = new CatalogueShellView { DataContext = fixture.Shell };
+        var window = new Window { Width = 1280, Height = 800, Content = view };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        ListBox grid = view.GetVisualDescendants().OfType<ListBox>()
+            .Single(box => Avalonia.Automation.AutomationProperties.GetAutomationId(box) == "Catalogue.Grid");
+        Click(window, grid, 2, RawInputModifiers.None);
+        Assert.Equal(["book-003"], SelectedIds(fixture.Shell.Catalogue));
+        Assert.Equal("book-003", fixture.Shell.Catalogue.SelectedBook?.BookId);
+
+        Click(window, grid, 3, RawInputModifiers.Control);
+        Assert.Equal(["book-003", "book-004"], SelectedIds(fixture.Shell.Catalogue));
+        Assert.Equal(2, fixture.Selection.Count);
+
+        // A refresh that changes both cards (new shelf ids) replaces them in place.
+        // The toolbar must not flicker while the refresh restores the selection: hiding it would
+        // close an open Add to collection menu (J-CAT-2 real-window failure).
+        var toolbarStates = new List<bool>();
+        fixture.Selection.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(CatalogueSelectionViewModel.IsToolbarVisible))
+            {
+                toolbarStates.Add(fixture.Selection.IsToolbarVisible);
+            }
+        };
+        var shelfChanges = new List<System.Collections.Specialized.NotifyCollectionChangedAction>();
+        fixture.Selection.Membership.ManualShelves.CollectionChanged += (_, e) => shelfChanges.Add(e.Action);
+        bool canAddDropped = false;
+        fixture.Selection.PropertyChanged += (_, e) =>
+            canAddDropped |= e.PropertyName == nameof(CatalogueSelectionViewModel.CanAddToShelf) && !fixture.Selection.CanAddToShelf && !fixture.Selection.IsBusy;
+        await fixture.Selection.AddSelectionToShelfAsync("shelf-manual");
+        Dispatcher.UIThread.RunJobs();
+        Assert.DoesNotContain(false, toolbarStates);
+        Assert.All(shelfChanges, action => Assert.Equal(System.Collections.Specialized.NotifyCollectionChangedAction.Replace, action));
+        Assert.False(canAddDropped, "Add to collection was disabled while the shelves reloaded.");
+        Assert.Equal(["book-003", "book-004"], SelectedIds(fixture.Shell.Catalogue));
+        Assert.Equal("book-003", fixture.Shell.Catalogue.SelectedBook?.BookId);
+        Assert.Equal(2, grid.Selection.SelectedItems.Count);
+        Assert.True(grid.ContainerFromIndex(2) is ListBoxItem { IsSelected: true });
+        Assert.True(
+            grid.ContainerFromIndex(3) is { IsKeyboardFocusWithin: true },
+            "The refreshed card lost keyboard focus, so arrow-key browsing would stop.");
+
+        // The arrow keys still move a single selection to the next card (J-CAT-1).
+        Click(window, grid, 0, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(["book-002"], SelectedIds(fixture.Shell.Catalogue));
+        Assert.Equal("book-002", fixture.Shell.Catalogue.SelectedBook?.BookId);
+
+        // Choosing a book from outside the selection (home strip, directory) replaces it.
+        fixture.Shell.Catalogue.SelectedBook = fixture.Shell.Catalogue.FilteredItems.Single(b => b.BookId == "book-005");
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(["book-005"], SelectedIds(fixture.Shell.Catalogue));
         window.Close();
         fixture.Shell.Dispose();
     }

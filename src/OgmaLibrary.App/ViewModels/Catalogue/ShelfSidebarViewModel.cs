@@ -183,11 +183,10 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
                 {
                     if (shelves is not null)
                     {
-                        Shelves.Clear();
-                        foreach (var shelf in shelves)
-                        {
-                            Shelves.Add(shelf);
-                        }
+                        // In place (Sept-23 Phase 10): a reload during background processing must
+                        // not empty the list for a moment, which would drop the Collections
+                        // selection and disable an open Add to collection menu.
+                        SyncInPlace(Shelves, shelves);
                     }
 
                     IsLoading = false;
@@ -340,6 +339,32 @@ public sealed class ShelfSidebarViewModel : INotifyPropertyChanged
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             PostFailure(ex);
+        }
+    }
+
+    /// <summary>
+    /// Makes <paramref name="target"/> equal to <paramref name="source"/> with the fewest
+    /// changes: equal rows are kept, changed rows are replaced, the tail is added or removed.
+    /// </summary>
+    /// <param name="target">The bound collection.</param>
+    /// <param name="source">The new rows.</param>
+    internal static void SyncInPlace(ObservableCollection<ShelfProjection> target, IReadOnlyList<ShelfProjection> source)
+    {
+        for (int i = 0; i < source.Count; i++)
+        {
+            if (i >= target.Count)
+            {
+                target.Add(source[i]);
+            }
+            else if (!Equals(target[i], source[i]))
+            {
+                target[i] = source[i];
+            }
+        }
+
+        while (target.Count > source.Count)
+        {
+            target.RemoveAt(target.Count - 1);
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,8 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     private readonly ObservableCollection<BookSummaryProjection> _homeStripItems = [];
 
     private BookSummaryProjection? _selectedBook;
+    private bool _syncingSelection;
+    private bool _refreshingSelection;
     private CatalogueView _currentView = CatalogueView.Grid;
     private bool _isLoading;
     private string? _libraryRootPath;
@@ -89,6 +92,7 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
 
         Filter = new CatalogueFilterViewModel(localization);
         Filter.PropertyChanged += (_, _) => ApplyFilterAndSort();
+        SelectedBooks.CollectionChanged += OnSelectedBooksChanged;
     }
 
     /// <inheritdoc />
@@ -144,21 +148,90 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
     /// </summary>
     public ObservableCollection<BookSummaryProjection> SelectedBooks { get; } = [];
 
-    /// <summary>The currently selected book.</summary>
+    /// <summary>
+    /// Whether a refresh is replacing cards and restoring <see cref="SelectedBooks"/>. Changes
+    /// seen while this is true are transient; <see cref="SelectionRestored"/> follows.
+    /// </summary>
+    public bool IsRestoringSelection => _refreshingSelection;
+
+    /// <summary>Raised after a refresh has restored <see cref="SelectedBooks"/>.</summary>
+    public event EventHandler? SelectionRestored;
+
+    /// <summary>
+    /// The primary selected book, which drives the detail pane. Selecting a book that is not part
+    /// of <see cref="SelectedBooks"/> (from the home strip or the directory view) makes it the
+    /// whole selection; in a multi-select list the first pick stays primary. Writes that arrive
+    /// while a refresh is replacing cards are binding echoes and are ignored.
+    /// </summary>
     public BookSummaryProjection? SelectedBook
     {
         get => _selectedBook;
         set
         {
-            if (!ReferenceEquals(_selectedBook, value))
+            // A single-select list (home strip, directory) writes null when its own copy of the
+            // card goes away; that must not clear a multi-selection made in the grid or list.
+            if (_refreshingSelection ||
+                ReferenceEquals(_selectedBook, value) ||
+                (value is null && SelectedBooks.Count > 0))
             {
-                _selectedBook = value;
-                OnPropertyChanged();
-                if (value is not null)
+                return;
+            }
+
+            SetPrimary(value);
+            if (!_syncingSelection && value is not null)
+            {
+                _syncingSelection = true;
+                try
                 {
-                    _ = OpenDetailAsync(value.BookId);
+                    if (!SelectedBooks.Any(book => book.BookId == value.BookId))
+                    {
+                        SelectedBooks.Clear();
+                        SelectedBooks.Add(value);
+                    }
+                }
+                finally
+                {
+                    _syncingSelection = false;
                 }
             }
+        }
+    }
+
+    private void SetPrimary(BookSummaryProjection? value)
+    {
+        if (ReferenceEquals(_selectedBook, value))
+        {
+            return;
+        }
+
+        string? previousId = _selectedBook?.BookId;
+        _selectedBook = value;
+        OnPropertyChanged(nameof(SelectedBook));
+        if (value is not null && value.BookId != previousId)
+        {
+            _ = OpenDetailAsync(value.BookId);
+        }
+    }
+
+    private void OnSelectedBooksChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_syncingSelection || _refreshingSelection)
+        {
+            return;
+        }
+
+        _syncingSelection = true;
+        try
+        {
+            // The first book of the selection (the click anchor) stays primary.
+            if (_selectedBook is null || !SelectedBooks.Contains(_selectedBook))
+            {
+                SetPrimary(SelectedBooks.Count > 0 ? SelectedBooks[0] : null);
+            }
+        }
+        finally
+        {
+            _syncingSelection = false;
         }
     }
 
@@ -563,9 +636,21 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
             // Sept-23 Phase 09: update in place so unchanged cards keep their containers (no
             // flicker, stable UI Automation elements) while background processing refreshes.
             string[] selectedIds = SelectedBooks.Select(book => book.BookId).ToArray();
-            SyncInPlace(_filteredItems, results);
-            SyncInPlace(_homeStripItems, strip);
-            RestoreSelection(selectedIds);
+            string? primaryId = _selectedBook?.BookId;
+            _refreshingSelection = true;
+            try
+            {
+                SyncInPlace(_filteredItems, results);
+                SyncInPlace(_homeStripItems, strip);
+                RestoreSelection(selectedIds);
+            }
+            finally
+            {
+                _refreshingSelection = false;
+            }
+
+            RestorePrimary(primaryId);
+            SelectionRestored?.Invoke(this, EventArgs.Empty);
 
             OnPropertyChanged(nameof(HasHomeStrip));
             OnPropertyChanged(nameof(HasBooksInProgress));
@@ -741,6 +826,28 @@ public sealed class CatalogueViewModel : INotifyPropertyChanged, IDisposable
                 SelectedBooks.Add(book);
             }
         }
+    }
+
+    /// <summary>
+    /// After a refresh, point the primary selection at the current card for the same book and
+    /// raise it again so every list re-selects it (a replaced card drops out of a list's selection).
+    /// A book that left the filtered result stays primary so the detail pane does not close.
+    /// </summary>
+    private void RestorePrimary(string? primaryId)
+    {
+        if (primaryId is null)
+        {
+            return;
+        }
+
+        BookSummaryProjection? current = SelectedBooks.FirstOrDefault(book => book.BookId == primaryId)
+            ?? _filteredItems.FirstOrDefault(book => book.BookId == primaryId);
+        if (current is not null)
+        {
+            _selectedBook = current;
+        }
+
+        OnPropertyChanged(nameof(SelectedBook));
     }
 
     private static void SyncInPlace(ObservableCollection<BookSummaryProjection> target, List<BookSummaryProjection> source)

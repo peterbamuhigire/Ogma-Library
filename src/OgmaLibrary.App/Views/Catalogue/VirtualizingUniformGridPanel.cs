@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace OgmaLibrary.App.Views.Catalogue;
@@ -40,6 +41,7 @@ public sealed class VirtualizingUniformGridPanel : VirtualizingPanel
     private Rect _viewport;
     private int _columns = 1;
     private int _scrollToIndex = -1;
+    private int _refocusIndex = -1;
 
     static VirtualizingUniformGridPanel()
     {
@@ -366,6 +368,11 @@ public sealed class VirtualizingUniformGridPanel : VirtualizingPanel
                 }
 
                 container.SetCurrentValue(IsVisibleProperty, true);
+
+                // The container skipped ClearItemContainer, so its IsSelected still describes the
+                // card it showed before a replace. Left set, the owner would push that stale state
+                // back into the selection model and drop a restored multi-selection (Phase 10).
+                container.ClearValue(Avalonia.Controls.Primitives.SelectingItemsControl.IsSelectedProperty);
             }
             else if (_pool.TryGetValue(key, out Stack<Control>? stack) && stack.Count > 0)
             {
@@ -382,6 +389,14 @@ public sealed class VirtualizingUniformGridPanel : VirtualizingPanel
             generator.PrepareItemContainer(container, item, index);
             _realized[index] = container;
             generator.ItemContainerPrepared(container, item, index);
+            if (index == _refocusIndex)
+            {
+                _refocusIndex = -1;
+                Control refocus = container;
+                // Unspecified, not Directional: a directional focus would re-select just this card
+                // and collapse a multi-selection.
+                Dispatcher.UIThread.Post(() => refocus.Focus(NavigationMethod.Unspecified), DispatcherPriority.Input);
+            }
         }
         else
         {
@@ -405,6 +420,13 @@ public sealed class VirtualizingUniformGridPanel : VirtualizingPanel
             ItemContainerGenerator?.ClearItemContainer(container);
             RemoveInternalChild(container);
             return;
+        }
+
+        // Hiding drops keyboard focus; remember the index so the card that takes it over (the
+        // refreshed record of the same book) gets focus back and arrow-key browsing continues.
+        if (container.IsKeyboardFocusWithin)
+        {
+            _refocusIndex = index;
         }
 
         // Hidden but still bound until the end of this measure, so a row scrolling in can take it
@@ -451,6 +473,7 @@ public sealed class VirtualizingUniformGridPanel : VirtualizingPanel
 
     private void ClearReleased()
     {
+        _refocusIndex = -1;
         foreach ((Control container, _) in _released)
         {
             ItemContainerGenerator?.ClearItemContainer(container);

@@ -32,15 +32,18 @@ public sealed class CatalogueOrganiseTests
             AutomationElement[] items = Shell.WaitForCatalogue(context, minimum: 3);
             AutomationElement window = context.RequireApp.MainWindow;
 
+            string first = items[0].Properties.AutomationId.ValueOrDefault ?? string.Empty;
+            string second = items[1].Properties.AutomationId.ValueOrDefault ?? string.Empty;
+
             Native.ForceForeground(context.RequireApp.Handle);
             Click(items[0]);
             Assert.True(
-                Uia.Poll(() => IsSelected(items[0]), TimeSpan.FromSeconds(5)),
+                Uia.Poll(() => IsSelected(window, first), TimeSpan.FromSeconds(5)),
                 "Clicking the first card did not select it.");
 
             Keyboard.Press(VirtualKeyShort.RIGHT);
             Assert.True(
-                Uia.Poll(() => IsSelected(items[1]) && !IsSelected(items[0]), TimeSpan.FromSeconds(5)),
+                Uia.Poll(() => IsSelected(window, second) && !IsSelected(window, first), TimeSpan.FromSeconds(5)),
                 "The Right arrow did not move the selection to the next card.");
             context.Mark("catalogue.keyboardMoved");
 
@@ -71,7 +74,8 @@ public sealed class CatalogueOrganiseTests
             Shell.AddCorpusLibrary(context);
             AutomationElement[] items = Shell.WaitForCatalogue(context, minimum: 3);
             AutomationElement window = context.RequireApp.MainWindow;
-            string[] picked = [Name(items[0]), Name(items[1])];
+            // Compared by automation id: background enrichment may change a card's name mid-run.
+            string[] picked = [Id(items[0]), Id(items[1])];
 
             // 1. Create the collection.
             Uia.Activate(Uia.WaitFor(window, "Shell.Nav.Collections"));
@@ -100,9 +104,23 @@ public sealed class CatalogueOrganiseTests
             context.Mark("selection.toolbarShown");
             context.Shot("selection-toolbar");
             Click(add);
+            bool opened = Uia.Poll(() => FindPopupMenuItem(context, CollectionName) is not null, TimeSpan.FromSeconds(5));
+            context.Record("addMenu.openedByClick", opened);
+            if (!opened)
+            {
+                int pid = context.RequireApp.Process.Id;
+                context.Shot("add-menu-missing");
+                context.Dump("add-menu-missing");
+                context.Record(
+                    "addMenu.topLevels",
+                    context.RequireApp.Automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(pid))
+                        .Select(top => $"{top.ControlType}:{top.ClassName}:{top.Properties.Name.ValueOrDefault}:{top.FindAllDescendants().Length}")
+                        .ToArray());
+            }
+
             AutomationElement menuItem = Uia.WaitUntil(
                 () => FindPopupMenuItem(context, CollectionName),
-                TimeSpan.FromSeconds(5),
+                TimeSpan.FromSeconds(1),
                 $"the '{CollectionName}' entry in the Add to collection menu");
             Click(menuItem);
             context.Mark("selection.addedByMenu");
@@ -119,7 +137,8 @@ public sealed class CatalogueOrganiseTests
             string[] shown = Shell.CatalogueItems(context).Select(Name).ToArray();
             context.Record("filter.shown", shown);
             Assert.True(filtered, $"Filtering by the collection showed {shown.Length} books, expected 2.");
-            Assert.All(picked, title => Assert.Contains(title, shown));
+            string[] shownIds = Shell.CatalogueItems(context).Select(Id).ToArray();
+            Assert.All(picked, id => Assert.Contains(id, shownIds));
             context.Mark("filter.byCollection");
             context.Shot("filtered-by-collection");
 
@@ -184,10 +203,15 @@ public sealed class CatalogueOrganiseTests
             .FirstOrDefault(candidate => candidate.ControlType == ControlType.MenuItem);
     }
 
-    private static bool IsSelected(AutomationElement item) =>
-        item.Patterns.SelectionItem.TryGetPattern(out var pattern) && pattern.IsSelected.ValueOrDefault;
+    // Re-found on every poll: a background refresh may hand the card a new UIA element.
+    private static bool IsSelected(AutomationElement window, string automationId) =>
+        Uia.TryFind(window, automationId) is { } item &&
+        item.Patterns.SelectionItem.TryGetPattern(out var pattern) &&
+        pattern.IsSelected.ValueOrDefault;
 
     private static string Name(AutomationElement item) => item.Properties.Name.ValueOrDefault ?? string.Empty;
+
+    private static string Id(AutomationElement item) => item.Properties.AutomationId.ValueOrDefault ?? string.Empty;
 
     private static Point Centre(AutomationElement element)
     {
