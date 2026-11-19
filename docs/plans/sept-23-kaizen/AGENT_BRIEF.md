@@ -88,7 +88,7 @@ dotnet format OgmaLibrary.sln --verify-no-changes --no-restore
 dotnet build OgmaLibrary.sln --configuration Release --no-restore
 dotnet list OgmaLibrary.sln package --vulnerable --include-transitive
 dotnet format analyzers OgmaLibrary.sln --verify-no-changes --no-restore --severity warn --verbosity minimal
-dotnet test OgmaLibrary.sln --configuration Release --no-build -m:1 --filter "Category!=Performance"
+dotnet test OgmaLibrary.sln --configuration Release --no-build -m:1 --filter "Category!=Benchmark&Category!=E2E"   # or ./scripts/Test-Fast.ps1
 # after Phase 01: the real-window journey suite (command defined in phase-01)
 # when src/shelf3d changes:
 #   cd src/shelf3d; npm ci; npm run typecheck; npm run build; npm run perf:budget
