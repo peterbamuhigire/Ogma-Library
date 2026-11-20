@@ -14,6 +14,12 @@ claims below describe gate evidence, not a working product. Phase progress is tr
 [status register](../../plans/sept-23-kaizen/README.md#status-register) and
 [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
+- **Sept-23 Phase 11** (book detail inspector): **IMPLEMENTED** 2026-11-20 on branch
+  `kaizen/phase-11` (rollback `bde93dac`). Not COMPLETE. The static gates pass on `3ffac4a8`.
+  In the real window at both sizes and both themes, J-DET-1, J-DET-4, the negative journey,
+  A11yNames, G9 and G2 pass. Open: owner walkthrough; header height (K131); real-window
+  write-back (K132); J-DET-2 (D-81); screen reader, 200 % text, RTL and macOS NOT_ASSESSED.
+  [Record](phase-sept23-11-completion.md).
 - **Sept-23 Phase 10** (catalogue experience): **IMPLEMENTED** 2026-11-19 on branch
   `kaizen/phase-10` (rollback `d7e75952`). Not COMPLETE.
   - On `aee9e2dd`, the full static gate set and the fast suite pass (Tests 1,350, Ui 417, Architecture 52).

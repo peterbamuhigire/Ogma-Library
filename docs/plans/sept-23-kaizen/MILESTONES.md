@@ -137,6 +137,24 @@ MEASURED, run `co-final` on `ebb7b718`. [Record](../../implementation/execution/
   - Keep separate (K118) and localised job rows (K121).
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **Phase 11, book detail inspector: IMPLEMENTED 2026-11-20 (branch `kaizen/phase-11`); not
+  COMPLETE.** Measured before → after:
+  - Section headers: 7 tabs wrapping onto 3 rows → 1 row of 4 segments.
+  - Filled action buttons: 3 competing → 1 state-driven primary action (*Read*, *Continue
+    reading · p. N*, *Locate file…*).
+  - Raw `ex.Message` sites in the inspector: 12 → 0. The SHA-256 is hidden in *Technical details*.
+  - Header plus segments: about 43 % → 37.6 % of the panel at 1280×800. The ≤ 18 % target is
+    missed (K131).
+  - New: inline editing with undo, a review card with *Accept all* and undo, two-step write-back
+    consent, explicit states with hash-verified relink, and a resizable, persisted width.
+
+  Real window, at both sizes and both themes: J-DET-1, J-DET-4, the negative journey, A11yNames
+  and G9 pass, and G2 passes. Open:
+  - Write-back fails in the real window (K132).
+  - J-DET-2 has no offline provider seam (D-81).
+  - The owner walkthrough, screen reader, 200 % text and RTL.
+
+  [Record](../../implementation/execution/phase-sept23-11-completion.md).
 - **Phase 13, unified search: IMPLEMENTED and merged.** Phrases, typos, Unicode names and field
   queries; honest status; no race. G4 is stable. Open: the K40 miss cause and the J-SRCH-1
   journey.

@@ -1,0 +1,100 @@
+[
+    {
+        "type":  "Custom",
+        "id":  "Detail.Panel",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=912,Y=31,Width=360,Height=720}"
+    },
+    {
+        "type":  "Text",
+        "id":  "Detail.Title",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=997,Y=43,Width=239,Height=64}"
+    },
+    {
+        "type":  "Text",
+        "id":  "Detail.Authors",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=997,Y=109,Width=239,Height=16}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Action.Close",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=1236,Y=43,Width=24,Height=36}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Action.Read",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=929,Y=150,Width=287,Height=36}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Action.More",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=1224,Y=150,Width=36,Height=36}"
+    },
+    {
+        "type":  "ComboBox",
+        "id":  "Detail.Curation.Status",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=929,Y=194,Width=120,Height=36}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Curation.Favourite",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=929,Y=234,Width=100,Height=28}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Section.Overview",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=931,Y=272,Width=81,Height=30}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Section.Details",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=1012,Y=272,Width=81,Height=30}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Section.Contents",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=1093,Y=272,Width=81,Height=30}"
+    },
+    {
+        "type":  "Button",
+        "id":  "Detail.Section.Activity",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=1174,Y=272,Width=80,Height=30}"
+    },
+    {
+        "type":  "Text",
+        "id":  "Detail.WriteBack.Status",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=929,Y=312,Width=327,Height=15}"
+    },
+    {
+        "type":  "Thumb",
+        "id":  "Detail.ResizeHandle",
+        "enabled":  true,
+        "offscreen":  false,
+        "bounds":  "{X=913,Y=31,Width=6,Height=720}"
+    }
+]

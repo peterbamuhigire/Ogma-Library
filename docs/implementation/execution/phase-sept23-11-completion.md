@@ -1,10 +1,12 @@
 # Sept-23 Phase 11 completion: book detail inspector
 
-Status: **IN PROGRESS** (2026-11-19). Slices 1 to 4 of 8 are done.
+Status: **IMPLEMENTED** (2026-11-20), not COMPLETE. All 8 slices are done. The phase stays
+open because of the owner walkthrough, the header-height target (K131), real-window write-back
+(K132) and the NOT_ASSESSED evidence listed under slice 8.
 Branch: `kaizen/phase-11`. The autorun driver publishes it; this lane does not merge it.
 Rollback point: `bde93dac`.
 Plan: [phase-11](../../plans/sept-23-kaizen/phases/phase-11-book-detail-inspector.md).
-Decisions: D-49 to D-71 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
+Decisions: D-49 to D-90 in the [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
 ## Typeface decision
 
@@ -223,3 +225,144 @@ Gates on the slice-7 tree:
   `Test-DesignTokens.ps1` (clean), `Test-GoldenJourneyRunner.ps1` and `Test-Fast.ps1` (exit 0; Ui 482 passed, 0 failed; the Architecture and Tests counts were not captured in the output tail, and that run printed no failure).
 - NOT_ASSESSED: the Detail journeys above, with the desktop free; 1920×1080; dark theme; 200%
   text; Arabic RTL, including the handle direction (D-85); and the screen-reader walkthrough.
+
+## Slice 8: record, gates and real-window evidence
+
+### Fixes found by the real-window runs
+
+| ID | Result | Evidence |
+|---|---|---|
+| K128 (P2) | Resolved (`c6402dcd`). An inline-edit field's accessible name now includes its value ("ISBN: 978-…. Edit"; FR "… Modifier"), so screen readers announce it and G2 can read it | `DetailFieldEditTests.DisplayAccessibleName_CarriesLabelAndValue_InEnglishAndFrench` (MEASURED) |
+| K129 (P1) | Resolved (`504d08a7`). *Write metadata to PDF…* did not open the consent dialog in the real window. The prepare step posted its UI update after `ConfigureAwait(false)`, and the view checked too early. Prepare, confirm and restore now await the UI-thread update | `Phase11WriteBack_PreparedWhenPrepareReturns_EvenIfIoCompletesOffTheUiThread` (failed before, passes after); J-DET-3 and G9 now reach the dialog (MEASURED, real window) |
+| Harness | Fixed in `b6708b22`. The journeys select a section with retries, because a segment activated while the panel is loading a book is ignored (D-87). G2 looked for `Detail.Field.Isbn`, but the id this phase introduced is `Detail.Field.ISBN` | G2 PASS at both sizes in `p11-regress5` (MEASURED) |
+| K130 (P2) | Open (Phase 15). Write-back ACL result: a deny-write ACE on the PDF does **not** stop write-back. The file is replaced through its folder, and the ACE is lost. Restore still returns the original bytes. The read-only attribute is honoured | `Phase11WriteBack_AclDeniedFile_IsReplacedThroughTheFolder_K130` (MEASURED, characterisation) |
+
+### Real-window journeys
+
+Every run was wrapped in `Use-DesktopLock.ps1 -Owner phase-11` and used a fresh temporary data
+directory with the synthetic corpus. The app code is at head `3ffac4a8`; `b6708b22` changes
+tests only. The runs are:
+- `p11-final4`: `-Tag Detail` at 1280×800 and 1920×1080, Light and Dark;
+- `p11-regress5`: G2;
+- `p11-regress6`: G3 and G5.
+
+The `artifacts/` folders stay local.
+
+| Journey | Light 1280×800 | Light 1920×1080 | Dark 1280×800 | Dark 1920×1080 |
+|---|---|---|---|---|
+| J-DET-1 inspect, read, return (with the compact-overlay check) | PASS | PASS | PASS | PASS |
+| J-DET-2 accept proposals and undo | NOT ASSESSED (D-81) | NOT ASSESSED | NOT ASSESSED | NOT ASSESSED |
+| J-DET-3 write-back and restore | **FAIL** (K132) | **FAIL** (K132) | **FAIL** (K132) | **FAIL** (K132) |
+| J-DET-4 missing file, locate and relink | PASS | PASS | PASS | PASS |
+| Negative: Read on a deleted file stays on the catalogue | PASS | PASS | PASS | PASS |
+| A11yNames, inspector | PASS | PASS | PASS | PASS |
+| G9 edit, enrich preview, undo | PASS | PASS | PASS | PASS |
+| G3 read 50 pages, in the Detail run | PASS | BASELINE-FAIL (p95 263 ms, K32) | PASS | PASS |
+| G2 add library, covers, ISBN in the inspector | PASS | PASS | not run | not run |
+| G3 read 50 pages (`p11-regress6`) | PASS | PASS | not run | not run |
+| G5 resume on the same page after relaunch (`p11-regress6`) | PASS | PASS | not run | not run |
+
+J-DET-3: the dialog opens, and the review and confirm steps work. The result step then reads "PDF
+writeback failed; the original was restored." The file's SHA-256 is unchanged. The service logs
+nothing on this path, so the cause is not measured (K132).
+
+G3 has been intermittent across this session's runs (`p11-final` to `p11-final4`): first-page
+paint failures, page-turn stalls, and a p95 between 263 and 835 ms. These are the known reader
+baseline failures K32, K94 and K109, not Phase 11 code.
+
+The earlier runs `p11-final3` and `p11-regress3` are superseded and not counted. Some of their
+failures at 1920×1080 were caused by the autorun driver's own terminal window covering the
+full-screen app (K126).
+
+Committed copies, in [evidence/sept-23-kaizen/phase-11](evidence/sept-23-kaizen/phase-11/). They
+hold identifiers and synthetic-corpus frames only:
+- `real-ready-{light,dark}-{1280x800,1920x1080}.png`;
+- `real-missing-file-*`, `real-relinked-*`, `real-writeback-review-*`, `real-writeback-result-*`
+  and `real-g9-after-enrich-*`, each in Light and Dark at 1280×800;
+- `uia-ids-j-det-3-{light,dark}-1280x800.json`: the type, id, enabled state and bounds of every
+  `Detail.*` and `WriteBack.*` element, with no names;
+- the headless 360 px and 520 px frames from slice 2, `inspector-{360,520}-{light,dark}.png`.
+
+Before and after, compared with `docs/plans/sept-23-kaizen/evidence/screens/j3-detail.png`:
+- Seven tabs wrapping onto three rows became one row of four segments.
+- Three competing filled buttons became one primary action, and the footer button row is gone.
+- The raw SHA-256 moved into the collapsed *Technical details* expander.
+
+### Measurements
+
+| Measure | Before | After | Target | Kind |
+|---|---|---|---|---|
+| Header plus segments, share of panel height | about 43 % (pixel reading of `j3-detail.png`) | 37.6 % at 1280×800 and 27.1 % at 1920×1080 (Ready); 41.2 % (missing file) | ≤ 18 % | MEASURED after, HEURISTIC before; **target missed** (K131) |
+| Primary-styled action candidates | 3 | 1 | 1 | MEASURED (code and headless) |
+| Rows of section headers at 360 and 520 px | 3 rows of tabs | 1 | 1 | MEASURED (headless) |
+| `ex.Message` sites in `BookDetailViewModel.cs` | 12 | 0 | 0 | MEASURED (search, tests) |
+
+Method and figures: [header-measurement.md](evidence/sept-23-kaizen/phase-11/header-measurement.md).
+
+### Objectives
+
+| # | Objective | Result | Kind | Evidence |
+|---|---|---|---|---|
+| 1 | Information hierarchy: header, one primary action, overflow menu | Met, except *Remove from library* (K122) and the header height (K131) | MEASURED | `Phase11InspectorStructureTests`; `real-ready-*.png`; header-measurement.md |
+| 2 | Four sections, with technical data behind a disclosure | Met. No description, subjects or shelves fields exist (D-60). The AI insights entry is still in Activity; moving it is Phase 16's task | MEASURED | `FourSegments_*`, `HashIsHidden_*`; `real-writeback-result-*.png` |
+| 3 | Review card with per-field accept or reject, *Accept all* and undo | Met headless. NOT ASSESSED in the real window (no offline provider seam, D-81) | MEASURED (headless) | Slice 4 tests; J-DET-2 |
+| 4 | Two-step write-back consent with backup and restore | The dialog and consent are MEASURED in the real window, but the write itself **fails** there (K132). The headless and integration tests pass | MEASURED | J-DET-3; `real-writeback-review-*.png`; `Phase11WriteBackIntegrationTests` |
+| 5 | Explicit states, including relink | Missing file and relink are MEASURED in the real window. Loading, password, processing, failed and no-metadata are MEASURED headless. *Unlock* stays disabled until Phase 12 (K125) | MEASURED | J-DET-4, negative journey; `Phase11InspectorStateViewTests` |
+| 6 | Esc and close; resizable 320–560 px and persisted; never covers the catalogue | Met. The compact-overlay check passes in the real window | MEASURED (headless and real window) | `Phase11InspectorShellTests`, `Sept23Phase11InspectorWidthTests`; J-DET-1 |
+| 7 | *Read* awaits the open; failures stay in the panel | Met | MEASURED (real window) | Negative journey; `BookDetailPrimaryActionTests` |
+| 8 | No raw hash or `ex.Message` outside Technical details | Met for the inspector. 13 sites remain in 6 other view models (K81, K123) | MEASURED (inspector), CODE (search) | `Phase11NoRawErrorTests` |
+
+### Tasks
+
+| Task | Status | Slice |
+|---|---|---|
+| 11.1 click-path audit | Done | 1 |
+| 11.2 primary-action state machine and header | Done; header height open (K131) | 1, 2 |
+| 11.3 four sections and Technical details | Done | 2 |
+| 11.4 inline editing with provenance and undo | Done; K128 fixed | 3, 8 |
+| 11.5 overflow menu | Done; *Remove from library* deferred (K122) | 2 |
+| 11.6 review card and write-back consent | Done; K129 fixed; the write fails in the real window (K132) | 4, 5, 8 |
+| 11.7 states, relink and raw-error purge | Done; *Unlock* deferred (K125) | 4, 6 |
+| 11.8 awaited Read | Done | 1 |
+| 11.9 resize, persistence and Esc | Done | 7 |
+| 11.10 names, tab order and journeys | Done; J-DET-2 cannot be assessed (D-81) | 7, 8 |
+
+Decisions in this slice: D-86 to D-90.
+
+Typeface: slice 8 adds no new face. Across the phase, Spectral is used for the inspector title
+and dialog headings, Public Sans for everything else, and JetBrains Mono only inside Technical
+details (D-55). All three are licensed and already bundled.
+
+Commits since the rollback point `bde93dac`: `cdda3520`, `870ebbcd`, `34b8e135`, `126fbbcf`,
+`a7544bd0`, `d89a18ea`, `cb6842d4`, `a78d55e5`, `b9e6daa4`, `c6402dcd`, `504d08a7`, `3ffac4a8`
+and `b6708b22`, plus the commit of this record.
+
+New defects: K131 (header height), K132 (real-window write-back fails without a log entry) and
+K133 (the catalogue toolbar is cut off at its right edge while the inspector is open).
+
+### Gates on head `3ffac4a8` (MEASURED, in CLAUDE.md order)
+
+- `Test-RequirementAccountability.ps1`: 101 FRs, 29 NFRs and 32 controls; all 162 IDs are
+  assigned. It was run again after this record.
+- `dotnet restore --locked-mode`: passes.
+- `dotnet format --verify-no-changes`: clean.
+- Release build: 0 warnings, 0 errors.
+- Vulnerable packages: none.
+- `dotnet format analyzers` (warn): clean.
+- `dotnet test` (Release, `-m:1`, excluding Benchmark, E2E and Performance): Architecture 52,
+  Tests 1,436, Ui 483; 0 failed.
+- Not run (NOT_ASSESSED): the `src/shelf3d` Node gates, because no 3D source changed.
+
+### NOT_ASSESSED
+
+| Item | Owner |
+|---|---|
+| Owner walkthrough of the inspector, including the verdict on the header height (K131) | Owner |
+| Screen-reader pass (Narrator or NVDA) of the inspector, editor, review card and dialog | Phase 21 |
+| Write-back on macOS | Phase 27 |
+| Screenshots at 200 % text | Phase 21 |
+| Screenshots in Arabic RTL (including the resize handle, D-85) and in the longest declared language | Phase 22 |
+| Profiling on the declared reference hardware | Phase 24 |
+| *Unlock* for a password-protected book (K125) | Phase 12 |
+| J-DET-2 in the real window (no offline provider seam, D-81) | Phases 15–16 |
+| G2, G3 (outside the Detail run) and G5 in the Dark theme | Next journey run |
