@@ -144,7 +144,7 @@ Each decision blocks only the phases listed. The recommended option is first.
 | D-03 | Multiple library folders | **Support several roots, with add/remove/enable in Settings** (the backend already has `AddAsync`); or keep a single root with an explicit "replace library folder" warning | 05 |
 | D-04 | Where derived covers, spines and caches live | **App-data folder by default, with an opt-in "portable library" sidecar mode**; or keep `.ogma/` inside the library with a disclosure | 05 |
 | D-05 | Local semantic engine | **Bundle a small local ONNX embedding model** (no extra install); or guided Ollama setup; or keep semantic search off by default | 14 |
-| D-06 | AI providers for the Advisor | **One cloud provider plus local-only mode first**, with exact model IDs confirmed by the Phase 15 currentness review; or local-only | 15, 16 |
+| D-06 | AI providers for the Advisor | **Decided by the owner 2026-11-20:** offline mode by default, plus **Anthropic, DeepSeek and OpenAI (ChatGPT)**, chosen by which API key the user has; keys encrypted and never leaked (Phase 15 §3a). Exact model IDs from the Phase 15 currentness review | 15, 16 |
 | D-07 | Icon set | **Buy the premium colourful PNG/SVG set you asked for (licence recorded)**; or commission; or an open-licence set | 09 |
 | D-08 | Installer technology | **Keep accepted ADR-0009: Velopack for direct Windows/macOS channels (delta updates, signed), MSIX for Store/enterprise, Developer ID-signed and notarised DMG**; or supersede ADR-0009 with a new ADR | 26 |
 | D-09 | Classroom clients storing full PDFs | **Stream with a bounded, encrypted, expiring cache**; or keep full copies with teacher consent | 20 |
