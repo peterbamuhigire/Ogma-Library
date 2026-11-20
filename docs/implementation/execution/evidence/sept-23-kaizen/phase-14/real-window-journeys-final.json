@@ -1,0 +1,49 @@
+{
+  "phase": "sept-23-kaizen/phase-14/slice-7",
+  "date": "2026-11-20",
+  "head": "f5fd5abc (code unchanged by slice 7)",
+  "runner": "scripts/Use-DesktopLock.ps1 -Owner phase-14 { tests/OgmaLibrary.Tests.E2E/Invoke-GoldenJourneys.ps1 }",
+  "dataDirectory": "fresh temporary OGMA_LIBRARY_DATA_DIR per journey; synthetic corpus tests/fixtures/corpus",
+  "model": "intfloat/multilingual-e5-small @ 614241f622f53c4eeff9890bdc4f31cfecc418b3 from OGMA_TEST_EMBEDDING_MODEL_DIR (outside git); the in-window consent download click was not exercised",
+  "theme": "Light",
+  "interference": "During runs p14-final-settings, p14-final-settings-r2 and p14-final-sem2-r2 the desktop was in use by another party: hit tests landed on foreign windows ('Windows PowerShell', 'Your dot 8 unread messages', a 'Conversation' group, a minimised window at -32000). The J-SEM-1 1280x800 conceptual screenshot shows foreign keystrokes ('bma in') inserted into the search box. Failures whose cause is a foreign window are NOT_ASSESSED, not app failures.",
+  "runs": [
+    { "run": "p14-final-sem", "filter": "Tag=SemanticSearch", "results": [
+      { "journey": "J-SEM-N1", "size": "1280x800", "result": "PASS", "seconds": 634, "note": "No model, 10 min real idle. Embedding jobs 14 total, 14 parked, 0 failed, 0 attempts, 0 started. Runs at the first size only by design (Sizes[0])." },
+      { "journey": "J-SEM-1", "size": "1920x1080", "result": "FAIL", "seconds": 1225, "note": "Index progress 0 of 4 -> 7 of 12 books by 180 s, then stuck at 7 of 12 until 600 s; from 630 s the window painted blank (title bar only) and the progress text read ''. Timed out at 20 min. Log: settings.search.load failed on first run (K147) and 5 FOREIGN KEY errors on vector insert at 18:21:45-47Z (K148). Registered K152." },
+      { "journey": "J-SEM-1", "size": "1280x800", "result": "PASS (contaminated)", "seconds": 652, "note": "Index complete at 649.5 s (final label '9 of 12 books ready', K148 counting). 'books about light and colour': top 3 The Physics of Everyday Light, Algorithms Explained, The Lantern Keeper, all 'matched on similar meaning'; mode label via visible text (K149). Jobs 14 total, 14 completed, 0 failed. Screenshot shows foreign keystrokes in the search box; the K147 error toast is visible." },
+      { "journey": "J-SEM-N2", "size": "1280x800", "result": "PASS", "seconds": 55, "note": "Damaged model: 14 parked, 0 failed, 0 attempts." },
+      { "journey": "J-SEM-N2", "size": "1920x1080", "result": "PASS", "seconds": 54, "note": "Damaged model: 12 parked, 0 failed, 0 attempts." },
+      { "journey": "J-SEM-2", "size": "1280x800", "result": "PASS", "seconds": 28 },
+      { "journey": "J-SEM-2", "size": "1920x1080", "result": "FAIL", "seconds": 27, "note": "Keyword-only notice covered at all 5 hit points by an unnamed Group; the screenshot shows the notice painted and the K147 toast. Passed on rerun p14-final-sem2-r2." }
+    ]},
+    { "run": "p14-final-sem2-r2", "filter": "Journey=J-SEM-2", "results": [
+      { "journey": "J-SEM-2", "size": "1280x800", "result": "NOT_ASSESSED", "note": "Covered by a foreign 'Windows PowerShell' window (passed in p14-final-sem)." },
+      { "journey": "J-SEM-2", "size": "1920x1080", "result": "PASS", "seconds": 26 }
+    ]},
+    { "run": "p14-final-g4", "filter": "Journey=G4", "results": [
+      { "journey": "G4", "size": "1280x800", "result": "PASS", "seconds": 46 },
+      { "journey": "G4", "size": "1920x1080", "result": "PASS", "seconds": 41 }
+    ]},
+    { "run": "p14-final-settings + p14-final-settings-r2", "filter": "Tag=Settings", "results": [
+      { "test": "Settings_EverySection_OpensAndIsCaptured", "size": "1280x800", "result": "PASS (r2)", "note": "Run 1 window minimised by another party." },
+      { "test": "Settings_EverySection_OpensAndIsCaptured", "size": "1920x1080", "result": "NOT_ASSESSED", "note": "Both runs covered by foreign windows ('Windows PowerShell'; 'Your dot 8 unread messages')." },
+      { "test": "Settings_EnvironmentOverride_IsShownDisabledWithTheReason", "size": "1280x800", "result": "PASS (run 1)" },
+      { "test": "Settings_EnvironmentOverride_IsShownDisabledWithTheReason", "size": "1920x1080", "result": "PASS (both)" },
+      { "test": "Settings_ThemeDensityAndLanguage_ApplyLiveAndPersistAcrossRestart", "size": "1280x800", "result": "PASS (r2)", "note": "Run 1 covered by 'Windows PowerShell'." },
+      { "test": "Settings_ThemeDensityAndLanguage_ApplyLiveAndPersistAcrossRestart", "size": "1920x1080", "result": "PASS (both)" },
+      { "test": "Settings_SecondFolderAddedFromSettings_JoinsCatalogueAfterRescan", "size": "1280x800", "result": "PASS (run 1)", "note": "r2: could not bring the folder dialog to the foreground." },
+      { "test": "Settings_SecondFolderAddedFromSettings_JoinsCatalogueAfterRescan", "size": "1920x1080", "result": "PASS (run 1)", "note": "r2: could not bring the folder dialog to the foreground." },
+      { "test": "G8_CorruptLibrarySettings_AppStartsWithRecoverableMessage", "size": "1280x800", "result": "PASS (run 1)", "note": "r2 covered by 'Windows PowerShell'." },
+      { "test": "G8_CorruptLibrarySettings_AppStartsWithRecoverableMessage", "size": "1920x1080", "result": "NOT_ASSESSED", "note": "Both runs: the toast list was covered by foreign windows ('Conversation' group; 'Windows PowerShell')." }
+    ]}
+  ],
+  "notAssessed": [
+    "J-SEM-1 at 1920x1080 as a pass (it failed, K152)",
+    "Settings_EverySection and G8 at 1920x1080 (foreign windows)",
+    "The in-window first-use download click against huggingface.co",
+    "Dark theme, 200 % text, French and RTL runs of the J-SEM journeys",
+    "Screen-reader walkthrough (Phase 21)"
+  ],
+  "screenshots": "slice7-screenshots/"
+}

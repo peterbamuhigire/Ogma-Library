@@ -14,6 +14,16 @@ claims below describe gate evidence, not a working product. Phase progress is tr
 [status register](../../plans/sept-23-kaizen/README.md#status-register) and
 [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
+- **Sept-23 Phase 14** (local semantic capability): **IMPLEMENTED** 2026-11-20 on branch
+  `kaizen/phase-14` (rollback `f29ece61`). Not COMPLETE. A built-in ONNX provider (`multilingual-e5-small`,
+  consented download, SHA-256 pinned) and a provider registry (Built-in, Ollama, Off). Embedding jobs park
+  as `WaitingForCapability` (0 failed, 0 attempts after 10 min with no model), availability is cached, and
+  model changes trigger a staged regeneration. Also new: Settings > Search and AI, and a conceptual oracle
+  (38 of 38, en and fr). Static gates pass on `f5fd5abc`. Real window: J-SEM-1 PASS at 1280x800, FAIL at
+  1920x1080 (K152); J-SEM-2, J-SEM-N2 and G4 PASS at both sizes. Open: K147, K148 and K152 (P2), K145, K146,
+  K149, K150 and K153. NOT_ASSESSED: the download click, macOS arm64, the Ollama live path, the screen
+  reader and the installer payload.
+  [Record](phase-sept23-14-completion.md).
 - **Sept-23 Phase 12** (reader experience): **IMPLEMENTED** 2026-11-20 on branch
   `kaizen/phase-12` (rollback `99eeff5e`). Not COMPLETE. Rework after review: **K139 fixed** (the
   1920x1080 page was misplaced because `SinglePageSurfaceWidth` was never re-notified; test

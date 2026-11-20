@@ -234,7 +234,7 @@ These decisions were taken under that authority. Each is the recommended option 
   - **D-101**: recorded IMPLEMENTED because J-READ-4 could not run (K136) and the NOT_ASSESSED items have no result yet.
   - **D-102**: working-tree line-ending dirt from `dotnet format` is normalised locally and not committed; `.gitattributes` already stores the files correctly.
 
-  Gates on `886bcc3b`: accountability, locked restore, format, Release build (0 warnings), vulnerable scan, analyzers and `Test-Fast.ps1` (Architecture 53, Unit 1,470, Ui 514, E2E harness 5) all pass. Real window under the desktop lock, runs `p12-reader` and `p12-g6`: J-READ-1, 2, 3, 5, 6, N2, SHARP, G3, G5, G8 PASS at 1280x800 and 1920x1080, Light and Dark; G6 PASS (Light); J-READ-AREA PASS at 1280x800 (88.2 %, 65.9 % with the panel open); J-READ-4 and J-READ-N1 NOT ASSESSED. G3 p95 62 ms and 174 ms; J-READ-1 p95 69-71 ms and 206-231 ms against 250 ms. Resolved: K32 (p95), K33 (100 %), K104, K108, K125, K127; K34 mostly. Open: K135 to K138. [Record]('+rec12+'); evidence in `docs/implementation/execution/evidence/sept-23-kaizen/phase-12/`.
+  Gates on `886bcc3b`: accountability, locked restore, format, Release build (0 warnings), vulnerable scan, analyzers and `Test-Fast.ps1` (Architecture 53, Unit 1,470, Ui 514, E2E harness 5) all pass. Real window under the desktop lock, runs `p12-reader` and `p12-g6`: J-READ-1, 2, 3, 5, 6, N2, SHARP, G3, G5, G8 PASS at 1280x800 and 1920x1080, Light and Dark; G6 PASS (Light); J-READ-AREA PASS at 1280x800 (88.2 %, 65.9 % with the panel open); J-READ-4 and J-READ-N1 NOT ASSESSED. G3 p95 62 ms and 174 ms; J-READ-1 p95 69-71 ms and 206-231 ms against 250 ms. Resolved: K32 (p95), K33 (100 %), K104, K108, K125, K127; K34 mostly. Open: K135 to K138. [Record](../../implementation/execution/phase-sept23-12-completion.md); evidence in `docs/implementation/execution/evidence/sept-23-kaizen/phase-12/`.
 - **2026-11-20**: Phase 14 slice 1 of 7 (executor session): currentness review, model decision and provider abstraction. Rollback point: `f29ece61`. Phase 14 is not complete; slices 2 to 7 remain. Decisions:
   - **D-103**: D-05 re-evaluated; the plan's recommended option is taken. A built-in ONNX provider, with the model fetched on first use only after the user's explicit consent, pinned by revision and SHA-256 and never bundled in git or the installer. Ollama stays as the advanced provider, plus Off.
   - **D-104**: with no model installed the default is Built-in "not installed": embedding jobs park (`WaitingForCapability`) and nothing touches the network until the user clicks.
@@ -296,3 +296,23 @@ These decisions were taken under that authority. Each is the recommended option 
   - Fast suite: Architecture 54 of 54, Tests.Ui 533 of 533, Tests 1,552 passed with 35 skips and 2 failures. Neither failure is in slice 6 code. `Phase02CompositionTests.ExplicitMetadataMatrix…` fails with a `catalogue.db` lock (K147, intermittent; passes run alone). `LanHostLoadSmokeTests.PageRenderEndpoint…` returned HTTP 500 once and passed alone (K151).
   - Registers K145 (throughput), K146 (no similarity floor; 8 of 12 books returned as semantic), K147 (Search section loads before migrations, toast on first run), K148 (vector inserts hit FOREIGN KEY failures and progress went backwards during the build), K149 (`Search.Mode` not exposed to UI Automation), K150 (badge "Semantic" against the spoken "similar meaning") and K151.
   - NOT_ASSESSED: J-SEM journeys at other sizes, dark theme, 200 % text, French and RTL; a semantic-on nonsense query; logs of the passing rerun (logs are kept only on failure).
+- **2026-11-20**: Phase 14 slice 7 of 7 (executor session): record and evidence. Rollback point: `f5fd5abc`. Phase 14 is **IMPLEMENTED**, not COMPLETE. Decisions:
+  - **D-128**: recorded IMPLEMENTED because J-SEM-1 fails at 1920x1080 (K152) and K147 and K148 (P2, Phase 14) are open. The handoff asked for both to be fixed before close; slice 7's scope is the record, so they go to a Phase 14 follow-up.
+  - **D-129**: a real-window failure whose hit test lands on a foreign window is NOT_ASSESSED. Each test keeps its pass from either run, and no third retry was made while the desktop was in use.
+  - **D-130**: the slice 6 benchmark JSON stands for this head; the code has not changed since `c2b7ab4e`.
+
+  Gates on `f5fd5abc`:
+  - Pass: accountability, locked restore, format, Release build (0 warnings), vulnerable scan (none) and analyzers.
+  - Fast suite with `OGMA_TEST_EMBEDDING_MODEL_DIR`: Architecture 54 of 54, Ui 533 of 533, E2E harness 5 of 5. Unit 1,588 of 1,589 with 0 skips, in 1 h 16 min (K154). The failure is a PDF worker recovery timing flake (2,160 against 2,000 ms) that passed 12 of 12 alone (K153).
+  - Oracle 38 of 38.
+
+  Real window under the lock (runs `p14-final-*`):
+  - J-SEM-1: PASS at 1280x800 (index 649.5 s, expected book first; the screenshot shows foreign keystrokes). FAIL at 1920x1080: stuck at "7 of 12", then a blank window (K152).
+  - J-SEM-2 and J-SEM-N2: PASS at both sizes.
+  - J-SEM-N1: PASS (0 failed, 0 attempts).
+  - G4: PASS at both sizes.
+  - Settings: 4 of 4 PASS at 1280x800 and 3 of 4 at 1920x1080.
+  - G8: PASS at 1280x800.
+  - Settings `EverySection` and G8 at 1920x1080 are NOT_ASSESSED: foreign windows, because the desktop was in use.
+
+  K25 embedding part resolved (16 failed → 0); K42 mostly resolved. Registers K152 to K154; K147 reproduced on every first launch. [Record](../../implementation/execution/phase-sept23-14-completion.md); evidence in `docs/implementation/execution/evidence/sept-23-kaizen/phase-14/`.

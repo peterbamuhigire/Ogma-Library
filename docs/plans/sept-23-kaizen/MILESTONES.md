@@ -144,7 +144,7 @@ MEASURED, run `co-final` on `ebb7b718`. [Record](../../implementation/execution/
   - Locked PDF: cannot be opened → opens with the right password (J-READ-3, J-READ-N2).
   - New in code: spread and continuous layouts, find bar, page history, Contents tab, split view with a session per pane, five citation formats, position flush on exit.
   - Open: J-READ-4 cannot run (K136); K135, K137, K138; 150/200 % scaling, screen reader, macOS keychain, reference machine and owner walkthrough NOT_ASSESSED.
-  [Record]('+rec12+').
+  [Record](../../implementation/execution/phase-sept23-12-completion.md).
 - **Phase 11, book detail inspector: IMPLEMENTED 2026-11-20 (branch `kaizen/phase-11`); not
   COMPLETE.** Measured before → after:
   - Section headers: 7 tabs wrapping onto 3 rows → 1 row of 4 segments.
@@ -163,6 +163,13 @@ MEASURED, run `co-final` on `ebb7b718`. [Record](../../implementation/execution/
   - The owner walkthrough, screen reader, 200 % text and RTL.
 
   [Record](../../implementation/execution/phase-sept23-11-completion.md).
+- **Phase 14, local semantic search: IMPLEMENTED 2026-11-20 (branch `kaizen/phase-14`); not COMPLETE.** Measured before → after:
+  - Embedding jobs with no provider: 16 of 16 failed and retrying → 0 failed, 0 attempts after 10 minutes of idle (J-SEM-N1).
+  - Semantic provider on a normal machine: none (Ollama not shipped) → a built-in local model, downloaded once with consent and verified by SHA-256.
+  - "books about light and colour": nothing → The Physics of Everyday Light ranked first in the real window. The oracle has 8 of 8 conceptual cases in the top 3 (English and French).
+  - Keyword latency with the provider absent: within 0.1 % of semantic off (target ±10 %).
+  - Open: indexing stalls at 1920x1080 (K152); an error toast on first run (K147); vector insert failures (K148); slow indexing, 3.29 chunks/s (K145).
+  [Record](../../implementation/execution/phase-sept23-14-completion.md).
 - **Phase 13, unified search: IMPLEMENTED and merged.** Phrases, typos, Unicode names and field
   queries; honest status; no race. G4 is stable. Open: the K40 miss cause and the J-SRCH-1
   journey.
