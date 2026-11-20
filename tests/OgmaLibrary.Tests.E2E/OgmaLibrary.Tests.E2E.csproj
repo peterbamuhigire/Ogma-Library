@@ -21,6 +21,9 @@
 
   <ItemGroup>
     <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <!-- Sept-23 Phase 14: semantic journeys read Jobs from the session's catalogue.db (read-only). -->
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.9" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />

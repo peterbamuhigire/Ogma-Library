@@ -86,7 +86,8 @@ public sealed class UnifiedSearchPerformanceTests
         }
     }
 
-    private static void Seed(CatalogueDbContext context, int bookCount, int pagesPerBook)
+    /// <summary>Seeds the deterministic synthetic catalogue (also used by the Phase 14 embedding benchmark).</summary>
+    internal static void Seed(CatalogueDbContext context, int bookCount, int pagesPerBook)
     {
         var random = new Random(13);
         DateTimeOffset now = new(2026, 9, 25, 0, 0, 0, TimeSpan.Zero);
