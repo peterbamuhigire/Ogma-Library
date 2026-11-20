@@ -1,0 +1,1162 @@
+[
+  {
+    "type": "TitleBar",
+    "name": null,
+    "id": "TitleBar",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=24,Y=3,Width=1888,Height=28}"
+  },
+  {
+    "type": "MenuBar",
+    "name": "System",
+    "id": "SystemMenuBar",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=8,Y=8,Width=22,Height=22}"
+  },
+  {
+    "type": "MenuItem",
+    "name": "System",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=8,Y=8,Width=22,Height=22}"
+  },
+  {
+    "type": "Button",
+    "name": "Minimize",
+    "id": "Minimize-Restore",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1773,Y=1,Width=47,Height=30}"
+  },
+  {
+    "type": "Button",
+    "name": "Maximize",
+    "id": "Maximize-Restore",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1820,Y=1,Width=46,Height=30}"
+  },
+  {
+    "type": "Button",
+    "name": "Close",
+    "id": "Close",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1866,Y=1,Width=47,Height=30}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=8,Y=31,Width=1904,Height=1041}"
+  },
+  {
+    "type": "Pane",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=8,Y=31,Width=208,Height=944}"
+  },
+  {
+    "type": "List",
+    "name": "Main navigation",
+    "id": "Shell.Rail",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=8,Y=39,Width=208,Height=936}"
+  },
+  {
+    "type": "Button",
+    "name": "Library",
+    "id": "Shell.Nav.Library",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=41,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Library",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=54,Width=47,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Search",
+    "id": "Shell.Nav.Search",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=89,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Search",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=102,Width=46,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Reading",
+    "id": "Shell.Nav.Reading",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=137,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Reading",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=150,Width=54,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Advisor",
+    "id": "Shell.Nav.Advisor",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=185,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Advisor",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=198,Width=50,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Collections",
+    "id": "Shell.Nav.Collections",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=233,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Collections",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=246,Width=73,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Activity",
+    "id": "Shell.Nav.Activity",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=281,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Activity",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=294,Width=50,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Settings",
+    "id": "Shell.Nav.Settings",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=16,Y=329,Width=192,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "Settings",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=74,Y=342,Width=55,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Collapse navigation",
+    "id": "Shell.Nav.ToggleRail",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=14,Y=979,Width=196,Height=44}"
+  },
+  {
+    "type": "Text",
+    "name": "\u00AB",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=40,Y=991,Width=20,Height=20}"
+  },
+  {
+    "type": "Text",
+    "name": "Collapse navigation",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=72,Y=993,Width=118,Height=16}"
+  },
+  {
+    "type": "Text",
+    "name": "Library",
+    "id": "Shell.Heading",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=244,Y=41,Width=71,Height=32}"
+  },
+  {
+    "type": "Button",
+    "name": "Add folder",
+    "id": "Shell.Action.ChooseFolder",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=327,Y=39,Width=88,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "Add folder",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=336,Y=48,Width=70,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Filter",
+    "id": "Shell.Action.Filter",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=421,Y=39,Width=75,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "Filter",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=452,Y=48,Width=35,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Grid view",
+    "id": "Catalogue.View.Grid",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=504,Y=42,Width=79,Height=30}"
+  },
+  {
+    "type": "Text",
+    "name": "Grid view",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=513,Y=49,Width=61,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "List view",
+    "id": "Catalogue.View.List",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=583,Y=42,Width=75,Height=30}"
+  },
+  {
+    "type": "Text",
+    "name": "List view",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=592,Y=49,Width=57,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Directory view",
+    "id": "Catalogue.View.Directory",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=658,Y=42,Width=111,Height=30}"
+  },
+  {
+    "type": "Text",
+    "name": "Directory view",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=667,Y=49,Width=93,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Rescan library",
+    "id": "Shell.Action.Rescan",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=777,Y=39,Width=112,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "Rescan library",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=786,Y=48,Width=94,Height=17}"
+  },
+  {
+    "type": "ComboBox",
+    "name": "Sort",
+    "id": "Catalogue.Filter.Sort",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=895,Y=39,Width=120,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "Title",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=907,Y=48,Width=76,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Ascending",
+    "id": "Catalogue.Filter.SortDirection",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1019,Y=39,Width=88,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "Ascending",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1028,Y=48,Width=70,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Folders",
+    "id": "Shell.Action.Folders",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1113,Y=39,Width=67,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "Folders",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1122,Y=48,Width=49,Height=17}"
+  },
+  {
+    "type": "Text",
+    "name": "13 books",
+    "id": "CountText",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1192,Y=49,Width=53,Height=16}"
+  },
+  {
+    "type": "Button",
+    "name": "More",
+    "id": "Shell.Action.More",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1826,Y=39,Width=74,Height=36}"
+  },
+  {
+    "type": "Text",
+    "name": "More",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1835,Y=48,Width=34,Height=17}"
+  },
+  {
+    "type": "Button",
+    "name": "Needs attention (3)",
+    "id": "Catalogue.NeedsAttention",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=232,Y=90,Width=138,Height=30}"
+  },
+  {
+    "type": "Text",
+    "name": "Needs attention (3)",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=243,Y=97,Width=116,Height=16}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=216,Y=127,Width=1696,Height=904}"
+  },
+  {
+    "type": "Text",
+    "name": "Good afternoon",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=240,Y=148,Width=193,Height=34}"
+  },
+  {
+    "type": "Text",
+    "name": "13 books in your library",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=240,Y=186,Width=193,Height=16}"
+  },
+  {
+    "type": "Text",
+    "name": "On your shelves",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=240,Y=216,Width=193,Height=18}"
+  },
+  {
+    "type": "List",
+    "name": "On your shelves",
+    "id": "Catalogue.Home.Strip",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=457,Y=137,Width=1439,Height=108}"
+  },
+  {
+    "type": "ListItem",
+    "name": "A Short History of the Great Lakes Kingdoms, by Peter Byaruhanga, Searchable",
+    "id": "Catalogue.Home.Item.01M7WE4TYH4GB8K71H5MX14M2R",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=457,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=461,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Algorithms Explained, by Grace Namutebi",
+    "id": "Catalogue.Home.Item.01M7WE4V66QEARBY8CQVEHBC59",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=535,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=539,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Big Reference Handbook, by Various",
+    "id": "Catalogue.Home.Item.01M7WE4VADQHVC1D028HQ9W9R3",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=613,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=617,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Deeply Nested, by Nester, Searchable",
+    "id": "Catalogue.Home.Item.01M7WE4TRATCJBVTK0JDXSSBFR",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=691,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=695,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Hadithi za Jioni: \u00C9vening Tales, by Wanjir\u0169 Kamau, Searchable",
+    "id": "Catalogue.Home.Item.01M7WE4TSDAK0N5FSZQFZBM0HZ",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=769,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=773,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Introduction to Tropical Ecology, by Joseph Mugisha",
+    "id": "Catalogue.Home.Item.01M7WE4VBN3ZC289W6NKBQWG75",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=847,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=851,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Locked Ledger (password secret), by Unknown author, Locked",
+    "id": "Catalogue.Home.Item.01M7WE4TAHMTKM4WGVT51TBH9E",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=925,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=929,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Scanned Handout (golden), by Unknown author, OCR text",
+    "id": "Catalogue.Home.Item.01M7WE4TKJ5VB9YPRC8NJXHGS6",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1003,Y=137,Width=74,Height=108}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1007,Y=143,Width=66,Height=96}"
+  },
+  {
+    "type": "List",
+    "name": "",
+    "id": "Catalogue.Grid",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=216,Y=256,Width=1696,Height=775}"
+  },
+  {
+    "type": "ListItem",
+    "name": "A Short History of the Great Lakes Kingdoms, by Peter Byaruhanga, Searchable",
+    "id": "Catalogue.Item.01M7WE4TYH4GB8K71H5MX14M2R",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=216,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=224,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=234,Y=404,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "A Short History of the Great Lakes Kingdoms",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=234,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Peter Byaruhanga",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=234,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Searchable",
+    "id": "Catalogue.Item.Badge.Searchable",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=240,Y=497,Width=64,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Algorithms Explained, by Grace Namutebi",
+    "id": "Catalogue.Item.01M7WE4V66QEARBY8CQVEHBC59",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=392,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=400,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Algorithms Explained",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=410,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Grace Namutebi",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=410,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Big Reference Handbook, by Various",
+    "id": "Catalogue.Item.01M7WE4VADQHVC1D028HQ9W9R3",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=568,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=576,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Big Reference Handbook",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=586,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Various",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=586,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Deeply Nested, by Nester, Searchable",
+    "id": "Catalogue.Item.01M7WE4TRATCJBVTK0JDXSSBFR",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=744,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=752,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=762,Y=404,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Deeply Nested",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=762,Y=432,Width=140,Height=22}"
+  },
+  {
+    "type": "Text",
+    "name": "Nester",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=762,Y=457,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Searchable",
+    "id": "Catalogue.Item.Badge.Searchable",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=768,Y=476,Width=64,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Hadithi za Jioni: \u00C9vening Tales, by Wanjir\u0169 Kamau, Searchable",
+    "id": "Catalogue.Item.01M7WE4TSDAK0N5FSZQFZBM0HZ",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=920,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=928,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=938,Y=404,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Hadithi za Jioni: \u00C9vening Tales",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=938,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Wanjir\u0169 Kamau",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=938,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Searchable",
+    "id": "Catalogue.Item.Badge.Searchable",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=944,Y=497,Width=64,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Introduction to Tropical Ecology, by Joseph Mugisha",
+    "id": "Catalogue.Item.01M7WE4VBN3ZC289W6NKBQWG75",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1096,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1104,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Introduction to Tropical Ecology",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1114,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Joseph Mugisha",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1114,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Locked Ledger (password secret), by Unknown author, Locked",
+    "id": "Catalogue.Item.01M7WE4TAHMTKM4WGVT51TBH9E",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1272,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1280,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1290,Y=404,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Locked Ledger (password secret)",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1290,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Unknown author",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1290,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Locked",
+    "id": "Catalogue.Item.Badge.Locked",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1296,Y=497,Width=41,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Scanned Handout (golden), by Unknown author, OCR text",
+    "id": "Catalogue.Item.01M7WE4TKJ5VB9YPRC8NJXHGS6",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1448,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1456,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Scanned Handout (golden)",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1466,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Unknown author",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1466,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "OCR text",
+    "id": "Catalogue.Item.Badge.OcrText",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1472,Y=497,Width=51,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "90 %",
+    "id": "Catalogue.Item.Badge.OcrConfidence",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1526,Y=497,Width=29,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Scanned Pamphlet (image only), by Unknown author, OCR in progress",
+    "id": "Catalogue.Item.01M7WE4TMJEA49GBCDQSHS9JQJ",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1624,Y=256,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1632,Y=264,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Scanned Pamphlet (image only)",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1642,Y=432,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Unknown author",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1642,Y=478,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "OCR in progress",
+    "id": "Catalogue.Item.Badge.OcrInProgress",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1648,Y=497,Width=91,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "The Lantern Keeper, by Daniel Ssempa, Searchable, 2 copies",
+    "id": "Catalogue.Item.01M7WE4TNW2SBSQQANJ4T6C47B",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=216,Y=560,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=224,Y=568,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=234,Y=708,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "The Lantern Keeper",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=234,Y=736,Width=140,Height=22}"
+  },
+  {
+    "type": "Text",
+    "name": "Daniel Ssempa",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=234,Y=761,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Searchable",
+    "id": "Catalogue.Item.Badge.Searchable",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=240,Y=780,Width=64,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "2 copies",
+    "id": "Catalogue.Item.Badge.Identity",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=319,Y=780,Width=47,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "The Physics of Everyday Light, by Unknown author",
+    "id": "Catalogue.Item.01M7WE4VCV2W98S73ANRZWPT2Q",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=392,Y=560,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=400,Y=568,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "The Physics of Everyday Light",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=410,Y=736,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Unknown author",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=410,Y=782,Width=140,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "Trade Routes of East Africa, by Sarah Achieng, Searchable",
+    "id": "Catalogue.Item.01M7WE4V4RD6CDZR080MQSYJ4T",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=568,Y=560,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=576,Y=568,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=586,Y=708,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Trade Routes of East Africa",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=586,Y=736,Width=140,Height=43}"
+  },
+  {
+    "type": "Text",
+    "name": "Sarah Achieng",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=586,Y=782,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Searchable",
+    "id": "Catalogue.Item.Badge.Searchable",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=592,Y=801,Width=64,Height=15}"
+  },
+  {
+    "type": "ListItem",
+    "name": "untitled_scan_0042, by Unknown author, Searchable",
+    "id": "Catalogue.Item.01M7WE4TQD7GKGP8QGQ8PKEVKK",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=744,Y=560,Width=176,Height=304}"
+  },
+  {
+    "type": "Custom",
+    "name": "",
+    "id": "Catalogue.Item.Cover",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=752,Y=568,Width=160,Height=160}"
+  },
+  {
+    "type": "Text",
+    "name": "Cover unavailable",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=762,Y=708,Width=99,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "untitled_scan_0042",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=762,Y=736,Width=140,Height=22}"
+  },
+  {
+    "type": "Text",
+    "name": "Unknown author",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=762,Y=761,Width=140,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Searchable",
+    "id": "Catalogue.Item.Badge.Searchable",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=768,Y=780,Width=64,Height=15}"
+  },
+  {
+    "type": "Text",
+    "name": "Preparing books: 56 of 75 tasks",
+    "id": "Shell.Status",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=20,Y=1044,Width=1768,Height=16}"
+  },
+  {
+    "type": "Button",
+    "name": "Library health",
+    "id": "Shell.Status.LibraryHealth",
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1798,Y=1038,Width=102,Height=28}"
+  },
+  {
+    "type": "Text",
+    "name": "Library health",
+    "id": null,
+    "enabled": true,
+    "offscreen": false,
+    "bounds": "{X=1807,Y=1044,Width=84,Height=16}"
+  }
+]
