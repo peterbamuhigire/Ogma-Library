@@ -165,7 +165,7 @@ public sealed class G02AddLibraryTests
 
     /// <summary>
     /// Phase 06: the detail inspector shows the scanned ISBN of a corpus book that has one. The
-    /// value is read from the accessible name of the <c>Detail.Field.Isbn</c> field (Phase 11) and
+    /// value is read from the accessible name of the <c>Detail.Field.ISBN</c> field (Phase 11) and
     /// compared digit for digit with expected.json. An empty binding fails.
     /// </summary>
     private static void AssertInspectorShowsIsbn(JourneyContext context, CorpusOracle oracle)
@@ -189,9 +189,15 @@ public sealed class G02AddLibraryTests
         Uia.Poll(
             () =>
             {
-                // Phase 11: the ISBN is an editable field (Detail.Field.Isbn) whose accessible
+                // Phase 11: the ISBN is an editable field (Detail.Field.ISBN) whose accessible
                 // name carries the label and the value ("ISBN: 978-…. Edit", K128).
-                shown = Uia.TryFind(window, "Detail.Field.Isbn")?.Properties.Name.ValueOrDefault;
+                shown = Uia.TryFind(window, "Detail.Field.ISBN")?.Properties.Name.ValueOrDefault;
+                if (shown is null && Uia.TryFind(window, "Detail.Section.Details") is { IsEnabled: true } segment)
+                {
+                    // A segment invoked while the panel is still loading the book is ignored.
+                    Uia.Activate(segment);
+                }
+
                 return shown is not null && Digits(shown).EndsWith(expectedDigits, StringComparison.Ordinal);
             },
             TimeSpan.FromSeconds(60),

@@ -86,7 +86,10 @@ public sealed class DetailTests
             context.Shot("writeback-review");
             Uia.Activate(WaitEnabled(dialog, "WriteBack.Continue"));
             Uia.Activate(WaitEnabled(dialog, "WriteBack.Confirm"));
-            Uia.Activate(WaitEnabled(dialog, "WriteBack.Close"));
+            AutomationElement close = WaitEnabled(dialog, "WriteBack.Close");
+            context.Record("writeBack.dialogStatus", Uia.TryFind(dialog, "WriteBack.Status") is { } ds ? Uia.GetText(ds) : null);
+            context.Shot("writeback-result");
+            Uia.Activate(close);
             context.Mark("writeBack.written");
 
             bool changed = Uia.Poll(() => TrySha256(path) is { } now && now != original, Wait);
@@ -192,6 +195,8 @@ public sealed class DetailTests
             Assert.True(Uia.Poll(() => FindTopLevel(context, "WriteBack.Dialog") is null, Wait), "The write-back dialog did not close on Cancel.");
             Assert.Equal(original, Sha256(path));
 
+            // The write-back preview moved the panel to Activity; the field-edit undo is under Details.
+            SelectSection(panel, "Detail.Section.Details", "Detail.Action.UndoFieldEdit");
             Uia.Activate(WaitEnabled(context.RequireApp.MainWindow, "Detail.Action.UndoFieldEdit"));
             bool undone = Uia.Poll(
                 () => Uia.TryFind(panel, "Detail.Title") is { } t && !(Uia.GetText(t) ?? string.Empty).Contains("(G9)", StringComparison.Ordinal),
@@ -262,8 +267,7 @@ public sealed class DetailTests
 
     private static void EditField(JourneyContext context, AutomationElement panel, string field, string value)
     {
-        Uia.Activate(Uia.WaitFor(panel, "Detail.Section.Details"));
-        Uia.Activate(Uia.WaitFor(panel, $"Detail.Field.{field}"));
+        Uia.Activate(SelectSection(panel, "Detail.Section.Details", $"Detail.Field.{field}"));
         AutomationElement editor = WaitEnabled(panel, $"Detail.Field.{field}.Editor");
         Uia.SetText(editor, value);
         Native.ForceForeground(context.RequireApp.Handle);
@@ -312,6 +316,29 @@ public sealed class DetailTests
             context.Mark("restore.confirmedInDialog");
         }
     }
+
+    /// <summary>
+    /// Selects an inspector section until <paramref name="expectId"/> appears. A segment invoked
+    /// while the panel is still loading the book is ignored, so the click is repeated.
+    /// </summary>
+    private static AutomationElement SelectSection(AutomationElement panel, string sectionId, string expectId) =>
+        Uia.WaitUntil(
+            () =>
+            {
+                if (Uia.TryFind(panel, expectId) is { } shown)
+                {
+                    return shown;
+                }
+
+                if (Uia.TryFind(panel, sectionId) is { IsEnabled: true } segment)
+                {
+                    Uia.Activate(segment);
+                }
+
+                return null;
+            },
+            Wait,
+            $"{expectId} after selecting {sectionId}");
 
     private static AutomationElement WaitEnabled(AutomationElement root, string automationId) =>
         Uia.WaitUntil(() => Uia.TryFind(root, automationId) is { IsEnabled: true } e ? e : null, Wait, $"an enabled {automationId}");
