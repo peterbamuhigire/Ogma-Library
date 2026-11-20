@@ -16,7 +16,7 @@
     </Style>
   </UserControl.Styles>
 
-  <Grid RowDefinitions="Auto,*"
+  <Grid RowDefinitions="Auto,Auto,*"
         Background="{DynamicResource Brush.Surface.Parchment}">
 
     <!-- Sept-23 Phase 12: one slim toolbar. Back, title, page field, zoom, layout, search,
@@ -51,6 +51,22 @@
                     Orientation="Horizontal"
                     Spacing="4"
                     VerticalAlignment="Center">
+          <Button Classes="tool"
+                  IsEnabled="{Binding CanHistoryBack}"
+                  AutomationProperties.AutomationId="Reader.History.Back"
+                  AutomationProperties.Name="{Binding HistoryBackLabel}"
+                  ToolTip.Tip="{Binding HistoryBackLabel}"
+                  Click="HistoryBackButton_Click">
+            <TextBlock Text="&#x2190;" />
+          </Button>
+          <Button Classes="tool"
+                  IsEnabled="{Binding CanHistoryForward}"
+                  AutomationProperties.AutomationId="Reader.History.Forward"
+                  AutomationProperties.Name="{Binding HistoryForwardLabel}"
+                  ToolTip.Tip="{Binding HistoryForwardLabel}"
+                  Click="HistoryForwardButton_Click">
+            <TextBlock Text="&#x2192;" />
+          </Button>
           <TextBox x:Name="PageNumberBox"
                    Width="56"
                    Text="{Binding PageNumberInput, Mode=TwoWay}"
@@ -123,7 +139,8 @@
                 IsEnabled="{Binding IsSearchAvailable}"
                 AutomationProperties.AutomationId="Reader.Search"
                 AutomationProperties.Name="{Binding SearchToggleLabel}"
-                ToolTip.Tip="{Binding SearchToggleLabel}">
+                ToolTip.Tip="{Binding SearchToggleLabel}"
+                Click="FindButton_Click">
           <TextBlock Text="{Binding SearchToggleLabel}" />
         </Button>
 
@@ -256,7 +273,66 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+    <Border Grid.Row="1"
+            x:Name="FindBar"
+            IsVisible="{Binding IsFindOpen}"
+            Padding="12,6"
+            Background="{DynamicResource Brush.Surface.Card}"
+            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
+            BorderThickness="0,0,0,1"
+            TextElement.FontFamily="{DynamicResource Type.FontFamily.Body}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding FindLabel}"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+        <TextBox Grid.Column="1"
+                 x:Name="FindBox"
+                 MaxWidth="420"
+                 MinWidth="240"
+                 HorizontalAlignment="Left"
+                 Text="{Binding FindQuery, Mode=TwoWay}"
+                 Watermark="{Binding FindPlaceholder}"
+                 AutomationProperties.AutomationId="Reader.Find.Box"
+                 AutomationProperties.Name="{Binding FindLabel}"
+                 KeyDown="FindBox_KeyDown" />
+        <TextBlock Grid.Column="2"
+                   Text="{Binding FindCountText}"
+                   FontFeatures="tnum"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                   AutomationProperties.AutomationId="Reader.Find.Count"
+                   AutomationProperties.Name="{Binding FindCountText}" />
+        <Button Grid.Column="3"
+                Classes="tool"
+                IsEnabled="{Binding HasFindResults}"
+                AutomationProperties.AutomationId="Reader.Find.Previous"
+                AutomationProperties.Name="{Binding FindPreviousLabel}"
+                ToolTip.Tip="{Binding FindPreviousLabel}"
+                Click="FindPreviousButton_Click">
+          <TextBlock Text="&#x2191;" />
+        </Button>
+        <Button Grid.Column="4"
+                Classes="tool"
+                IsEnabled="{Binding HasFindResults}"
+                AutomationProperties.AutomationId="Reader.Find.Next"
+                AutomationProperties.Name="{Binding FindNextLabel}"
+                ToolTip.Tip="{Binding FindNextLabel}"
+                Click="FindNextButton_Click">
+          <TextBlock Text="&#x2193;" />
+        </Button>
+        <Button Grid.Column="5"
+                Classes="tool"
+                AutomationProperties.AutomationId="Reader.Find.Close"
+                AutomationProperties.Name="{Binding FindCloseLabel}"
+                ToolTip.Tip="{Binding FindCloseLabel}"
+                Click="FindCloseButton_Click">
+          <TextBlock Text="&#x2715;" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
       <ScrollViewer x:Name="PageScrollViewer"
                     AutomationProperties.AutomationId="Reader.Viewport"
                     Grid.Column="0"
@@ -363,6 +439,34 @@
                              Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note_anchor.svg" />
                   </Button>
                 </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <ItemsControl Grid.Row="0"
+                        ItemsSource="{Binding FindHighlights}"
+                        HorizontalAlignment="Left"
+                        IsHitTestVisible="False"
+                        Width="{Binding SinglePageSurfaceWidth}"
+                        Height="{Binding PageSurfaceHeight}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <Grid />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:FindHighlightItem">
+                <Border Width="{Binding Width}"
+                        Height="{Binding Height}"
+                        Margin="{Binding Margin}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Background="{DynamicResource Brush.Accent.Saffron}"
+                        BorderBrush="{DynamicResource Brush.Accent.Ink}"
+                        BorderThickness="1"
+                        Opacity="0.55"
+                        CornerRadius="2"
+                        IsHitTestVisible="False" />
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
@@ -946,6 +1050,86 @@
                 </Button>
               </StackPanel>
             </ScrollViewer>
+          </TabItem>
+          <TabItem AutomationProperties.Name="{Binding ContentsTabLabel}"
+                   AutomationProperties.AutomationId="Reader.Contents.Tab">
+            <TabItem.Header>
+              <TextBlock Text="{Binding ContentsTabLabel}" />
+            </TabItem.Header>
+            <Grid Margin="12">
+              <ListBox x:Name="ContentsList"
+                       ItemsSource="{Binding ContentsEntries}"
+                       AutomationProperties.AutomationId="Reader.Contents.List"
+                       AutomationProperties.Name="{Binding ContentsTabLabel}"
+                       SelectionChanged="ContentsList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ContentsEntryItem">
+                    <Grid ColumnDefinitions="*,Auto"
+                          Margin="{Binding Indent}"
+                          AutomationProperties.Name="{Binding AccessibleLabel}">
+                      <TextBlock Grid.Column="0"
+                                 Text="{Binding Title}"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1"
+                                 Margin="8,0,0,0"
+                                 Text="{Binding PageText}"
+                                 FontFeatures="tnum"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <StackPanel IsVisible="{Binding ShowContentsEmptyState}"
+                          VerticalAlignment="Top"
+                          Spacing="6"
+                          AutomationProperties.AutomationId="Reader.Contents.Empty">
+                <TextBlock Text="{Binding ContentsEmptyText}"
+                           Classes="ogma-display"
+                           TextWrapping="Wrap"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+                <TextBlock Text="{Binding ContentsEmptyHint}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              </StackPanel>
+            </Grid>
+          </TabItem>
+
+          <TabItem AutomationProperties.Name="{Binding FindResultsTabLabel}"
+                   AutomationProperties.AutomationId="Reader.Find.Tab">
+            <TabItem.Header>
+              <TextBlock Text="{Binding FindResultsTabLabel}" />
+            </TabItem.Header>
+            <Grid RowDefinitions="Auto,*" Margin="12">
+              <TextBlock Grid.Row="0"
+                         Text="{Binding FindCountText}"
+                         Margin="0,0,0,8"
+                         FontFeatures="tnum"
+                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+              <ListBox Grid.Row="1"
+                       x:Name="FindResultsList"
+                       ItemsSource="{Binding FindResults}"
+                       AutomationProperties.AutomationId="Reader.Find.Results"
+                       AutomationProperties.Name="{Binding FindResultsTabLabel}"
+                       SelectionChanged="FindResultsList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FindResultItem">
+                    <StackPanel Spacing="2">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="{Binding PageLabel}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding MatchCount}"
+                                   FontFeatures="tnum"
+                                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                      </Grid>
+                      <TextBlock Text="{Binding Snippet}"
+                                 TextTrimming="CharacterEllipsis"
+                                 Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
           </TabItem>
         </TabControl>
       </Border>

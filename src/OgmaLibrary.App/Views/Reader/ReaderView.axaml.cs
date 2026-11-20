@@ -42,12 +42,91 @@ public partial class ReaderView : UserControl
         if (_boundViewModel is not null)
         {
             _boundViewModel.PropertyChanged -= ReaderViewModel_PropertyChanged;
+            _boundViewModel.FindFocusRequested -= FindFocusRequested;
+            _boundViewModel.GoToPageFocusRequested -= GoToPageFocusRequested;
         }
 
         _boundViewModel = DataContext as ReaderViewModel;
         if (_boundViewModel is not null)
         {
             _boundViewModel.PropertyChanged += ReaderViewModel_PropertyChanged;
+            _boundViewModel.FindFocusRequested += FindFocusRequested;
+            _boundViewModel.GoToPageFocusRequested += GoToPageFocusRequested;
+        }
+    }
+
+    private void FindFocusRequested(object? sender, EventArgs e) =>
+        Avalonia.Threading.Dispatcher.UIThread.Post(
+            () =>
+            {
+                FindBox.Focus();
+                FindBox.SelectAll();
+            },
+            Avalonia.Threading.DispatcherPriority.Input);
+
+    private void GoToPageFocusRequested(object? sender, EventArgs e)
+    {
+        PageNumberBox.Focus();
+        PageNumberBox.SelectAll();
+    }
+
+    private void FindButton_Click(object? sender, RoutedEventArgs e) => _boundViewModel?.OpenFind();
+
+    private void FindCloseButton_Click(object? sender, RoutedEventArgs e)
+    {
+        _boundViewModel?.CloseFind();
+        Focus();
+    }
+
+    private void FindNextButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => _boundViewModel?.FindNextAsync() ?? Task.CompletedTask, "reader.find_next");
+
+    private void FindPreviousButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => _boundViewModel?.FindPreviousAsync() ?? Task.CompletedTask, "reader.find_previous");
+
+    private void HistoryBackButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => _boundViewModel?.HistoryBackAsync() ?? Task.CompletedTask, "reader.history_back");
+
+    private void HistoryForwardButton_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => _boundViewModel?.HistoryForwardAsync() ?? Task.CompletedTask, "reader.history_forward");
+
+    private void FindBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_boundViewModel is not { } vm)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CloseFind();
+            Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            UiActions.Run(
+                () => e.KeyModifiers == KeyModifiers.Shift ? vm.FindPreviousAsync() : vm.FindNextAsync(),
+                "reader.find_enter");
+            e.Handled = true;
+        }
+    }
+
+    private void ContentsList_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox { SelectedItem: ContentsEntryItem entry } list && _boundViewModel is { } vm)
+        {
+            list.SelectedItem = null;
+            UiActions.Run(() => vm.JumpToContentsEntryAsync(entry), "reader.contents_jump");
+        }
+    }
+
+    private void FindResultsList_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox { SelectedItem: FindResultItem result } list && _boundViewModel is { } vm)
+        {
+            list.SelectedItem = null;
+            UiActions.Run(() => vm.GoToFindResultAsync(result), "reader.find_result");
         }
     }
 
@@ -801,6 +880,12 @@ public partial class ReaderView : UserControl
     {
         if (DataContext is not ReaderViewModel vm)
         {
+            return;
+        }
+
+        if (vm.TryHandleReaderGesture(e.Key, e.KeyModifiers))
+        {
+            e.Handled = true;
             return;
         }
 

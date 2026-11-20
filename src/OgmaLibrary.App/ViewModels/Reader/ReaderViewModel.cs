@@ -21,7 +21,7 @@ namespace OgmaLibrary.App.ViewModels.Reader;
 /// durable reader session, then loads bookmarks, annotation layers, and reading
 /// memory for the active book.
 /// </summary>
-public sealed class ReaderViewModel : INotifyPropertyChanged
+public sealed partial class ReaderViewModel : INotifyPropertyChanged
 {
     private readonly IReaderSessionService _sessions;
     private readonly IAnnotationService _annotations;
@@ -108,7 +108,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         IPageRenderCache? renderCache = null,
         IReaderPortabilityService? portability = null,
         ILogger<ReaderViewModel>? logger = null,
-        IReaderLayoutPreferences? layoutPreferences = null)
+        IReaderLayoutPreferences? layoutPreferences = null,
+        IInDocumentSearchService? search = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(annotations);
@@ -129,6 +130,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _renderCache = renderCache;
         _portability = portability;
         _layoutPreferences = layoutPreferences;
+        _search = search;
         _logger = logger ?? (ILogger)NullLogger.Instance;
 
         if (_sessions is IReaderSessionReadModel sessionEvents)
@@ -192,6 +194,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     private void OnSlotChanged()
     {
+        RefreshFindHighlights();
+        OnPropertyChanged(nameof(CanHistoryBack));
         OnPropertyChanged(nameof(SlotPageCount));
         OnPropertyChanged(nameof(HasSecondPage));
         OnPropertyChanged(nameof(OverlayZoomFactor));
@@ -314,6 +318,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanZoomOut));
                 OnPropertyChanged(nameof(CanZoomIn));
                 OnPropertyChanged(nameof(CanUsePortability));
+                OnPropertyChanged(nameof(IsSearchAvailable));
+                RaiseHistoryChanged();
             }
         }
     }
@@ -771,7 +777,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     }
 
     /// <summary>In-document search is not wired to the toolbar yet; the toggle stays disabled.</summary>
-    public bool IsSearchAvailable { get; private set; }
+    public bool IsSearchAvailable => IsOpen && _search is not null;
 
     /// <summary>Localized label for returning to the library.</summary>
     public string BackToLibraryLabel => _localization["Navigation.BackToLibrary"];
@@ -1339,7 +1345,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             return;
         }
 
-        await NavigateToAsync(pageNumber - 1).ConfigureAwait(true);
+        await JumpAsync(pageNumber - 1).ConfigureAwait(true);
     }
 
     /// <summary>Navigates to the page referenced by a bookmark.</summary>
@@ -2074,6 +2080,11 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
         ZoomPercent = session.ZoomPercent;
         IsOpen = true;
+        if (newBook)
+        {
+            ResetHistoryAndFind();
+        }
+
         await ApplyPageGeometryAsync().ConfigureAwait(true);
         RequestPageRender();
     }
@@ -2115,6 +2126,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(OverlayZoomFactor));
         OnPropertyChanged(nameof(PageSurfaceWidth));
         OnPropertyChanged(nameof(PageSurfaceHeight));
+        RefreshFindHighlights();
     }
 
     /// <summary>
@@ -2931,6 +2943,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     private void RaiseLocalizedProperties()
     {
+        RaiseFindLocalizedProperties();
         OnPropertyChanged(nameof(PageStatusText));
         OnPropertyChanged(nameof(FirstPageLabel));
         OnPropertyChanged(nameof(PreviousPageLabel));

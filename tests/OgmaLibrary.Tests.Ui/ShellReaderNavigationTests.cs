@@ -1022,7 +1022,7 @@ public sealed partial class ShellReaderNavigationTests
 
         public ReaderSession? CurrentSession { get; private set; }
 
-        public IPdfRenderer? CurrentRenderer => null;
+        public IPdfRenderer? CurrentRenderer { get; set; }
 
         public Task<ReaderSession> OpenAsync(string bookId, int? pageHint, CancellationToken ct)
         {

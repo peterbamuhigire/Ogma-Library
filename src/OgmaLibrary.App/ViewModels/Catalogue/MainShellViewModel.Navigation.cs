@@ -875,6 +875,12 @@ public sealed partial class MainShellViewModel
     /// <returns><see langword="true"/> when a command handled the gesture.</returns>
     public bool TryExecuteGesture(Key key, KeyModifiers modifiers, TopLevel? topLevel)
     {
+        // In the reader, find, go-to-page and history gestures belong to the book, not the library.
+        if (IsReaderFocusMode && Reader is not null && Reader.TryHandleReaderGesture(key, modifiers))
+        {
+            return true;
+        }
+
         ShellCommand? command = _commands.MatchGesture(key, modifiers);
         if (command is null)
         {

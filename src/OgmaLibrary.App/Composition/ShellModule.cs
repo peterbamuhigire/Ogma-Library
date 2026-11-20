@@ -139,7 +139,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IPageRenderCache>(),
             services.GetRequiredService<IReaderPortabilityService>(),
             services.GetRequiredService<ILogger<ReaderViewModel>>(),
-            services.GetRequiredService<IReaderLayoutPreferences>());
+            services.GetRequiredService<IReaderLayoutPreferences>(),
+            services.GetRequiredService<IInDocumentSearchService>());
         var reader = CreateReader();
         var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(
