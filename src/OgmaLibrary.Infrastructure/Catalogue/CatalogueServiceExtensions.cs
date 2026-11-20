@@ -153,6 +153,7 @@ public static class CatalogueServiceExtensions
             logger: sp.GetService<ILogger<EmbeddingProviderRegistry>>()));
         services.AddSingleton<IEmbeddingProvider>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
         services.AddSingleton<ISemanticCapabilityService>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
+        services.AddSingleton<ISemanticIndexControl>(sp => new SemanticIndexControl(sp.GetService<ISemanticCapabilityService>()));
 
         // Derived assets live in the app-data store, never in a library folder
         // (Sept-23 Phase 05, D-04, ADR-0018; K27).

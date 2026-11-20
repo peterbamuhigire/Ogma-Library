@@ -86,7 +86,11 @@ public sealed class OnnxEmbeddingProvider : IEmbeddingProvider, IDisposable
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            float[] vector = await Task.Run(() => EmbedCore(text, kind), cancellationToken).ConfigureAwait(false);
+            // Queries stay on the thread pool for latency; background passage indexing runs on a
+            // below-normal-priority thread so it never competes with the interface (slice 4).
+            float[] vector = kind == EmbeddingInputKind.Passage
+                ? await BelowNormalPriorityRunner.RunAsync(() => EmbedCore(text, kind), cancellationToken).ConfigureAwait(false)
+                : await Task.Run(() => EmbedCore(text, kind), cancellationToken).ConfigureAwait(false);
             return new EmbeddingResult(ProviderKey, ModelId, ModelVersion, vector);
         }
         finally

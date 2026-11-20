@@ -24,6 +24,12 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
     /// <summary>How often availability is re-probed without any other trigger.</summary>
     public static readonly TimeSpan RefreshPeriod = TimeSpan.FromHours(1);
 
+    /// <summary>
+    /// The longest one availability probe may take (Sept-23 Phase 14, task 14.6). A probe that
+    /// overruns is published as unavailable; searches never wait for it.
+    /// </summary>
+    public static readonly TimeSpan ProbeBudget = TimeSpan.FromMilliseconds(1500);
+
     private const string Component = nameof(EmbeddingProviderRegistry);
     private const string OffProviderKey = "off";
 
@@ -248,7 +254,7 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
             SemanticProviderChoice choice = Choice;
             IEmbeddingProvider? provider = Resolve(choice);
             bool available = provider is not null
-                && await provider.IsAvailableAsync(cancellationToken).ConfigureAwait(false);
+                && await ProbeWithinBudgetAsync(provider, cancellationToken).ConfigureAwait(false);
             _available = available;
             Publish(choice, available);
             return available;
@@ -256,6 +262,21 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
         finally
         {
             _probeGate.Release();
+        }
+    }
+
+    private static async Task<bool> ProbeWithinBudgetAsync(IEmbeddingProvider provider, CancellationToken cancellationToken)
+    {
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        budget.CancelAfter(ProbeBudget);
+        try
+        {
+            return await provider.IsAvailableAsync(budget.Token).WaitAsync(budget.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The probe overran its budget: report unavailable rather than block a caller.
+            return false;
         }
     }
 

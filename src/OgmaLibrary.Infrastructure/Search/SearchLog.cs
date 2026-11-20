@@ -21,9 +21,4 @@ internal static partial class SearchLog
     [LoggerMessage(EventId = 5131, EventName = "search.semantic.failed", Level = LogLevel.Warning,
         Message = "Semantic search failed; showing keyword and full-text results only")]
     public static partial void SemanticFailed(ILogger logger, Exception exception);
-
-    /// <summary>The embedding-provider availability probe failed.</summary>
-    [LoggerMessage(EventId = 5132, EventName = "search.semantic.probe_failed", Level = LogLevel.Debug,
-        Message = "Semantic provider availability probe failed")]
-    public static partial void ProbeFailed(ILogger logger, Exception exception);
 }

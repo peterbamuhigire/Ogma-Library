@@ -28,6 +28,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private readonly IHybridRankingService _hybridRanking;
     private readonly IMatchLocationService _matchLocations;
     private readonly IEmbeddingIndexLifecycleService? _indexLifecycle;
+    private readonly ISemanticCapabilityService? _capability;
     private readonly object _queryEmbeddingCacheGate = new();
     private readonly Dictionary<string, CachedQueryEmbedding> _queryEmbeddingCache = new(StringComparer.Ordinal);
 
@@ -41,7 +42,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         ICombinedSearchService exactSearch,
         IHybridRankingService hybridRanking,
         IMatchLocationService matchLocations,
-        IEmbeddingIndexLifecycleService? indexLifecycle = null)
+        IEmbeddingIndexLifecycleService? indexLifecycle = null,
+        ISemanticCapabilityService? capability = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(provider);
@@ -55,6 +57,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _hybridRanking = hybridRanking;
         _matchLocations = matchLocations;
         _indexLifecycle = indexLifecycle;
+        _capability = capability;
     }
 
     internal SemanticSearchService(
@@ -63,7 +66,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         ICombinedSearchService exactSearch,
         IHybridRankingService? hybridRanking = null,
         IMatchLocationService? matchLocations = null,
-        IEmbeddingIndexLifecycleService? indexLifecycle = null)
+        IEmbeddingIndexLifecycleService? indexLifecycle = null,
+        ISemanticCapabilityService? capability = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(provider);
@@ -75,6 +79,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _hybridRanking = hybridRanking ?? new HybridRankingService();
         _matchLocations = matchLocations ?? new MatchLocationService();
         _indexLifecycle = indexLifecycle;
+        _capability = capability;
     }
 
     /// <inheritdoc />
@@ -86,7 +91,9 @@ public sealed class SemanticSearchService : ISemanticSearchService
         ArgumentException.ThrowIfNullOrWhiteSpace(queryText);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
 
-        if (!await _provider.IsAvailableAsync(cancellationToken).ConfigureAwait(false))
+        // Task 14.6: availability is the registry's cached, event-driven state; the query path
+        // never probes a provider. Without a capability service the caller owns availability.
+        if (_capability is not null && !_capability.IsAvailable)
         {
             return await ExactFallbackAsync(queryText, maxResults, providerUnavailable: true, cancellationToken)
                 .ConfigureAwait(false);

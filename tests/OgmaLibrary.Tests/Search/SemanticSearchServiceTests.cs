@@ -47,13 +47,18 @@ public sealed class SemanticSearchServiceTests : IDisposable
         {
             QueryVector = [1.0f, 0.0f],
         };
-        var service = new SemanticSearchService(_context, provider, new StubExactSearch());
+        var service = new SemanticSearchService(
+            _context,
+            provider,
+            new StubExactSearch(),
+            capability: new FakeSemanticCapability(available: true));
 
         SemanticSearchResponse response = await service.SearchAsync(
             "governance education Africa",
             5,
             CancellationToken.None);
 
+        Assert.Equal(0, provider.ProbeCalls);
         Assert.False(response.ProviderUnavailable);
         Assert.False(response.UsedExactFallback);
         SemanticSearchResult first = Assert.Single(response.Results.Take(1));
@@ -215,16 +220,20 @@ public sealed class SemanticSearchServiceTests : IDisposable
                 12,
                 ["Title"],
                 []));
+        var provider = new CountingProbeProvider(available: false);
         var service = new SemanticSearchService(
             _context,
-            new StubOllamaProvider { Available = false },
-            exact);
+            provider,
+            exact,
+            capability: new FakeSemanticCapability(available: false));
 
         SemanticSearchResponse response = await service.SearchAsync(
             "fallback",
             5,
             CancellationToken.None);
 
+        // Task 14.6: the query path reads the cached capability and never probes.
+        Assert.Equal(0, provider.ProbeCalls);
         Assert.True(response.ProviderUnavailable);
         Assert.True(response.UsedExactFallback);
         SemanticSearchResult result = Assert.Single(response.Results);
@@ -385,16 +394,19 @@ public sealed class SemanticSearchServiceTests : IDisposable
 
     private sealed class StubOllamaProvider : FakeEmbeddingProvider
     {
-        public bool Available { get; init; } = true;
-
         public float[] QueryVector { get; init; } = [1f, 0f];
 
         public int EmbedCalls { get; private set; }
 
+        public int ProbeCalls { get; private set; }
+
         public override int Dimensions => QueryVector.Length;
 
-        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(Available);
+        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+        {
+            ProbeCalls++;
+            return Task.FromResult(true);
+        }
 
         protected override float[] CreateVector(string text, EmbeddingInputKind kind)
         {

@@ -21,21 +21,14 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
     private const double MetadataWeight = 1.0;
     private const double FullTextWeight = 1.0;
     private const double SemanticWeight = 0.9;
-    private static readonly TimeSpan ProbeTtl = TimeSpan.FromSeconds(60);
-    private static readonly TimeSpan ProbeBudget = TimeSpan.FromMilliseconds(250);
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan SnapshotMaxAge = TimeSpan.FromSeconds(20);
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
     private readonly IFtsIndexService _fullText;
     private readonly ISemanticSearchService? _semantic;
-    private readonly IEmbeddingProvider? _provider;
+    private readonly ISemanticCapabilityService? _capability;
     private readonly ILogger _logger;
-    private readonly object _probeGate = new();
-    private Task<bool>? _probe;
-    private bool _probeValue;
-    private DateTimeOffset _probeExpiresUtc = DateTimeOffset.MinValue;
     private CatalogueSnapshot? _snapshot;
 
     /// <summary>Initializes the unified search pipeline.</summary>
@@ -44,13 +37,13 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         IDbContextFactory<CatalogueDbContext> contextFactory,
         IFtsIndexService fullText,
         ISemanticSearchService semantic,
-        IEmbeddingProvider provider,
+        ISemanticCapabilityService capability,
         ILogger<UnifiedSearchService>? logger = null)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         _fullText = fullText ?? throw new ArgumentNullException(nameof(fullText));
         _semantic = semantic ?? throw new ArgumentNullException(nameof(semantic));
-        _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        _capability = capability ?? throw new ArgumentNullException(nameof(capability));
         _logger = logger ?? (ILogger)NullLogger.Instance;
     }
 
@@ -59,13 +52,13 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         CatalogueDbContext context,
         IFtsIndexService fullText,
         ISemanticSearchService? semantic = null,
-        IEmbeddingProvider? provider = null,
+        ISemanticCapabilityService? capability = null,
         ILogger? logger = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _fullText = fullText ?? throw new ArgumentNullException(nameof(fullText));
         _semantic = semantic;
-        _provider = provider;
+        _capability = capability;
         _logger = logger ?? NullLogger.Instance;
     }
 
@@ -207,8 +200,8 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
             return (SemanticSearchState.NotApplicable, []);
         }
 
-        if (_semantic is null || _provider is null ||
-            !await IsProviderAvailableAsync(cancellationToken).ConfigureAwait(false))
+        // Task 14.6: the cached, event-driven capability; nothing is probed per query.
+        if (_semantic is null || _capability is null || !_capability.IsAvailable)
         {
             return (SemanticSearchState.Unavailable, []);
         }
@@ -240,65 +233,6 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
             SearchLog.SemanticFailed(_logger, exception);
             return (SemanticSearchState.Unavailable, []);
         }
-    }
-
-    /// <summary>
-    /// Cached provider probe: at most one probe a minute, and a search waits for a running
-    /// probe for at most <see cref="ProbeBudget"/> before using the last known answer.
-    /// </summary>
-    private async Task<bool> IsProviderAvailableAsync(CancellationToken cancellationToken)
-    {
-        Task<bool> probe;
-        lock (_probeGate)
-        {
-            if (DateTimeOffset.UtcNow < _probeExpiresUtc)
-            {
-                return _probeValue;
-            }
-
-            _probe ??= ProbeAsync();
-            probe = _probe;
-        }
-
-        Task finished = await Task.WhenAny(probe, Task.Delay(ProbeBudget, cancellationToken)).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (finished == probe)
-        {
-            return await probe.ConfigureAwait(false);
-        }
-
-        lock (_probeGate)
-        {
-            return _probeValue;
-        }
-    }
-
-    private async Task<bool> ProbeAsync()
-    {
-        bool available;
-        using var timeout = new CancellationTokenSource(ProbeTimeout);
-        try
-        {
-            available = await _provider!.IsAvailableAsync(timeout.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            available = false;
-        }
-        catch (Exception exception)
-        {
-            SearchLog.ProbeFailed(_logger, exception);
-            available = false;
-        }
-
-        lock (_probeGate)
-        {
-            _probeValue = available;
-            _probeExpiresUtc = DateTimeOffset.UtcNow + ProbeTtl;
-            _probe = null;
-        }
-
-        return available;
     }
 
     /// <summary>

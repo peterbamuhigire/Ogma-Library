@@ -162,6 +162,23 @@ public sealed class EmbeddingProviderRegistryTests : IDisposable
         Assert.True(registry.IsAvailable);
     }
 
+    [Fact]
+    public async Task HangingProbe_IsCutOffByTheBudget_AndPublishedUnavailable()
+    {
+        _ollama.Hang = true;
+        using EmbeddingProviderRegistry registry = Create();
+        registry.ApplyPreferences(new UserPreferences(SemanticProvider: SemanticProviderChoice.Ollama));
+        await registry.WhenIdleAsync().WaitAsync(TimeSpan.FromSeconds(10));
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        bool available = await registry.RefreshAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Task 14.6: the 1.5 s budget lives only inside the registry's refresh.
+        Assert.False(available);
+        Assert.False(registry.IsAvailable);
+        Assert.True(clock.Elapsed < EmbeddingProviderRegistry.ProbeBudget + TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
     private EmbeddingModelStore CreateStore()
     {
         EmbeddingModelManifest manifest = EmbeddingModelManifest.Parse(
@@ -191,6 +208,8 @@ public sealed class EmbeddingProviderRegistryTests : IDisposable
 
         public volatile bool Available;
 
+        public volatile bool Hang;
+
         public int ProbeCount => _probeCount;
 
         public EmbeddingInputKind? LastKind { get; private set; }
@@ -208,7 +227,7 @@ public sealed class EmbeddingProviderRegistryTests : IDisposable
         public Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _probeCount);
-            return Task.FromResult(Available);
+            return Hang ? new TaskCompletionSource<bool>().Task : Task.FromResult(Available);
         }
 
         public Task<EmbeddingResult> EmbedAsync(string text, EmbeddingInputKind kind, CancellationToken cancellationToken)

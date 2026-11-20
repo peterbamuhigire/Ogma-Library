@@ -17,7 +17,7 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     [Fact]
     public async Task ProviderAbsent_ReportsSemanticUnavailableAndStillFindsKeywords()
     {
-        UnifiedSearchResponse response = await Service(provider: new Provider(false)).SearchAsync("monsoon", 30, CancellationToken.None);
+        UnifiedSearchResponse response = await Service(capability: new FakeSemanticCapability(false)).SearchAsync("monsoon", 30, CancellationToken.None);
 
         Assert.Equal(SemanticSearchState.Unavailable, response.Semantic);
         Assert.Equal("unified-search-v1", response.ContractVersion);
@@ -33,7 +33,7 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     [Fact]
     public async Task FilterOnlyQuery_IsNotApplicableForSemantic()
     {
-        UnifiedSearchResponse response = await Service(provider: new Provider(true)).SearchAsync("author:Okello", 30, CancellationToken.None);
+        UnifiedSearchResponse response = await Service(capability: new FakeSemanticCapability(true)).SearchAsync("author:Okello", 30, CancellationToken.None);
 
         Assert.Equal(SemanticSearchState.NotApplicable, response.Semantic);
         Assert.Equal("The Physics of Everyday Light", Assert.Single(response.Results).Title);
@@ -45,7 +45,7 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     {
         var semantic = new SemanticStub(
             new SemanticSearchResult("01SYNTHCORPUS0000000000001", null, 1, SearchChunkSource.Page, "light and colour", 0.91f, false, PageIndex: 4));
-        UnifiedSearchResponse response = await Service(semantic, new Provider(true))
+        UnifiedSearchResponse response = await Service(semantic, new FakeSemanticCapability(true))
             .SearchAsync("books about light and colour", 30, CancellationToken.None);
 
         Assert.Equal(SemanticSearchState.Active, response.Semantic);
@@ -58,7 +58,7 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     public async Task ProviderWithoutEmbeddings_ReportsPreparing()
     {
         var semantic = new SemanticStub([], SemanticSearchAvailability.NoIndex, usedFallback: true);
-        UnifiedSearchResponse response = await Service(semantic, new Provider(true)).SearchAsync("caravan", 30, CancellationToken.None);
+        UnifiedSearchResponse response = await Service(semantic, new FakeSemanticCapability(true)).SearchAsync("caravan", 30, CancellationToken.None);
 
         Assert.Equal(SemanticSearchState.Preparing, response.Semantic);
         Assert.NotEmpty(response.Results);
@@ -67,7 +67,7 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     [Fact]
     public async Task SemanticFailure_DoesNotHideKeywordResults()
     {
-        UnifiedSearchResponse response = await Service(new ThrowingSemantic(), new Provider(true))
+        UnifiedSearchResponse response = await Service(new ThrowingSemantic(), new FakeSemanticCapability(true))
             .SearchAsync("caravan", 30, CancellationToken.None);
 
         Assert.Equal(SemanticSearchState.Unavailable, response.Semantic);
@@ -179,19 +179,26 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
     }
 
     [Fact]
-    public async Task SlowProviderProbe_DoesNotBlockKeywordSearch()
+    public async Task ProviderAbsent_QueryPathNeverProbes_AndKeywordSearchIsImmediate()
     {
-        var clock = Stopwatch.StartNew();
-        UnifiedSearchResponse response = await Service(new SemanticStub(), new Provider(true, TimeSpan.FromSeconds(2)))
-            .SearchAsync("caravan", 30, CancellationToken.None);
+        var capability = new FakeSemanticCapability(available: false);
+        var semantic = new CountingSemantic();
+        UnifiedSearchService service = Service(semantic, capability);
+        await service.SearchAsync("caravan", 30, CancellationToken.None);
 
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1.5), $"took {clock.Elapsed}");
+        var clock = Stopwatch.StartNew();
+        UnifiedSearchResponse response = await service.SearchAsync("caravan", 30, CancellationToken.None);
+
+        // Task 14.6: availability is the cached capability; no probe, no semantic call.
+        Assert.Equal(0, capability.RefreshCalls);
+        Assert.Equal(0, semantic.Calls);
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), $"took {clock.Elapsed}");
         Assert.Equal(SemanticSearchState.Unavailable, response.Semantic);
         Assert.NotEmpty(response.Results);
     }
 
-    private UnifiedSearchService Service(ISemanticSearchService? semantic = null, IEmbeddingProvider? provider = null) =>
-        new(_corpus.Context, new FtsIndexService(_corpus.Context), semantic, provider ?? new Provider(false));
+    private UnifiedSearchService Service(ISemanticSearchService? semantic = null, ISemanticCapabilityService? capability = null) =>
+        new(_corpus.Context, new FtsIndexService(_corpus.Context), semantic, capability ?? new FakeSemanticCapability(false));
 
     /// <summary>One read-only corpus shared by the tests in this class.</summary>
     public sealed class CorpusFixture : IDisposable
@@ -201,19 +208,14 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
         public void Dispose() => Corpus.Dispose();
     }
 
-    private sealed class Provider(bool available, TimeSpan delay = default) : FakeEmbeddingProvider
+    private sealed class CountingSemantic : ISemanticSearchService
     {
-        protected override float[] CreateVector(string text, EmbeddingInputKind kind) =>
-            throw new NotSupportedException();
+        public int Calls { get; private set; }
 
-        public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+        public Task<SemanticSearchResponse> SearchAsync(string queryText, int maxResults, CancellationToken cancellationToken)
         {
-            if (delay > TimeSpan.Zero)
-            {
-                await Task.Delay(delay, cancellationToken);
-            }
-
-            return available;
+            Calls++;
+            return Task.FromResult(new SemanticSearchResponse(false, false, [], SemanticSearchAvailability.Ready));
         }
     }
 

@@ -88,18 +88,10 @@ public sealed class SearchRelevanceOracleTests : IClassFixture<SearchRelevanceOr
                     _corpus.Context,
                     new FtsIndexService(_corpus.Context),
                     semantic: null,
-                    provider: new AbsentProvider())
+                    capability: new FakeSemanticCapability(available: false))
                 .SearchAsync(query, 30, CancellationToken.None);
 
         /// <inheritdoc />
         public void Dispose() => _corpus.Dispose();
-    }
-
-    private sealed class AbsentProvider : FakeEmbeddingProvider
-    {
-        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken) => Task.FromResult(false);
-
-        protected override float[] CreateVector(string text, EmbeddingInputKind kind) =>
-            throw new InvalidOperationException("No provider in the oracle.");
     }
 }
