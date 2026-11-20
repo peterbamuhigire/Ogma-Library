@@ -43,6 +43,39 @@ public sealed class ActivityCentreViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task ActivityCentre_WaitingBooks_ShowSmartSearchLineWithSettingsAction()
+    {
+        var localization = new InMemoryLocalizationService();
+        using var viewModel = new ActivityCentreViewModel(new RecordingRuntime { Waiting = 16 }, localization);
+        int opened = 0;
+        viewModel.OpenSearchSettings = () => opened++;
+
+        await viewModel.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.HasSemanticWaiting);
+        Assert.Equal("Smart search is off: 16 books waiting", viewModel.SemanticWaitingText);
+        Assert.DoesNotContain("16", viewModel.FailureSummary, StringComparison.Ordinal);
+        Assert.False(viewModel.OpenSearchSettingsLabel.StartsWith('⟦'));
+        viewModel.OpenSmartSearchSettings();
+        Assert.Equal(1, opened);
+
+        localization.SetCulture("fr");
+        Assert.Equal("Recherche intelligente désactivée : 16 livres en attente", viewModel.SemanticWaitingText);
+    }
+
+    [AvaloniaFact]
+    public async Task ActivityCentre_NoWaitingBooks_HidesSmartSearchLine()
+    {
+        using var viewModel = new ActivityCentreViewModel(new RecordingRuntime(), new InMemoryLocalizationService());
+
+        await viewModel.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.HasSemanticWaiting);
+    }
+
+    [AvaloniaFact]
     public async Task ActivityCentre_ExportsOnlyRuntimeRedactedJson()
     {
         const string sensitive = "C:\\Users\\student\\private.pdf token=secret";
@@ -92,6 +125,8 @@ public sealed class ActivityCentreViewModelTests
     {
         public string SafeExport { get; } = "{\"metrics\":{\"pendingCount\":1},\"recentJobs\":[]}";
 
+        public int Waiting { get; init; }
+
         public long RetriedJobId { get; private set; }
 
         public long CancelledJobId { get; private set; }
@@ -110,7 +145,8 @@ public sealed class ActivityCentreViewModelTests
                     DeadLetterCount: 1,
                     PausedCount: 0,
                     TotalAttempts: 4,
-                    ActiveByJobType: new Dictionary<string, int> { ["OcrJob"] = 1 }),
+                    ActiveByJobType: new Dictionary<string, int> { ["OcrJob"] = 1 },
+                    WaitingForCapabilityCount: Waiting),
                 [
                     new JobRuntimeDiagnostic(1, "SearchExtraction", JobRuntimeStatus.Pending, 0, null, null, null),
                     new JobRuntimeDiagnostic(2, "MetadataExtraction", JobRuntimeStatus.Failed, 3, "io_timeout", null, DateTimeOffset.UtcNow),

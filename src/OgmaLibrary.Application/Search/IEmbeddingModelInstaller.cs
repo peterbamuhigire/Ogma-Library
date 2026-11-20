@@ -29,7 +29,11 @@ public sealed record EmbeddingModelInstallStatus(
     string ModelVersion,
     string Licence,
     long DownloadSizeBytes,
-    long DiskUseBytes);
+    long DiskUseBytes)
+{
+    /// <summary>The one HTTPS host the download contacts first, stated to the user before consent.</summary>
+    public string DownloadHost { get; init; } = string.Empty;
+}
 
 /// <summary>Terminal outcome of an install attempt. Cancellation throws <see cref="OperationCanceledException"/> and keeps partial files.</summary>
 public enum EmbeddingModelInstallOutcome

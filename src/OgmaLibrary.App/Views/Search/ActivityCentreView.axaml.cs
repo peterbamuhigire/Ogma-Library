@@ -60,6 +60,14 @@ public partial class ActivityCentreView : UserControl
         }
     }
 
+    private void OpenSearchSettings_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ActivityCentreViewModel viewModel)
+        {
+            viewModel.OpenSmartSearchSettings();
+        }
+    }
+
     private void Cancel_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => Cancel_ClickAsync(sender, e), "search.cancel_click");
 

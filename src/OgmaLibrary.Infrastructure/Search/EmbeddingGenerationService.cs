@@ -222,13 +222,16 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         int remaining = await waiting.CountAsync(cancellationToken).ConfigureAwait(false);
         int booksWaiting = await waiting.Select(chunk => chunk.BookId).Distinct().CountAsync(cancellationToken)
             .ConfigureAwait(false);
+        int booksTotal = await eligible.Select(chunk => chunk.BookId).Distinct().CountAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         return new SemanticIndexProgress(
             ChunksEmbedded: total - remaining,
             ChunksTotal: total,
             BooksWaiting: booksWaiting,
             EstimatedRemaining: EstimateRemaining(remaining),
-            IsRegenerating: state?.StagingIndexVersion is not null);
+            IsRegenerating: state?.StagingIndexVersion is not null,
+            BooksTotal: booksTotal);
     }
 
     private void RecordEmbedding()

@@ -31,4 +31,34 @@ public sealed partial class SettingsView : UserControl
         UiActions.Run(
             () => ViewModel?.ExportDiagnosticsAsync() ?? Task.CompletedTask,
             "settings.export_diagnostics");
+
+    // Sept-23 Phase 14 (task 14.7): Search and AI actions. The data context of a button inside
+    // the section template is the SemanticSearchSettingsViewModel.
+    private static SemanticSearchSettingsViewModel? Search(object? sender) =>
+        (sender as Control)?.DataContext as SemanticSearchSettingsViewModel;
+
+    private void SearchDownload_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Search(sender)?.DownloadAsync() ?? Task.CompletedTask, "settings.search.download");
+
+    private void SearchCancelDownload_Click(object? sender, RoutedEventArgs e) => Search(sender)?.CancelDownload();
+
+    private void SearchRemoveModel_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Search(sender)?.RemoveModelAsync() ?? Task.CompletedTask, "settings.search.remove");
+
+    private void SearchCheckOllama_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Search(sender)?.CheckOllamaAsync() ?? Task.CompletedTask, "settings.search.check_ollama");
+
+    private void SearchBuildIndex_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Search(sender)?.BuildNowAsync() ?? Task.CompletedTask, "settings.search.build");
+
+    private void SearchPause_Click(object? sender, RoutedEventArgs e) => Search(sender)?.Pause();
+
+    private void SearchResume_Click(object? sender, RoutedEventArgs e) => Search(sender)?.Resume();
+
+    private void SearchRequestErase_Click(object? sender, RoutedEventArgs e) => Search(sender)?.RequestErase();
+
+    private void SearchCancelErase_Click(object? sender, RoutedEventArgs e) => Search(sender)?.CancelErase();
+
+    private void SearchConfirmErase_Click(object? sender, RoutedEventArgs e) =>
+        UiActions.Run(() => Search(sender)?.ConfirmEraseAsync() ?? Task.CompletedTask, "settings.search.erase");
 }

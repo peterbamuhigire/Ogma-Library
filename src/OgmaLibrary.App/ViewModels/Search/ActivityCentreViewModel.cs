@@ -18,6 +18,7 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
     private readonly IOcrJobQueueService? _ocrJobs;
     private IReadOnlyList<JobRuntimeDiagnostic> _diagnostics = [];
     private int _booksNeedingOcr;
+    private int _semanticWaiting;
     private bool _isBusy;
     private string _statusText;
 
@@ -130,6 +131,30 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         System.Globalization.CultureInfo.CurrentCulture,
         _localization["ActivityCentre.Ocr.MakeSearchableFormat"],
         _booksNeedingOcr);
+
+    /// <summary>Opens Settings → Search and AI; set by the composition root.</summary>
+    public Action? OpenSearchSettings { get; set; }
+
+    /// <summary>
+    /// Jobs waiting for a semantic provider. Each embedding job covers one book, so the count is
+    /// shown as books (Sept-23 Phase 14, task 14.7).
+    /// </summary>
+    public int SemanticWaitingCount => _semanticWaiting;
+
+    /// <summary>Whether the "smart search is off" line is shown.</summary>
+    public bool HasSemanticWaiting => _semanticWaiting > 0;
+
+    /// <summary>Localized line, for example "Smart search is off: 16 books waiting".</summary>
+    public string SemanticWaitingText => string.Format(
+        _localization.CurrentCulture,
+        _localization["ActivityCentre.Waiting.SemanticFormat"],
+        _semanticWaiting);
+
+    /// <summary>Localized action that opens Settings → Search and AI.</summary>
+    public string OpenSearchSettingsLabel => _localization["ActivityCentre.Waiting.OpenSettings"];
+
+    /// <summary>Opens Settings → Search and AI when the composition root wired it.</summary>
+    public void OpenSmartSearchSettings() => OpenSearchSettings?.Invoke();
 
     /// <summary>
     /// Queues OCR for every book that needs it (banner action; Sept-23 Phase 17, task 3), then
@@ -272,15 +297,10 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
 
         // Sept-23 Phase 06 (T06.11, K25): waiting-for-setup, needs-attention and failed are
         // distinct; raw attempt totals are never a headline.
+        // Sept-23 Phase 14 (task 14.7, K141): books waiting for smart search get their own line
+        // with an action that opens Settings → Search and AI.
+        _semanticWaiting = metrics.WaitingForCapabilityCount;
         var parts = new List<string>();
-        if (metrics.WaitingForCapabilityCount > 0)
-        {
-            parts.Add(string.Format(
-                culture,
-                _localization["ActivityCentre.Waiting.SemanticFormat"],
-                metrics.WaitingForCapabilityCount));
-        }
-
         if (metrics.DeadLetterCount > 0)
         {
             parts.Add(string.Format(culture, _localization["ActivityCentre.NeedsAttentionFormat"], metrics.DeadLetterCount));
@@ -295,6 +315,14 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         OnPropertyChanged(nameof(QueueSummary));
         OnPropertyChanged(nameof(FailureSummary));
         RaiseOcrSuggestionChanged();
+        RaiseSemanticWaitingChanged();
+    }
+
+    private void RaiseSemanticWaitingChanged()
+    {
+        OnPropertyChanged(nameof(HasSemanticWaiting));
+        OnPropertyChanged(nameof(SemanticWaitingText));
+        OnPropertyChanged(nameof(OpenSearchSettingsLabel));
     }
 
     private void RaiseOcrSuggestionChanged()
@@ -350,6 +378,7 @@ public sealed class ActivityCentreViewModel : INotifyPropertyChanged, IDisposabl
         OnPropertyChanged(nameof(RetryAllLabel));
         OnPropertyChanged(nameof(HasJobs));
         RaiseOcrSuggestionChanged();
+        RaiseSemanticWaitingChanged();
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

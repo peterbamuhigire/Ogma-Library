@@ -963,6 +963,7 @@ public sealed partial class MainShellViewModel
             .Add(SettingsCommand("language"))
             .Add(SettingsCommand("online"))
             .Add(SettingsCommand("features"))
+            .Add(SettingsCommand("search"))
             .Add(SettingsCommand("privacy"))
             .Add(SettingsCommand("ocr"))
             .Add(SettingsCommand("diagnostics"))

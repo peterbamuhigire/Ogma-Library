@@ -270,6 +270,25 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         settings.TextRecognitionOptions = ocrOptions;
         _ = ocrOptions.LoadAsync();
 
+        // Sept-23 Phase 14 (task 14.7, K141): Settings → Search and AI, and the Activity Centre's
+        // "smart search is off" line opens it. Loading reads local state only; nothing downloads.
+        var searchOptions = new SemanticSearchSettingsViewModel(
+            services.GetRequiredService<ISemanticCapabilityService>(),
+            services.GetRequiredService<IEmbeddingModelInstaller>(),
+            services.GetRequiredService<ISemanticIndexControl>(),
+            services.GetRequiredService<ISemanticSearchReadModel>(),
+            services.GetRequiredService<IEmbeddingErasureService>(),
+            preferences,
+            localization,
+            services.GetRequiredService<IUiDispatcher>(),
+            services.GetRequiredService<ILogger<SemanticSearchSettingsViewModel>>());
+        settings.SearchOptions = searchOptions;
+        _ = UiActions.RunAsync(() => searchOptions.LoadAsync(), "settings.search.load");
+        if (indexManager.ActivityCentre is { } activityCentre)
+        {
+            activityCentre.OpenSearchSettings = () => shell?.OpenSettings("search");
+        }
+
         // Sept-23 Phase 10: multi-select toolbar and shelf membership (menu, toolbar, drop).
         var notifier = services.GetRequiredService<IUserNotifier>();
         var membership = new ShelfMembershipViewModel(

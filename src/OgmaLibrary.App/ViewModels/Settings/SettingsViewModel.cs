@@ -37,6 +37,9 @@ public enum SettingsSection
 
     /// <summary>Version, data location, capability probe, logs and diagnostics export.</summary>
     Diagnostics,
+
+    /// <summary>Smart search provider, built-in model and smart index (Sept-23 Phase 14).</summary>
+    Search,
 }
 
 /// <summary>Where the app keeps its data, shown in Diagnostics (Sept-23 Phase 08, 8.9).</summary>
@@ -205,6 +208,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     private SettingsSectionItem _selectedSection;
     private string? _diagnosticsStatus;
     private object? _textRecognitionOptions;
+    private object? _searchOptions;
     private Action? _openLibraryHealth;
 
     /// <summary>Initializes a new instance of the <see cref="SettingsViewModel"/> class.</summary>
@@ -240,6 +244,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
             new(SettingsSection.Language, "Settings.Section.Language", "language"),
             new(SettingsSection.OnlineServices, "Settings.Section.Online", "online"),
             new(SettingsSection.Features, "Settings.Section.Features", "features"),
+            new(SettingsSection.Search, "Settings.Section.Search", "search"),
             new(SettingsSection.Privacy, "Settings.Section.Privacy", "privacy"),
             new(SettingsSection.TextRecognition, "Settings.Section.Ocr", "ocr"),
             new(SettingsSection.Diagnostics, "Settings.Section.Diagnostics", "diagnostics"),
@@ -328,6 +333,21 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Whether to show the "options will appear here" line.</summary>
     public bool IsTextRecognitionPendingVisible => _textRecognitionOptions is null;
 
+    /// <summary>The Search and AI options (Sept-23 Phase 14, task 14.7), supplied by the composition root.</summary>
+    public object? SearchOptions
+    {
+        get => _searchOptions;
+        set
+        {
+            _searchOptions = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasSearchOptions));
+        }
+    }
+
+    /// <summary>Whether Search and AI options were supplied.</summary>
+    public bool HasSearchOptions => _searchOptions is not null;
+
     // ── Section visibility ─────────────────────────────────────────────────────
 
     /// <summary>The Library section is shown.</summary>
@@ -353,6 +373,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
 
     /// <summary>The Diagnostics section is shown.</summary>
     public bool IsDiagnosticsSection => _selectedSection.Section == SettingsSection.Diagnostics;
+
+    /// <summary>The Search and AI section is shown.</summary>
+    public bool IsSearchSection => _selectedSection.Section == SettingsSection.Search;
 
     /// <summary>The selected section's heading.</summary>
     public string SectionTitle => _selectedSection.Label;
@@ -690,6 +713,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
             "classroom" or "shelf3d" or "3d" or "features" => "features",
             "metadata" or "online" => "online",
             "folders" or "library" => "library",
+            "smartsearch" or "semantic" or "search" => "search",
             var other => other,
         };
         if (id is not null && Sections.FirstOrDefault(item => item.RouteId == id) is { } match)
@@ -830,6 +854,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(IsPrivacySection));
         OnPropertyChanged(nameof(IsTextRecognitionSection));
         OnPropertyChanged(nameof(IsDiagnosticsSection));
+        OnPropertyChanged(nameof(IsSearchSection));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)

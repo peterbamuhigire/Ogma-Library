@@ -76,7 +76,10 @@ public sealed class EmbeddingModelDownloader : IEmbeddingModelInstaller, IDispos
             Manifest.Revision,
             Manifest.Licence,
             remaining,
-            TotalBytes);
+            TotalBytes)
+        {
+            DownloadHost = Manifest.AllowedDownloadHosts.Count > 0 ? Manifest.AllowedDownloadHosts[0] : string.Empty,
+        };
     }
 
     /// <inheritdoc />

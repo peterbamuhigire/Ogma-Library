@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.Logging.Abstractions;
 using OgmaLibrary.App.Navigation;
 using OgmaLibrary.App.Settings;
 using OgmaLibrary.App.ViewModels.Catalogue;
@@ -11,6 +12,7 @@ using OgmaLibrary.App.ViewModels.Settings;
 using OgmaLibrary.App.Views.Catalogue;
 using OgmaLibrary.App.Views.Settings;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Navigation;
 using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Localization;
@@ -26,7 +28,60 @@ namespace OgmaLibrary.Tests.Ui;
 public sealed partial class ShellReaderNavigationTests
 {
     private static readonly string[] SettingsSectionIds =
-        ["library", "appearance", "language", "online", "features", "privacy", "ocr", "diagnostics"];
+        ["library", "appearance", "language", "online", "features", "search", "privacy", "ocr", "diagnostics"];
+
+    [AvaloniaFact]
+    public async Task Settings_SearchSection_RendersProviderModelIndexAndErase_WithAutomationIds()
+    {
+        var localization = new InMemoryLocalizationService();
+        SettingsHarness harness = CreateSettingsShell(localization);
+        var search = (SemanticSearchSettingsViewModel)harness.Settings.SearchOptions!;
+        await search.LoadAsync();
+        (Window window, CatalogueShellView view) = ShowShell(harness.Shell, 1280, 800);
+        harness.Shell.OpenSettings("smartsearch");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(harness.Settings.IsSearchSection);
+        SettingsView settingsView = view.GetVisualDescendants().OfType<SettingsView>().Single();
+        string[] visibleIds = VisibleAutomationIds(settingsView);
+        foreach (string id in new[]
+                 {
+                     "Settings.Search.Provider.BuiltIn", "Settings.Search.Provider.Ollama", "Settings.Search.Provider.Off",
+                     "Settings.Search.Model.Status", "Settings.Search.Model.Consent", "Settings.Search.Model.Download",
+                     "Settings.Search.Index.Progress", "Settings.Search.Index.Count", "Settings.Search.Index.Eta",
+                     "Settings.Search.Index.Build", "Settings.Search.Index.Pause", "Settings.Search.Erase",
+                 })
+        {
+            Assert.Contains(id, visibleIds);
+        }
+
+        // The consent line states the size and the destination before any download.
+        TextBlock consent = settingsView.GetVisualDescendants().OfType<TextBlock>()
+            .Single(block => AutomationProperties.GetAutomationId(block) == "Settings.Search.Model.Consent");
+        Assert.Contains("123.4 MB", consent.Text, StringComparison.Ordinal);
+        Assert.Contains("huggingface.co", consent.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Settings.Search.Model.Cancel", visibleIds);
+        Assert.DoesNotContain("Settings.Search.Erase.Confirm", visibleIds);
+
+        // Erase asks first.
+        search.RequestErase();
+        Dispatcher.UIThread.RunJobs();
+        visibleIds = VisibleAutomationIds(settingsView);
+        Assert.Contains("Settings.Search.Erase.Confirm", visibleIds);
+        Assert.Contains("Settings.Search.Erase.Cancel", visibleIds);
+        Assert.DoesNotContain("Settings.Search.Erase", visibleIds);
+
+        window.Close();
+        search.Dispose();
+        harness.Shell.Dispose();
+    }
+
+    private static string[] VisibleAutomationIds(Control root) =>
+        [.. root.GetVisualDescendants()
+            .OfType<Control>()
+            .Where(control => control.IsEffectivelyVisible)
+            .Select(AutomationProperties.GetAutomationId)
+            .OfType<string>()];
 
     [AvaloniaTheory]
     [InlineData(1280, 800)]
@@ -243,6 +298,16 @@ public sealed partial class ShellReaderNavigationTests
         {
             OpenFolder = _ => true,
         };
+        settings.SearchOptions = new SemanticSearchSettingsViewModel(
+            new SemanticSearchSettingsViewModelTests.FakeCapability(),
+            new SemanticSearchSettingsViewModelTests.FakeInstaller(),
+            new SemanticSearchSettingsViewModelTests.FakeControl(),
+            new SemanticSearchSettingsViewModelTests.FakeProgress(),
+            new SemanticSearchSettingsViewModelTests.FakeErasure(),
+            preferences,
+            localization,
+            InlineUiDispatcher.Instance,
+            NullLogger.Instance);
         var readModel = new EmptyCatalogueReadModel();
         var filter = new CatalogueFilterViewModel();
         var shell = new MainShellViewModel(

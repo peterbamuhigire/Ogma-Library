@@ -262,6 +262,232 @@
           <ContentControl Content="{Binding ClassroomHost}" />
         </StackPanel>
 
+        <!--
+          Search and AI (Sept-23 Phase 14, task 14.7; K141). Provider choice, the built-in model
+          with a consented download (D-104), the smart index and Ollama detection. Typefaces:
+          Public Sans for labels and controls, JetBrains Mono (ogma-mono) for the environment
+          override line only; no new font. No link opens automatically.
+        -->
+        <ContentControl IsVisible="{Binding IsSearchSection}"
+                        Content="{Binding SearchOptions}"
+                        AutomationProperties.AutomationId="Settings.Search.Options">
+          <ContentControl.ContentTemplate>
+            <DataTemplate x:DataType="vm:SemanticSearchSettingsViewModel">
+              <StackPanel Spacing="12">
+                <TextBlock Classes="settings-help" Text="{Binding BodyText}" />
+
+                <!-- Provider -->
+                <Border Classes="settings-card">
+                  <StackPanel Spacing="6">
+                    <TextBlock Classes="settings-label" Text="{Binding ProviderLabel}" />
+                    <TextBlock Classes="settings-help" Text="{Binding ProviderHelp}" />
+                    <RadioButton GroupName="SettingsSemanticProvider"
+                                 IsChecked="{Binding IsBuiltIn, Mode=TwoWay}"
+                                 IsEnabled="{Binding CanChooseProvider}"
+                                 Content="{Binding BuiltInText}"
+                                 AutomationProperties.AutomationId="Settings.Search.Provider.BuiltIn"
+                                 AutomationProperties.Name="{Binding BuiltInText}" />
+                    <RadioButton GroupName="SettingsSemanticProvider"
+                                 IsChecked="{Binding IsOllama, Mode=TwoWay}"
+                                 IsEnabled="{Binding CanChooseProvider}"
+                                 Content="{Binding OllamaText}"
+                                 AutomationProperties.AutomationId="Settings.Search.Provider.Ollama"
+                                 AutomationProperties.Name="{Binding OllamaText}" />
+                    <RadioButton GroupName="SettingsSemanticProvider"
+                                 IsChecked="{Binding IsOff, Mode=TwoWay}"
+                                 IsEnabled="{Binding CanChooseProvider}"
+                                 Content="{Binding OffText}"
+                                 AutomationProperties.AutomationId="Settings.Search.Provider.Off"
+                                 AutomationProperties.Name="{Binding OffText}" />
+                    <TextBlock Classes="settings-help ogma-mono"
+                               IsVisible="{Binding IsProviderManaged}"
+                               Text="{Binding ProviderManagedText}"
+                               AutomationProperties.AutomationId="Settings.Search.Provider.Managed" />
+                    <TextBlock Classes="settings-body"
+                               IsVisible="{Binding IsOff}"
+                               Text="{Binding KeywordOnlyText}"
+                               AutomationProperties.AutomationId="Settings.Search.KeywordOnly" />
+                  </StackPanel>
+                </Border>
+
+                <!-- Built-in model -->
+                <Border Classes="settings-card" IsVisible="{Binding IsBuiltInSelected}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Classes="settings-label" Text="{Binding ModelLabel}" />
+                    <TextBlock Classes="settings-body"
+                               Text="{Binding ModelStatusText}"
+                               AutomationProperties.AutomationId="Settings.Search.Model.Status"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <ProgressBar Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding DownloadPercent}"
+                                 IsVisible="{Binding IsDownloadProgressVisible}"
+                                 AutomationProperties.AutomationId="Settings.Search.Model.Progress"
+                                 AutomationProperties.Name="{Binding DownloadProgressName}" />
+                    <TextBlock Classes="settings-help"
+                               IsVisible="{Binding ShowDownloadConsent}"
+                               Text="{Binding DownloadConsentText}"
+                               AutomationProperties.AutomationId="Settings.Search.Model.Consent" />
+                    <TextBlock Classes="settings-help"
+                               IsVisible="{Binding HasDiskUse}"
+                               Text="{Binding DiskUseText}"
+                               AutomationProperties.AutomationId="Settings.Search.Model.DiskUse" />
+                    <WrapPanel Orientation="Horizontal">
+                      <Button Margin="0,0,8,0"
+                              Padding="10,5"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              IsVisible="{Binding CanDownload}"
+                              AutomationProperties.AutomationId="Settings.Search.Model.Download"
+                              AutomationProperties.Name="{Binding DownloadLabel}"
+                              AutomationProperties.HelpText="{Binding DownloadConsentText}"
+                              Click="SearchDownload_Click">
+                        <TextBlock Text="{Binding DownloadLabel}" />
+                      </Button>
+                      <Button Margin="0,0,8,0"
+                              Padding="10,5"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              IsVisible="{Binding CanCancelDownload}"
+                              AutomationProperties.AutomationId="Settings.Search.Model.Cancel"
+                              AutomationProperties.Name="{Binding CancelDownloadLabel}"
+                              Click="SearchCancelDownload_Click">
+                        <TextBlock Text="{Binding CancelDownloadLabel}" />
+                      </Button>
+                      <Button Padding="10,5"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              IsVisible="{Binding CanRemoveModel}"
+                              AutomationProperties.AutomationId="Settings.Search.Model.Remove"
+                              AutomationProperties.Name="{Binding RemoveModelLabel}"
+                              Click="SearchRemoveModel_Click">
+                        <TextBlock Text="{Binding RemoveModelLabel}" />
+                      </Button>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- Ollama (advanced) -->
+                <Border Classes="settings-card" IsVisible="{Binding IsOllamaSelected}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Classes="settings-label" Text="{Binding OllamaLabel}" />
+                    <TextBlock Classes="settings-body"
+                               Text="{Binding OllamaStatusText}"
+                               AutomationProperties.AutomationId="Settings.Search.Ollama.Status"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <SelectableTextBlock Classes="settings-help"
+                                         IsVisible="{Binding ShowOllamaGuidance}"
+                                         Text="{Binding OllamaGuidanceText}"
+                                         FontSize="{DynamicResource Type.Size.Small}"
+                                         Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
+                                         TextWrapping="Wrap"
+                                         AutomationProperties.AutomationId="Settings.Search.Ollama.Guidance"
+                                         AutomationProperties.Name="{Binding OllamaGuidanceText}" />
+                    <Button HorizontalAlignment="Left"
+                            Padding="10,5"
+                            CornerRadius="{DynamicResource Radius.S}"
+                            AutomationProperties.AutomationId="Settings.Search.Ollama.Check"
+                            AutomationProperties.Name="{Binding OllamaCheckLabel}"
+                            Click="SearchCheckOllama_Click">
+                      <TextBlock Text="{Binding OllamaCheckLabel}" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+
+                <!-- Smart index -->
+                <Border Classes="settings-card" IsVisible="{Binding IsIndexVisible}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Classes="settings-label" Text="{Binding IndexLabel}" />
+                    <TextBlock Classes="settings-help" Text="{Binding IndexHelp}" />
+                    <ProgressBar Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding IndexPercent}"
+                                 AutomationProperties.AutomationId="Settings.Search.Index.Progress"
+                                 AutomationProperties.Name="{Binding IndexProgressName}"
+                                 AutomationProperties.HelpText="{Binding IndexProgressText}" />
+                    <TextBlock Classes="settings-body"
+                               Text="{Binding IndexProgressText}"
+                               AutomationProperties.AutomationId="Settings.Search.Index.Count" />
+                    <TextBlock Classes="settings-help"
+                               Text="{Binding IndexEtaText}"
+                               AutomationProperties.AutomationId="Settings.Search.Index.Eta"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <WrapPanel Orientation="Horizontal">
+                      <Button Margin="0,0,8,0"
+                              Padding="10,5"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              IsEnabled="{Binding CanBuildIndex}"
+                              AutomationProperties.AutomationId="Settings.Search.Index.Build"
+                              AutomationProperties.Name="{Binding BuildIndexLabel}"
+                              Click="SearchBuildIndex_Click">
+                        <TextBlock Text="{Binding BuildIndexLabel}" />
+                      </Button>
+                      <Button Margin="0,0,8,0"
+                              Padding="10,5"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              IsVisible="{Binding CanPause}"
+                              AutomationProperties.AutomationId="Settings.Search.Index.Pause"
+                              AutomationProperties.Name="{Binding PauseLabel}"
+                              Click="SearchPause_Click">
+                        <TextBlock Text="{Binding PauseLabel}" />
+                      </Button>
+                      <Button Padding="10,5"
+                              CornerRadius="{DynamicResource Radius.S}"
+                              IsVisible="{Binding CanResume}"
+                              AutomationProperties.AutomationId="Settings.Search.Index.Resume"
+                              AutomationProperties.Name="{Binding ResumeLabel}"
+                              Click="SearchResume_Click">
+                        <TextBlock Text="{Binding ResumeLabel}" />
+                      </Button>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+
+                <!-- Erase embeddings, with a confirmation -->
+                <Border Classes="settings-card">
+                  <StackPanel Spacing="8">
+                    <TextBlock Classes="settings-label" Text="{Binding EraseLabel}" />
+                    <TextBlock Classes="settings-help" Text="{Binding EraseHelp}" />
+                    <Button HorizontalAlignment="Left"
+                            Padding="10,5"
+                            CornerRadius="{DynamicResource Radius.S}"
+                            IsVisible="{Binding CanErase}"
+                            AutomationProperties.AutomationId="Settings.Search.Erase"
+                            AutomationProperties.Name="{Binding EraseLabel}"
+                            Click="SearchRequestErase_Click">
+                      <TextBlock Text="{Binding EraseLabel}" />
+                    </Button>
+                    <StackPanel Spacing="6"
+                                IsVisible="{Binding IsEraseConfirmationVisible}"
+                                AutomationProperties.AutomationId="Settings.Search.Erase.Confirmation">
+                      <TextBlock Classes="settings-body" Text="{Binding EraseConfirmText}" />
+                      <WrapPanel Orientation="Horizontal">
+                        <Button Margin="0,0,8,0"
+                                Padding="10,5"
+                                CornerRadius="{DynamicResource Radius.S}"
+                                AutomationProperties.AutomationId="Settings.Search.Erase.Confirm"
+                                AutomationProperties.Name="{Binding EraseConfirmLabel}"
+                                Click="SearchConfirmErase_Click">
+                          <TextBlock Text="{Binding EraseConfirmLabel}" />
+                        </Button>
+                        <Button Padding="10,5"
+                                CornerRadius="{DynamicResource Radius.S}"
+                                AutomationProperties.AutomationId="Settings.Search.Erase.Cancel"
+                                AutomationProperties.Name="{Binding EraseCancelLabel}"
+                                Click="SearchCancelErase_Click">
+                          <TextBlock Text="{Binding EraseCancelLabel}" />
+                        </Button>
+                      </WrapPanel>
+                    </StackPanel>
+                    <TextBlock Classes="settings-help"
+                               IsVisible="{Binding HasEraseStatus}"
+                               Text="{Binding EraseStatusText}"
+                               AutomationProperties.AutomationId="Settings.Search.Erase.Status"
+                               AutomationProperties.LiveSetting="Polite" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
+
         <!-- AI and privacy: the Phase 15 Privacy Center mounts here. -->
         <Border Classes="settings-card" IsVisible="{Binding IsPrivacySection}">
           <StackPanel Spacing="8">

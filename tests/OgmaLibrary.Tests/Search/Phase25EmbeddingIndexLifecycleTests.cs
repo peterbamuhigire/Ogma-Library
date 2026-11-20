@@ -283,7 +283,7 @@ public sealed class Phase25EmbeddingIndexLifecycleTests : IDisposable
         { Clock = clock };
 
         SemanticIndexProgress before = await generation.GetProgressAsync(CancellationToken.None);
-        Assert.Equal(new SemanticIndexProgress(0, 4, 4, null, false), before);
+        Assert.Equal(new SemanticIndexProgress(0, 4, 4, null, false, BooksTotal: 4), before);
 
         await generation.GenerateNextBatchAsync(2, CancellationToken.None);
         SemanticIndexProgress after = await generation.GetProgressAsync(CancellationToken.None);
@@ -291,6 +291,7 @@ public sealed class Phase25EmbeddingIndexLifecycleTests : IDisposable
         Assert.Equal(2, after.ChunksEmbedded);
         Assert.Equal(4, after.ChunksTotal);
         Assert.Equal(2, after.BooksWaiting);
+        Assert.Equal(4, after.BooksTotal);
         Assert.False(after.IsRegenerating);
         // Two embeddings ten seconds apart (one each tick), read ten seconds later: 0.1/s.
         Assert.Equal(TimeSpan.FromSeconds(20), after.EstimatedRemaining);

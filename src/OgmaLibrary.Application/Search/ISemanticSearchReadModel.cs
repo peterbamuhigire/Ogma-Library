@@ -22,12 +22,14 @@ public interface ISemanticSearchReadModel
 /// <param name="BooksWaiting">Books with at least one chunk still to embed.</param>
 /// <param name="EstimatedRemaining">Time left at the recent embedding rate, or null when no rate is known.</param>
 /// <param name="IsRegenerating">True while a staged regeneration for a new model is in progress.</param>
+/// <param name="BooksTotal">Books with at least one chunk eligible for embedding.</param>
 public sealed record SemanticIndexProgress(
     int ChunksEmbedded,
     int ChunksTotal,
     int BooksWaiting,
     TimeSpan? EstimatedRemaining,
-    bool IsRegenerating);
+    bool IsRegenerating,
+    int BooksTotal = 0);
 
 /// <summary>Semantic search index lifecycle event.</summary>
 public abstract record SemanticIndexEvent

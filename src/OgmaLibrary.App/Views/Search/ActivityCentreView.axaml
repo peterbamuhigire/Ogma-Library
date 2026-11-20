@@ -46,9 +46,34 @@
         <TextBlock Text="{Binding FailureSummary}" />
       </UniformGrid>
 
+      <StackPanel Grid.Row="2">
+      <!-- Sept-23 Phase 14 (task 14.7, K141): books waiting for smart search, with a route to Settings. -->
+      <Border Margin="0,8,0,0"
+              Padding="8,6"
+              IsVisible="{Binding HasSemanticWaiting}"
+              Background="{DynamicResource Brush.Surface.Parchment}"
+              BorderBrush="{DynamicResource Brush.Accent.Slate}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Radius.S}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding SemanticWaitingText}"
+                     AutomationProperties.AutomationId="Activity.Search.Waiting"
+                     VerticalAlignment="Center"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource Brush.Surface.OnParchment}" />
+          <Button Grid.Column="1"
+                  Margin="8,0,0,0"
+                  Padding="8,4"
+                  AutomationProperties.AutomationId="Activity.Search.OpenSettings"
+                  AutomationProperties.Name="{Binding OpenSearchSettingsLabel}"
+                  Click="OpenSearchSettings_Click">
+            <TextBlock Text="{Binding OpenSearchSettingsLabel}" />
+          </Button>
+        </Grid>
+      </Border>
+
       <!-- Sept-23 Phase 17: suggestion banner for scanned books that cannot be searched yet. -->
-      <Border Grid.Row="2"
-              Margin="0,8,0,0"
+      <Border Margin="0,8,0,0"
               Padding="8,6"
               IsVisible="{Binding HasOcrSuggestion}"
               Background="{DynamicResource Brush.Surface.Parchment}"
@@ -72,6 +97,7 @@
           </Button>
         </Grid>
       </Border>
+      </StackPanel>
 
       <ListBox Grid.Row="3"
                Margin="0,8,0,0"
