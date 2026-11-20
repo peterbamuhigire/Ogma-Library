@@ -8,7 +8,26 @@ public interface ISemanticSearchReadModel
 {
     /// <summary>Semantic indexing and erasure lifecycle events.</summary>
     IObservable<SemanticIndexEvent> Events { get; }
+
+    /// <summary>
+    /// Progress of the generation being built: the staging generation during a model change,
+    /// otherwise the active one (Sept-23 Phase 14, slice 4).
+    /// </summary>
+    Task<SemanticIndexProgress> GetProgressAsync(CancellationToken cancellationToken);
 }
+
+/// <summary>Semantic indexing progress for the current provider and model.</summary>
+/// <param name="ChunksEmbedded">Chunks with a vector from the current model in the target generation.</param>
+/// <param name="ChunksTotal">Chunks eligible for embedding.</param>
+/// <param name="BooksWaiting">Books with at least one chunk still to embed.</param>
+/// <param name="EstimatedRemaining">Time left at the recent embedding rate, or null when no rate is known.</param>
+/// <param name="IsRegenerating">True while a staged regeneration for a new model is in progress.</param>
+public sealed record SemanticIndexProgress(
+    int ChunksEmbedded,
+    int ChunksTotal,
+    int BooksWaiting,
+    TimeSpan? EstimatedRemaining,
+    bool IsRegenerating);
 
 /// <summary>Semantic search index lifecycle event.</summary>
 public abstract record SemanticIndexEvent

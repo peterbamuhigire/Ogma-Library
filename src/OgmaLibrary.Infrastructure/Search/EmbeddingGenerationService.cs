@@ -23,6 +23,8 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     private readonly IEmbeddingProvider _provider;
     private readonly IEmbeddingVectorRepository _vectors;
     private readonly ObservableEvents<SemanticIndexEvent> _events = new();
+    private readonly Queue<DateTimeOffset> _recentEmbeddings = new();
+    private readonly Lock _rateGate = new();
 
     /// <summary>
     /// Initializes a new instance of <see cref="EmbeddingGenerationService"/>.
@@ -56,8 +58,14 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         _vectors = vectors;
     }
 
+    /// <summary>How far back the rolling embedding rate for the progress estimate looks.</summary>
+    internal static readonly TimeSpan RateWindow = TimeSpan.FromMinutes(2);
+
     /// <inheritdoc />
     public IObservable<SemanticIndexEvent> Events => _events;
+
+    /// <summary>Clock for the rolling rate; tests substitute it.</summary>
+    internal TimeProvider Clock { get; init; } = TimeProvider.System;
 
     /// <inheritdoc />
     public async Task<EmbeddingGenerationBatchResult> GenerateNextBatchAsync(
@@ -85,15 +93,27 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             return new EmbeddingGenerationBatchResult(0, 0, 0, 0, ProviderUnavailable: true);
         }
 
-        IReadOnlyList<PendingChunk> chunks = await FindPendingChunksAsync(maxChunks, indexVersion, cancellationToken)
+        // The identity is fixed for the whole batch: if the provider or model changes mid-batch
+        // the batch stops rather than write a vector of another model into this generation.
+        ModelIdentity identity = ModelIdentity.Of(_provider);
+        IReadOnlyList<PendingChunk> chunks = await FindPendingChunksAsync(maxChunks, indexVersion, identity, cancellationToken)
             .ConfigureAwait(false);
+        int attempted = 0;
         int embedded = 0;
         int failed = 0;
         int inputTokenCount = 0;
+        bool providerChanged = false;
 
         foreach (PendingChunk chunk in chunks)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (ModelIdentity.Of(_provider) != identity)
+            {
+                providerChanged = true;
+                break;
+            }
+
+            attempted++;
             inputTokenCount = checked(inputTokenCount + SearchChunker.CountTokens(chunk.Text));
             await SetBookEmbeddingStatusAsync(
                     chunk.BookId,
@@ -106,14 +126,22 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 EmbeddingResult result = await _provider
                     .EmbedAsync(chunk.Text, EmbeddingInputKind.Passage, cancellationToken)
                     .ConfigureAwait(false);
-                ValidateResult(result);
+                if (!identity.Matches(result) && ModelIdentity.Of(_provider) != identity)
+                {
+                    // The provider switched while this chunk was embedding: discard the vector.
+                    providerChanged = true;
+                    await RefreshBookEmbeddingStatusAsync(chunk.BookId, indexVersion, cancellationToken).ConfigureAwait(false);
+                    break;
+                }
+
+                ValidateResult(result, identity);
 
                 await _vectors.CreateAsync(
                         new EmbeddingVectorRecord(
                             Id: 0,
                             ChunkId: chunk.ChunkId,
-                            ModelName: _provider.ModelId,
-                            ModelVersion: _provider.ModelVersion,
+                            ModelName: identity.ModelId,
+                            ModelVersion: identity.ModelVersion,
                             Vector: result.Vector,
                             DimensionCount: result.Vector.Length,
                             GeneratedAtUtc: DateTimeOffset.UtcNow,
@@ -121,11 +149,12 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                             ExtractorVersion: chunk.ExtractorVersion,
                             ChunkerVersion: SearchChunker.CurrentVersion,
                             IndexVersion: chunk.IndexVersion,
-                            ProviderKey: _provider.ProviderKey),
+                            ProviderKey: identity.ProviderKey),
                         cancellationToken)
                     .ConfigureAwait(false);
 
                 embedded++;
+                RecordEmbedding();
                 await PublishProgressAsync(chunk, cancellationToken).ConfigureAwait(false);
                 await RefreshBookEmbeddingStatusAsync(chunk.BookId, indexVersion, cancellationToken).ConfigureAwait(false);
             }
@@ -147,24 +176,115 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         }
 
         return new EmbeddingGenerationBatchResult(
-            ChunksAttempted: chunks.Count,
+            ChunksAttempted: attempted,
             ChunksEmbedded: embedded,
             ChunksFailed: failed,
             ChunksSkipped: 0,
             ProviderUnavailable: false,
             InputTokenCount: inputTokenCount,
             ExternalProviderEgressBytes: 0,
-            EstimatedExternalProviderCostUsd: 0m);
+            EstimatedExternalProviderCostUsd: 0m,
+            ProviderChanged: providerChanged);
+    }
+
+    /// <inheritdoc />
+    public async Task<SemanticIndexProgress> GetProgressAsync(CancellationToken cancellationToken)
+    {
+        using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
+        CatalogueDbContext context = lease.Context;
+        EmbeddingIndexStateRow? state = await context.EmbeddingIndexState
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.StateKey == "semantic", cancellationToken)
+            .ConfigureAwait(false);
+        string targetVersion = state?.StagingIndexVersion ?? state?.ActiveIndexVersion ?? "fts5-v1";
+        (string providerKey, string modelId, string modelVersion) = ProviderIdentity();
+
+        IQueryable<SearchChunkRow> eligible = context.SearchChunks
+            .AsNoTracking()
+            .Where(chunk =>
+                chunk.ChunkText != null &&
+                chunk.ChunkText != string.Empty &&
+                context.Books.Any(book =>
+                    book.BookId == chunk.BookId &&
+                    book.Status == ActiveBookStatus &&
+                    book.IndexStatus == (int)SearchBookIndexStatus.Indexed));
+        IQueryable<SearchChunkRow> waiting = eligible.Where(chunk =>
+            !context.EmbeddingVectors.Any(vector =>
+                vector.ChunkId == chunk.ChunkId &&
+                !vector.IsTombstoned &&
+                vector.ModelName == modelId &&
+                vector.ModelVersion == modelVersion &&
+                vector.ProviderKey == providerKey &&
+                vector.IndexVersion == targetVersion &&
+                vector.SourceHash.Length > 0));
+
+        int total = await eligible.CountAsync(cancellationToken).ConfigureAwait(false);
+        int remaining = await waiting.CountAsync(cancellationToken).ConfigureAwait(false);
+        int booksWaiting = await waiting.Select(chunk => chunk.BookId).Distinct().CountAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new SemanticIndexProgress(
+            ChunksEmbedded: total - remaining,
+            ChunksTotal: total,
+            BooksWaiting: booksWaiting,
+            EstimatedRemaining: EstimateRemaining(remaining),
+            IsRegenerating: state?.StagingIndexVersion is not null);
+    }
+
+    private void RecordEmbedding()
+    {
+        DateTimeOffset now = Clock.GetUtcNow();
+        lock (_rateGate)
+        {
+            _recentEmbeddings.Enqueue(now);
+            TrimRateWindow(now);
+        }
+    }
+
+    private TimeSpan? EstimateRemaining(int remaining)
+    {
+        if (remaining == 0)
+        {
+            return TimeSpan.Zero;
+        }
+
+        DateTimeOffset now = Clock.GetUtcNow();
+        lock (_rateGate)
+        {
+            TrimRateWindow(now);
+            if (_recentEmbeddings.Count < 2)
+            {
+                return null;
+            }
+
+            TimeSpan span = now - _recentEmbeddings.Peek();
+            if (span <= TimeSpan.Zero)
+            {
+                return null;
+            }
+
+            double perSecond = _recentEmbeddings.Count / span.TotalSeconds;
+            return TimeSpan.FromSeconds(Math.Ceiling(remaining / perSecond));
+        }
+    }
+
+    private void TrimRateWindow(DateTimeOffset now)
+    {
+        while (_recentEmbeddings.Count > 0 && now - _recentEmbeddings.Peek() > RateWindow)
+        {
+            _recentEmbeddings.Dequeue();
+        }
     }
 
     private async Task<IReadOnlyList<PendingChunk>> FindPendingChunksAsync(
         int maxChunks,
         string indexVersion,
+        ModelIdentity identity,
         CancellationToken cancellationToken)
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
-        (string providerKey, string modelId, string modelVersion) = ProviderIdentity();
+        (string providerKey, string modelId, string modelVersion) = (identity.ProviderKey, identity.ModelId, identity.ModelVersion);
 
         return await context.SearchChunks
             .AsNoTracking()
@@ -367,18 +487,27 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         return Convert.ToHexStringLower(SHA256.HashData(data));
     }
 
-    private void ValidateResult(EmbeddingResult result)
+    private static void ValidateResult(EmbeddingResult result, ModelIdentity identity)
     {
-        if (!string.Equals(result.ProviderKey, _provider.ProviderKey, StringComparison.Ordinal) ||
-            !string.Equals(result.ModelId, _provider.ModelId, StringComparison.Ordinal) ||
-            !string.Equals(result.ModelVersion, _provider.ModelVersion, StringComparison.Ordinal) ||
-            result.Vector.Length != _provider.Dimensions ||
+        if (!identity.Matches(result) ||
+            result.Vector.Length != identity.Dimensions ||
             result.Vector.Length == 0 ||
             result.Vector.Length > 4096 ||
             result.Vector.Any(value => !float.IsFinite(value)))
         {
             throw new InvalidOperationException("Embedding provider returned an invalid model or vector.");
         }
+    }
+
+    private readonly record struct ModelIdentity(string ProviderKey, string ModelId, string ModelVersion, int Dimensions)
+    {
+        public static ModelIdentity Of(IEmbeddingProvider provider) =>
+            new(provider.ProviderKey, provider.ModelId, provider.ModelVersion, provider.Dimensions);
+
+        public bool Matches(EmbeddingResult result) =>
+            string.Equals(result.ProviderKey, ProviderKey, StringComparison.Ordinal) &&
+            string.Equals(result.ModelId, ModelId, StringComparison.Ordinal) &&
+            string.Equals(result.ModelVersion, ModelVersion, StringComparison.Ordinal);
     }
 
     private sealed record PendingChunk(

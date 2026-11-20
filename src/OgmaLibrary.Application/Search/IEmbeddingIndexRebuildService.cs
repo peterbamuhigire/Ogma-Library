@@ -10,6 +10,16 @@ public interface IEmbeddingIndexRebuildService
     Task<EmbeddingIndexRebuildResult> RebuildAsync(
         int maxChunks,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Runs one bounded batch of the staging generation, beginning it when none exists, and
+    /// promotes it atomically once a batch finds nothing left to embed. Background workers
+    /// call this repeatedly so a regeneration interleaves with pause, reader yield and
+    /// cancellation (Sept-23 Phase 14, slice 4).
+    /// </summary>
+    Task<EmbeddingIndexRebuildResult> RunNextBatchAsync(
+        int maxChunks,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>Outcome of one bounded semantic-index rebuild attempt.</summary>
@@ -20,4 +30,5 @@ public sealed record EmbeddingIndexRebuildResult(
     int ChunksAttempted,
     int ChunksEmbedded,
     int ChunksFailed,
-    bool ProviderUnavailable);
+    bool ProviderUnavailable,
+    bool ProviderChanged = false);

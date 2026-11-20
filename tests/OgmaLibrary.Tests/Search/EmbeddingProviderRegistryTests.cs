@@ -179,6 +179,23 @@ public sealed class EmbeddingProviderRegistryTests : IDisposable
         Assert.True(clock.Elapsed < EmbeddingProviderRegistry.ProbeBudget + TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
     }
 
+    [Fact]
+    public async Task FindAvailable_UsesTheLastProbe_AndNeverProbes()
+    {
+        _ollama.Available = true;
+        using EmbeddingProviderRegistry registry = Create();
+        registry.ApplyPreferences(new UserPreferences(SemanticProvider: SemanticProviderChoice.Ollama));
+        await registry.WhenIdleAsync();
+        Assert.True(await registry.RefreshAsync(CancellationToken.None));
+        int probes = _builtIn.ProbeCount + _ollama.ProbeCount;
+
+        // Slice 4: searches can keep the Ollama generation after the user switches to built-in.
+        Assert.Same(_ollama, registry.FindAvailable("ollama", "nomic-embed-text", "v1"));
+        Assert.Null(registry.FindAvailable("ollama", "nomic-embed-text", "v2"));
+        Assert.Null(registry.FindAvailable("builtin-onnx", "intfloat/multilingual-e5-small", "v1"));
+        Assert.Equal(probes, _builtIn.ProbeCount + _ollama.ProbeCount);
+    }
+
     private EmbeddingModelStore CreateStore()
     {
         EmbeddingModelManifest manifest = EmbeddingModelManifest.Parse(

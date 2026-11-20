@@ -29,6 +29,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
     private readonly IMatchLocationService _matchLocations;
     private readonly IEmbeddingIndexLifecycleService? _indexLifecycle;
     private readonly ISemanticCapabilityService? _capability;
+    private readonly IEmbeddingProviderCatalog? _providers;
     private readonly object _queryEmbeddingCacheGate = new();
     private readonly Dictionary<string, CachedQueryEmbedding> _queryEmbeddingCache = new(StringComparer.Ordinal);
 
@@ -43,7 +44,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IHybridRankingService hybridRanking,
         IMatchLocationService matchLocations,
         IEmbeddingIndexLifecycleService? indexLifecycle = null,
-        ISemanticCapabilityService? capability = null)
+        ISemanticCapabilityService? capability = null,
+        IEmbeddingProviderCatalog? providers = null)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
         ArgumentNullException.ThrowIfNull(provider);
@@ -58,6 +60,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _matchLocations = matchLocations;
         _indexLifecycle = indexLifecycle;
         _capability = capability;
+        _providers = providers;
     }
 
     internal SemanticSearchService(
@@ -67,7 +70,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IHybridRankingService? hybridRanking = null,
         IMatchLocationService? matchLocations = null,
         IEmbeddingIndexLifecycleService? indexLifecycle = null,
-        ISemanticCapabilityService? capability = null)
+        ISemanticCapabilityService? capability = null,
+        IEmbeddingProviderCatalog? providers = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(provider);
@@ -80,6 +84,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
         _matchLocations = matchLocations ?? new MatchLocationService();
         _indexLifecycle = indexLifecycle;
         _capability = capability;
+        _providers = providers;
     }
 
     /// <inheritdoc />
@@ -102,12 +107,34 @@ public sealed class SemanticSearchService : ISemanticSearchService
         IReadOnlyList<CombinedSearchResult> exact = await _exactSearch
             .SearchAsync(queryText, maxResults * OversampleMultiplier, cancellationToken)
             .ConfigureAwait(false);
-        (EmbeddingResult query, bool embeddingCacheHit) = await GetQueryEmbeddingAsync(
-                queryText,
-                cancellationToken)
+        string activeIndexVersion = _indexLifecycle is null
+            ? "fts5-v1"
+            : (await _indexLifecycle.GetStateAsync(cancellationToken).ConfigureAwait(false)).ActiveIndexVersion;
+        IEmbeddingProvider? provider = await SelectProviderAsync(activeIndexVersion, cancellationToken)
             .ConfigureAwait(false);
+        if (provider is null)
+        {
+            // The active generation was built by another model whose provider is not available
+            // now; the new model's generation is still being built (slice 4, D-116).
+            return ExactFallback(exact, maxResults, providerUnavailable: false, SemanticSearchAvailability.NoIndex);
+        }
+
+        EmbeddingResult query;
+        bool embeddingCacheHit;
+        try
+        {
+            (query, embeddingCacheHit) = await GetQueryEmbeddingAsync(provider, queryText, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (!ReferenceEquals(provider, _provider) &&
+            exception is HttpRequestException or InvalidOperationException or IOException or TimeoutException)
+        {
+            // The previous model's provider stopped answering: the new generation is preparing.
+            return ExactFallback(exact, maxResults, providerUnavailable: false, SemanticSearchAvailability.NoIndex);
+        }
+
         if (query.Vector.Length == 0 ||
-            query.Vector.Length != _provider.Dimensions ||
+            query.Vector.Length != provider.Dimensions ||
             query.Vector.Length > 4096 ||
             query.Vector.Any(value => !float.IsFinite(value)))
         {
@@ -118,10 +145,8 @@ public sealed class SemanticSearchService : ISemanticSearchService
                 availability: SemanticSearchAvailability.Degraded);
         }
 
-        string activeIndexVersion = _indexLifecycle is null
-            ? "fts5-v1"
-            : (await _indexLifecycle.GetStateAsync(cancellationToken).ConfigureAwait(false)).ActiveIndexVersion;
         IReadOnlyList<ScoredVectorCandidate> corpus = await LoadTopCorpusAsync(
+                provider,
                 query.Vector,
                 Math.Max(maxResults * OversampleMultiplier, maxResults),
                 activeIndexVersion,
@@ -184,13 +209,44 @@ public sealed class SemanticSearchService : ISemanticSearchService
             EmbeddingCacheHit: embeddingCacheHit);
     }
 
+    /// <summary>
+    /// Chooses the provider whose vectors fill the active generation: the current provider
+    /// when the generation is empty or was built by it, otherwise the previous model's provider
+    /// if it is still available (searches keep the old generation during a regeneration), or
+    /// null when neither can embed a query for it.
+    /// </summary>
+    private async Task<IEmbeddingProvider?> SelectProviderAsync(string activeIndexVersion, CancellationToken cancellationToken)
+    {
+        if (_indexLifecycle is null)
+        {
+            return _provider;
+        }
+
+        IReadOnlyList<EmbeddingGenerationIdentity> identities;
+        using (ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false))
+        {
+            identities = await EmbeddingGenerationIdentity.ReadAsync(lease.Context, activeIndexVersion, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (identities.Count == 0 || identities.Contains(EmbeddingGenerationIdentity.Of(_provider)))
+        {
+            return _provider;
+        }
+
+        return identities
+            .Select(identity => _providers?.FindAvailable(identity.ProviderKey, identity.ModelId, identity.ModelVersion))
+            .FirstOrDefault(provider => provider is not null);
+    }
+
     private async Task<(EmbeddingResult Result, bool CacheHit)> GetQueryEmbeddingAsync(
+        IEmbeddingProvider provider,
         string queryText,
         CancellationToken cancellationToken)
     {
         string normalized = queryText.Trim();
         string cacheKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            $"{_provider.ProviderKey}\n{_provider.ModelId}\n{_provider.ModelVersion}\n{normalized}")));
+            $"{provider.ProviderKey}\n{provider.ModelId}\n{provider.ModelVersion}\n{normalized}")));
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
         lock (_queryEmbeddingCacheGate)
@@ -208,7 +264,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
             _queryEmbeddingCache.Remove(cacheKey);
         }
 
-        EmbeddingResult result = await _provider
+        EmbeddingResult result = await provider
             .EmbedAsync(normalized, EmbeddingInputKind.Query, cancellationToken)
             .ConfigureAwait(false);
 
@@ -341,6 +397,7 @@ public sealed class SemanticSearchService : ISemanticSearchService
     }
 
     private async Task<IReadOnlyList<ScoredVectorCandidate>> LoadTopCorpusAsync(
+        IEmbeddingProvider provider,
         float[] queryVector,
         int topK,
         string activeIndexVersion,
@@ -351,9 +408,9 @@ public sealed class SemanticSearchService : ISemanticSearchService
 
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
-        string providerKey = _provider.ProviderKey;
-        string modelId = _provider.ModelId;
-        string modelVersion = _provider.ModelVersion;
+        string providerKey = provider.ProviderKey;
+        string modelId = provider.ModelId;
+        string modelVersion = provider.ModelVersion;
 
         var rows = context.EmbeddingVectors
             .AsNoTracking()

@@ -277,7 +277,7 @@ public sealed class EmbeddingGenerationWorker : BackgroundService
             }
         }
 
-        return result.ChunksAttempted > 0 && !result.ProviderUnavailable;
+        return (result.ChunksAttempted > 0 || result.ProviderChanged) && !result.ProviderUnavailable;
     }
 
     private async Task ExecuteJobAsync(JobLease lease, CancellationToken batchToken)

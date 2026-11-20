@@ -103,8 +103,9 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<IExtractionPipelineService, ExtractionPipelineService>();
         services.AddSingleton<ITocExtractionService, PdfTableOfContentsService>();
         services.AddSingleton<EmbeddingGenerationService>();
-        services.AddSingleton<IEmbeddingGenerationService>(sp =>
-            sp.GetRequiredService<EmbeddingGenerationService>());
+        // The worker embeds through the coordinator: in place for the current model, or a
+        // staged regeneration when the provider or model changed (Sept-23 Phase 14, slice 4).
+        services.AddSingleton<IEmbeddingGenerationService, SemanticGenerationCoordinator>();
         services.AddSingleton<IStagedEmbeddingGenerationService>(sp =>
             sp.GetRequiredService<EmbeddingGenerationService>());
         services.AddSingleton<ISemanticSearchReadModel>(sp =>
@@ -153,6 +154,7 @@ public static class CatalogueServiceExtensions
             logger: sp.GetService<ILogger<EmbeddingProviderRegistry>>()));
         services.AddSingleton<IEmbeddingProvider>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
         services.AddSingleton<ISemanticCapabilityService>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
+        services.AddSingleton<IEmbeddingProviderCatalog>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
         services.AddSingleton<ISemanticIndexControl>(sp => new SemanticIndexControl(sp.GetService<ISemanticCapabilityService>()));
 
         // Derived assets live in the app-data store, never in a library folder

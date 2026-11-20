@@ -16,7 +16,7 @@ namespace OgmaLibrary.Infrastructure.Search;
 /// availability: on a preference change, on model install or removal, and on the
 /// hourly refresh. It is raised on a background thread.
 /// </summary>
-public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCapabilityService, IDisposable
+public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCapabilityService, IEmbeddingProviderCatalog, IDisposable
 {
     /// <summary>The administrator/test override variable (<c>builtin</c>, <c>ollama</c> or <c>off</c>).</summary>
     public const string EnvironmentVariable = "OGMA_SEMANTIC_PROVIDER";
@@ -46,6 +46,8 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
     private SemanticProviderChoice _preferenceChoice = SemanticProviderChoice.BuiltIn;
     private bool _preferencesApplied;
     private volatile bool _available;
+    private volatile bool _builtInLastAvailable;
+    private volatile bool _ollamaLastAvailable;
     private (SemanticProviderChoice Choice, bool Available) _published;
     private Task _pending = Task.CompletedTask;
     private bool _disposed;
@@ -130,6 +132,21 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
     public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) => ProbeAndPublishAsync(cancellationToken);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Uses each provider's last probe result; a provider never probed in this session is
+    /// treated as unavailable, so searches show "preparing" rather than wait (D-116).
+    /// </remarks>
+    public IEmbeddingProvider? FindAvailable(string providerKey, string modelId, string modelVersion)
+    {
+        if (_builtInLastAvailable && Produces(_builtIn, providerKey, modelId, modelVersion))
+        {
+            return _builtIn;
+        }
+
+        return _ollamaLastAvailable && Produces(_ollama, providerKey, modelId, modelVersion) ? _ollama : null;
+    }
+
+    /// <inheritdoc />
     public Task<bool> RefreshAsync(CancellationToken cancellationToken) => ProbeAndPublishAsync(cancellationToken);
 
     /// <inheritdoc />
@@ -212,7 +229,12 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
         _ => null,
     };
 
-    private void OnStoreChanged(object? sender, EventArgs e) => QueueRefresh();
+    private void OnStoreChanged(object? sender, EventArgs e)
+    {
+        // The model files changed: the built-in provider's last result no longer holds.
+        _builtInLastAvailable = false;
+        QueueRefresh();
+    }
 
     private void QueueRefresh()
     {
@@ -256,12 +278,30 @@ public sealed class EmbeddingProviderRegistry : IEmbeddingProvider, ISemanticCap
             bool available = provider is not null
                 && await ProbeWithinBudgetAsync(provider, cancellationToken).ConfigureAwait(false);
             _available = available;
+            RememberAvailability(provider, available);
             Publish(choice, available);
             return available;
         }
         finally
         {
             _probeGate.Release();
+        }
+    }
+
+    private static bool Produces(IEmbeddingProvider provider, string providerKey, string modelId, string modelVersion) =>
+        string.Equals(provider.ProviderKey, providerKey, StringComparison.Ordinal) &&
+        string.Equals(provider.ModelId, modelId, StringComparison.Ordinal) &&
+        string.Equals(provider.ModelVersion, modelVersion, StringComparison.Ordinal);
+
+    private void RememberAvailability(IEmbeddingProvider? provider, bool available)
+    {
+        if (ReferenceEquals(provider, _builtIn))
+        {
+            _builtInLastAvailable = available;
+        }
+        else if (ReferenceEquals(provider, _ollama))
+        {
+            _ollamaLastAvailable = available;
         }
     }
 
