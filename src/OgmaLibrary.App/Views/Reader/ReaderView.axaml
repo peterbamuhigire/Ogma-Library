@@ -9,256 +9,248 @@
              Focusable="True"
              KeyDown="ReaderView_KeyDown">
 
-  <Grid RowDefinitions="Auto,Auto,*"
+  <UserControl.Styles>
+    <Style Selector="Button.edge-zone">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*"
         Background="{DynamicResource Brush.Surface.Parchment}">
 
+    <!-- Sept-23 Phase 12: one slim toolbar. Back, title, page field, zoom, layout, search,
+         annotate tools (one group), more, side panel. Page turning is by keyboard, the page
+         field and the edge zones; there is no second navigation row. -->
     <Border Grid.Row="0"
-            Padding="14,10"
+            x:Name="ReaderToolbar"
+            Padding="12,6"
             BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-            BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
-        <TextBlock Grid.Column="0"
+            BorderThickness="0,0,0,1"
+            TextElement.FontFamily="{DynamicResource Type.FontFamily.Body}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+        <Button Grid.Column="0"
+                Classes="tool primary"
+                AutomationProperties.AutomationId="Reader.BackToLibrary"
+                AutomationProperties.Name="{Binding BackToLibraryLabel}"
+                Click="BackToLibraryButton_Click">
+          <TextBlock Text="{Binding BackToLibraryLabel}" />
+        </Button>
+
+        <TextBlock Grid.Column="1"
+                   Classes="ogma-display"
                    Text="{Binding ReaderTitle}"
                    FontSize="{DynamicResource Type.Size.Subtitle}"
                    FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Brush.Surface.OnParchment}"
-                   VerticalAlignment="Center" />
-
-        <TextBlock Grid.Column="1"
-                   Text="{Binding PageStatusText}"
-                   FontSize="{DynamicResource Type.Size.Body}"
-                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}"
                    VerticalAlignment="Center"
-                   HorizontalAlignment="Center" />
+                   AutomationProperties.AutomationId="Reader.Title" />
 
         <StackPanel Grid.Column="2"
                     Orientation="Horizontal"
-                    Spacing="6"
+                    Spacing="4"
                     VerticalAlignment="Center">
-          <Button Padding="12,6"
-                  IsEnabled="{Binding CanGoPrevious}"
-                  AutomationProperties.AutomationId="Reader.Previous"
-                  AutomationProperties.Name="{Binding PreviousPageLabel}"
-                  Click="PreviousButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="&lt;" />
-              <TextBlock Text="{Binding PreviousPageLabel}" />
-            </StackPanel>
-          </Button>
-          <Button Padding="12,6"
-                  IsEnabled="{Binding CanGoNext}"
-                  AutomationProperties.AutomationId="Reader.Next"
-                  AutomationProperties.Name="{Binding NextPageLabel}"
-                  Click="NextButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="{Binding NextPageLabel}" />
-              <TextBlock Text="&gt;" />
-            </StackPanel>
-          </Button>
+          <TextBox x:Name="PageNumberBox"
+                   Width="56"
+                   Text="{Binding PageNumberInput, Mode=TwoWay}"
+                   HorizontalContentAlignment="Center"
+                   FontFeatures="tnum"
+                   AutomationProperties.AutomationId="Reader.PageNumber"
+                   AutomationProperties.Name="{Binding JumpToPageLabel}"
+                   ToolTip.Tip="{Binding JumpToPageLabel}"
+                   KeyDown="PageNumberBox_KeyDown" />
+          <TextBlock Text="/"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
+          <TextBlock Text="{Binding PageCount}"
+                     MinWidth="34"
+                     FontFeatures="tnum"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
         </StackPanel>
 
-        <StackPanel Grid.Column="3"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    VerticalAlignment="Center">
-          <Button Padding="10,5"
-                  IsEnabled="{Binding CanUsePortability}"
-                  AutomationProperties.Name="{Binding ImportReaderStateLabel}"
-                  Click="ImportReaderStateButton_Click">
-            <TextBlock Text="{Binding ImportReaderStateLabel}" />
-          </Button>
-          <Button Padding="10,5"
-                  IsEnabled="{Binding CanUsePortability}"
-                  AutomationProperties.Name="{Binding ExportReaderStateLabel}"
-                  Click="ExportReaderStateButton_Click">
-            <TextBlock Text="{Binding ExportReaderStateLabel}" />
-          </Button>
-        </StackPanel>
+        <DropDownButton Grid.Column="3"
+                        Classes="tool"
+                        AutomationProperties.AutomationId="Reader.Zoom"
+                        AutomationProperties.Name="{Binding ZoomMenuLabel}"
+                        ToolTip.Tip="{Binding ZoomMenuLabel}">
+          <TextBlock Text="{Binding ZoomPercentLabel}" FontFeatures="tnum" />
+          <DropDownButton.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="{Binding FitWidthLabel}"
+                        AutomationProperties.AutomationId="Reader.Zoom.FitWidth"
+                        Click="FitWidthButton_Click" />
+              <MenuItem Header="{Binding FitPageLabel}"
+                        AutomationProperties.AutomationId="Reader.Zoom.FitPage"
+                        Click="FitPageButton_Click" />
+              <Separator />
+              <MenuItem Header="50%" Tag="50" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="75%" Tag="75" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="100%" Tag="100" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="125%" Tag="125" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="150%" Tag="150" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="200%" Tag="200" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="300%" Tag="300" Click="ZoomPresetItem_Click" />
+              <MenuItem Header="400%" Tag="400" Click="ZoomPresetItem_Click" />
+            </MenuFlyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
 
-        <StackPanel Grid.Column="4"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    VerticalAlignment="Center">
-          <svg:Svg Width="16"
-                   Height="16"
-                   VerticalAlignment="Center"
-                   AutomationProperties.Name="{Binding ChooseHighlightColorLabel}"
-                   ToolTip.Tip="{Binding ChooseHighlightColorLabel}"
-                   Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight_color.svg" />
-          <ItemsControl ItemsSource="{Binding HighlightColorOptions}"
-                        VerticalAlignment="Center">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <StackPanel Orientation="Horizontal" Spacing="4" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:HighlightColorOption">
-                <Button Padding="4"
-                        MinWidth="28"
-                        MinHeight="28"
-                        AutomationProperties.Name="{Binding AccessibleLabel}"
-                        ToolTip.Tip="{Binding Label}"
-                        Click="HighlightColorButton_Click">
-                  <Grid Width="16" Height="16">
-                    <Border CornerRadius="8"
-                            BorderBrush="{DynamicResource Brush.Surface.OnParchment}"
-                            BorderThickness="1"
-                            Background="{Binding Color}" />
-                    <TextBlock Text="{Binding SelectedMarker}"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontWeight="Bold"
-                               FontSize="{DynamicResource Type.Size.Caption}"
-                               Foreground="{DynamicResource Brush.Accent.OnAccent}" />
-                  </Grid>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <Button Classes="primary" Padding="12,6"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding CreateHighlightLabel}"
-                  Click="CreateHighlightButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight.svg" />
-              <TextBlock Text="{Binding CreateHighlightLabel}" />
-            </StackPanel>
-          </Button>
-          <Button Classes="danger" Padding="12,6"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding CreateNoteLabel}"
-                  Click="CreateNoteButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note.svg" />
-              <TextBlock Text="{Binding CreateNoteLabel}" />
-            </StackPanel>
-          </Button>
-          <Button Classes="primary" Padding="12,6"
-                  CornerRadius="{DynamicResource Radius.S}"
-                  AutomationProperties.Name="{Binding AddBookmarkLabel}"
-                  Click="AddBookmarkButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_add.svg" />
-              <TextBlock Text="{Binding AddBookmarkLabel}" />
-            </StackPanel>
-          </Button>
-          <Button Padding="12,6"
-                  AutomationProperties.Name="{Binding CaptureCitationLabel}"
-                  Click="CaptureCitationButton_Click">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <svg:Svg Width="16"
-                       Height="16"
-                       Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_citation_capture.svg" />
-              <TextBlock Text="{Binding CaptureCitationLabel}" />
-            </StackPanel>
-          </Button>
-        </StackPanel>
+        <DropDownButton Grid.Column="4"
+                        Classes="tool"
+                        AutomationProperties.AutomationId="Reader.Layout"
+                        AutomationProperties.Name="{Binding LayoutMenuLabel}"
+                        ToolTip.Tip="{Binding LayoutMenuLabel}">
+          <TextBlock Text="{Binding LayoutMenuLabel}" />
+          <DropDownButton.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="{Binding LayoutSingleLabel}" Tag="SinglePage" Click="LayoutItem_Click" />
+              <MenuItem Header="{Binding LayoutTwoPageLabel}" Tag="TwoPage" Click="LayoutItem_Click" />
+              <MenuItem Header="{Binding LayoutContinuousLabel}" Tag="Continuous" Click="LayoutItem_Click" />
+            </MenuFlyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+
+        <Button Grid.Column="5"
+                Classes="tool"
+                IsEnabled="{Binding IsSearchAvailable}"
+                AutomationProperties.AutomationId="Reader.Search"
+                AutomationProperties.Name="{Binding SearchToggleLabel}"
+                ToolTip.Tip="{Binding SearchToggleLabel}">
+          <TextBlock Text="{Binding SearchToggleLabel}" />
+        </Button>
+
+        <DropDownButton Grid.Column="6"
+                        Classes="tool"
+                        AutomationProperties.AutomationId="Reader.Annotate"
+                        AutomationProperties.Name="{Binding AnnotateMenuLabel}"
+                        ToolTip.Tip="{Binding AnnotateMenuLabel}">
+          <TextBlock Text="{Binding AnnotateMenuLabel}" />
+          <DropDownButton.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel Orientation="Vertical"
+                              Spacing="6"
+                              MinWidth="240"
+                              Margin="4">
+                  <svg:Svg Width="16"
+                           Height="16"
+                           VerticalAlignment="Center"
+                           AutomationProperties.Name="{Binding ChooseHighlightColorLabel}"
+                           ToolTip.Tip="{Binding ChooseHighlightColorLabel}"
+                           Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight_color.svg" />
+                  <ItemsControl ItemsSource="{Binding HighlightColorOptions}"
+                                VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="4" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:HighlightColorOption">
+                        <Button Padding="4"
+                                MinWidth="28"
+                                MinHeight="28"
+                                AutomationProperties.Name="{Binding AccessibleLabel}"
+                                ToolTip.Tip="{Binding Label}"
+                                Click="HighlightColorButton_Click">
+                          <Grid Width="16" Height="16">
+                            <Border CornerRadius="8"
+                                    BorderBrush="{DynamicResource Brush.Surface.OnParchment}"
+                                    BorderThickness="1"
+                                    Background="{Binding Color}" />
+                            <TextBlock Text="{Binding SelectedMarker}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontWeight="Bold"
+                                       FontSize="{DynamicResource Type.Size.Caption}"
+                                       Foreground="{DynamicResource Brush.Accent.OnAccent}" />
+                          </Grid>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Classes="primary" Padding="12,6"
+                          CornerRadius="{DynamicResource Radius.S}"
+                          AutomationProperties.Name="{Binding CreateHighlightLabel}"
+                          Click="CreateHighlightButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <svg:Svg Width="16"
+                               Height="16"
+                               Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_highlight.svg" />
+                      <TextBlock Text="{Binding CreateHighlightLabel}" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="danger" Padding="12,6"
+                          CornerRadius="{DynamicResource Radius.S}"
+                          AutomationProperties.Name="{Binding CreateNoteLabel}"
+                          Click="CreateNoteButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <svg:Svg Width="16"
+                               Height="16"
+                               Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_note.svg" />
+                      <TextBlock Text="{Binding CreateNoteLabel}" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="primary" Padding="12,6"
+                          CornerRadius="{DynamicResource Radius.S}"
+                          AutomationProperties.Name="{Binding AddBookmarkLabel}"
+                          Click="AddBookmarkButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <svg:Svg Width="16"
+                               Height="16"
+                               Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_add.svg" />
+                      <TextBlock Text="{Binding AddBookmarkLabel}" />
+                    </StackPanel>
+                  </Button>
+                  <Button Padding="12,6"
+                          AutomationProperties.Name="{Binding CaptureCitationLabel}"
+                          Click="CaptureCitationButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <svg:Svg Width="16"
+                               Height="16"
+                               Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_citation_capture.svg" />
+                      <TextBlock Text="{Binding CaptureCitationLabel}" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+            </Flyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+
+        <DropDownButton Grid.Column="7"
+                        Classes="tool"
+                        AutomationProperties.AutomationId="Reader.More"
+                        AutomationProperties.Name="{Binding MoreMenuLabel}"
+                        ToolTip.Tip="{Binding MoreMenuLabel}">
+          <TextBlock Text="..." />
+          <DropDownButton.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="{Binding ImportReaderStateLabel}"
+                        AutomationProperties.AutomationId="Reader.More.ImportState"
+                        IsEnabled="{Binding CanUsePortability}"
+                        Click="ImportReaderStateButton_Click" />
+              <MenuItem Header="{Binding ExportReaderStateLabel}"
+                        AutomationProperties.AutomationId="Reader.More.ExportState"
+                        IsEnabled="{Binding CanUsePortability}"
+                        Click="ExportReaderStateButton_Click" />
+            </MenuFlyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+
+        <ToggleButton Grid.Column="8"
+                      Classes="tool"
+                      IsChecked="{Binding IsSidePanelOpen, Mode=OneWay}"
+                      AutomationProperties.AutomationId="Reader.SidePanelToggle"
+                      AutomationProperties.Name="{Binding SidePanelToggleLabel}"
+                      ToolTip.Tip="{Binding SidePanelToggleLabel}"
+                      Click="SidePanelToggle_Click">
+          <TextBlock Text="{Binding SidePanelToggleLabel}" />
+        </ToggleButton>
       </Grid>
     </Border>
 
-    <Border Grid.Row="1"
-            Padding="10,6"
-            BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
-            BorderThickness="0,0,0,1"
-            Background="{DynamicResource Brush.Surface.Card}">
-      <StackPanel Orientation="Horizontal"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  Spacing="6">
-        <Button Padding="10,5"
-                IsEnabled="{Binding CanGoFirst}"
-                AutomationProperties.AutomationId="Reader.First"
-                AutomationProperties.Name="{Binding FirstPageLabel}"
-                ToolTip.Tip="{Binding FirstPageLabel}"
-                Click="FirstButton_Click">
-          <TextBlock Text="|&lt;" FontWeight="SemiBold" />
-        </Button>
-        <Button Padding="10,5"
-                IsEnabled="{Binding CanGoPrevious}"
-                AutomationProperties.AutomationId="Reader.Nav.Previous"
-                AutomationProperties.Name="{Binding PreviousPageLabel}"
-                ToolTip.Tip="{Binding PreviousPageLabel}"
-                Click="PreviousButton_Click">
-          <TextBlock Text="&lt;" FontWeight="SemiBold" />
-        </Button>
-        <TextBox x:Name="PageNumberBox"
-                 Width="56"
-                 Text="{Binding PageNumberInput, Mode=TwoWay}"
-                 HorizontalContentAlignment="Center"
-                 AutomationProperties.AutomationId="Reader.PageNumber"
-                 AutomationProperties.Name="{Binding JumpToPageLabel}"
-                 ToolTip.Tip="{Binding JumpToPageLabel}"
-                 KeyDown="PageNumberBox_KeyDown" />
-        <TextBlock Text="/"
-                   VerticalAlignment="Center"
-                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        <TextBlock Text="{Binding PageCount}"
-                   MinWidth="34"
-                   VerticalAlignment="Center"
-                   Foreground="{DynamicResource Brush.Surface.OnParchmentMuted}" />
-        <Button Padding="10,5"
-                IsEnabled="{Binding CanGoNext}"
-                AutomationProperties.AutomationId="Reader.Nav.Next"
-                AutomationProperties.Name="{Binding NextPageLabel}"
-                ToolTip.Tip="{Binding NextPageLabel}"
-                Click="NextButton_Click">
-          <TextBlock Text="&gt;" FontWeight="SemiBold" />
-        </Button>
-        <Button Padding="10,5"
-                IsEnabled="{Binding CanGoLast}"
-                AutomationProperties.AutomationId="Reader.Last"
-                AutomationProperties.Name="{Binding LastPageLabel}"
-                ToolTip.Tip="{Binding LastPageLabel}"
-                Click="LastButton_Click">
-          <TextBlock Text="&gt;|" FontWeight="SemiBold" />
-        </Button>
-        <Border Width="1"
-                Height="24"
-                Margin="6,0"
-                Background="{DynamicResource Brush.Surface.CardBorder}" />
-        <Button Padding="10,5"
-                IsEnabled="{Binding CanZoomOut}"
-                AutomationProperties.Name="{Binding ZoomOutLabel}"
-                ToolTip.Tip="{Binding ZoomOutLabel}"
-                Click="ZoomOutButton_Click">
-          <TextBlock Text="−" FontSize="{DynamicResource Type.Size.Glyph}" FontWeight="SemiBold" />
-        </Button>
-        <TextBlock Text="{Binding ZoomPercentLabel}"
-                   MinWidth="52"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   TextAlignment="Center"
-                   AutomationProperties.Name="{Binding ZoomPercentLabel}" />
-        <Button Padding="10,5"
-                IsEnabled="{Binding CanZoomIn}"
-                AutomationProperties.Name="{Binding ZoomInLabel}"
-                ToolTip.Tip="{Binding ZoomInLabel}"
-                Click="ZoomInButton_Click">
-          <TextBlock Text="+" FontSize="{DynamicResource Type.Size.Glyph}" FontWeight="SemiBold" />
-        </Button>
-        <Button Padding="10,5"
-                AutomationProperties.Name="{Binding FitWidthLabel}"
-                ToolTip.Tip="{Binding FitWidthLabel}"
-                Click="FitWidthButton_Click">
-          <TextBlock Text="↔" FontSize="{DynamicResource Type.Size.Glyph}" />
-        </Button>
-        <Button Padding="10,5"
-                AutomationProperties.Name="{Binding FitPageLabel}"
-                ToolTip.Tip="{Binding FitPageLabel}"
-                Click="FitPageButton_Click">
-          <TextBlock Text="⛶" FontSize="{DynamicResource Type.Size.Glyph}" />
-        </Button>
-      </StackPanel>
-    </Border>
-
-    <Grid Grid.Row="2" ColumnDefinitions="*,320">
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
       <ScrollViewer x:Name="PageScrollViewer"
                     AutomationProperties.AutomationId="Reader.Viewport"
                     Grid.Column="0"
@@ -500,7 +492,36 @@
         </Border>
       </ScrollViewer>
 
+      <!-- Edge click zones: optional page turning without a second navigation row. -->
+      <Button Grid.Column="0"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Stretch"
+              Width="36"
+              Classes="edge-zone"
+              IsTabStop="False"
+              IsEnabled="{Binding CanGoPrevious}"
+              Cursor="Hand"
+              AutomationProperties.AutomationId="Reader.EdgePrev"
+              AutomationProperties.Name="{Binding PreviousPageLabel}"
+              ToolTip.Tip="{Binding PreviousPageLabel}"
+              Click="PreviousButton_Click" />
+      <Button Grid.Column="0"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Stretch"
+              Width="36"
+              Margin="0,0,18,0"
+              Classes="edge-zone"
+              IsTabStop="False"
+              IsEnabled="{Binding CanGoNext}"
+              Cursor="Hand"
+              AutomationProperties.AutomationId="Reader.EdgeNext"
+              AutomationProperties.Name="{Binding NextPageLabel}"
+              ToolTip.Tip="{Binding NextPageLabel}"
+              Click="NextButton_Click" />
+
       <Border Grid.Column="1"
+              Width="320"
+              IsVisible="{Binding IsSidePanelOpen}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="1,0,0,0"
               Background="{DynamicResource Brush.Surface.Card}">

@@ -102,17 +102,6 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private void FirstButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => FirstButton_ClickAsync(sender, e), "reader.first_button_click");
-
-    private async Task FirstButton_ClickAsync(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is ReaderViewModel vm)
-        {
-            await vm.GoFirstAsync().ConfigureAwait(true);
-        }
-    }
-
     private void PreviousButton_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => PreviousButton_ClickAsync(sender, e), "reader.previous_button_click");
 
@@ -143,30 +132,39 @@ public partial class ReaderView : UserControl
         }
     }
 
-    private void LastButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => LastButton_ClickAsync(sender, e), "reader.last_button_click");
-
-    private async Task LastButton_ClickAsync(object? sender, RoutedEventArgs e)
+    private void BackToLibraryButton_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
-            await vm.GoLastAsync().ConfigureAwait(true);
+            vm.RequestBackToLibrary();
         }
     }
 
-    private void ZoomOutButton_Click(object? sender, RoutedEventArgs e)
+    private void ZoomPresetItem_Click(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is ReaderViewModel vm)
+        if (DataContext is ReaderViewModel vm
+            && sender is Control { Tag: string tag }
+            && double.TryParse(tag, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double percent))
         {
-            vm.ZoomOut();
+            vm.SetZoomPercent(percent);
         }
     }
 
-    private void ZoomInButton_Click(object? sender, RoutedEventArgs e)
+    private void LayoutItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ReaderViewModel vm
+            && sender is Control { Tag: string tag }
+            && Enum.TryParse(tag, out DisplayMode mode))
+        {
+            vm.SetDisplayMode(mode);
+        }
+    }
+
+    private void SidePanelToggle_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ReaderViewModel vm)
         {
-            vm.ZoomIn();
+            vm.ToggleSidePanel();
         }
     }
 

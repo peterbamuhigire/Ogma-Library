@@ -650,7 +650,7 @@ public sealed class ReaderViewRenderTests
         try
         {
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Border>(),
+                ReaderVisuals(window).OfType<Border>(),
                 border => GetAutomationName(border) == overlay.AccessibleLabel);
         }
         finally
@@ -842,7 +842,7 @@ public sealed class ReaderViewRenderTests
 
         try
         {
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
 
             AssertSvgIconPath(window, "ic_annotation_panel.svg");
             AssertSvgIconPath(window, "ic_bookmark_panel.svg");
@@ -860,7 +860,7 @@ public sealed class ReaderViewRenderTests
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
             Assert.Contains(
-                window.GetVisualDescendants().OfType<ListBox>(),
+                ReaderVisuals(window).OfType<ListBox>(),
                 list => GetAutomationName(list) == "Bookmarks (1)");
             AssertSvgIconPath(window, "ic_bookmark_item.svg");
             AssertSvgIconPath(window, "ic_bookmark_rename.svg");
@@ -873,16 +873,16 @@ public sealed class ReaderViewRenderTests
             AssertSvgIconPath(window, "ic_layer_merge.svg");
             AssertSvgIconPath(window, "ic_layer_delete.svg");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Border>(),
+                ReaderVisuals(window).OfType<Border>(),
                 border => GetAutomationName(border) == "Active annotation layer: Key arguments");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<CheckBox>(),
+                ReaderVisuals(window).OfType<CheckBox>(),
                 box => GetAutomationName(box) == "Layer visible: Key arguments");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
+                ReaderVisuals(window).OfType<Button>(),
                 button => GetAutomationName(button) == "Merge layer Key arguments");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
+                ReaderVisuals(window).OfType<Button>(),
                 button => GetAutomationName(button) == "Delete layer Key arguments");
             viewModel
                 .SetLayerVisibilityAsync(viewModel.Layers[0], isVisible: false, CancellationToken.None)
@@ -891,24 +891,24 @@ public sealed class ReaderViewRenderTests
             Dispatcher.UIThread.RunJobs();
             AssertSvgIconPath(window, "ic_layer_hidden.svg");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<CheckBox>(),
+                ReaderVisuals(window).OfType<CheckBox>(),
                 box => GetAutomationName(box) == "Layer hidden: Key arguments");
 
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();
             AssertSvgIconPath(window, "ic_reading_memory_disposition.svg");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<TextBox>(),
+                ReaderVisuals(window).OfType<TextBox>(),
                 textBox => GetAutomationName(textBox) == "Why I opened this");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<TextBox>(),
+                ReaderVisuals(window).OfType<TextBox>(),
                 textBox => GetAutomationName(textBox) == "Disposition (1-5)");
 
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
+                ReaderVisuals(window).OfType<Button>(),
                 button => GetAutomationName(button) == "Copy citation");
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
+                ReaderVisuals(window).OfType<Button>(),
                 button => GetAutomationName(button) == "Export citation");
             Assert.NotEqual(viewModel.CopyCitationLabel, viewModel.ExportCitationLabel);
         }
@@ -953,7 +953,7 @@ public sealed class ReaderViewRenderTests
             AssertFocusableControl<Button>(window, "Delete annotation");
             AssertFocusableControl<TextBox>(window, "Note");
 
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
 
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
@@ -1005,15 +1005,15 @@ public sealed class ReaderViewRenderTests
 
         try
         {
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 2;
             Dispatcher.UIThread.RunJobs();
 
             var merge = Assert.Single(
-                window.GetVisualDescendants().OfType<Button>(),
+                ReaderVisuals(window).OfType<Button>(),
                 button => GetAutomationName(button) == "Merge layer Key arguments");
             var delete = Assert.Single(
-                window.GetVisualDescendants().OfType<Button>(),
+                ReaderVisuals(window).OfType<Button>(),
                 button => GetAutomationName(button) == "Delete layer Key arguments");
 
             Assert.False(merge.IsEnabled);
@@ -1122,24 +1122,20 @@ public sealed class ReaderViewRenderTests
             Assert.Equal(ScrollBarVisibility.Auto, pageScrollViewer.HorizontalScrollBarVisibility);
             Assert.IsType<Border>(view.FindControl<Border>("PageSurface"));
 
-            Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == viewModel.ZoomOutLabel);
-            Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == viewModel.ZoomInLabel);
-            Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == viewModel.FitWidthLabel);
-            Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == viewModel.FitPageLabel);
-            Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == viewModel.ImportReaderStateLabel);
-            Assert.Contains(
-                window.GetVisualDescendants().OfType<Button>(),
-                button => GetAutomationName(button) == viewModel.ExportReaderStateLabel);
+            // Phase 12: zoom and the reader-state actions live in toolbar menus, not loose buttons.
+            DropDownButton zoom = Assert.IsType<DropDownButton>(
+                ReaderVisuals(window).First(v => v is DropDownButton b && GetAutomationName(b) == viewModel.ZoomMenuLabel));
+            List<MenuItem> zoomItems = MenuItems(zoom);
+            Assert.Contains(zoomItems, i => Avalonia.Automation.AutomationProperties.GetAutomationId(i) == "Reader.Zoom.FitWidth");
+            Assert.Contains(zoomItems, i => Avalonia.Automation.AutomationProperties.GetAutomationId(i) == "Reader.Zoom.FitPage");
+            Assert.Contains(zoomItems, i => i.Header as string == "50%");
+            Assert.Contains(zoomItems, i => i.Header as string == "400%");
+
+            DropDownButton more = Assert.IsType<DropDownButton>(
+                ReaderVisuals(window).First(v => v is DropDownButton b && GetAutomationName(b) == viewModel.MoreMenuLabel));
+            List<MenuItem> moreItems = MenuItems(more);
+            Assert.Contains(moreItems, i => Avalonia.Automation.AutomationProperties.GetAutomationId(i) == "Reader.More.ImportState");
+            Assert.Contains(moreItems, i => Avalonia.Automation.AutomationProperties.GetAutomationId(i) == "Reader.More.ExportState");
         }
         finally
         {
@@ -1234,7 +1230,7 @@ public sealed class ReaderViewRenderTests
         {
             var view = Assert.IsType<ReaderView>(window.Content);
             AnnotationListItem annotation = Assert.Single(viewModel.Annotations);
-            var annotationRow = window.GetVisualDescendants()
+            var annotationRow = ReaderVisuals(window)
                 .OfType<Grid>()
                 .First(grid =>
                     ReferenceEquals(grid.DataContext, annotation) &&
@@ -1496,7 +1492,7 @@ public sealed class ReaderViewRenderTests
         try
         {
             Assert.Contains(
-                window.GetVisualDescendants().OfType<Control>(),
+                ReaderVisuals(window).OfType<Control>(),
                 control =>
                     control is Button &&
                     GetAutomationName(control) == overlay.NoteAnchorAccessibleLabel);
@@ -1530,7 +1526,7 @@ public sealed class ReaderViewRenderTests
         try
         {
             var view = Assert.IsType<ReaderView>(window.Content);
-            Button noteAnchor = window.GetVisualDescendants()
+            Button noteAnchor = ReaderVisuals(window)
                 .OfType<Button>()
                 .First(button => GetAutomationName(button) == overlay.NoteAnchorAccessibleLabel);
 
@@ -1703,7 +1699,7 @@ public sealed class ReaderViewRenderTests
         string screenshotPath = Path.Combine(ArtifactsDir, "reader-qps-ploc.png");
         frame!.Save(screenshotPath);
 
-        var textBlocks = window.GetVisualDescendants().OfType<TextBlock>().ToList();
+        var textBlocks = ReaderVisuals(window).OfType<TextBlock>().ToList();
         Assert.NotEmpty(textBlocks);
         Assert.All(textBlocks, textBlock =>
         {
@@ -1825,12 +1821,12 @@ public sealed class ReaderViewRenderTests
         try
         {
             var view = Assert.IsType<ReaderView>(window.Content);
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 2;
             Dispatcher.UIThread.RunJobs();
 
             LayerListItem layer = Assert.Single(viewModel.Layers);
-            var visibilityToggle = window.GetVisualDescendants()
+            var visibilityToggle = ReaderVisuals(window)
                 .OfType<CheckBox>()
                 .First(checkBox =>
                     ReferenceEquals(checkBox.DataContext, layer) &&
@@ -1843,7 +1839,7 @@ public sealed class ReaderViewRenderTests
             Assert.Empty(viewModel.Annotations);
             Assert.Empty(viewModel.AnnotationOverlays);
 
-            visibilityToggle = window.GetVisualDescendants()
+            visibilityToggle = ReaderVisuals(window)
                 .OfType<CheckBox>()
                 .First(checkBox =>
                     ReferenceEquals(checkBox.DataContext, viewModel.Layers[0]) &&
@@ -1884,7 +1880,7 @@ public sealed class ReaderViewRenderTests
         try
         {
             var view = Assert.IsType<ReaderView>(window.Content);
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 2;
             Dispatcher.UIThread.RunJobs();
 
@@ -2524,12 +2520,12 @@ public sealed class ReaderViewRenderTests
         try
         {
             var view = Assert.IsType<ReaderView>(window.Content);
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
 
             var bookmarkList = Assert.Single(
-                window.GetVisualDescendants().OfType<ListBox>(),
+                ReaderVisuals(window).OfType<ListBox>(),
                 list => GetAutomationName(list) == "Bookmarks (1)");
 
             bookmarkList.Focus();
@@ -2570,12 +2566,12 @@ public sealed class ReaderViewRenderTests
         try
         {
             var view = Assert.IsType<ReaderView>(window.Content);
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
 
             BookmarkListItem bookmark = Assert.Single(viewModel.Bookmarks);
-            var bookmarkRow = window.GetVisualDescendants()
+            var bookmarkRow = ReaderVisuals(window)
                 .OfType<Grid>()
                 .First(grid =>
                     ReferenceEquals(grid.DataContext, bookmark) &&
@@ -2591,7 +2587,7 @@ public sealed class ReaderViewRenderTests
 
             InvokeReaderViewHandler(view, "RenameBookmarkMenuItem_Click", renameItem);
 
-            TextBox editor = window.GetVisualDescendants()
+            TextBox editor = ReaderVisuals(window)
                 .OfType<TextBox>()
                 .First(textBox => ReferenceEquals(textBox.DataContext, bookmark));
             Assert.True(editor.IsFocused);
@@ -2636,7 +2632,7 @@ public sealed class ReaderViewRenderTests
             Assert.Contains(viewModel.Bookmarks, bookmark => bookmark.PageIndex == 0 && bookmark.Label == "Page 1");
             Assert.Equal("Bookmark saved", viewModel.StatusMessage);
 
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 1;
             Dispatcher.UIThread.RunJobs();
 
@@ -2812,11 +2808,11 @@ public sealed class ReaderViewRenderTests
         try
         {
             var view = Assert.IsType<ReaderView>(window.Content);
-            var tabControl = Assert.Single(window.GetVisualDescendants().OfType<TabControl>());
+            var tabControl = Assert.Single(ReaderVisuals(window).OfType<TabControl>());
             tabControl.SelectedIndex = 3;
             Dispatcher.UIThread.RunJobs();
 
-            TextBox openedBecause = window.GetVisualDescendants()
+            TextBox openedBecause = ReaderVisuals(window)
                 .OfType<TextBox>()
                 .First(textBox => GetAutomationName(textBox) == "Why I opened this");
 
@@ -2997,6 +2993,30 @@ public sealed class ReaderViewRenderTests
         public void UpdateZoom(ZoomMode mode, double percent) => ZoomUpdates.Add((mode, percent));
     }
 
+    /// <summary>
+    /// The window's visual descendants plus the annotate tool group. Phase 12 collapsed the
+    /// annotate tools into one toolbar flyout, so it is opened on first use here.
+    /// </summary>
+    private static List<Visual> ReaderVisuals(Window window)
+    {
+        DropDownButton? annotate = window.GetVisualDescendants()
+            .OfType<DropDownButton>()
+            .FirstOrDefault(b => Avalonia.Automation.AutomationProperties.GetAutomationId(b) == "Reader.Annotate");
+        if (annotate?.Flyout is Flyout flyout && !flyout.IsOpen)
+        {
+            flyout.ShowAt(annotate);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        IEnumerable<Visual> inFlyout = annotate?.Flyout is Flyout { Content: Control content }
+            ? new[] { content }.Concat(content.GetVisualDescendants())
+            : [];
+        return window.GetVisualDescendants().Concat(inFlyout).ToList();
+    }
+
+    private static List<MenuItem> MenuItems(DropDownButton button) =>
+        ((MenuFlyout)button.Flyout!).Items.OfType<MenuItem>().ToList();
+
     private static Window ShowReaderWindow(ReaderViewModel viewModel)
     {
         var view = new ReaderView { DataContext = viewModel };
@@ -3019,7 +3039,7 @@ public sealed class ReaderViewRenderTests
     private static void AssertSvgIconPath(Window window, string fileName)
     {
         Assert.Contains(
-            window.GetVisualDescendants().OfType<Control>(),
+            ReaderVisuals(window).OfType<Control>(),
             control =>
                 control.GetType().Name == "Svg" &&
                 control.GetType().GetProperty("Path")?.GetValue(control)?.ToString()
@@ -3029,11 +3049,20 @@ public sealed class ReaderViewRenderTests
     private static T AssertFocusableControl<T>(Window window, string automationName)
         where T : Control
     {
-        T control = window.GetVisualDescendants()
+        T control = ReaderVisuals(window)
             .OfType<T>()
             .FirstOrDefault(control => GetAutomationName(control) == automationName)
             ?? throw new InvalidOperationException(
                 $"Could not find {typeof(T).Name} with automation name '{automationName}'.");
+
+        if (!control.IsEffectivelyVisible)
+        {
+            // Controls inside a closed toolbar flyout are not visible and cannot take focus in the
+            // headless platform; the real-window journeys cover keyboard focus there.
+            Assert.True(control.Focusable,
+                $"{typeof(T).Name} '{automationName}' should be focusable.");
+            return control;
+        }
 
         control.Focus();
         Dispatcher.UIThread.RunJobs();
@@ -3062,7 +3091,7 @@ public sealed class ReaderViewRenderTests
         LayerListItem layer,
         Func<T, bool>? predicate = null)
         where T : Control =>
-        window.GetVisualDescendants()
+        ReaderVisuals(window)
             .OfType<T>()
             .FirstOrDefault(control =>
                 ReferenceEquals(control.DataContext, layer) &&
@@ -3075,7 +3104,7 @@ public sealed class ReaderViewRenderTests
         BookmarkListItem bookmark,
         Func<T, bool>? predicate = null)
         where T : Control =>
-        window.GetVisualDescendants()
+        ReaderVisuals(window)
             .OfType<T>()
             .FirstOrDefault(control =>
                 ReferenceEquals(control.DataContext, bookmark) &&

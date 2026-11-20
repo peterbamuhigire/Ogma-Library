@@ -220,3 +220,12 @@ These decisions were taken under that authority. Each is the recommended option 
   - **D-90**: the header share is measured from UIA bounds, from the top of `Detail.Panel` to the bottom of the segment row. The before figure is a pixel reading of `j3-detail.png` (HEURISTIC).
 
   Fixed: K128 (`c6402dcd`, accessible names carry field values), K129 (`504d08a7`, the write-back dialog opens after real file I/O) and the harness (`b6708b22`, section retries; the G2 id is `Detail.Field.ISBN`). Characterised: K130 (an ACL deny does not stop write-back). New defects: **K131**, **K132** and **K133**. Real window (`p11-final4`, both sizes and both themes): J-DET-1, J-DET-4, the negative journey, A11yNames and G9 PASS; J-DET-3 FAIL (K132); J-DET-2 NOT ASSESSED. G2, G3 and G5 PASS at both sizes (Light; `p11-regress5` and `-6`). Gates on `3ffac4a8`: accountability, restore, format, build (0 warnings), vulnerable packages (none), analyzers and tests (Architecture 52, Tests 1,436, Ui 483; 0 failed). [Record](../../implementation/execution/phase-sept23-11-completion.md).
+- **2026-11-20**: Phase 12 slice 1 of 8 (executor session): focus layout, one toolbar, one navigation set, full screen (K34, K104, K127). Phase 12 is not complete; slices 2 to 8 remain. Decisions:
+  - **D-91**: proceed on Phase 09 IMPLEMENTED (the design system is in place; its owner sign-off stays open).
+  - **D-92**: the unlock dialog is an in-app Avalonia dialog.
+  - **D-93**: the Contents tab and history are tested through view-model and headless Ui tests first, real-window proof later.
+  - **D-94**: the 150 % and 200 % sharpness checks are NOT_ASSESSED, owner Phase 24.
+  - **D-95**: the soak runs as journey J-READ-1 inside `Invoke-GoldenJourneys.ps1`.
+  - **D-96**: split view is capped at 2 panes.
+
+  Slice 1 deviations: the K127 test lives in `OgmaLibrary.Tests.Ui` (the unit project has no shell or headless Avalonia); the search toggle is disabled (`IsSearchAvailable` false) until search lands; the side panel defaults to open; the title uses the static `ReaderTitle` label because the view model has no book title yet; the split-view button is not in the focus toolbar (command palette and `OpenSplitView` remain); the layout menu is a stub bound to `DisplayMode` that does not persist or render. Page turning uses `Reader.EdgePrev`/`Reader.EdgeNext`, so the E2E harness `TurnPage` and G03 text were updated. Real-window checks: NOT_ASSESSED (desktop lock not taken this slice).

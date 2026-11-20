@@ -21,6 +21,7 @@ public sealed partial class DesktopShellWindow : Window
     private IInputElement? _focusBeforeOverlay;
     private MainShellViewModel? _mainShell;
     private ItemsControl? _toastHost;
+    private WindowState _stateBeforeFullScreen = WindowState.Normal;
     private StartupShellViewModel? _viewModel;
 
     /// <summary>Initializes the window.</summary>
@@ -262,24 +263,67 @@ public sealed partial class DesktopShellWindow : Window
         }
     }
 
+    /// <summary>True while the window is in full-screen mode (F11).</summary>
+    public bool IsFullScreen => WindowState == WindowState.FullScreen;
+
+    /// <summary>Enters full screen, or restores the previous window state when already full screen (F11).</summary>
+    public void ToggleFullScreen()
+    {
+        if (IsFullScreen)
+        {
+            ExitFullScreen();
+            return;
+        }
+
+        _stateBeforeFullScreen = WindowState;
+        WindowState = WindowState.FullScreen;
+    }
+
+    /// <summary>Leaves full screen and restores the window state held before it (Esc).</summary>
+    /// <returns>True when the window was full screen.</returns>
+    public bool ExitFullScreen()
+    {
+        if (!IsFullScreen)
+        {
+            return false;
+        }
+
+        WindowState = _stateBeforeFullScreen == WindowState.Minimized ? WindowState.Normal : _stateBeforeFullScreen;
+        return true;
+    }
+
     private void DesktopShellWindow_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Handled || DataContext is not StartupShellViewModel { MainShell: { } shell })
+        if (e.Handled)
         {
             return;
         }
 
-        if (e.Key == Key.Escape && shell.IsCommandPaletteOpen)
+        if (e.Key == Key.F11 && e.KeyModifiers == KeyModifiers.None)
+        {
+            ToggleFullScreen();
+            e.Handled = true;
+            return;
+        }
+
+        MainShellViewModel? shell = (DataContext as StartupShellViewModel)?.MainShell;
+
+        // Esc closes the innermost layer first: command palette, then shortcut sheet, then full screen.
+        if (e.Key == Key.Escape && shell is { IsCommandPaletteOpen: true })
         {
             shell.CloseCommandPalette();
             e.Handled = true;
         }
-        else if (e.Key == Key.Escape && shell.IsShortcutSheetOpen)
+        else if (e.Key == Key.Escape && shell is { IsShortcutSheetOpen: true })
         {
             shell.IsShortcutSheetOpen = false;
             e.Handled = true;
         }
-        else if (shell.TryExecuteGesture(e.Key, e.KeyModifiers, this))
+        else if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && ExitFullScreen())
+        {
+            e.Handled = true;
+        }
+        else if (shell is not null && shell.TryExecuteGesture(e.Key, e.KeyModifiers, this))
         {
             // Gestures pressed outside the library surface (for example with the palette open).
             e.Handled = true;

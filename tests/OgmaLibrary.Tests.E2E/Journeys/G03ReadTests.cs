@@ -60,7 +60,7 @@ public sealed class G03ReadTests
             context.Record("pageTurn.ignoredPresses", ignoredPresses);
             context.Record("pageTurn.count", latencies.Count);
             context.Record("pageTurn.latenciesMs", latencies.Select(l => Math.Round(l)).ToArray());
-            context.Record("pageTurn.method", "Reader.Next Invoke until Reader.PageNumber shows the next page (UIA round trips included)");
+            context.Record("pageTurn.method", "Reader.EdgeNext Invoke until Reader.PageNumber shows the next page (UIA round trips included)");
             double p95 = double.NaN;
             if (latencies.Count > 0)
             {

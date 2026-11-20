@@ -782,12 +782,18 @@ public sealed partial class MainShellViewModel :
     /// </summary>
     public async Task ReturnToLibraryAsync(CancellationToken cancellationToken = default)
     {
-        if (Reader is not null)
+        try
         {
-            await Reader.CloseAsync(cancellationToken).ConfigureAwait(true);
+            if (Reader is not null)
+            {
+                await Reader.CloseAsync(cancellationToken).ConfigureAwait(true);
+            }
         }
-
-        OpenCatalogue();
+        finally
+        {
+            // K127: the catalogue always opens, even when closing the document is cancelled or fails.
+            OpenCatalogue();
+        }
     }
 
     /// <summary>
@@ -1131,6 +1137,7 @@ public sealed partial class MainShellViewModel :
         if (Reader is not null)
         {
             Reader.PropertyChanged -= OnReaderPropertyChanged;
+            Reader.BackToLibraryRequested -= OnReaderBackToLibraryRequested;
         }
 
         _classroomConnectivitySubscription?.Dispose();

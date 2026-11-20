@@ -156,9 +156,15 @@ public sealed partial class ShellReaderNavigationTests
             .Select(block => block.Text)
             .ToList();
 
+        // Phase 12: Back to Library lives in the reader toolbar; page turning is the page field,
+        // the keyboard and the edge zones (no duplicated Previous/Next/First/Last buttons).
         Assert.Contains("Back to Library", visibleText);
-        Assert.Contains("Previous page", visibleText);
-        Assert.Contains("Next page", visibleText);
+        Assert.DoesNotContain("Previous page", visibleText);
+        Assert.DoesNotContain("Next page", visibleText);
+        Assert.Contains(
+            window.GetVisualDescendants().OfType<Control>(),
+            c => Avalonia.Automation.AutomationProperties.GetAutomationId(c) == "Reader.EdgeNext"
+                && Avalonia.Automation.AutomationProperties.GetName(c) == "Next page");
     }
 
     [AvaloniaFact]
@@ -1038,10 +1044,12 @@ public sealed partial class ShellReaderNavigationTests
             return Task.FromResult(CurrentSession);
         }
 
+        public Exception? CloseFailure { get; set; }
+
         public Task CloseAsync(CancellationToken ct)
         {
             CurrentSession = null;
-            return Task.CompletedTask;
+            return CloseFailure is null ? Task.CompletedTask : Task.FromException(CloseFailure);
         }
 
         public Task NavigateToAsync(int pageIndex, double scrollOffset = 0.0)

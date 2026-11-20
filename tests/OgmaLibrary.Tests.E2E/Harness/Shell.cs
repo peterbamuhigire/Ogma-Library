@@ -171,7 +171,7 @@ public static class Shell
     }
 
     /// <summary>
-    /// Presses Next (<c>Reader.Next</c>) and waits for the page number to advance. A press the
+    /// Presses the next-page edge zone (<c>Reader.EdgeNext</c>) and waits for the page number to advance. A press the
     /// reader ignores (its command is still busy) is repeated every 2 s and counted, so dropped
     /// clicks show up in the evidence instead of hiding in a long timeout.
     /// </summary>
@@ -179,7 +179,7 @@ public static class Shell
     {
         AutomationElement window = context.RequireApp.MainWindow;
         AutomationElement next = Uia.WaitUntil(
-            () => Uia.TryFind(window, "Reader.Next") is { } n && n.IsEnabled ? n : null,
+            () => Uia.TryFind(window, "Reader.EdgeNext") is { } n && n.IsEnabled ? n : null,
             TimeSpan.FromSeconds(10),
             "an enabled Next page button");
         int before = CurrentPage(context) ?? throw new InvalidOperationException("The reader shows no page number.");

@@ -651,6 +651,93 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// <summary>Localized label for the page jump control.</summary>
     public string JumpToPageLabel => _localization["Reader.Navigation.JumpToPage"];
 
+    private DisplayMode _displayMode = DisplayMode.SinglePage;
+    private bool _isSidePanelOpen = true;
+
+    /// <summary>Raised when the reader toolbar asks the shell to close the book and return to the library.</summary>
+    public event EventHandler? BackToLibraryRequested;
+
+    /// <summary>The page layout the reader is set to (spread and continuous drawing arrive later).</summary>
+    public DisplayMode DisplayMode
+    {
+        get => _displayMode;
+        private set
+        {
+            if (_displayMode != value)
+            {
+                _displayMode = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Whether the side panel (annotations, bookmarks, layers, memory) is shown.</summary>
+    public bool IsSidePanelOpen
+    {
+        get => _isSidePanelOpen;
+        private set
+        {
+            if (_isSidePanelOpen != value)
+            {
+                _isSidePanelOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>In-document search is not wired to the toolbar yet; the toggle stays disabled.</summary>
+    public bool IsSearchAvailable { get; private set; }
+
+    /// <summary>Localized label for returning to the library.</summary>
+    public string BackToLibraryLabel => _localization["Navigation.BackToLibrary"];
+
+    /// <summary>Localized label for the zoom menu.</summary>
+    public string ZoomMenuLabel => _localization["Reader.Zoom.Menu"];
+
+    /// <summary>Localized label for the layout menu.</summary>
+    public string LayoutMenuLabel => _localization["Reader.Layout.Label"];
+
+    /// <summary>Localized label for the single-page layout.</summary>
+    public string LayoutSingleLabel => _localization["Reader.Display.SinglePage"];
+
+    /// <summary>Localized label for the two-page layout.</summary>
+    public string LayoutTwoPageLabel => _localization["Reader.Display.TwoPage"];
+
+    /// <summary>Localized label for the continuous layout.</summary>
+    public string LayoutContinuousLabel => _localization["Reader.Display.Continuous"];
+
+    /// <summary>Localized label for the search toggle.</summary>
+    public string SearchToggleLabel => _localization["Reader.Search.Toggle"];
+
+    /// <summary>Localized label for the side-panel toggle.</summary>
+    public string SidePanelToggleLabel => _localization["Reader.SidePanel.Toggle"];
+
+    /// <summary>Localized label for the annotate tool group.</summary>
+    public string AnnotateMenuLabel => _localization["Reader.Annotate.Menu"];
+
+    /// <summary>Localized label for the overflow menu.</summary>
+    public string MoreMenuLabel => _localization["Reader.More.Menu"];
+
+    /// <summary>Asks the shell to close the book and return to the library.</summary>
+    public void RequestBackToLibrary() => BackToLibraryRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Shows or hides the side panel.</summary>
+    public void ToggleSidePanel() => IsSidePanelOpen = !IsSidePanelOpen;
+
+    /// <summary>Selects the page layout.</summary>
+    /// <param name="mode">The layout to use.</param>
+    public void SetDisplayMode(DisplayMode mode)
+    {
+        if (Enum.IsDefined(mode))
+        {
+            DisplayMode = mode;
+        }
+    }
+
+    /// <summary>Sets a fixed zoom percentage from the zoom menu.</summary>
+    /// <param name="percent">The percentage, clamped to the supported range.</param>
+    public void SetZoomPercent(double percent) => SetFixedZoom(percent);
+
     /// <summary>The page-surface width after rotation and the active display mode are applied.</summary>
     public double PageSurfaceWidth => BasePageWidthAfterRotation * OverlayZoomFactor;
 
@@ -1799,6 +1886,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         CurrentPageIndex = session.CurrentPageIndex;
         PageRotationDegrees = session.PageRotationDegrees;
         ZoomMode = session.ZoomMode;
+        DisplayMode = session.DisplayMode;
         ZoomPercent = session.ZoomPercent;
         IsOpen = true;
         await ApplyPageGeometryAsync().ConfigureAwait(true);
@@ -2562,6 +2650,16 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(LastPageLabel));
         OnPropertyChanged(nameof(JumpToPageLabel));
         OnPropertyChanged(nameof(FitWidthLabel));
+        OnPropertyChanged(nameof(BackToLibraryLabel));
+        OnPropertyChanged(nameof(ZoomMenuLabel));
+        OnPropertyChanged(nameof(LayoutMenuLabel));
+        OnPropertyChanged(nameof(LayoutSingleLabel));
+        OnPropertyChanged(nameof(LayoutTwoPageLabel));
+        OnPropertyChanged(nameof(LayoutContinuousLabel));
+        OnPropertyChanged(nameof(SearchToggleLabel));
+        OnPropertyChanged(nameof(SidePanelToggleLabel));
+        OnPropertyChanged(nameof(AnnotateMenuLabel));
+        OnPropertyChanged(nameof(MoreMenuLabel));
         OnPropertyChanged(nameof(FitPageLabel));
         OnPropertyChanged(nameof(ZoomOutLabel));
         OnPropertyChanged(nameof(ZoomInLabel));

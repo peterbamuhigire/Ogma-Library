@@ -204,6 +204,12 @@ public sealed partial class MainShellViewModel
     /// <summary>True when the Reading destination shows an open book.</summary>
     public bool IsReaderContentVisible => IsReaderActive && Reader is { IsOpen: true };
 
+    /// <summary>
+    /// True while a book is open in the reader (Sept-23 Phase 12): the navigation rail, the
+    /// catalogue toolbar and the drawers step aside so the page has the window.
+    /// </summary>
+    public bool IsReaderFocusMode => IsReaderContentVisible;
+
     /// <summary>True when the Reading destination has no open book.</summary>
     public bool IsReadingEmptyVisible => IsReaderActive && Reader is not { IsOpen: true };
 
@@ -894,6 +900,7 @@ public sealed partial class MainShellViewModel
         if (Reader is not null)
         {
             Reader.PropertyChanged += OnReaderPropertyChanged;
+            Reader.BackToLibraryRequested += OnReaderBackToLibraryRequested;
         }
 
         RailItems.Add(new RailItemViewModel(ShellDestination.Library, "Shell.Nav.Library", "ic_lib_folder_open"));
@@ -1090,8 +1097,30 @@ public sealed partial class MainShellViewModel
         if (e.PropertyName is nameof(Reader.IsOpen))
         {
             OnPropertyChanged(nameof(IsReaderContentVisible));
+            OnPropertyChanged(nameof(IsReaderFocusMode));
             OnPropertyChanged(nameof(IsReadingEmptyVisible));
         }
+    }
+
+    private void OnReaderBackToLibraryRequested(object? sender, EventArgs e) =>
+        _ = ReturnToLibraryObservedAsync();
+
+    private async Task ReturnToLibraryObservedAsync()
+    {
+        try
+        {
+            await ReturnToLibraryAsync().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // The catalogue is already showing (ReturnToLibraryAsync opens it in a finally block).
+        }
+#pragma warning disable CA1031 // The toolbar action must never crash the shell.
+        catch (Exception ex)
+        {
+            AppLog.ViewModelOperationFailed(_logger, ex, nameof(MainShellViewModel), "reader.back_to_library");
+        }
+#pragma warning restore CA1031
     }
 
     private void OnCatalogueViewChanged(object? sender, PropertyChangedEventArgs e)
@@ -1237,7 +1266,7 @@ public sealed partial class MainShellViewModel
                  {
                      nameof(CurrentRoute), nameof(CurrentDestination), nameof(CurrentDestinationHueKey), nameof(ActiveView), nameof(DestinationHeading),
                      nameof(IsCatalogueActive), nameof(IsLibraryDestination), nameof(IsPagerVisible), nameof(IsPagingFooterVisible), nameof(IsReaderActive),
-                     nameof(IsReaderContentVisible), nameof(IsReadingEmptyVisible), nameof(IsSplitViewActive),
+                     nameof(IsReaderContentVisible), nameof(IsReaderFocusMode), nameof(IsReadingEmptyVisible), nameof(IsSplitViewActive),
                      nameof(IsReadingDestination), nameof(IsSharingSettingsActive), nameof(IsStudentSmartSearchActive),
                      nameof(IsClassroomActive), nameof(IsAdvisorActive), nameof(IsReadingPlanActive), nameof(IsAdvisorDestination),
                      nameof(IsBookshelf3DActive), nameof(IsSearchActive), nameof(IsSearchPanelOpen), nameof(IsCollectionsActive),

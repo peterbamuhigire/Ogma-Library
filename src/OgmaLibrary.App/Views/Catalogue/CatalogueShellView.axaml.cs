@@ -638,9 +638,6 @@ public partial class CatalogueShellView : UserControl
 
     private void LibraryButton_Click(object? sender, RoutedEventArgs e) => ViewModel?.OpenCatalogue();
 
-    private void BackToLibrary_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => ViewModel?.ReturnToLibraryAsync() ?? Task.CompletedTask, "catalogue.library_button_click");
-
     private void ResumeLastBook_Click(object? sender, RoutedEventArgs e) =>
         UiActions.Run(() => ViewModel?.ResumeLastBookAsync() ?? Task.CompletedTask, "reading.resume_click");
 

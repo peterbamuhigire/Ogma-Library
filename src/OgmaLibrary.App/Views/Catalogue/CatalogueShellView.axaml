@@ -123,6 +123,7 @@
             Grid.Column="0"
             Classes="rail"
             Classes.compact="{Binding IsRailCompact}"
+            IsVisible="{Binding !IsReaderFocusMode}"
             Background="{DynamicResource Brush.Rail.Background}">
       <Grid RowDefinitions="*,Auto">
         <ScrollViewer Grid.Row="0"
@@ -188,8 +189,10 @@
           Grid.Column="1"
           RowDefinitions="Auto,Auto,*,Auto">
 
-      <!-- Contextual toolbar -->
+      <!-- Contextual toolbar (hidden while a book is open: the reader has its own toolbar) -->
       <Border Grid.Row="0"
+              x:Name="ContextualToolbar"
+              IsVisible="{Binding !IsReaderFocusMode}"
               Padding="16,8,12,8"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="0,0,0,1">
@@ -334,13 +337,6 @@
                       Orientation="Horizontal"
                       Spacing="6"
                       IsVisible="{Binding IsReadingDestination}">
-            <Button Classes="tool primary"
-                    IsVisible="{Binding IsReaderContentVisible}"
-                    AutomationProperties.AutomationId="Reader.BackToLibrary"
-                    AutomationProperties.Name="{Binding BackToLibraryLabel}"
-                    Click="BackToLibrary_Click">
-              <TextBlock Text="{Binding BackToLibraryLabel}" />
-            </Button>
             <Button Classes="tool"
                     Classes.active="{Binding IsSplitViewActive}"
                     AutomationProperties.AutomationId="Reader.SplitView"
