@@ -7,7 +7,7 @@
 | Wave | D, Search and AI |
 | Size | 6–9 engineering days |
 | Depends on | Phase 08 (Settings exists; the Privacy section is the mount point) |
-| Owner decisions | **D-06 decided by the owner 2026-11-20:** Anthropic, DeepSeek and OpenAI (ChatGPT), chosen by which API key the user has, with offline mode as the default; keys encrypted at rest and never leaked. See §3a. Exact model IDs from the currentness review in this phase |
+| Owner decisions | **D-06 decided by the owner 2026-11-20:** on-device Ollama is the default AI when installed, plug and play (§3b); Anthropic, DeepSeek and OpenAI (ChatGPT), chosen by which API key the user has (§3a); offline mode when neither exists; keys encrypted at rest and never leaked. See §3a. Exact model IDs from the currentness review in this phase |
 | Primary defects | K50 (gateway and privacy part), K17 (AI entries), K81 (raw errors) |
 | Requirements | AI-001 (W), AI-002 (B), AI-004 (B), AI-005 (B), AI-009 (B), AI-010 (B), AI-011 (B); CTRL AI-privacy controls; NFR privacy |
 
@@ -83,7 +83,8 @@ This section is binding. Where it is stricter than §3, it wins.
 
 **Providers.** Ogma Library must support **Anthropic (Claude)**, **DeepSeek** and **OpenAI (ChatGPT)**,
 depending on which API key the user has. The local Ollama chat profile and the offline deterministic
-mode stay available, and offline stays the default (AI-001 fail-closed).
+mode stay available. The default is on-device Ollama when present (§3b), otherwise offline (AI-001
+fail-closed: nothing leaves the device unless the user adds a cloud key and consents).
 
 1. The user pastes a key into Settings → Privacy and AI → Providers and chooses the provider (the
    app may suggest one from the key's prefix; a prefix is a hint only, never proof).
@@ -138,6 +139,48 @@ exports and finds no canary; a cross-host redirect fails closed; a passphrase-lo
 without the passphrase; adapter tests for all three providers against recorded contracts on the mock
 server. Live calls to the three providers are NOT_ASSESSED until the owner supplies keys; no real key
 may be created or stored on the build machine.
+
+## 3b. Owner requirement (2026-11-20): on-device Ollama is the plug-and-play default
+
+Ogma is intended to be given free to schools (possibly donor-funded), where cloud keys and per-call
+costs are not realistic. So **on-device Ollama is the default AI**: if a machine already has Ollama
+with a suitable model, Ogma's AI features work on first launch with no key, no account and no
+setup screen. **Ogma does not bundle, install, update or manage Ollama itself**; it only detects
+and uses an installation the user (or the school's IT person) already has.
+
+1. **Detection:** at startup and whenever AI settings or an AI feature is opened, probe the local
+   Ollama API on loopback only (`127.0.0.1:11434` by default; honour the `OLLAMA_HOST` environment
+   variable only when it points at a loopback address). Confirm it really is Ollama (version
+   endpoint), with a short timeout, off the UI thread, failing silently to offline mode.
+   Re-detect without a restart, so installing Ollama later just works.
+2. **Model choice:** list the installed models and choose automatically from a curated, dated
+   preference list (chat model for the Advisor; embedding model for semantic search, reusing the
+   Phase 14 `IEmbeddingProvider` seam, so an installed Ollama embedding model is picked up when the
+   built-in one is absent or the user prefers it). The user can override the choice in Settings.
+   Model names and sizes go through the 15.1 currentness gate.
+3. **Default resolution order:** an active cloud profile the user explicitly chose (§3a) > on-device
+   Ollama with a usable chat model > offline deterministic mode. A detected Ollama becomes the
+   active provider automatically only while the user has not chosen otherwise; Ogma never moves a
+   user from Ollama to a cloud provider by itself.
+4. **Privacy tier and consent:** on-device Ollama runs under the `LocalOllama` tier. Because no data
+   leaves the device, no cloud consent dialog is needed; a one-time, dismissible notice says "AI is
+   running on this computer with Ollama; nothing is sent to the internet" and links to the Privacy
+   Center, where the user can turn it off.
+5. **Cloud models served through Ollama are not local.** Ollama can proxy some models to remote
+   servers. Any model Ollama reports as remote or cloud-hosted (verify the exact signal in 15.1) is
+   excluded from the automatic choice and treated as a cloud provider with full §3/§3a consent.
+6. **Ollama present but no suitable model:** show one plain message with the exact command to run
+   (for example `ollama pull <model>`) and the download size; an optional "Download for me" button
+   may call Ollama's own pull API with explicit consent and progress. Never download automatically.
+7. **Not in scope here:** a shared Ollama server on the school network belongs to Phase 19 (school
+   proxy), with its own host allowlist; it is never auto-detected from the LAN.
+
+**Acceptance for §3b:** resolver tests for: no Ollama; Ollama with no model; Ollama with a chat model
+(becomes default); Ollama plus a user-chosen cloud profile (cloud stays); a remote-flagged Ollama model
+(not auto-selected); `OLLAMA_HOST` pointing off-loopback (ignored). A fake Ollama server in the test
+harness (loopback, recorded responses) drives a real-window journey J-AI-3: launch with the fake
+Ollama present → Advisor answers with no setup → notice shown once. No real Ollama is installed for
+these tests; a live check on a machine with Ollama is NOT_ASSESSED until the owner runs it.
 
 ## 4. Skills to load before starting
 
@@ -198,7 +241,7 @@ AI (Phase 19, which reuses this runtime); embeddings (Phase 14).
 - **Real-window:** J-AI-1 configure provider → consent → preview → response → usage updates → delete history; J-AI-2 revoke consent → calls blocked with a clear message.
 - **Negative:** an invalid key (error mapped to a plain message, no raw `ex.Message`); a network offline; a provider 429 and 5xx (retry, circuit breaker already built); a budget exhausted.
 - **Security:** the §3a canary-key leak test (DB, logs, settings, exports, crash report); cross-host redirect fails closed; passphrase lock; the red-team injection fixture.
-- **Providers:** resolver matrix for 0–3 stored keys; Anthropic, DeepSeek and OpenAI adapters against recorded contracts on the mock server.
+- **Providers:** the §3b Ollama resolver cases and J-AI-3 with a fake Ollama server; resolver matrix for 0–3 stored keys; Anthropic, DeepSeek and OpenAI adapters against recorded contracts on the mock server.
 
 ## 9. Acceptance commands
 
@@ -239,8 +282,9 @@ plan in C:\wamp64\www\Ogma-Library. Read first, in order:
 4. docs/plans/sept-23-kaizen/03-defect-register.md row K50 and 08-master-plan.md D-06
 Load the skills in section 4. Run the digital-research currentness gate first (15.1) and record every
 provider, model ID and price claim in 00-currentness-register.md; if Anthropic is chosen, load the
-claude-api skill for exact model IDs. Section 3a (owner, 2026-11-20) is binding: Anthropic, DeepSeek and OpenAI chosen by which key the user
-has, with the key custody rules and honest threat model written there. Do not hard-code model IDs in view models. Never store API
+claude-api skill for exact model IDs. Sections 3a and 3b (owner, 2026-11-20) are binding: on-device Ollama is the plug-and-play default when
+installed (detect and use it, never bundle or install it); Anthropic, DeepSeek and OpenAI are chosen by
+which key the user has, with the key custody rules and honest threat model written there. Do not hard-code model IDs in view models. Never store API
 keys outside the OS credential store. Preserve fail-closed defaults (Offline tier). Slices: A) 15.1–15.3;
 B) 15.4–15.5; C) 15.6–15.7; D) 15.8–15.9; E) 15.10–15.11. After each slice run the section 9
 commands and capture screenshots under docs/implementation/execution/evidence/sept-23-kaizen/phase-15/.
