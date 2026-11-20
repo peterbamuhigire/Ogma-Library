@@ -197,7 +197,7 @@ public sealed class BookDetailPrimaryActionTests
     }
 
     [Fact]
-    public async Task ExecutePrimaryAction_LocateFileAndUnlock_DoNotOpenReaderAndExplain()
+    public async Task ExecutePrimaryAction_LocateFileExplains_UnlockOpensReaderForPassword()
     {
         BookDetailViewModel missing = CreateVm(Detail(progress: null, isAvailable: false), out RecordingReader missingReader);
         await missing.LoadBookAsync(BookId);
@@ -208,9 +208,8 @@ public sealed class BookDetailPrimaryActionTests
         await locked.ExecutePrimaryActionAsync();
 
         Assert.Equal(0, missingReader.Calls);
-        Assert.Equal(0, lockedReader.Calls);
+        Assert.Equal(1, lockedReader.Calls); // the reader asks for the password (READ-009)
         Assert.False(string.IsNullOrWhiteSpace(missing.OpenErrorText));
-        Assert.False(string.IsNullOrWhiteSpace(locked.OpenErrorText));
     }
 
     [Fact]

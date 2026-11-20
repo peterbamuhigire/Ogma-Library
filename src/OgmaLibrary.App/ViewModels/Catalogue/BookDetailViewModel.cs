@@ -593,9 +593,9 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     };
 
     /// <summary>True when the primary action can run now.</summary>
-    /// <remarks>Unlock stays visible but disabled with a reason until Phase 12 (D-76, K125).</remarks>
+    /// <remarks>Unlock is enabled: it opens the in-app password dialog (READ-009, K125).</remarks>
     public bool CanExecutePrimaryAction =>
-        PrimaryAction is not (PrimaryActionKind.None or PrimaryActionKind.Unlock) && !IsOpeningReader && !IsRelinking;
+        PrimaryAction is not PrimaryActionKind.None && !IsOpeningReader && !IsRelinking;
 
     /// <summary>True while an awaited Read is preflighting the file or opening the reader.</summary>
     public bool IsOpeningReader
@@ -1287,16 +1287,12 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
     /// panel; shows a localised error if that book is still loaded.
     /// </summary>
     /// <param name="bookId">The book the reader failed to open.</param>
-    public void ReportReaderOpenFailed(string bookId) => SetOpenErrorFor(bookId, OpenFailedKey);
+    public void ReportReaderOpenFailed(string bookId) => SetOpenErrorFor(
+        bookId,
+        _book is { IsPasswordProtected: true } ? "Catalogue.BookDetail.Open.Locked" : OpenFailedKey);
 
-    // Unlock is disabled with a reason (D-76): the reader has no route that opens a protected
-    // session until Phase 12 (K125). Called directly, it still explains instead of opening.
-    private Task UnlockAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        SetOpenError("Catalogue.BookDetail.Open.Locked");
-        return Task.CompletedTask;
-    }
+    // Unlock opens the reader; the reader asks for the password in the in-app dialog (READ-009).
+    private Task UnlockAsync(CancellationToken cancellationToken) => OpenReaderAsync(cancellationToken);
 
     private void SetOpenErrorFor(string bookId, string key)
     {

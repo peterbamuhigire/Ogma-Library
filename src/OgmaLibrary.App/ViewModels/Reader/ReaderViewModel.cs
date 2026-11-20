@@ -24,6 +24,8 @@ namespace OgmaLibrary.App.ViewModels.Reader;
 public sealed partial class ReaderViewModel : INotifyPropertyChanged
 {
     private readonly IReaderSessionService _sessions;
+    private readonly PasswordUnlockViewModel? _unlock;
+    private readonly Func<string, CancellationToken, Task<(string Hash, string? Title)?>>? _bookIdentity;
     private readonly IAnnotationService _annotations;
     private readonly IBookmarkService _bookmarks;
     private readonly IAnnotationLayerService _layers;
@@ -109,7 +111,9 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         IReaderPortabilityService? portability = null,
         ILogger<ReaderViewModel>? logger = null,
         IReaderLayoutPreferences? layoutPreferences = null,
-        IInDocumentSearchService? search = null)
+        IInDocumentSearchService? search = null,
+        PasswordUnlockViewModel? unlock = null,
+        Func<string, CancellationToken, Task<(string Hash, string? Title)?>>? bookIdentity = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(annotations);
@@ -120,6 +124,8 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         ArgumentNullException.ThrowIfNull(localization);
 
         _sessions = sessions;
+        _unlock = unlock;
+        _bookIdentity = bookIdentity;
         _annotations = annotations;
         _bookmarks = bookmarks;
         _layers = layers;
@@ -1242,10 +1248,9 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         }
         catch (Exception exception) when (exception is PdfPasswordRequiredException or PdfPasswordIncorrectException)
         {
-            // A locked book is a normal state, not a failure; unlocking is Phase 12's flow.
+            // A locked book is a normal state, not a failure: ask in the in-app dialog (READ-009).
             AppLog.ReaderOpenPasswordRequired(_logger);
-            StatusMessage = _localization["Reader.Error.PasswordProtected"];
-            return false;
+            return await OpenProtectedAsync(bookId, pageHint, cancellationToken).ConfigureAwait(true);
         }
         catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
         {
@@ -1256,6 +1261,51 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Opens a password-protected book: the keychain password first, otherwise the in-app dialog.
+    /// Cancel or no unlock route leaves the reader locked with a localised message; the password
+    /// buffers are cleared by the unlock flow. The PDF worker is never awaited on the UI thread.
+    /// </summary>
+    private async Task<bool> OpenProtectedAsync(string bookId, int? pageHint, CancellationToken cancellationToken)
+    {
+        StatusMessage = _localization["Reader.Error.PasswordProtected"];
+        if (_unlock is null || _bookIdentity is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            (string Hash, string? Title)? identity = await _bookIdentity(bookId, cancellationToken).ConfigureAwait(true);
+            if (identity is null)
+            {
+                return false;
+            }
+
+            ReaderSession? session = await _unlock
+                .RequestAndOpenAsync(bookId, identity.Value.Hash, identity.Value.Title, pageHint, cancellationToken)
+                .ConfigureAwait(true);
+            if (session is null)
+            {
+                return false;
+            }
+
+            StatusMessage = null;
+            await UpdateSessionAsync(session, cancellationToken).ConfigureAwait(true);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (!ExceptionClassification.IsFatal(exception))
+        {
+            AppLog.ReaderOpenFailed(_logger, exception);
+            StatusMessage = _localization["Reader.Error.PasswordProtected"];
+            return false;
         }
     }
 

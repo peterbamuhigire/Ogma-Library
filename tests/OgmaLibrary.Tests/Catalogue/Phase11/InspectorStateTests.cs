@@ -71,13 +71,14 @@ public sealed class InspectorStateTests
     }
 
     [Fact]
-    public async Task PasswordProtected_UnlockIsDisabledWithReason_AndForgetPasswordKept()
+    public async Task Inspector_Unlock_Enabled()
     {
         BookDetailViewModel vm = Create(Fixture("password"), out _, passwordProvider: new StubPasswordProvider());
 
         await vm.LoadBookAsync(BookId);
 
-        Assert.False(vm.CanExecutePrimaryAction);
+        Assert.Equal(PrimaryActionKind.Unlock, vm.PrimaryAction);
+        Assert.True(vm.CanExecutePrimaryAction);
         Assert.False(string.IsNullOrWhiteSpace(vm.PasswordStateBodyText));
         Assert.True(vm.CanForgetPassword);
     }

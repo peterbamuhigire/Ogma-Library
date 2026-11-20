@@ -3,8 +3,22 @@ namespace OgmaLibrary.Application.Reader;
 /// <summary>Provides passwords for protected PDF documents without catalogue persistence.</summary>
 public interface IPasswordProvider
 {
-    /// <summary>Gets a password for the specified book/content hash.</summary>
+    /// <summary>
+    /// Looks up a password the user previously chose to store for the book/content hash.
+    /// This never prompts: a missing entry returns a failed result, and the caller asks the
+    /// user through its own non-blocking dialog (READ-009).
+    /// </summary>
     Task<PasswordResult> GetPasswordAsync(PasswordRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores a password in the operating-system keychain. Called only after the user opted in.
+    /// The provider must not retain <paramref name="password"/>; the caller clears it.
+    /// </summary>
+    /// <returns><see langword="true"/> when the password was stored.</returns>
+    Task<bool> StorePasswordAsync(
+        PasswordRequest request,
+        char[] password,
+        CancellationToken cancellationToken = default) => Task.FromResult(false);
 
     /// <summary>Forgets a stored password for the specified book/content hash.</summary>
     Task ForgetPasswordAsync(PasswordRequest request, CancellationToken cancellationToken = default);

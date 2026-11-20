@@ -140,7 +140,18 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IReaderPortabilityService>(),
             services.GetRequiredService<ILogger<ReaderViewModel>>(),
             services.GetRequiredService<IReaderLayoutPreferences>(),
-            services.GetRequiredService<IInDocumentSearchService>());
+            services.GetRequiredService<IInDocumentSearchService>(),
+            new PasswordUnlockViewModel(
+                services.GetRequiredService<IPasswordProvider>(),
+                localization,
+                services.GetRequiredService<IReaderSessionService>(),
+                new OgmaLibrary.App.Views.Reader.AvaloniaPasswordPrompt(localization)),
+            async (bookId, cancellationToken) =>
+            {
+                BookDetailProjection? detail = await readModel
+                    .GetBookDetailAsync(bookId, cancellationToken).ConfigureAwait(false);
+                return detail?.Sha256Hash is { Length: > 0 } hash ? (hash, detail.Title) : null;
+            });
         var reader = CreateReader();
         var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(

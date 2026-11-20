@@ -75,7 +75,7 @@ public sealed class Phase11InspectorStateViewTests
     }
 
     [AvaloniaFact]
-    public async Task PasswordProtected_ExplainsDisabledUnlock_AndKeepsForgetPassword()
+    public async Task PasswordProtected_UnlockEnabled_AndKeepsForgetPassword()
     {
         (Window window, BookDetailView view, _) = await ShowAsync(Projection() with { IsPasswordProtected = true });
 
@@ -86,7 +86,7 @@ public sealed class Phase11InspectorStateViewTests
         Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(forget)));
         Button primary = FindById<Button>(view, "Detail.Action.Read");
         Assert.Equal("Unlock", AutomationProperties.GetName(primary));
-        Assert.False(primary.IsEnabled);
+        Assert.True(primary.IsEnabled);
         Capture(window, "password");
         window.Close();
     }
