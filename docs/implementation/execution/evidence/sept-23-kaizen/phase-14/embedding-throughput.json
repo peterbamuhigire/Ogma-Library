@@ -1,0 +1,88 @@
+{
+  "benchmark": "embedding-throughput",
+  "phase": "sept-23-kaizen/phase-14/slice-6",
+  "measuredUtc": "2026-11-20T15:46:47.4801968+00:00",
+  "machine": {
+    "os": "Microsoft Windows 10.0.26200",
+    "architecture": "X64",
+    "logicalProcessors": 8,
+    "processor": "Intel64 Family 6 Model 79 Stepping 1, GenuineIntel",
+    "runtime": ".NET 10.0.12"
+  },
+  "model": {
+    "ModelId": "intfloat/multilingual-e5-small",
+    "Revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3"
+  },
+  "method": "Release build; EmbeddingGenerationService batches of 64 with the built-in ONNX provider (one input at a time, passage inference on a below-normal-priority thread). Peak working set is the test host\u0027s cumulative process peak, so the second run\u0027s value includes the first.",
+  "workingSetBeforeMb": 178,
+  "runs": [
+    {
+      "name": "synthetic corpus catalogue",
+      "books": 12,
+      "chunksEmbedded": 1275,
+      "chunksFailed": 0,
+      "seconds": 387.32,
+      "chunksPerSecond": 3.29,
+      "peakWorkingSetMb": 470
+    },
+    {
+      "name": "2,000-book synthetic catalogue, one 60-word page per book",
+      "books": 2000,
+      "chunksEmbedded": 2000,
+      "chunksFailed": 0,
+      "seconds": 155.92,
+      "chunksPerSecond": 12.83,
+      "peakWorkingSetMb": 493
+    }
+  ],
+  "conceptualRanks": [
+    {
+      "query": "books about light and colour",
+      "expected": "The Physics of Everyday Light",
+      "rank": 1,
+      "queryMs": 317.2
+    },
+    {
+      "query": "rainforest animals",
+      "expected": "Introduction to Tropical Ecology",
+      "rank": 1,
+      "queryMs": 92
+    },
+    {
+      "query": "precolonial kingdoms",
+      "expected": "A Short History of the Great Lakes Kingdoms",
+      "rank": 1,
+      "queryMs": 104.7
+    },
+    {
+      "query": "seafaring merchants and the spice trade",
+      "expected": "Trade Routes of East Africa",
+      "rank": 1,
+      "queryMs": 121.7
+    },
+    {
+      "query": "livres sur la lumi\u00E8re et la couleur",
+      "expected": "The Physics of Everyday Light",
+      "rank": 1,
+      "queryMs": 108.4
+    },
+    {
+      "query": "animaux de la for\u00EAt tropicale",
+      "expected": "Introduction to Tropical Ecology",
+      "rank": 1,
+      "queryMs": 112.1
+    },
+    {
+      "query": "royaumes africains pr\u00E9coloniaux",
+      "expected": "A Short History of the Great Lakes Kingdoms",
+      "rank": 2,
+      "queryMs": 113.3
+    },
+    {
+      "query": "commerce maritime et marchands de l\u0027oc\u00E9an Indien",
+      "expected": "Trade Routes of East Africa",
+      "rank": 1,
+      "queryMs": 111.1
+    }
+  ]
+}

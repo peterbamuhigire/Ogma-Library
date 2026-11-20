@@ -1,0 +1,35 @@
+{
+  "phase": "sept-23-kaizen/phase-14/slice-6",
+  "runner": "scripts/Use-DesktopLock.ps1 -Owner phase-14 { tests/OgmaLibrary.Tests.E2E/Invoke-GoldenJourneys.ps1 }",
+  "dataDirectory": "fresh temporary OGMA_LIBRARY_DATA_DIR per journey; synthetic corpus tests/fixtures/corpus",
+  "model": "intfloat/multilingual-e5-small @ 614241f622f53c4eeff9890bdc4f31cfecc418b3, copied from OGMA_TEST_EMBEDDING_MODEL_DIR into the session data folder (not in git)",
+  "runs": [
+    {
+      "run": "20261120-154725",
+      "filter": "Category=E2E&(Tag=SemanticSearch)",
+      "size": "1280x800",
+      "theme": "Light",
+      "results": [
+        { "journey": "J-SEM-1", "result": "FAIL", "seconds": 521.8, "note": "Index reached 12 of 12 in 8 min 17 s; 'books about light and colour' ranked The Physics of Everyday Light first, 'matched on similar meaning'. Failed only on the mode label read by automation id: Search.Mode is not exposed to UI Automation (K149). The log shows K147 and K148." },
+        { "journey": "J-SEM-2", "result": "FAIL", "seconds": 44.1, "note": "Same mode-label lookup (K149); the Activity Centre step had not run." },
+        { "journey": "J-SEM-N1", "result": "PASS", "seconds": 633.9, "note": "No model; real wall-clock idle of 10 minutes (not compressed). Embedding jobs: 14 total, 14 parked, 0 completed, 0 failed, 0 attempts (RetryCount sum), 0 started." },
+        { "journey": "J-SEM-N2", "result": "PASS", "seconds": 52.5, "note": "Damaged model files: status 'The installed model files are damaged. Retry the download to replace them.' Embedding jobs: 14 total, 14 parked, 0 completed, 0 failed, 0 attempts." }
+      ]
+    },
+    {
+      "run": "20261120-161034",
+      "filter": "Category=E2E&(Journey=J-SEM-1|Journey=J-SEM-2)",
+      "size": "1280x800",
+      "theme": "Light",
+      "change": "The mode label is located by its visible text when the Search.Mode id is absent (route recorded); assertions unchanged.",
+      "results": [
+        { "journey": "J-SEM-1", "result": "PASS", "seconds": 577.5, "note": "Index 12 of 12 in 9 min 12 s; top 3: The Physics of Everyday Light, Introduction to Tropical Ecology, Big Reference Handbook, each 'matched on similar meaning'; mode 'Titles, authors, full text and meaning' (route visible-text, K149). Embedding jobs: 14 total, 14 completed, 0 failed." },
+        { "journey": "J-SEM-2", "result": "PASS", "seconds": 27.1, "note": "Off: keyword-only notice shown; mode 'Titles, authors and full text · Semantic search off'; Activity Centre 'Failed (0)'." }
+      ]
+    }
+  ],
+  "notAssessed": [
+    "Sizes other than 1280x800, the dark theme, 200 % text, French and RTL runs of the J-SEM journeys",
+    "Logs of the passing rerun (the harness copies logs only on failure), so K147 and K148 were not re-checked on run 20261120-161034"
+  ]
+}

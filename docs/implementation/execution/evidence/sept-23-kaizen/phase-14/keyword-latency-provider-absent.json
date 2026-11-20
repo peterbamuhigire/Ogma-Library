@@ -1,0 +1,36 @@
+{
+  "benchmark": "keyword-latency-provider-absent",
+  "phase": "sept-23-kaizen/phase-14/slice-6",
+  "measuredUtc": "2026-11-20T15:37:37.5550055+00:00",
+  "machine": {
+    "os": "Microsoft Windows 10.0.26200",
+    "architecture": "X64",
+    "logicalProcessors": 8,
+    "processor": "Intel64 Family 6 Model 79 Stepping 1, GenuineIntel",
+    "runtime": ".NET 10.0.12"
+  },
+  "corpus": {
+    "books": 2000,
+    "pagesPerBook": 10,
+    "generator": "UnifiedSearchPerformanceTests.Seed (seed 13)"
+  },
+  "method": "Release build; one warm-up pass; 12 interleaved rounds of 15 keyword queries, order alternating per round. Semantic off = no semantic service; provider absent = the real EmbeddingProviderRegistry over an OnnxEmbeddingProvider whose model is not installed.",
+  "semanticOff": {
+    "n": 180,
+    "totalMs": 6484.6,
+    "p50Ms": 12.63,
+    "p95Ms": 81.82,
+    "maxMs": 162.04
+  },
+  "providerAbsent": {
+    "n": 180,
+    "totalMs": 6480.2,
+    "p50Ms": 11.89,
+    "p95Ms": 86.31,
+    "maxMs": 97.07
+  },
+  "ratioOfTotals": 0.9993,
+  "target": "ratio within 1 \u00B1 0.1",
+  "ollamaProbes": 0,
+  "ollamaEmbeds": 0
+}
