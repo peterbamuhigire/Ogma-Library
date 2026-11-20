@@ -176,7 +176,8 @@ and uses an installation the user (or the school's IT person) already has.
    proxy), with its own host allowlist; it is never auto-detected from the LAN.
 
 **Detailed requirements:** [09-ollama-readiness.md](../09-ollama-readiness.md) (binding). Phase 15 delivers
-OR-01 to OR-05, OR-11 (Local AI page), OR-12 and the OR-06 standalone option.
+OR-01 to OR-05, OR-11 (Local AI page), OR-12, OR-17, OR-18 and the OR-06 standalone option, fixing
+defects OD-1 to OD-6 and OD-8 listed there.
 
 **Acceptance for §3b:** resolver tests for: no Ollama; Ollama with no model; Ollama with a chat model
 (becomes default); Ollama plus a user-chosen cloud profile (cloud stays); a remote-flagged Ollama model
