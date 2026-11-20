@@ -190,9 +190,12 @@ public static class Shell
         {
             Uia.Activate(next);
             presses++;
-            if (Uia.Poll(() => CurrentPage(context) == before + 1, TimeSpan.FromSeconds(2), intervalMs: 10))
+            // A press the reader reported busy can still be applied late, so a retry may land the page two ahead:
+            // any forward move counts as the turn (the first move's time is the latency).
+            int landed = before;
+            if (Uia.Poll(() => (landed = CurrentPage(context) ?? before) > before, TimeSpan.FromSeconds(2), intervalMs: 10))
             {
-                return new PageTurn(before, before + 1, clock.Elapsed.TotalMilliseconds, presses - 1, true);
+                return new PageTurn(before, landed, clock.Elapsed.TotalMilliseconds, presses - 1, true);
             }
         }
 

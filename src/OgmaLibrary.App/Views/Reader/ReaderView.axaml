@@ -529,6 +529,7 @@
                 </StackPanel>
               </Button>
               <Button Padding="8,4"
+                      AutomationProperties.AutomationId="Reader.Citation.Capture"
                       AutomationProperties.Name="{Binding CaptureCitationLabel}"
                       Click="SelectionCitationButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="6">
