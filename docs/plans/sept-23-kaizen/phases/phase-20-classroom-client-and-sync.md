@@ -173,6 +173,7 @@ You are implementing Phase 20 in C:\wamp64\www\Ogma-Library. Read first, in orde
 3. docs/plans/sept-23-kaizen/AGENT_BRIEF.md
 4. docs/plans/sept-23-kaizen/phases/phase-20-classroom-client-and-sync.md
 5. docs/plans/sept-23-kaizen/03-defect-register.md (K61, K62)
+6. docs/plans/sept-23-kaizen/09-ollama-readiness.md OR-07 and OR-15 (pupil-side AI messages; the client never calls Ollama)
 Read the section 4 SKILL.md files. Confirm Phases 08, 13 and 19 are COMPLETE and D-09/D-11 are recorded; if not, stop and ask.
 Order: 2 (persisted connection), 1 (join and TOFU), 3-4 (streaming and cache), 5, 6, 7, 8, 9, 10.
 All automated tests use loopback. Never write plaintext PDFs under the client data directory.
