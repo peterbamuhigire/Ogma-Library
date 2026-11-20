@@ -1092,7 +1092,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         }
         catch (Exception exception) when (!ExceptionClassification.IsFatal(exception) && exception is not OperationCanceledException)
         {
-            // The title is decoration; the localised label stays as the fallback.
+            // Intentionally ignored: the title is decoration; the localised label stays as the fallback.
         }
     }
 
