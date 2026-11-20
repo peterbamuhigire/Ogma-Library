@@ -76,6 +76,67 @@ public sealed class Phase11WriteBackIntegrationTests
         }
     }
 
+    /// <summary>
+    /// Phase 11 negative case, Windows ACL result (characterisation, K130). An explicit ACE denies
+    /// the current user write and delete on the file, but the folder still grants delete-child.
+    /// Measured: the write-back replaces the file through the folder (<c>File.Move</c> with
+    /// overwrite), succeeds, and the replacement no longer carries the deny ACE. Restore still
+    /// returns the original bytes. When K130 is fixed, flip these assertions to "write fails".
+    /// </summary>
+    [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public async Task Phase11WriteBack_AclDeniedFile_IsReplacedThroughTheFolder_K130()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string root = CreateRoot();
+        string path = Path.Combine(root, "book.pdf");
+        await File.WriteAllBytesAsync(path, CreatePdf("Original title"));
+        string originalHash = await HashAsync(path);
+        var file = new FileInfo(path);
+        var deny = new System.Security.AccessControl.FileSystemAccessRule(
+            System.Security.Principal.WindowsIdentity.GetCurrent().User!,
+            System.Security.AccessControl.FileSystemRights.WriteData |
+            System.Security.AccessControl.FileSystemRights.AppendData |
+            System.Security.AccessControl.FileSystemRights.Delete,
+            System.Security.AccessControl.AccessControlType.Deny);
+        try
+        {
+            using CatalogueDbContext context = await CreateContextAsync();
+            var service = new PdfWriteBackService(context, new SidecarService(root), root);
+            BackupToken token = await service.PrepareBackupAsync(BookId, path);
+            System.Security.AccessControl.FileSecurity acl = file.GetAccessControl();
+            acl.AddAccessRule(deny);
+            file.SetAccessControl(acl);
+
+            bool written = await service.WriteAsync(BookId, [Title("Changed title")], token);
+            bool denyAceSurvived = new FileInfo(path).GetAccessControl()
+                .GetAccessRules(includeExplicit: true, includeInherited: false, typeof(System.Security.Principal.SecurityIdentifier))
+                .OfType<System.Security.AccessControl.FileSystemAccessRule>()
+                .Any(r => r.AccessControlType == System.Security.AccessControl.AccessControlType.Deny);
+
+            Assert.True(written);
+            Assert.NotEqual(originalHash, await HashAsync(path));
+            Assert.False(denyAceSurvived);
+            Assert.True(await service.RestoreBackupAsync(BookId, token));
+            Assert.Equal(originalHash, await HashAsync(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                System.Security.AccessControl.FileSecurity acl = new FileInfo(path).GetAccessControl();
+                acl.RemoveAccessRule(deny);
+                new FileInfo(path).SetAccessControl(acl);
+            }
+
+            DeleteRoot(root);
+        }
+    }
+
     private static AcceptedFieldProposal Title(string value) =>
         new("Title", value, "UserOverride", 1.0, true);
 

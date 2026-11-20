@@ -228,9 +228,36 @@ public sealed class DetailTests
         Assert.Null(Uia.TryFind(window, "Reader.PageNumber"));
         AutomationElement grid = Uia.WaitFor(window, "Catalogue.Grid");
         Assert.False(grid.IsOffscreen, "The catalogue grid is off screen after Read on a missing file.");
-        Visibility.AssertVisiblyPainted(context.Window, grid, "Catalogue grid after Read on a missing file");
+        AssertCatalogueShownBesideInspector(context, window, grid, "Catalogue grid after Read on a missing file");
 
         context.Mark("missing.shown");
+    }
+
+    /// <summary>
+    /// The shell stayed on the catalogue. Below a 1280 px client width the inspector overlays the
+    /// catalogue by design (<c>IsInspectorOverlay</c>), so then only the part of the grid left of
+    /// the open panel must be the grid's own; otherwise the whole grid must be visibly painted.
+    /// </summary>
+    private static void AssertCatalogueShownBesideInspector(
+        JourneyContext context, AutomationElement window, AutomationElement grid, string what)
+    {
+        System.Drawing.Rectangle g = grid.BoundingRectangle;
+        AutomationElement? panel = Uia.TryFind(window, "Detail.Panel");
+        System.Drawing.Rectangle p = panel?.BoundingRectangle ?? System.Drawing.Rectangle.Empty;
+        if (panel is null || !p.IntersectsWith(g))
+        {
+            Visibility.AssertVisiblyPainted(context.Window, grid, what);
+            return;
+        }
+
+        context.Record("catalogue.overlay", "inspector overlays the grid (compact width)");
+        int right = Math.Min(g.Right, p.Left);
+        Assert.True(right - g.Left >= g.Width / 3, $"{what}: the inspector leaves less than a third of the grid uncovered ({g} vs {p}).");
+        var centre = new System.Drawing.Point(g.Left + ((right - g.Left) / 2), g.Top + (g.Height / 2));
+        AutomationElement hit = context.Window.Automation.FromPoint(centre);
+        Assert.True(
+            Uia.IsSameOrDescendant(context.Window.Automation, hit, grid),
+            $"{what}: the uncovered grid centre {centre} is covered by {Uia.Describe(hit)}.");
     }
 
     private static void EditField(JourneyContext context, AutomationElement panel, string field, string value)
