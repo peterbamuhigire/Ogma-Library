@@ -192,6 +192,31 @@
                            AutomationProperties.Name="{Binding DensityCompactText}" />
             </StackPanel>
           </Border>
+          <Border Classes="settings-card" IsVisible="{Binding HasReaderLayout}">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="settings-label" Text="{Binding ReaderLayoutLabel}" />
+              <TextBlock Classes="settings-help" Text="{Binding ReaderLayoutHelp}" />
+              <RadioButton GroupName="SettingsReaderLayout"
+                           IsChecked="{Binding IsReaderLayoutSingle}"
+                           Content="{Binding ReaderLayoutSingleText}"
+                           AutomationProperties.AutomationId="Settings.Reader.Layout.Single"
+                           AutomationProperties.Name="{Binding ReaderLayoutSingleText}" />
+              <RadioButton GroupName="SettingsReaderLayout"
+                           IsChecked="{Binding IsReaderLayoutTwoPage}"
+                           Content="{Binding ReaderLayoutTwoPageText}"
+                           AutomationProperties.AutomationId="Settings.Reader.Layout.TwoPage"
+                           AutomationProperties.Name="{Binding ReaderLayoutTwoPageText}" />
+              <RadioButton GroupName="SettingsReaderLayout"
+                           IsChecked="{Binding IsReaderLayoutContinuous}"
+                           Content="{Binding ReaderLayoutContinuousText}"
+                           AutomationProperties.AutomationId="Settings.Reader.Layout.Continuous"
+                           AutomationProperties.Name="{Binding ReaderLayoutContinuousText}" />
+              <CheckBox IsChecked="{Binding ReaderCoverAlone}"
+                        Content="{Binding ReaderCoverAloneText}"
+                        AutomationProperties.AutomationId="Settings.Reader.Layout.CoverAlone"
+                        AutomationProperties.Name="{Binding ReaderCoverAloneText}" />
+            </StackPanel>
+          </Border>
         </StackPanel>
 
         <!-- Language -->

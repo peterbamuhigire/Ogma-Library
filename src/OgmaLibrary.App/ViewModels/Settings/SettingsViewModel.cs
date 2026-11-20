@@ -7,6 +7,7 @@ using OgmaLibrary.App.Settings;
 using OgmaLibrary.App.ViewModels.Catalogue;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Reader;
 
 namespace OgmaLibrary.App.ViewModels.Settings;
 
@@ -199,6 +200,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     private readonly ILocalizationService _localization;
     private readonly UserPreferencesController _preferences;
     private readonly ICapabilitySettings _capabilities;
+    private readonly IReaderLayoutPreferences? _readerLayout;
     private readonly SettingsEnvironmentInfo _environment;
     private SettingsSectionItem _selectedSection;
     private string? _diagnosticsStatus;
@@ -211,12 +213,14 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     /// <param name="capabilities">The capability resolver.</param>
     /// <param name="environment">Version and folder locations for Diagnostics.</param>
     /// <param name="libraryFolders">The Library folders panel (D-03), when composed.</param>
+    /// <param name="readerLayout">The reader layout store behind the default page layout, when composed.</param>
     public SettingsViewModel(
         ILocalizationService localization,
         UserPreferencesController preferences,
         ICapabilitySettings capabilities,
         SettingsEnvironmentInfo environment,
-        LibraryFoldersViewModel? libraryFolders = null)
+        LibraryFoldersViewModel? libraryFolders = null,
+        IReaderLayoutPreferences? readerLayout = null)
     {
         ArgumentNullException.ThrowIfNull(localization);
         ArgumentNullException.ThrowIfNull(preferences);
@@ -227,6 +231,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
         _capabilities = capabilities;
         _environment = environment;
         LibraryFolders = libraryFolders;
+        _readerLayout = readerLayout;
 
         Sections =
         [
@@ -388,6 +393,77 @@ public sealed class SettingsViewModel : INotifyPropertyChanged, IDisposable
     public string LibraryHealthHelp => _localization["Settings.Library.HealthHelp"];
 
     // ── Appearance ─────────────────────────────────────────────────────────────
+
+    /// <summary>Reader default layout heading.</summary>
+    public string ReaderLayoutLabel => _localization["Settings.Reader.Layout.Title"];
+
+    /// <summary>Reader layout help line.</summary>
+    public string ReaderLayoutHelp => _localization["Settings.Reader.Layout.Help"];
+
+    /// <summary>Single-page layout option label.</summary>
+    public string ReaderLayoutSingleText => _localization["Reader.Display.SinglePage"];
+
+    /// <summary>Two-page layout option label.</summary>
+    public string ReaderLayoutTwoPageText => _localization["Reader.Display.TwoPage"];
+
+    /// <summary>Continuous layout option label.</summary>
+    public string ReaderLayoutContinuousText => _localization["Reader.Display.Continuous"];
+
+    /// <summary>Cover-alone option label.</summary>
+    public string ReaderCoverAloneText => _localization["Reader.Layout.CoverAlone"];
+
+    /// <summary>Whether the reader settings can be changed (a layout store is composed).</summary>
+    public bool HasReaderLayout => _readerLayout is not null;
+
+    /// <summary>Single page is the default layout for books without their own.</summary>
+    public bool IsReaderLayoutSingle
+    {
+        get => ReaderDefault.Mode == DisplayMode.SinglePage;
+        set => SetReaderMode(value, DisplayMode.SinglePage);
+    }
+
+    /// <summary>Two pages is the default layout for books without their own.</summary>
+    public bool IsReaderLayoutTwoPage
+    {
+        get => ReaderDefault.Mode == DisplayMode.TwoPage;
+        set => SetReaderMode(value, DisplayMode.TwoPage);
+    }
+
+    /// <summary>Continuous scroll is the default layout for books without their own.</summary>
+    public bool IsReaderLayoutContinuous
+    {
+        get => ReaderDefault.Mode == DisplayMode.Continuous;
+        set => SetReaderMode(value, DisplayMode.Continuous);
+    }
+
+    /// <summary>Whether a default spread shows the cover alone.</summary>
+    public bool ReaderCoverAlone
+    {
+        get => ReaderDefault.CoverAlone;
+        set
+        {
+            if (_readerLayout is not null && value != ReaderDefault.CoverAlone)
+            {
+                _readerLayout.SetDefault(ReaderDefault with { CoverAlone = value });
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private ReaderLayoutChoice ReaderDefault => _readerLayout?.GlobalDefault ?? ReaderLayoutChoice.Default;
+
+    private void SetReaderMode(bool selected, DisplayMode mode)
+    {
+        if (!selected || _readerLayout is null || ReaderDefault.Mode == mode)
+        {
+            return;
+        }
+
+        _readerLayout.SetDefault(ReaderDefault with { Mode = mode });
+        OnPropertyChanged(nameof(IsReaderLayoutSingle));
+        OnPropertyChanged(nameof(IsReaderLayoutTwoPage));
+        OnPropertyChanged(nameof(IsReaderLayoutContinuous));
+    }
 
     /// <summary>Theme label.</summary>
     public string ThemeLabel => _localization["Settings.Appearance.Theme"];

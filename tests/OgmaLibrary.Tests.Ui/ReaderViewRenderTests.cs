@@ -2938,6 +2938,112 @@ public sealed class ReaderViewRenderTests
         Assert.StartsWith(expectedStart, viewModel.StatusMessage, StringComparison.Ordinal);
     }
 
+    [AvaloniaFact]
+    public async Task GoNext_TwicePressed_AdvancesTwo()
+    {
+        var sessions = new FakeReaderSessionService { NavigateDelayMs = 60 };
+        ReaderViewModel viewModel = NewLayoutViewModel(sessions, out _);
+        await viewModel.OpenAsync("book-001", null, CancellationToken.None);
+
+        // K108: the second press lands while the first turn is still in flight.
+        Task first = viewModel.GoNextAsync();
+        Task second = viewModel.GoNextAsync();
+        await Task.WhenAll(first, second);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, viewModel.CurrentPageIndex);
+        Assert.Equal(2, sessions.CurrentSession!.CurrentPageIndex);
+    }
+
+    [AvaloniaFact]
+    public async Task GoNext_PressedFiveTimes_SkipsTheStepsInBetween()
+    {
+        var sessions = new FakeReaderSessionService { NavigateDelayMs = 40 };
+        ReaderViewModel viewModel = NewLayoutViewModel(sessions, out _);
+        await viewModel.OpenAsync("book-001", null, CancellationToken.None);
+
+        var presses = Enumerable.Range(0, 5).Select(_ => viewModel.GoNextAsync()).ToList();
+        await Task.WhenAll(presses);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(5, viewModel.CurrentPageIndex);
+        Assert.True(sessions.NavigatedTo.Count < 5, "Intermediate pages are skipped, not walked one by one.");
+    }
+
+    [AvaloniaFact]
+    public async Task Spread_NextAdvancesByASlot_AndCoverIsAlone()
+    {
+        var sessions = new FakeReaderSessionService();
+        ReaderViewModel viewModel = NewLayoutViewModel(sessions, out _);
+        await viewModel.OpenAsync("book-001", null, CancellationToken.None);
+        viewModel.SetDisplayMode(DisplayMode.TwoPage);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.CoverAlone);
+        Assert.Equal(1, viewModel.SlotPageCount);
+        await viewModel.GoNextAsync();
+        Assert.Equal(1, viewModel.CurrentPageIndex);
+        Assert.Equal(2, viewModel.SlotPageCount);
+        await viewModel.GoNextAsync();
+        Assert.Equal(3, viewModel.CurrentPageIndex);
+
+        viewModel.SetCoverAlone(false);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, viewModel.CurrentPageIndex);
+        Assert.Equal(2, viewModel.SlotPageCount);
+    }
+
+    [AvaloniaFact]
+    public async Task DisplayMode_PersistsPerBook_DefaultFromSettings()
+    {
+        var store = new InMemoryLayoutPreferences();
+        store.SetDefault(new ReaderLayoutChoice(DisplayMode.Continuous, true));
+        ReaderViewModel viewModel = NewLayoutViewModel(new FakeReaderSessionService(), out _, store);
+
+        await viewModel.OpenAsync("book-a", null, CancellationToken.None);
+        Assert.Equal(DisplayMode.Continuous, viewModel.DisplayMode);
+
+        viewModel.SetDisplayMode(DisplayMode.TwoPage);
+        await viewModel.OpenAsync("book-b", null, CancellationToken.None);
+        Assert.Equal(DisplayMode.Continuous, viewModel.DisplayMode);
+
+        await viewModel.OpenAsync("book-a", null, CancellationToken.None);
+        Assert.Equal(DisplayMode.TwoPage, viewModel.DisplayMode);
+        Assert.Equal(new ReaderLayoutChoice(DisplayMode.TwoPage, true), store.GetForBook("book-a"));
+    }
+
+    private static ReaderViewModel NewLayoutViewModel(
+        FakeReaderSessionService sessions,
+        out InMemoryLocalizationService localization,
+        IReaderLayoutPreferences? preferences = null)
+    {
+        localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        return new ReaderViewModel(
+            sessions,
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization,
+            layoutPreferences: preferences);
+    }
+
+    private sealed class InMemoryLayoutPreferences : IReaderLayoutPreferences
+    {
+        private readonly Dictionary<string, ReaderLayoutChoice> _books = [];
+
+        public ReaderLayoutChoice GlobalDefault { get; private set; } = ReaderLayoutChoice.Default;
+
+        public void SetDefault(ReaderLayoutChoice choice) => GlobalDefault = choice;
+
+        public ReaderLayoutChoice GetForBook(string bookId) =>
+            _books.TryGetValue(bookId, out ReaderLayoutChoice? choice) ? choice : GlobalDefault;
+
+        public void SetForBook(string bookId, ReaderLayoutChoice choice) => _books[bookId] = choice;
+    }
+
     private sealed class FakeReaderSessionService : IReaderSessionService
     {
         public Exception? OpenFailure { get; init; }
@@ -2980,10 +3086,19 @@ public sealed class ReaderViewRenderTests
             return Task.CompletedTask;
         }
 
-        public Task NavigateToAsync(int pageIndex, double scrollOffset = 0.0)
+        public int NavigateDelayMs { get; init; }
+
+        public List<int> NavigatedTo { get; } = [];
+
+        public async Task NavigateToAsync(int pageIndex, double scrollOffset = 0.0)
         {
+            NavigatedTo.Add(pageIndex);
+            if (NavigateDelayMs > 0)
+            {
+                await Task.Delay(NavigateDelayMs).ConfigureAwait(false);
+            }
+
             CurrentSession = CurrentSession?.WithPage(pageIndex, scrollOffset);
-            return Task.CompletedTask;
         }
 
         public void UpdateScrollOffset(double scrollOffset)

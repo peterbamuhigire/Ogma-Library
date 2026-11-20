@@ -138,7 +138,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<ITextLayerService>(),
             services.GetRequiredService<IPageRenderCache>(),
             services.GetRequiredService<IReaderPortabilityService>(),
-            services.GetRequiredService<ILogger<ReaderViewModel>>());
+            services.GetRequiredService<ILogger<ReaderViewModel>>(),
+            services.GetRequiredService<IReaderLayoutPreferences>());
         var reader = CreateReader();
         var splitView = new SplitViewViewModel(localization, reader, CreateReader());
         var search = new SearchViewModel(
@@ -237,7 +238,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                 options.DataDirectory,
                 AppDiagnostics.LogsDirectory ?? DiagnosticsBundleWriter.GetLogsDirectory(options.DataDirectory),
                 assetRoot),
-            libraryFolders);
+            libraryFolders,
+            services.GetRequiredService<IReaderLayoutPreferences>());
         var ocrOptions = new OcrSettingsViewModel(
             services.GetRequiredService<IOcrPolicySettingsStore>(),
             services.GetRequiredService<IOcrLanguageCatalog>(),

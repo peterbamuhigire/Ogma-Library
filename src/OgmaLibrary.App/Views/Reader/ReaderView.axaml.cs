@@ -22,6 +22,9 @@ public partial class ReaderView : UserControl
         InitializeComponent();
         DataContextChanged += ReaderView_DataContextChanged;
         PageScrollViewer.SizeChanged += PageScrollViewer_SizeChanged;
+        ContinuousHost.BitmapProvider = (page, token) =>
+            DataContext is ReaderViewModel vm ? vm.RenderPageBitmapAsync(page, null, token) : Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(null);
+        ContinuousHost.CentrePageChanged += (_, page) => (DataContext as ReaderViewModel)?.NotifyContinuousCentrePage(page);
         PageScrollViewer.ScrollChanged += PageScrollViewer_ScrollChanged;
 
         // Let the ScrollViewer consume ordinary wheel input for smooth,
@@ -50,9 +53,46 @@ public partial class ReaderView : UserControl
 
     private void ReaderViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ReaderViewModel.CurrentPageIndex))
+        switch (e.PropertyName)
         {
-            PageScrollViewer.Offset = new Vector(0, 0);
+            case nameof(ReaderViewModel.CurrentPageIndex):
+                PageScrollViewer.Offset = new Vector(0, 0);
+                if (_boundViewModel is { IsContinuousLayout: true })
+                {
+                    ContinuousHost.ScrollToPage(_boundViewModel.CurrentPageIndex);
+                }
+
+                break;
+            case nameof(ReaderViewModel.IsContinuousLayout):
+            case nameof(ReaderViewModel.IsOpen):
+            case nameof(ReaderViewModel.PageCount):
+            case nameof(ReaderViewModel.PageSurfaceWidth):
+            case nameof(ReaderViewModel.PageSurfaceHeight):
+                ConfigureContinuousHost();
+                break;
+        }
+    }
+
+    private void ConfigureContinuousHost()
+    {
+        if (_boundViewModel is { IsContinuousLayout: true, IsOpen: true } vm)
+        {
+            ContinuousHost.Configure(
+                vm.PageCount, vm.SinglePageSurfaceWidth, vm.PageSurfaceHeight, ReaderViewModel.ContinuousPageGap);
+            ContinuousHost.ScrollToPage(vm.CurrentPageIndex);
+        }
+        else
+        {
+            // Leaving continuous layout (or closing) releases every page bitmap.
+            ContinuousHost.Configure(0, 1, 1, 0);
+        }
+    }
+
+    private void CoverAloneItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ReaderViewModel vm)
+        {
+            vm.SetCoverAlone(!vm.CoverAlone);
         }
     }
 

@@ -88,6 +88,12 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     private bool _isEngineUnavailable;
     private double _renderScaling = 1.0;
     private long _geometryRequestSequence;
+    private readonly IReaderLayoutPreferences? _layoutPreferences;
+    private bool _coverAlone = true;
+    private Bitmap? _secondPageImage;
+    private int? _requestedPage;
+    private bool _isNavigating;
+    private Task _navigationLoop = Task.CompletedTask;
 
     /// <summary>Creates a new reader view model.</summary>
     public ReaderViewModel(
@@ -101,7 +107,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         ITextLayerService? textLayers = null,
         IPageRenderCache? renderCache = null,
         IReaderPortabilityService? portability = null,
-        ILogger<ReaderViewModel>? logger = null)
+        ILogger<ReaderViewModel>? logger = null,
+        IReaderLayoutPreferences? layoutPreferences = null)
     {
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(annotations);
@@ -121,6 +128,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _textLayers = textLayers;
         _renderCache = renderCache;
         _portability = portability;
+        _layoutPreferences = layoutPreferences;
         _logger = logger ?? (ILogger)NullLogger.Instance;
 
         if (_sessions is IReaderSessionReadModel sessionEvents)
@@ -177,8 +185,17 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanGoFirst));
                 OnPropertyChanged(nameof(CanGoLast));
                 OnPropertyChanged(nameof(IsCurrentPageBookmarked));
+                OnSlotChanged();
             }
         }
+    }
+
+    private void OnSlotChanged()
+    {
+        OnPropertyChanged(nameof(SlotPageCount));
+        OnPropertyChanged(nameof(HasSecondPage));
+        OnPropertyChanged(nameof(OverlayZoomFactor));
+        OnPropertyChanged(nameof(PageSurfaceWidth));
     }
 
     /// <summary>Current human-readable one-based page number.</summary>
@@ -204,6 +221,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(PageStatusText));
                 OnPropertyChanged(nameof(CanGoNext));
                 OnPropertyChanged(nameof(CanGoLast));
+                OnSlotChanged();
             }
         }
     }
@@ -393,9 +411,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// monitor scaling, bucketed and bounded (<see cref="ReaderRenderDefaults.ComputePageWidthPx"/>).
     /// </summary>
     public int CurrentRenderWidthPx => ReaderRenderDefaults.ComputePageWidthPx(
-        PageSurfaceWidth,
+        SinglePageSurfaceWidth,
         _renderScaling,
-        PageSurfaceWidth > 0 ? PageSurfaceHeight / PageSurfaceWidth : 1.414);
+        SinglePageSurfaceWidth > 0 ? PageSurfaceHeight / SinglePageSurfaceWidth : 1.414);
 
     /// <summary>True while opening or refreshing reader-side data.</summary>
     public bool IsBusy
@@ -625,10 +643,10 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             PageCount);
 
     /// <summary>True when the reader can navigate to the previous page.</summary>
-    public bool CanGoPrevious => IsOpen && CurrentPageIndex > 0;
+    public bool CanGoPrevious => IsOpen && ReaderLayoutPlanner.PreviousSlotStart(DisplayMode, CurrentPageIndex, PageCount, CoverAlone) is not null;
 
     /// <summary>True when the reader can navigate to the next page.</summary>
-    public bool CanGoNext => IsOpen && CurrentPageIndex < PageCount - 1;
+    public bool CanGoNext => IsOpen && ReaderLayoutPlanner.NextSlotStart(DisplayMode, CurrentPageIndex, PageCount, CoverAlone) is not null;
 
     /// <summary>True when the reader can move to the first page.</summary>
     public bool CanGoFirst => IsOpen && CurrentPageIndex > 0;
@@ -667,9 +685,76 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             {
                 _displayMode = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsContinuousLayout));
+                OnPropertyChanged(nameof(IsPagedLayout));
+                OnPropertyChanged(nameof(SlotPageCount));
+                OnPropertyChanged(nameof(HasSecondPage));
+                OnPropertyChanged(nameof(OverlayZoomFactor));
+                OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(PageSurfaceHeight));
+                OnPropertyChanged(nameof(CanGoPrevious));
+                OnPropertyChanged(nameof(CanGoNext));
             }
         }
     }
+
+    /// <summary>Whether a spread shows the cover on its own before pairing the remaining pages.</summary>
+    public bool CoverAlone
+    {
+        get => _coverAlone;
+        private set
+        {
+            if (_coverAlone != value)
+            {
+                _coverAlone = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SlotPageCount));
+                OnPropertyChanged(nameof(HasSecondPage));
+                OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(OverlayZoomFactor));
+            }
+        }
+    }
+
+    /// <summary>True when pages scroll in one virtualised vertical list.</summary>
+    public bool IsContinuousLayout => DisplayMode == DisplayMode.Continuous;
+
+    /// <summary>True when the single page surface (one page or a spread) is drawn.</summary>
+    public bool IsPagedLayout => DisplayMode != DisplayMode.Continuous;
+
+    /// <summary>The number of pages drawn side by side for the current page (1 or 2).</summary>
+    public int SlotPageCount => ReaderLayoutPlanner
+        .PagesInSlot(DisplayMode, CurrentPageIndex, PageCount, CoverAlone).Count is > 0 and var count ? count : 1;
+
+    /// <summary>True when a second page is drawn beside the first (spread layout).</summary>
+    public bool HasSecondPage => SlotPageCount > 1;
+
+    /// <summary>The right-hand page of a spread, or <see langword="null"/> outside one.</summary>
+    public Bitmap? SecondPageImage
+    {
+        get => _secondPageImage;
+        private set
+        {
+            if (ReferenceEquals(_secondPageImage, value))
+            {
+                return;
+            }
+
+            Bitmap? previous = _secondPageImage;
+            _secondPageImage = value;
+            OnPropertyChanged();
+            previous?.Dispose();
+        }
+    }
+
+    /// <summary>The displayed width of one page after zoom (not multiplied by the spread).</summary>
+    public double SinglePageSurfaceWidth => BasePageWidthAfterRotation * OverlayZoomFactor;
+
+    /// <summary>The vertical distance between the tops of consecutive pages in continuous layout.</summary>
+    public double ContinuousPageStride => PageSurfaceHeight + ContinuousPageGap;
+
+    /// <summary>The gap drawn between pages in continuous layout.</summary>
+    public const double ContinuousPageGap = 16.0;
 
     /// <summary>Whether the side panel (annotations, bookmarks, layers, memory) is shown.</summary>
     public bool IsSidePanelOpen
@@ -696,6 +781,9 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Localized label for the layout menu.</summary>
     public string LayoutMenuLabel => _localization["Reader.Layout.Label"];
+
+    /// <summary>Localized label for the cover-alone spread option.</summary>
+    public string CoverAloneLabel => _localization["Reader.Layout.CoverAlone"];
 
     /// <summary>Localized label for the single-page layout.</summary>
     public string LayoutSingleLabel => _localization["Reader.Display.SinglePage"];
@@ -728,9 +816,49 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     /// <param name="mode">The layout to use.</param>
     public void SetDisplayMode(DisplayMode mode)
     {
-        if (Enum.IsDefined(mode))
+        if (!Enum.IsDefined(mode) || mode == DisplayMode)
         {
-            DisplayMode = mode;
+            return;
+        }
+
+        DisplayMode = mode;
+        OnLayoutChanged();
+    }
+
+    /// <summary>Chooses whether a spread shows the cover alone.</summary>
+    /// <param name="coverAlone">True to show page one by itself, then pair the rest.</param>
+    public void SetCoverAlone(bool coverAlone)
+    {
+        if (coverAlone == CoverAlone)
+        {
+            return;
+        }
+
+        CoverAlone = coverAlone;
+        OnLayoutChanged();
+    }
+
+    private void OnLayoutChanged()
+    {
+        if (BookId is { } bookId)
+        {
+            _layoutPreferences?.SetForBook(bookId, new ReaderLayoutChoice(DisplayMode, CoverAlone));
+        }
+
+        if (IsOpen && DisplayMode != DisplayMode.Continuous)
+        {
+            // Land on the first page of the slot so the spread starts where the pairing does.
+            int start = ReaderLayoutPlanner.SlotStart(DisplayMode, CurrentPageIndex, PageCount, CoverAlone);
+            if (start != CurrentPageIndex)
+            {
+                _ = NavigateToAsync(start);
+                return;
+            }
+        }
+
+        if (IsOpen)
+        {
+            RequestPageRender();
         }
     }
 
@@ -739,7 +867,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
     public void SetZoomPercent(double percent) => SetFixedZoom(percent);
 
     /// <summary>The page-surface width after rotation and the active display mode are applied.</summary>
-    public double PageSurfaceWidth => BasePageWidthAfterRotation * OverlayZoomFactor;
+    public double PageSurfaceWidth => BasePageWidthAfterRotation * OverlayZoomFactor * (IsContinuousLayout ? 1 : SlotPageCount);
 
     /// <summary>The page-surface height after rotation and the active display mode are applied.</summary>
     public double PageSurfaceHeight => BasePageHeightAfterRotation * OverlayZoomFactor;
@@ -845,6 +973,8 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
                   ? _pageWidthPoints / Math.Max(1.0, _pageHeightPoints)
                   : _pageHeightPoints / Math.Max(1.0, _pageWidthPoints));
 
+    private int FitSlotCount => IsContinuousLayout ? 1 : SlotPageCount;
+
     private double FitWidthScale
     {
         get
@@ -855,7 +985,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             }
 
             return Math.Clamp(
-                Math.Max(1.0, _pageViewportWidth - PageSurfacePadding) / BasePageWidthAfterRotation,
+                Math.Max(1.0, _pageViewportWidth - PageSurfacePadding) / (BasePageWidthAfterRotation * FitSlotCount),
                 0.1,
                 MaximumZoomPercent / 100.0);
         }
@@ -873,7 +1003,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             double availableWidth = Math.Max(1.0, _pageViewportWidth - PageSurfacePadding);
             double availableHeight = Math.Max(1.0, _pageViewportHeight - PageSurfacePadding);
             return Math.Clamp(
-                Math.Min(availableWidth / BasePageWidthAfterRotation, availableHeight / BasePageHeightAfterRotation),
+                Math.Min(availableWidth / (BasePageWidthAfterRotation * FitSlotCount), availableHeight / BasePageHeightAfterRotation),
                 0.1,
                 MaximumZoomPercent / 100.0);
         }
@@ -1089,6 +1219,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         BookId = null;
         PageCount = 0;
         PageImage = null;
+        SecondPageImage = null;
 
         try
         {
@@ -1136,6 +1267,7 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         if (!IsOpen)
         {
             PageImage = null;
+            SecondPageImage = null;
             return;
         }
 
@@ -1157,14 +1289,27 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
         IsOpen = false;
         PageImage = null;
+        SecondPageImage = null;
         StatusMessage = null;
     }
 
     /// <summary>Navigates to the previous page, if available.</summary>
-    public Task GoPreviousAsync() => NavigateToAsync(CurrentPageIndex - 1);
+    public Task GoPreviousAsync()
+    {
+        int from = _requestedPage ?? CurrentPageIndex;
+        return ReaderLayoutPlanner.PreviousSlotStart(DisplayMode, from, PageCount, CoverAlone) is int target
+            ? NavigateToAsync(target)
+            : _navigationLoop;
+    }
 
     /// <summary>Navigates to the next page, if available.</summary>
-    public Task GoNextAsync() => NavigateToAsync(CurrentPageIndex + 1);
+    public Task GoNextAsync()
+    {
+        int from = _requestedPage ?? CurrentPageIndex;
+        return ReaderLayoutPlanner.NextSlotStart(DisplayMode, from, PageCount, CoverAlone) is int target
+            ? NavigateToAsync(target)
+            : _navigationLoop;
+    }
 
     /// <summary>Navigates to the first page, if available.</summary>
     public Task GoFirstAsync() => NavigateToAsync(0);
@@ -1843,29 +1988,61 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task NavigateToAsync(int pageIndex)
+    private Task NavigateToAsync(int pageIndex)
     {
         if (!IsOpen || pageIndex < 0 || pageIndex >= PageCount)
         {
-            return;
+            return _navigationLoop;
         }
 
+        // K108: a page turn pressed while an earlier one is still in flight must add to it.
+        // Only the latest requested page is applied; the steps in between are skipped.
+        _requestedPage = pageIndex;
+        if (_isNavigating)
+        {
+            return _navigationLoop;
+        }
+
+        _isNavigating = true;
+        _navigationLoop = RunNavigationLoopAsync();
+        return _navigationLoop;
+    }
+
+    private async Task RunNavigationLoopAsync()
+    {
         try
         {
-            await _sessions.NavigateToAsync(pageIndex).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (IsRecoverableEngineFailure(exception))
-        {
-            // A lost or stopped worker must never turn a page turn into a crash (K30).
-            // The render path shows the actionable error for the page.
-            AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.navigate");
-        }
+            while (_requestedPage is int target)
+            {
+                try
+                {
+                    await _sessions.NavigateToAsync(target).ConfigureAwait(true);
+                }
+                catch (Exception exception) when (IsRecoverableEngineFailure(exception))
+                {
+                    // A lost or stopped worker must never turn a page turn into a crash (K30).
+                    // The render path shows the actionable error for the page.
+                    AppLog.ViewModelStepIgnored(_logger, exception, nameof(ReaderViewModel), "reader.navigate");
+                }
 
-        ReaderSession? current = _sessions.CurrentSession;
-        if (current is not null && current.CurrentPageIndex == pageIndex)
+                if (_requestedPage != target)
+                {
+                    continue;
+                }
+
+                _requestedPage = null;
+                ReaderSession? current = _sessions.CurrentSession;
+                if (current is not null && current.CurrentPageIndex == target)
+                {
+                    await ApplySessionAsync(current).ConfigureAwait(true);
+                    await RefreshAnnotationsAsync(CancellationToken.None).ConfigureAwait(true);
+                }
+            }
+        }
+        finally
         {
-            await ApplySessionAsync(current).ConfigureAwait(true);
-            await RefreshAnnotationsAsync(CancellationToken.None).ConfigureAwait(true);
+            _requestedPage = null;
+            _isNavigating = false;
         }
     }
 
@@ -1881,12 +2058,20 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
 
     private async Task ApplySessionAsync(ReaderSession session)
     {
+        bool newBook = !string.Equals(BookId, session.BookId, StringComparison.Ordinal);
         BookId = session.BookId;
         PageCount = session.PageCount;
         CurrentPageIndex = session.CurrentPageIndex;
         PageRotationDegrees = session.PageRotationDegrees;
         ZoomMode = session.ZoomMode;
-        DisplayMode = session.DisplayMode;
+        if (newBook)
+        {
+            // The layout is a per-book view preference; a book without one gets the global default.
+            ReaderLayoutChoice layout = _layoutPreferences?.GetForBook(session.BookId) ?? ReaderLayoutChoice.Default;
+            DisplayMode = layout.Mode;
+            CoverAlone = layout.CoverAlone;
+        }
+
         ZoomPercent = session.ZoomPercent;
         IsOpen = true;
         await ApplyPageGeometryAsync().ConfigureAwait(true);
@@ -1950,6 +2135,14 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (IsContinuousLayout)
+        {
+            // The virtualised continuous host renders its own pages through RenderPageBitmapAsync.
+            PageImage = null;
+            SecondPageImage = null;
+            return;
+        }
+
         if (_hasRenderError)
         {
             _hasRenderError = false;
@@ -1968,6 +2161,101 @@ public sealed class ReaderViewModel : INotifyPropertyChanged
         _sessions.UpdateRenderWidth(widthPx);
 
         _ = RenderCurrentPageAsync(renderer, pageIndex, widthPx, cts);
+
+        IReadOnlyList<int> slot = ReaderLayoutPlanner.PagesInSlot(DisplayMode, pageIndex, PageCount, CoverAlone);
+        if (DisplayMode == DisplayMode.TwoPage && slot.Count > 1)
+        {
+            _ = RenderSecondPageAsync(slot[1], widthPx, cts);
+        }
+        else
+        {
+            SecondPageImage = null;
+        }
+    }
+
+    private async Task RenderSecondPageAsync(int pageIndex, int widthPx, CancellationTokenSource cts)
+    {
+        try
+        {
+            Bitmap? bitmap = await RenderPageBitmapAsync(pageIndex, widthPx, cts.Token).ConfigureAwait(false);
+            if (bitmap is null)
+            {
+                return;
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (cts.Token.IsCancellationRequested || !HasSecondPage)
+                {
+                    bitmap.Dispose();
+                    return;
+                }
+
+                SecondPageImage = bitmap;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer navigation.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The renderer was disposed as the document closed mid-render.
+        }
+#pragma warning disable CA1031 // The right-hand page failing must not break the left-hand page.
+        catch (Exception exception)
+        {
+            AppLog.ReaderRenderFailed(_logger, exception, pageIndex);
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <summary>
+    /// Renders one page to a bitmap through the shared render cache, off the UI thread. Used by
+    /// the spread's second page and by the virtualised continuous host, which owns the result.
+    /// </summary>
+    /// <param name="pageIndex">The zero-based page to render.</param>
+    /// <param name="widthPx">The raster width; defaults to the current device-resolution width.</param>
+    /// <param name="cancellationToken">A token cancelling the render.</param>
+    /// <returns>The bitmap, or <see langword="null"/> when no renderer is available.</returns>
+    public async Task<Bitmap?> RenderPageBitmapAsync(
+        int pageIndex, int? widthPx = null, CancellationToken cancellationToken = default)
+    {
+        IPdfRenderer? renderer = _sessions.CurrentRenderer;
+        if (!IsOpen || BookId is not { } bookId || renderer is null || pageIndex < 0 || pageIndex >= PageCount)
+        {
+            return null;
+        }
+
+        var request = new RenderRequest(widthPx ?? CurrentRenderWidthPx);
+        RenderResult result = _renderCache is not null
+            ? await _renderCache.GetOrRenderAsync(bookId, pageIndex, request, cancellationToken).ConfigureAwait(false)
+            : await renderer.RenderPageAsync(pageIndex, request, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return await Task.Run(
+            () =>
+            {
+                using var stream = new MemoryStream(result.PngBytes, writable: false);
+                return new Bitmap(stream);
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Called by the continuous host when the page under the viewport centre changes, so the
+    /// page field follows the scroll position and the position is saved with the book.
+    /// </summary>
+    /// <param name="pageIndex">The zero-based page under the viewport centre.</param>
+    public void NotifyContinuousCentrePage(int pageIndex)
+    {
+        if (!IsOpen || !IsContinuousLayout || pageIndex < 0 || pageIndex >= PageCount || pageIndex == CurrentPageIndex)
+        {
+            return;
+        }
+
+        // The host already shows this page, so only the session position and the field move.
+        _ = _sessions.NavigateToAsync(pageIndex);
+        CurrentPageIndex = pageIndex;
     }
 
     private async Task RenderCurrentPageAsync(

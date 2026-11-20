@@ -32,6 +32,7 @@ internal sealed class ReaderModule : IOgmaModuleRegistrar
             sp.GetRequiredService<IClassroomHostConnectionService>(),
             sp.GetRequiredService<IClassroomBookFileMaterializer>()));
         services.AddSingleton<IReadingProgressService, ReadingProgressService>();
+        services.AddSingleton<IReaderLayoutPreferences>(_ => new JsonReaderLayoutPreferences(options.DataDirectory));
         services.AddSingleton<PageRenderCache>(sp => new PageRenderCache(
             sp.GetRequiredService<IPdfRendererFactory>(),
             sp.GetRequiredService<IBenchmarkContext>()));

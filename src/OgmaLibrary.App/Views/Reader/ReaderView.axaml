@@ -108,6 +108,12 @@
               <MenuItem Header="{Binding LayoutSingleLabel}" Tag="SinglePage" Click="LayoutItem_Click" />
               <MenuItem Header="{Binding LayoutTwoPageLabel}" Tag="TwoPage" Click="LayoutItem_Click" />
               <MenuItem Header="{Binding LayoutContinuousLabel}" Tag="Continuous" Click="LayoutItem_Click" />
+              <Separator />
+              <MenuItem Header="{Binding CoverAloneLabel}"
+                        ToggleType="CheckBox"
+                        IsChecked="{Binding CoverAlone, Mode=OneWay}"
+                        AutomationProperties.AutomationId="Reader.Layout.CoverAlone"
+                        Click="CoverAloneItem_Click" />
             </MenuFlyout>
           </DropDownButton.Flyout>
         </DropDownButton>
@@ -261,6 +267,7 @@
                     reader:ReaderRenderScaling.IsEnabled="True"
                     Focusable="True">
         <Border x:Name="PageSurface"
+                IsVisible="{Binding IsPagedLayout}"
                 Margin="20"
                 Width="{Binding PageSurfaceWidth}"
                 Height="{Binding PageSurfaceHeight}"
@@ -274,14 +281,24 @@
                 PointerMoved="PageSurface_PointerMoved"
                 PointerReleased="PageSurface_PointerReleased">
         <Grid RowDefinitions="*,Auto" ClipToBounds="True">
-          <Image Grid.Row="0"
-                 AutomationProperties.AutomationId="Reader.Page"
-                 Source="{Binding PageImage}"
-                 RenderOptions.BitmapInterpolationMode="HighQuality"
-                 Stretch="Uniform"
-                 HorizontalAlignment="Stretch"
-                 VerticalAlignment="Stretch"
-                 IsVisible="{Binding HasPageImage}" />
+          <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Image AutomationProperties.AutomationId="Reader.Page"
+                   Source="{Binding PageImage}"
+                   Width="{Binding SinglePageSurfaceWidth}"
+                   RenderOptions.BitmapInterpolationMode="HighQuality"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Stretch"
+                   IsVisible="{Binding HasPageImage}" />
+            <Image AutomationProperties.AutomationId="Reader.PageSecond"
+                   Source="{Binding SecondPageImage}"
+                   Width="{Binding SinglePageSurfaceWidth}"
+                   RenderOptions.BitmapInterpolationMode="HighQuality"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Stretch"
+                   IsVisible="{Binding HasSecondPage}" />
+          </StackPanel>
 
           <TextBlock Grid.Row="0"
                      Text="{Binding PageStatusText}"
@@ -309,7 +326,8 @@
 
           <ItemsControl Grid.Row="0"
                         ItemsSource="{Binding AnnotationOverlays}"
-                        Width="{Binding PageSurfaceWidth}"
+                        HorizontalAlignment="Left"
+                        Width="{Binding SinglePageSurfaceWidth}"
                         Height="{Binding PageSurfaceHeight}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -492,6 +510,12 @@
         </Border>
       </ScrollViewer>
 
+      <reader:ContinuousPageHost x:Name="ContinuousHost"
+                                 Grid.Column="0"
+                                 IsVisible="{Binding IsContinuousLayout}"
+                                 AutomationProperties.AutomationId="Reader.Continuous"
+                                 AutomationProperties.Name="{Binding ReaderTitle}" />
+
       <!-- Edge click zones: optional page turning without a second navigation row. -->
       <Button Grid.Column="0"
               HorizontalAlignment="Left"
@@ -500,6 +524,7 @@
               Classes="edge-zone"
               IsTabStop="False"
               IsEnabled="{Binding CanGoPrevious}"
+              IsVisible="{Binding IsPagedLayout}"
               Cursor="Hand"
               AutomationProperties.AutomationId="Reader.EdgePrev"
               AutomationProperties.Name="{Binding PreviousPageLabel}"
@@ -513,6 +538,7 @@
               Classes="edge-zone"
               IsTabStop="False"
               IsEnabled="{Binding CanGoNext}"
+              IsVisible="{Binding IsPagedLayout}"
               Cursor="Hand"
               AutomationProperties.AutomationId="Reader.EdgeNext"
               AutomationProperties.Name="{Binding NextPageLabel}"

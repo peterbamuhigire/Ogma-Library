@@ -249,6 +249,27 @@ public sealed class PageRenderCacheTests
     }
 
     [Fact]
+    public async Task RenderCache_EvictsBeyondByteBudget()
+    {
+        // The continuous layout leans on this: a long scroll must never grow memory without bound.
+        var mockRenderer = new MockPdfRenderer(200);
+        var factory = new MockPdfRendererFactory(_ => mockRenderer);
+        using var cache = CreateCache(factory, memoryBudget: 1000);
+        cache.SetRenderer("book1", mockRenderer);
+
+        var request = new RenderRequest(800);
+        long peak = 0;
+        for (int i = 0; i < 120; i++)
+        {
+            await cache.GetOrRenderAsync("book1", i, request, CancellationToken.None);
+            peak = Math.Max(peak, cache.MemoryUsageBytes);
+        }
+
+        Assert.True(peak <= 1000, $"Peak {peak} exceeded the 1000-byte budget.");
+        Assert.True(cache.MemoryUsageBytes > 0, "The newest pages stay cached.");
+    }
+
+    [Fact]
     public void CancelOutside_CancelsPendingRendersForOtherPages()
     {
         var mockRenderer = new MockPdfRenderer(10) { RenderDelayMs = 200 };
