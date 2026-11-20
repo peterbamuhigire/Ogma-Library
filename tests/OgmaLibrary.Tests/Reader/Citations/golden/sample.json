@@ -1,0 +1,14 @@
+[
+  {
+    "id": "book-123-p42",
+    "type": "book",
+    "title": "Élan & Grace: 100% of the \"Craft\"",
+    "author": [
+      {
+        "literal": "Marie Dupré"
+      }
+    ],
+    "page": "42",
+    "note": "A line with {braces}, an underscore_here and\na second line."
+  }
+]

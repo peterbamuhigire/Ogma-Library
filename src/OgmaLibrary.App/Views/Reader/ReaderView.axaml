@@ -14,6 +14,18 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
+    <Style Selector="Thumb.side-panel-resize">
+      <Setter Property="Cursor" Value="SizeWestEast" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" />
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="Thumb.side-panel-resize:pointerover, Thumb.side-panel-resize:focus-visible">
+      <Setter Property="Background" Value="{DynamicResource Brush.Focus}" />
+    </Style>
   </UserControl.Styles>
 
   <Grid RowDefinitions="Auto,Auto,*"
@@ -243,6 +255,7 @@
 
         <DropDownButton Grid.Column="7"
                         Classes="tool"
+                        HotKey="Alt+M"
                         AutomationProperties.AutomationId="Reader.More"
                         AutomationProperties.Name="{Binding MoreMenuLabel}"
                         ToolTip.Tip="{Binding MoreMenuLabel}">
@@ -264,7 +277,7 @@
         <ToggleButton Grid.Column="8"
                       Classes="tool"
                       IsChecked="{Binding IsSidePanelOpen, Mode=OneWay}"
-                      AutomationProperties.AutomationId="Reader.SidePanelToggle"
+                      AutomationProperties.AutomationId="Reader.SidePanel.Toggle"
                       AutomationProperties.Name="{Binding SidePanelToggleLabel}"
                       ToolTip.Tip="{Binding SidePanelToggleLabel}"
                       Click="SidePanelToggle_Click">
@@ -596,6 +609,58 @@
                     <TextBlock Text="{Binding CopyCitationLabel}" />
                   </StackPanel>
                 </Button>
+                <DropDownButton Padding="10,6"
+                                AutomationProperties.AutomationId="Reader.Citation.CopyAs"
+                                AutomationProperties.Name="{Binding CopyCitationAsLabel}">
+                  <DropDownButton.Content>
+                    <TextBlock Text="{Binding CopyCitationAsLabel}" />
+                  </DropDownButton.Content>
+                  <DropDownButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="{Binding CitationFormatPlainTextLabel}" Tag="PlainText"
+                                AutomationProperties.AutomationId="Reader.Citation.CopyAs.PlainText"
+                                Click="CopyCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatBibTeXLabel}" Tag="BibTeX"
+                                AutomationProperties.AutomationId="Reader.Citation.CopyAs.BibTeX"
+                                Click="CopyCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatRisLabel}" Tag="Ris"
+                                AutomationProperties.AutomationId="Reader.Citation.CopyAs.Ris"
+                                Click="CopyCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatCslJsonLabel}" Tag="CslJson"
+                                AutomationProperties.AutomationId="Reader.Citation.CopyAs.CslJson"
+                                Click="CopyCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatMarkdownLabel}" Tag="Markdown"
+                                AutomationProperties.AutomationId="Reader.Citation.CopyAs.Markdown"
+                                Click="CopyCitationAsItem_Click" />
+                    </MenuFlyout>
+                  </DropDownButton.Flyout>
+                </DropDownButton>
+                <DropDownButton Padding="10,6"
+                                AutomationProperties.AutomationId="Reader.Citation.SaveAs"
+                                AutomationProperties.Name="{Binding SaveCitationAsLabel}">
+                  <DropDownButton.Content>
+                    <TextBlock Text="{Binding SaveCitationAsLabel}" />
+                  </DropDownButton.Content>
+                  <DropDownButton.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="{Binding CitationFormatPlainTextLabel}" Tag="PlainText"
+                                AutomationProperties.AutomationId="Reader.Citation.SaveAs.PlainText"
+                                Click="SaveCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatBibTeXLabel}" Tag="BibTeX"
+                                AutomationProperties.AutomationId="Reader.Citation.SaveAs.BibTeX"
+                                Click="SaveCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatRisLabel}" Tag="Ris"
+                                AutomationProperties.AutomationId="Reader.Citation.SaveAs.Ris"
+                                Click="SaveCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatCslJsonLabel}" Tag="CslJson"
+                                AutomationProperties.AutomationId="Reader.Citation.SaveAs.CslJson"
+                                Click="SaveCitationAsItem_Click" />
+                      <MenuItem Header="{Binding CitationFormatMarkdownLabel}" Tag="Markdown"
+                                AutomationProperties.AutomationId="Reader.Citation.SaveAs.Markdown"
+                                Click="SaveCitationAsItem_Click" />
+                    </MenuFlyout>
+                  </DropDownButton.Flyout>
+                </DropDownButton>
                 <Button Classes="primary" Padding="10,6"
                         CornerRadius="{DynamicResource Radius.S}"
                         AutomationProperties.Name="{Binding ExportCitationLabel}"
@@ -650,19 +715,29 @@
               Click="NextButton_Click" />
 
       <Border Grid.Column="1"
-              Width="320"
+              Width="{Binding SidePanelWidth}"
               IsVisible="{Binding IsSidePanelOpen}"
               BorderBrush="{DynamicResource Brush.Surface.CardBorder}"
               BorderThickness="1,0,0,0"
               Background="{DynamicResource Brush.Surface.Card}">
-        <TabControl SelectedIndex="{Binding SelectedSidebarTabIndex, Mode=TwoWay}">
+        <Grid>
+        <TabControl SelectedIndex="{Binding SelectedSidebarTabIndex, Mode=TwoWay}"
+                    AutomationProperties.AutomationId="Reader.SidePanel.Tabs">
+          <TabControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+          </TabControl.ItemsPanel>
           <TabItem AutomationProperties.Name="{Binding AnnotationPanelLabel}">
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6"
+                          ToolTip.Tip="{Binding AnnotationPanelLabel}">
                 <svg:Svg Width="16"
                          Height="16"
                          Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_annotation_panel.svg" />
-                <TextBlock Text="{Binding AnnotationPanelLabel}" />
+                <TextBlock Text="{Binding AnnotationPanelLabel}"
+                           IsVisible="{Binding ShowSidePanelTabLabels}"
+                           TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </TabItem.Header>
             <Grid RowDefinitions="Auto,*,Auto" Margin="12">
@@ -773,11 +848,14 @@
 
           <TabItem AutomationProperties.Name="{Binding BookmarkPanelLabel}">
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6"
+                          ToolTip.Tip="{Binding BookmarkPanelLabel}">
                 <svg:Svg Width="16"
                          Height="16"
                          Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_bookmark_panel.svg" />
-                <TextBlock Text="{Binding BookmarkPanelLabel}" />
+                <TextBlock Text="{Binding BookmarkPanelLabel}"
+                           IsVisible="{Binding ShowSidePanelTabLabels}"
+                           TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </TabItem.Header>
             <Grid RowDefinitions="Auto,Auto,*" Margin="12">
@@ -867,11 +945,14 @@
 
           <TabItem AutomationProperties.Name="{Binding LayerPanelLabel}">
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6"
+                          ToolTip.Tip="{Binding LayerPanelLabel}">
                 <svg:Svg Width="16"
                          Height="16"
                          Path="avares://OgmaLibrary.App/Assets/icons/reader/annotations/ic_layer_panel.svg" />
-                <TextBlock Text="{Binding LayerPanelLabel}" />
+                <TextBlock Text="{Binding LayerPanelLabel}"
+                           IsVisible="{Binding ShowSidePanelTabLabels}"
+                           TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </TabItem.Header>
             <Grid RowDefinitions="Auto,Auto,*" Margin="12">
@@ -979,11 +1060,14 @@
 
           <TabItem AutomationProperties.Name="{Binding ReadingMemoryLabel}">
             <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6"
+                          ToolTip.Tip="{Binding ReadingMemoryLabel}">
                 <svg:Svg Width="16"
                          Height="16"
                          Path="avares://OgmaLibrary.App/Assets/icons/reader/memory/ic_reading_memory.svg" />
-                <TextBlock Text="{Binding ReadingMemoryLabel}" />
+                <TextBlock Text="{Binding ReadingMemoryLabel}"
+                           IsVisible="{Binding ShowSidePanelTabLabels}"
+                           TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </TabItem.Header>
             <ScrollViewer Margin="12">
@@ -1054,7 +1138,13 @@
           <TabItem AutomationProperties.Name="{Binding ContentsTabLabel}"
                    AutomationProperties.AutomationId="Reader.Contents.Tab">
             <TabItem.Header>
-              <TextBlock Text="{Binding ContentsTabLabel}" />
+              <StackPanel Orientation="Horizontal" Spacing="6"
+                          ToolTip.Tip="{Binding ContentsTabLabel}">
+                <TextBlock Text="&#x2261;" FontSize="{DynamicResource Type.Size.Subtitle}" FontWeight="Bold" />
+                <TextBlock Text="{Binding ContentsTabLabel}"
+                           IsVisible="{Binding ShowSidePanelTabLabels}"
+                           TextTrimming="CharacterEllipsis" />
+              </StackPanel>
             </TabItem.Header>
             <Grid Margin="12">
               <ListBox x:Name="ContentsList"
@@ -1132,6 +1222,20 @@
             </Grid>
           </TabItem>
         </TabControl>
+        <Thumb x:Name="SidePanelResizeHandle"
+               Classes="side-panel-resize"
+               Width="6"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Stretch"
+               Focusable="True"
+               IsTabStop="True"
+               AutomationProperties.AutomationId="Reader.SidePanel.ResizeHandle"
+               AutomationProperties.Name="{Binding SidePanelResizeHandleLabel}"
+               ToolTip.Tip="{Binding SidePanelResizeHandleLabel}"
+               DragDelta="SidePanelResizeHandle_DragDelta"
+               DragCompleted="SidePanelResizeHandle_DragCompleted"
+               KeyDown="SidePanelResizeHandle_KeyDown" />
+        </Grid>
       </Border>
     </Grid>
   </Grid>

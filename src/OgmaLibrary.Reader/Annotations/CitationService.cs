@@ -81,7 +81,28 @@ public sealed class CitationService : ICitationService
     }
 
     /// <inheritdoc />
-    public async Task<string> ExportAsync(CitationCard card, CancellationToken cancellationToken)
+    public string Format(CitationCard card, CitationFormat format)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        return _localization is null
+            ? CitationFormatter.Format(card, format)
+            : CitationFormatter.Format(
+                card,
+                format,
+                _localization["Citation.UnknownAuthor"],
+                _localization["Citation.UnknownTitle"],
+                _localization["Citation.PageFormat"]);
+    }
+
+    /// <inheritdoc />
+    public Task<string> ExportAsync(CitationCard card, CancellationToken cancellationToken) =>
+        ExportAsync(card, CitationFormat.PlainText, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<string> ExportAsync(
+        CitationCard card,
+        CitationFormat format,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(card);
 
@@ -92,24 +113,20 @@ public sealed class CitationService : ICitationService
 
         string sidecarKey = await ResolveSidecarKeyAsync(card.BookId, cancellationToken)
             .ConfigureAwait(false);
-        string plainText = ToLocalizedPlainText(card);
-        string digest = ShortDigest(plainText);
+        string text = Format(card, format);
+        string digest = ShortDigest(text);
         string variant = FormattableString.Invariant($"_p{card.PageNumber:000}_{digest}");
         string path = _sidecar.Resolve(sidecarKey, SidecarClass.CitationExports, variant);
+        if (format != CitationFormat.PlainText)
+        {
+            path = Path.ChangeExtension(path, CitationFormatInfo.Extension(format));
+        }
 
-        await File.WriteAllTextAsync(path, plainText, Encoding.UTF8, cancellationToken)
+        await File.WriteAllTextAsync(path, text, Encoding.UTF8, cancellationToken)
             .ConfigureAwait(false);
 
         return path;
     }
-
-    private string ToLocalizedPlainText(CitationCard card) =>
-        _localization is null
-            ? card.ToPlainText()
-            : card.ToPlainText(
-                _localization["Citation.UnknownAuthor"],
-                _localization["Citation.UnknownTitle"],
-                _localization["Citation.PageFormat"]);
 
     private async Task<string> ResolveSidecarKeyAsync(string bookId, CancellationToken cancellationToken)
     {

@@ -20,6 +20,8 @@ public sealed class JsonReaderLayoutPreferences : IReaderLayoutPreferences
 
         public bool DefaultCoverAlone { get; set; } = true;
 
+        public double SidePanelWidth { get; set; } = ReaderSidePanelWidths.Default;
+
         public Dictionary<string, BookDto> Books { get; set; } = [];
     }
 
@@ -84,6 +86,28 @@ public sealed class JsonReaderLayoutPreferences : IReaderLayoutPreferences
         lock (_lock)
         {
             _state.Books[bookId] = new BookDto { Mode = Sanitise(choice.Mode), CoverAlone = choice.CoverAlone };
+            Save();
+        }
+    }
+
+    /// <inheritdoc />
+    public double SidePanelWidth
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return ReaderSidePanelWidths.Clamp(_state.SidePanelWidth);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public void SetSidePanelWidth(double width)
+    {
+        lock (_lock)
+        {
+            _state.SidePanelWidth = ReaderSidePanelWidths.Clamp(width);
             Save();
         }
     }

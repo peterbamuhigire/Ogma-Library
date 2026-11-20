@@ -1015,6 +1015,8 @@ public sealed partial class MainShellViewModel
                 _ => ExportDiagnostics?.Invoke() ?? Task.CompletedTask, () => ExportDiagnostics is not null))
             .Add(new ShellCommand("app.about", "Command.App.About", CommandGroup.App,
                 topLevel => ShowAbout?.Invoke(topLevel) ?? Task.CompletedTask, () => ShowAbout is not null));
+        // Sept-23 Phase 12 (READ-013, UX-005): every reader action is a registered command.
+        ReaderCommands.Register(registry, () => Reader, () => IsReaderFocusMode);
         return registry;
     }
 

@@ -91,6 +91,28 @@ public sealed class ReadingProgressService : IReadingProgressService, IDisposabl
     }
 
     /// <inheritdoc />
+    public async Task FlushAsync(CancellationToken ct)
+    {
+        List<(string BookId, ReaderProgress Progress)> due;
+        lock (_lock)
+        {
+            due = [];
+            foreach ((string bookId, (Timer timer, ReaderProgress progress)) in _pending)
+            {
+                timer.Dispose();
+                due.Add((bookId, progress));
+            }
+
+            _pending.Clear();
+        }
+
+        foreach ((string bookId, ReaderProgress progress) in due)
+        {
+            await PersistAsync(bookId, progress, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         lock (_lock)

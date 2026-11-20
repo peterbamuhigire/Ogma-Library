@@ -136,6 +136,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         _renderCache = renderCache;
         _portability = portability;
         _layoutPreferences = layoutPreferences;
+        _sidePanelWidth = layoutPreferences?.SidePanelWidth ?? ReaderSidePanelWidths.Default;
         _search = search;
         _logger = logger ?? (ILogger)NullLogger.Instance;
 
@@ -683,6 +684,8 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
 
     private DisplayMode _displayMode = DisplayMode.SinglePage;
     private bool _isSidePanelOpen = true;
+    private double _sidePanelWidth = ReaderSidePanelWidths.Default;
+    private bool _sidePanelWidthDirty;
 
     /// <summary>Raised when the reader toolbar asks the shell to close the book and return to the library.</summary>
     public event EventHandler? BackToLibraryRequested;
@@ -820,6 +823,43 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Asks the shell to close the book and return to the library.</summary>
     public void RequestBackToLibrary() => BackToLibraryRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>The width of the side panel, in device-independent pixels.</summary>
+    public double SidePanelWidth => _sidePanelWidth;
+
+    /// <summary>
+    /// Sets the live width while the user drags or steps the resize handle. Call
+    /// <see cref="CommitSidePanelWidth"/> when the gesture ends (D-82).
+    /// </summary>
+    /// <param name="width">The requested width; it is clamped to the supported range.</param>
+    public void ResizeSidePanel(double width)
+    {
+        double clamped = ReaderSidePanelWidths.Clamp(width);
+        if (Math.Abs(clamped - _sidePanelWidth) < 0.5)
+        {
+            return;
+        }
+
+        _sidePanelWidth = clamped;
+        _sidePanelWidthDirty = true;
+        OnPropertyChanged(nameof(SidePanelWidth));
+        OnPropertyChanged(nameof(ShowSidePanelTabLabels));
+    }
+
+    /// <summary>Saves the side panel width if it changed since the last save.</summary>
+    public void CommitSidePanelWidth()
+    {
+        if (!_sidePanelWidthDirty)
+        {
+            return;
+        }
+
+        _sidePanelWidthDirty = false;
+        _layoutPreferences?.SetSidePanelWidth(_sidePanelWidth);
+    }
+
+    /// <summary>Asks the view to focus the page field so the user can type a page number.</summary>
+    public void RequestGoToPageFocus() => GoToPageFocusRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Shows or hides the side panel.</summary>
     public void ToggleSidePanel() => IsSidePanelOpen = !IsSidePanelOpen;
@@ -1125,6 +1165,41 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
 
     /// <summary>Localized label for copying a citation.</summary>
     public string CopyCitationLabel => _localization["Citation.Copy"];
+
+    /// <summary>Localized label for the copy-as menu.</summary>
+    public string CopyCitationAsLabel => _localization["Citation.CopyAs"];
+
+    /// <summary>Localized label for the save-as menu.</summary>
+    public string SaveCitationAsLabel => _localization["Citation.SaveAs"];
+
+    /// <summary>Label of the plain-text citation format.</summary>
+    public string CitationFormatPlainTextLabel => CitationFormatLabel(CitationFormat.PlainText);
+
+    /// <summary>Label of the BibTeX citation format.</summary>
+    public string CitationFormatBibTeXLabel => CitationFormatLabel(CitationFormat.BibTeX);
+
+    /// <summary>Label of the RIS citation format.</summary>
+    public string CitationFormatRisLabel => CitationFormatLabel(CitationFormat.Ris);
+
+    /// <summary>Label of the CSL-JSON citation format.</summary>
+    public string CitationFormatCslJsonLabel => CitationFormatLabel(CitationFormat.CslJson);
+
+    /// <summary>Label of the Markdown citation format.</summary>
+    public string CitationFormatMarkdownLabel => CitationFormatLabel(CitationFormat.Markdown);
+
+    /// <summary>Accessible name of the side panel resize handle.</summary>
+    public string SidePanelResizeHandleLabel => _localization["Reader.SidePanel.ResizeHandle"];
+
+    /// <summary>
+    /// Whether the side-panel tab headers show their text as well as their icon. At the narrowest
+    /// width the headers are icons with tooltips so all five stay on one row.
+    /// </summary>
+    public bool ShowSidePanelTabLabels => _sidePanelWidth >= 560;
+
+    /// <summary>Localized label of a citation format.</summary>
+    /// <param name="format">The format.</param>
+    /// <returns>The label.</returns>
+    public string CitationFormatLabel(CitationFormat format) => _localization["Citation.Format." + format];
 
     /// <summary>Localized label for exporting a citation.</summary>
     public string ExportCitationLabel => _localization["Citation.Export"];
@@ -1958,15 +2033,31 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
     /// <summary>Marks the current citation as copied/exported for the reader status bar.</summary>
     public void MarkCitationCopied() => StatusMessage = _localization["Citation.Copied"];
 
+    /// <summary>Reports that the citation was saved to a file the user chose.</summary>
+    public void MarkCitationSaved() => StatusMessage = _localization["Citation.Exported"];
+
     /// <summary>Exports the current citation card to a plain-text sidecar file.</summary>
-    public async Task<string?> ExportCitationAsync(CancellationToken cancellationToken = default)
+    public Task<string?> ExportCitationAsync(CancellationToken cancellationToken = default) =>
+        ExportCitationAsync(CitationFormat.PlainText, cancellationToken);
+
+    /// <summary>Formats the current citation card, or returns an empty string when none is open.</summary>
+    /// <param name="format">The target format.</param>
+    /// <returns>The formatted citation.</returns>
+    public string FormatCitation(CitationFormat format) =>
+        _currentCitationCard is null ? string.Empty : _citations.Format(_currentCitationCard, format);
+
+    /// <summary>Exports the current citation card to a sidecar file in the given format.</summary>
+    /// <param name="format">The target format.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The written path, or <see langword="null"/> when no card is open.</returns>
+    public async Task<string?> ExportCitationAsync(CitationFormat format, CancellationToken cancellationToken = default)
     {
         if (_currentCitationCard is null)
         {
             return null;
         }
 
-        string path = await _citations.ExportAsync(_currentCitationCard, cancellationToken)
+        string path = await _citations.ExportAsync(_currentCitationCard, format, cancellationToken)
             .ConfigureAwait(true);
         StatusMessage = _localization["Citation.Exported"];
         return path;
@@ -3052,6 +3143,14 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SaveReadingMemoryLabel));
         OnPropertyChanged(nameof(CaptureCitationLabel));
         OnPropertyChanged(nameof(CopyCitationLabel));
+        OnPropertyChanged(nameof(CopyCitationAsLabel));
+        OnPropertyChanged(nameof(SaveCitationAsLabel));
+        OnPropertyChanged(nameof(CitationFormatPlainTextLabel));
+        OnPropertyChanged(nameof(CitationFormatBibTeXLabel));
+        OnPropertyChanged(nameof(CitationFormatRisLabel));
+        OnPropertyChanged(nameof(CitationFormatCslJsonLabel));
+        OnPropertyChanged(nameof(CitationFormatMarkdownLabel));
+        OnPropertyChanged(nameof(SidePanelResizeHandleLabel));
         OnPropertyChanged(nameof(ExportCitationLabel));
         OnPropertyChanged(nameof(ExportReaderStateLabel));
         OnPropertyChanged(nameof(ImportReaderStateLabel));

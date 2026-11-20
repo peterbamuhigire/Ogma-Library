@@ -1,5 +1,24 @@
 namespace OgmaLibrary.Application.Reader;
 
+/// <summary>Limits for the reader side panel width.</summary>
+public static class ReaderSidePanelWidths
+{
+    /// <summary>The narrowest width; four tab headers fit on one row at this width.</summary>
+    public const double Minimum = 320;
+
+    /// <summary>The widest width.</summary>
+    public const double Maximum = 640;
+
+    /// <summary>The width used until the user resizes the panel.</summary>
+    public const double Default = 320;
+
+    /// <summary>Clamps a width into the supported range; a non-finite value gives the default.</summary>
+    /// <param name="width">The requested width.</param>
+    /// <returns>The clamped width.</returns>
+    public static double Clamp(double width) =>
+        double.IsFinite(width) ? Math.Clamp(width, Minimum, Maximum) : Default;
+}
+
 /// <summary>A reader page layout and its spread option (FR-READ-004).</summary>
 /// <param name="Mode">The page display mode.</param>
 /// <param name="CoverAlone">Whether a spread shows the cover alone before pairing the rest.</param>
@@ -30,4 +49,11 @@ public interface IReaderLayoutPreferences
     /// <param name="bookId">The book identifier.</param>
     /// <param name="choice">The layout to remember.</param>
     void SetForBook(string bookId, ReaderLayoutChoice choice);
+
+    /// <summary>The saved width of the reader side panel, in device-independent pixels.</summary>
+    double SidePanelWidth { get; }
+
+    /// <summary>Saves the side panel width.</summary>
+    /// <param name="width">The width; the store clamps it to the supported range.</param>
+    void SetSidePanelWidth(double width);
 }

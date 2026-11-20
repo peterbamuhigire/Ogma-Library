@@ -1300,7 +1300,9 @@ public sealed partial class ShellReaderNavigationTests
                 pageIndex + 1,
                 selectedText));
 
-        public Task<string> ExportAsync(CitationCard card, CancellationToken cancellationToken) =>
+        public string Format(CitationCard card, CitationFormat format) => card.ToPlainText();
+
+        public Task<string> ExportAsync(CitationCard card, CitationFormat format, CancellationToken cancellationToken) =>
             Task.FromResult(Path.Combine(Path.GetTempPath(), "citation.txt"));
     }
 

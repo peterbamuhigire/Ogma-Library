@@ -123,6 +123,9 @@ public sealed class ReaderSessionEngineResilienceTests : IDisposable
 
         public Task SaveImmediateAsync(string bookId, ReaderProgress progress, CancellationToken ct) => Task.CompletedTask;
 
+        public Task FlushAsync(CancellationToken ct) => Task.CompletedTask;
+
+
         public void ScheduleSave(string bookId, ReaderProgress progress)
         {
         }

@@ -17,6 +17,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Diagnostics;
 using OgmaLibrary.Application.Ingestion;
+using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Infrastructure.Diagnostics;
 using OgmaLibrary.Infrastructure.Localization;
 
@@ -29,6 +30,7 @@ public sealed class App : Avalonia.Application, IDisposable
     private readonly ILogger _logger = AppDiagnostics.CreateLogger<App>();
 
     private static readonly TimeSpan ShutdownBudget = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan ReaderFlushBudget = TimeSpan.FromSeconds(1.5);
 
     private static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(1);
     private NotificationCenterViewModel? _notifications;
@@ -434,7 +436,16 @@ public sealed class App : Avalonia.Application, IDisposable
             // the UI thread never waits indefinitely, so closing the window always exits.
             using var stopBudget = new CancellationTokenSource(ShutdownBudget);
             IServiceProvider services = _services;
-            Task stopping = Task.Run(() => ApplicationStartup.StopAsync(services, stopBudget.Token));
+            Task stopping = Task.Run(async () =>
+            {
+                // Save the reading position first (READ-013): a page turned in the last 500 ms
+                // would otherwise be lost. Bounded, and a failure never blocks exit.
+                await ReaderShutdown.FlushAsync(
+                    services.GetService<IReaderSessionService>(),
+                    services.GetService<IReadingProgressService>(),
+                    ReaderFlushBudget).ConfigureAwait(false);
+                await ApplicationStartup.StopAsync(services, stopBudget.Token).ConfigureAwait(false);
+            });
             if (!stopping.Wait(ShutdownBudget + ShutdownGrace))
             {
                 AppLog.ShutdownBudgetExceeded(_logger, (int)(ShutdownBudget + ShutdownGrace).TotalMilliseconds);

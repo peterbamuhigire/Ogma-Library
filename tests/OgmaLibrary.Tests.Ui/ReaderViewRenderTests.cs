@@ -17,6 +17,7 @@ using OgmaLibrary.Application;
 using OgmaLibrary.Application.Reader;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.Localization;
+using OgmaLibrary.Reader.Progress;
 using Xunit;
 
 namespace OgmaLibrary.Tests.Ui;
@@ -3012,6 +3013,40 @@ public sealed class ReaderViewRenderTests
         Assert.Equal(new ReaderLayoutChoice(DisplayMode.TwoPage, true), store.GetForBook("book-a"));
     }
 
+    [AvaloniaFact]
+    public void SidePanel_WidthPersists()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "ogma-sidepanel-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            ReaderViewModel viewModel = NewLayoutViewModel(
+                new FakeReaderSessionService(), out _, new JsonReaderLayoutPreferences(dir));
+            Assert.Equal(ReaderSidePanelWidths.Default, viewModel.SidePanelWidth);
+
+            viewModel.ResizeSidePanel(480);
+            Assert.Equal(480, viewModel.SidePanelWidth);
+            viewModel.CommitSidePanelWidth();
+
+            // A new process (a new preferences store and view model) sees the saved width.
+            ReaderViewModel reopened = NewLayoutViewModel(
+                new FakeReaderSessionService(), out _, new JsonReaderLayoutPreferences(dir));
+            Assert.Equal(480, reopened.SidePanelWidth);
+
+            // Out-of-range widths are clamped, never stored raw.
+            reopened.ResizeSidePanel(5000);
+            Assert.Equal(ReaderSidePanelWidths.Maximum, reopened.SidePanelWidth);
+            reopened.ResizeSidePanel(10);
+            Assert.Equal(ReaderSidePanelWidths.Minimum, reopened.SidePanelWidth);
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
     private static ReaderViewModel NewLayoutViewModel(
         FakeReaderSessionService sessions,
         out InMemoryLocalizationService localization,
@@ -3042,6 +3077,10 @@ public sealed class ReaderViewRenderTests
             _books.TryGetValue(bookId, out ReaderLayoutChoice? choice) ? choice : GlobalDefault;
 
         public void SetForBook(string bookId, ReaderLayoutChoice choice) => _books[bookId] = choice;
+
+        public double SidePanelWidth { get; private set; } = ReaderSidePanelWidths.Default;
+
+        public void SetSidePanelWidth(double width) => SidePanelWidth = ReaderSidePanelWidths.Clamp(width);
     }
 
     private sealed class FakeReaderSessionService : IReaderSessionService
@@ -3628,9 +3667,14 @@ public sealed class ReaderViewRenderTests
                 pageIndex + 1,
                 selectedText));
 
-        public Task<string> ExportAsync(CitationCard card, CancellationToken cancellationToken)
+        public CitationFormat? ExportedFormat { get; private set; }
+
+        public string Format(CitationCard card, CitationFormat format) => card.ToPlainText();
+
+        public Task<string> ExportAsync(CitationCard card, CitationFormat format, CancellationToken cancellationToken)
         {
             ExportedCard = card;
+            ExportedFormat = format;
             return Task.FromResult(Path.Combine(Path.GetTempPath(), "citation.txt"));
         }
     }

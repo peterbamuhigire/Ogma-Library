@@ -23,10 +23,28 @@ public interface ICitationService
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Formats the citation card for the clipboard in the requested format.
+    /// </summary>
+    /// <param name="card">The citation card.</param>
+    /// <param name="format">The target format.</param>
+    /// <returns>The formatted text.</returns>
+    string Format(CitationCard card, CitationFormat format);
+
+    /// <summary>
+    /// Writes the citation card to the library sidecar in the requested format.
+    /// </summary>
+    /// <param name="card">The citation card to export.</param>
+    /// <param name="format">The target format; the file extension follows it.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The absolute path of the written citation file.</returns>
+    Task<string> ExportAsync(CitationCard card, CitationFormat format, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Writes the citation card as plain text to the library sidecar.
     /// </summary>
     /// <param name="card">The citation card to export.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The absolute path of the written citation file.</returns>
-    Task<string> ExportAsync(CitationCard card, CancellationToken cancellationToken);
+    Task<string> ExportAsync(CitationCard card, CancellationToken cancellationToken) =>
+        ExportAsync(card, CitationFormat.PlainText, cancellationToken);
 }

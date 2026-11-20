@@ -36,4 +36,8 @@
     <ProjectReference Include="..\..\src\OgmaLibrary.App\OgmaLibrary.App.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Reader\Citations\golden\*" CopyToOutputDirectory="PreserveNewest" LinkBase="Reader\Citations\golden" />
+  </ItemGroup>
+
 </Project>

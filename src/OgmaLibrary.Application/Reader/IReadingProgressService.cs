@@ -32,6 +32,14 @@ public interface IReadingProgressService
     /// <param name="bookId">The stable book identity.</param>
     /// <param name="progress">The progress to persist.</param>
     void ScheduleSave(string bookId, ReaderProgress progress);
+
+    /// <summary>
+    /// Writes every debounced save that has not fired yet, at once. Used when the application
+    /// exits so a page turn made in the last 500 ms is not lost.
+    /// </summary>
+    /// <param name="ct">A token to cancel the writes.</param>
+    /// <returns>A task that completes when all pending progress is stored.</returns>
+    Task FlushAsync(CancellationToken ct);
 }
 
 /// <summary>

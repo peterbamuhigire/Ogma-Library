@@ -21,6 +21,7 @@ public partial class ReaderView : UserControl
     {
         InitializeComponent();
         DataContextChanged += ReaderView_DataContextChanged;
+        DetachedFromVisualTree += (_, _) => CommitSidePanelWidthNow();
         PageScrollViewer.SizeChanged += PageScrollViewer_SizeChanged;
         ContinuousHost.BitmapProvider = (page, token) =>
             DataContext is ReaderViewModel vm ? vm.RenderPageBitmapAsync(page, null, token) : Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(null);
