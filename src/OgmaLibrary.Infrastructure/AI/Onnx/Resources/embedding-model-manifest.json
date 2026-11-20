@@ -7,6 +7,7 @@
   "queryPrefix": "query: ",
   "passagePrefix": "passage: ",
   "source": "https://huggingface.co/intfloat/multilingual-e5-small/resolve/614241f622f53c4eeff9890bdc4f31cfecc418b3/",
+  "redirectHosts": [ "us.aws.cdn.hf.co" ],
   "files": [
     {
       "role": "model",

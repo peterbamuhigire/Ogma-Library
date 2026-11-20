@@ -50,8 +50,10 @@ public sealed class EmbeddingModelManifest
         string queryPrefix,
         string passagePrefix,
         Uri source,
+        IReadOnlyList<string> allowedDownloadHosts,
         IReadOnlyList<EmbeddingModelFile> files)
     {
+        AllowedDownloadHosts = allowedDownloadHosts;
         ModelId = modelId;
         Revision = revision;
         Licence = licence;
@@ -86,6 +88,13 @@ public sealed class EmbeddingModelManifest
 
     /// <summary>Pinned base URL the files are fetched from after the user consents.</summary>
     public Uri Source { get; }
+
+    /// <summary>
+    /// Hosts a download may reach: the <see cref="Source"/> host first, then the pinned
+    /// redirect hosts (the content-delivery host measured in Phase 14 slice 3). Every
+    /// request and redirect must be HTTPS to one of these.
+    /// </summary>
+    public IReadOnlyList<string> AllowedDownloadHosts { get; }
 
     /// <summary>Every file of the model package.</summary>
     public IReadOnlyList<EmbeddingModelFile> Files { get; }
@@ -131,6 +140,18 @@ public sealed class EmbeddingModelManifest
             Uri.TryCreate(dto.Source, UriKind.Absolute, out Uri? source) && source.Scheme == Uri.UriSchemeHttps,
             "source must be an absolute https URL.");
         Require(dto.Files is { Count: > 0 }, "files are required.");
+        Require(
+            dto.RedirectHosts is null || dto.RedirectHosts.All(IsPlainHost),
+            "redirectHosts must be plain DNS host names.");
+        List<string> hosts = [source!.IdnHost.ToLowerInvariant()];
+        foreach (string host in dto.RedirectHosts ?? [])
+        {
+            string normalized = host.ToLowerInvariant();
+            if (!hosts.Contains(normalized, StringComparer.Ordinal))
+            {
+                hosts.Add(normalized);
+            }
+        }
 
         string folderName = dto.ModelId!.Replace("/", "--", StringComparison.Ordinal);
         Require(IsSafeSegment(folderName), "modelId must map to a plain folder name.");
@@ -160,6 +181,7 @@ public sealed class EmbeddingModelManifest
             dto.QueryPrefix!,
             dto.PassagePrefix!,
             source!,
+            hosts,
             files);
     }
 
@@ -185,6 +207,12 @@ public sealed class EmbeddingModelManifest
         return path.Split('/').All(IsSafeSegment);
     }
 
+    private static bool IsPlainHost(string host) =>
+        host.Length is > 0 and <= 253
+        && Uri.CheckHostName(host) == UriHostNameType.Dns
+        && host.Contains('.', StringComparison.Ordinal)
+        && host.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '.');
+
     private static bool IsSafeSegment(string segment) =>
         segment.Length > 0
         && segment != "."
@@ -208,6 +236,8 @@ public sealed class EmbeddingModelManifest
         public string? PassagePrefix { get; set; }
 
         public string? Source { get; set; }
+
+        public List<string>? RedirectHosts { get; set; }
 
         public List<FileDto>? Files { get; set; }
     }

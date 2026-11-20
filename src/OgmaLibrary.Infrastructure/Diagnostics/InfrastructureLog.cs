@@ -137,4 +137,24 @@ public static partial class InfrastructureLog
     [LoggerMessage(EventId = 5024, EventName = "catalogue.relink.failed", Level = LogLevel.Warning,
         Message = "Relinking a book file failed")]
     public static partial void BookRelinkFailed(ILogger logger, Exception exception);
+
+    /// <summary>A consented embedding-model install reached a terminal outcome (Sept-23 Phase 14).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="outcome">The terminal outcome; URLs and paths are never logged.</param>
+    [LoggerMessage(EventId = 5030, EventName = "embedding.model.install.finished", Level = LogLevel.Information,
+        Message = "Embedding model install finished: {Outcome}")]
+    public static partial void EmbeddingModelInstallFinished(
+        ILogger logger,
+        OgmaLibrary.Application.Search.EmbeddingModelInstallOutcome outcome);
+
+    /// <summary>The semantic provider choice or availability changed (Sept-23 Phase 14).</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="choice">The effective provider choice.</param>
+    /// <param name="available">Whether semantic search can run.</param>
+    [LoggerMessage(EventId = 5031, EventName = "semantic.capability.changed", Level = LogLevel.Information,
+        Message = "Semantic capability changed: provider={Choice} available={Available}")]
+    public static partial void SemanticCapabilityChanged(
+        ILogger logger,
+        OgmaLibrary.Application.Search.SemanticProviderChoice choice,
+        bool available);
 }

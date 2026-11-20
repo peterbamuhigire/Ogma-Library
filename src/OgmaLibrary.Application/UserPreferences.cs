@@ -1,3 +1,5 @@
+using OgmaLibrary.Application.Search;
+
 namespace OgmaLibrary.Application;
 
 /// <summary>Supported application theme choices.</summary>
@@ -39,6 +41,10 @@ public enum UserDensity
 /// The book-detail inspector width in device-independent pixels (Sept-23 Phase 11, 11.9),
 /// clamped to <see cref="MinInspectorWidth"/>–<see cref="MaxInspectorWidth"/>.
 /// </param>
+/// <param name="SemanticProvider">
+/// The semantic search provider (Sept-23 Phase 14, D-103). Files written before schema 4 have
+/// no value and read as <see cref="SemanticProviderChoice.BuiltIn"/>.
+/// </param>
 public sealed record UserPreferences(
     UserTheme Theme = UserTheme.Light,
     UserDensity Density = UserDensity.Comfortable,
@@ -47,13 +53,14 @@ public sealed record UserPreferences(
     bool EnableThreeDimensionalShelf = false,
     bool EnableClassroomHost = false,
     int SchemaVersion = UserPreferences.CurrentSchemaVersion,
-    double InspectorWidth = UserPreferences.DefaultInspectorWidth)
+    double InspectorWidth = UserPreferences.DefaultInspectorWidth,
+    SemanticProviderChoice SemanticProvider = SemanticProviderChoice.BuiltIn)
 {
     /// <summary>
     /// The schema version written by this build (1 = theme and density only; 2 adds language and
-    /// capability switches; 3 adds the inspector width).
+    /// capability switches; 3 adds the inspector width; 4 adds the semantic provider).
     /// </summary>
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     /// <summary>The inspector width used when none is stored.</summary>
     public const double DefaultInspectorWidth = 360;

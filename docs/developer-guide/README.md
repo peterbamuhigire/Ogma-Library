@@ -41,6 +41,8 @@ variable's name.
 | `OGMA_ENABLE_METADATA_PROVIDERS` | Settings → Online services → Look up book details online | `true`/`1` or `false`/`0` |
 | `OGMA_ENABLE_3D_SHELF` | Settings → Optional features → 3D bookshelf (preview) | `true`/`1` or `false`/`0` |
 | `OGMA_ENABLE_CLASSROOM_HOST` | Settings → Optional features → Classroom Host | `true`/`1` or `false`/`0` |
+| `OGMA_SEMANTIC_PROVIDER` | Settings → Search → semantic search provider (default Built-in; Sept-23 Phase 14) | `builtin` (also `built-in`, `onnx`), `ollama` or `off`; any other value is ignored |
+| `OGMA_TEST_EMBEDDING_MODEL_DIR` | Tests only: a verified built-in model folder for the model-gated tests, which skip (NOT ASSESSED) when it is unset | absolute path |
 | `OGMA_LIBRARY_DATA_DIR` | The data folder (tests and E2E always set it) | absolute path |
 | `OGMA_LIBRARY_ROOT` | Adds and scans one library folder at start-up | absolute path |
 

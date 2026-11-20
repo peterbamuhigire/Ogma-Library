@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using OgmaLibrary.Application;
+using OgmaLibrary.Application.Search;
 
 namespace OgmaLibrary.Infrastructure.Ingestion;
 
@@ -132,6 +133,9 @@ public sealed class FileUserPreferencesService : IUserPreferencesService, IDispo
             Density = density,
             Culture = NormalizeCulture(preferences.Culture),
             InspectorWidth = UserPreferences.ClampInspectorWidth(preferences.InspectorWidth),
+            SemanticProvider = Enum.IsDefined(preferences.SemanticProvider)
+                ? preferences.SemanticProvider
+                : SemanticProviderChoice.BuiltIn,
             SchemaVersion = UserPreferences.CurrentSchemaVersion,
         };
     }

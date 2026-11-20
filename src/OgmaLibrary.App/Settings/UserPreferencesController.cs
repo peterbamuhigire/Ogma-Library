@@ -1,6 +1,7 @@
 using System.Globalization;
 using OgmaLibrary.Application;
 using OgmaLibrary.Application.Navigation;
+using OgmaLibrary.Application.Search;
 
 namespace OgmaLibrary.App.Settings;
 
@@ -19,6 +20,7 @@ public sealed class UserPreferencesController : IDisposable
     private readonly IUserPreferencesService? _store;
     private readonly ICapabilitySettings? _capabilities;
     private readonly ILocalizationService? _localization;
+    private readonly ISemanticCapabilityService? _semantic;
     private readonly Func<CultureInfo> _systemCulture;
     private readonly SemaphoreSlim _saveGate = new(1, 1);
 
@@ -27,12 +29,15 @@ public sealed class UserPreferencesController : IDisposable
     /// <param name="capabilities">The capability resolver that receives the user switches.</param>
     /// <param name="localization">The localization service whose culture follows the preference.</param>
     /// <param name="systemCulture">Reads the operating-system UI culture (tests substitute it).</param>
+    /// <param name="semantic">The semantic capability that receives the provider choice (Sept-23 Phase 14).</param>
     public UserPreferencesController(
         IUserPreferencesService? store,
         ICapabilitySettings? capabilities = null,
         ILocalizationService? localization = null,
-        Func<CultureInfo>? systemCulture = null)
+        Func<CultureInfo>? systemCulture = null,
+        ISemanticCapabilityService? semantic = null)
     {
+        _semantic = semantic;
         _store = store;
         _capabilities = capabilities;
         _localization = localization;
@@ -115,6 +120,7 @@ public sealed class UserPreferencesController : IDisposable
     {
         Current = preferences;
         _capabilities?.ApplyPreferences(preferences);
+        _semantic?.ApplyPreferences(preferences);
         if (_localization is not null)
         {
             string language = EffectiveLanguage;

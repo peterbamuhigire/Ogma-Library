@@ -586,7 +586,10 @@ public sealed class ArchitectureTests
                 ns.StartsWith("OgmaLibrary.Infrastructure.AI.Providers", StringComparison.Ordinal) ||
                 ns.StartsWith("OgmaLibrary.Infrastructure.AI.Ollama", StringComparison.Ordinal) ||
                 ns.StartsWith("OgmaLibrary.Infrastructure.Metadata.Providers", StringComparison.Ordinal) ||
-                ns.StartsWith("OgmaLibrary.Infrastructure.ClassroomClient", StringComparison.Ordinal),
+                ns.StartsWith("OgmaLibrary.Infrastructure.ClassroomClient", StringComparison.Ordinal) ||
+                // Sept-23 Phase 14 slice 3: the consented, allowlisted model download is the
+                // only HTTP type in the ONNX namespace; inference types stay network-free.
+                type.FullName == "OgmaLibrary.Infrastructure.AI.Onnx.EmbeddingModelDownloader",
                 $"{type.FullName} must not own provider HTTP egress outside adapter namespaces.");
         });
     }

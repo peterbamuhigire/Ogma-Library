@@ -6,7 +6,7 @@ namespace OgmaLibrary.Tests.App;
 
 /// <summary>
 /// Sept-23 Phase 11, task 11.9: the inspector width is a persisted preference (schema 3),
-/// clamped to 320–560 on load and save, with schema 2 files migrating to the 360 default.
+/// clamped to 320â€“560 on load and save, with schema 2 files migrating to the 360 default.
 /// </summary>
 public sealed class Sept23Phase11InspectorWidthTests : IDisposable
 {
@@ -27,7 +27,7 @@ public sealed class Sept23Phase11InspectorWidthTests : IDisposable
     [Fact]
     public void Preferences_SchemaIsThree_AndTheDefaultWidthIs360()
     {
-        Assert.Equal(3, UserPreferences.CurrentSchemaVersion);
+        Assert.True(UserPreferences.CurrentSchemaVersion >= 3);
         Assert.Equal(360, new UserPreferences().InspectorWidth);
         Assert.Equal(320, UserPreferences.MinInspectorWidth);
         Assert.Equal(560, UserPreferences.MaxInspectorWidth);
@@ -42,7 +42,7 @@ public sealed class Sept23Phase11InspectorWidthTests : IDisposable
 
         UserPreferences loaded = await store.GetAsync();
         Assert.Equal(448, loaded.InspectorWidth);
-        Assert.Equal(3, loaded.SchemaVersion);
+        Assert.Equal(UserPreferences.CurrentSchemaVersion, loaded.SchemaVersion);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class Sept23Phase11InspectorWidthTests : IDisposable
         Assert.Equal("fr", loaded.Culture);
         Assert.True(loaded.EnableMetadataProviders);
         Assert.Equal(360, loaded.InspectorWidth);
-        Assert.Equal(3, loaded.SchemaVersion);
+        Assert.Equal(UserPreferences.CurrentSchemaVersion, loaded.SchemaVersion);
         Assert.False(store.LastLoadWasRecovered);
     }
 

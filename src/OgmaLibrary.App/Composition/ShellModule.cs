@@ -56,7 +56,8 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
         services.AddSingleton(sp => new UserPreferencesController(
             sp.GetRequiredService<IUserPreferencesService>(),
             sp.GetRequiredService<ICapabilitySettings>(),
-            sp.GetRequiredService<ILocalizationService>()));
+            sp.GetRequiredService<ILocalizationService>(),
+            semantic: sp.GetService<OgmaLibrary.Application.Search.ISemanticCapabilityService>()));
 
         services.AddSingleton<MainShellViewModel>(sp => CreateMainShell(sp, options));
         services.AddSingleton<IBookDetailNavigationService>(sp =>

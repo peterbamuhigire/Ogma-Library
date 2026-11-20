@@ -1,12 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OgmaLibrary.Application;
 using OgmaLibrary.Application.Ai;
 using OgmaLibrary.Application.Catalogue;
 using OgmaLibrary.Application.Ocr;
 using OgmaLibrary.Application.Search;
 using OgmaLibrary.Domain;
 using OgmaLibrary.Infrastructure.AI.Ollama;
+using OgmaLibrary.Infrastructure.AI.Onnx;
 using OgmaLibrary.Infrastructure.Catalogue.Repositories;
+using OgmaLibrary.Infrastructure.Ingestion;
 using OgmaLibrary.Infrastructure.Ocr;
 using OgmaLibrary.Infrastructure.Pdf;
 using OgmaLibrary.Infrastructure.Search;
@@ -123,17 +127,32 @@ public static class CatalogueServiceExtensions
         services.AddHttpClient<IOllamaEmbeddingProvider, OllamaEmbeddingAdapter>();
 
         // Built-in ONNX provider over the pinned, verified model folder in the
-        // app-data store (Sept-23 Phase 14, D-103). Registered but not yet the
-        // IEmbeddingProvider binding: the Settings provider choice replaces the
-        // Ollama binding below in a later slice.
-        services.AddSingleton(_ => new OgmaLibrary.Infrastructure.AI.Onnx.EmbeddingModelStore(
-            dataDirectory,
-            OgmaLibrary.Infrastructure.AI.Onnx.EmbeddingModelManifest.LoadDefault()));
-        services.AddSingleton<OgmaLibrary.Infrastructure.AI.Onnx.OnnxEmbeddingProvider>();
+        // app-data store (Sept-23 Phase 14, D-103).
+        services.AddSingleton(_ => new EmbeddingModelStore(dataDirectory, EmbeddingModelManifest.LoadDefault()));
+        services.AddSingleton<OnnxEmbeddingProvider>();
 
-        // Semantic search consumes the provider-neutral contract. Ollama stays
-        // bound until the Settings provider choice lands (Sept-23 Phase 14, D-103).
-        services.AddTransient<IEmbeddingProvider>(sp => sp.GetRequiredService<IOllamaEmbeddingProvider>());
+        // The model download is the only network path for the built-in model and
+        // runs only on the user's explicit request (D-104). Redirects are followed
+        // by the downloader itself so every hop is checked against the manifest's
+        // host allowlist.
+        services.AddHttpClient(EmbeddingModelDownloader.HttpClientName, client => client.Timeout = TimeSpan.FromMinutes(2))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+        services.AddSingleton<IEmbeddingModelInstaller>(sp => new EmbeddingModelDownloader(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(EmbeddingModelDownloader.HttpClientName),
+            sp.GetRequiredService<EmbeddingModelStore>(),
+            sp.GetRequiredService<ILogger<EmbeddingModelDownloader>>()));
+
+        // The registry is the single IEmbeddingProvider binding and the semantic
+        // capability answer: built-in, Ollama or Off, from the user's preference
+        // or the OGMA_SEMANTIC_PROVIDER override (Sept-23 Phase 14, D-103, D-104).
+        services.AddSingleton(sp => new EmbeddingProviderRegistry(
+            sp.GetRequiredService<OnnxEmbeddingProvider>(),
+            sp.GetRequiredService<IOllamaEmbeddingProvider>(),
+            sp.GetService<IUserPreferencesService>() ?? new FileUserPreferencesService(dataDirectory),
+            sp.GetRequiredService<EmbeddingModelStore>(),
+            logger: sp.GetService<ILogger<EmbeddingProviderRegistry>>()));
+        services.AddSingleton<IEmbeddingProvider>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
+        services.AddSingleton<ISemanticCapabilityService>(sp => sp.GetRequiredService<EmbeddingProviderRegistry>());
 
         // Derived assets live in the app-data store, never in a library folder
         // (Sept-23 Phase 05, D-04, ADR-0018; K27).
