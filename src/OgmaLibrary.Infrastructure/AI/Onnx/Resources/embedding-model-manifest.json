@@ -1,0 +1,24 @@
+{
+  "modelId": "intfloat/multilingual-e5-small",
+  "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "licence": "MIT",
+  "dimensions": 384,
+  "maxTokens": 512,
+  "queryPrefix": "query: ",
+  "passagePrefix": "passage: ",
+  "source": "https://huggingface.co/intfloat/multilingual-e5-small/resolve/614241f622f53c4eeff9890bdc4f31cfecc418b3/",
+  "files": [
+    {
+      "role": "model",
+      "path": "onnx/model_qint8_avx512_vnni.onnx",
+      "sha256": "dd476dd0c2514e9b9be83aeb3853fac0763e0bdf4a71645407587d77c48a2d88",
+      "sizeBytes": 118346824
+    },
+    {
+      "role": "tokenizer",
+      "path": "sentencepiece.bpe.model",
+      "sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865",
+      "sizeBytes": 5069051
+    }
+  ]
+}

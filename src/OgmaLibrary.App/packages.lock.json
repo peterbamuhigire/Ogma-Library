@@ -428,6 +428,27 @@
         "resolved": "10.0.9",
         "contentHash": "fmEbAUFsaIKirgLt/lYhuFRBwhcSJN31jjHgCdbQxJiWOum6EdLjkbgGuukSP9z/a+9LibaxII/kF+GwOXgC4g=="
       },
+      "Microsoft.ML.OnnxRuntime": {
+        "type": "Transitive",
+        "resolved": "1.32.0",
+        "contentHash": "3O3isLjl6ChjMvzZMt3in+uUymFxQK5+vd1UuSShmbUjHezHXgcze6KF5NquC/uPuL/++0CpI7qUBRrf+g1ezg==",
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.32.0"
+        }
+      },
+      "Microsoft.ML.OnnxRuntime.Managed": {
+        "type": "Transitive",
+        "resolved": "1.32.0",
+        "contentHash": "ApCfJdeUnrO4v+9KWtxnm/Uk3UlzdbNqGb64uBXh85RToxYbW1COJM/avDj3INNTwfEE6LUIWaJIxov0YWNa1g==",
+        "dependencies": {
+          "System.Numerics.Tensors": "9.0.0"
+        }
+      },
+      "Microsoft.ML.Tokenizers": {
+        "type": "Transitive",
+        "resolved": "3.0.0",
+        "contentHash": "0fee9Ydsd6zmq2ofM5cKeV/CzvEjzPbgwuqWyU3+imlDgbGA6DjnxTK13Gb0IyS9PPYdGphq+mILBcQvF+Z95A=="
+      },
       "Microsoft.NETCore.Platforms": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -600,6 +621,11 @@
           "Microsoft.Win32.SystemEvents": "6.0.0"
         }
       },
+      "System.Numerics.Tensors": {
+        "type": "Transitive",
+        "resolved": "9.0.0",
+        "contentHash": "hyJB4UlpAi19Xr9AXzu2NuagKC4lPfHObNMEAA0HmqFz2rX7wKgzeYzO/jM/eBHDhnUGFFEjk5cOoJaxqg5J4A=="
+      },
       "System.Reactive": {
         "type": "Transitive",
         "resolved": "6.0.1",
@@ -646,6 +672,8 @@
         "dependencies": {
           "Makaretu.Dns.Multicast": "[0.27.0, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.9, )",
+          "Microsoft.ML.OnnxRuntime": "[1.32.0, )",
+          "Microsoft.ML.Tokenizers": "[3.0.0, )",
           "OgmaLibrary.Application": "[1.0.0, )",
           "OgmaLibrary.Domain": "[1.0.0, )",
           "PDFsharp": "[6.1.1, )",
@@ -719,6 +747,14 @@
         "type": "Transitive",
         "resolved": "8.3.1.1",
         "contentHash": "UsJtQsfAJoFDZrXc4hCUfRPMqccfKZ0iumJ/upcUjz/cmsTgVFGNEL5yaJWmkqsuFYdMWbj/En5/kS4PFl9hBA=="
+      },
+      "Microsoft.ML.OnnxRuntime": {
+        "type": "Transitive",
+        "resolved": "1.32.0",
+        "contentHash": "3O3isLjl6ChjMvzZMt3in+uUymFxQK5+vd1UuSShmbUjHezHXgcze6KF5NquC/uPuL/++0CpI7qUBRrf+g1ezg==",
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.32.0"
+        }
       },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",
@@ -810,6 +846,14 @@
         "type": "Transitive",
         "resolved": "8.3.1.1",
         "contentHash": "UsJtQsfAJoFDZrXc4hCUfRPMqccfKZ0iumJ/upcUjz/cmsTgVFGNEL5yaJWmkqsuFYdMWbj/En5/kS4PFl9hBA=="
+      },
+      "Microsoft.ML.OnnxRuntime": {
+        "type": "Transitive",
+        "resolved": "1.32.0",
+        "contentHash": "3O3isLjl6ChjMvzZMt3in+uUymFxQK5+vd1UuSShmbUjHezHXgcze6KF5NquC/uPuL/++0CpI7qUBRrf+g1ezg==",
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.32.0"
+        }
       },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",

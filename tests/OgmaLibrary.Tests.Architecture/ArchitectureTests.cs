@@ -318,6 +318,43 @@ public sealed class ArchitectureTests
     }
 
     /// <summary>
+    /// Only Infrastructure may reference the native ML runtime and tokenizer
+    /// packages (<c>Microsoft.ML.*</c>); every other assembly consumes
+    /// <see cref="IEmbeddingProvider"/> (Sept-23 Phase 14, D-103).
+    /// </summary>
+    [Fact]
+    public void Architecture_OnlyInfrastructureReferencesMicrosoftMl()
+    {
+        const string MachineLearning = "Microsoft.ML";
+        Assembly[] outsideInfrastructure =
+        [
+            typeof(Work).Assembly,
+            typeof(IBenchmarkContext).Assembly,
+            typeof(NavigationHistory).Assembly,
+            typeof(IWebViewBridge).Assembly,
+            typeof(BookIngestionWorker).Assembly,
+            typeof(BookDetailViewModel).Assembly,
+        ];
+
+        foreach (Assembly assembly in outsideInfrastructure)
+        {
+            Assert.DoesNotContain(
+                assembly.GetReferencedAssemblies(),
+                reference => reference.Name?.StartsWith(MachineLearning, StringComparison.Ordinal) == true);
+            var result = Types.InAssembly(assembly)
+                .ShouldNot().HaveDependencyOn(MachineLearning).GetResult();
+            Assert.True(result.IsSuccessful, Describe(result));
+        }
+
+        var onnxProvider = Types.InAssembly(typeof(CatalogueDbContext).Assembly)
+            .That().HaveName("OnnxEmbeddingProvider")
+            .Should().HaveDependencyOn("Microsoft.ML.OnnxRuntime").GetResult();
+        Assert.True(onnxProvider.IsSuccessful, "OnnxEmbeddingProvider should use ONNX Runtime: " + Describe(onnxProvider));
+        Assert.Single(
+            Types.InAssembly(typeof(CatalogueDbContext).Assembly).That().HaveName("OnnxEmbeddingProvider").GetTypes());
+    }
+
+    /// <summary>
     /// The Workers project must not reference the App project — workers are headless
     /// background services and must not depend on Avalonia UI (HLD §2.3, Phase 05).
     /// </summary>

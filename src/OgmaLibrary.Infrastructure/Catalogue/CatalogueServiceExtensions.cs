@@ -122,9 +122,17 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISearchReadModel>(sp => sp.GetRequiredService<IndexManagerService>());
         services.AddHttpClient<IOllamaEmbeddingProvider, OllamaEmbeddingAdapter>();
 
-        // Semantic search consumes the provider-neutral contract. Ollama is the
-        // only provider until the built-in ONNX provider and the Settings
-        // provider choice land (Sept-23 Phase 14, D-103).
+        // Built-in ONNX provider over the pinned, verified model folder in the
+        // app-data store (Sept-23 Phase 14, D-103). Registered but not yet the
+        // IEmbeddingProvider binding: the Settings provider choice replaces the
+        // Ollama binding below in a later slice.
+        services.AddSingleton(_ => new OgmaLibrary.Infrastructure.AI.Onnx.EmbeddingModelStore(
+            dataDirectory,
+            OgmaLibrary.Infrastructure.AI.Onnx.EmbeddingModelManifest.LoadDefault()));
+        services.AddSingleton<OgmaLibrary.Infrastructure.AI.Onnx.OnnxEmbeddingProvider>();
+
+        // Semantic search consumes the provider-neutral contract. Ollama stays
+        // bound until the Settings provider choice lands (Sept-23 Phase 14, D-103).
         services.AddTransient<IEmbeddingProvider>(sp => sp.GetRequiredService<IOllamaEmbeddingProvider>());
 
         // Derived assets live in the app-data store, never in a library folder

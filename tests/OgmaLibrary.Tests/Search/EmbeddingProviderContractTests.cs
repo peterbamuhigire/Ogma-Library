@@ -5,13 +5,15 @@ namespace OgmaLibrary.Tests.Search;
 /// <summary>
 /// Contract every <see cref="IEmbeddingProvider"/> must meet. Concrete
 /// providers (fake, ONNX, Ollama) derive from this class and supply an
-/// available instance.
+/// available instance. The tests are skippable so a provider whose model is
+/// not installed on this machine reports a visible skip from
+/// <see cref="CreateProvider"/> instead of a pass or a failure.
 /// </summary>
 public abstract class EmbeddingProviderContractTests
 {
     private protected abstract IEmbeddingProvider CreateProvider();
 
-    [Fact]
+    [SkippableFact]
     public async Task Contract_VectorDimension_EqualsDeclaredDimensions()
     {
         IEmbeddingProvider provider = CreateProvider();
@@ -30,7 +32,7 @@ public abstract class EmbeddingProviderContractTests
         Assert.Equal(provider.Dimensions, query.Vector.Length);
     }
 
-    [Theory]
+    [SkippableTheory]
     [InlineData("Light splits into colours through a prism.")]
     [InlineData("Les royaumes des Grands Lacs avant la colonisation.")]
     [InlineData("Wanjirũ read the chapter on rainforest animals.")]
@@ -48,7 +50,7 @@ public abstract class EmbeddingProviderContractTests
         Assert.InRange(norm, 0.999, 1.001);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Contract_CancelledToken_IsHonoured()
     {
         IEmbeddingProvider provider = CreateProvider();
@@ -61,7 +63,7 @@ public abstract class EmbeddingProviderContractTests
             cancellation.Token));
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Contract_Provenance_IsNonEmptyAndMatchesProvider()
     {
         IEmbeddingProvider provider = CreateProvider();
@@ -79,7 +81,7 @@ public abstract class EmbeddingProviderContractTests
         Assert.Equal(provider.ModelVersion, result.ModelVersion);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Contract_AvailableProvider_ReportsAvailable()
     {
         IEmbeddingProvider provider = CreateProvider();
