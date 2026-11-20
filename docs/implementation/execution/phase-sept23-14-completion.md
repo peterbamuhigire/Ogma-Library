@@ -100,6 +100,23 @@ During the Settings runs and the J-SEM-2 rerun, another party was using the desk
 
 **Result: IMPLEMENTED.**
 
+### 7.1 Rework after the driver gate (2026-11-20, K155)
+
+The driver's independent gate failed `Phase02CompositionTests.ExplicitMetadataMatrix_RegistersProviderAdapters_ButNeverAi`: `IOException` deleting the temporary `catalogue.db` ("being used by another process"). Reproduced 1 of 1 by running the `OgmaLibrary.Tests.App` namespace; it passed alone. Root cause, in Phase 14 code: `ShellModule` started `SemanticSearchSettingsViewModel.LoadAsync()` as an unowned background task at composition, so it could open the catalogue after the container was disposed. Fix: the load now starts the first time Settings > Search and AI is shown (`src/OgmaLibrary.App/Composition/ShellModule.cs`), so nothing reads the catalogue at start-up for this section. No test or gate was changed. Results: see section 7.2.
+
+### 7.2 Rework verification (MEASURED, 2026-11-20)
+
+| Check | Result |
+|---|---|
+| `OgmaLibrary.Tests.App` namespace, 3 runs | 107 of 107 each time (before the fix: 106 of 107) |
+| `dotnet format --verify-no-changes` | exit 0 |
+| `dotnet build OgmaLibrary.sln -c Release` | 0 warnings, 0 errors |
+| Architecture | 54 of 54 |
+| Unit, `Category!=Performance&Category!=Benchmark&Category!=E2E` | 1,554 passed, 0 failed, 35 skipped (8 min 27 s) |
+| Tests.Ui | 534 of 534 |
+| E2E real-window journeys | NOT_ASSESSED in this rework. An unfiltered solution run started them without `Use-DesktopLock.ps1` and hit the time limit, so its J-SEM-1 and Settings results are not evidence. |
+| Benchmark and Performance categories | NOT_ASSESSED. They ran under heavy load in the unfiltered run and two missed their timing budgets (discovery 56.7 s against 30 s; keyword latency 1.154x against 1.1x), so the run is not valid. |
+
 ## 8. Typeface statement
 
 No typeface change in Phase 14. The Search and AI section uses Spectral for the section title, Public Sans for labels and controls, and JetBrains Mono for the environment-override line, all from the existing design tokens (`src/OgmaLibrary.App/Themes/`). No banned font was introduced.

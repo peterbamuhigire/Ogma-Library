@@ -283,7 +283,29 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             services.GetRequiredService<IUiDispatcher>(),
             services.GetRequiredService<ILogger<SemanticSearchSettingsViewModel>>());
         settings.SearchOptions = searchOptions;
-        _ = UiActions.RunAsync(() => searchOptions.LoadAsync(), "settings.search.load");
+
+        // Load when the section is first shown, not at composition: an unowned background load
+        // at start-up opened the catalogue after the container was disposed (Phase 14 rework).
+        bool searchOptionsLoadStarted = false;
+        void LoadSearchOptionsWhenShown()
+        {
+            if (searchOptionsLoadStarted || !settings.IsSearchSection)
+            {
+                return;
+            }
+
+            searchOptionsLoadStarted = true;
+            _ = UiActions.RunAsync(() => searchOptions.LoadAsync(), "settings.search.load");
+        }
+
+        settings.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.IsSearchSection))
+            {
+                LoadSearchOptionsWhenShown();
+            }
+        };
+        LoadSearchOptionsWhenShown();
         if (indexManager.ActivityCentre is { } activityCentre)
         {
             activityCentre.OpenSearchSettings = () => shell?.OpenSettings("search");
