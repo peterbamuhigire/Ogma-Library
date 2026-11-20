@@ -32,8 +32,8 @@ Run `p12-reader` (`Invoke-GoldenJourneys.ps1 -Tag Reader -Sizes 1280x800,1920x10
 | J-READ-N1 truncated PDF | NOT_ASSESSED | NOT_ASSESSED | the catalogue does not list the file; the refusal is covered by G6 |
 | J-READ-N2 cancelled password prompt | PASS | PASS | |
 | J-READ-AREA page-area share | PASS | NOT_ASSESSED | the 85 % threshold is defined at 1280x800 only |
-| J-READ-SHARP sharpness at 100 % | PASS | NOT_ASSESSED | the probe sampled a misplaced page (K139); re-measure after K139 is fixed |
-| G3 turn fifty pages | PASS (baseline cleared) | PASS (baseline cleared) | |
+| J-READ-SHARP sharpness at 100 % | PASS | PASS | rework run `p12-reader-rework2`: edge crispness 5.7 to 6.3 against a floor of 3.5 (K139 fixed; oracle replaced, section 3) |
+| G3 turn fifty pages | PASS (baseline cleared) | PASS (baseline cleared) in Light; **FAIL once in Dark (p95 845 ms, K32/K138)** in the rework run | the 1920x1080 turn latency is still intermittent (K138) |
 | G5 resume after relaunch | PASS | PASS | |
 | G6 truncated PDF refused | PASS | PASS | Light only |
 | G8 worker killed while reading | PASS | PASS | |
@@ -49,7 +49,7 @@ The runner lists three rows per journey and size (the Light and Dark runs plus a
 | Page-turn p95, 1280x800 | 304 ms (Phase CO run `co-final`) | **61-62 ms** (G3, 50 turns), **69-71 ms** (J-READ-1, 200 turns); budget 250 ms | MEASURED |
 | Page-turn p95, 1920x1080 | 267 ms | **173-175 ms** (G3), **206-231 ms** (J-READ-1) | MEASURED |
 | Longest page turn | 3,725 ms | G3: 65-101 ms at 1280x800, 216 ms and 1,150 ms at 1920x1080. Slice 7 saw 989 ms and 8,954 ms in J-READ-1 (K138) | MEASURED |
-| Sharpness (Laplacian variance, title page, 100 %) | Phase 04: 853 to 2,605 (different page and method) | 535 (Light) and 981 (Dark) at 1280x800; 1920x1080 NOT_ASSESSED (the earlier 1,230 and 1,560 came from a misplaced page, K139, and do not show sharpness of a correct layout). The floor of 400 is a regression guard | MEASURED |
+| Sharpness, title page, 100 % | Phase 04: 853 to 2,605 (Laplacian variance, different page and method) | **Edge crispness** (Laplacian variance divided by the variance after a 3x3 blur; scale-independent): **Light 5.79 (1280x800) and 5.67 (1920x1080); Dark 6.27 and 6.18**, against a floor of **3.5**. The same crop stretched from a 75 % bitmap scores 2.8 and from 50 % scores 2.3, so the floor fails on blur. Raw Laplacian variance (564, 346, 307, 185) is recorded only: it falls with glyph size and with blank page area, so the old floor of 400 failed a crisp 1920x1080 page and could not tell blur from a large glyph | MEASURED (`J-READ-SHARP`, run `p12-reader-rework2`) |
 | Sharpness at 150 % and 200 % display scaling | none | not run | NOT_ASSESSED |
 | Toolbars and duplicate navigation sets in the reader | 3 toolbars, 2 navigation sets | 1 toolbar, 1 navigation set (keyboard and edge zones) | CODE (`Sept23Phase12ReaderFocusTests`) |
 | READ requirements at M (missing) | 2 (spread and continuous, full screen) | 0 in code: spread and virtualised continuous layouts, F11 full screen | CODE |
@@ -95,7 +95,7 @@ Spectral for the reader title, Public Sans for the toolbar, tabular numerals (`t
 | 1920x1080 page-area share (threshold defined at 1280x800 only) | Phase 24 |
 | Keyboard focus inside the annotate flyout; real-window side panel resize | Phase 21 |
 
-Open defects: K135, K136, K137, K138, **K139** (P2: the 1920x1080 page is misplaced, content about 580 px below the top of the frame and half width at the bottom left; MEASURED from the 1920x1080 reader screenshots; not fixed in this phase) (K138 also tracks the 1,150 ms turn at 1920x1080). Reader toolbar title now shows the open book's title (localised label as fallback).
+Open defects: K135, K136, K137, K138 (K139 fixed in rework: `SinglePageSurfaceWidth` was never re-notified, so the page image kept its initial 720 px width at any viewport; test `ReaderPage_At1920x1080_FillsFrameTopAligned`) (K138 also tracks the 1,150 ms turn at 1920x1080). Reader toolbar title now shows the open book's title (localised label as fallback).
 
 ## 7. Rollback points (revert the slice's commit; each is independent of the later ones except where noted)
 
@@ -111,3 +111,10 @@ Open defects: K135, K136, K137, K138, **K139** (P2: the 1920x1080 page is mispla
 | 8 this record | the commit that adds this file | `886bcc3b` |
 
 Earlier slice records: `phase-sept23-12-slice1-completion.md`, `-slice6-`, `-slice7-`.
+
+## Rework 2026-11-20 (reviewer findings)
+
+- **K139 fixed.** Root cause: `ReaderViewModel` raised `PageSurfaceWidth` but never `SinglePageSurfaceWidth`, which the page `Image` binds. The image kept its first width (720 px, the unscaled base) while the fit-width surface grew to 1,560 px, so a 720 px page sat centred in a tall beige surface (MEASURED from the old screenshot: image 720 px wide, about 580 px down). All eight notification sites now raise both. Test `ReaderPage_At1920x1080_FillsFrameTopAligned` fails on the old code (expected 1,560, actual 720) and passes now.
+- **Real window re-run** (`p12-reader-rework2`, Reader tag, both sizes, Light and Dark, under the desktop lock): J-READ-1, 2, 3, 5, 6, N2, SHARP, G5, G8 PASS at both sizes in both themes; J-READ-AREA PASS at 1280x800 (1920x1080 NOT_ASSESSED, threshold defined at 1280x800); J-READ-4 and N1 NOT_ASSESSED as before (K136, catalogue). J-READ-1 p95 at 1920x1080: 223 ms (Light), 200 ms (Dark). The 1920x1080 reader page now fills the frame top-aligned and the toolbar shows the book title (screenshots `artifacts/e2e/p12-reader-rework2/*/J-READ-SHARP/after-1920x1080.png`).
+- **G3 at 1920x1080, Dark: FAIL once** (p95 845 ms, budget 250 ms; the Light run and the earlier run passed). K32/K138 stays open for 1920x1080 page-turn latency; not hidden.
+- **Blur.** The J-READ-1 and J-READ-3 `after` screenshots are taken right after a turn and show the low-resolution preview (visibly soft at 1920x1080); the full-resolution bitmap replaces it within the 1.5 s the SHARP journey waits, and the SHARP screenshot is crisp. A settled-render shot for J-READ-1 and J-READ-3 is not added (NOT_ASSESSED).

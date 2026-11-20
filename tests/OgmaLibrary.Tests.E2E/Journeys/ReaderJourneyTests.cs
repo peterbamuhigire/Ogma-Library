@@ -18,8 +18,8 @@ public sealed class ReaderJourneyTests
     /// <summary>Minimum share of the window the reading viewport occupies at 1280x800.</summary>
     public const double MinimumPageAreaShare = 0.85;
 
-    /// <summary>Floor for the Laplacian variance of a rendered text page at 100 % scaling; first measured 529 on the synthetic title page (sparse text), so the floor is a regression guard, not a quality claim.</summary>
-    public const double MinimumSharpness = 400;
+    /// <summary>Floor for the edge crispness ratio (<see cref="ReaderMetrics.EdgeCrispness"/>): 4.8 measured on a correct render, 2.8 on a 75 % bitmap stretched to fit; scale-independent, so it is the sharpness verdict. The Laplacian variance is recorded only.</summary>
+    public const double MinimumEdgeCrispness = 3.5;
 
     /// <summary>Environment variable that sets the J-READ-1 turn count (D-95); default 200.</summary>
     public const string PagesVariable = "OGMA_E2E_READ_PAGES";
@@ -320,7 +320,10 @@ public sealed class ReaderJourneyTests
             context.Record("sharpness.laplacianVariance", Math.Round(sharpness, 1));
             context.Record("sharpness.displayScaling", "100% only; 150% and 200% NOT ASSESSED (D-94, owner Phase 24)");
             Assert.False(double.IsNaN(sharpness), "The page region was too small to measure.");
-            Assert.True(sharpness >= MinimumSharpness, $"Page sharpness {sharpness:0} is below {MinimumSharpness:0}.");
+            double crispness = ReaderMetrics.EdgeCrispness(capture, local);
+            context.Record("sharpness.edgeCrispness", Math.Round(crispness, 2));
+            Assert.False(double.IsNaN(crispness), "The page region was too small or blank to measure crispness.");
+            Assert.True(crispness >= MinimumEdgeCrispness, $"Page edge crispness {crispness:0.00} is below {MinimumEdgeCrispness:0.0} (Laplacian variance {sharpness:0}).");
         });
 
     private static bool NoReaderPage(AutomationElement window) =>

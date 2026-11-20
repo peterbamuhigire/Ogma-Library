@@ -88,6 +88,52 @@ public sealed class ReaderViewRenderTests
     }
 
     /// <summary>
+    /// K139: at 1920x1080 the page image must take the page surface's width and the surface
+    /// must sit at the top of the viewport; a stale image width left a narrow page at the
+    /// bottom-left of a beige surface.
+    /// </summary>
+    [AvaloniaFact]
+    public void ReaderPage_At1920x1080_FillsFrameTopAligned()
+    {
+        var localization = new InMemoryLocalizationService();
+        localization.SetCulture("en");
+        var viewModel = new ReaderViewModel(
+            new FakeReaderSessionService(),
+            new FakeAnnotationService(),
+            new FakeBookmarkService(),
+            new FakeLayerService(),
+            new FakeCitationService(),
+            new FakeReadingMemoryService(),
+            localization);
+        viewModel.OpenAsync("book-001", null, CancellationToken.None).GetAwaiter().GetResult();
+
+        var view = new ReaderView { DataContext = viewModel };
+        var window = new Window { Width = 1920, Height = 1080, Content = view };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var surface = Assert.IsType<Border>(view.FindControl<Border>("PageSurface"));
+            var scroller = Assert.IsType<ScrollViewer>(view.FindControl<ScrollViewer>("PageScrollViewer"));
+            Image pageImage = view.GetVisualDescendants().OfType<Image>()
+                .Single(image => AutomationProperties.GetAutomationId(image) == "Reader.Page");
+
+            Assert.True(surface.Width > 1000, $"fit-width surface should span the viewport, was {surface.Width}");
+            Assert.Equal(surface.Width, pageImage.Width, precision: 1);
+            Assert.Equal(viewModel.SinglePageSurfaceWidth, pageImage.Width, precision: 1);
+            Assert.Equal(0.0, scroller.Offset.Y, precision: 1);
+
+            Point? top = surface.TranslatePoint(new Point(0, 0), scroller);
+            Assert.NotNull(top);
+            Assert.InRange(top!.Value.Y, 0, 40);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>
     /// Verifies French localization strings for the reader are non-empty and non-sentinel.
     /// </summary>
     [AvaloniaFact]

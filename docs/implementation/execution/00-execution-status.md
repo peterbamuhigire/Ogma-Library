@@ -15,11 +15,16 @@ claims below describe gate evidence, not a working product. Phase progress is tr
 [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
 - **Sept-23 Phase 12** (reader experience): **IMPLEMENTED** 2026-11-20 on branch
-  `kaizen/phase-12` (rollback `99eeff5e`). Not COMPLETE. The static gates and the fast suite pass on
-  `886bcc3b`. In the real window at both sizes and both themes, J-READ-1, 2, 3, 5, 6, N2, SHARP, G3, G5
-  and G8 pass (G6 Light). Page area 88.2 % with the side panel closed; G3 p95 62 ms and 174 ms.
-  Open: J-READ-4 split view (K136); K135, K137, K138; 150/200 % scaling, screen reader, macOS keychain,
-  reference machine and owner walkthrough NOT_ASSESSED.
+  `kaizen/phase-12` (rollback `99eeff5e`). Not COMPLETE. Rework after review: **K139 fixed** (the
+  1920x1080 page was misplaced because `SinglePageSurfaceWidth` was never re-notified; test
+  `ReaderPage_At1920x1080_FillsFrameTopAligned`). Real-window re-run `p12-reader-rework2`, both sizes
+  and both themes: J-READ-1, 2, 3, 5, 6, N2, G5 and G8 pass; J-READ-SHARP passes at both sizes on a new
+  scale-independent edge-crispness oracle (5.7 to 6.3 against a floor of 3.5; the old Laplacian floor of 400
+  could not tell blur from glyph size). G3 at 1920x1080 failed once in Dark (p95 845 ms, K32/K138), so
+  1920x1080 page-turn latency is still intermittent. J-READ-1 and J-READ-3 `after` screenshots show the
+  low-resolution preview, not the settled render. Open: J-READ-4 split view (K136) and N1 NOT_ASSESSED;
+  K135, K137, K138; 150/200 % scaling, screen reader, macOS keychain, reference machine and owner
+  walkthrough NOT_ASSESSED.
   [Record](phase-sept23-12-completion.md).
 - **Sept-23 Phase 11** (book detail inspector): **IMPLEMENTED** 2026-11-20 on branch
   `kaizen/phase-11` (rollback `bde93dac`). Not COMPLETE. The static gates pass on `3ffac4a8`.

@@ -207,6 +207,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasSecondPage));
         OnPropertyChanged(nameof(OverlayZoomFactor));
         OnPropertyChanged(nameof(PageSurfaceWidth));
+        OnPropertyChanged(nameof(SinglePageSurfaceWidth));
     }
 
     /// <summary>Current human-readable one-based page number.</summary>
@@ -250,6 +251,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(SinglePageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
             }
         }
@@ -267,6 +269,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(SinglePageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
                 OnPropertyChanged(nameof(CanZoomOut));
                 OnPropertyChanged(nameof(CanZoomIn));
@@ -296,6 +299,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(SinglePageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
                 OnPropertyChanged(nameof(CanZoomOut));
                 OnPropertyChanged(nameof(CanZoomIn));
@@ -706,6 +710,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(HasSecondPage));
                 OnPropertyChanged(nameof(OverlayZoomFactor));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(SinglePageSurfaceWidth));
                 OnPropertyChanged(nameof(PageSurfaceHeight));
                 OnPropertyChanged(nameof(CanGoPrevious));
                 OnPropertyChanged(nameof(CanGoNext));
@@ -726,6 +731,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(SlotPageCount));
                 OnPropertyChanged(nameof(HasSecondPage));
                 OnPropertyChanged(nameof(PageSurfaceWidth));
+                OnPropertyChanged(nameof(SinglePageSurfaceWidth));
                 OnPropertyChanged(nameof(OverlayZoomFactor));
             }
         }
@@ -972,6 +978,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         _pageViewportHeight = nextHeight;
         OnPropertyChanged(nameof(OverlayZoomFactor));
         OnPropertyChanged(nameof(PageSurfaceWidth));
+        OnPropertyChanged(nameof(SinglePageSurfaceWidth));
         OnPropertyChanged(nameof(PageSurfaceHeight));
 
         // Fit modes need a new raster when the viewport changes materially. The
@@ -2306,6 +2313,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsPageGeometryFallback));
         OnPropertyChanged(nameof(OverlayZoomFactor));
         OnPropertyChanged(nameof(PageSurfaceWidth));
+        OnPropertyChanged(nameof(SinglePageSurfaceWidth));
         OnPropertyChanged(nameof(PageSurfaceHeight));
         RefreshFindHighlights();
     }
