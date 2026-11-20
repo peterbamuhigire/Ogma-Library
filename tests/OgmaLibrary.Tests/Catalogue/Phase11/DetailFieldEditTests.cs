@@ -282,6 +282,22 @@ public sealed class DetailFieldEditTests : IDisposable
         Assert.Equal("Saisissez une année comprise entre 1 et 9999.", year.ErrorText);
     }
 
+    [Fact]
+    public async Task DisplayAccessibleName_CarriesLabelAndValue_InEnglishAndFrench()
+    {
+        // Slice 8 (K128): the display button's name hid the value from UIA and screen readers.
+        var localization = new InMemoryLocalizationService();
+        (BookDetailViewModel vm, _, _) = await CreateVmAsync(localization);
+        DetailFieldViewModel title = Field(vm, EditableMetadataFields.Title);
+        Assert.False(string.IsNullOrEmpty(title.Value));
+
+        Assert.Equal($"{title.LabelText}: {title.DisplayText}. Edit", title.DisplayAccessibleText);
+
+        localization.SetCulture("fr");
+
+        Assert.Equal($"{title.LabelText} : {title.DisplayText}. Modifier", title.DisplayAccessibleText);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static DetailFieldViewModel Field(BookDetailViewModel vm, string name) =>

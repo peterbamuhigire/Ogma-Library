@@ -90,6 +90,13 @@ public sealed class DetailFieldViewModel : INotifyPropertyChanged
     public string EditAccessibleText => string.Format(
         _localization.CurrentCulture, _localization["Catalogue.BookDetail.Edit.EditFormat"], LabelText);
 
+    /// <summary>
+    /// Localised accessible name of the display button: the label, the shown value and the
+    /// action ("ISBN: 978-…. Edit"), so assistive technology hears the value too.
+    /// </summary>
+    public string DisplayAccessibleText => string.Format(
+        _localization.CurrentCulture, _localization["Catalogue.BookDetail.Edit.ValueFormat"], LabelText, DisplayText);
+
     /// <summary>Localised accessible name of the provenance button.</summary>
     public string ProvenanceAccessibleText => string.Format(
         _localization.CurrentCulture, _localization["Catalogue.BookDetail.Edit.ProvenanceFormat"], LabelText);
@@ -139,6 +146,7 @@ public sealed class DetailFieldViewModel : INotifyPropertyChanged
                 _value = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(DisplayText));
+                OnPropertyChanged(nameof(DisplayAccessibleText));
                 OnPropertyChanged(nameof(IsEmpty));
             }
         }
@@ -329,6 +337,7 @@ public sealed class DetailFieldViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(LabelText));
         OnPropertyChanged(nameof(EditAccessibleText));
+        OnPropertyChanged(nameof(DisplayAccessibleText));
         OnPropertyChanged(nameof(ProvenanceAccessibleText));
         OnPropertyChanged(nameof(DisplayText));
         OnPropertyChanged(nameof(ErrorText));

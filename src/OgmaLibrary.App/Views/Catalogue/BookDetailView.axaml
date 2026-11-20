@@ -556,7 +556,7 @@
                               HorizontalContentAlignment="Left"
                               IsVisible="{Binding IsDisplaying}"
                               AutomationProperties.AutomationId="{Binding AutomationId}"
-                              AutomationProperties.Name="{Binding EditAccessibleText}"
+                              AutomationProperties.Name="{Binding DisplayAccessibleText}"
                               ToolTip.Tip="{Binding EditAccessibleText}"
                               Click="FieldDisplayButton_Click">
                         <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" />
