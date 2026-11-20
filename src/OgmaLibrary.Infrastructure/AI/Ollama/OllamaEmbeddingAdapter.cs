@@ -12,6 +12,18 @@ namespace OgmaLibrary.Infrastructure.AI.Ollama;
 /// </summary>
 internal sealed class OllamaEmbeddingAdapter : IOllamaEmbeddingProvider
 {
+    /// <summary>Ollama model the adapter requests.</summary>
+    internal const string DefaultModelId = "nomic-embed-text";
+
+    /// <summary>
+    /// Version stamped on stored vectors. It matches the value earlier
+    /// releases stored, so existing Ollama vectors remain usable.
+    /// </summary>
+    internal const string DefaultModelVersion = "nomic-embed-text:latest";
+
+    /// <summary>Output dimension of <c>nomic-embed-text</c>.</summary>
+    internal const int DefaultDimensions = 768;
+
     private static readonly Uri DefaultBaseAddress = new("http://localhost:11434");
 
     private readonly HttpClient _httpClient;
@@ -35,19 +47,32 @@ internal sealed class OllamaEmbeddingAdapter : IOllamaEmbeddingProvider
     public bool IsLocalOnly => true;
 
     /// <inheritdoc />
-    public async Task<OllamaEmbeddingResult> EmbedAsync(
+    public string ModelId => DefaultModelId;
+
+    /// <inheritdoc />
+    public string ModelVersion => DefaultModelVersion;
+
+    /// <inheritdoc />
+    public int Dimensions => DefaultDimensions;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The query and passage roles are embedded identically, as before this
+    /// contract existed, so vectors already stored for this model stay valid.
+    /// </remarks>
+    public async Task<EmbeddingResult> EmbedAsync(
         string text,
-        string modelName,
+        EmbeddingInputKind kind,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
-        ArgumentException.ThrowIfNullOrWhiteSpace(modelName);
+        cancellationToken.ThrowIfCancellationRequested();
         EnsureLoopback(_httpClient.BaseAddress ?? DefaultBaseAddress);
 
         using HttpResponseMessage response = await _httpClient
             .PostAsJsonAsync(
                 "/api/embeddings",
-                new EmbeddingRequest(modelName, text),
+                new EmbeddingRequest(DefaultModelId, text),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -61,10 +86,16 @@ internal sealed class OllamaEmbeddingAdapter : IOllamaEmbeddingProvider
             throw new InvalidOperationException("Ollama returned an empty embedding vector.");
         }
 
-        return new OllamaEmbeddingResult(
-            modelName,
-            payload.Model ?? modelName,
-            payload.Embedding);
+        if (payload.Embedding.Length != DefaultDimensions)
+        {
+            throw new InvalidOperationException("Ollama returned an embedding with an unexpected dimension.");
+        }
+
+        return new EmbeddingResult(
+            ProviderKey,
+            DefaultModelId,
+            DefaultModelVersion,
+            Normalize(payload.Embedding));
     }
 
     /// <inheritdoc />
@@ -88,6 +119,34 @@ internal sealed class OllamaEmbeddingAdapter : IOllamaEmbeddingProvider
         }
     }
 
+    private static float[] Normalize(float[] vector)
+    {
+        double sum = 0;
+        foreach (float value in vector)
+        {
+            if (!float.IsFinite(value))
+            {
+                throw new InvalidOperationException("Ollama returned a non-finite embedding value.");
+            }
+
+            sum += (double)value * value;
+        }
+
+        if (sum <= 0)
+        {
+            throw new InvalidOperationException("Ollama returned a zero embedding vector.");
+        }
+
+        double norm = Math.Sqrt(sum);
+        var normalized = new float[vector.Length];
+        for (int i = 0; i < vector.Length; i++)
+        {
+            normalized[i] = (float)(vector[i] / norm);
+        }
+
+        return normalized;
+    }
+
     private static void EnsureLoopback(Uri baseAddress)
     {
         if (!baseAddress.IsLoopback)
@@ -102,6 +161,5 @@ internal sealed class OllamaEmbeddingAdapter : IOllamaEmbeddingProvider
         [property: JsonPropertyName("prompt")] string Prompt);
 
     private sealed record EmbeddingResponse(
-        [property: JsonPropertyName("embedding")] float[]? Embedding,
-        [property: JsonPropertyName("model")] string? Model);
+        [property: JsonPropertyName("embedding")] float[]? Embedding);
 }

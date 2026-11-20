@@ -10,21 +10,17 @@ namespace OgmaLibrary.Infrastructure.Search;
 
 /// <summary>
 /// Phase 11 embedding-generation pipeline. It consumes Phase 10 search chunks,
-/// calls the local Ollama embedding provider, and persists model-versioned
+/// calls the configured local embedding provider, and persists model-versioned
 /// vectors as a derived index.
 /// </summary>
 public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IStagedEmbeddingGenerationService, ISemanticSearchReadModel
 {
-    internal const string DefaultModelName = "nomic-embed-text";
-    internal const string DefaultModelVersion = "nomic-embed-text:latest";
-    internal const string DefaultProviderKey = "ollama";
-
     private const int ActiveBookStatus = 0;
     private const int JobFailed = 3;
 
     private readonly IDbContextFactory<CatalogueDbContext>? _contextFactory;
     private readonly CatalogueDbContext? _context;
-    private readonly IOllamaEmbeddingProvider _provider;
+    private readonly IEmbeddingProvider _provider;
     private readonly IEmbeddingVectorRepository _vectors;
     private readonly ObservableEvents<SemanticIndexEvent> _events = new();
 
@@ -34,7 +30,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     [ActivatorUtilitiesConstructor]
     public EmbeddingGenerationService(
         IDbContextFactory<CatalogueDbContext> contextFactory,
-        IOllamaEmbeddingProvider provider,
+        IEmbeddingProvider provider,
         IEmbeddingVectorRepository vectors)
     {
         ArgumentNullException.ThrowIfNull(contextFactory);
@@ -48,7 +44,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
 
     internal EmbeddingGenerationService(
         CatalogueDbContext context,
-        IOllamaEmbeddingProvider provider,
+        IEmbeddingProvider provider,
         IEmbeddingVectorRepository vectors)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -107,8 +103,8 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
 
             try
             {
-                OllamaEmbeddingResult result = await _provider
-                    .EmbedAsync(chunk.Text, DefaultModelName, cancellationToken)
+                EmbeddingResult result = await _provider
+                    .EmbedAsync(chunk.Text, EmbeddingInputKind.Passage, cancellationToken)
                     .ConfigureAwait(false);
                 ValidateResult(result);
 
@@ -116,10 +112,8 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                         new EmbeddingVectorRecord(
                             Id: 0,
                             ChunkId: chunk.ChunkId,
-                            ModelName: DefaultModelName,
-                            ModelVersion: string.IsNullOrWhiteSpace(result.ModelVersion)
-                                ? DefaultModelVersion
-                                : result.ModelVersion,
+                            ModelName: _provider.ModelId,
+                            ModelVersion: _provider.ModelVersion,
                             Vector: result.Vector,
                             DimensionCount: result.Vector.Length,
                             GeneratedAtUtc: DateTimeOffset.UtcNow,
@@ -170,6 +164,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
+        (string providerKey, string modelId, string modelVersion) = ProviderIdentity();
 
         return await context.SearchChunks
             .AsNoTracking()
@@ -183,9 +178,9 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 !context.EmbeddingVectors.Any(vector =>
                     vector.ChunkId == chunk.ChunkId &&
                     !vector.IsTombstoned &&
-                    vector.ModelName == DefaultModelName &&
-                    vector.ModelVersion == DefaultModelVersion &&
-                    vector.ProviderKey == DefaultProviderKey &&
+                    vector.ModelName == modelId &&
+                    vector.ModelVersion == modelVersion &&
+                    vector.ProviderKey == providerKey &&
                     vector.IndexVersion == indexVersion &&
                     vector.SourceHash.Length > 0))
             .OrderBy(chunk => chunk.ChunkId)
@@ -211,6 +206,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
     {
         using ContextLease lease = await CreateLeaseAsync(cancellationToken).ConfigureAwait(false);
         CatalogueDbContext context = lease.Context;
+        (string providerKey, string modelId, string modelVersion) = ProviderIdentity();
 
         int totalChunks = await context.SearchChunks
             .AsNoTracking()
@@ -222,9 +218,9 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 vector.Chunk != null &&
                 vector.Chunk.BookId == chunk.BookId &&
                 !vector.IsTombstoned &&
-                vector.ModelName == DefaultModelName &&
-                vector.ModelVersion == DefaultModelVersion &&
-                vector.ProviderKey == DefaultProviderKey &&
+                vector.ModelName == modelId &&
+                vector.ModelVersion == modelVersion &&
+                vector.ProviderKey == providerKey &&
                 vector.IndexVersion == chunk.IndexVersion &&
                 vector.SourceHash.Length > 0,
                 cancellationToken)
@@ -253,6 +249,7 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
             return;
         }
 
+        (string providerKey, string modelId, string modelVersion) = ProviderIdentity();
         int totalChunks = await context.SearchChunks
             .CountAsync(chunk => chunk.BookId == bookId, cancellationToken)
             .ConfigureAwait(false);
@@ -261,9 +258,9 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
                 vector.Chunk != null &&
                 vector.Chunk.BookId == bookId &&
                 !vector.IsTombstoned &&
-                vector.ModelName == DefaultModelName &&
-                vector.ModelVersion == DefaultModelVersion &&
-                vector.ProviderKey == DefaultProviderKey &&
+                vector.ModelName == modelId &&
+                vector.ModelVersion == modelVersion &&
+                vector.ProviderKey == providerKey &&
                 vector.IndexVersion == indexVersion &&
                 vector.SourceHash.Length > 0,
                 cancellationToken)
@@ -345,13 +342,16 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         return new ContextLease(context, ownsContext: true);
     }
 
+    private (string ProviderKey, string ModelId, string ModelVersion) ProviderIdentity() =>
+        (_provider.ProviderKey, _provider.ModelId, _provider.ModelVersion);
+
     private static string TrimError(string message) =>
         message.Length <= 4096 ? message : message[..4096];
 
-    private static string ComputeIdempotencyKey(string bookId, long chunkId, string indexVersion)
+    private string ComputeIdempotencyKey(string bookId, long chunkId, string indexVersion)
     {
         byte[] data = Encoding.UTF8.GetBytes(
-            $"{bookId}|EmbeddingFailed|{chunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{DefaultModelName}|{DefaultModelVersion}|{indexVersion}");
+            $"{bookId}|EmbeddingFailed|{chunkId.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{_provider.ModelId}|{_provider.ModelVersion}|{indexVersion}");
         return Convert.ToHexStringLower(SHA256.HashData(data))[..32];
     }
 
@@ -367,10 +367,12 @@ public sealed class EmbeddingGenerationService : IEmbeddingGenerationService, IS
         return Convert.ToHexStringLower(SHA256.HashData(data));
     }
 
-    private static void ValidateResult(OllamaEmbeddingResult result)
+    private void ValidateResult(EmbeddingResult result)
     {
-        if (!string.Equals(result.ModelName, DefaultModelName, StringComparison.Ordinal) ||
-            string.IsNullOrWhiteSpace(result.ModelVersion) ||
+        if (!string.Equals(result.ProviderKey, _provider.ProviderKey, StringComparison.Ordinal) ||
+            !string.Equals(result.ModelId, _provider.ModelId, StringComparison.Ordinal) ||
+            !string.Equals(result.ModelVersion, _provider.ModelVersion, StringComparison.Ordinal) ||
+            result.Vector.Length != _provider.Dimensions ||
             result.Vector.Length == 0 ||
             result.Vector.Length > 4096 ||
             result.Vector.Any(value => !float.IsFinite(value)))

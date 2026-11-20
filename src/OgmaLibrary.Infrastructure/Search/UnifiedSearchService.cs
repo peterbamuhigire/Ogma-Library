@@ -30,7 +30,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
     private readonly CatalogueDbContext? _context;
     private readonly IFtsIndexService _fullText;
     private readonly ISemanticSearchService? _semantic;
-    private readonly IOllamaEmbeddingProvider? _provider;
+    private readonly IEmbeddingProvider? _provider;
     private readonly ILogger _logger;
     private readonly object _probeGate = new();
     private Task<bool>? _probe;
@@ -44,7 +44,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         IDbContextFactory<CatalogueDbContext> contextFactory,
         IFtsIndexService fullText,
         ISemanticSearchService semantic,
-        IOllamaEmbeddingProvider provider,
+        IEmbeddingProvider provider,
         ILogger<UnifiedSearchService>? logger = null)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
@@ -59,7 +59,7 @@ public sealed class UnifiedSearchService : IUnifiedSearchService
         CatalogueDbContext context,
         IFtsIndexService fullText,
         ISemanticSearchService? semantic = null,
-        IOllamaEmbeddingProvider? provider = null,
+        IEmbeddingProvider? provider = null,
         ILogger? logger = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));

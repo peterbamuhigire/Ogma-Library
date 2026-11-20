@@ -4,6 +4,7 @@ using OgmaLibrary.Infrastructure.Catalogue;
 using OgmaLibrary.Infrastructure.Catalogue.Entities;
 using OgmaLibrary.Infrastructure.Search;
 using OgmaLibrary.Tests.Catalogue;
+using OgmaLibrary.Tests.Search;
 
 namespace OgmaLibrary.Tests.Privacy;
 
@@ -93,8 +94,8 @@ public sealed class EmbeddingErasureTests : IDisposable
                 _context.EmbeddingVectors.Add(new EmbeddingVectorRow
                 {
                     Chunk = chunk,
-                    ModelName = EmbeddingGenerationService.DefaultModelName,
-                    ModelVersion = EmbeddingGenerationService.DefaultModelVersion,
+                    ModelName = TestEmbeddingIdentity.ModelId,
+                    ModelVersion = TestEmbeddingIdentity.ModelVersion,
                     DimensionCount = 2,
                     VectorBlob = Serialize([1.0f, 0.0f]),
                     GeneratedAtUtc = DateTimeOffset.UtcNow,

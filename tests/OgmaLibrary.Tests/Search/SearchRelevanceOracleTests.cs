@@ -95,15 +95,11 @@ public sealed class SearchRelevanceOracleTests : IClassFixture<SearchRelevanceOr
         public void Dispose() => _corpus.Dispose();
     }
 
-    private sealed class AbsentProvider : IOllamaEmbeddingProvider
+    private sealed class AbsentProvider : FakeEmbeddingProvider
     {
-        public string ProviderKey => "ollama";
+        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken) => Task.FromResult(false);
 
-        public bool IsLocalOnly => true;
-
-        public Task<OllamaEmbeddingResult> EmbedAsync(string text, string modelName, CancellationToken cancellationToken) =>
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind) =>
             throw new InvalidOperationException("No provider in the oracle.");
-
-        public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) => Task.FromResult(false);
     }
 }

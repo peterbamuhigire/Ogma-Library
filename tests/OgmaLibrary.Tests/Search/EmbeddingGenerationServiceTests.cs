@@ -143,7 +143,59 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
         Assert.Contains(_context.Jobs, job => job.JobType == "EmbeddingFailed" && job.BookId == bookId);
     }
 
-    private EmbeddingGenerationService CreateService(IOllamaEmbeddingProvider provider) =>
+    [Fact]
+    public async Task EmbeddingGeneration_NonOllamaProvider_StampsItsOwnProvenance()
+    {
+        const string bookId = "P14NONOLLAMA0000000001";
+        SeedBookWithChunks(bookId, "light splits into colours", "rainforest animals");
+        var provider = new HashingEmbeddingProvider(dimensions: 8);
+        var service = CreateService(provider);
+
+        EmbeddingGenerationBatchResult first = await service.GenerateNextBatchAsync(10, CancellationToken.None);
+        EmbeddingGenerationBatchResult second = await service.GenerateNextBatchAsync(10, CancellationToken.None);
+
+        Assert.Equal(2, first.ChunksEmbedded);
+        Assert.Equal(0, second.ChunksAttempted);
+        Assert.All(provider.Kinds, kind => Assert.Equal(EmbeddingInputKind.Passage, kind));
+        Assert.All(_context.EmbeddingVectors, vector =>
+        {
+            Assert.Equal(HashingEmbeddingProvider.Key, vector.ProviderKey);
+            Assert.Equal(HashingEmbeddingProvider.Model, vector.ModelName);
+            Assert.Equal(HashingEmbeddingProvider.Version, vector.ModelVersion);
+            Assert.Equal(8, vector.DimensionCount);
+        });
+        Assert.Equal((int)SearchEmbeddingStatus.Embedded, _context.Books.Single(b => b.BookId == bookId).EmbeddingStatus);
+    }
+
+    [Fact]
+    public async Task EmbeddingGeneration_VectorsFromAnotherModel_DoNotCountAsEmbedded()
+    {
+        const string bookId = "P14MODELSWITCH00000001";
+        SeedBookWithChunks(bookId, "switching models re-embeds");
+        await CreateService(new StubOllamaProvider()).GenerateNextBatchAsync(10, CancellationToken.None);
+
+        EmbeddingGenerationBatchResult result = await CreateService(new HashingEmbeddingProvider())
+            .GenerateNextBatchAsync(10, CancellationToken.None);
+
+        Assert.Equal(1, result.ChunksEmbedded);
+        Assert.Equal(2, _context.EmbeddingVectors.Count());
+        Assert.Single(_context.EmbeddingVectors, vector => vector.ProviderKey == HashingEmbeddingProvider.Key);
+    }
+
+    [Fact]
+    public async Task EmbeddingGeneration_DimensionMismatch_IsRejectedAndRecorded()
+    {
+        const string bookId = "P14WRONGDIMENSION00001";
+        SeedBookWithChunks(bookId, "wrong dimension");
+
+        EmbeddingGenerationBatchResult result = await CreateService(new WrongDimensionProvider())
+            .GenerateNextBatchAsync(10, CancellationToken.None);
+
+        Assert.Equal(1, result.ChunksFailed);
+        Assert.Empty(_context.EmbeddingVectors);
+    }
+
+    private EmbeddingGenerationService CreateService(IEmbeddingProvider provider) =>
         new(
             _context,
             provider,
@@ -176,7 +228,7 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
         _context.SaveChanges();
     }
 
-    private sealed class StubOllamaProvider : IOllamaEmbeddingProvider
+    private sealed class StubOllamaProvider : FakeEmbeddingProvider
     {
         public bool Available { get; init; } = true;
 
@@ -188,14 +240,12 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
 
         public string? FailText { get; init; }
 
-        public string ProviderKey => "ollama";
+        public override bool IsLocalOnly => IsLocal;
 
-        public bool IsLocalOnly => IsLocal;
+        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(Available);
 
-        public Task<OllamaEmbeddingResult> EmbedAsync(
-            string text,
-            string modelName,
-            CancellationToken cancellationToken)
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind)
         {
             EmbedCallCount++;
             if (FailText is not null && text.Contains(FailText, StringComparison.OrdinalIgnoreCase))
@@ -203,16 +253,18 @@ public sealed class EmbeddingGenerationServiceTests : IDisposable
                 throw new InvalidOperationException("Embedding fixture failure.");
             }
 
-            return Task.FromResult(new OllamaEmbeddingResult(
-                modelName,
-                EmbeddingGenerationService.DefaultModelVersion,
-                InvalidVector
-                    ? [float.NaN]
-                    : [text.Length, SearchChunker.CountTokens(text), 1f]));
+            return InvalidVector
+                ? [float.NaN, 0f, 0f]
+                : [text.Length, SearchChunker.CountTokens(text), 1f];
         }
+    }
 
-        public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(Available);
+    /// <summary>A provider that declares one dimension and returns another.</summary>
+    private sealed class WrongDimensionProvider : FakeEmbeddingProvider
+    {
+        public override int Dimensions => 4;
+
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind) => [1f, 0f, 0f];
     }
 
     private sealed class SemanticObserver : IObserver<SemanticIndexEvent>

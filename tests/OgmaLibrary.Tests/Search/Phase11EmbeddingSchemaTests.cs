@@ -194,29 +194,52 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
             Assert.NotNull(request.RequestUri);
             Assert.True(request.RequestUri.IsLoopback);
             Assert.Equal("/api/embeddings", request.RequestUri.AbsolutePath);
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    """{"model":"nomic-embed-text:latest","embedding":[0.1,0.2,0.3]}""",
-                    Encoding.UTF8,
-                    "application/json"),
-            };
+            return OllamaVectorResponse(Enumerable.Repeat(2.0f, 768).ToArray());
         }))
         {
             BaseAddress = new Uri("http://localhost:11434"),
         };
         var adapter = new OllamaEmbeddingAdapter(http);
 
-        OllamaEmbeddingResult result = await adapter.EmbedAsync(
+        EmbeddingResult result = await adapter.EmbedAsync(
             "semantic search text",
-            "nomic-embed-text",
+            EmbeddingInputKind.Passage,
             CancellationToken.None);
 
         Assert.Equal("ollama", adapter.ProviderKey);
         Assert.True(adapter.IsLocalOnly);
+        Assert.Equal("nomic-embed-text", result.ModelId);
         Assert.Equal("nomic-embed-text:latest", result.ModelVersion);
-        Assert.Equal([0.1f, 0.2f, 0.3f], result.Vector);
+        Assert.Equal(768, result.Vector.Length);
+        Assert.Equal(1.0, Math.Sqrt(result.Vector.Sum(value => (double)value * value)), 3);
     }
+
+    [Fact]
+    public async Task OllamaEmbeddingAdapter_UnexpectedDimension_IsRejected()
+    {
+        using var http = new HttpClient(new RecordingHandler(_ =>
+            OllamaVectorResponse([0.1f, 0.2f, 0.3f])))
+        {
+            BaseAddress = new Uri("http://localhost:11434"),
+        };
+        var adapter = new OllamaEmbeddingAdapter(http);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => adapter.EmbedAsync(
+            "semantic search text",
+            EmbeddingInputKind.Query,
+            CancellationToken.None));
+    }
+
+    internal static HttpResponseMessage OllamaVectorResponse(float[] vector) =>
+        new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                "{\"embedding\":[" +
+                string.Join(',', vector.Select(value => value.ToString(System.Globalization.CultureInfo.InvariantCulture))) +
+                "]}",
+                Encoding.UTF8,
+                "application/json"),
+        };
 
     [Fact]
     public async Task OllamaEmbeddingAdapter_IsAvailable_ReturnsFalseWhenLocalServiceFails()
@@ -295,7 +318,7 @@ public sealed class Phase11EmbeddingSchemaTests : IDisposable
         return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) > 0;
     }
 
-    private sealed class RecordingHandler : HttpMessageHandler
+    internal sealed class RecordingHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
 

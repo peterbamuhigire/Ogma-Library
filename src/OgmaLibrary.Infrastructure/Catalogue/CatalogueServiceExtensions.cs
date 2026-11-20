@@ -122,6 +122,11 @@ public static class CatalogueServiceExtensions
         services.AddSingleton<ISearchReadModel>(sp => sp.GetRequiredService<IndexManagerService>());
         services.AddHttpClient<IOllamaEmbeddingProvider, OllamaEmbeddingAdapter>();
 
+        // Semantic search consumes the provider-neutral contract. Ollama is the
+        // only provider until the built-in ONNX provider and the Settings
+        // provider choice land (Sept-23 Phase 14, D-103).
+        services.AddTransient<IEmbeddingProvider>(sp => sp.GetRequiredService<IOllamaEmbeddingProvider>());
+
         // Derived assets live in the app-data store, never in a library folder
         // (Sept-23 Phase 05, D-04, ADR-0018; K27).
         services.AddSingleton<IAssetLocator>(_ => new AssetLocator(dataDirectory));

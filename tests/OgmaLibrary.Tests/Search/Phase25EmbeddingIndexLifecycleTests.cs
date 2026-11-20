@@ -42,13 +42,13 @@ public sealed class Phase25EmbeddingIndexLifecycleTests : IDisposable
         Assert.NotEqual(active.Id, staging.Id);
         EmbeddingVectorRecord? loadedActive = await repository.GetForChunkAsync(
             chunkId,
-            EmbeddingGenerationService.DefaultModelName,
-            EmbeddingGenerationService.DefaultModelVersion,
+            TestEmbeddingIdentity.ModelId,
+            TestEmbeddingIdentity.ModelVersion,
             CancellationToken.None);
         EmbeddingVectorRecord? loadedStaging = await repository.GetForChunkAsync(
             chunkId,
-            EmbeddingGenerationService.DefaultModelName,
-            EmbeddingGenerationService.DefaultModelVersion,
+            TestEmbeddingIdentity.ModelId,
+            TestEmbeddingIdentity.ModelVersion,
             CancellationToken.None,
             "semantic-rebuild-test");
 
@@ -180,52 +180,30 @@ public sealed class Phase25EmbeddingIndexLifecycleTests : IDisposable
         new(
             0,
             chunkId,
-            EmbeddingGenerationService.DefaultModelName,
-            EmbeddingGenerationService.DefaultModelVersion,
+            TestEmbeddingIdentity.ModelId,
+            TestEmbeddingIdentity.ModelVersion,
             vector,
             vector.Length,
             DateTimeOffset.UtcNow,
             new string('a', 64),
             IndexVersion: indexVersion);
 
-    private sealed class StubEmbeddingProvider : IOllamaEmbeddingProvider
+    private sealed class StubEmbeddingProvider : FakeEmbeddingProvider
     {
         public bool Available { get; set; } = true;
 
-        public string ProviderKey => "ollama";
-
-        public bool IsLocalOnly => true;
-
-        public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
+        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
             Task.FromResult(Available);
 
-        public Task<OllamaEmbeddingResult> EmbedAsync(
-            string text,
-            string modelName,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new OllamaEmbeddingResult(
-                modelName,
-                EmbeddingGenerationService.DefaultModelVersion,
-                [text.Length, SearchChunker.CountTokens(text), 1f]));
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind) =>
+            [text.Length, SearchChunker.CountTokens(text), 1f];
     }
 
-    private sealed class QueryEmbeddingProvider(float[] queryVector) : IOllamaEmbeddingProvider
+    private sealed class QueryEmbeddingProvider(float[] queryVector) : FakeEmbeddingProvider
     {
-        public string ProviderKey => "ollama";
+        public override int Dimensions => queryVector.Length;
 
-        public bool IsLocalOnly => true;
-
-        public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(true);
-
-        public Task<OllamaEmbeddingResult> EmbedAsync(
-            string text,
-            string modelName,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new OllamaEmbeddingResult(
-                modelName,
-                EmbeddingGenerationService.DefaultModelVersion,
-                queryVector));
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind) => queryVector;
     }
 
     private sealed class EmptyExactSearch : ICombinedSearchService

@@ -66,6 +66,45 @@ public sealed class SemanticSearchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SemanticSearch_NonOllamaProvider_UsesOnlyItsOwnModelVectors()
+    {
+        var provider = new HashingEmbeddingProvider(dimensions: 8);
+        long ownModel = SeedBookChunk(
+            "P14OWNMODEL00000000001",
+            "Physics of Everyday Light",
+            "light and colour");
+        long otherModel = SeedBookChunk(
+            "P14OTHERMODEL000000001",
+            "Ollama-only book",
+            "light and colour");
+        EmbeddingResult passage = await provider.EmbedAsync(
+            "light and colour",
+            EmbeddingInputKind.Passage,
+            CancellationToken.None);
+        var repository = new EmbeddingVectorRepository(_context);
+        await repository.CreateAsync(
+            NewVector(ownModel, passage.Vector) with
+            {
+                ProviderKey = HashingEmbeddingProvider.Key,
+                ModelName = HashingEmbeddingProvider.Model,
+                ModelVersion = HashingEmbeddingProvider.Version,
+            },
+            CancellationToken.None);
+        await repository.CreateAsync(NewVector(otherModel, passage.Vector), CancellationToken.None);
+        var service = new SemanticSearchService(_context, provider, new StubExactSearch());
+
+        SemanticSearchResponse response = await service.SearchAsync(
+            "light and colour",
+            5,
+            CancellationToken.None);
+
+        Assert.False(response.UsedExactFallback);
+        SemanticSearchResult only = Assert.Single(response.Results);
+        Assert.Equal("P14OWNMODEL00000000001", only.BookId);
+        Assert.Equal(EmbeddingInputKind.Query, provider.Kinds[^1]);
+    }
+
+    [Fact]
     public async Task SemanticSearch_MergesExactAndSemanticResults_WithLocations()
     {
         long semanticChunk = SeedBookChunk(
@@ -228,9 +267,9 @@ public sealed class SemanticSearchServiceTests : IDisposable
         _context.EmbeddingVectors.Add(new EmbeddingVectorRow
         {
             ChunkId = chunkId,
-            ModelName = EmbeddingGenerationService.DefaultModelName,
-            ModelVersion = EmbeddingGenerationService.DefaultModelVersion,
-            ProviderKey = EmbeddingGenerationService.DefaultProviderKey,
+            ModelName = TestEmbeddingIdentity.ModelId,
+            ModelVersion = TestEmbeddingIdentity.ModelVersion,
+            ProviderKey = TestEmbeddingIdentity.ProviderKey,
             DimensionCount = 2,
             VectorBlob = SerializeVector([1.0f, 0.0f]),
             SourceHash = new string('a', 64),
@@ -311,8 +350,8 @@ public sealed class SemanticSearchServiceTests : IDisposable
             _context.EmbeddingVectors.Add(new EmbeddingVectorRow
             {
                 Chunk = chunk,
-                ModelName = EmbeddingGenerationService.DefaultModelName,
-                ModelVersion = EmbeddingGenerationService.DefaultModelVersion,
+                ModelName = TestEmbeddingIdentity.ModelId,
+                ModelVersion = TestEmbeddingIdentity.ModelVersion,
                 DimensionCount = 4,
                 VectorBlob = SerializeVector([
                     i == 0 ? 1.0f : 0.2f,
@@ -331,8 +370,8 @@ public sealed class SemanticSearchServiceTests : IDisposable
         new(
             Id: 0,
             ChunkId: chunkId,
-            ModelName: EmbeddingGenerationService.DefaultModelName,
-            ModelVersion: EmbeddingGenerationService.DefaultModelVersion,
+            ModelName: TestEmbeddingIdentity.ModelId,
+            ModelVersion: TestEmbeddingIdentity.ModelVersion,
             Vector: vector,
             DimensionCount: vector.Length,
             GeneratedAtUtc: DateTimeOffset.UtcNow);
@@ -344,7 +383,7 @@ public sealed class SemanticSearchServiceTests : IDisposable
         return bytes;
     }
 
-    private sealed class StubOllamaProvider : IOllamaEmbeddingProvider
+    private sealed class StubOllamaProvider : FakeEmbeddingProvider
     {
         public bool Available { get; init; } = true;
 
@@ -352,24 +391,16 @@ public sealed class SemanticSearchServiceTests : IDisposable
 
         public int EmbedCalls { get; private set; }
 
-        public string ProviderKey => "ollama";
+        public override int Dimensions => QueryVector.Length;
 
-        public bool IsLocalOnly => true;
+        public override Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(Available);
 
-        public Task<OllamaEmbeddingResult> EmbedAsync(
-            string text,
-            string modelName,
-            CancellationToken cancellationToken)
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind)
         {
             EmbedCalls++;
-            return Task.FromResult(new OllamaEmbeddingResult(
-                modelName,
-                EmbeddingGenerationService.DefaultModelVersion,
-                QueryVector));
+            return QueryVector;
         }
-
-        public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(Available);
     }
 
     private sealed class StubExactSearch : ICombinedSearchService

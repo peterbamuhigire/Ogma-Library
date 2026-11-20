@@ -190,7 +190,7 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
         Assert.NotEmpty(response.Results);
     }
 
-    private UnifiedSearchService Service(ISemanticSearchService? semantic = null, IOllamaEmbeddingProvider? provider = null) =>
+    private UnifiedSearchService Service(ISemanticSearchService? semantic = null, IEmbeddingProvider? provider = null) =>
         new(_corpus.Context, new FtsIndexService(_corpus.Context), semantic, provider ?? new Provider(false));
 
     /// <summary>One read-only corpus shared by the tests in this class.</summary>
@@ -201,16 +201,12 @@ public sealed class UnifiedSearchServiceTests : IClassFixture<UnifiedSearchServi
         public void Dispose() => Corpus.Dispose();
     }
 
-    private sealed class Provider(bool available, TimeSpan delay = default) : IOllamaEmbeddingProvider
+    private sealed class Provider(bool available, TimeSpan delay = default) : FakeEmbeddingProvider
     {
-        public string ProviderKey => "ollama";
-
-        public bool IsLocalOnly => true;
-
-        public Task<OllamaEmbeddingResult> EmbedAsync(string text, string modelName, CancellationToken cancellationToken) =>
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind) =>
             throw new NotSupportedException();
 
-        public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
+        public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken)
         {
             if (delay > TimeSpan.Zero)
             {

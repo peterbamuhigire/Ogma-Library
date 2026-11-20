@@ -65,8 +65,8 @@ public sealed class Phase26RepresentativeRetrievalTests : IDisposable
                 new EmbeddingVectorRecord(
                     0,
                     chunkId,
-                    EmbeddingGenerationService.DefaultModelName,
-                    EmbeddingGenerationService.DefaultModelVersion,
+                    TestEmbeddingIdentity.ModelId,
+                    TestEmbeddingIdentity.ModelVersion,
                     vector,
                     vector.Length,
                     DateTimeOffset.UtcNow,
@@ -126,23 +126,11 @@ public sealed class Phase26RepresentativeRetrievalTests : IDisposable
     }
 
     private sealed class FixtureEmbeddingProvider(
-        IReadOnlyDictionary<string, float[]> vectors) : IOllamaEmbeddingProvider
+        IReadOnlyDictionary<string, float[]> vectors) : FakeEmbeddingProvider
     {
-        public string ProviderKey => "ollama";
+        public override int Dimensions => 2;
 
-        public bool IsLocalOnly => true;
-
-        public Task<bool> IsAvailableAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(true);
-
-        public Task<OllamaEmbeddingResult> EmbedAsync(
-            string text,
-            string modelName,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new OllamaEmbeddingResult(
-                modelName,
-                EmbeddingGenerationService.DefaultModelVersion,
-                [.. vectors[text]]));
+        protected override float[] CreateVector(string text, EmbeddingInputKind kind) => [.. vectors[text]];
     }
 
     private sealed class EmptyExactSearch : ICombinedSearchService
