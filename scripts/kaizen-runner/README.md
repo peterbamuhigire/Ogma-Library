@@ -1,4 +1,8 @@
-# Ogma Kaizen runner
+# Ogma Kaizen runner (Jidoka, JAD)
+
+This is Ogma's **Jidoka** installation: JAD, the *Jidoka Automated Development* tool. It works
+unattended, stops the line on a defect (failed gate, `REWORK`, `BLOCKED`) and never publishes
+defective work. The engine's canonical Jidoka lives in `chwezi-development-engine/auto-agents/`.
 
 An unattended, metered driver that executes the remaining phases of
 `docs/plans/sept-23-kaizen`. It is specific to this repository and separate from
@@ -56,6 +60,11 @@ one at a time; subagents are disabled so each token is attributed to one role.
 
 Starting again resumes from `state.json` (phase, stage and slice). To retry a
 blocked phase, set its `status` back to `todo` in `state.json` while stopped.
+
+**Restart after a crash or reboot.** On the build PC the scheduled task "Autorun ensure runners"
+runs `_autorun/ensure-runners.sh` every 30 minutes. It restarts this runner when `runner.lock`
+names a process that is no longer Python, and leaves it alone when `HOLD` or `STOP` exists in the
+work root or when there is no `runner.lock` (a clean finish; a person decides).
 
 ## Where things are
 

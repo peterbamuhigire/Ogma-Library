@@ -129,3 +129,5 @@ real-window proof (`docs/plans/sept-23-kaizen/AGENT_BRIEF.md`). Consult
 
 Plans under `docs/plans` are executed by `scripts/autorun/run_plan.sh`: one phase per session, ledger `docs/plans/AUTORUN.md`, the driver pushes. A new plan goes in its own folder with a `PLAN.md` and `RESUME.md` (see `scripts/autorun/PLAN-TEMPLATE.md`): small phases, testable acceptance lines, explicit dependencies, a default for each open decision. Do not hand-edit the ledger while a run is active. Repo-specific driver rules live in `scripts/autorun/autorun.conf`.
 <!-- autorun-docs:end -->
+
+**Active driver (21 Nov 2026):** the Sept-23 Kaizen plan is executed by `scripts/kaizen-runner/` (Jidoka, JAD), not by `scripts/autorun/`. Its state, logs and worktree live in `../_autorun/Ogma-Library/kaizen/`; it pushes accepted phases to `main` itself. Do not edit `state.json` or its worktree while it runs; stop it with `scripts/kaizen-runner/run.ps1 -Action Stop` first.

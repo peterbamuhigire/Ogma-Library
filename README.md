@@ -28,7 +28,7 @@
 
 Ogma Library turns a folder full of PDF files into a living, curated personal library. It scans your collection, enriches every book's metadata from global book databases, generates cover thumbnails, and presents your library in a stunning **3D virtual bookshelf**. Its defining feature: describe what you want to read in plain language and the built-in **AI reading advisor** finds the best matching books from your own collection — and explains exactly why each one fits.
 
-> **Status:** Active development. Core scanning, metadata, and reader are being built in Phase 1–3. The 3D bookshelf and AI advisor follow in Phase 4–5. See the [Roadmap](#roadmap) for current progress.
+> **Status (21 November 2026):** active development, not yet released. The library, scanning, processing pipeline, reader, search, settings, design system, catalogue, inspector and local semantic search are built and accepted (17 of 30 phases of the [Sept-23 Kaizen plan](docs/plans/sept-23-kaizen/README.md)). Phase 15, the AI gateway with on-device Ollama as the default, is being built now. See the [Roadmap](#roadmap). Features below marked *planned* are not in the current build.
 
 ---
 
@@ -46,6 +46,8 @@ Ogma Library turns a folder full of PDF files into a living, curated personal li
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Third-party acknowledgements](#third-party-acknowledgements)
+- [Jidoka runner (JAD)](#jidoka-runner-jad)
+- [Unattended plan driver](#unattended-plan-driver)
 - [About](#about)
 - [License](#license)
 
@@ -87,11 +89,11 @@ Built on **PDFium** — the same rendering engine as Google Chrome.
 - **Cumulative reading time** tracked per book
 - Night mode and sepia mode
 
-### 🤖 AI reading advisor
+### 🤖 AI reading advisor (planned: phases 15–16)
 - Describe what you want to read in plain language — the AI analyses your entire library and returns **12 best-matching books** with a personalised explanation for each
-- Supports **OpenAI**, **Anthropic Claude**, **DeepSeek**, and **Ollama** (fully local — no data leaves your machine)
+- **On-device Ollama by default**: plug and play when Ollama is installed, nothing leaves your machine; or **Anthropic**, **OpenAI** or **DeepSeek** with your own API key
 - Two-pass strategy for large libraries: efficient even with 2,000+ books
-- API keys stored in the **OS credential manager** (Windows Credential Manager / macOS Keychain) — never in config files or the database
+- API keys encrypted in the **OS credential store** (Windows DPAPI / macOS Keychain), with an optional passphrase lock — never in config files, the database or logs
 - Query history saved: re-run previous queries instantly
 - Optional **reading plan**: suggests an order to read the recommended books
 
@@ -197,12 +199,18 @@ dotnet run --project OgmaLibrary.App
 2. Add a Google Books API key (free — [get one here](https://developers.google.com/books/docs/v1/using#APIKey))
 3. Back in the library, right-click any book → **Fetch metadata**, or select multiple books → **Bulk enrich**
 
-### Set up the AI advisor
+### Set up the AI advisor (planned: phases 15 and 16)
 
-1. Go to **Settings → AI Advisor**
-2. Choose your provider (OpenAI, Anthropic, DeepSeek, or Ollama for fully local)
-3. Paste your API key — it is stored in the OS credential manager, never in a file
-4. Open the **Ogma AI** panel from the sidebar and start describing what you want to read
+The AI advisor is optional; the library, reader and ordinary search work without it.
+
+- **On-device first (the default).** If [Ollama](https://ollama.com) is installed and running on the
+  same computer, Ogma finds it by itself and uses it: nothing to configure and nothing leaves the machine.
+  Ogma does not install or bundle Ollama; **Settings → Local AI** shows what it found and which model
+  to `ollama pull` if one is missing.
+- **Cloud, if you prefer.** Add an Anthropic, OpenAI or DeepSeek API key in **Settings → AI**. The
+  provider you choose is used before Ollama. Keys are encrypted in the operating system's credential
+  store, can be shown only as "set", and are never written to files, the database or logs.
+- With neither, AI features say so plainly and everything else keeps working.
 
 ---
 
@@ -285,18 +293,23 @@ I have a job interview at a tech company next week, help me prepare fast
 
 The AI reads your entire library catalogue — titles, authors, categories, descriptions — and returns the **12 books that best match your intent**, with a specific, personalised explanation for each recommendation. It never recommends a book that is not in your library.
 
-### Supported providers
+### Supported providers (planned: phase 15)
 
-| Provider | Models | Data sent |
+| Provider | How it is chosen | Data sent |
 |---|---|---|
-| OpenAI | `gpt-4o`, `gpt-4o-mini` | Book titles, authors, categories to OpenAI API |
-| Anthropic | `claude-sonnet-4-6` | Book titles, authors, categories to Anthropic API |
-| DeepSeek | `deepseek-chat` | Book titles, authors, categories to DeepSeek API |
-| **Ollama (local)** | `llama3.1:8b`, `mistral:7b`, any installed model | **Nothing — runs entirely on your machine** |
+| **Ollama (on-device, default)** | Found automatically on this computer (loopback only) | **Nothing leaves the machine** |
+| Anthropic | Your API key | Book metadata only, to Anthropic |
+| OpenAI | Your API key | Book metadata only, to OpenAI |
+| DeepSeek | Your API key | Book metadata only, to DeepSeek |
 
-> **Privacy:** The AI advisor sends only book metadata (titles, authors, categories). Your PDF file contents never leave your machine regardless of which provider you use.
+Model names are not fixed in the app: Ogma picks a suitable installed Ollama model, and cloud
+models are chosen in Settings. Ollama "cloud" models count as cloud providers.
 
-All API keys are stored in the OS credential manager. They are never written to config files, the database, or log files.
+> **Privacy:** the advisor sends only book metadata (titles, authors, categories, descriptions), never
+> PDF contents. A Privacy Center (phase 15) shows what is sent where.
+
+API keys are encrypted in the OS credential store (Windows DPAPI, macOS Keychain); an optional
+passphrase lock adds a second layer. They are never written to config files, the database or logs.
 
 ---
 
@@ -335,14 +348,27 @@ After enriching from an online database, Ogma can write the metadata into the ac
 
 ## Roadmap
 
-| Phase | Timeline | Deliverables | Status |
-|---|---|---|---|
-| **1 — Foundation** | Weeks 1–3 | Avalonia shell, EF Core database, library scanner, thumbnail generation, basic list view, portable database verified | 🔨 In progress |
-| **2 — Metadata** | Weeks 4–6 | ISBN detection, Open Library + Google Books, bulk enrichment, PdfSharp write-back, inspector panel | ⏳ Planned |
-| **3 — Reader** | Weeks 7–9 | PDFium reader, all zoom modes, full-screen, reading progress, bookmarks, highlights, annotations | ⏳ Planned |
-| **4 — 3D Bookshelf** | Weeks 10–12 | Three.js scene, spine textures, hover/click animations, four shelf themes, view toggle | ⏳ Planned |
-| **5 — AI Advisor** | Weeks 13–14 | All four AI providers, two-pass prompting, 12-book result grid, reading plan, query history | ⏳ Planned |
-| **6 — Polish + Launch** | Weeks 15–16 | Virtual shelves, reading stats, MSIX packaging, notarized macOS DMG | ⏳ Planned |
+Work follows the [Sept-23 Kaizen plan](docs/plans/sept-23-kaizen/README.md): 30 phases, each
+accepted only with gate and review evidence. Status on 21 November 2026:
+
+| Phase | Scope | Status |
+|---|---|---|
+| 00–08 | Ground truth and toolchain, real-window test harness, crash safety and logging, shell fixes, reader engine, library roots and scanning, processing pipeline, navigation, settings | ✅ Done |
+| 09 | Design system and visual identity | ✅ Accepted |
+| CO | Close-out of implemented phases 02, 05–08, 13, 17 | ✅ Accepted |
+| 10–12 | Catalogue, book inspector, reader experience | ✅ Accepted |
+| 13 | Unified, trustworthy search | ✅ Done |
+| 14 | Local semantic search and embeddings | ✅ Accepted |
+| 17 | OCR and extraction quality | ✅ Done |
+| **15** | **AI gateway, providers (Ollama default; Anthropic, OpenAI, DeepSeek) and Privacy Center** | 🔨 **In progress** |
+| 16 | Reading Advisor, grounded answers, reading plans | ⏳ Next after 15 |
+| 18 | 3D bookshelf | ⏳ Planned |
+| 19–20 | Classroom Host, school administration, classroom client and sync | ⏳ Planned |
+| 21–24 | Accessibility, localisation, security and privacy hardening, performance | ⏳ Planned |
+| 25–28 | Imports, installers and signing, macOS parity, documentation and beta test | ⏳ Planned |
+
+Phases are executed unattended by the repository's Jidoka runner (see
+[Jidoka runner (JAD)](#jidoka-runner-jad)); the plan's own status register is authoritative.
 
 **Post-launch:**
 - EPUB and CBZ support
@@ -415,6 +441,18 @@ Built by **[Peter Bamuhigire](https://techguypeter.com)**
 [MIT License](LICENSE) · [Report a bug](https://github.com/peterbamuhigire/ogma-library/issues) · [Request a feature](https://github.com/peterbamuhigire/ogma-library/discussions)
 
 </div>
+
+## Jidoka runner (JAD)
+
+Ogma is built by **Jidoka (JAD)**, the Jidoka Automated Development tool: it works unattended and
+stops itself on a defect. The active driver for the Sept-23 Kaizen plan is
+`scripts/kaizen-runner/` ([guide](scripts/kaizen-runner/README.md)): per phase it plans, executes
+in slices, runs the build and test gates, gets an independent review, and pushes accepted work to
+`main`. Start: `./scripts/kaizen-runner/run.ps1`; progress: `run.ps1 -Action Status` or `-Action Watch`;
+stop after the current session: `run.ps1 -Action Stop`. A scheduled task on the build PC restarts it
+if it dies.
+
+The generic `scripts/autorun/` driver below remains for other plans in `docs/plans`.
 
 <!-- autorun-docs:begin -->
 ## Unattended plan driver
