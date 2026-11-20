@@ -44,6 +44,12 @@ internal sealed class ReaderModule : IOgmaModuleRegistrar
             sp.GetRequiredService<PageRenderCache>()));
         services.AddSingleton<IReaderSessionService>(sp => sp.GetRequiredService<ReaderSessionService>());
         services.AddSingleton<IReaderSessionReadModel>(sp => sp.GetRequiredService<ReaderSessionService>());
+        // Split view (READ-012): each pane takes its own session scope from this factory.
+        services.AddSingleton<IReaderSessionServiceFactory>(sp => new ReaderSessionServiceFactory(
+            sp.GetRequiredService<IPdfRendererFactory>(),
+            sp.GetRequiredService<IReadingProgressService>(),
+            sp.GetRequiredService<IBookFileLocator>(),
+            sp.GetRequiredService<PageRenderCache>()));
         services.AddSingleton<TextLayerService>(sp => new TextLayerService(
             sp.GetRequiredService<IPdfRendererFactory>(),
             sp.GetRequiredService<IReaderSessionService>()));

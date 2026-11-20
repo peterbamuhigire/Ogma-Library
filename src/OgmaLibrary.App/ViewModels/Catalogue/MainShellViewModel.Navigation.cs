@@ -1076,8 +1076,17 @@ public sealed partial class MainShellViewModel
 
         RaiseRouteChanged();
 
+        if (e.Previous.Kind == RouteKind.SplitView && e.Current.Kind != RouteKind.SplitView && SplitView is not null)
+        {
+            UiActions.Run(() => SplitView.CloseAsync(), "shell.route.split_close");
+        }
+
         switch (e.Current.Kind)
         {
+            case RouteKind.SplitView when SplitView is not null && e.Previous.Kind != RouteKind.SplitView:
+                string? leftBook = Reader is { IsOpen: true, BookId: { } openBook } ? openBook : null;
+                UiActions.Run(() => SplitView.ActivateAsync(leftBook), "shell.route.split_open");
+                break;
             case RouteKind.Settings when Settings is not null:
                 Settings.SelectSection(e.Current.Section);
                 break;

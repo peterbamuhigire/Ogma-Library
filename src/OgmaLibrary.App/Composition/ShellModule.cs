@@ -127,15 +127,15 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             currentShell?.Bookshelf3D is not null
                 ? shelf.FocusBookAsync(bookId, cancellationToken)
                 : Task.CompletedTask;
-        ReaderViewModel CreateReader() => new(
-            services.GetRequiredService<IReaderSessionService>(),
+        ReaderViewModel CreateReader(IReaderSessionService? paneSessions = null, ITextLayerService? paneText = null) => new(
+            paneSessions ?? services.GetRequiredService<IReaderSessionService>(),
             services.GetRequiredService<IAnnotationService>(),
             services.GetRequiredService<IBookmarkService>(),
             services.GetRequiredService<IAnnotationLayerService>(),
             services.GetRequiredService<ICitationService>(),
             services.GetRequiredService<IReadingMemoryService>(),
             localization,
-            services.GetRequiredService<ITextLayerService>(),
+            paneText ?? services.GetRequiredService<ITextLayerService>(),
             services.GetRequiredService<IPageRenderCache>(),
             services.GetRequiredService<IReaderPortabilityService>(),
             services.GetRequiredService<ILogger<ReaderViewModel>>(),
@@ -144,7 +144,7 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
             new PasswordUnlockViewModel(
                 services.GetRequiredService<IPasswordProvider>(),
                 localization,
-                services.GetRequiredService<IReaderSessionService>(),
+                paneSessions ?? services.GetRequiredService<IReaderSessionService>(),
                 new OgmaLibrary.App.Views.Reader.AvaloniaPasswordPrompt(localization)),
             async (bookId, cancellationToken) =>
             {
@@ -153,7 +153,16 @@ internal sealed class ShellModule : IOgmaModuleRegistrar
                 return detail?.Sha256Hash is { Length: > 0 } hash ? (hash, detail.Title) : null;
             });
         var reader = CreateReader();
-        var splitView = new SplitViewViewModel(localization, reader, CreateReader());
+        // READ-012: each split pane takes its own session scope; the main reader keeps its instance.
+        var paneSessions = services.GetRequiredService<IReaderSessionServiceFactory>();
+        var splitView = new SplitViewViewModel(localization, () =>
+        {
+            IReaderSessionScope scope = paneSessions.CreateScope();
+            return new SplitPaneViewModel(
+                CreateReader(scope.Sessions, scope.TextLayers),
+                new BookPickerViewModel(readModel, localization),
+                scope);
+        });
         var search = new SearchViewModel(
             services.GetRequiredService<IUnifiedSearchService>(),
             navigation,

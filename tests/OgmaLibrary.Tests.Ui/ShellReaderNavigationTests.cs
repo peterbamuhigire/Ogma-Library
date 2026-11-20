@@ -698,8 +698,8 @@ public sealed partial class ShellReaderNavigationTests
         Assert.False(shell.IsReaderActive);
         Assert.False(shell.IsCatalogueActive);
         Assert.False(shell.BookDetail.IsVisible);
-        Assert.Contains("reference reader", splitView.PlaceholderText, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("Open reference", splitView.OpenReferenceLabel);
+        Assert.Contains("Search the library", splitView.PlaceholderText, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(splitView.Panes);
 
         var window = new Window
         {

@@ -1,6 +1,4 @@
 using Avalonia.Controls;
-using Avalonia.Interactivity;
-using OgmaLibrary.App.Infrastructure;
 using OgmaLibrary.App.ViewModels.Reader;
 
 namespace OgmaLibrary.App.Views.Reader;
@@ -14,14 +12,13 @@ public partial class SplitViewView : UserControl
         InitializeComponent();
     }
 
-    private void OpenReferenceButton_Click(object? sender, RoutedEventArgs e) =>
-        UiActions.Run(() => OpenReferenceButton_ClickAsync(sender, e), "reader.open_reference_button_click");
-
-    private async Task OpenReferenceButton_ClickAsync(object? sender, RoutedEventArgs e)
+    private void PickerResults_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is SplitViewViewModel vm)
+        if (sender is ListBox { DataContext: SplitPaneViewModel pane } list &&
+            list.SelectedItem is BookPickerItem item)
         {
-            await vm.OpenReferenceAsync().ConfigureAwait(true);
+            list.SelectedItem = null;
+            pane.Picker.Pick(item);
         }
     }
 }

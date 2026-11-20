@@ -1367,6 +1367,11 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
             : _navigationLoop;
     }
 
+    /// <summary>Navigates to the zero-based <paramref name="pageIndex"/>, if it exists.</summary>
+    /// <param name="pageIndex">The target page index.</param>
+    /// <returns>A task that completes when the page is shown.</returns>
+    public Task GoToPageAsync(int pageIndex) => NavigateToAsync(pageIndex);
+
     /// <summary>Navigates to the first page, if available.</summary>
     public Task GoFirstAsync() => NavigateToAsync(0);
 
