@@ -70,6 +70,6 @@ Run `p12-reader`; filter `Category=E2E&(Tag=Reader)`; sizes 1280x800,1920x1080; 
 | J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1280x800 | PASS |  | 26.9 | artifacts\e2e\p12-reader\Light\J-READ-SHARP |
 | J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1280x800 | PASS |  | 28.1 | artifacts\e2e\p12-reader\Light\J-READ-SHARP |
 | J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1280x800 | PASS |  | 28.5 | artifacts\e2e\p12-reader\Dark\J-READ-SHARP |
-| J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1920x1080 | PASS |  | 27.6 | artifacts\e2e\p12-reader\Light\J-READ-SHARP |
-| J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1920x1080 | PASS |  | 28.7 | artifacts\e2e\p12-reader\Dark\J-READ-SHARP |
-| J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1920x1080 | PASS |  | 26.5 | artifacts\e2e\p12-reader\Light\J-READ-SHARP |
+| J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1920x1080 | NOT_ASSESSED (probe sampled a misplaced page, K139; test result was PASS) |  | 27.6 | artifacts\e2e\p12-reader\Light\J-READ-SHARP |
+| J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1920x1080 | NOT_ASSESSED (probe sampled a misplaced page, K139; test result was PASS) |  | 28.7 | artifacts\e2e\p12-reader\Dark\J-READ-SHARP |
+| J-READ-SHARP | JReadSharp_TextSharpnessAt100Percent | 1920x1080 | NOT_ASSESSED (probe sampled a misplaced page, K139; test result was PASS) |  | 26.5 | artifacts\e2e\p12-reader\Light\J-READ-SHARP |

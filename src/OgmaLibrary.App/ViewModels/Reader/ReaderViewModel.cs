@@ -1062,7 +1062,39 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
     }
 
     /// <summary>Localized label for the reader panel.</summary>
-    public string ReaderTitle => _localization["Reader.Panel.Title"];
+    public string ReaderTitle => string.IsNullOrWhiteSpace(_bookTitle) ? _localization["Reader.Panel.Title"] : _bookTitle;
+
+    private string? _bookTitle;
+
+    private void SetBookTitle(string? title)
+    {
+        string? trimmed = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+        if (string.Equals(_bookTitle, trimmed, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _bookTitle = trimmed;
+        OnPropertyChanged(nameof(ReaderTitle));
+    }
+
+    private async Task LoadBookTitleAsync(string bookId, CancellationToken cancellationToken)
+    {
+        if (_bookIdentity is null)
+        {
+            return;
+        }
+
+        try
+        {
+            (string Hash, string? Title)? identity = await _bookIdentity(bookId, cancellationToken).ConfigureAwait(true);
+            SetBookTitle(identity?.Title);
+        }
+        catch (Exception exception) when (!ExceptionClassification.IsFatal(exception) && exception is not OperationCanceledException)
+        {
+            // The title is decoration; the localised label stays as the fallback.
+        }
+    }
 
     /// <summary>Localized label for the bookmark panel.</summary>
     public string BookmarkPanelLabel => _localization["Bookmark.Panel"];
@@ -1307,6 +1339,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
         PageCount = 0;
         PageImage = null;
         SecondPageImage = null;
+        SetBookTitle(null);
 
         try
         {
@@ -1315,6 +1348,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 .ConfigureAwait(true);
 
             await UpdateSessionAsync(session, cancellationToken).ConfigureAwait(true);
+            await LoadBookTitleAsync(bookId, cancellationToken).ConfigureAwait(true);
             return true;
         }
         catch (OperationCanceledException)
@@ -1360,6 +1394,7 @@ public sealed partial class ReaderViewModel : INotifyPropertyChanged
                 return false;
             }
 
+            SetBookTitle(identity.Value.Title);
             ReaderSession? session = await _unlock
                 .RequestAndOpenAsync(bookId, identity.Value.Hash, identity.Value.Title, pageHint, cancellationToken)
                 .ConfigureAwait(true);

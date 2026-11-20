@@ -32,7 +32,7 @@ Run `p12-reader` (`Invoke-GoldenJourneys.ps1 -Tag Reader -Sizes 1280x800,1920x10
 | J-READ-N1 truncated PDF | NOT_ASSESSED | NOT_ASSESSED | the catalogue does not list the file; the refusal is covered by G6 |
 | J-READ-N2 cancelled password prompt | PASS | PASS | |
 | J-READ-AREA page-area share | PASS | NOT_ASSESSED | the 85 % threshold is defined at 1280x800 only |
-| J-READ-SHARP sharpness at 100 % | PASS | PASS | |
+| J-READ-SHARP sharpness at 100 % | PASS | NOT_ASSESSED | the probe sampled a misplaced page (K139); re-measure after K139 is fixed |
 | G3 turn fifty pages | PASS (baseline cleared) | PASS (baseline cleared) | |
 | G5 resume after relaunch | PASS | PASS | |
 | G6 truncated PDF refused | PASS | PASS | Light only |
@@ -49,7 +49,7 @@ The runner lists three rows per journey and size (the Light and Dark runs plus a
 | Page-turn p95, 1280x800 | 304 ms (Phase CO run `co-final`) | **61-62 ms** (G3, 50 turns), **69-71 ms** (J-READ-1, 200 turns); budget 250 ms | MEASURED |
 | Page-turn p95, 1920x1080 | 267 ms | **173-175 ms** (G3), **206-231 ms** (J-READ-1) | MEASURED |
 | Longest page turn | 3,725 ms | G3: 65-101 ms at 1280x800, 216 ms and 1,150 ms at 1920x1080. Slice 7 saw 989 ms and 8,954 ms in J-READ-1 (K138) | MEASURED |
-| Sharpness (Laplacian variance, title page, 100 %) | Phase 04: 853 to 2,605 (different page and method) | 535 (Light) and 981 (Dark) at 1280x800; 1,230 and 1,560 at 1920x1080. The floor of 400 is a regression guard | MEASURED |
+| Sharpness (Laplacian variance, title page, 100 %) | Phase 04: 853 to 2,605 (different page and method) | 535 (Light) and 981 (Dark) at 1280x800; 1920x1080 NOT_ASSESSED (the earlier 1,230 and 1,560 came from a misplaced page, K139, and do not show sharpness of a correct layout). The floor of 400 is a regression guard | MEASURED |
 | Sharpness at 150 % and 200 % display scaling | none | not run | NOT_ASSESSED |
 | Toolbars and duplicate navigation sets in the reader | 3 toolbars, 2 navigation sets | 1 toolbar, 1 navigation set (keyboard and edge zones) | CODE (`Sept23Phase12ReaderFocusTests`) |
 | READ requirements at M (missing) | 2 (spread and continuous, full screen) | 0 in code: spread and virtualised continuous layouts, F11 full screen | CODE |
@@ -95,7 +95,7 @@ Spectral for the reader title, Public Sans for the toolbar, tabular numerals (`t
 | 1920x1080 page-area share (threshold defined at 1280x800 only) | Phase 24 |
 | Keyboard focus inside the annotate flyout; real-window side panel resize | Phase 21 |
 
-Open defects: K135, K136, K137, K138 (K138 also tracks the 1,150 ms turn at 1920x1080). One observation, not yet registered as a defect: at 1920x1080 the sharpness probe reports the page at Y=684 of a 1,041 px client area, so the page is probably scrolled or centred low; check it in the owner walkthrough.
+Open defects: K135, K136, K137, K138, **K139** (P2: the 1920x1080 page is misplaced, content about 580 px below the top of the frame and half width at the bottom left; MEASURED from the 1920x1080 reader screenshots; not fixed in this phase) (K138 also tracks the 1,150 ms turn at 1920x1080). Reader toolbar title now shows the open book's title (localised label as fallback).
 
 ## 7. Rollback points (revert the slice's commit; each is independent of the later ones except where noted)
 

@@ -28,6 +28,19 @@ public sealed partial class ShellReaderNavigationTests
     }
 
     [AvaloniaFact]
+    public async Task ReaderTitle_ShowsBookTitle_WhenOpen_AndLabelBeforeThat()
+    {
+        var prompt = new OneShotPrompt(new PasswordPromptResult("s3cret-pass".ToCharArray(), remember: false));
+        (ReaderViewModel reader, LockedSessions _) = CreateLockedReader(prompt, new CapturingLogger());
+        string label = new InMemoryLocalizationService()["Reader.Panel.Title"];
+        Assert.Equal(label, reader.ReaderTitle);
+
+        await reader.OpenAsync(LockedBookId, pageHint: null, CancellationToken.None);
+
+        Assert.Equal("Locked book", reader.ReaderTitle);
+    }
+
+    [AvaloniaFact]
     public async Task Reader_LockedBook_Cancel_LeavesLockedState()
     {
         var prompt = new OneShotPrompt((PasswordPromptResult?)null);
