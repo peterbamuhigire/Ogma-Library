@@ -1344,11 +1344,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 .ConfigureAwait(false);
             if (filePath is null)
             {
-                UpdateOnUiThread(() =>
+                await UpdateOnUiThreadAsync(() =>
                 {
                     WriteBackStatusText = MissingFileText;
                     IsPreparingWriteBack = false;
-                });
+                }).ConfigureAwait(false);
                 return;
             }
 
@@ -1357,11 +1357,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 .ConfigureAwait(false);
             if (diff.Count == 0)
             {
-                UpdateOnUiThread(() =>
+                await UpdateOnUiThreadAsync(() =>
                 {
                     WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.NoChanges"];
                     IsPreparingWriteBack = false;
-                });
+                }).ConfigureAwait(false);
                 return;
             }
 
@@ -1369,7 +1369,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 .PrepareBackupAsync(bookId, filePath, cancellationToken)
                 .ConfigureAwait(false);
             string[] rows = diff.Select(FormatWriteBackDiff).ToArray();
-            UpdateOnUiThread(() =>
+            await UpdateOnUiThreadAsync(() =>
             {
                 if (!string.Equals(_book?.BookId, bookId, StringComparison.Ordinal))
                 {
@@ -1391,11 +1391,11 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Prepared"];
                 IsPreparingWriteBack = false;
                 NotifyWriteBackStateChanged();
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            UpdateOnUiThread(() =>
+            await UpdateOnUiThreadAsync(() =>
             {
                 // Never surface exception text here: it may contain a private source path
                 // or provider detail. Diagnostics remain available through the redacted
@@ -1403,7 +1403,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.Failed"];
                 IsWriteBackError = true;
                 IsPreparingWriteBack = false;
-            });
+            }).ConfigureAwait(false);
         }
     }
 
@@ -1424,7 +1424,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             bool written = await _writeBackService
                 .WriteAsync(bookId, proposals, token, cancellationToken)
                 .ConfigureAwait(false);
-            UpdateOnUiThread(() =>
+            await UpdateOnUiThreadAsync(() =>
             {
                 WriteBackStatusText = written
                     ? _localization["Catalogue.BookDetail.WriteBack.Complete"]
@@ -1439,17 +1439,17 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
 
                 IsWritingWriteBack = false;
                 NotifyWriteBackStateChanged();
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "writeback.confirm");
-            UpdateOnUiThread(() =>
+            await UpdateOnUiThreadAsync(() =>
             {
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.FailedFormat"];
                 IsWriteBackError = true;
                 IsWritingWriteBack = false;
-            });
+            }).ConfigureAwait(false);
         }
     }
 
@@ -1482,7 +1482,7 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
             bool restored = await _writeBackService
                 .RestoreBackupAsync(_book.BookId, _writeBackToken, cancellationToken)
                 .ConfigureAwait(false);
-            UpdateOnUiThread(() =>
+            await UpdateOnUiThreadAsync(() =>
             {
                 WriteBackStatusText = restored
                     ? _localization["Catalogue.BookDetail.WriteBack.Restored"]
@@ -1494,17 +1494,17 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
                 }
 
                 IsWritingWriteBack = false;
-            });
+            }).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             AppLog.ViewModelOperationFailed(_logger, ex, ViewModelName, "writeback.restore");
-            UpdateOnUiThread(() =>
+            await UpdateOnUiThreadAsync(() =>
             {
                 WriteBackStatusText = _localization["Catalogue.BookDetail.WriteBack.RestoreFailed"];
                 IsWriteBackError = true;
                 IsWritingWriteBack = false;
-            });
+            }).ConfigureAwait(false);
         }
     }
 
@@ -2294,6 +2294,22 @@ public sealed partial class BookDetailViewModel : INotifyPropertyChanged, IDispo
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(action);
         }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="action"/> on the UI thread and completes after it ran. Callers that
+    /// read state right after awaiting an operation (the write-back dialog) need this; a posted
+    /// update could still be queued when the operation returned (K129).
+    /// </summary>
+    private static Task UpdateOnUiThreadAsync(Action action)
+    {
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+            return Task.CompletedTask;
+        }
+
+        return Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(action).GetTask();
     }
 
     // ── Field group membership sets ───────────────────────────────────────────

@@ -56,6 +56,21 @@ public sealed class Phase11WriteBackFlowTests
     }
 
     [AvaloniaFact]
+    public async Task Phase11WriteBack_PreparedWhenPrepareReturns_EvenIfIoCompletesOffTheUiThread()
+    {
+        // K129: the view opens the dialog only if HasPreparedWriteBack is true as soon as
+        // PrepareWriteBackAsync returns. Real I/O resumes on the thread pool, and a posted UI
+        // update left the flag false, so the dialog never opened in the real window.
+        (BookDetailViewModel vm, FakeWriteBack writeBack) = await CreateAsync();
+        writeBack.CompleteOffUiThread = true;
+
+        await vm.PrepareWriteBackAsync();
+
+        Assert.True(vm.HasPreparedWriteBack);
+        Assert.Equal("C:\\library\\.ogma\\backups\\review.pdf", vm.CreateWriteBackDialog().BackupPath);
+    }
+
+    [AvaloniaFact]
     public async Task Phase11WriteBack_CancelDiscardsTokenWithoutWriting()
     {
         (BookDetailViewModel vm, FakeWriteBack writeBack) = await CreateAsync();
@@ -298,11 +313,19 @@ public sealed class Phase11WriteBackFlowTests
         public BackupToken? LastPreparedToken { get; private set; }
         public BackupToken? LastRestoredToken { get; private set; }
 
-        public Task<BackupToken> PrepareBackupAsync(
+        /// <summary>Completes the backup on the thread pool, as real file I/O does (K129).</summary>
+        public bool CompleteOffUiThread { get; set; }
+
+        public async Task<BackupToken> PrepareBackupAsync(
             string bookId, string absoluteFilePath, CancellationToken cancellationToken = default)
         {
+            if (CompleteOffUiThread)
+            {
+                await Task.Run(() => Thread.Sleep(20), cancellationToken).ConfigureAwait(false);
+            }
+
             LastPreparedToken = new BackupToken("C:\\library\\.ogma\\backups\\review.pdf", absoluteFilePath, "abc");
-            return Task.FromResult(LastPreparedToken);
+            return LastPreparedToken;
         }
 
         public Task<WriteBackPlan?> GetWriteBackPlanAsync(
