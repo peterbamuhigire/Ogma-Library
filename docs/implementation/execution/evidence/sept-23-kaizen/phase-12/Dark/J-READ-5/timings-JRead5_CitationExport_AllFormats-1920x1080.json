@@ -1,0 +1,32 @@
+{
+  "journey": "J-READ-5",
+  "test": "JRead5_CitationExport_AllFormats",
+  "size": "1920x1080",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Dark",
+  "launch.timeToWindowMs": 3375,
+  "shell.readyMs": 9516,
+  "library.chooseFolderPressedMs": 9904,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 13029,
+  "catalogue.firstItemMs": 13339,
+  "catalogue.settledMs": 22141,
+  "catalogue.count": 13,
+  "detail.readEnabledMs": 23304,
+  "reader.openedMs": 25093,
+  "citation.PlainText.length": 71,
+  "citation.BibTeX.length": 139,
+  "citation.Ris.length": 105,
+  "citation.CslJson.length": 244,
+  "citation.Markdown.length": 75,
+  "status": "PASS",
+  "totalMs": 29521,
+  "log.warningsOrAbove": 5,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 707,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

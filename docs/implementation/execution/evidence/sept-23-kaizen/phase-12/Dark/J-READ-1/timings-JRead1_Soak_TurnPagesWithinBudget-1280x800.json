@@ -1,0 +1,33 @@
+{
+  "journey": "J-READ-1",
+  "test": "JRead1_Soak_TurnPagesWithinBudget",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Dark",
+  "launch.timeToWindowMs": 3668,
+  "shell.readyMs": 10479,
+  "library.chooseFolderPressedMs": 10871,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 14008,
+  "catalogue.firstItemMs": 14333,
+  "catalogue.settledMs": 22786,
+  "catalogue.count": 13,
+  "detail.readEnabledMs": 23811,
+  "reader.openedMs": 25714,
+  "soak.requestedTurns": 200,
+  "soak.completedTurns": 200,
+  "soak.p50Ms": 40.4349,
+  "soak.p95Ms": 71.0306,
+  "soak.longestMs": 928.9448,
+  "soak.method": "Reader.EdgeNext Invoke until Reader.PageNumber advances (UIA round trips included)",
+  "status": "PASS",
+  "totalMs": 57983,
+  "log.warningsOrAbove": 5,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 761,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

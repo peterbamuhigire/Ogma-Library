@@ -1,0 +1,30 @@
+{
+  "journey": "J-READ-AREA",
+  "test": "JReadArea_PageAreaShare",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Dark",
+  "launch.timeToWindowMs": 3226,
+  "shell.readyMs": 8904,
+  "library.chooseFolderPressedMs": 9282,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 12333,
+  "catalogue.firstItemMs": 12659,
+  "catalogue.settledMs": 21171,
+  "catalogue.count": 13,
+  "detail.readEnabledMs": 22375,
+  "reader.openedMs": 24102,
+  "pageArea.shareSidePanelOpen": 0.6585,
+  "pageArea.share": 0.8817,
+  "pageArea.method": "Reader.Viewport UIA bounds over the window client rectangle, side panel closed (open value recorded separately)",
+  "status": "PASS",
+  "totalMs": 24757,
+  "log.warningsOrAbove": 5,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 686,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

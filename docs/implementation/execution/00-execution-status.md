@@ -14,6 +14,13 @@ claims below describe gate evidence, not a working product. Phase progress is tr
 [status register](../../plans/sept-23-kaizen/README.md#status-register) and
 [execution log](../../plans/sept-23-kaizen/EXECUTION-LOG.md).
 
+- **Sept-23 Phase 12** (reader experience): **IMPLEMENTED** 2026-11-20 on branch
+  `kaizen/phase-12` (rollback `99eeff5e`). Not COMPLETE. The static gates and the fast suite pass on
+  `886bcc3b`. In the real window at both sizes and both themes, J-READ-1, 2, 3, 5, 6, N2, SHARP, G3, G5
+  and G8 pass (G6 Light). Page area 88.2 % with the side panel closed; G3 p95 62 ms and 174 ms.
+  Open: J-READ-4 split view (K136); K135, K137, K138; 150/200 % scaling, screen reader, macOS keychain,
+  reference machine and owner walkthrough NOT_ASSESSED.
+  [Record](phase-sept23-12-completion.md).
 - **Sept-23 Phase 11** (book detail inspector): **IMPLEMENTED** 2026-11-20 on branch
   `kaizen/phase-11` (rollback `bde93dac`). Not COMPLETE. The static gates pass on `3ffac4a8`.
   In the real window at both sizes and both themes, J-DET-1, J-DET-4, the negative journey,

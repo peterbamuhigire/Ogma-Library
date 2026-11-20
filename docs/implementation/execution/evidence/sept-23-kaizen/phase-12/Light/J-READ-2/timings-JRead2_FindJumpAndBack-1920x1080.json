@@ -1,0 +1,29 @@
+{
+  "journey": "J-READ-2",
+  "test": "JRead2_FindJumpAndBack",
+  "size": "1920x1080",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Light",
+  "launch.timeToWindowMs": 3375,
+  "shell.readyMs": 10699,
+  "library.chooseFolderPressedMs": 11114,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 14444,
+  "catalogue.firstItemMs": 14784,
+  "catalogue.settledMs": 23511,
+  "catalogue.count": 13,
+  "detail.readEnabledMs": 24558,
+  "reader.openedMs": 26157,
+  "find.resultCount": 15,
+  "find.jumpedToPage": 3,
+  "status": "PASS",
+  "totalMs": 28142,
+  "log.warningsOrAbove": 5,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 559,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

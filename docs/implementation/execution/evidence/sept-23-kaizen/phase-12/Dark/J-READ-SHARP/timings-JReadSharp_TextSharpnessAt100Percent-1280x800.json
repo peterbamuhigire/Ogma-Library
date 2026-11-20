@@ -1,0 +1,30 @@
+{
+  "journey": "J-READ-SHARP",
+  "test": "JReadSharp_TextSharpnessAt100Percent",
+  "size": "1280x800",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Dark",
+  "launch.timeToWindowMs": 3549,
+  "shell.readyMs": 10050,
+  "library.chooseFolderPressedMs": 10460,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 13714,
+  "catalogue.firstItemMs": 14048,
+  "catalogue.settledMs": 22824,
+  "catalogue.count": 13,
+  "detail.readEnabledMs": 23944,
+  "reader.openedMs": 25385,
+  "visibility.sharpness page": "Image id=\u0027Reader.Page\u0027 name=\u0027\u0027 bounds={X=29,Y=231,Width=720,Height=1018} client={X=8,Y=31,Width=1264,Height=761} offscreen=False hits=[389,511: own; 173,343: own; 605,343: own; 173,680: own; 605,680: own] painted=9.7% PASS",
+  "sharpness.laplacianVariance": 980.5,
+  "sharpness.displayScaling": "100% only; 150% and 200% NOT ASSESSED (D-94, owner Phase 24)",
+  "status": "PASS",
+  "totalMs": 27421,
+  "log.warningsOrAbove": 5,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 623,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

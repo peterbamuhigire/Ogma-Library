@@ -1,0 +1,36 @@
+{
+  "journey": "G5",
+  "test": "G5_Resume_SamePageAfterRelaunch",
+  "size": "1920x1080",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Light",
+  "launch.timeToWindowMs": 3486,
+  "shell.readyMs": 36947,
+  "library.chooseFolderPressedMs": 9902,
+  "library.pickerRoute": "Hook",
+  "library.folderChosenMs": 13069,
+  "catalogue.firstItemMs": 13401,
+  "catalogue.settledMs": 39756,
+  "catalogue.count": 13,
+  "detail.readEnabledMs": 41322,
+  "reader.openedMs": 43224,
+  "relaunch.previousClose": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 817,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  },
+  "relaunch.timeToWindowMs": 3458,
+  "resume.elapsedSeconds": 15.9717314,
+  "resume.restoredPage": 7,
+  "status": "PASS",
+  "totalMs": 43481,
+  "log.warningsOrAbove": 8,
+  "log.uiThreadViolations": 0,
+  "close": {
+    "ExitedCleanly": true,
+    "ExitMilliseconds": 660,
+    "OrphanedWorkers": [],
+    "ExitCode": 0
+  }
+}

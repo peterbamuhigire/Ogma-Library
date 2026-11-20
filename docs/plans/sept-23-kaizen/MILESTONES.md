@@ -137,6 +137,14 @@ MEASURED, run `co-final` on `ebb7b718`. [Record](../../implementation/execution/
   - Keep separate (K118) and localised job rows (K121).
 
   [Record](../../implementation/execution/phase-sept23-10-completion.md).
+- **Phase 12, reader experience: IMPLEMENTED 2026-11-20 (branch `kaizen/phase-12`); not COMPLETE.** Measured before → after:
+  - Page area share at 1280×800 (side panel closed): about 55 % → 88.2 % (65.9 % with the panel open, its default).
+  - G3 page-turn p95: 304 ms → 62 ms at 1280×800; 267 ms → 174 ms at 1920×1080 (budget 250 ms).
+  - Reader chrome: 3 toolbars and 2 navigation sets → 1 toolbar and 1 navigation set.
+  - Locked PDF: cannot be opened → opens with the right password (J-READ-3, J-READ-N2).
+  - New in code: spread and continuous layouts, find bar, page history, Contents tab, split view with a session per pane, five citation formats, position flush on exit.
+  - Open: J-READ-4 cannot run (K136); K135, K137, K138; 150/200 % scaling, screen reader, macOS keychain, reference machine and owner walkthrough NOT_ASSESSED.
+  [Record]('+rec12+').
 - **Phase 11, book detail inspector: IMPLEMENTED 2026-11-20 (branch `kaizen/phase-11`); not
   COMPLETE.** Measured before → after:
   - Section headers: 7 tabs wrapping onto 3 rows → 1 row of 4 segments.

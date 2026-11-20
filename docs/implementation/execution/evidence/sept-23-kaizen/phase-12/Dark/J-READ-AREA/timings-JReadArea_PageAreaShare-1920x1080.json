@@ -1,0 +1,11 @@
+{
+  "journey": "J-READ-AREA",
+  "test": "JReadArea_PageAreaShare",
+  "size": "1920x1080",
+  "exe": "C:\\wamp64\\www\\_autorun\\Ogma-Library\\kaizen\\wt\\artifacts\\e2e\\app\\OgmaLibrary.App.exe",
+  "theme": "Dark",
+  "status": "NOT ASSESSED",
+  "totalMs": 2,
+  "log.warningsOrAbove": 0,
+  "log.uiThreadViolations": 0
+}
