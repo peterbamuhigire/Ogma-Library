@@ -57,7 +57,9 @@ school network. Today a teacher cannot reach it:
 6. **Clean shutdown.** App exit stops the listener and mDNS advertisement within 3 s and writes an audit
    event. The Phase 01 harness asserts that the port is free after exit.
 7. **School AI proxy.** The proxy resolves the provider from the Host's school provider profile
-   (Phase 15), not the fail-closed default. With no key configured, Student Smart Search shows "Your
+   (Phase 15), not the fail-closed default. **The default school provider is Ollama on the Host**
+   (D-06; [09-ollama-readiness.md](../09-ollama-readiness.md) OR-03, OR-06 to OR-11). Only with neither
+   a Host Ollama nor a school cloud profile does Student Smart Search show "Your
    teacher has not enabled AI" instead of failing. `ClassroomAnswerGrounder` uses the Phase 16
    grounded-answer contract (ADMIN-011).
 8. **Firewall guidance.** On first Host start, detect whether an inbound rule exists for the app on the
@@ -122,6 +124,10 @@ and multi-host federation.
 9. **School AI proxy.** Resolve the provider from the school profile via `IAiProviderFactory`
    (Phase 15). Enforce the policy, quota (ADMIN-008) and rate limit (ADMIN-009) already present in
    `AiProxyEndpointHandler`. Ground answers with `ClassroomAnswerGrounder` on the Phase 16 contract.
+   Deliver the Host parts of `09-ollama-readiness.md`: the `school-metadata-search` role mapped to an
+   installed tag (OR-03), warm-up (OR-06), staff and pupil messages (OR-07), the bounded queue
+   (OR-08), complete-path gates (OR-09), the hallucination fixture (OR-10), the Host Local AI card
+   (OR-11) and journey J-SCH-AI. Ollama stays on the Host's loopback; pupils never reach it.
 10. **Remove dead panels.** Delete or integrate the three `IsVisible="False"` host panels and their dead
     handlers (`CatalogueShellView.axaml.cs:261-329`).
 11. **Two-machine protocol.** Write `docs/qa/classroom-two-machine-protocol.md`: hardware, network
@@ -191,6 +197,7 @@ You are implementing Phase 19 in C:\wamp64\www\Ogma-Library. Read first, in orde
 3. docs/plans/sept-23-kaizen/AGENT_BRIEF.md
 4. docs/plans/sept-23-kaizen/phases/phase-19-classroom-host-and-admin.md
 5. docs/plans/sept-23-kaizen/03-defect-register.md (K04, K17, K51, K61)
+6. docs/plans/sept-23-kaizen/09-ollama-readiness.md (Host requirements; binding)
 Read the section 4 SKILL.md files; glob the windows-admin engine for its firewall skill before task 8.
 Confirm Phases 02, 07, 08 and 15 are COMPLETE.
 Order: 1-2 (composition and mode), 6-7 (start failures, shutdown), 3-5 (dashboard, publishing, sessions), 9 (AI proxy), 8 (firewall, with consent), 10, 11.

@@ -175,6 +175,9 @@ and uses an installation the user (or the school's IT person) already has.
 7. **Not in scope here:** a shared Ollama server on the school network belongs to Phase 19 (school
    proxy), with its own host allowlist; it is never auto-detected from the LAN.
 
+**Detailed requirements:** [09-ollama-readiness.md](../09-ollama-readiness.md) (binding). Phase 15 delivers
+OR-01 to OR-05, OR-11 (Local AI page), OR-12 and the OR-06 standalone option.
+
 **Acceptance for §3b:** resolver tests for: no Ollama; Ollama with no model; Ollama with a chat model
 (becomes default); Ollama plus a user-chosen cloud profile (cloud stays); a remote-flagged Ollama model
 (not auto-selected); `OLLAMA_HOST` pointing off-loopback (ignored). A fake Ollama server in the test
@@ -280,6 +283,7 @@ plan in C:\wamp64\www\Ogma-Library. Read first, in order:
 2. docs/plans/sept-23-kaizen/README.md and AGENT_BRIEF.md
 3. docs/plans/sept-23-kaizen/phases/phase-15-ai-gateway-and-privacy-center.md
 4. docs/plans/sept-23-kaizen/03-defect-register.md row K50 and 08-master-plan.md D-06
+5. docs/plans/sept-23-kaizen/09-ollama-readiness.md (Ollama requirements OR-01 to OR-16)
 Load the skills in section 4. Run the digital-research currentness gate first (15.1) and record every
 provider, model ID and price claim in 00-currentness-register.md; if Anthropic is chosen, load the
 claude-api skill for exact model IDs. Sections 3a and 3b (owner, 2026-11-20) are binding: on-device Ollama is the plug-and-play default when
